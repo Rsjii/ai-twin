@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../../config/db';
+import { prisma } from '../../config/prisma';
 import { generateInviteCode } from '../auth/authService';
 import { logger } from '../../config/logger';
 import { AuthenticatedRequest } from '../../middleware/auth';

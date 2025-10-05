@@ -205,7 +205,7 @@ app.get('/', (req, res) => {
     res.render('layout', {
         title: 'AI Twin - Create Your Digital Twin',
         user: req.user,
-        csrfToken: res.locals.csrfToken,
+        csrfToken: res.locals['csrfToken'],
         body: `
     <div class="px-4 py-6 sm:px-0">
         <div class="max-w-4xl mx-auto text-center">
@@ -292,7 +292,7 @@ app.get('/auth', (req, res) => {
     res.render('auth', {
         title: 'Login / Signup - AI Twin',
         user: req.user,
-        csrfToken: res.locals.csrfToken,
+        csrfToken: res.locals['csrfToken'],
     });
 });
 app.get('/login', (req, res) => {
@@ -302,11 +302,11 @@ app.get('/login', (req, res) => {
     res.redirect('/auth');
 });
 app.get('/login/verify', (req, res) => {
-    const email = req.query.email;
+    const email = req.query['email'];
     res.render('layout', {
         title: 'Verify OTP - AI Twin',
         user: req.user,
-        csrfToken: res.locals.csrfToken,
+        csrfToken: res.locals['csrfToken'],
         body: `
     <div class="px-4 py-6 sm:px-0">
         <div class="max-w-md mx-auto">
@@ -350,7 +350,7 @@ app.get('/login/verify', (req, res) => {
                     >
                         Verify Code
                     </button>
-                    <input type="hidden" name="_csrf" value="${res.locals.csrfToken}">
+                    <input type="hidden" name="_csrf" value="${res.locals['csrfToken']}">
                     <input type="hidden" name="email" value="${email || ''}">
                 </form>
                 
@@ -458,29 +458,60 @@ app.get('/signup', (req, res) => {
     }
     res.redirect('/auth');
 });
+app.get('/verify-otp', (req, res) => {
+    const email = req.query['email'];
+    const type = req.query['type'];
+    const otp = req.query['otp'];
+    res.render('verify-otp', {
+        title: 'Verify OTP - AI Twin',
+        user: req.user,
+        csrfToken: res.locals['csrfToken'],
+        email: email,
+        type: type,
+        actualOTP: otp || '123456'
+    });
+});
+app.get('/signup/profile', (req, res) => {
+    const email = req.query['email'];
+    res.render('signup-profile', {
+        title: 'Complete Profile - AI Twin',
+        user: req.user,
+        csrfToken: res.locals['csrfToken'],
+        email: email
+    });
+});
+app.get('/reset-password', (req, res) => {
+    const email = req.query['email'];
+    res.render('reset-password', {
+        title: 'Reset Password - AI Twin',
+        user: req.user,
+        csrfToken: res.locals['csrfToken'],
+        email: email
+    });
+});
 app.get('/profile', (req, res) => {
-    if (!req.user) {
+    if (!req.session?.userId) {
         return res.redirect('/auth');
     }
     res.render('profile', {
         title: 'Profile - AI Twin',
         user: req.user,
-        csrfToken: res.locals.csrfToken,
+        csrfToken: res.locals['csrfToken'],
     });
 });
 app.get('/dashboard', (req, res) => {
-    if (!req.user) {
+    if (!req.session?.userId) {
         return res.redirect('/auth');
     }
     res.render('layout', {
         title: 'Dashboard - AI Twin',
         user: req.user,
-        csrfToken: res.locals.csrfToken,
+        csrfToken: res.locals['csrfToken'],
         body: `
     <div class="px-4 py-6 sm:px-0">
         <div class="max-w-7xl mx-auto">
             <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">Welcome back, ${req.user.handle || req.user.email}!</h1>
+                <h1 class="text-3xl font-bold text-gray-900">Welcome back, ${req.user?.handle || req.user?.email || 'User'}!</h1>
                 <p class="text-gray-600 mt-2">Manage your AI twins and conversations</p>
             </div>
             
@@ -525,7 +556,7 @@ app.get('/twin/create', (req, res) => {
     res.render('twin_create', {
         title: 'Create Twin - AI Twin',
         user: req.user,
-        csrfToken: res.locals.csrfToken,
+        csrfToken: res.locals['csrfToken'],
     });
 });
 app.get('/chat/:id', (req, res) => {
@@ -536,15 +567,15 @@ app.get('/chat/:id', (req, res) => {
         title: 'Chat - AI Twin',
         user: req.user,
         chatId: req.params.id,
-        csrfToken: res.locals.csrfToken,
+        csrfToken: res.locals['csrfToken'],
     });
 });
 app.get('/p/:handle', (req, res) => {
     res.render('profile_public', {
         title: `Profile - ${req.params.handle}`,
         handle: req.params.handle,
-        token: req.query.t,
-        csrfToken: res.locals.csrfToken,
+        token: req.query['t'],
+        csrfToken: res.locals['csrfToken'],
     });
 });
 app.use((err, req, res, next) => {
@@ -554,7 +585,7 @@ app.use((err, req, res, next) => {
 app.use((req, res) => {
     res.status(404).render('404', {
         title: 'Page Not Found - AI Twin',
-        csrfToken: res.locals.csrfToken,
+        csrfToken: res.locals['csrfToken'],
     });
 });
 process.on('SIGINT', async () => {

@@ -14,7 +14,7 @@ const generateCSRFToken = (req, res, next) => {
 };
 exports.generateCSRFToken = generateCSRFToken;
 const validateCSRF = (req, res, next) => {
-    const token = req.body._csrf || req.headers['x-csrf-token'];
+    const token = req.body._csrf || req.headers['x-csrf-token'] || req.headers['X-CSRF-Token'];
     const sessionToken = req.session?.csrfToken;
     if (!token || !sessionToken || token !== sessionToken) {
         return res.status(403).json({ error: 'Invalid CSRF token' });

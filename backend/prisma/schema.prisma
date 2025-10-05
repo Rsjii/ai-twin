@@ -16,6 +16,9 @@ model User {
   passwordHash String?
   handle       String?  @unique
   name         String?
+  dob          String?
+  phone        String?
+  bio          String?
   active       Boolean  @default(false)
   createdAt    DateTime @default(now())
   twins        Twin[]

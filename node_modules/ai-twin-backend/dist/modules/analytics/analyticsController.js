@@ -1,25 +1,25 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getUserAnalytics = exports.getMetricsSummary = void 0;
-const db_1 = require("../../config/db");
+const prisma_1 = require("../../config/prisma");
 const logger_1 = require("../../config/logger");
 const getMetricsSummary = async (req, res) => {
     try {
         const [totalUsers, totalTwins, totalChats, totalMessages, totalInvites, totalEvents, recentSignups, recentTwins,] = await Promise.all([
-            db_1.prisma.user.count(),
-            db_1.prisma.twin.count(),
-            db_1.prisma.chat.count(),
-            db_1.prisma.message.count(),
-            db_1.prisma.invite.count(),
-            db_1.prisma.event.count(),
-            db_1.prisma.user.count({
+            prisma_1.prisma.user.count(),
+            prisma_1.prisma.twin.count(),
+            prisma_1.prisma.chat.count(),
+            prisma_1.prisma.message.count(),
+            prisma_1.prisma.invite.count(),
+            prisma_1.prisma.event.count(),
+            prisma_1.prisma.user.count({
                 where: {
                     createdAt: {
                         gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
                     },
                 },
             }),
-            db_1.prisma.twin.count({
+            prisma_1.prisma.twin.count({
                 where: {
                     createdAt: {
                         gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
@@ -27,7 +27,7 @@ const getMetricsSummary = async (req, res) => {
                 },
             }),
         ]);
-        const eventTypes = await db_1.prisma.event.groupBy({
+        const eventTypes = await prisma_1.prisma.event.groupBy({
             by: ['type'],
             _count: {
                 type: true,
@@ -64,30 +64,30 @@ const getUserAnalytics = async (req, res) => {
             return res.status(401).json({ error: 'Authentication required' });
         }
         const [userTwins, userChats, userMessages, userInvitesSent, userInvitesReceived, userEvents,] = await Promise.all([
-            db_1.prisma.twin.count({
+            prisma_1.prisma.twin.count({
                 where: { userId: req.user.id },
             }),
-            db_1.prisma.chat.count({
+            prisma_1.prisma.chat.count({
                 where: { userId: req.user.id },
             }),
-            db_1.prisma.message.count({
+            prisma_1.prisma.message.count({
                 where: {
                     chat: {
                         userId: req.user.id,
                     },
                 },
             }),
-            db_1.prisma.invite.count({
+            prisma_1.prisma.invite.count({
                 where: { inviterId: req.user.id },
             }),
-            db_1.prisma.invite.count({
+            prisma_1.prisma.invite.count({
                 where: { acceptedBy: req.user.id },
             }),
-            db_1.prisma.event.count({
+            prisma_1.prisma.event.count({
                 where: { userId: req.user.id },
             }),
         ]);
-        const userEventTypes = await db_1.prisma.event.groupBy({
+        const userEventTypes = await prisma_1.prisma.event.groupBy({
             by: ['type'],
             where: { userId: req.user.id },
             _count: {

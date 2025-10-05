@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.processInviteAcceptance = exports.acceptInvite = exports.createInvite = void 0;
-const db_1 = require("../../config/db");
+const prisma_1 = require("../../config/prisma");
 const authService_1 = require("../auth/authService");
 const logger_1 = require("../../config/logger");
 const createInvite = async (req, res) => {
@@ -10,13 +10,13 @@ const createInvite = async (req, res) => {
             return res.status(401).json({ error: 'Authentication required' });
         }
         const code = (0, authService_1.generateInviteCode)();
-        const invite = await db_1.prisma.invite.create({
+        const invite = await prisma_1.prisma.invite.create({
             data: {
                 code,
                 inviterId: req.user.id,
             },
         });
-        await db_1.prisma.event.create({
+        await prisma_1.prisma.event.create({
             data: {
                 userId: req.user.id,
                 type: 'invite_sent',
@@ -42,7 +42,7 @@ const acceptInvite = async (req, res) => {
         if (!code || typeof code !== 'string') {
             return res.status(400).json({ error: 'Invalid invite code' });
         }
-        const invite = await db_1.prisma.invite.findUnique({
+        const invite = await prisma_1.prisma.invite.findUnique({
             where: { code },
             include: {
                 inviter: {
@@ -84,7 +84,7 @@ const processInviteAcceptance = async (req, res) => {
         if (!code) {
             return res.status(400).json({ error: 'Invite code required' });
         }
-        const invite = await db_1.prisma.invite.findUnique({
+        const invite = await prisma_1.prisma.invite.findUnique({
             where: { code },
         });
         if (!invite) {
@@ -93,11 +93,11 @@ const processInviteAcceptance = async (req, res) => {
         if (invite.acceptedBy) {
             return res.status(400).json({ error: 'Invite already used' });
         }
-        await db_1.prisma.invite.update({
+        await prisma_1.prisma.invite.update({
             where: { id: invite.id },
             data: { acceptedBy: req.user.id },
         });
-        await db_1.prisma.event.create({
+        await prisma_1.prisma.event.create({
             data: {
                 userId: req.user.id,
                 type: 'invite_accepted',

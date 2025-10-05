@@ -10,7 +10,11 @@ export interface AuthenticatedRequest extends Request {
 
 export const requireAuth = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   if (!req.session?.userId) {
-    return res.redirect('/login');
+    // Check if this is an API request
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    return res.redirect('/auth');
   }
   
   req.user = {

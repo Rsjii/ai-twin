@@ -4,6 +4,7 @@ import { EmailService, generateOTP, hashOTP, verifyOTP, hashPassword, verifyPass
 import { logger } from '../../config/logger';
 import { config } from '../../config/env';
 import { z } from 'zod';
+import { AuthenticatedRequest } from '../../middleware/auth';
 
 const emailService = new EmailService();
 
@@ -132,9 +133,17 @@ export const completeProfile = async (req: Request, res: Response) => {
     req.session!.userEmail = user.email;
     req.session!.userHandle = user.handle;
     
-    res.json({ 
-      message: 'Profile completed successfully', 
-      redirect: '/dashboard'
+    // Explicitly save session
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ error: 'Session error' });
+      }
+      
+      res.json({ 
+        message: 'Profile completed successfully', 
+        redirect: '/dashboard'
+      });
     });
   } catch (error) {
     logger.error('Complete profile error:', error);
@@ -280,7 +289,15 @@ export const login = async (req: Request, res: Response) => {
     req.session!.userEmail = user.email;
     req.session!.userHandle = user.handle;
     
-    res.json({ message: 'Login successful', redirect: '/dashboard' });
+    // Explicitly save session
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ error: 'Session error' });
+      }
+      
+      res.json({ message: 'Login successful', redirect: '/dashboard' });
+    });
   } catch (error) {
     logger.error('Login error:', error);
     if (error instanceof z.ZodError) {
@@ -337,7 +354,7 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(6, 'New password must be at least 6 characters'),
 });
 
-export const changePassword = async (req: Request, res: Response) => {
+export const changePassword = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
     
@@ -374,12 +391,12 @@ export const changePassword = async (req: Request, res: Response) => {
   }
 };
 
-export const logout = (req: Request, res: Response) => {
+export const logout = (req: AuthenticatedRequest, res: Response) => {
   req.session?.destroy((err) => {
     if (err) {
       logger.error('Session destruction error:', err);
       return res.status(500).json({ error: 'Failed to logout' });
     }
-    res.json({ message: 'Logged out successfully' });
+    res.json({ message: 'Logged out successfully', redirect: '/auth' });
   });
 };

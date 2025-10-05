@@ -149,8 +149,8 @@ exports.userQueries = {
         const result = await db_1.db.query('UPDATE "User" SET active = true WHERE email = $1 RETURNING *', [email]);
         return result.rows[0];
     },
-    updateProfile: async (email, name, handle) => {
-        const result = await db_1.db.query('UPDATE "User" SET name = $1, handle = $2 WHERE email = $3 RETURNING *', [name, handle, email]);
+    updateProfile: async (email, name, handle, dob, phone, bio) => {
+        const result = await db_1.db.query('UPDATE "User" SET name = $1, handle = $2, dob = $3, phone = $4, bio = $5 WHERE email = $6 RETURNING *', [name, handle, dob, phone, bio, email]);
         return result.rows[0];
     }
 };

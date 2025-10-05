@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../../config/db';
+import { prisma } from '../../config/prisma';
 import { generateProfileToken, verifyProfileToken } from '../auth/authService';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
@@ -123,6 +123,70 @@ export const generateProfileLink = async (req: AuthenticatedRequest, res: Respon
     });
   } catch (error) {
     logger.error('Generate profile link error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateProfile = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const updateProfileSchema = z.object({
+      name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+      handle: z.string().min(3, 'Handle must be at least 3 characters').max(20, 'Handle too long').regex(/^[a-zA-Z0-9_-]+$/, 'Handle can only contain letters, numbers, hyphens, and underscores').optional(),
+      dob: z.string().optional(),
+      phone: z.string().optional(),
+      bio: z.string().max(500, 'Bio too long').optional(),
+    });
+
+    const { name, handle, dob, phone, bio } = updateProfileSchema.parse(req.body);
+
+    // Check if handle is already taken (if provided)
+    if (handle) {
+      const existingUser = await prisma.user.findUnique({
+        where: { handle },
+      });
+      
+      if (existingUser && existingUser.id !== req.user.id) {
+        return res.status(400).json({ error: 'Handle already taken' });
+      }
+    }
+
+    // Update user profile
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(handle !== undefined && { handle }),
+        ...(dob !== undefined && { dob }),
+        ...(phone !== undefined && { phone }),
+        ...(bio !== undefined && { bio }),
+      },
+    });
+
+    // Update session if handle changed
+    if (handle && req.session) {
+      req.session.userHandle = handle;
+    }
+
+    res.json({
+      success: true,
+      user: {
+        name: updatedUser.name,
+        handle: updatedUser.handle,
+        dob: updatedUser.dob,
+        phone: updatedUser.phone,
+        bio: updatedUser.bio,
+      },
+      handle: updatedUser.handle, // For frontend to know if handle changed
+    });
+  } catch (error) {
+    logger.error('Update profile error:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 };

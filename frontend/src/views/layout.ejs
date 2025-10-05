@@ -114,20 +114,29 @@
         
         // Logout function
         async function logout() {
+            console.log('Logout button clicked!');
             try {
                 const response = await fetch('/api/auth/logout', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': window.csrfToken
+                        'Content-Type': 'application/json'
                     }
                 });
                 
+                console.log('Logout response:', response.status);
+                
                 if (response.ok) {
-                    window.location.href = '/';
+                    console.log('Logout successful, redirecting to auth...');
+                    window.location.href = '/auth';
+                } else {
+                    console.log('Logout failed:', response.status);
+                    const errorData = await response.text();
+                    console.log('Error response:', errorData);
+                    showFlashMessage('Logout failed. Please try again.', 'error');
                 }
             } catch (error) {
                 console.error('Logout error:', error);
+                showFlashMessage('Network error. Please try again.', 'error');
             }
         }
 

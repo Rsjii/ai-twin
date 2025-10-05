@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getTwinById = exports.getUserTwins = exports.createTwin = void 0;
-const db_1 = require("../../config/db");
+const prisma_1 = require("../../config/prisma");
 const twinService_1 = require("./twinService");
 const logger_1 = require("../../config/logger");
 const zod_1 = require("zod");
@@ -17,14 +17,14 @@ const createTwin = async (req, res) => {
         }
         const styleVector = await twinService.extractStyle(samples);
         const sampleReply = await twinService.generateSampleReply(styleVector);
-        const twin = await db_1.prisma.twin.create({
+        const twin = await prisma_1.prisma.twin.create({
             data: {
                 userId: req.user.id,
                 styleVector: styleVector,
                 sampleReply,
             },
         });
-        await db_1.prisma.event.create({
+        await prisma_1.prisma.event.create({
             data: {
                 userId: req.user.id,
                 type: 'twin_created',
@@ -57,7 +57,7 @@ const getUserTwins = async (req, res) => {
         if (!req.user) {
             return res.status(401).json({ error: 'Authentication required' });
         }
-        const twins = await db_1.prisma.twin.findMany({
+        const twins = await prisma_1.prisma.twin.findMany({
             where: { userId: req.user.id },
             orderBy: { createdAt: 'desc' },
             select: {
@@ -81,7 +81,7 @@ const getTwinById = async (req, res) => {
         if (!req.user) {
             return res.status(401).json({ error: 'Authentication required' });
         }
-        const twin = await db_1.prisma.twin.findFirst({
+        const twin = await prisma_1.prisma.twin.findFirst({
             where: {
                 id,
                 userId: req.user.id,

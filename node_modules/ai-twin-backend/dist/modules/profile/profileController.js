@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.logProfileShare = exports.generateProfileLink = exports.getPublicProfile = exports.updateHandle = void 0;
-const db_1 = require("../../config/db");
+const prisma_1 = require("../../config/prisma");
 const authService_1 = require("../auth/authService");
 const logger_1 = require("../../config/logger");
 const zod_1 = require("zod");
@@ -14,13 +14,13 @@ const updateHandle = async (req, res) => {
         if (!req.user) {
             return res.status(401).json({ error: 'Authentication required' });
         }
-        const existingUser = await db_1.prisma.user.findUnique({
+        const existingUser = await prisma_1.prisma.user.findUnique({
             where: { handle },
         });
         if (existingUser && existingUser.id !== req.user.id) {
             return res.status(400).json({ error: 'Handle already taken' });
         }
-        const user = await db_1.prisma.user.update({
+        const user = await prisma_1.prisma.user.update({
             where: { id: req.user.id },
             data: { handle },
         });
@@ -50,7 +50,7 @@ const getPublicProfile = async (req, res) => {
         if (!tokenData || tokenData.handle !== handle) {
             return res.status(400).json({ error: 'Invalid or expired token' });
         }
-        const user = await db_1.prisma.user.findUnique({
+        const user = await prisma_1.prisma.user.findUnique({
             where: { handle },
             include: {
                 twins: {
@@ -113,7 +113,7 @@ const logProfileShare = async (req, res) => {
         if (!req.user) {
             return res.status(401).json({ error: 'Authentication required' });
         }
-        await db_1.prisma.event.create({
+        await prisma_1.prisma.event.create({
             data: {
                 userId: req.user.id,
                 type: 'profile_shared',

@@ -7,7 +7,7 @@ export declare const userQueries: {
     findById: (id: string) => Promise<any>;
     updatePassword: (email: string, passwordHash: string) => Promise<any>;
     activateUser: (email: string) => Promise<any>;
-    updateProfile: (email: string, name: string, handle?: string) => Promise<any>;
+    updateProfile: (email: string, name: string, handle?: string, dob?: string, phone?: string, bio?: string) => Promise<any>;
 };
 export declare const twinQueries: {
     create: (userId: string, styleVector: any, sampleReply?: string) => Promise<any>;

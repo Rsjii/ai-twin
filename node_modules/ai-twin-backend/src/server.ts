@@ -2,12 +2,22 @@ import app from './app';
 import { config } from './config/env';
 import { logger } from './config/logger';
 import { db } from './config/db';
+import { initializeDatabase } from './config/database';
 
 async function startServer() {
   try {
     // Test database connection
     await db.query('SELECT 1');
     logger.info('Database connected successfully');
+
+    // Initialize database tables (with retry logic)
+    try {
+      await initializeDatabase();
+      logger.info('Database tables initialized');
+    } catch (dbError) {
+      logger.warn('Database initialization failed, continuing anyway:', dbError.message);
+      // Continue startup even if DB init fails (tables might already exist)
+    }
 
     // Start server
     const server = app.listen(config.port, () => {

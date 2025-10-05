@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendMessage = exports.generateDraft = exports.getUserChats = exports.getChat = exports.startChat = void 0;
-const db_1 = require("../../config/db");
+const prisma_1 = require("../../config/prisma");
 const twinService_1 = require("../twin/twinService");
 const logger_1 = require("../../config/logger");
 const zod_1 = require("zod");
@@ -22,7 +22,7 @@ const startChat = async (req, res) => {
         if (!req.user) {
             return res.status(401).json({ error: 'Authentication required' });
         }
-        const twin = await db_1.prisma.twin.findFirst({
+        const twin = await prisma_1.prisma.twin.findFirst({
             where: {
                 id: twinId,
                 userId: req.user.id,
@@ -31,13 +31,13 @@ const startChat = async (req, res) => {
         if (!twin) {
             return res.status(404).json({ error: 'Twin not found' });
         }
-        const chat = await db_1.prisma.chat.create({
+        const chat = await prisma_1.prisma.chat.create({
             data: {
                 userId: req.user.id,
                 twinId: twinId,
             },
         });
-        await db_1.prisma.event.create({
+        await prisma_1.prisma.event.create({
             data: {
                 userId: req.user.id,
                 type: 'chat_started',
@@ -65,7 +65,7 @@ const getChat = async (req, res) => {
         if (!req.user) {
             return res.status(401).json({ error: 'Authentication required' });
         }
-        const chat = await db_1.prisma.chat.findFirst({
+        const chat = await prisma_1.prisma.chat.findFirst({
             where: {
                 id,
                 userId: req.user.id,
@@ -99,7 +99,7 @@ const getUserChats = async (req, res) => {
         if (!req.user) {
             return res.status(401).json({ error: 'Authentication required' });
         }
-        const chats = await db_1.prisma.chat.findMany({
+        const chats = await prisma_1.prisma.chat.findMany({
             where: { userId: req.user.id },
             include: {
                 twin: {
@@ -135,7 +135,7 @@ const generateDraft = async (req, res) => {
                 return res.status(400).json({ error: 'Message length invalid' });
             }
         }
-        const chat = await db_1.prisma.chat.findFirst({
+        const chat = await prisma_1.prisma.chat.findFirst({
             where: {
                 id,
                 userId: req.user.id,
@@ -148,7 +148,7 @@ const generateDraft = async (req, res) => {
             return res.status(404).json({ error: 'Chat not found' });
         }
         const draft = await twinService.generateDraft(chat.twin.styleVector, messages);
-        await db_1.prisma.event.create({
+        await prisma_1.prisma.event.create({
             data: {
                 userId: req.user.id,
                 type: 'draft_generated',
@@ -179,7 +179,7 @@ const sendMessage = async (req, res) => {
         if ((0, security_1.checkBlacklist)(content)) {
             return res.status(400).json({ error: 'Message contains restricted content' });
         }
-        const chat = await db_1.prisma.chat.findFirst({
+        const chat = await prisma_1.prisma.chat.findFirst({
             where: {
                 id,
                 userId: req.user.id,
@@ -188,7 +188,7 @@ const sendMessage = async (req, res) => {
         if (!chat) {
             return res.status(404).json({ error: 'Chat not found' });
         }
-        const message = await db_1.prisma.message.create({
+        const message = await prisma_1.prisma.message.create({
             data: {
                 chatId: chat.id,
                 sender: 'twin',
@@ -196,7 +196,7 @@ const sendMessage = async (req, res) => {
                 approved: true,
             },
         });
-        await db_1.prisma.event.create({
+        await prisma_1.prisma.event.create({
             data: {
                 userId: req.user.id,
                 type: 'message_approved',

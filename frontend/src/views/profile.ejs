@@ -6,49 +6,119 @@
             
             <!-- Profile Information -->
             <div class="mb-8">
-                <h2 class="text-lg font-semibold text-gray-800 mb-4">Account Information</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                        <input 
-                            type="email" 
-                            value="<%= user.email %>" 
-                            readonly
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
-                        >
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                        <input 
-                            type="text" 
-                            value="<%= user.handle || 'Not set' %>" 
-                            readonly
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
-                        >
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                        <input 
-                            type="text" 
-                            value="<%= user.name || 'Not set' %>" 
-                            readonly
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
-                        >
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Member Since</label>
-                        <input 
-                            type="text" 
-                            value="<%= new Date(user.createdAt).toLocaleDateString() %>" 
-                            readonly
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
-                        >
-                    </div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800">Account Information</h2>
+                    <button 
+                        id="editProfileBtn"
+                        onclick="toggleEditMode()"
+                        class="bg-primary text-white py-2 px-4 rounded-lg hover:bg-secondary transition-colors font-semibold text-sm"
+                    >
+                        Edit Profile
+                    </button>
                 </div>
+                
+                <form id="profileForm">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                            <input 
+                                type="email" 
+                                name="email"
+                                value="<%= user.email %>" 
+                                readonly
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                            <input 
+                                type="text" 
+                                name="handle"
+                                value="<%= user.handle || '' %>" 
+                                readonly
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                                placeholder="Enter username"
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                            <input 
+                                type="text" 
+                                name="name"
+                                value="<%= user.name || '' %>" 
+                                readonly
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                                placeholder="Enter full name"
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
+                            <input 
+                                type="date" 
+                                name="dob"
+                                value="<%= user.dob || '' %>" 
+                                readonly
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                            <input 
+                                type="tel" 
+                                name="phone"
+                                value="<%= user.phone || '' %>" 
+                                readonly
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                                placeholder="Enter phone number"
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Member Since</label>
+                            <input 
+                                type="text" 
+                                value="<%= new Date(user.createdAt).toLocaleDateString() %>" 
+                                readonly
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                        <textarea 
+                            name="bio"
+                            readonly
+                            rows="3"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                            placeholder="Tell us about yourself"
+                        ><%= user.bio || '' %></textarea>
+                    </div>
+                    
+                    <div id="saveProfileSection" class="hidden mt-4">
+                        <div class="flex space-x-4">
+                            <button 
+                                type="submit"
+                                class="bg-green-600 text-white py-2 px-6 rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                            >
+                                Save Changes
+                            </button>
+                            <button 
+                                type="button"
+                                onclick="cancelEdit()"
+                                class="bg-gray-500 text-white py-2 px-6 rounded-lg hover:bg-gray-600 transition-colors font-semibold"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                </form>
             </div>
 
             <!-- Change Password Section -->
@@ -138,6 +208,152 @@
 </div>
 
 <script>
+// Set up CSRF token
+window.csrfToken = '<%= csrfToken %>';
+console.log('CSRF Token set:', window.csrfToken);
+
+// Flash message handling
+function showFlashMessage(message, type = 'success') {
+    const flashDiv = document.createElement('div');
+    flashDiv.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    flashDiv.textContent = message;
+    document.body.appendChild(flashDiv);
+    
+    setTimeout(() => {
+        flashDiv.remove();
+    }, 5000);
+}
+
+// Logout function
+async function logout() {
+    console.log('=== LOGOUT FUNCTION CALLED ===');
+    console.log('Logout button clicked!');
+    
+    try {
+        console.log('Sending logout request...');
+        const response = await fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log('Logout response status:', response.status);
+        console.log('Logout response headers:', response.headers);
+        
+        if (response.ok) {
+            console.log('Logout successful, redirecting to auth...');
+            window.location.href = '/auth';
+        } else {
+            console.log('Logout failed:', response.status);
+            const errorText = await response.text();
+            console.log('Error response:', errorText);
+            showFlashMessage('Logout failed. Please try again.', 'error');
+        }
+    } catch (error) {
+        console.error('Logout error:', error);
+        showFlashMessage('Network error. Please try again.', 'error');
+    }
+}
+
+// Profile edit functionality
+let originalValues = {};
+
+function toggleEditMode() {
+    const form = document.getElementById('profileForm');
+    const inputs = form.querySelectorAll('input[name], textarea[name]');
+    const editBtn = document.getElementById('editProfileBtn');
+    const saveSection = document.getElementById('saveProfileSection');
+    
+    if (editBtn.textContent === 'Edit Profile') {
+        // Store original values
+        originalValues = {};
+        inputs.forEach(input => {
+            if (input.name && input.name !== 'email') { // Don't allow email editing
+                originalValues[input.name] = input.value;
+                input.removeAttribute('readonly');
+                input.classList.remove('bg-gray-50');
+                input.classList.add('bg-white');
+            }
+        });
+        
+        editBtn.textContent = 'Cancel Edit';
+        editBtn.classList.remove('bg-primary', 'hover:bg-secondary');
+        editBtn.classList.add('bg-gray-500', 'hover:bg-gray-600');
+        saveSection.classList.remove('hidden');
+    } else {
+        cancelEdit();
+    }
+}
+
+function cancelEdit() {
+    const form = document.getElementById('profileForm');
+    const inputs = form.querySelectorAll('input[name], textarea[name]');
+    const editBtn = document.getElementById('editProfileBtn');
+    const saveSection = document.getElementById('saveProfileSection');
+    
+    // Restore original values
+    inputs.forEach(input => {
+        if (input.name && input.name !== 'email') {
+            input.value = originalValues[input.name] || '';
+            input.setAttribute('readonly', 'readonly');
+            input.classList.add('bg-gray-50');
+            input.classList.remove('bg-white');
+        }
+    });
+    
+    editBtn.textContent = 'Edit Profile';
+    editBtn.classList.add('bg-primary', 'hover:bg-secondary');
+    editBtn.classList.remove('bg-gray-500', 'hover:bg-gray-600');
+    saveSection.classList.add('hidden');
+}
+
+// Profile form submission
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = {
+        name: formData.get('name'),
+        handle: formData.get('handle'),
+        dob: formData.get('dob'),
+        phone: formData.get('phone'),
+        bio: formData.get('bio')
+    };
+    
+    try {
+        const response = await fetch('/api/profile/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showFlashMessage('Profile updated successfully!', 'success');
+            // Update session data if handle changed
+            if (result.handle) {
+                // Reload page to reflect changes
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                cancelEdit();
+            }
+        } else {
+            showFlashMessage(result.error || 'Failed to update profile', 'error');
+        }
+    } catch (error) {
+        console.error('Profile update error:', error);
+        showFlashMessage('Network error. Please try again.', 'error');
+    }
+});
+
 // Change password form submission
 document.getElementById('changePasswordFormElement').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -161,8 +377,7 @@ document.getElementById('changePasswordFormElement').addEventListener('submit', 
         const response = await fetch('/api/auth/change-password', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': window.csrfToken
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(data)
         });

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../../config/db';
+import { prisma } from '../../config/prisma';
 import { TwinService } from './twinService';
 import { logger } from '../../config/logger';
 import { z } from 'zod';

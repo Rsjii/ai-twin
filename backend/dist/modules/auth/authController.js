@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logout = exports.changePassword = exports.loginVerify = exports.login = exports.resetPassword = exports.forgotPassword = exports.completeProfile = exports.signupVerify = exports.signup = void 0;
+exports.logout = exports.changePassword = exports.loginVerify = exports.login = exports.resetPassword = exports.forgotPasswordVerify = exports.forgotPassword = exports.completeProfile = exports.signupVerify = exports.signup = void 0;
 const database_1 = require("../../config/database");
 const authService_1 = require("./authService");
 const logger_1 = require("../../config/logger");
@@ -19,6 +19,9 @@ const completeProfileSchema = zod_1.z.object({
     email: zod_1.z.string().email('Invalid email format'),
     name: zod_1.z.string().min(2, 'Name must be at least 2 characters'),
     handle: zod_1.z.string().min(3, 'Handle must be at least 3 characters').optional(),
+    dob: zod_1.z.string().optional(),
+    phone: zod_1.z.string().optional(),
+    bio: zod_1.z.string().optional(),
 });
 const forgotPasswordSchema = zod_1.z.object({
     email: zod_1.z.string().email('Invalid email format'),
@@ -47,6 +50,7 @@ const signup = async (req, res) => {
         }
         res.json({
             message: 'OTP sent for account activation',
+            otp: otp,
             redirect: '/signup/verify?email=' + encodeURIComponent(email)
         });
     }
@@ -88,8 +92,8 @@ const signupVerify = async (req, res) => {
 exports.signupVerify = signupVerify;
 const completeProfile = async (req, res) => {
     try {
-        const { email, name, handle } = completeProfileSchema.parse(req.body);
-        await database_1.userQueries.updateProfile(email.toLowerCase(), name, handle);
+        const { email, name, handle, dob, phone, bio } = completeProfileSchema.parse(req.body);
+        await database_1.userQueries.updateProfile(email.toLowerCase(), name, handle, dob, phone, bio);
         const user = await database_1.userQueries.findByEmail(email.toLowerCase());
         req.session.userId = user.id;
         req.session.userEmail = user.email;
@@ -125,6 +129,7 @@ const forgotPassword = async (req, res) => {
         }
         res.json({
             message: 'OTP sent for password reset',
+            otp: otp,
             redirect: '/forgot-password/reset?email=' + encodeURIComponent(email)
         });
     }
@@ -137,9 +142,9 @@ const forgotPassword = async (req, res) => {
     }
 };
 exports.forgotPassword = forgotPassword;
-const resetPassword = async (req, res) => {
+const forgotPasswordVerify = async (req, res) => {
     try {
-        const { email, code, password } = resetPasswordSchema.parse(req.body);
+        const { email, code } = signupVerifySchema.parse(req.body);
         const otpRecord = await database_1.otpQueries.findByEmail(email.toLowerCase());
         if (!otpRecord) {
             return res.status(400).json({ error: 'Invalid or expired OTP' });
@@ -149,11 +154,31 @@ const resetPassword = async (req, res) => {
             return res.status(400).json({ error: 'Invalid OTP code' });
         }
         await database_1.otpQueries.markAsUsed(otpRecord.id);
+        res.json({
+            message: 'OTP verified successfully',
+            redirect: '/reset-password?email=' + encodeURIComponent(email)
+        });
+    }
+    catch (error) {
+        logger_1.logger.error('Forgot password verify error:', error);
+        if (error instanceof zod_1.z.ZodError) {
+            return res.status(400).json({ error: 'Invalid input', details: error.errors });
+        }
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+exports.forgotPasswordVerify = forgotPasswordVerify;
+const resetPassword = async (req, res) => {
+    try {
+        const { email, password } = zod_1.z.object({
+            email: zod_1.z.string().email('Invalid email format'),
+            password: zod_1.z.string().min(6, 'Password must be at least 6 characters'),
+        }).parse(req.body);
         const passwordHash = await (0, authService_1.hashPassword)(password);
         await database_1.userQueries.updatePassword(email.toLowerCase(), passwordHash);
         res.json({
             message: 'Password reset successfully',
-            redirect: '/login'
+            redirect: '/auth'
         });
     }
     catch (error) {
