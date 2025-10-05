@@ -1,0 +1,194 @@
+<%- include('layout', { title: 'Dashboard - AI Twin', body: `
+<div class="px-4 py-6 sm:px-0">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Welcome, <%= user.handle || user.email %>!</h1>
+        
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Create Twin</h3>
+                <p class="text-gray-600 mb-4">Upload text samples to create your AI twin</p>
+                <a href="/twin/create" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                    Create Now
+                </a>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Start Chat</h3>
+                <p class="text-gray-600 mb-4">Chat with your AI twin</p>
+                <button onclick="startNewChat()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                    Start Chat
+                </button>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Profile Link</h3>
+                <p class="text-gray-600 mb-4">Generate shareable profile</p>
+                <button onclick="generateProfileLink()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                    Generate Link
+                </button>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Invite Friends</h3>
+                <p class="text-gray-600 mb-4">Create referral link</p>
+                <button onclick="createInvite()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                    Create Invite
+                </button>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Your Twins</h3>
+                <div id="twinsList" class="space-y-3">
+                    <p class="text-gray-500">Loading twins...</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Chats</h3>
+                <div id="chatsList" class="space-y-3">
+                    <p class="text-gray-500">Loading chats...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load twins and chats on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadTwins();
+    loadChats();
+});
+
+async function loadTwins() {
+    try {
+        const response = await fetch('/api/twin', {
+            headers: {
+                'X-CSRF-Token': window.csrfToken
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            const twinsList = document.getElementById('twinsList');
+            if (result.twins.length === 0) {
+                twinsList.innerHTML = '<p class="text-gray-500">No twins created yet.</p>';
+            } else {
+                twinsList.innerHTML = result.twins.map(twin => `
+                    <div class="border rounded-lg p-3">
+                        <p class="font-medium">Twin #${twin.id.slice(-6)}</p>
+                        <p class="text-sm text-gray-600">Created: ${new Date(twin.createdAt).toLocaleDateString()}</p>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (error) {
+        console.error('Load twins error:', error);
+    }
+}
+
+async function loadChats() {
+    try {
+        const response = await fetch('/api/chat', {
+            headers: {
+                'X-CSRF-Token': window.csrfToken
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            const chatsList = document.getElementById('chatsList');
+            if (result.chats.length === 0) {
+                chatsList.innerHTML = '<p class="text-gray-500">No chats yet.</p>';
+            } else {
+                chatsList.innerHTML = result.chats.map(chat => `
+                    <div class="border rounded-lg p-3">
+                        <p class="font-medium">Chat #${chat.id.slice(-6)}</p>
+                        <p class="text-sm text-gray-600">Created: ${new Date(chat.createdAt).toLocaleDateString()}</p>
+                        <a href="/chat/${chat.id}" class="text-primary hover:text-secondary text-sm">Open Chat</a>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (error) {
+        console.error('Load chats error:', error);
+    }
+}
+
+async function startNewChat() {
+    try {
+        const response = await fetch('/api/chat/start', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            },
+            body: JSON.stringify({ twinId: 'latest' }) // You might want to let user select twin
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            window.location.href = result.redirect;
+        } else {
+            showFlashMessage(result.error || 'Failed to start chat', 'error');
+        }
+    } catch (error) {
+        console.error('Start chat error:', error);
+        showFlashMessage('Network error. Please try again.', 'error');
+    }
+}
+
+async function generateProfileLink() {
+    try {
+        const response = await fetch('/api/profile/link', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            navigator.clipboard.writeText(window.location.origin + result.profileUrl);
+            showFlashMessage('Profile link copied to clipboard!', 'success');
+        } else {
+            showFlashMessage(result.error || 'Failed to generate profile link', 'error');
+        }
+    } catch (error) {
+        console.error('Generate profile link error:', error);
+        showFlashMessage('Network error. Please try again.', 'error');
+    }
+}
+
+async function createInvite() {
+    try {
+        const response = await fetch('/api/invite/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            navigator.clipboard.writeText(window.location.origin + result.inviteUrl);
+            showFlashMessage('Invite link copied to clipboard!', 'success');
+        } else {
+            showFlashMessage(result.error || 'Failed to create invite', 'error');
+        }
+    } catch (error) {
+        console.error('Create invite error:', error);
+        showFlashMessage('Network error. Please try again.', 'error');
+    }
+}
+</script>
+` }) %>

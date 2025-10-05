@@ -1,0 +1,89 @@
+<%- include('layout', { title: title }) %>
+<div class="px-4 py-6 sm:px-0">
+    <div class="max-w-4xl mx-auto text-center">
+        <h1 class="text-4xl font-bold text-gray-900 mb-6">
+            Create Your AI Twin
+        </h1>
+        <p class="text-xl text-gray-600 mb-8">
+            Upload your text samples and create an AI version of yourself that chats in your unique style.
+        </p>
+        
+        <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6">Join the Waitlist</h2>
+            <form id="waitlistForm" class="max-w-md mx-auto">
+                <div class="mb-4">
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        placeholder="Enter your email address"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        required
+                    >
+                </div>
+                <button 
+                    type="submit"
+                    class="w-full bg-primary text-white py-3 px-6 rounded-lg hover:bg-secondary transition-colors font-semibold"
+                >
+                    Join Waitlist
+                </button>
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            </form>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-3xl mb-4">🤖</div>
+                <h3 class="text-lg font-semibold mb-2">AI Style Extraction</h3>
+                <p class="text-gray-600">Upload 3-5 text samples and our AI extracts your unique communication style.</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-3xl mb-4">💬</div>
+                <h3 class="text-lg font-semibold mb-2">Approve-Only Chat</h3>
+                <p class="text-gray-600">Your AI twin generates drafts that you approve before sending.</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-3xl mb-4">🔗</div>
+                <h3 class="text-lg font-semibold mb-2">Shareable Profiles</h3>
+                <p class="text-gray-600">Create tokenized public profiles to showcase your AI twin.</p>
+            </div>
+        </div>
+
+        <div class="bg-blue-50 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-blue-900 mb-2">Private Alpha</h3>
+            <p class="text-blue-800">This is a validation project. All AI-generated content is clearly labeled.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('waitlistForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const email = formData.get('email');
+    
+    try {
+        const response = await fetch('/api/auth/waitlist', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '<%= csrfToken %>'
+            },
+            body: JSON.stringify({ email })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Successfully added to waitlist!');
+            e.target.reset();
+        } else {
+            alert(result.error || 'Failed to join waitlist');
+        }
+    } catch (error) {
+        console.error('Waitlist error:', error);
+        alert('Network error. Please try again.');
+    }
+});
+</script>

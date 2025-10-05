@@ -1,0 +1,89 @@
+<%- include('layout', { title: 'Verify OTP - AI Twin', body: `
+<div class="px-4 py-6 sm:px-0">
+    <div class="max-w-md mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Verify OTP</h1>
+            <p class="text-gray-600 text-center mb-6">
+                Enter the 6-digit code sent to your email
+            </p>
+            
+            <form id="verifyForm">
+                <div class="mb-4">
+                    <label for="code" class="block text-sm font-medium text-gray-700 mb-2">
+                        Verification Code
+                    </label>
+                    <input 
+                        type="text" 
+                        id="code" 
+                        name="code" 
+                        placeholder="123456"
+                        maxlength="6"
+                        pattern="[0-9]{6}"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-center text-2xl tracking-widest"
+                        required
+                    >
+                </div>
+                
+                <button 
+                    type="submit"
+                    class="w-full bg-primary text-white py-3 px-6 rounded-lg hover:bg-secondary transition-colors font-semibold mb-4"
+                >
+                    Verify & Login
+                </button>
+                
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            </form>
+            
+            <div class="text-center">
+                <p class="text-sm text-gray-600">
+                    Didn't receive the code? 
+                    <a href="/login" class="text-primary hover:text-secondary">Try again</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('verifyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const code = formData.get('code');
+    
+    // Get email from session or prompt user
+    const email = prompt('Please enter your email address:');
+    if (!email) return;
+    
+    try {
+        const response = await fetch('/api/auth/login/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            },
+            body: JSON.stringify({ email, code })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showFlashMessage('Login successful!', 'success');
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 1000);
+        } else {
+            showFlashMessage(result.error || 'Invalid OTP', 'error');
+        }
+    } catch (error) {
+        console.error('Verify error:', error);
+        showFlashMessage('Network error. Please try again.', 'error');
+    }
+});
+
+// Auto-format OTP input
+document.getElementById('code').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+});
+</script>
+` }) %>
