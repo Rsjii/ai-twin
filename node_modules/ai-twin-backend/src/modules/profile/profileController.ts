@@ -1,50 +1,65 @@
 import { Request, Response } from 'express';
-import { prisma } from '../../config/prisma';
+import { userQueries } from '../../config/database';
 import { generateProfileToken, verifyProfileToken } from '../auth/authService';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
-import { AuthenticatedRequest } from '../../middleware/auth';
 
 const updateHandleSchema = z.object({
   handle: z.string().min(3, 'Handle must be at least 3 characters').max(20, 'Handle too long').regex(/^[a-zA-Z0-9_-]+$/, 'Handle can only contain letters, numbers, hyphens, and underscores'),
 });
 
-export const updateHandle = async (req: AuthenticatedRequest, res: Response) => {
+export const updateHandle = async (req: Request, res: Response) => {
   try {
     const { handle } = updateHandleSchema.parse(req.body);
     
-    if (!req.user) {
+    // Check if user is logged in via session
+    if (!req.session?.userId || !req.session?.userEmail) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
     // Check if handle is already taken
-    const existingUser = await prisma.user.findUnique({
-      where: { handle },
-    });
+    const existingUser = await userQueries.findByEmail(req.session.userEmail);
+    if (!existingUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
     
-    if (existingUser && existingUser.id !== req.user.id) {
+    if (existingUser.handle === handle) {
+      return res.json({
+        success: true,
+        handle: existingUser.handle,
+      });
+    }
+    
+    // Check if handle is taken by another user
+    const { db } = await import('../../config/database');
+    const handleCheck = await db.query('SELECT id FROM "User" WHERE handle = $1 AND id != $2', [handle, req.session.userId]);
+    if (handleCheck.rows.length > 0) {
       return res.status(400).json({ error: 'Handle already taken' });
     }
     
-    // Update user handle
-    const user = await prisma.user.update({
-      where: { id: req.user.id },
-      data: { handle },
-    });
+    // Update user handle using raw SQL
+    const updatedUser = await userQueries.updateProfile(
+      req.session.userEmail,
+      existingUser.name || '',
+      handle,
+      existingUser.dob || '',
+      existingUser.phone || '',
+      existingUser.bio || ''
+    );
     
     // Update session
-    req.session!.userHandle = handle;
+    req.session.userHandle = handle;
     
-    res.json({
+    return res.json({
       success: true,
-      handle: user.handle,
+      handle: updatedUser.handle,
     });
   } catch (error) {
     logger.error('Update handle error:', error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Invalid input', details: error.errors });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -63,29 +78,29 @@ export const getPublicProfile = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid or expired token' });
     }
     
-    // Get user and their latest twin
-    const user = await prisma.user.findUnique({
-      where: { handle },
-      include: {
-        twins: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          select: {
-            styleVector: true,
-            sampleReply: true,
-            createdAt: true,
-          },
-        },
-      },
-    });
+    // Get user by handle using raw SQL
+    const { db } = await import('../../config/database');
+    const userResult = await db.query('SELECT * FROM "User" WHERE handle = $1', [handle]);
     
-    if (!user || !user.twins.length) {
+    if (!userResult.rows.length) {
       return res.status(404).json({ error: 'Profile not found' });
     }
     
-    const twin = user.twins[0];
+    const user = userResult.rows[0];
     
-    res.json({
+    // Get user's latest twin
+    const twinResult = await db.query(
+      'SELECT * FROM "Twin" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 1',
+      [user.id]
+    );
+    
+    if (!twinResult.rows.length) {
+      return res.status(404).json({ error: 'No twin found for this user' });
+    }
+    
+    const twin = twinResult.rows[0];
+    
+    return res.json({
       user: {
         handle: user.handle,
         createdAt: user.createdAt,
@@ -98,38 +113,45 @@ export const getPublicProfile = async (req: Request, res: Response) => {
     });
   } catch (error) {
     logger.error('Get public profile error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
-export const generateProfileLink = async (req: AuthenticatedRequest, res: Response) => {
+export const generateProfileLink = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
+    // Check if user is logged in via session
+    if (!req.session?.userId || !req.session?.userEmail) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    if (!req.user.handle) {
+    // Get user data
+    const user = await userQueries.findByEmail(req.session.userEmail);
+    if (!user || !user.handle) {
       return res.status(400).json({ error: 'Handle not set. Please set a handle first.' });
     }
     
     // Generate token
-    const token = generateProfileToken(req.user.id, req.user.handle);
-    const profileUrl = `/p/${req.user.handle}?t=${token}`;
+    const token = generateProfileToken(user.id, user.handle);
+    const profileUrl = `/p/${user.handle}?t=${token}`;
     
-    res.json({
+    return res.json({
       success: true,
       profileUrl,
       token,
     });
   } catch (error) {
     logger.error('Generate profile link error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
-export const updateProfile = async (req: AuthenticatedRequest, res: Response) => {
+export const updateProfile = async (req: Request, res: Response) => {
   try {
+    console.log('UpdateProfile called. User:', req.user);
+    
+    // Check if user is logged in via JWT
     if (!req.user) {
+      console.log('Authentication failed - no user in request');
       return res.status(401).json({ error: 'Authentication required' });
     }
 
@@ -143,35 +165,35 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
 
     const { name, handle, dob, phone, bio } = updateProfileSchema.parse(req.body);
 
-    // Check if handle is already taken (if provided)
-    if (handle) {
-      const existingUser = await prisma.user.findUnique({
-        where: { handle },
-      });
+    // Get current user data
+    const currentUser = await userQueries.findByEmail(req.user.email);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if handle is already taken (if provided and different from current)
+    if (handle && handle !== currentUser.handle) {
+      const { db } = await import('../../config/database');
+      const handleCheck = await db.query('SELECT id FROM "User" WHERE handle = $1 AND id != $2', [handle, req.user.userId]);
       
-      if (existingUser && existingUser.id !== req.user.id) {
+      if (handleCheck.rows.length > 0) {
         return res.status(400).json({ error: 'Handle already taken' });
       }
     }
 
-    // Update user profile
-    const updatedUser = await prisma.user.update({
-      where: { id: req.user.id },
-      data: {
-        ...(name !== undefined && { name }),
-        ...(handle !== undefined && { handle }),
-        ...(dob !== undefined && { dob }),
-        ...(phone !== undefined && { phone }),
-        ...(bio !== undefined && { bio }),
-      },
-    });
+    // Update user profile using raw SQL
+    const updatedUser = await userQueries.updateProfile(
+      req.user.email,
+      name !== undefined ? name : currentUser.name || '',
+      handle !== undefined ? handle : currentUser.handle || '',
+      dob !== undefined ? dob : currentUser.dob || '',
+      phone !== undefined ? phone : currentUser.phone || '',
+      bio !== undefined ? bio : currentUser.bio || ''
+    );
 
-    // Update session if handle changed
-    if (handle && req.session) {
-      req.session.userHandle = handle;
-    }
+    // No need to update session since we're using JWT
 
-    res.json({
+    return res.json({
       success: true,
       user: {
         name: updatedUser.name,
@@ -187,23 +209,24 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Invalid input', details: error.errors });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
-export const logProfileShare = async (req: AuthenticatedRequest, res: Response) => {
+export const logProfileShare = async (req: Request, res: Response): Promise<void> => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+    // Check if user is logged in via session
+    if (!req.session?.userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
     }
 
-    // Log profile shared event
-    await prisma.event.create({
-      data: {
-        userId: req.user.id,
-        type: 'profile_shared',
-      },
-    });
+    // Log profile shared event using raw SQL
+    const { db, generateId } = await import('../../config/database');
+    await db.query(
+      'INSERT INTO "Event" (id, "userId", type, meta) VALUES ($1, $2, $3, $4)',
+      [generateId(), req.session.userId, 'profile_shared', null]
+    );
     
     res.json({ success: true });
   } catch (error) {

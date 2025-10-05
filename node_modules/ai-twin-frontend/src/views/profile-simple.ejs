@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="px-4 py-6 sm:px-0">
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h1 class="text-2xl font-bold text-gray-900 mb-6">Profile Settings</h1>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" value="<%= user.email %>" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                    <input type="text" value="<%= user.name || '' %>" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Handle</label>
+                    <input type="text" value="<%= user.handle || '' %>" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Member Since</label>
+                    <input type="text" value="<%= user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A' %>" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                    <textarea readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"><%= user.bio || '' %></textarea>
+                </div>
+                
+                <div class="flex gap-4">
+                    <a href="/dashboard" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">Back to Dashboard</a>
+                    <a href="/change-password" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">Change Password</a>
+                    <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        window.csrfToken = '<%= csrfToken %>';
+        
+        async function logout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken
+                    }
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/auth';
+                } else {
+                    alert('Logout failed');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Network error');
+            }
+        }
+    </script>
+</body>
+</html>

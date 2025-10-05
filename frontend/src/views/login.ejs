@@ -219,6 +219,12 @@ document.getElementById('loginFormElement').addEventListener('submit', async (e)
         const result = await response.json();
         
         if (response.ok) {
+            // Store JWT token
+            if (result.token) {
+                localStorage.setItem('jwtToken', result.token);
+                localStorage.setItem('user', JSON.stringify(result.user));
+            }
+            
             showFlashMessage('Login successful!', 'success');
             setTimeout(() => {
                 window.location.href = result.redirect || '/dashboard';

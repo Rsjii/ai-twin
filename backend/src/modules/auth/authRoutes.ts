@@ -4,6 +4,7 @@ import { otpRateLimit } from '../../middleware/rateLimit';
 import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
 import { sanitizeInput } from '../../middleware/validation';
 import { requireAuth } from '../../middleware/auth';
+import { authenticateJWT } from '../../middleware/jwtAuth';
 
 const router = Router();
 
@@ -24,9 +25,9 @@ router.post('/forgot-password/verify', sanitizeInput, forgotPasswordVerify);
 router.post('/reset-password', sanitizeInput, resetPassword);
 
 // Change password route (requires authentication)
-router.post('/change-password', requireAuth, sanitizeInput, changePassword);
+router.post('/change-password', authenticateJWT, sanitizeInput, changePassword);
 
 // Logout
-router.post('/logout', requireAuth, logout);
+router.post('/logout', logout);
 
 export default router;

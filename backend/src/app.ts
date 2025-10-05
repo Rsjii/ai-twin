@@ -6,6 +6,7 @@ import session from 'express-session';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import { config } from './config/env';
 import { logger } from './config/logger';
 import { db, userQueries } from './config/database';
@@ -17,6 +18,10 @@ import chatRoutes from './modules/chat/chatRoutes';
 import profileRoutes from './modules/profile/profileRoutes';
 import inviteRoutes from './modules/invite/inviteRoutes';
 import analyticsRoutes from './modules/analytics/analyticsRoutes';
+
+// Import JWT middleware
+import { authenticateJWT, optionalJWT } from './middleware/jwtAuth';
+import { extractJWTFromCookie, requireJWTFromCookie } from './middleware/jwtCookie';
 
 // Import middleware
 import { generateCSRFToken } from './middleware/csrf';
@@ -47,6 +52,9 @@ const limiter = rateLimit({
 });
 
 app.use(limiter);
+
+// Cookie parser middleware
+app.use(cookieParser());
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -570,19 +578,45 @@ app.get('/reset-password', (req, res) => {
   });
 });
 
-// Profile page route
-app.get('/profile', async (req, res) => {
-  console.log('Profile route accessed. Session:', req.session);
+// Test profile route
+app.get('/test-profile', extractJWTFromCookie, async (req, res) => {
+  if (!req.user) {
+    return res.redirect('/auth');
+  }
   
-  if (!req.session?.userId) {
-    console.log('No userId in session, redirecting to auth');
+  try {
+    const user = await userQueries.findByEmail(req.user.email);
+    if (!user) {
+      return res.redirect('/auth');
+    }
+
+    res.json({
+      success: true,
+      user: user,
+      csrfToken: res.locals['csrfToken']
+    });
+  } catch (error) {
+    console.error('Test profile error:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
+// Profile page route
+app.get('/profile', extractJWTFromCookie, async (req, res) => {
+  console.log('Profile route accessed. User:', req.user);
+  
+  // Check if user is authenticated via JWT
+  if (!req.user) {
+    console.log('No user in JWT, redirecting to auth');
     return res.redirect('/auth');
   }
 
   try {
-    console.log('Fetching user data for email:', req.session.userEmail);
+    console.log('Fetching user data for email:', req.user.email);
     // Fetch complete user data from database
-    const user = await userQueries.findByEmail(req.session.userEmail);
+    const user = await userQueries.findByEmail(req.user.email);
+    console.log('User query result:', user);
+    
     if (!user) {
       console.log('User not found in database, redirecting to auth');
       return res.redirect('/auth');
@@ -597,7 +631,9 @@ app.get('/profile', async (req, res) => {
       bio: user?.bio || null
     };
     
-    res.render('profile', {
+    console.log('User with defaults:', userWithDefaults);
+    
+    res.render('profile-simple', {
       title: 'Profile - AI Twin',
       user: userWithDefaults,
       csrfToken: res.locals['csrfToken'],
@@ -605,19 +641,20 @@ app.get('/profile', async (req, res) => {
   } catch (error) {
     console.error('Profile page error:', error);
     logger.error('Profile page error:', error);
-    res.status(500).send('Internal server error');
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
 // Change password page route
-app.get('/change-password', async (req, res) => {
-  if (!req.session?.userId) {
+app.get('/change-password', extractJWTFromCookie, async (req, res) => {
+  // Check if user is authenticated via JWT
+  if (!req.user) {
     return res.redirect('/auth');
   }
 
   try {
     // Fetch complete user data from database
-    const user = await userQueries.findByEmail(req.session.userEmail);
+    const user = await userQueries.findByEmail(req.user.email);
     if (!user) {
       return res.redirect('/auth');
     }
@@ -634,16 +671,17 @@ app.get('/change-password', async (req, res) => {
 });
 
 // Dashboard route
-app.get('/dashboard', (req, res) => {
-  if (!req.session?.userId) {
+app.get('/dashboard', extractJWTFromCookie, (req, res) => {
+  // Check if user is authenticated via JWT
+  if (!req.user) {
     return res.redirect('/auth');
   }
   
-  // Set user data from session
+  // Set user data from JWT
   const user = {
-    id: req.session.userId,
-    email: req.session.userEmail,
-    handle: req.session.userHandle,
+    id: req.user.userId,
+    email: req.user.email,
+    handle: req.user.handle,
   };
   
   res.render('layout', {

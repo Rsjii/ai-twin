@@ -5,6 +5,7 @@ import { logger } from '../../config/logger';
 import { config } from '../../config/env';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
+import { generateJWT } from '../../services/jwtService';
 
 const emailService = new EmailService();
 
@@ -125,25 +126,34 @@ export const completeProfile = async (req: Request, res: Response) => {
     // Update user profile
     await userQueries.updateProfile(email.toLowerCase(), name, handle, dob, phone, bio);
     
-    // Find user and create session
+    // Find user and generate JWT
     const user = await userQueries.findByEmail(email.toLowerCase());
     
-    // Create session
-    req.session!.userId = user.id;
-    req.session!.userEmail = user.email;
-    req.session!.userHandle = user.handle;
+    // Generate JWT token
+    const token = generateJWT({
+      userId: user.id,
+      email: user.email,
+      handle: user.handle || ''
+    });
     
-    // Explicitly save session
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-        return res.status(500).json({ error: 'Session error' });
+    // Set JWT token in cookie
+    res.cookie('jwtToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+    
+    res.json({ 
+      message: 'Profile completed successfully', 
+      redirect: '/dashboard',
+      token: token,
+      user: {
+        id: user.id,
+        email: user.email,
+        handle: user.handle,
+        name: user.name
       }
-      
-      res.json({ 
-        message: 'Profile completed successfully', 
-        redirect: '/dashboard'
-      });
     });
   } catch (error) {
     logger.error('Complete profile error:', error);
@@ -284,19 +294,31 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid email or password' });
     }
     
-    // Create session
-    req.session!.userId = user.id;
-    req.session!.userEmail = user.email;
-    req.session!.userHandle = user.handle;
+    // Generate JWT token
+    const token = generateJWT({
+      userId: user.id,
+      email: user.email,
+      handle: user.handle || ''
+    });
     
-    // Explicitly save session
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-        return res.status(500).json({ error: 'Session error' });
+    // Set JWT token in cookie
+    res.cookie('jwtToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+    
+    res.json({ 
+      message: 'Login successful', 
+      redirect: '/dashboard',
+      token: token,
+      user: {
+        id: user.id,
+        email: user.email,
+        handle: user.handle,
+        name: user.name
       }
-      
-      res.json({ message: 'Login successful', redirect: '/dashboard' });
     });
   } catch (error) {
     logger.error('Login error:', error);
@@ -391,12 +413,23 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response) =
   }
 };
 
-export const logout = (req: AuthenticatedRequest, res: Response) => {
-  req.session?.destroy((err) => {
-    if (err) {
-      logger.error('Session destruction error:', err);
-      return res.status(500).json({ error: 'Failed to logout' });
+export const logout = (req: Request, res: Response) => {
+  try {
+    // Clear JWT cookie
+    res.clearCookie('jwtToken');
+    
+    // Also clear session if it exists (for backward compatibility)
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          logger.error('Session destruction error:', err);
+        }
+      });
     }
+    
     res.json({ message: 'Logged out successfully', redirect: '/auth' });
-  });
+  } catch (error) {
+    logger.error('Logout error:', error);
+    res.status(500).json({ error: 'Failed to logout' });
+  }
 };
