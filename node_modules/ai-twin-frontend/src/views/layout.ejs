@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#1E40AF',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-xl font-bold text-primary">AI Twin</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <% if (typeof user !== 'undefined' && user) { %>
+                        <span class="text-gray-700">Hello, <%= user.handle || user.email %></span>
+                        <a href="/dashboard" class="text-primary hover:text-secondary">Dashboard</a>
+                        <button onclick="logout()" class="text-gray-500 hover:text-gray-700">Logout</button>
+                    <% } else { %>
+                        <a href="/login" class="text-primary hover:text-secondary">Login</a>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <%- body %>
+    </main>
+
+    <footer class="bg-white border-t mt-12">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <div class="text-center text-gray-500">
+                <p>&copy; 2024 AI Twin. All rights reserved.</p>
+                <p class="text-sm mt-2">AI-generated content • Private Alpha</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // CSRF token for AJAX requests
+        window.csrfToken = '<%= csrfToken %>';
+        
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken
+                    }
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        // Flash message handling
+        function showFlashMessage(message, type = 'success') {
+            const flashDiv = document.createElement('div');
+            flashDiv.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            flashDiv.textContent = message;
+            document.body.appendChild(flashDiv);
+            
+            setTimeout(() => {
+                flashDiv.remove();
+            }, 5000);
+        }
+
+        // Global error handler
+        window.addEventListener('error', (event) => {
+            console.error('Global error:', event.error);
+        });
+    </script>
+</body>
+</html>

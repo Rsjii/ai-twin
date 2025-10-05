@@ -1,0 +1,238 @@
+<%- include('layout', { title: 'Chat - AI Twin', body: `
+<div class="px-4 py-6 sm:px-0">
+    <div class="max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-900">Chat with Your AI Twin</h1>
+            <a href="/dashboard" class="text-primary hover:text-secondary">← Back to Dashboard</a>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-lg">
+            <div id="chatContainer" class="h-96 overflow-y-auto p-6 border-b">
+                <div id="messagesList" class="space-y-4">
+                    <p class="text-gray-500 text-center">Loading chat...</p>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div id="draftSection" class="hidden mb-4">
+                    <div class="bg-blue-50 rounded-lg p-4 mb-4">
+                        <h3 class="font-semibold text-blue-900 mb-2">AI Draft:</h3>
+                        <p id="draftContent" class="text-blue-800"></p>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button onclick="approveDraft()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
+                            Approve & Send
+                        </button>
+                        <button onclick="rejectDraft()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors">
+                            Reject
+                        </button>
+                    </div>
+                </div>
+                
+                <form id="messageForm" class="flex space-x-4">
+                    <input 
+                        type="text" 
+                        id="messageInput" 
+                        name="message"
+                        placeholder="Type your message..."
+                        class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        maxlength="300"
+                        required
+                    >
+                    <button 
+                        type="submit"
+                        class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-secondary transition-colors font-semibold"
+                    >
+                        Send
+                    </button>
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                </form>
+                
+                <div class="mt-4 text-sm text-gray-500">
+                    <span id="charCount">0</span> / 300 characters
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentDraft = null;
+let chatId = '<%= chatId %>';
+
+// Load chat on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadChat();
+});
+
+// Character counter
+document.getElementById('messageInput').addEventListener('input', (e) => {
+    const count = e.target.value.length;
+    document.getElementById('charCount').textContent = count;
+});
+
+document.getElementById('messageForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const message = formData.get('message');
+    
+    if (!message.trim()) return;
+    
+    // Add user message to chat
+    addMessageToChat(message, 'human');
+    
+    // Clear input
+    e.target.reset();
+    document.getElementById('charCount').textContent = '0';
+    
+    // Generate draft
+    await generateDraft();
+});
+
+async function loadChat() {
+    try {
+        const response = await fetch(`/api/chat/${chatId}`, {
+            headers: {
+                'X-CSRF-Token': window.csrfToken
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            displayMessages(result.chat.messages);
+        } else {
+            showFlashMessage(result.error || 'Failed to load chat', 'error');
+        }
+    } catch (error) {
+        console.error('Load chat error:', error);
+        showFlashMessage('Network error. Please try again.', 'error');
+    }
+}
+
+function displayMessages(messages) {
+    const messagesList = document.getElementById('messagesList');
+    
+    if (messages.length === 0) {
+        messagesList.innerHTML = '<p class="text-gray-500 text-center">No messages yet. Start the conversation!</p>';
+        return;
+    }
+    
+    messagesList.innerHTML = messages.map(msg => `
+        <div class="flex ${msg.sender === 'human' ? 'justify-end' : 'justify-start'}">
+            <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                msg.sender === 'human' 
+                    ? 'bg-primary text-white' 
+                    : 'bg-gray-200 text-gray-800'
+            }">
+                <p>${msg.content}</p>
+                <p class="text-xs mt-1 opacity-75">
+                    ${new Date(msg.createdAt).toLocaleTimeString()}
+                    ${msg.sender === 'twin' ? ' • AI-generated' : ''}
+                </p>
+            </div>
+        </div>
+    `).join('');
+    
+    // Scroll to bottom
+    const chatContainer = document.getElementById('chatContainer');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function addMessageToChat(content, sender) {
+    const messagesList = document.getElementById('messagesList');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `flex ${sender === 'human' ? 'justify-end' : 'justify-start'}`;
+    messageDiv.innerHTML = `
+        <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+            sender === 'human' 
+                ? 'bg-primary text-white' 
+                : 'bg-gray-200 text-gray-800'
+        }">
+            <p>${content}</p>
+            <p class="text-xs mt-1 opacity-75">
+                ${new Date().toLocaleTimeString()}
+                ${sender === 'twin' ? ' • AI-generated' : ''}
+            </p>
+        </div>
+    `;
+    messagesList.appendChild(messageDiv);
+    
+    // Scroll to bottom
+    const chatContainer = document.getElementById('chatContainer');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+async function generateDraft() {
+    try {
+        // Get recent messages
+        const messages = Array.from(document.querySelectorAll('#messagesList > div')).slice(-4);
+        const messageTexts = messages.map(msg => {
+            const content = msg.querySelector('p').textContent;
+            const sender = msg.classList.contains('justify-end') ? 'human' : 'twin';
+            return `${sender}: ${content}`;
+        });
+        
+        const response = await fetch(`/api/chat/${chatId}/draft`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            },
+            body: JSON.stringify({ messages: messageTexts })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            currentDraft = result.draft;
+            document.getElementById('draftContent').textContent = result.draft;
+            document.getElementById('draftSection').classList.remove('hidden');
+        } else {
+            showFlashMessage(result.error || 'Failed to generate draft', 'error');
+        }
+    } catch (error) {
+        console.error('Generate draft error:', error);
+        showFlashMessage('Network error. Please try again.', 'error');
+    }
+}
+
+async function approveDraft() {
+    if (!currentDraft) return;
+    
+    try {
+        const response = await fetch(`/api/chat/${chatId}/send`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            },
+            body: JSON.stringify({ content: currentDraft })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            addMessageToChat(currentDraft, 'twin');
+            hideDraftSection();
+            showFlashMessage('Message sent!', 'success');
+        } else {
+            showFlashMessage(result.error || 'Failed to send message', 'error');
+        }
+    } catch (error) {
+        console.error('Send message error:', error);
+        showFlashMessage('Network error. Please try again.', 'error');
+    }
+}
+
+function rejectDraft() {
+    hideDraftSection();
+}
+
+function hideDraftSection() {
+    document.getElementById('draftSection').classList.add('hidden');
+    currentDraft = null;
+}
+</script>
+` }) %>

@@ -1,0 +1,25 @@
+{
+  "name": "ai-twin-frontend",
+  "version": "1.0.0",
+  "description": "AI Twin Frontend Views & Static Assets",
+  "scripts": {
+    "dev": "echo 'Frontend development server'",
+    "build": "echo 'Frontend build process'",
+    "lint": "echo 'Frontend linting'",
+    "test": "echo 'Frontend testing'"
+  },
+  "dependencies": {
+    "ejs": "^3.1.9"
+  },
+  "devDependencies": {
+    "@types/ejs": "^3.1.4"
+  },
+  "keywords": [
+    "frontend",
+    "views",
+    "ejs",
+    "static"
+  ],
+  "author": "AI Twin Team",
+  "license": "MIT"
+}

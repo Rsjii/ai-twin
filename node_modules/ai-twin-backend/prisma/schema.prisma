@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  handle       String?  @unique
+  createdAt    DateTime @default(now())
+  twins        Twin[]
+  chats        Chat[]
+  invitesSent  Invite[] @relation("InvitesSent")
+  invitesGot   Invite[] @relation("InvitesAccepted")
+  events       Event[]
+}
+
+model Twin {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  styleVector Json
+  sampleReply String?
+  createdAt   DateTime @default(now())
+  chats       Chat[]
+}
+
+model Chat {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  twinId    String
+  twin      Twin     @relation(fields: [twinId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  messages  Message[]
+}
+
+model Message {
+  id        String         @id @default(cuid())
+  chatId    String
+  chat      Chat           @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender    MessageSender
+  content   String
+  approved  Boolean        @default(false)
+  createdAt DateTime       @default(now())
+}
+
+enum MessageSender {
+  human
+  twin
+}
+
+model OTP {
+  id         String   @id @default(cuid())
+  email      String
+  codeHash   String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  used       Boolean  @default(false)
+}
+
+model Invite {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  inviterId  String?
+  inviter    User?    @relation("InvitesSent", fields: [inviterId], references: [id])
+  acceptedBy String?
+  accepted   User?    @relation("InvitesAccepted", fields: [acceptedBy], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  type      String
+  meta      Json?
+  createdAt DateTime @default(now())
+}
