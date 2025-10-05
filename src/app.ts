@@ -31,7 +31,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
-      scriptSrc: ["'self'", "https://cdn.tailwindcss.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
       imgSrc: ["'self'", "data:", "https:"],
     },
   },
@@ -127,7 +127,61 @@ app.post('/test-auth', async (req, res) => {
 // Test OTP generation route (no CSRF)
 app.post('/test-otp', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, code } = req.body;
+    
+    // If code is provided, this is a verification request
+    if (code) {
+      if (!email) {
+        return res.status(400).json({ error: 'Email required for verification' });
+      }
+      
+      // Verify OTP
+      const { verifyOTP } = await import('./modules/auth/authService.js');
+      const { otpQueries } = await import('./config/database.js');
+      
+      // Get stored OTP
+      const storedOTP = await otpQueries.findByEmail(email.toLowerCase());
+      if (!storedOTP) {
+        return res.status(400).json({ error: 'No OTP found for this email' });
+      }
+      
+      // Check if OTP is expired
+      if (new Date() > storedOTP.expires_at) {
+        return res.status(400).json({ error: 'OTP has expired' });
+      }
+      
+      // Check if OTP is already used
+      if (storedOTP.used) {
+        return res.status(400).json({ error: 'OTP has already been used' });
+      }
+      
+      // Verify the code
+      const isValid = await verifyOTP(code, storedOTP.codeHash);
+      if (!isValid) {
+        return res.status(400).json({ error: 'Invalid OTP code' });
+      }
+      
+      // OTP is valid - create user session
+      req.session.userId = 'test-user-id';
+      req.session.userEmail = email.toLowerCase();
+      req.session.userHandle = email.split('@')[0];
+      
+      // Clean up used OTP
+      await otpQueries.markAsUsed(storedOTP.id);
+      
+      console.log('\n✅ ===== OTP VERIFIED (TEST) =====');
+      console.log(`📧 Email: ${email}`);
+      console.log(`🔑 OTP Code: ${code}`);
+      console.log('=====================================\n');
+      
+      return res.json({ 
+        message: 'OTP verification successful!', 
+        email: email,
+        userId: 'test-user-id'
+      });
+    }
+    
+    // If no code provided, this is a generation request
     if (!email) {
       return res.status(400).json({ error: 'Email required' });
     }
@@ -155,7 +209,7 @@ app.post('/test-otp', async (req, res) => {
       email: email 
     });
   } catch (error: any) {
-    return res.status(500).json({ error: 'OTP generation error', details: error.message });
+    return res.status(500).json({ error: 'OTP operation error', details: error.message });
   }
 });
 
@@ -395,14 +449,14 @@ app.get('/login', (req, res) => {
             console.log('Response data:', result);
             
              if (response.ok) {
-                 showSuccess(\`OTP generated! Code: \${result.otp} - Redirecting to verification...\`);
+                 showSuccess('OTP generated! Code: ' + result.otp + ' - Redirecting to verification...');
                  // Redirect to verification page after 2 seconds
                  setTimeout(() => {
                      window.location.href = '/login/verify?email=' + encodeURIComponent(email);
                  }, 2000);
              } else {
-                showError(result.error || 'Failed to send login code');
-            }
+                 showError(result.error || 'Failed to send login code');
+             }
         } catch (error) {
             console.error('Login error:', error);
             showError('Network error. Please try again.');
