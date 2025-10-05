@@ -1,7 +1,40 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logProfileShare = exports.generateProfileLink = exports.getPublicProfile = exports.updateHandle = void 0;
-const prisma_1 = require("../../config/prisma");
+exports.logProfileShare = exports.updateProfile = exports.generateProfileLink = exports.getPublicProfile = exports.updateHandle = void 0;
+const database_1 = require("../../config/database");
 const authService_1 = require("../auth/authService");
 const logger_1 = require("../../config/logger");
 const zod_1 = require("zod");
@@ -11,23 +44,29 @@ const updateHandleSchema = zod_1.z.object({
 const updateHandle = async (req, res) => {
     try {
         const { handle } = updateHandleSchema.parse(req.body);
-        if (!req.user) {
+        if (!req.session?.userId || !req.session?.userEmail) {
             return res.status(401).json({ error: 'Authentication required' });
         }
-        const existingUser = await prisma_1.prisma.user.findUnique({
-            where: { handle },
-        });
-        if (existingUser && existingUser.id !== req.user.id) {
+        const existingUser = await database_1.userQueries.findByEmail(req.session.userEmail);
+        if (!existingUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        if (existingUser.handle === handle) {
+            return res.json({
+                success: true,
+                handle: existingUser.handle,
+            });
+        }
+        const { db } = await Promise.resolve().then(() => __importStar(require('../../config/database')));
+        const handleCheck = await db.query('SELECT id FROM "User" WHERE handle = $1 AND id != $2', [handle, req.session.userId]);
+        if (handleCheck.rows.length > 0) {
             return res.status(400).json({ error: 'Handle already taken' });
         }
-        const user = await prisma_1.prisma.user.update({
-            where: { id: req.user.id },
-            data: { handle },
-        });
+        const updatedUser = await database_1.userQueries.updateProfile(req.session.userEmail, existingUser.name || '', handle, existingUser.dob || '', existingUser.phone || '', existingUser.bio || '');
         req.session.userHandle = handle;
-        res.json({
+        return res.json({
             success: true,
-            handle: user.handle,
+            handle: updatedUser.handle,
         });
     }
     catch (error) {
@@ -35,7 +74,7 @@ const updateHandle = async (req, res) => {
         if (error instanceof zod_1.z.ZodError) {
             return res.status(400).json({ error: 'Invalid input', details: error.errors });
         }
-        res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 };
 exports.updateHandle = updateHandle;
@@ -50,25 +89,18 @@ const getPublicProfile = async (req, res) => {
         if (!tokenData || tokenData.handle !== handle) {
             return res.status(400).json({ error: 'Invalid or expired token' });
         }
-        const user = await prisma_1.prisma.user.findUnique({
-            where: { handle },
-            include: {
-                twins: {
-                    orderBy: { createdAt: 'desc' },
-                    take: 1,
-                    select: {
-                        styleVector: true,
-                        sampleReply: true,
-                        createdAt: true,
-                    },
-                },
-            },
-        });
-        if (!user || !user.twins.length) {
+        const { db } = await Promise.resolve().then(() => __importStar(require('../../config/database')));
+        const userResult = await db.query('SELECT * FROM "User" WHERE handle = $1', [handle]);
+        if (!userResult.rows.length) {
             return res.status(404).json({ error: 'Profile not found' });
         }
-        const twin = user.twins[0];
-        res.json({
+        const user = userResult.rows[0];
+        const twinResult = await db.query('SELECT * FROM "Twin" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 1', [user.id]);
+        if (!twinResult.rows.length) {
+            return res.status(404).json({ error: 'No twin found for this user' });
+        }
+        const twin = twinResult.rows[0];
+        return res.json({
             user: {
                 handle: user.handle,
                 createdAt: user.createdAt,
@@ -82,21 +114,22 @@ const getPublicProfile = async (req, res) => {
     }
     catch (error) {
         logger_1.logger.error('Get public profile error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 };
 exports.getPublicProfile = getPublicProfile;
 const generateProfileLink = async (req, res) => {
     try {
-        if (!req.user) {
+        if (!req.session?.userId || !req.session?.userEmail) {
             return res.status(401).json({ error: 'Authentication required' });
         }
-        if (!req.user.handle) {
+        const user = await database_1.userQueries.findByEmail(req.session.userEmail);
+        if (!user || !user.handle) {
             return res.status(400).json({ error: 'Handle not set. Please set a handle first.' });
         }
-        const token = (0, authService_1.generateProfileToken)(req.user.id, req.user.handle);
-        const profileUrl = `/p/${req.user.handle}?t=${token}`;
-        res.json({
+        const token = (0, authService_1.generateProfileToken)(user.id, user.handle);
+        const profileUrl = `/p/${user.handle}?t=${token}`;
+        return res.json({
             success: true,
             profileUrl,
             token,
@@ -104,21 +137,66 @@ const generateProfileLink = async (req, res) => {
     }
     catch (error) {
         logger_1.logger.error('Generate profile link error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 };
 exports.generateProfileLink = generateProfileLink;
-const logProfileShare = async (req, res) => {
+const updateProfile = async (req, res) => {
     try {
+        console.log('UpdateProfile called. User:', req.user);
         if (!req.user) {
+            console.log('Authentication failed - no user in request');
             return res.status(401).json({ error: 'Authentication required' });
         }
-        await prisma_1.prisma.event.create({
-            data: {
-                userId: req.user.id,
-                type: 'profile_shared',
-            },
+        const updateProfileSchema = zod_1.z.object({
+            name: zod_1.z.string().min(2, 'Name must be at least 2 characters').optional(),
+            handle: zod_1.z.string().min(3, 'Handle must be at least 3 characters').max(20, 'Handle too long').regex(/^[a-zA-Z0-9_-]+$/, 'Handle can only contain letters, numbers, hyphens, and underscores').optional(),
+            dob: zod_1.z.string().optional(),
+            phone: zod_1.z.string().optional(),
+            bio: zod_1.z.string().max(500, 'Bio too long').optional(),
         });
+        const { name, handle, dob, phone, bio } = updateProfileSchema.parse(req.body);
+        const currentUser = await database_1.userQueries.findByEmail(req.user.email);
+        if (!currentUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        if (handle && handle !== currentUser.handle) {
+            const { db } = await Promise.resolve().then(() => __importStar(require('../../config/database')));
+            const handleCheck = await db.query('SELECT id FROM "User" WHERE handle = $1 AND id != $2', [handle, req.user.userId]);
+            if (handleCheck.rows.length > 0) {
+                return res.status(400).json({ error: 'Handle already taken' });
+            }
+        }
+        const updatedUser = await database_1.userQueries.updateProfile(req.user.email, name !== undefined ? name : currentUser.name || '', handle !== undefined ? handle : currentUser.handle || '', dob !== undefined ? dob : currentUser.dob || '', phone !== undefined ? phone : currentUser.phone || '', bio !== undefined ? bio : currentUser.bio || '');
+        return res.json({
+            success: true,
+            user: {
+                name: updatedUser.name,
+                handle: updatedUser.handle,
+                dob: updatedUser.dob,
+                phone: updatedUser.phone,
+                bio: updatedUser.bio,
+            },
+            handle: updatedUser.handle,
+        });
+    }
+    catch (error) {
+        logger_1.logger.error('Update profile error:', error);
+        if (error instanceof zod_1.z.ZodError) {
+            return res.status(400).json({ error: 'Invalid input', details: error.errors });
+        }
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+exports.updateProfile = updateProfile;
+const logProfileShare = async (req, res) => {
+    try {
+        if (!req.session?.userId) {
+            res.status(401).json({ error: 'Authentication required' });
+            return;
+        }
+        const { db, generateId } = await Promise.resolve().then(() => __importStar(require('../../config/database')));
+        await db.query('INSERT INTO "Event" (id, "userId", type, meta) VALUES ($1, $2, $3, $4)', [generateId(), req.session.userId, 'profile_shared', null]);
         res.json({ success: true });
     }
     catch (error) {

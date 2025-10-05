@@ -6,6 +6,6 @@ export interface AuthenticatedRequest extends Request {
         handle?: string;
     };
 }
-export declare const requireAuth: (req: AuthenticatedRequest, res: Response, next: NextFunction) => void;
+export declare const requireAuth: (req: AuthenticatedRequest, res: Response, next: NextFunction) => void | Response<any, Record<string, any>>;
 export declare const optionalAuth: (req: AuthenticatedRequest, res: Response, next: NextFunction) => void;
 //# sourceMappingURL=auth.d.ts.map

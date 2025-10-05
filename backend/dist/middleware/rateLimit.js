@@ -17,7 +17,7 @@ exports.draftRateLimit = (0, express_rate_limit_1.default)({
 });
 exports.otpRateLimit = (0, express_rate_limit_1.default)({
     windowMs: 5 * 60 * 1000,
-    max: 50,
+    max: 500,
     message: 'Too many OTP requests. Please try again later.',
     standardHeaders: true,
     legacyHeaders: false,

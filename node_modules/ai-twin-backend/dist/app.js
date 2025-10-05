@@ -41,6 +41,7 @@ const express_session_1 = __importDefault(require("express-session"));
 const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const env_1 = require("./config/env");
 const logger_1 = require("./config/logger");
 const database_1 = require("./config/database");
@@ -50,6 +51,7 @@ const chatRoutes_1 = __importDefault(require("./modules/chat/chatRoutes"));
 const profileRoutes_1 = __importDefault(require("./modules/profile/profileRoutes"));
 const inviteRoutes_1 = __importDefault(require("./modules/invite/inviteRoutes"));
 const analyticsRoutes_1 = __importDefault(require("./modules/analytics/analyticsRoutes"));
+const jwtCookie_1 = require("./middleware/jwtCookie");
 const csrf_1 = require("./middleware/csrf");
 const validation_1 = require("./middleware/validation");
 const auth_1 = require("./middleware/auth");
@@ -72,12 +74,14 @@ const limiter = (0, express_rate_limit_1.default)({
     legacyHeaders: false,
 });
 app.use(limiter);
+app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
+app.set('trust proxy', 1);
 app.use((0, express_session_1.default)({
     secret: env_1.config.sessionSecret,
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     cookie: {
         secure: env_1.config.nodeEnv === 'production',
         httpOnly: true,
@@ -93,7 +97,6 @@ else {
 app.set('view engine', 'ejs');
 app.set('views', '../frontend/src/views');
 app.use(express_1.default.static('../frontend/src/public'));
-app.set('trust proxy', 1);
 app.use(csrf_1.generateCSRFToken);
 app.use(validation_1.sanitizeInput);
 app.use(auth_1.optionalAuth);
@@ -105,6 +108,14 @@ app.use('/api/invite', inviteRoutes_1.default);
 app.use('/api/metrics', analyticsRoutes_1.default);
 app.get('/test', (req, res) => {
     res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
+});
+app.get('/test-session', (req, res) => {
+    res.json({
+        session: req.session,
+        userId: req.session?.userId,
+        userEmail: req.session?.userEmail,
+        testValue: req.session?.testValue
+    });
 });
 app.get('/test-db', async (req, res) => {
     try {
@@ -480,6 +491,22 @@ app.get('/signup/profile', (req, res) => {
         email: email
     });
 });
+app.get('/forgot-password', (req, res) => {
+    res.render('forgot-password', {
+        title: 'Forgot Password - AI Twin',
+        user: req.user,
+        csrfToken: res.locals['csrfToken']
+    });
+});
+app.get('/forgot-password/verify', (req, res) => {
+    const email = req.query['email'];
+    res.render('forgot-password-verify', {
+        title: 'Verify Reset Code - AI Twin',
+        user: req.user,
+        csrfToken: res.locals['csrfToken'],
+        email: email
+    });
+});
 app.get('/reset-password', (req, res) => {
     const email = req.query['email'];
     res.render('reset-password', {
@@ -489,29 +516,98 @@ app.get('/reset-password', (req, res) => {
         email: email
     });
 });
-app.get('/profile', (req, res) => {
-    if (!req.session?.userId) {
+app.get('/test-profile', jwtCookie_1.extractJWTFromCookie, async (req, res) => {
+    if (!req.user) {
         return res.redirect('/auth');
     }
-    res.render('profile', {
-        title: 'Profile - AI Twin',
-        user: req.user,
-        csrfToken: res.locals['csrfToken'],
-    });
+    try {
+        const user = await database_1.userQueries.findByEmail(req.user.email);
+        if (!user) {
+            return res.redirect('/auth');
+        }
+        res.json({
+            success: true,
+            user: user,
+            csrfToken: res.locals['csrfToken']
+        });
+    }
+    catch (error) {
+        console.error('Test profile error:', error);
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
 });
-app.get('/dashboard', (req, res) => {
-    if (!req.session?.userId) {
+app.get('/profile', jwtCookie_1.extractJWTFromCookie, async (req, res) => {
+    console.log('Profile route accessed. User:', req.user);
+    if (!req.user) {
+        console.log('No user in JWT, redirecting to auth');
         return res.redirect('/auth');
     }
+    try {
+        console.log('Fetching user data for email:', req.user.email);
+        const user = await database_1.userQueries.findByEmail(req.user.email);
+        console.log('User query result:', user);
+        if (!user) {
+            console.log('User not found in database, redirecting to auth');
+            return res.redirect('/auth');
+        }
+        console.log('User found, rendering profile page');
+        const userWithDefaults = {
+            ...user,
+            dob: user.dob || null,
+            phone: user?.phone || null,
+            bio: user?.bio || null
+        };
+        console.log('User with defaults:', userWithDefaults);
+        res.render('profile-simple', {
+            title: 'Profile - AI Twin',
+            user: userWithDefaults,
+            csrfToken: res.locals['csrfToken'],
+        });
+    }
+    catch (error) {
+        console.error('Profile page error:', error);
+        logger_1.logger.error('Profile page error:', error);
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+});
+app.get('/change-password', jwtCookie_1.extractJWTFromCookie, async (req, res) => {
+    if (!req.user) {
+        return res.redirect('/auth');
+    }
+    try {
+        const user = await database_1.userQueries.findByEmail(req.user.email);
+        if (!user) {
+            return res.redirect('/auth');
+        }
+        res.render('change-password', {
+            title: 'Change Password - AI Twin',
+            user: user,
+            csrfToken: res.locals['csrfToken'],
+        });
+    }
+    catch (error) {
+        logger_1.logger.error('Change password page error:', error);
+        res.status(500).send('Internal server error');
+    }
+});
+app.get('/dashboard', jwtCookie_1.extractJWTFromCookie, (req, res) => {
+    if (!req.user) {
+        return res.redirect('/auth');
+    }
+    const user = {
+        id: req.user.userId,
+        email: req.user.email,
+        handle: req.user.handle,
+    };
     res.render('layout', {
         title: 'Dashboard - AI Twin',
-        user: req.user,
+        user: user,
         csrfToken: res.locals['csrfToken'],
         body: `
     <div class="px-4 py-6 sm:px-0">
         <div class="max-w-7xl mx-auto">
             <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">Welcome back, ${req.user?.handle || req.user?.email || 'User'}!</h1>
+                <h1 class="text-3xl font-bold text-gray-900">Welcome back, ${user?.handle || user?.email || 'User'}!</h1>
                 <p class="text-gray-600 mt-2">Manage your AI twins and conversations</p>
             </div>
             

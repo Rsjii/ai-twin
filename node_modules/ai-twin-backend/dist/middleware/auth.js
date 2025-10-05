@@ -3,7 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.optionalAuth = exports.requireAuth = void 0;
 const requireAuth = (req, res, next) => {
     if (!req.session?.userId) {
-        return res.redirect('/login');
+        if (req.path.startsWith('/api/')) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+        return res.redirect('/auth');
     }
     req.user = {
         id: req.session.userId,

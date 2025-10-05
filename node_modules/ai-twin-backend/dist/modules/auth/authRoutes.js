@@ -5,7 +5,7 @@ const authController_1 = require("./authController");
 const rateLimit_1 = require("../../middleware/rateLimit");
 const csrf_1 = require("../../middleware/csrf");
 const validation_1 = require("../../middleware/validation");
-const auth_1 = require("../../middleware/auth");
+const jwtAuth_1 = require("../../middleware/jwtAuth");
 const router = (0, express_1.Router)();
 router.use(csrf_1.generateCSRFToken);
 router.post('/signup', validation_1.sanitizeInput, rateLimit_1.otpRateLimit, authController_1.signup);
@@ -15,7 +15,7 @@ router.post('/login', validation_1.sanitizeInput, csrf_1.validateCSRF, authContr
 router.post('/forgot-password', validation_1.sanitizeInput, rateLimit_1.otpRateLimit, authController_1.forgotPassword);
 router.post('/forgot-password/verify', validation_1.sanitizeInput, authController_1.forgotPasswordVerify);
 router.post('/reset-password', validation_1.sanitizeInput, authController_1.resetPassword);
-router.post('/change-password', auth_1.requireAuth, validation_1.sanitizeInput, csrf_1.validateCSRF, authController_1.changePassword);
-router.post('/logout', auth_1.requireAuth, csrf_1.validateCSRF, authController_1.logout);
+router.post('/change-password', jwtAuth_1.authenticateJWT, validation_1.sanitizeInput, authController_1.changePassword);
+router.post('/logout', authController_1.logout);
 exports.default = router;
 //# sourceMappingURL=authRoutes.js.map

@@ -7,10 +7,18 @@ const app_1 = __importDefault(require("./app"));
 const env_1 = require("./config/env");
 const logger_1 = require("./config/logger");
 const db_1 = require("./config/db");
+const database_1 = require("./config/database");
 async function startServer() {
     try {
         await db_1.db.query('SELECT 1');
         logger_1.logger.info('Database connected successfully');
+        try {
+            await (0, database_1.initializeDatabase)();
+            logger_1.logger.info('Database tables initialized');
+        }
+        catch (dbError) {
+            logger_1.logger.warn('Database initialization failed, continuing anyway:', dbError.message);
+        }
         const server = app_1.default.listen(env_1.config.port, () => {
             logger_1.logger.info(`🚀 AI Twin server running on port ${env_1.config.port}`);
             logger_1.logger.info(`📊 Environment: ${env_1.config.nodeEnv}`);

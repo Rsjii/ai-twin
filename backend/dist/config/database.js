@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS "User" (
     "passwordHash" TEXT,
     "handle" TEXT,
     "name" TEXT,
+    "dob" TEXT,
+    "phone" TEXT,
+    "bio" TEXT,
     "active" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
@@ -90,6 +93,22 @@ CREATE TABLE IF NOT EXISTS "Event" (
 CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX IF NOT EXISTS "User_handle_key" ON "User"("handle");
 CREATE UNIQUE INDEX IF NOT EXISTS "Invite_code_key" ON "Invite"("code");
+
+-- Add missing columns to User table if they don't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'dob') THEN
+        ALTER TABLE "User" ADD COLUMN "dob" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'phone') THEN
+        ALTER TABLE "User" ADD COLUMN "phone" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'bio') THEN
+        ALTER TABLE "User" ADD COLUMN "bio" TEXT;
+    END IF;
+END $$;
 
 -- AddForeignKey
 ALTER TABLE "Twin" DROP CONSTRAINT IF EXISTS "Twin_userId_fkey";

@@ -22,8 +22,8 @@ exports.config = {
     nodeEnv: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '3000'),
     rateLimit: {
-        windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '3600000'),
-        maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '60')
+        windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
+        maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '10000')
     },
     otp: {
         expiryMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES || '10'),

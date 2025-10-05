@@ -6,6 +6,7 @@ const authService_1 = require("./authService");
 const logger_1 = require("../../config/logger");
 const env_1 = require("../../config/env");
 const zod_1 = require("zod");
+const jwtService_1 = require("../../services/jwtService");
 const emailService = new authService_1.EmailService();
 const signupSchema = zod_1.z.object({
     email: zod_1.z.string().email('Invalid email format'),
@@ -95,12 +96,27 @@ const completeProfile = async (req, res) => {
         const { email, name, handle, dob, phone, bio } = completeProfileSchema.parse(req.body);
         await database_1.userQueries.updateProfile(email.toLowerCase(), name, handle, dob, phone, bio);
         const user = await database_1.userQueries.findByEmail(email.toLowerCase());
-        req.session.userId = user.id;
-        req.session.userEmail = user.email;
-        req.session.userHandle = user.handle;
+        const token = (0, jwtService_1.generateJWT)({
+            userId: user.id,
+            email: user.email,
+            handle: user.handle || ''
+        });
+        res.cookie('jwtToken', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
         res.json({
             message: 'Profile completed successfully',
-            redirect: '/dashboard'
+            redirect: '/dashboard',
+            token: token,
+            user: {
+                id: user.id,
+                email: user.email,
+                handle: user.handle,
+                name: user.name
+            }
         });
     }
     catch (error) {
@@ -212,10 +228,28 @@ const login = async (req, res) => {
         if (!isValidPassword) {
             return res.status(400).json({ error: 'Invalid email or password' });
         }
-        req.session.userId = user.id;
-        req.session.userEmail = user.email;
-        req.session.userHandle = user.handle;
-        res.json({ message: 'Login successful', redirect: '/dashboard' });
+        const token = (0, jwtService_1.generateJWT)({
+            userId: user.id,
+            email: user.email,
+            handle: user.handle || ''
+        });
+        res.cookie('jwtToken', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+        res.json({
+            message: 'Login successful',
+            redirect: '/dashboard',
+            token: token,
+            user: {
+                id: user.id,
+                email: user.email,
+                handle: user.handle,
+                name: user.name
+            }
+        });
     }
     catch (error) {
         logger_1.logger.error('Login error:', error);
@@ -288,13 +322,21 @@ const changePassword = async (req, res) => {
 };
 exports.changePassword = changePassword;
 const logout = (req, res) => {
-    req.session?.destroy((err) => {
-        if (err) {
-            logger_1.logger.error('Session destruction error:', err);
-            return res.status(500).json({ error: 'Failed to logout' });
+    try {
+        res.clearCookie('jwtToken');
+        if (req.session) {
+            req.session.destroy((err) => {
+                if (err) {
+                    logger_1.logger.error('Session destruction error:', err);
+                }
+            });
         }
-        res.json({ message: 'Logged out successfully' });
-    });
+        res.json({ message: 'Logged out successfully', redirect: '/auth' });
+    }
+    catch (error) {
+        logger_1.logger.error('Logout error:', error);
+        res.status(500).json({ error: 'Failed to logout' });
+    }
 };
 exports.logout = logout;
 //# sourceMappingURL=authController.js.map
