@@ -32,6 +32,16 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     <% if (typeof user !== 'undefined' && user) { %>
+                        <!-- Logout Button -->
+                        <button id="logoutBtn" onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors font-semibold">
+                            Logout
+                        </button>
+                        
+                        <!-- Test Button -->
+                        <button onclick="testLogout()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors font-semibold">
+                            Test
+                        </button>
+                        
                         <!-- User Profile Dropdown -->
                         <div class="relative" x-data="{ open: false }">
                             <button @click="open = !open" class="flex items-center space-x-2 text-gray-700 hover:text-gray-900 focus:outline-none">
@@ -53,8 +63,6 @@
                                 <a href="/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dashboard</a>
                                 <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile Settings</a>
                                 <a href="/change-password" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Change Password</a>
-                                <div class="border-t"></div>
-                                <button onclick="logout()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
                             </div>
                         </div>
                     <% } else { %>
@@ -119,6 +127,19 @@
         // Logout function
         async function logout() {
             console.log('Logout button clicked!');
+            
+            // Get the logout button element by ID
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (!logoutBtn) {
+                console.error('Logout button not found!');
+                return;
+            }
+            
+            // Show loading state
+            const originalText = logoutBtn.textContent;
+            logoutBtn.textContent = 'Logging out...';
+            logoutBtn.disabled = true;
+            
             try {
                 const response = await fetch('/api/auth/logout', {
                     method: 'POST',
@@ -131,20 +152,41 @@
                 console.log('Logout response:', response.status);
                 
                 if (response.ok) {
-                    console.log('Logout successful, clearing localStorage and redirecting...');
+                    console.log('Logout successful, clearing all data...');
+                    
                     // Clear localStorage
                     localStorage.removeItem('jwtToken');
                     localStorage.removeItem('user');
-                    window.location.href = '/auth';
+                    
+                    // Clear sessionStorage
+                    sessionStorage.clear();
+                    
+                    // Clear all cookies
+                    document.cookie.split(";").forEach(function(c) { 
+                        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                    });
+                    
+                    // Force redirect with cache busting
+                    const timestamp = new Date().getTime();
+                    window.location.replace('/auth?logout=' + timestamp);
+                    
                 } else {
                     console.log('Logout failed:', response.status);
                     const errorData = await response.text();
                     console.log('Error response:', errorData);
                     showFlashMessage('Logout failed. Please try again.', 'error');
+                    
+                    // Restore button state
+                    logoutBtn.textContent = originalText;
+                    logoutBtn.disabled = false;
                 }
             } catch (error) {
                 console.error('Logout error:', error);
                 showFlashMessage('Network error. Please try again.', 'error');
+                
+                // Restore button state
+                logoutBtn.textContent = originalText;
+                logoutBtn.disabled = false;
             }
         }
 
@@ -165,6 +207,27 @@
         // Global error handler
         window.addEventListener('error', (event) => {
             console.error('Global error:', event.error);
+        });
+        
+        // Test function to verify logout button is working
+        function testLogout() {
+            console.log('Test logout function called!');
+            alert('Logout button is working!');
+        }
+        
+        // Add click event listener as backup
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                console.log('Logout button found, adding click listener');
+                logoutBtn.addEventListener('click', function(e) {
+                    console.log('Logout button clicked via event listener');
+                    e.preventDefault();
+                    logout();
+                });
+            } else {
+                console.error('Logout button not found on page load');
+            }
         });
     </script>
 </body>

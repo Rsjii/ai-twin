@@ -29,8 +29,8 @@ export const config = {
   
   // Rate Limiting
   rateLimit: {
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '3600000'), // 1 hour
-    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '60')
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
+    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000') // 1000 requests per 15 minutes
   },
   
   // OTP Configuration
