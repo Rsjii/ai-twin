@@ -16,10 +16,6 @@ const loginVerifySchema = z.object({
   code: z.string().length(6, 'OTP must be 6 digits').regex(/^\d{6}$/, 'OTP must contain only numbers'),
 });
 
-const waitlistSchema = z.object({
-  email: z.string().email('Invalid email format'),
-});
-
 export const loginStart = async (req: Request, res: Response) => {
   try {
     const { email } = loginStartSchema.parse(req.body);
@@ -101,29 +97,4 @@ export const logout = (req: Request, res: Response) => {
     }
     res.json({ message: 'Logged out successfully' });
   });
-};
-
-export const waitlistSignup = async (req: Request, res: Response) => {
-  try {
-    const { email } = waitlistSchema.parse(req.body);
-    
-    // Check if user already exists
-    const existingUser = await userQueries.findByEmail(email.toLowerCase());
-    
-    if (existingUser) {
-      return res.json({ message: 'Email already registered' });
-    }
-    
-    // Create user
-    // Create new user
-    const user = await userQueries.create(email.toLowerCase());
-    
-    res.json({ message: 'Successfully added to waitlist' });
-  } catch (error) {
-    logger.error('Waitlist signup error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
-    }
-    res.status(500).json({ error: 'Internal server error' });
-  }
 };

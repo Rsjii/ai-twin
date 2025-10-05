@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { loginStart, loginVerify, logout, waitlistSignup } from './authController';
+import { loginStart, loginVerify, logout } from './authController';
 import { otpRateLimit } from '../../middleware/rateLimit';
 import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
 import { sanitizeInput } from '../../middleware/validation';
@@ -8,9 +8,6 @@ const router = Router();
 
 // Apply CSRF protection to all routes
 router.use(generateCSRFToken);
-
-// Waitlist signup
-router.post('/waitlist', sanitizeInput, validateCSRF, waitlistSignup);
 
 // Login routes
 router.post('/login/start', sanitizeInput, validateCSRF, otpRateLimit, loginStart);
