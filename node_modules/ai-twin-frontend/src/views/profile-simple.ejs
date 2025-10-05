@@ -10,36 +10,52 @@
     <div class="px-4 py-6 sm:px-0">
         <div class="max-w-2xl mx-auto">
             <div class="bg-white rounded-lg shadow-lg p-8">
-                <h1 class="text-2xl font-bold text-gray-900 mb-6">Profile Settings</h1>
-                
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input type="email" value="<%= user.email %>" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold text-gray-900">Profile Settings</h1>
+                    <button type="submit" form="profileForm" class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 font-semibold">
+                        Update Profile
+                    </button>
                 </div>
                 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Name</label>
-                    <input type="text" value="<%= user.name || '' %>" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Handle</label>
-                    <input type="text" value="<%= user.handle || '' %>" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Member Since</label>
-                    <input type="text" value="<%= user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A' %>" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Bio</label>
-                    <textarea readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"><%= user.bio || '' %></textarea>
-                </div>
+                <form id="profileForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input type="email" name="email" value="<%= user.email %>" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                        <input type="text" name="name" value="<%= user.name || '' %>" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Handle</label>
+                        <input type="text" name="handle" value="<%= user.handle || '' %>" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
+                        <input type="date" name="dob" value="<%= user.dob ? new Date(user.dob).toISOString().split('T')[0] : '' %>" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                        <input type="tel" name="phone" value="<%= user.phone || '' %>" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Member Since</label>
+                        <input type="text" value="<%= user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A' %>" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                        <textarea name="bio" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white"><%= user.bio || '' %></textarea>
+                    </div>
+                </form>
                 
                 <div class="flex gap-4">
                     <a href="/dashboard" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">Back to Dashboard</a>
-                    <a href="/change-password" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">Change Password</a>
                     <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Logout</button>
                 </div>
             </div>
@@ -47,9 +63,75 @@
     </div>
     
     <script>
+        // Global variables
         window.csrfToken = '<%= csrfToken %>';
         
+        // Debug function
+        function debugLog(message) {
+            console.log('Profile Debug:', message);
+        }
+        
+        // Wait for DOM to load
+        document.addEventListener('DOMContentLoaded', function() {
+            debugLog('DOM loaded, setting up form submission');
+            
+            // Set up form submission
+            const profileForm = document.getElementById('profileForm');
+            if (profileForm) {
+                profileForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    debugLog('Form submitted');
+                    
+                    const formData = new FormData(e.target);
+                    const data = {
+                        name: formData.get('name'),
+                        handle: formData.get('handle'),
+                        dob: formData.get('dob'),
+                        phone: formData.get('phone'),
+                        bio: formData.get('bio')
+                    };
+                    
+                    debugLog('Form data:', data);
+                    
+                    try {
+                        const token = localStorage.getItem('jwtToken');
+                        debugLog('JWT token found:', token ? 'yes' : 'no');
+                        
+                        const response = await fetch('/api/profile/update', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': window.csrfToken,
+                                'Authorization': token ? `Bearer ${token}` : ''
+                            },
+                            body: JSON.stringify(data)
+                        });
+                        
+                        const result = await response.json();
+                        debugLog('Response:', result);
+                        
+                        if (response.ok) {
+                            alert('Profile updated successfully!');
+                            // Reload the page to show updated data
+                            window.location.reload();
+                        } else {
+                            alert(result.error || 'Failed to update profile');
+                        }
+                    } catch (error) {
+                        console.error('Profile update error:', error);
+                        alert('Network error. Please try again.');
+                    }
+                });
+            } else {
+                debugLog('Profile form not found!');
+            }
+            
+            debugLog('All functions loaded and ready');
+        });
+        
+        // Logout function
         async function logout() {
+            debugLog('Logout button clicked!');
             try {
                 const response = await fetch('/api/auth/logout', {
                     method: 'POST',
@@ -59,14 +141,23 @@
                     }
                 });
                 
+                debugLog('Logout response:', response.status);
+                
                 if (response.ok) {
+                    debugLog('Logout successful, clearing localStorage and redirecting...');
+                    // Clear localStorage
+                    localStorage.removeItem('jwtToken');
+                    localStorage.removeItem('user');
                     window.location.href = '/auth';
                 } else {
-                    alert('Logout failed');
+                    debugLog('Logout failed:', response.status);
+                    const errorData = await response.text();
+                    debugLog('Error response:', errorData);
+                    alert('Logout failed. Please try again.');
                 }
             } catch (error) {
                 console.error('Logout error:', error);
-                alert('Network error');
+                alert('Network error. Please try again.');
             }
         }
     </script>

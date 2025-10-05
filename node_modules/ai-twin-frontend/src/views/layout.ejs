@@ -24,7 +24,11 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <a href="/" class="text-xl font-bold text-primary">AI Twin</a>
+                    <% if (typeof user !== 'undefined' && user) { %>
+                        <a href="/dashboard" class="text-xl font-bold text-primary">AI Twin</a>
+                    <% } else { %>
+                        <a href="/" class="text-xl font-bold text-primary">AI Twin</a>
+                    <% } %>
                 </div>
                 <div class="flex items-center space-x-4">
                     <% if (typeof user !== 'undefined' && user) { %>
@@ -119,14 +123,18 @@
                 const response = await fetch('/api/auth/logout', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken
                     }
                 });
                 
                 console.log('Logout response:', response.status);
                 
                 if (response.ok) {
-                    console.log('Logout successful, redirecting to auth...');
+                    console.log('Logout successful, clearing localStorage and redirecting...');
+                    // Clear localStorage
+                    localStorage.removeItem('jwtToken');
+                    localStorage.removeItem('user');
                     window.location.href = '/auth';
                 } else {
                     console.log('Logout failed:', response.status);
