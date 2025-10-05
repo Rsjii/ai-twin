@@ -13,7 +13,10 @@ END $$;
 CREATE TABLE IF NOT EXISTS "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
+    "passwordHash" TEXT,
     "handle" TEXT,
+    "name" TEXT,
+    "active" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -125,11 +128,11 @@ export function generateId(): string {
 
 // Database utility functions
 export const userQueries = {
-  create: async (email: string, handle?: string) => {
+  create: async (email: string, handle?: string, passwordHash?: string) => {
     const id = generateId();
     const result = await db.query(
-      'INSERT INTO "User" (id, email, handle) VALUES ($1, $2, $3) RETURNING *',
-      [id, email, handle]
+      'INSERT INTO "User" (id, email, handle, "passwordHash") VALUES ($1, $2, $3, $4) RETURNING *',
+      [id, email, handle, passwordHash]
     );
     return result.rows[0];
   },
@@ -141,6 +144,30 @@ export const userQueries = {
 
   findById: async (id: string) => {
     const result = await db.query('SELECT * FROM "User" WHERE id = $1', [id]);
+    return result.rows[0];
+  },
+
+  updatePassword: async (email: string, passwordHash: string) => {
+    const result = await db.query(
+      'UPDATE "User" SET "passwordHash" = $1 WHERE email = $2 RETURNING *',
+      [passwordHash, email]
+    );
+    return result.rows[0];
+  },
+
+  activateUser: async (email: string) => {
+    const result = await db.query(
+      'UPDATE "User" SET active = true WHERE email = $1 RETURNING *',
+      [email]
+    );
+    return result.rows[0];
+  },
+
+  updateProfile: async (email: string, name: string, handle?: string, dob?: string, phone?: string, bio?: string) => {
+    const result = await db.query(
+      'UPDATE "User" SET name = $1, handle = $2, dob = $3, phone = $4, bio = $5 WHERE email = $6 RETURNING *',
+      [name, handle, dob, phone, bio, email]
+    );
     return result.rows[0];
   }
 };

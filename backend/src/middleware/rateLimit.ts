@@ -12,10 +12,10 @@ export const draftRateLimit = rateLimit({
   legacyHeaders: false,
 });
 
-// Rate limit for OTP requests (3 per 10 minutes per IP)
+// Rate limit for OTP requests (50 per 5 minutes per IP) - Increased for testing
 export const otpRateLimit = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 3,
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 50,
   message: 'Too many OTP requests. Please try again later.',
   standardHeaders: true,
   legacyHeaders: false,

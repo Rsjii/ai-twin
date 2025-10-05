@@ -1,0 +1,359 @@
+<%- include('layout', { title: 'Sign Up - AI Twin', body: `
+<div class="px-4 py-6 sm:px-0">
+    <div class="max-w-md mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Create Account</h1>
+            
+            <!-- Step 1: Email + Password -->
+            <div id="signupForm">
+                <form id="signupFormElement">
+                    <div class="mb-4">
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                            Email Address
+                        </label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            placeholder="Enter your email"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                            Password
+                        </label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            placeholder="Create a password (min 6 characters)"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            required
+                        >
+                    </div>
+                    
+                    <button 
+                        type="submit"
+                        class="w-full bg-primary text-white py-3 px-6 rounded-lg hover:bg-secondary transition-colors font-semibold mb-4"
+                    >
+                        Create Account
+                    </button>
+                    
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                </form>
+            </div>
+
+            <!-- Step 2: OTP Verification -->
+            <div id="otpForm" style="display: none;">
+                <form id="otpVerifyForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Email
+                        </label>
+                        <input 
+                            type="email" 
+                            id="otpEmail" 
+                            name="email" 
+                            readonly
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                        >
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="otpCode" class="block text-sm font-medium text-gray-700 mb-2">
+                            Verification Code
+                        </label>
+                        <input 
+                            type="text" 
+                            id="otpCode" 
+                            name="code" 
+                            placeholder="Enter 6-digit code"
+                            maxlength="6"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-center text-lg tracking-widest"
+                            required
+                        >
+                    </div>
+                    
+                    <button 
+                        type="submit"
+                        class="w-full bg-primary text-white py-3 px-6 rounded-lg hover:bg-secondary transition-colors font-semibold mb-4"
+                    >
+                        Verify & Activate Account
+                    </button>
+                    
+                    <div class="text-center">
+                        <button 
+                            type="button" 
+                            onclick="showSignupForm()"
+                            class="text-sm text-gray-600 hover:text-primary"
+                        >
+                            ← Back to signup
+                        </button>
+                    </div>
+                    
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                </form>
+            </div>
+
+            <!-- Step 3: Complete Profile -->
+            <div id="profileForm" style="display: none;">
+                <form id="profileFormElement">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Email
+                        </label>
+                        <input 
+                            type="email" 
+                            id="profileEmail" 
+                            name="email" 
+                            readonly
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                        >
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+                            Full Name
+                        </label>
+                        <input 
+                            type="text" 
+                            id="name" 
+                            name="name" 
+                            placeholder="Enter your full name"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="handle" class="block text-sm font-medium text-gray-700 mb-2">
+                            Username (Optional)
+                        </label>
+                        <input 
+                            type="text" 
+                            id="handle" 
+                            name="handle" 
+                            placeholder="Choose a username"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        >
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="dob" class="block text-sm font-medium text-gray-700 mb-2">
+                            Date of Birth
+                        </label>
+                        <input 
+                            type="date" 
+                            id="dob" 
+                            name="dob" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        >
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
+                            Phone Number (Optional)
+                        </label>
+                        <input 
+                            type="tel" 
+                            id="phone" 
+                            name="phone" 
+                            placeholder="Enter your phone number"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        >
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="bio" class="block text-sm font-medium text-gray-700 mb-2">
+                            Bio (Optional)
+                        </label>
+                        <textarea 
+                            id="bio" 
+                            name="bio" 
+                            rows="3"
+                            placeholder="Tell us about yourself..."
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                        ></textarea>
+                    </div>
+                    
+                    <button 
+                        type="submit"
+                        class="w-full bg-primary text-white py-3 px-6 rounded-lg hover:bg-secondary transition-colors font-semibold mb-4"
+                    >
+                        Complete Profile
+                    </button>
+                    
+                    <div class="text-center">
+                        <button 
+                            type="button" 
+                            onclick="showSignupForm()"
+                            class="text-sm text-gray-600 hover:text-primary"
+                        >
+                            ← Back to signup
+                        </button>
+                    </div>
+                    
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                </form>
+            </div>
+            
+            <div class="text-center">
+                <p class="text-sm text-gray-600">
+                    Already have an account? 
+                    <a href="/login" class="text-primary hover:text-secondary">Login here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentEmail = '';
+
+// Show signup form
+function showSignupForm() {
+    document.getElementById('signupForm').style.display = 'block';
+    document.getElementById('otpForm').style.display = 'none';
+    document.getElementById('profileForm').style.display = 'none';
+}
+
+// Show OTP form
+function showOTPForm(email) {
+    currentEmail = email;
+    document.getElementById('signupForm').style.display = 'none';
+    document.getElementById('otpForm').style.display = 'block';
+    document.getElementById('profileForm').style.display = 'none';
+    document.getElementById('otpEmail').value = email;
+}
+
+// Show profile form
+function showProfileForm(email) {
+    currentEmail = email;
+    document.getElementById('signupForm').style.display = 'none';
+    document.getElementById('otpForm').style.display = 'none';
+    document.getElementById('profileForm').style.display = 'block';
+    document.getElementById('profileEmail').value = email;
+}
+
+// Signup form submission
+document.getElementById('signupFormElement').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = {
+        email: formData.get('email'),
+        password: formData.get('password')
+    };
+    
+    try {
+        const response = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showOTPForm(data.email);
+            showFlashMessage('OTP has been sent to your email! Please check your email and enter the 6-digit code below.', 'success');
+        } else {
+            showFlashMessage(result.error || 'Failed to create account', 'error');
+        }
+    } catch (error) {
+        console.error('Signup error:', error);
+        showFlashMessage('Network error. Please try again.', 'error');
+    }
+});
+
+// OTP verification form submission
+document.getElementById('otpVerifyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = {
+        email: formData.get('email'),
+        code: formData.get('code')
+    };
+    
+    try {
+        const response = await fetch('/api/auth/signup/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showProfileForm(data.email);
+            showFlashMessage('Account activated! Please complete your profile.', 'success');
+        } else {
+            showFlashMessage(result.error || 'Invalid OTP', 'error');
+        }
+    } catch (error) {
+        console.error('OTP verification error:', error);
+        showFlashMessage('Network error. Please try again.', 'error');
+    }
+});
+
+// Profile completion form submission
+document.getElementById('profileFormElement').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = {
+        email: formData.get('email'),
+        name: formData.get('name'),
+        handle: formData.get('handle'),
+        dob: formData.get('dob'),
+        phone: formData.get('phone'),
+        bio: formData.get('bio')
+    };
+    
+    try {
+        const response = await fetch('/api/auth/signup/profile', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showFlashMessage('Profile completed successfully!', 'success');
+            setTimeout(() => {
+                window.location.href = result.redirect || '/dashboard';
+            }, 1000);
+        } else {
+            showFlashMessage(result.error || 'Failed to complete profile', 'error');
+        }
+    } catch (error) {
+        console.error('Profile completion error:', error);
+        showFlashMessage('Network error. Please try again.', 'error');
+    }
+});
+
+// Check URL parameters for email
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const email = urlParams.get('email');
+    
+    if (email) {
+        showOTPForm(decodeURIComponent(email));
+    }
+});
+</script>
+` }) %>

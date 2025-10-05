@@ -11,7 +11,7 @@ export const generateCSRFToken = (req: Request, res: Response, next: NextFunctio
 };
 
 export const validateCSRF = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.body._csrf || req.headers['x-csrf-token'];
+  const token = req.body._csrf || req.headers['x-csrf-token'] || req.headers['X-CSRF-Token'];
   const sessionToken = req.session?.csrfToken;
   
   if (!token || !sessionToken || token !== sessionToken) {

@@ -75,6 +75,15 @@ export const verifyOTP = async (otp: string, hash: string): Promise<boolean> => 
   return bcrypt.compare(otp, hash);
 };
 
+// Password utilities
+export const hashPassword = async (password: string): Promise<string> => {
+  return bcrypt.hash(password, 12);
+};
+
+export const verifyPassword = async (password: string, hash: string): Promise<boolean> => {
+  return bcrypt.compare(password, hash);
+};
+
 // Token utilities for public profiles
 export const generateProfileToken = (userId: string, handle: string): string => {
   const payload = {

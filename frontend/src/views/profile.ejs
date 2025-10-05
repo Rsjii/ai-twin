@@ -1,0 +1,185 @@
+<%- include('layout', { title: 'Profile - AI Twin', body: `
+<div class="px-4 py-6 sm:px-0">
+    <div class="max-w-2xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-2xl font-bold text-gray-900 mb-6">Profile Settings</h1>
+            
+            <!-- Profile Information -->
+            <div class="mb-8">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Account Information</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input 
+                            type="email" 
+                            value="<%= user.email %>" 
+                            readonly
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                        >
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                        <input 
+                            type="text" 
+                            value="<%= user.handle || 'Not set' %>" 
+                            readonly
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                        >
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                        <input 
+                            type="text" 
+                            value="<%= user.name || 'Not set' %>" 
+                            readonly
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                        >
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Member Since</label>
+                        <input 
+                            type="text" 
+                            value="<%= new Date(user.createdAt).toLocaleDateString() %>" 
+                            readonly
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <!-- Change Password Section -->
+            <div class="mb-8">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Change Password</h2>
+                
+                <div id="changePasswordForm">
+                    <form id="changePasswordFormElement">
+                        <div class="mb-4">
+                            <label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-2">
+                                Current Password
+                            </label>
+                            <input 
+                                type="password" 
+                                id="currentPassword" 
+                                name="currentPassword" 
+                                placeholder="Enter current password"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                required
+                            >
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-2">
+                                New Password
+                            </label>
+                            <input 
+                                type="password" 
+                                id="newPassword" 
+                                name="newPassword" 
+                                placeholder="Enter new password (min 6 characters)"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                required
+                            >
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-2">
+                                Confirm New Password
+                            </label>
+                            <input 
+                                type="password" 
+                                id="confirmPassword" 
+                                name="confirmPassword" 
+                                placeholder="Confirm new password"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                required
+                            >
+                        </div>
+                        
+                        <button 
+                            type="submit"
+                            class="bg-primary text-white py-3 px-6 rounded-lg hover:bg-secondary transition-colors font-semibold"
+                        >
+                            Change Password
+                        </button>
+                        
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    </form>
+                </div>
+            </div>
+
+            <!-- Account Actions -->
+            <div class="border-t pt-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Account Actions</h2>
+                
+                <div class="space-y-4">
+                    <button 
+                        onclick="logout()"
+                        class="w-full bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                    >
+                        Logout
+                    </button>
+                    
+                    <div class="text-center">
+                        <a 
+                            href="/dashboard"
+                            class="text-primary hover:text-secondary font-semibold"
+                        >
+                            ← Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Change password form submission
+document.getElementById('changePasswordFormElement').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const newPassword = formData.get('newPassword');
+    const confirmPassword = formData.get('confirmPassword');
+    
+    // Validate password confirmation
+    if (newPassword !== confirmPassword) {
+        showFlashMessage('Passwords do not match', 'error');
+        return;
+    }
+    
+    const data = {
+        currentPassword: formData.get('currentPassword'),
+        newPassword: newPassword
+    };
+    
+    try {
+        const response = await fetch('/api/auth/change-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showFlashMessage('Password changed successfully!', 'success');
+            // Clear form
+            document.getElementById('changePasswordFormElement').reset();
+        } else {
+            showFlashMessage(result.error || 'Failed to change password', 'error');
+        }
+    } catch (error) {
+        console.error('Change password error:', error);
+        showFlashMessage('Network error. Please try again.', 'error');
+    }
+});
+</script>
+` }) %>

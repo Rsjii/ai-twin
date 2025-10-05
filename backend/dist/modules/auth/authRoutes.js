@@ -1,0 +1,19 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const authController_1 = require("./authController");
+const rateLimit_1 = require("../../middleware/rateLimit");
+const csrf_1 = require("../../middleware/csrf");
+const validation_1 = require("../../middleware/validation");
+const router = (0, express_1.Router)();
+router.use(csrf_1.generateCSRFToken);
+router.post('/signup', validation_1.sanitizeInput, csrf_1.validateCSRF, rateLimit_1.otpRateLimit, authController_1.signup);
+router.post('/signup/verify', validation_1.sanitizeInput, csrf_1.validateCSRF, authController_1.signupVerify);
+router.post('/signup/profile', validation_1.sanitizeInput, csrf_1.validateCSRF, authController_1.completeProfile);
+router.post('/login', validation_1.sanitizeInput, csrf_1.validateCSRF, authController_1.login);
+router.post('/forgot-password', validation_1.sanitizeInput, csrf_1.validateCSRF, rateLimit_1.otpRateLimit, authController_1.forgotPassword);
+router.post('/reset-password', validation_1.sanitizeInput, csrf_1.validateCSRF, authController_1.resetPassword);
+router.post('/change-password', validation_1.sanitizeInput, csrf_1.validateCSRF, authController_1.changePassword);
+router.post('/logout', csrf_1.validateCSRF, authController_1.logout);
+exports.default = router;
+//# sourceMappingURL=authRoutes.js.map

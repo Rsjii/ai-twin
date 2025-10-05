@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title %></title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -27,11 +28,33 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     <% if (typeof user !== 'undefined' && user) { %>
-                        <span class="text-gray-700">Hello, <%= user.handle || user.email %></span>
-                        <a href="/dashboard" class="text-primary hover:text-secondary">Dashboard</a>
-                        <button onclick="logout()" class="text-gray-500 hover:text-gray-700">Logout</button>
+                        <!-- User Profile Dropdown -->
+                        <div class="relative" x-data="{ open: false }">
+                            <button @click="open = !open" class="flex items-center space-x-2 text-gray-700 hover:text-gray-900 focus:outline-none">
+                                <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                                    <%= (user.handle || user.email).charAt(0).toUpperCase() %>
+                                </div>
+                                <span class="hidden sm:block"><%= user.handle || user.email %></span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            
+                            <!-- Dropdown Menu -->
+                            <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                                <div class="px-4 py-2 text-sm text-gray-700 border-b">
+                                    <div class="font-semibold"><%= user.handle || user.email %></div>
+                                    <div class="text-xs text-gray-500"><%= user.email %></div>
+                                </div>
+                                <a href="/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dashboard</a>
+                                <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile Settings</a>
+                                <a href="/change-password" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Change Password</a>
+                                <div class="border-t"></div>
+                                <button onclick="logout()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
+                            </div>
+                        </div>
                     <% } else { %>
-                        <a href="/login" class="text-primary hover:text-secondary">Login</a>
+                        <a href="/auth" class="text-primary hover:text-secondary">Login / Signup</a>
                     <% } %>
                 </div>
             </div>
@@ -54,6 +77,40 @@
     <script>
         // CSRF token for AJAX requests
         window.csrfToken = '<%= csrfToken %>';
+        
+        // OTP Display Script for Development
+        function displayOTPOnScreen(otp) {
+            const otpDisplay = document.createElement('div');
+            otpDisplay.id = 'otp-display';
+            otpDisplay.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                font-size: 18px;
+                font-weight: bold;
+                z-index: 9999;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                border: 2px solid #45a049;
+            `;
+            otpDisplay.innerHTML = `
+                <div style="font-size: 14px; margin-bottom: 5px;">🔐 OTP Code:</div>
+                <div style="font-size: 24px; letter-spacing: 3px;">${otp}</div>
+                <div style="font-size: 12px; margin-top: 5px; opacity: 0.8;">Development Mode</div>
+            `;
+            
+            const existing = document.getElementById('otp-display');
+            if (existing) existing.remove();
+            
+            document.body.appendChild(otpDisplay);
+            
+            setTimeout(() => {
+                if (otpDisplay.parentNode) otpDisplay.remove();
+            }, 30000);
+        }
         
         // Logout function
         async function logout() {

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .primary { color: #3B82F6; }
+        .bg-primary { background-color: #3B82F6; }
+        .hover\:bg-secondary:hover { background-color: #1D4ED8; }
+        .focus\:ring-primary:focus { --tw-ring-color: #3B82F6; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="px-4 py-6 sm:px-0">
+        <div class="max-w-md mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <!-- Toggle Switch -->
+                <div class="flex justify-center mb-8">
+                    <div class="bg-gray-200 rounded-full p-1 flex">
+                        <button id="loginTab" class="px-6 py-2 rounded-full font-semibold transition-all duration-300 bg-white text-primary shadow-sm">Login</button>
+                        <button id="signupTab" class="px-6 py-2 rounded-full font-semibold transition-all duration-300 text-gray-600 hover:text-primary">Signup</button>
+                    </div>
+                </div>
+                
+                <!-- Flash Messages -->
+                <div id="flashMessage" class="hidden mb-4 p-3 rounded-lg"></div>
+                
+                <!-- Login Form -->
+                <div id="loginForm" class="auth-form">
+                    <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Welcome Back</h1>
+                    <form id="loginFormElement">
+                        <div class="mb-4">
+                            <label for="loginEmail" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            <input type="email" id="loginEmail" name="email" placeholder="Enter your email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                        </div>
+                        <div class="mb-4">
+                            <label for="loginPassword" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                            <input type="password" id="loginPassword" name="password" placeholder="Enter your password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                        </div>
+                        <button type="submit" class="w-full bg-primary text-white py-3 px-6 rounded-lg hover:bg-secondary transition-colors font-semibold mb-4">Login</button>
+                        <div class="text-center mb-4">
+                            <button type="button" id="forgotPasswordBtn" class="text-sm text-gray-600 hover:text-primary">Forgot Password?</button>
+                        </div>
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    </form>
+                </div>
+
+                <!-- Signup Form -->
+                <div id="signupForm" class="auth-form" style="display: none;">
+                    <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Create Account</h1>
+                    <form id="signupFormElement">
+                        <div class="mb-4">
+                            <label for="signupEmail" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            <input type="email" id="signupEmail" name="email" placeholder="Enter your email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                        </div>
+                        <div class="mb-4">
+                            <label for="signupPassword" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                            <input type="password" id="signupPassword" name="password" placeholder="Create a password (min 6 characters)" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                        </div>
+                        <button type="submit" class="w-full bg-primary text-white py-3 px-6 rounded-lg hover:bg-secondary transition-colors font-semibold mb-4">Create Account</button>
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    </form>
+                </div>
+
+                <!-- Forgot Password Form -->
+                <div id="forgotPasswordForm" class="auth-form" style="display: none;">
+                    <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Reset Password</h1>
+                    <form id="forgotPasswordFormElement">
+                        <div class="mb-4">
+                            <label for="forgotEmail" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            <input type="email" id="forgotEmail" name="email" placeholder="Enter your email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                        </div>
+                        <button type="submit" class="w-full bg-primary text-white py-3 px-6 rounded-lg hover:bg-secondary transition-colors font-semibold mb-4">Send Reset Code</button>
+                        <div class="text-center">
+                            <button type="button" id="backToLoginBtn" class="text-sm text-gray-600 hover:text-primary">← Back to login</button>
+                        </div>
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    </form>
+                </div>
+
+                <div class="text-center mt-6">
+                    <a href="/" class="text-primary hover:text-secondary">← Back to Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CSRF token for AJAX requests
+        window.csrfToken = '<%= csrfToken %>';
+        
+        // OTP Display Script for Development
+        function displayOTPOnScreen(otp) {
+            const otpDisplay = document.createElement('div');
+            otpDisplay.id = 'otp-display';
+            otpDisplay.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                font-size: 18px;
+                font-weight: bold;
+                z-index: 9999;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                border: 2px solid #45a049;
+            `;
+            otpDisplay.innerHTML = `
+                <div style="font-size: 14px; margin-bottom: 5px;">🔐 OTP Code:</div>
+                <div style="font-size: 24px; letter-spacing: 3px;">${otp}</div>
+                <div style="font-size: 12px; margin-top: 5px; opacity: 0.8;">Development Mode</div>
+            `;
+            
+            const existing = document.getElementById('otp-display');
+            if (existing) existing.remove();
+            
+            document.body.appendChild(otpDisplay);
+            
+            setTimeout(() => {
+                if (otpDisplay.parentNode) otpDisplay.remove();
+            }, 30000);
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Auth page loaded');
+            
+            // Tab switching
+            function switchToLogin() {
+                showForm('loginForm');
+                updateTabStyles('login');
+            }
+            
+            function switchToSignup() {
+                showForm('signupForm');
+                updateTabStyles('signup');
+            }
+            
+            function showForm(formId) {
+                console.log('Showing form:', formId);
+                const forms = ['loginForm', 'signupForm', 'forgotPasswordForm'];
+                forms.forEach(id => {
+                    const form = document.getElementById(id);
+                    form.style.display = 'none';
+                });
+                
+                const targetForm = document.getElementById(formId);
+                targetForm.style.display = 'block';
+            }
+            
+            function updateTabStyles(activeTab) {
+                const loginTab = document.getElementById('loginTab');
+                const signupTab = document.getElementById('signupTab');
+                
+                if (activeTab === 'login') {
+                    loginTab.className = 'px-6 py-2 rounded-full font-semibold transition-all duration-300 bg-white text-primary shadow-sm';
+                    signupTab.className = 'px-6 py-2 rounded-full font-semibold transition-all duration-300 text-gray-600 hover:text-primary';
+                } else {
+                    signupTab.className = 'px-6 py-2 rounded-full font-semibold transition-all duration-300 bg-white text-primary shadow-sm';
+                    loginTab.className = 'px-6 py-2 rounded-full font-semibold transition-all duration-300 text-gray-600 hover:text-primary';
+                }
+            }
+            
+            function showFlashMessage(message, type) {
+                const flashDiv = document.getElementById('flashMessage');
+                flashDiv.textContent = message;
+                flashDiv.className = `mb-4 p-3 rounded-lg ${type === 'success' ? 'bg-green-100 text-green-700 border border-green-400' : 'bg-red-100 text-red-700 border border-red-400'}`;
+                flashDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    flashDiv.style.display = 'none';
+                }, 5000);
+            }
+            
+            // Event listeners
+            document.getElementById('loginTab').addEventListener('click', switchToLogin);
+            document.getElementById('signupTab').addEventListener('click', switchToSignup);
+            document.getElementById('forgotPasswordBtn').addEventListener('click', () => {
+                showForm('forgotPasswordForm');
+            });
+            document.getElementById('backToLoginBtn').addEventListener('click', switchToLogin);
+
+            // Login form submission
+            document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                console.log('Login form submitted');
+                
+                const formData = new FormData(e.target);
+                const data = {
+                    email: formData.get('email'),
+                    password: formData.get('password')
+                };
+                
+                try {
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': window.csrfToken
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        showFlashMessage('Login successful!', 'success');
+                        setTimeout(() => {
+                            window.location.href = result.redirect || '/dashboard';
+                        }, 1000);
+                    } else {
+                        showFlashMessage(result.error || 'Invalid email or password', 'error');
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    showFlashMessage('Network error. Please try again.', 'error');
+                }
+            });
+
+            // Signup form submission
+            document.getElementById('signupFormElement').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                console.log('Signup form submitted');
+                
+                const formData = new FormData(e.target);
+                const data = {
+                    email: formData.get('email'),
+                    password: formData.get('password')
+                };
+                
+                try {
+                    const response = await fetch('/api/auth/signup', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': window.csrfToken
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const result = await response.json();
+                    
+            if (response.ok) {
+                showFlashMessage('OTP has been sent to your email!', 'success');
+                
+                // Display OTP on screen for development
+                setTimeout(() => {
+                    const actualOTP = result.otp || '123456'; // Use actual OTP from response
+                    if (window.displayOTPOnScreen) {
+                        window.displayOTPOnScreen(actualOTP);
+                    }
+                }, 1000);
+                
+                // Redirect to OTP verification page with actual OTP
+                setTimeout(() => {
+                    const actualOTP = result.otp || '123456';
+                    window.location.href = `/verify-otp?email=${encodeURIComponent(data.email)}&type=signup&otp=${actualOTP}`;
+                }, 2000);
+            } else {
+                showFlashMessage(result.error || 'Failed to create account', 'error');
+            }
+                } catch (error) {
+                    console.error('Signup error:', error);
+                    showFlashMessage('Network error. Please try again.', 'error');
+                }
+            });
+
+            // Forgot password form submission
+            document.getElementById('forgotPasswordFormElement').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                console.log('Forgot password form submitted');
+                
+                const formData = new FormData(e.target);
+                const data = {
+                    email: formData.get('email')
+                };
+                
+                try {
+                    const response = await fetch('/api/auth/forgot-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': window.csrfToken
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const result = await response.json();
+                    
+            if (response.ok) {
+                showFlashMessage('Reset code sent to your email!', 'success');
+                
+                // Display OTP on screen for development
+                setTimeout(() => {
+                    const actualOTP = result.otp || '123456'; // Use actual OTP from response
+                    if (window.displayOTPOnScreen) {
+                        window.displayOTPOnScreen(actualOTP);
+                    }
+                }, 1000);
+                
+                // Redirect to OTP verification page with actual OTP
+                setTimeout(() => {
+                    const actualOTP = result.otp || '123456';
+                    window.location.href = `/verify-otp?email=${encodeURIComponent(data.email)}&type=forgot&otp=${actualOTP}`;
+                }, 2000);
+            } else {
+                showFlashMessage(result.error || 'Failed to send reset code', 'error');
+            }
+                } catch (error) {
+                    console.error('Forgot password error:', error);
+                    showFlashMessage('Network error. Please try again.', 'error');
+                }
+            });
+
+            console.log('All event listeners set up');
+        });
+    </script>
+</body>
+</html>

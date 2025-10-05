@@ -229,10 +229,15 @@ app.get('/simple', (req, res) => {
 
 // Landing page route
 app.get('/', (req, res) => {
+  // If user is logged in, redirect to dashboard
+  if (req.user) {
+    return res.redirect('/dashboard');
+  }
+
   res.render('layout', {
     title: 'AI Twin - Create Your Digital Twin',
     user: req.user,
-    csrfToken: res.locals.csrfToken,
+    csrfToken: res.locals['csrfToken'],
     body: `
     <div class="px-4 py-6 sm:px-0">
         <div class="max-w-4xl mx-auto text-center">
@@ -247,7 +252,7 @@ app.get('/', (req, res) => {
                 <h2 class="text-3xl font-semibold mb-4">Ready to Create Your AI Twin?</h2>
                 <p class="text-lg mb-6">Start your journey to create an AI version of yourself that communicates in your unique style.</p>
                 <a 
-                    href="/login"
+                    href="/auth"
                     class="inline-block bg-white text-blue-600 py-3 px-8 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-lg"
                 >
                     Get Started Now
@@ -294,16 +299,12 @@ app.get('/', (req, res) => {
                 </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div class="flex justify-end">
                 <a 
-                    href="/login"
+                    href="/auth"
                     class="inline-block bg-blue-600 text-white py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
                 >
-                    Login to Continue
-                </a>
-                <p class="text-gray-500">or</p>
-                <a href="/login" class="text-blue-600 hover:text-blue-800 font-semibold">
-                    Already have an account? Sign in
+                    Login / Signup
                 </a>
             </div>
 
@@ -317,157 +318,33 @@ app.get('/', (req, res) => {
   });
 });
 
-// Login page route
+// Unified Auth page route (Login/Signup)
+app.get('/auth', (req, res) => {
+  if (req.user) {
+    return res.redirect('/dashboard');
+  }
+  res.render('auth', {
+    title: 'Login / Signup - AI Twin',
+    user: req.user,
+    csrfToken: res.locals['csrfToken'],
+  });
+});
+
+// Login page route (redirects to unified auth)
 app.get('/login', (req, res) => {
   if (req.user) {
     return res.redirect('/dashboard');
   }
-  console.log('Rendering login page with CSRF token:', res.locals.csrfToken);
-  res.render('layout', {
-    title: 'Login - AI Twin',
-    user: req.user,
-    csrfToken: res.locals.csrfToken,
-    body: `
-    <div class="px-4 py-6 sm:px-0">
-        <div class="max-w-md mx-auto">
-            <div class="bg-white rounded-lg shadow-lg p-8">
-                <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Login to AI Twin</h1>
-                
-                <div id="errorMessage" class="hidden mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded"></div>
-                <div id="successMessage" class="hidden mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded"></div>
-                
-                <form id="loginForm">
-                    <div class="mb-4">
-                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
-                            Email Address
-                        </label>
-                        <input 
-                            type="email" 
-                            id="email" 
-                            name="email" 
-                            required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Enter your email"
-                        >
-                    </div>
-                    
-                    <button 
-                        type="submit"
-                        id="submitBtn"
-                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors font-semibold"
-                    >
-                        Send Login Code
-                    </button>
-                    <input type="hidden" name="_csrf" value="${res.locals.csrfToken}">
-                </form>
-                
-                <div class="mt-6 text-center">
-                    <p class="text-sm text-gray-600">
-                        We'll send you a 6-digit code to verify your identity.
-                    </p>
-                    <div class="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-                        <strong>Development Mode:</strong> OTP codes will be displayed in the server console
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-    function showError(message) {
-        const errorDiv = document.getElementById('errorMessage');
-        const successDiv = document.getElementById('successMessage');
-        errorDiv.textContent = message;
-        errorDiv.classList.remove('hidden');
-        successDiv.classList.add('hidden');
-    }
-    
-    function showSuccess(message) {
-        const errorDiv = document.getElementById('errorMessage');
-        const successDiv = document.getElementById('successMessage');
-        successDiv.textContent = message;
-        successDiv.classList.remove('hidden');
-        errorDiv.classList.add('hidden');
-    }
-    
-    function hideMessages() {
-        document.getElementById('errorMessage').classList.add('hidden');
-        document.getElementById('successMessage').classList.add('hidden');
-    }
-
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        console.log('Form submitted!');
-        
-        const email = document.getElementById('email').value;
-        const submitBtn = document.getElementById('submitBtn');
-        const originalText = submitBtn.textContent;
-        
-        console.log('Email value:', email);
-        
-        // Enhanced email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!email || !emailRegex.test(email)) {
-            showError('Please enter a valid email address (e.g., user@example.com)');
-            return;
-        }
-        
-        // Additional validation
-        if (email.length < 5 || email.length > 254) {
-            showError('Email address must be between 5 and 254 characters');
-            return;
-        }
-        
-        // Show loading state
-        submitBtn.textContent = 'Sending...';
-        submitBtn.disabled = true;
-        hideMessages();
-        
-        try {
-            console.log('Sending login request for:', email);
-            
-             // Use test endpoint for now to avoid CSRF issues
-             const response = await fetch('/test-otp', {
-                 method: 'POST',
-                 headers: {
-                     'Content-Type': 'application/json'
-                 },
-                 body: JSON.stringify({ email: email })
-             });
-            
-            console.log('Response status:', response.status);
-            const result = await response.json();
-            console.log('Response data:', result);
-            
-             if (response.ok) {
-                 showSuccess('OTP generated! Code: ' + result.otp + ' - Redirecting to verification...');
-                 // Redirect to verification page after 2 seconds
-                 setTimeout(() => {
-                     window.location.href = '/login/verify?email=' + encodeURIComponent(email);
-                 }, 2000);
-             } else {
-                 showError(result.error || 'Failed to send login code');
-             }
-        } catch (error) {
-            console.error('Login error:', error);
-            showError('Network error. Please try again.');
-        } finally {
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-        }
-    });
-    </script>
-    `
-  });
+  res.redirect('/auth');
 });
 
 // Verify OTP page route
 app.get('/login/verify', (req, res) => {
-  const email = req.query.email as string;
+  const email = req.query['email'] as string;
   res.render('layout', {
     title: 'Verify OTP - AI Twin',
     user: req.user,
-    csrfToken: res.locals.csrfToken,
+    csrfToken: res.locals['csrfToken'],
     body: `
     <div class="px-4 py-6 sm:px-0">
         <div class="max-w-md mx-auto">
@@ -511,7 +388,7 @@ app.get('/login/verify', (req, res) => {
                     >
                         Verify Code
                     </button>
-                    <input type="hidden" name="_csrf" value="${res.locals.csrfToken}">
+                    <input type="hidden" name="_csrf" value="${res.locals['csrfToken']}">
                     <input type="hidden" name="email" value="${email || ''}">
                 </form>
                 
@@ -614,15 +491,76 @@ app.get('/login/verify', (req, res) => {
   });
 });
 
+// Signup page route (redirects to unified auth)
+app.get('/signup', (req, res) => {
+  if (req.user) {
+    return res.redirect('/dashboard');
+  }
+  res.redirect('/auth');
+});
+
+// Verify OTP page route
+app.get('/verify-otp', (req, res) => {
+  const email = req.query['email'] as string;
+  const type = req.query['type'] as string; // 'signup' or 'forgot'
+  const otp = req.query['otp'] as string; // Get OTP from URL parameters
+  
+  res.render('verify-otp', {
+    title: 'Verify OTP - AI Twin',
+    user: req.user,
+    csrfToken: res.locals['csrfToken'],
+    email: email,
+    type: type,
+    actualOTP: otp || '123456'
+  });
+});
+
+// Signup profile completion page route
+app.get('/signup/profile', (req, res) => {
+  const email = req.query['email'] as string;
+  
+  res.render('signup-profile', {
+    title: 'Complete Profile - AI Twin',
+    user: req.user,
+    csrfToken: res.locals['csrfToken'],
+    email: email
+  });
+});
+
+// Reset password page route
+app.get('/reset-password', (req, res) => {
+  const email = req.query['email'] as string;
+  
+  res.render('reset-password', {
+    title: 'Reset Password - AI Twin',
+    user: req.user,
+    csrfToken: res.locals['csrfToken'],
+    email: email
+  });
+});
+
+// Profile page route
+app.get('/profile', (req, res) => {
+  if (!req.user) {
+    return res.redirect('/auth');
+  }
+
+  res.render('profile', {
+    title: 'Profile - AI Twin',
+    user: req.user,
+    csrfToken: res.locals['csrfToken'],
+  });
+});
+
 // Dashboard route
 app.get('/dashboard', (req, res) => {
   if (!req.user) {
-    return res.redirect('/login');
+    return res.redirect('/auth');
   }
   res.render('layout', {
     title: 'Dashboard - AI Twin',
     user: req.user,
-    csrfToken: res.locals.csrfToken,
+    csrfToken: res.locals['csrfToken'],
     body: `
     <div class="px-4 py-6 sm:px-0">
         <div class="max-w-7xl mx-auto">
@@ -669,25 +607,25 @@ app.get('/dashboard', (req, res) => {
 // Twin creation page route
 app.get('/twin/create', (req, res) => {
   if (!req.user) {
-    return res.redirect('/login');
+    return res.redirect('/auth');
   }
   res.render('twin_create', {
     title: 'Create Twin - AI Twin',
     user: req.user,
-    csrfToken: res.locals.csrfToken,
+    csrfToken: res.locals['csrfToken'],
   });
 });
 
 // Chat page route
 app.get('/chat/:id', (req, res) => {
   if (!req.user) {
-    return res.redirect('/login');
+    return res.redirect('/auth');
   }
   res.render('chat', {
     title: 'Chat - AI Twin',
     user: req.user,
     chatId: req.params.id,
-    csrfToken: res.locals.csrfToken,
+    csrfToken: res.locals['csrfToken'],
   });
 });
 
@@ -696,8 +634,8 @@ app.get('/p/:handle', (req, res) => {
   res.render('profile_public', {
     title: `Profile - ${req.params.handle}`,
     handle: req.params.handle,
-    token: req.query.t,
-    csrfToken: res.locals.csrfToken,
+    token: req.query['t'],
+    csrfToken: res.locals['csrfToken'],
   });
 });
 
@@ -711,7 +649,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 app.use((req, res) => {
   res.status(404).render('404', {
     title: 'Page Not Found - AI Twin',
-    csrfToken: res.locals.csrfToken,
+    csrfToken: res.locals['csrfToken'],
   });
 });
 
