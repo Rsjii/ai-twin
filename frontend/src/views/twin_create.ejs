@@ -1,95 +1,355 @@
-<%- include('layout', { title: 'Create Twin - AI Twin', body: `
+<%- include('layout', { title: 'Create AI Twin - AI Twin', body: `
 <div class="px-4 py-6 sm:px-0">
     <div class="max-w-4xl mx-auto">
-        <h1 class="text-3xl font-bold text-gray-900 mb-8">Create Your AI Twin</h1>
-        
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Create Your AI Twin</h1>
+            <p class="text-gray-600">Upload 3-5 text samples to create an AI version of yourself that chats in your unique style.</p>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="mb-8">
+            <div class="flex items-center justify-center space-x-4">
+                <div class="flex items-center">
+                    <div id="step1" class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold">1</div>
+                    <span class="ml-2 text-sm font-medium text-gray-700">Upload Samples</span>
+                </div>
+                <div class="w-16 h-0.5 bg-gray-300"></div>
+                <div class="flex items-center">
+                    <div id="step2" class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">2</div>
+                    <span class="ml-2 text-sm font-medium text-gray-500">AI Analysis</span>
+                </div>
+                <div class="w-16 h-0.5 bg-gray-300"></div>
+                <div class="flex items-center">
+                    <div id="step3" class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">3</div>
+                    <span class="ml-2 text-sm font-medium text-gray-500">Create Twin</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Form -->
         <div class="bg-white rounded-lg shadow-lg p-8">
-            <h2 class="text-xl font-semibold text-gray-800 mb-6">Upload Text Samples</h2>
-            <p class="text-gray-600 mb-6">
-                Paste 3-5 text samples (messages, posts, comments) that represent your communication style. 
-                Minimum 100 characters, maximum 3000 characters.
-            </p>
-            
-            <form id="twinForm">
+            <form id="twinCreationForm">
+                <!-- Sample Input Areas -->
                 <div class="mb-6">
-                    <label for="samples" class="block text-sm font-medium text-gray-700 mb-2">
-                        Text Samples
+                    <label class="block text-sm font-medium text-gray-700 mb-4">
+                        Text Samples (3-5 samples, 10-1000 characters each)
                     </label>
-                    <textarea 
-                        id="samples" 
-                        name="samples" 
-                        rows="10"
-                        placeholder="Paste your text samples here... (messages, posts, comments, etc.)"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                        required
-                    ></textarea>
-                    <div class="mt-2 text-sm text-gray-500">
-                        <span id="charCount">0</span> / 3000 characters
+                    
+                    <div id="sampleInputs" class="space-y-4">
+                        <!-- Sample inputs will be generated here -->
+                    </div>
+                    
+                    <div class="mt-4 flex justify-between">
+                        <button type="button" id="addSample" class="text-primary hover:text-secondary text-sm font-medium">
+                            + Add Another Sample
+                        </button>
+                        <span id="sampleCount" class="text-sm text-gray-500">3 samples</span>
+                    </div>
+                </div>
+
+                <!-- Character Count -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600">Total Characters:</span>
+                        <span id="totalChars" class="text-sm font-medium text-gray-900">0</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <div id="charProgress" class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Minimum: 100 characters | Maximum: 3000 characters</p>
+                </div>
+
+                <!-- Safety Notice -->
+                <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-blue-800">Content Safety</h3>
+                            <div class="mt-2 text-sm text-blue-700">
+                                <p>Your samples will be checked for:</p>
+                                <ul class="list-disc list-inside mt-1">
+                                    <li>Celebrity/brand impersonation</li>
+                                    <li>Inappropriate content</li>
+                                    <li>Suspicious patterns (URLs, personal info)</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
+                <!-- Submit Button -->
+                <div class="flex justify-end">
                 <button 
                     type="submit"
-                    id="submitBtn"
-                    class="w-full bg-primary text-white py-3 px-6 rounded-lg hover:bg-secondary transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        id="createTwinBtn"
+                        class="bg-primary text-white px-8 py-3 rounded-lg hover:bg-secondary transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled
                 >
-                    Create AI Twin
+                        Create My AI Twin
                 </button>
+                </div>
                 
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             </form>
         </div>
         
-        <div id="result" class="mt-8 hidden">
-            <div class="bg-white rounded-lg shadow-lg p-8">
-                <h2 class="text-xl font-semibold text-gray-800 mb-6">Your AI Twin</h2>
-                <div id="twinResult"></div>
+        <!-- Results Section (Hidden initially) -->
+        <div id="resultsSection" class="hidden mt-8 bg-white rounded-lg shadow-lg p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Your AI Twin Analysis</h2>
+            
+            <!-- Style Vector Display -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Communication Style</h3>
+                <div id="styleVector" class="grid md:grid-cols-2 gap-4">
+                    <!-- Style vector will be populated here -->
+                </div>
+            </div>
+
+            <!-- Sample Reply -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Sample Reply</h3>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p id="sampleReply" class="text-gray-800 italic">"Hello! How are you doing today?"</p>
+                    <p class="text-xs text-gray-500 mt-2">This is how your AI twin would respond in your style</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-between">
+                <button id="saveTwinBtn" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                    Save My Twin
+                </button>
+                <button id="createAnotherBtn" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors font-semibold">
+                    Create Another
+                </button>
             </div>
         </div>
+
+        <!-- Error/Success Messages -->
+        <div id="messageContainer" class="mt-6"></div>
     </div>
 </div>
 
 <script>
-// Character counter
-document.getElementById('samples').addEventListener('input', (e) => {
-    const count = e.target.value.length;
-    document.getElementById('charCount').textContent = count;
-    
-    if (count < 100) {
-        document.getElementById('charCount').className = 'text-red-500';
-    } else if (count > 3000) {
-        document.getElementById('charCount').className = 'text-red-500';
-    } else {
-        document.getElementById('charCount').className = 'text-green-500';
-    }
+let sampleCount = 3;
+let samples = [];
+
+// Initialize the form
+document.addEventListener('DOMContentLoaded', function() {
+    initializeSampleInputs();
+    updateCharacterCount();
+    updateSubmitButton();
 });
 
-document.getElementById('twinForm').addEventListener('submit', async (e) => {
+function initializeSampleInputs() {
+    const container = document.getElementById('sampleInputs');
+    container.innerHTML = '';
+    
+    for (let i = 0; i < sampleCount; i++) {
+        const sampleDiv = document.createElement('div');
+        sampleDiv.className = 'relative';
+        sampleDiv.innerHTML = `
+            <label class="block text-sm font-medium text-gray-700 mb-2">Sample ${i + 1}</label>
+            <textarea 
+                id="sample${i}" 
+                name="sample${i}"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                rows="3"
+                placeholder="Paste your text sample here (10-1000 characters)..."
+                minlength="10"
+                maxlength="1000"
+            ></textarea>
+            <div class="flex justify-between items-center mt-1">
+                <span class="text-xs text-gray-500">10-1000 characters</span>
+                <span id="charCount${i}" class="text-xs text-gray-500">0 characters</span>
+            </div>
+            ${i >= 3 ? `<button type="button" onclick="removeSample(${i})" class="absolute top-0 right-0 text-red-500 hover:text-red-700 text-sm">Remove</button>` : ''}
+        `;
+        container.appendChild(sampleDiv);
+        
+        // Add event listener for character count
+        const textarea = sampleDiv.querySelector('textarea');
+        const charCount = sampleDiv.querySelector(`#charCount${i}`);
+        
+        textarea.addEventListener('input', function() {
+            const length = this.value.length;
+            charCount.textContent = length + ' characters';
+            updateCharacterCount();
+            updateSubmitButton();
+        });
+    }
+    
+    updateSampleCount();
+}
+
+function addSample() {
+    if (sampleCount < 5) {
+        sampleCount++;
+        initializeSampleInputs();
+    }
+}
+
+function removeSample(index) {
+    if (sampleCount > 3) {
+        sampleCount--;
+        initializeSampleInputs();
+    }
+}
+
+function updateSampleCount() {
+    document.getElementById('sampleCount').textContent = sampleCount + ' samples';
+}
+
+function updateCharacterCount() {
+    let totalChars = 0;
+    for (let i = 0; i < sampleCount; i++) {
+        const textarea = document.getElementById(`sample${i}`);
+        if (textarea) {
+            totalChars += textarea.value.length;
+        }
+    }
+    
+    document.getElementById('totalChars').textContent = totalChars;
+    
+    // Update progress bar
+    const progress = Math.min((totalChars / 3000) * 100, 100);
+    document.getElementById('charProgress').style.width = progress + '%';
+    
+    // Change color based on progress
+    const progressBar = document.getElementById('charProgress');
+    if (totalChars < 100) {
+        progressBar.className = 'bg-red-500 h-2 rounded-full transition-all duration-300';
+    } else if (totalChars > 3000) {
+        progressBar.className = 'bg-red-500 h-2 rounded-full transition-all duration-300';
+    } else {
+        progressBar.className = 'bg-primary h-2 rounded-full transition-all duration-300';
+    }
+}
+
+function updateSubmitButton() {
+    const button = document.getElementById('createTwinBtn');
+    let totalChars = 0;
+    let validSamples = 0;
+    
+    for (let i = 0; i < sampleCount; i++) {
+        const textarea = document.getElementById(`sample${i}`);
+        if (textarea) {
+            const length = textarea.value.length;
+            totalChars += length;
+            if (length >= 10 && length <= 1000) {
+                validSamples++;
+            }
+        }
+    }
+    
+    const isValid = validSamples >= 3 && totalChars >= 100 && totalChars <= 3000;
+    button.disabled = !isValid;
+}
+
+function showMessage(message, type = 'error') {
+    const container = document.getElementById('messageContainer');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `p-4 rounded-lg ${type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' : 'bg-green-100 border border-green-400 text-green-700'}`;
+    messageDiv.textContent = message;
+    
+    container.innerHTML = '';
+    container.appendChild(messageDiv);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        messageDiv.remove();
+    }, 5000);
+}
+
+function updateProgress(step) {
+    // Update step indicators
+    for (let i = 1; i <= 3; i++) {
+        const stepEl = document.getElementById(`step${i}`);
+        if (i <= step) {
+            stepEl.className = 'w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold';
+        } else {
+            stepEl.className = 'w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold';
+        }
+    }
+}
+
+function displayResults(twinData) {
+    // Update progress to step 3
+    updateProgress(3);
+    
+    // Display style vector
+    const styleVector = document.getElementById('styleVector');
+    styleVector.innerHTML = `
+        <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="font-semibold text-gray-800 mb-2">Tone</h4>
+            <p class="text-gray-600 capitalize">${twinData.styleVector.tone}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="font-semibold text-gray-800 mb-2">Emoji Usage</h4>
+            <p class="text-gray-600">${Math.round(twinData.styleVector.emoji_usage * 100)}%</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="font-semibold text-gray-800 mb-2">Hinglish Ratio</h4>
+            <p class="text-gray-600">${Math.round(twinData.styleVector.hinglish_ratio * 100)}%</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="font-semibold text-gray-800 mb-2">Sentence Length</h4>
+            <p class="text-gray-600 capitalize">${twinData.styleVector.sentence_length}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 md:col-span-2">
+            <h4 class="font-semibold text-gray-800 mb-2">Signature Patterns</h4>
+            <p class="text-gray-600">${twinData.styleVector.signature_patterns.join(', ')}</p>
+        </div>
+    `;
+    
+    // Display sample reply
+    document.getElementById('sampleReply').textContent = twinData.sampleReply;
+    
+    // Show results section
+    document.getElementById('resultsSection').classList.remove('hidden');
+    
+    // Scroll to results
+    document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Form submission
+document.getElementById('twinCreationForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    const formData = new FormData(e.target);
-    const samples = formData.get('samples');
+    const button = document.getElementById('createTwinBtn');
+    const originalText = button.textContent;
     
-    if (samples.length < 100) {
-        showFlashMessage('Please provide at least 100 characters of text samples.', 'error');
+    // Update progress to step 2
+    updateProgress(2);
+    
+    // Collect samples
+    samples = [];
+    for (let i = 0; i < sampleCount; i++) {
+        const textarea = document.getElementById(`sample${i}`);
+        if (textarea && textarea.value.trim()) {
+            samples.push(textarea.value.trim());
+        }
+    }
+    
+    if (samples.length < 3) {
+        showMessage('Please provide at least 3 valid samples');
         return;
     }
     
-    if (samples.length > 3000) {
-        showFlashMessage('Text samples are too long. Maximum 3000 characters allowed.', 'error');
-        return;
-    }
-    
-    const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Creating Twin...';
+    // Show loading state
+    button.textContent = 'Creating Twin...';
+    button.disabled = true;
     
     try {
         const response = await fetch('/api/twin/create', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': window.csrfToken
+                'X-CSRF-Token': document.querySelector('input[name="_csrf"]').value
             },
             body: JSON.stringify({ samples })
         });
@@ -97,78 +357,46 @@ document.getElementById('twinForm').addEventListener('submit', async (e) => {
         const result = await response.json();
         
         if (response.ok) {
-            showFlashMessage('AI Twin created successfully!', 'success');
-            
-            // Show result
-            const resultDiv = document.getElementById('result');
-            const twinResultDiv = document.getElementById('twinResult');
-            
-            twinResultDiv.innerHTML = `
-                <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Style Analysis</h3>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <p><strong>Tone:</strong> ${result.twin.styleVector.tone}</p>
-                        <p><strong>Emoji Usage:</strong> ${Math.round(result.twin.styleVector.emoji_usage * 100)}%</p>
-                        <p><strong>Hinglish Ratio:</strong> ${Math.round(result.twin.styleVector.hinglish_ratio * 100)}%</p>
-                        <p><strong>Sentence Length:</strong> ${result.twin.styleVector.sentence_length}</p>
-                        <p><strong>Signature Patterns:</strong> ${result.twin.styleVector.signature_patterns.join(', ')}</p>
-                    </div>
-                </div>
-                
-                <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Sample Reply</h3>
-                    <div class="bg-blue-50 rounded-lg p-4">
-                        <p class="text-gray-800">${result.twin.sampleReply}</p>
-                    </div>
-                </div>
-                
-                <div class="flex space-x-4">
-                    <button onclick="startChatWithTwin('${result.twin.id}')" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-secondary transition-colors">
-                        Start Chat
-                    </button>
-                    <a href="/dashboard" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
-                        Back to Dashboard
-                    </a>
-                </div>
-            `;
-            
-            resultDiv.classList.remove('hidden');
-            resultDiv.scrollIntoView({ behavior: 'smooth' });
-            
+            showMessage('AI Twin created successfully!', 'success');
+            displayResults(result.twin);
         } else {
-            showFlashMessage(result.error || 'Failed to create AI Twin', 'error');
+            showMessage(result.error || 'Failed to create twin');
         }
     } catch (error) {
-        console.error('Create twin error:', error);
-        showFlashMessage('Network error. Please try again.', 'error');
+        console.error('Error creating twin:', error);
+        showMessage('Network error. Please try again.');
     } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Create AI Twin';
+        button.textContent = originalText;
+        button.disabled = false;
     }
 });
 
-async function startChatWithTwin(twinId) {
-    try {
-        const response = await fetch('/api/chat/start', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': window.csrfToken
-            },
-            body: JSON.stringify({ twinId })
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            window.location.href = result.redirect;
-        } else {
-            showFlashMessage(result.error || 'Failed to start chat', 'error');
+// Save twin button
+document.getElementById('saveTwinBtn').addEventListener('click', function() {
+    showMessage('Twin saved successfully! Redirecting to dashboard...', 'success');
+    setTimeout(() => {
+        window.location.href = '/dashboard';
+    }, 2000);
+});
+
+// Create another button
+document.getElementById('createAnotherBtn').addEventListener('click', function() {
+    document.getElementById('resultsSection').classList.add('hidden');
+    document.getElementById('messageContainer').innerHTML = '';
+    updateProgress(1);
+    
+    // Reset form
+    for (let i = 0; i < sampleCount; i++) {
+        const textarea = document.getElementById(`sample${i}`);
+        if (textarea) {
+            textarea.value = '';
         }
-    } catch (error) {
-        console.error('Start chat error:', error);
-        showFlashMessage('Network error. Please try again.', 'error');
     }
-}
+    updateCharacterCount();
+    updateSubmitButton();
+});
+
+// Add sample button
+document.getElementById('addSample').addEventListener('click', addSample);
 </script>
 ` }) %>

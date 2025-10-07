@@ -157,19 +157,21 @@ export const updateProfile = async (req: Request, res: Response) => {
 
     const updateProfileSchema = z.object({
       name: z.string().min(2, 'Name must be at least 2 characters').optional(),
-      handle: z.string().min(3, 'Handle must be at least 3 characters').max(20, 'Handle too long').regex(/^[a-zA-Z0-9_-]+$/, 'Handle can only contain letters, numbers, hyphens, and underscores').optional(),
+      handle: z.string().min(3, 'Handle must be at least 3 characters').max(20, 'Handle too long').regex(/^[a-zA-Z0-9_\s-]+$/, 'Handle can only contain letters, numbers, spaces, hyphens, and underscores').optional(),
       dob: z.string().optional(),
       phone: z.string().optional(),
       bio: z.string().max(500, 'Bio too long').optional(),
+      profileImage: z.string().nullable().optional(),
     });
 
-    const { name, handle, dob, phone, bio } = updateProfileSchema.parse(req.body);
+    const { name, handle, dob, phone, bio, profileImage } = updateProfileSchema.parse(req.body);
 
     // Get current user data
     const currentUser = await userQueries.findByEmail(req.user.email);
     if (!currentUser) {
       return res.status(404).json({ error: 'User not found' });
     }
+
 
     // Check if handle is already taken (if provided and different from current)
     if (handle && handle !== currentUser.handle) {
@@ -181,14 +183,24 @@ export const updateProfile = async (req: Request, res: Response) => {
       }
     }
 
+    // Prepare values for update
+    const finalName = name !== undefined ? name : currentUser.name || '';
+    const finalHandle = handle !== undefined ? handle : currentUser.handle || '';
+    const finalDob = dob !== undefined ? dob : currentUser.dob || '';
+    const finalPhone = phone !== undefined ? phone : currentUser.phone || '';
+    const finalBio = bio !== undefined ? bio : currentUser.bio || '';
+    const finalProfileImage = profileImage !== undefined ? profileImage : currentUser.profileImage || '';
+
+
     // Update user profile using raw SQL
     const updatedUser = await userQueries.updateProfile(
       req.user.email,
-      name !== undefined ? name : currentUser.name || '',
-      handle !== undefined ? handle : currentUser.handle || '',
-      dob !== undefined ? dob : currentUser.dob || '',
-      phone !== undefined ? phone : currentUser.phone || '',
-      bio !== undefined ? bio : currentUser.bio || ''
+      finalName,
+      finalHandle,
+      finalDob,
+      finalPhone,
+      finalBio,
+      finalProfileImage
     );
 
     // No need to update session since we're using JWT
@@ -201,6 +213,7 @@ export const updateProfile = async (req: Request, res: Response) => {
         dob: updatedUser.dob,
         phone: updatedUser.phone,
         bio: updatedUser.bio,
+        profileImage: updatedUser.profileImage,
       },
       handle: updatedUser.handle, // For frontend to know if handle changed
     });

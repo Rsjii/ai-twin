@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { startChat, getChat, getUserChats, generateDraft, sendMessage } from './chatController';
 import { requireAuth } from '../../middleware/auth';
-import { draftRateLimit } from '../../middleware/rateLimit';
+import { draftGenerationRateLimit } from '../../middleware/rateLimit';
 import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
 import { sanitizeInput } from '../../middleware/validation';
 
@@ -15,7 +15,7 @@ router.use(generateCSRFToken);
 router.post('/start', sanitizeInput, validateCSRF, startChat);
 router.get('/', getUserChats);
 router.get('/:id', getChat);
-router.post('/:id/draft', sanitizeInput, validateCSRF, draftRateLimit, generateDraft);
+router.post('/:id/draft', sanitizeInput, validateCSRF, draftGenerationRateLimit, generateDraft);
 router.post('/:id/send', sanitizeInput, validateCSRF, sendMessage);
 
 export default router;

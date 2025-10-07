@@ -1,34 +1,106 @@
 import rateLimit from 'express-rate-limit';
 
-// Rate limit for draft generation (1 per 30 seconds per user)
-export const draftRateLimit = rateLimit({
-  windowMs: 30 * 1000, // 30 seconds
-  max: 1,
-  keyGenerator: (req) => {
-    return req.session?.userId || req.ip;
+/**
+ * Rate Limiting Configuration
+ * Different limits for different types of operations
+ */
+
+// Global rate limiter (applied to all routes)
+export const globalRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // 1000 requests per window
+  message: {
+    error: 'Too many requests from this IP, please try again later.',
+    retryAfter: '15 minutes'
   },
-  message: 'You can only generate one draft every 30 seconds. Please wait.',
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Rate limit for OTP requests (500 per 5 minutes per IP) - Increased for testing
-export const otpRateLimit = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 500, // Increased from 200 to 500
-  message: 'Too many OTP requests. Please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Rate limit for twin creation (2 per hour per user)
+// Twin creation rate limiter
 export const twinCreationRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 2,
+  max: 2, // 2 twins per hour per user
   keyGenerator: (req) => {
-    return req.session?.userId || req.ip;
+    // Use user ID if authenticated, otherwise IP
+    return req.user?.id || req.ip;
   },
-  message: 'You can only create 2 twins per hour. Please wait.',
+  message: {
+    error: 'Twin creation limit exceeded. You can create 2 twins per hour.',
+    retryAfter: '1 hour'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Draft generation rate limiter
+export const draftGenerationRateLimit = rateLimit({
+  windowMs: 30 * 1000, // 30 seconds
+  max: 1, // 1 draft per 30 seconds per user
+  keyGenerator: (req) => {
+    return req.user?.id || req.ip;
+  },
+  message: {
+    error: 'Please wait 30 seconds before generating another draft.',
+    retryAfter: '30 seconds'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// OTP request rate limiter
+export const otpRequestRateLimit = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 3, // 3 OTP requests per 10 minutes per IP
+  message: {
+    error: 'Too many OTP requests. Please wait 10 minutes before trying again.',
+    retryAfter: '10 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Profile link generation rate limiter
+export const profileLinkRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 profile links per hour per user
+  keyGenerator: (req) => {
+    return req.user?.id || req.ip;
+  },
+  message: {
+    error: 'Profile link generation limit exceeded. You can generate 10 links per hour.',
+    retryAfter: '1 hour'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Invite creation rate limiter
+export const inviteCreationRateLimit = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 5, // 5 invites per day per user
+  keyGenerator: (req) => {
+    return req.user?.id || req.ip;
+  },
+  message: {
+    error: 'Invite creation limit exceeded. You can create 5 invites per day.',
+    retryAfter: '24 hours'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// API rate limiter (for general API endpoints)
+export const apiRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 API requests per 15 minutes per user/IP
+  keyGenerator: (req) => {
+    return req.user?.id || req.ip;
+  },
+  message: {
+    error: 'API rate limit exceeded. Please slow down your requests.',
+    retryAfter: '15 minutes'
+  },
   standardHeaders: true,
   legacyHeaders: false,
 });

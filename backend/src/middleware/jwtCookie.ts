@@ -19,7 +19,12 @@ export const extractJWTFromCookie = (req: Request, res: Response, next: NextFunc
     if (tokenFromCookie) {
       try {
         const decoded = verifyJWT(tokenFromCookie);
-        req.user = decoded;
+        // Map JWT payload to expected user structure
+        req.user = {
+          id: decoded.userId,
+          email: decoded.email,
+          handle: decoded.handle
+        };
         logger.info(`JWT extracted from cookie for user: ${decoded.email}`);
         return next();
       } catch (error) {
@@ -49,7 +54,12 @@ export const requireJWTFromCookie = (req: Request, res: Response, next: NextFunc
     
     try {
       const decoded = verifyJWT(tokenFromCookie);
-      req.user = decoded;
+      // Map JWT payload to expected user structure
+      req.user = {
+        id: decoded.userId,
+        email: decoded.email,
+        handle: decoded.handle
+      };
       logger.info(`JWT verified from cookie for user: ${decoded.email}`);
       next();
     } catch (error) {

@@ -88,6 +88,7 @@ app.set('views', '../frontend/src/views');
 
 // Static files
 app.use(express.static('../frontend/src/public'));
+app.use('/uploads', express.static('public/uploads'));
 
 // Apply custom middleware
 app.use(generateCSRFToken);
@@ -631,9 +632,7 @@ app.get('/profile', extractJWTFromCookie, async (req, res) => {
       bio: user?.bio || null
     };
     
-    console.log('User with defaults:', userWithDefaults);
-    
-    res.render('profile-simple', {
+    res.render('profile', {
       title: 'Profile - AI Twin',
       user: userWithDefaults,
       csrfToken: res.locals['csrfToken'],
@@ -671,17 +670,25 @@ app.get('/change-password', extractJWTFromCookie, async (req, res) => {
 });
 
 // Dashboard route
-app.get('/dashboard', extractJWTFromCookie, (req, res) => {
+app.get('/dashboard', extractJWTFromCookie, async (req, res) => {
   // Check if user is authenticated via JWT
   if (!req.user) {
     return res.redirect('/auth');
   }
   
-  // Set user data from JWT
+  // Fetch full user data from database
+  const fullUser = await userQueries.findByEmail(req.user.email);
+  if (!fullUser) {
+    return res.redirect('/auth');
+  }
+  
+  // Set user data with all fields including profileImage
   const user = {
-    id: req.user.userId,
-    email: req.user.email,
-    handle: req.user.handle,
+    id: fullUser.id,
+    email: fullUser.email,
+    handle: fullUser.handle,
+    name: fullUser.name,
+    profileImage: fullUser.profileImage,
   };
   
   res.render('layout', {
@@ -732,13 +739,15 @@ app.get('/dashboard', extractJWTFromCookie, (req, res) => {
 });
 
 // Twin creation page route
-app.get('/twin/create', (req, res) => {
-  if (!req.user) {
+app.get('/twin/create', extractJWTFromCookie, optionalAuth, (req, res) => {
+  // Prefer JWT user if present; fallback to session user
+  const user = req.user || (req as any).user;
+  if (!user) {
     return res.redirect('/auth');
   }
   res.render('twin_create', {
     title: 'Create Twin - AI Twin',
-    user: req.user,
+    user: user,
     csrfToken: res.locals['csrfToken'],
   });
 });

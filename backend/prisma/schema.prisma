@@ -19,6 +19,7 @@ model User {
   dob          String?
   phone        String?
   bio          String?
+  profileImage String?
   active       Boolean  @default(false)
   createdAt    DateTime @default(now())
   twins        Twin[]
