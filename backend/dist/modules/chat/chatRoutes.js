@@ -12,7 +12,7 @@ router.use(csrf_1.generateCSRFToken);
 router.post('/start', validation_1.sanitizeInput, csrf_1.validateCSRF, chatController_1.startChat);
 router.get('/', chatController_1.getUserChats);
 router.get('/:id', chatController_1.getChat);
-router.post('/:id/draft', validation_1.sanitizeInput, csrf_1.validateCSRF, rateLimit_1.draftRateLimit, chatController_1.generateDraft);
+router.post('/:id/draft', validation_1.sanitizeInput, csrf_1.validateCSRF, rateLimit_1.draftGenerationRateLimit, chatController_1.generateDraft);
 router.post('/:id/send', validation_1.sanitizeInput, csrf_1.validateCSRF, chatController_1.sendMessage);
 exports.default = router;
 //# sourceMappingURL=chatRoutes.js.map

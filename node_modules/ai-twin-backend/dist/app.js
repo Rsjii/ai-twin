@@ -97,6 +97,7 @@ else {
 app.set('view engine', 'ejs');
 app.set('views', '../frontend/src/views');
 app.use(express_1.default.static('../frontend/src/public'));
+app.use('/uploads', express_1.default.static('public/uploads'));
 app.use(csrf_1.generateCSRFToken);
 app.use(validation_1.sanitizeInput);
 app.use(auth_1.optionalAuth);
@@ -557,8 +558,7 @@ app.get('/profile', jwtCookie_1.extractJWTFromCookie, async (req, res) => {
             phone: user?.phone || null,
             bio: user?.bio || null
         };
-        console.log('User with defaults:', userWithDefaults);
-        res.render('profile-simple', {
+        res.render('profile', {
             title: 'Profile - AI Twin',
             user: userWithDefaults,
             csrfToken: res.locals['csrfToken'],
@@ -590,14 +590,20 @@ app.get('/change-password', jwtCookie_1.extractJWTFromCookie, async (req, res) =
         res.status(500).send('Internal server error');
     }
 });
-app.get('/dashboard', jwtCookie_1.extractJWTFromCookie, (req, res) => {
+app.get('/dashboard', jwtCookie_1.extractJWTFromCookie, async (req, res) => {
     if (!req.user) {
         return res.redirect('/auth');
     }
+    const fullUser = await database_1.userQueries.findByEmail(req.user.email);
+    if (!fullUser) {
+        return res.redirect('/auth');
+    }
     const user = {
-        id: req.user.userId,
-        email: req.user.email,
-        handle: req.user.handle,
+        id: fullUser.id,
+        email: fullUser.email,
+        handle: fullUser.handle,
+        name: fullUser.name,
+        profileImage: fullUser.profileImage,
     };
     res.render('layout', {
         title: 'Dashboard - AI Twin',
@@ -645,13 +651,14 @@ app.get('/dashboard', jwtCookie_1.extractJWTFromCookie, (req, res) => {
     `
     });
 });
-app.get('/twin/create', (req, res) => {
-    if (!req.user) {
+app.get('/twin/create', jwtCookie_1.extractJWTFromCookie, auth_1.optionalAuth, (req, res) => {
+    const user = req.user || req.user;
+    if (!user) {
         return res.redirect('/auth');
     }
     res.render('twin_create', {
         title: 'Create Twin - AI Twin',
-        user: req.user,
+        user: user,
         csrfToken: res.locals['csrfToken'],
     });
 });

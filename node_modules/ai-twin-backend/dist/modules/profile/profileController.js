@@ -150,12 +150,13 @@ const updateProfile = async (req, res) => {
         }
         const updateProfileSchema = zod_1.z.object({
             name: zod_1.z.string().min(2, 'Name must be at least 2 characters').optional(),
-            handle: zod_1.z.string().min(3, 'Handle must be at least 3 characters').max(20, 'Handle too long').regex(/^[a-zA-Z0-9_-]+$/, 'Handle can only contain letters, numbers, hyphens, and underscores').optional(),
+            handle: zod_1.z.string().min(3, 'Handle must be at least 3 characters').max(20, 'Handle too long').regex(/^[a-zA-Z0-9_\s-]+$/, 'Handle can only contain letters, numbers, spaces, hyphens, and underscores').optional(),
             dob: zod_1.z.string().optional(),
             phone: zod_1.z.string().optional(),
             bio: zod_1.z.string().max(500, 'Bio too long').optional(),
+            profileImage: zod_1.z.string().nullable().optional(),
         });
-        const { name, handle, dob, phone, bio } = updateProfileSchema.parse(req.body);
+        const { name, handle, dob, phone, bio, profileImage } = updateProfileSchema.parse(req.body);
         const currentUser = await database_1.userQueries.findByEmail(req.user.email);
         if (!currentUser) {
             return res.status(404).json({ error: 'User not found' });
@@ -167,7 +168,13 @@ const updateProfile = async (req, res) => {
                 return res.status(400).json({ error: 'Handle already taken' });
             }
         }
-        const updatedUser = await database_1.userQueries.updateProfile(req.user.email, name !== undefined ? name : currentUser.name || '', handle !== undefined ? handle : currentUser.handle || '', dob !== undefined ? dob : currentUser.dob || '', phone !== undefined ? phone : currentUser.phone || '', bio !== undefined ? bio : currentUser.bio || '');
+        const finalName = name !== undefined ? name : currentUser.name || '';
+        const finalHandle = handle !== undefined ? handle : currentUser.handle || '';
+        const finalDob = dob !== undefined ? dob : currentUser.dob || '';
+        const finalPhone = phone !== undefined ? phone : currentUser.phone || '';
+        const finalBio = bio !== undefined ? bio : currentUser.bio || '';
+        const finalProfileImage = profileImage !== undefined ? profileImage : currentUser.profileImage || '';
+        const updatedUser = await database_1.userQueries.updateProfile(req.user.email, finalName, finalHandle, finalDob, finalPhone, finalBio, finalProfileImage);
         return res.json({
             success: true,
             user: {
@@ -176,6 +183,7 @@ const updateProfile = async (req, res) => {
                 dob: updatedUser.dob,
                 phone: updatedUser.phone,
                 bio: updatedUser.bio,
+                profileImage: updatedUser.profileImage,
             },
             handle: updatedUser.handle,
         });

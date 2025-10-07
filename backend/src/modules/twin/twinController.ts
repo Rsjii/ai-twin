@@ -3,7 +3,6 @@ import { prisma } from '../../config/prisma';
 import { TwinService } from './twinService';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
-import { AuthenticatedRequest } from '../../middleware/auth';
 import { EventLogger } from '../../services/eventLogger';
 import { validateTwinSamples, isContentSafe, sanitizeText } from '../../utils/safety';
 import { featureFlags } from '../../config/featureFlags';
@@ -11,10 +10,10 @@ import { featureFlags } from '../../config/featureFlags';
 const twinService = new TwinService();
 
 const createTwinSchema = z.object({
-  samples: z.array(z.string().min(10, 'Each sample must be at least 10 characters').max(1000, 'Each sample must not exceed 1000 characters')).min(3, 'At least 3 samples required').max(5, 'Maximum 5 samples allowed'),
+  samples: z.array(z.string().min(10, 'Each sample must be at least 10 characters').max(1000, 'Each sample must not exceed 1000 characters')).min(1, 'At least 1 sample required').max(5, 'Maximum 5 samples allowed'),
 });
 
-export const createTwin = async (req: AuthenticatedRequest, res: Response) => {
+export const createTwin = async (req: Request, res: Response) => {
   try {
     const { samples } = createTwinSchema.parse(req.body);
     
@@ -101,7 +100,7 @@ export const createTwin = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-export const getUserTwins = async (req: AuthenticatedRequest, res: Response) => {
+export const getUserTwins = async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -125,7 +124,7 @@ export const getUserTwins = async (req: AuthenticatedRequest, res: Response) => 
   }
 };
 
-export const getTwinById = async (req: AuthenticatedRequest, res: Response) => {
+export const getTwinById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     

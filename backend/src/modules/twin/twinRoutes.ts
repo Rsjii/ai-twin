@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { createTwin, getUserTwins, getTwinById } from './twinController';
-import { requireAuth } from '../../middleware/auth';
+import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import { twinCreationRateLimit } from '../../middleware/rateLimit';
 import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
 import { sanitizeInput } from '../../middleware/validation';
@@ -8,7 +8,7 @@ import { sanitizeInput } from '../../middleware/validation';
 const router = Router();
 
 // Apply authentication and CSRF protection
-router.use(requireAuth);
+router.use(requireJWTFromCookie);
 router.use(generateCSRFToken);
 
 // Twin routes

@@ -7,19 +7,22 @@ exports.TwinService = void 0;
 const openai_1 = __importDefault(require("openai"));
 const env_1 = require("../../config/env");
 const logger_1 = require("../../config/logger");
-const security_1 = require("../../middleware/security");
+const safety_1 = require("../../utils/safety");
 const openai = new openai_1.default({
     apiKey: env_1.config.openaiApiKey,
 });
 class TwinService {
     async extractStyle(samples) {
         try {
-            if (!(0, security_1.validateSamplesLength)(samples)) {
-                throw new Error('Samples must be between 100-3000 characters');
+            const samplesArray = samples.split('\n---\n');
+            const validation = (0, safety_1.validateTwinSamples)(samplesArray);
+            if (!validation.valid) {
+                throw new Error(validation.errors.join(', '));
             }
-            const sanitizedSamples = (0, security_1.sanitizeText)(samples);
-            if ((0, security_1.checkBlacklist)(sanitizedSamples)) {
-                throw new Error('Content contains restricted material');
+            const sanitizedSamples = (0, safety_1.sanitizeText)(samples);
+            const safetyCheck = (0, safety_1.isContentSafe)(sanitizedSamples);
+            if (!safetyCheck.safe) {
+                throw new Error('Content safety check failed: ' + safetyCheck.reasons.join(', '));
             }
             const systemPrompt = `You are a style extractor. Analyze the given text samples and output **JSON only** with these exact keys:
 - tone: one of 'casual', 'witty', 'serious'
@@ -81,7 +84,8 @@ If the content would be unsafe or inappropriate, respond with: '[not allowed]'`;
     async generateDraft(styleVector, conversationHistory) {
         try {
             const fullConversation = conversationHistory.join(' ');
-            if ((0, security_1.checkBlacklist)(fullConversation)) {
+            const safetyCheck = (0, safety_1.isContentSafe)(fullConversation);
+            if (!safetyCheck.safe) {
                 return '[not allowed]';
             }
             const systemPrompt = `Imitate user's style: ${JSON.stringify(styleVector)}. 

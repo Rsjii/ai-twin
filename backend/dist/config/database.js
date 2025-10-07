@@ -108,6 +108,10 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'bio') THEN
         ALTER TABLE "User" ADD COLUMN "bio" TEXT;
     END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'profileImage') THEN
+        ALTER TABLE "User" ADD COLUMN "profileImage" TEXT;
+    END IF;
 END $$;
 
 -- AddForeignKey
@@ -168,8 +172,8 @@ exports.userQueries = {
         const result = await db_1.db.query('UPDATE "User" SET active = true WHERE email = $1 RETURNING *', [email]);
         return result.rows[0];
     },
-    updateProfile: async (email, name, handle, dob, phone, bio) => {
-        const result = await db_1.db.query('UPDATE "User" SET name = $1, handle = $2, dob = $3, phone = $4, bio = $5 WHERE email = $6 RETURNING *', [name, handle, dob, phone, bio, email]);
+    updateProfile: async (email, name, handle, dob, phone, bio, profileImage) => {
+        const result = await db_1.db.query('UPDATE "User" SET name = $1, handle = $2, dob = $3, phone = $4, bio = $5, "profileImage" = $6 WHERE email = $7 RETURNING *', [name, handle, dob, phone, bio, profileImage || null, email]);
         return result.rows[0];
     }
 };

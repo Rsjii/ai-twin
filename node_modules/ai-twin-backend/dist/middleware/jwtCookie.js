@@ -9,7 +9,11 @@ const extractJWTFromCookie = (req, res, next) => {
         if (tokenFromCookie) {
             try {
                 const decoded = (0, jwtService_1.verifyJWT)(tokenFromCookie);
-                req.user = decoded;
+                req.user = {
+                    id: decoded.userId,
+                    email: decoded.email,
+                    handle: decoded.handle
+                };
                 logger_1.logger.info(`JWT extracted from cookie for user: ${decoded.email}`);
                 return next();
             }
@@ -35,7 +39,11 @@ const requireJWTFromCookie = (req, res, next) => {
         }
         try {
             const decoded = (0, jwtService_1.verifyJWT)(tokenFromCookie);
-            req.user = decoded;
+            req.user = {
+                id: decoded.userId,
+                email: decoded.email,
+                handle: decoded.handle
+            };
             logger_1.logger.info(`JWT verified from cookie for user: ${decoded.email}`);
             next();
         }

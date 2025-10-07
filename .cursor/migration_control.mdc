@@ -1,0 +1,6 @@
+---
+alwaysApply: true
+---
+- Do not modify Prisma schema or SQL files unless user types "/migrate ok".
+- When a schema change is needed, show a minimal diff and explain the impact.
+- Provide migration commands but do not execute them.

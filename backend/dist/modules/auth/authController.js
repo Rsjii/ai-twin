@@ -23,6 +23,7 @@ const completeProfileSchema = zod_1.z.object({
     dob: zod_1.z.string().optional(),
     phone: zod_1.z.string().optional(),
     bio: zod_1.z.string().optional(),
+    profileImage: zod_1.z.string().nullable().optional(),
 });
 const forgotPasswordSchema = zod_1.z.object({
     email: zod_1.z.string().email('Invalid email format'),
@@ -93,8 +94,8 @@ const signupVerify = async (req, res) => {
 exports.signupVerify = signupVerify;
 const completeProfile = async (req, res) => {
     try {
-        const { email, name, handle, dob, phone, bio } = completeProfileSchema.parse(req.body);
-        await database_1.userQueries.updateProfile(email.toLowerCase(), name, handle, dob, phone, bio);
+        const { email, name, handle, dob, phone, bio, profileImage } = completeProfileSchema.parse(req.body);
+        await database_1.userQueries.updateProfile(email.toLowerCase(), name, handle, dob, phone, bio, profileImage);
         const user = await database_1.userQueries.findByEmail(email.toLowerCase());
         const token = (0, jwtService_1.generateJWT)({
             userId: user.id,
@@ -103,7 +104,7 @@ const completeProfile = async (req, res) => {
         });
         res.cookie('jwtToken', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env['NODE_ENV'] === 'production',
             sameSite: 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
@@ -235,7 +236,7 @@ const login = async (req, res) => {
         });
         res.cookie('jwtToken', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env['NODE_ENV'] === 'production',
             sameSite: 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
@@ -276,10 +277,31 @@ const loginVerify = async (req, res) => {
         if (!user) {
             user = await database_1.userQueries.create(email.toLowerCase());
         }
+        const token = (0, jwtService_1.generateJWT)({
+            userId: user.id,
+            email: user.email,
+            handle: user.handle || ''
+        });
+        res.cookie('jwtToken', token, {
+            httpOnly: true,
+            secure: process.env['NODE_ENV'] === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
         req.session.userId = user.id;
         req.session.userEmail = user.email;
         req.session.userHandle = user.handle;
-        res.json({ message: 'Login successful', redirect: '/dashboard' });
+        res.json({
+            message: 'Login successful',
+            redirect: '/dashboard',
+            token: token,
+            user: {
+                id: user.id,
+                email: user.email,
+                handle: user.handle,
+                name: user.name
+            }
+        });
     }
     catch (error) {
         logger_1.logger.error('Login verify error:', error);
