@@ -65,6 +65,26 @@ console.log('========================');
        return res.status(401).json({ error: 'Authentication required' });
     }
 
+   const existingTwinQuery = `
+    SELECT id, "createdAt" 
+    FROM "Twin" 
+    WHERE "userId" = $1 
+    LIMIT 1
+    `;
+
+  const existingTwinResult = await db.query(existingTwinQuery, [req.user.id]);
+
+  if (existingTwinResult.rows.length > 0) {
+    const existingTwin = existingTwinResult.rows[0];
+    return res.status(400).json({ 
+      error: 'User already has a twin. Only one twin per user is allowed.',
+      existingTwin: {
+        id: existingTwin.id,
+        createdAt: existingTwin.createdAt
+      }
+    }); 
+  }
+
     // Check if AI generation is enabled
     if (!featureFlags.ENABLE_AI_GENERATION) {
       return res.status(503).json({ error: 'AI generation is currently disabled' });
