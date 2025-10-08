@@ -166,6 +166,11 @@ console.log('========================');
 
 export const getUserTwins = async (req: Request, res: Response) => {
   try {
+    console.log('=== GET USER TWINS ===');
+    console.log('req.user:', req.user);
+    console.log('User ID:', req.user?.id);
+    console.log('=====================');
+    
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
@@ -181,6 +186,7 @@ export const getUserTwins = async (req: Request, res: Response) => {
       },
     });
     
+    console.log('Found twins:', twins);
     res.json({ twins });
   } catch (error) {
     logger.error('Get twins error:', error);

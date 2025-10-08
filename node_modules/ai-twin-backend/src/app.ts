@@ -715,27 +715,52 @@ app.get('/dashboard', extractJWTFromCookie, async (req, res) => {
                     </a>
                 </div>
                 
-                <!-- My Twins -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">My AI Twins</h2>
-                    <p class="text-gray-600 mb-4">
-                        You haven't created any AI twins yet.
-                    </p>
-                    <a href="/twin/create" class="inline-block bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition-colors font-semibold">
-                        Get Started
-                    </a>
-                </div>
-            </div>
-            
             <!-- Recent Activity -->
             <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4">Recent Activity</h2>
-                <p class="text-gray-600">No recent activity to show.</p>
+                <p class="text-gray-600 mb-4">View your created AI twins.</p>
+                <a href="/my-twins" class="inline-block bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors font-semibold">
+                    View My Twins
+                </a>
             </div>
         </div>
     </div>
     `
   });
+});
+
+// My Twins page route
+// My Twins page route
+app.get('/my-twins', requireJWTFromCookie, async (req, res) => {
+  try {
+    console.log('=== MY TWINS ENDPOINT ===');
+    console.log('req.user:', req.user);
+    console.log('req.user.id:', req.user?.id);
+    console.log('========================');
+    
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    // Fetch user's twins from database
+    const twins = await db.query(`
+      SELECT id, "styleVector", "sampleReply", "createdAt" 
+      FROM "Twin" 
+      WHERE "userId" = $1 
+      ORDER BY "createdAt" DESC
+    `, [req.user.id]);
+
+    console.log('Found twins:', twins.rows);
+
+    res.render('my-twins', { 
+      title: 'My AI Twins',
+      user: req.user,
+      twins: twins.rows
+    });
+  } catch (error) {
+    console.error('Error fetching twins:', error);
+    res.status(500).json({ error: 'Failed to load twins', details: error.message });
+  }
 });
 
 // Twin creation page route
