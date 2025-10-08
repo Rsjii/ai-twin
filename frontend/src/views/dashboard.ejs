@@ -3,23 +3,46 @@
     <div class="max-w-6xl mx-auto">
         <h1 class="text-3xl font-bold text-gray-900 mb-8">Welcome, <%= user.handle || user.email %>!</h1>
         
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">Create Twin</h3>
-                <p class="text-gray-600 mb-4">Upload text samples to create your AI twin</p>
-                <a href="/twin/create" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
-                    Create Now
-                </a>
-            </div>
+        <div class="grid md:grid-cols-2 gap-8 mb-8">
+            <% if (hasTwins) { %>
+                <!-- Chat with Twin Button -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Chat with Your AI Twin</h3>
+                    <p class="text-gray-600 mb-4">Start a conversation with your AI twin</p>
+                    <button onclick="startNewChat()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                        Start Chat
+                    </button>
+                </div>
+            <% } else { %>
+                <!-- Create Twin Button -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Create New AI Twin</h3>
+                    <p class="text-gray-600 mb-4">Upload text samples to create your AI twin</p>
+                    <a href="/twin/create" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                        Create Twin
+                    </a>
+                </div>
+            <% } %>
             
+            <!-- My Twins Section -->
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">Start Chat</h3>
-                <p class="text-gray-600 mb-4">Chat with your AI twin</p>
-                <button onclick="startNewChat()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
-                    Start Chat
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">My AI Twins</h3>
+                <p class="text-gray-600 mb-4">
+                    <% if (hasTwins) { %>
+                        You have <%= twins.length %> AI twin<%= twins.length > 1 ? 's' : '' %> created.
+                    <% } else { %>
+                        You haven't created any AI twins yet.
+                    <% } %>
+                </p>
+                <button onclick="loadTwins()" class="bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors font-semibold">
+                    View My Twins
                 </button>
+                <div id="twinsList" class="mt-4 space-y-3"></div>
             </div>
-            
+        </div>
+        
+        <% if (hasTwins) { %>
+        <div class="grid md:grid-cols-2 gap-6 mb-8">
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-2">Profile Link</h3>
                 <p class="text-gray-600 mb-4">Generate shareable profile</p>
@@ -36,33 +59,14 @@
                 </button>
             </div>
         </div>
+        <% } %>
 
-        <div class="grid md:grid-cols-2 gap-6">
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">My AI Twins</h3>
-                <p class="text-gray-600 mb-4">View your created AI twins.</p>
-                <button onclick="loadTwins()" class="bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors font-semibold">
-                    View My Twins
-                </button>
-                <div id="twinsList" class="mt-4 space-y-3"></div>
-            </div>
-            
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Chats</h3>
-                <div id="chatsList" class="space-y-3">
-                    <p class="text-gray-500">Loading chats...</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Recent Activity Section -->
+        <!-- Recent Chats Section -->
         <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">Recent Activity</h2>
-            <p class="text-gray-600 mb-4">View your created AI twins.</p>
-            <button onclick="loadTwins()" class="inline-block bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors font-semibold">
-                View My Twins
-            </button>
-            <div id="twinsList" class="mt-4 space-y-3"></div>
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Recent Chats</h2>
+            <div id="chatsList" class="space-y-3">
+                <p class="text-gray-500">Loading chats...</p>
+            </div>
         </div>
     </div>
 </div>
