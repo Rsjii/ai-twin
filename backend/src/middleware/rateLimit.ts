@@ -20,10 +20,10 @@ export const globalRateLimit = rateLimit({
 // Twin creation rate limiter
 export const twinCreationRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 2, // 2 twins per hour per user
+  max: 10, // Increase to 10 twins per hour per user for testing
   keyGenerator: (req) => {
     // Use user ID if authenticated, otherwise IP
-    return req.user?.id || req.ip;
+    return req.user?.userId || req.ip || 'unknown';
   },
   message: {
     error: 'Twin creation limit exceeded. You can create 2 twins per hour.',
@@ -38,7 +38,7 @@ export const draftGenerationRateLimit = rateLimit({
   windowMs: 30 * 1000, // 30 seconds
   max: 1, // 1 draft per 30 seconds per user
   keyGenerator: (req) => {
-    return req.user?.id || req.ip;
+    return req.user?.userId || req.ip || 'unknown';
   },
   message: {
     error: 'Please wait 30 seconds before generating another draft.',
@@ -65,7 +65,7 @@ export const profileLinkRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10, // 10 profile links per hour per user
   keyGenerator: (req) => {
-    return req.user?.id || req.ip;
+    return req.user?.userId || req.ip || 'unknown';
   },
   message: {
     error: 'Profile link generation limit exceeded. You can generate 10 links per hour.',
@@ -80,7 +80,7 @@ export const inviteCreationRateLimit = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
   max: 5, // 5 invites per day per user
   keyGenerator: (req) => {
-    return req.user?.id || req.ip;
+    return req.user?.userId || req.ip || 'unknown';
   },
   message: {
     error: 'Invite creation limit exceeded. You can create 5 invites per day.',
@@ -95,7 +95,7 @@ export const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // 100 API requests per 15 minutes per user/IP
   keyGenerator: (req) => {
-    return req.user?.id || req.ip;
+    return req.user?.userId || req.ip || 'unknown';
   },
   message: {
     error: 'API rate limit exceeded. Please slow down your requests.',

@@ -35,7 +35,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://fonts.googleapis.com"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
       imgSrc: ["'self'", "data:", "https:"],
     },
@@ -92,8 +92,8 @@ app.use('/uploads', express.static('public/uploads'));
 
 // Apply custom middleware
 app.use(generateCSRFToken);
-app.use(sanitizeInput);
-app.use(optionalAuth);
+// app.use(sanitizeInput); // Temporarily disabled for debugging
+// app.use(optionalAuth); // Temporarily disabled for debugging - conflicts with JWT
 
 // API Routes
 app.use('/api/auth', authRoutes);

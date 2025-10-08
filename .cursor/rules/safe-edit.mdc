@@ -1,0 +1,14 @@
+---
+description: Enforce small, controlled edits
+globs: ["**/*"]
+alwaysApply: true
+---
+- Never edit more than 2 files in a single change.
+- Never exceed 400 lines of diff in one change, if you need to do a big change just tell where to apply these changes.
+- Always show a step-by-step PLAN first, then a unified DIFF.
+- After showing the diff, always ask “Apply this? (y/n)” and wait for confirmation.
+- If a bigger change is needed, summarize it and wait for explicit user approval.
+- Never scan or open the entire project at once.
+- Use ARCH_MAP.md or make one and check yourself which files to scan else ask the user which files to open.
+- Do not re-generate or reformat entire files unless explicitly told.
+- When in doubt, insert TODO comments instead of guessing large code.

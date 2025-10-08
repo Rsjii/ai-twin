@@ -423,10 +423,12 @@
             }
         }
         
+        console.log('Samples being sent:', samples);
+
         if (samples.length < 1) {
             showMessage('Please provide at least 1 valid sample');
-            return;
-        }
+        return;
+    }
     
         // Show loading state
         button.textContent = 'Creating Twin...';

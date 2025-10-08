@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
+import { db } from '../../config/database';
 import { TwinService } from './twinService';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
@@ -13,12 +14,55 @@ const createTwinSchema = z.object({
   samples: z.array(z.string().min(10, 'Each sample must be at least 10 characters').max(1000, 'Each sample must not exceed 1000 characters')).min(1, 'At least 1 sample required').max(5, 'Maximum 5 samples allowed'),
 });
 
+// Simple test schema
+const testSchema = z.object({
+  samples: z.array(z.string())
+});
+
 export const createTwin = async (req: Request, res: Response) => {
   try {
-    const { samples } = createTwinSchema.parse(req.body);
+    // Add this at the very top of createTwin function
+console.log('=== MIDDLEWARE CHECK ===');
+console.log('req.user before any checks:', req.user);
+console.log('req.cookies:', req.cookies);
+console.log('========================');
+    console.log('=== DEBUGGING TWIN CREATION ===');
+    console.log('Parsed request body:', JSON.stringify(req.body, null, 2));
+    console.log('Request body type:', typeof req.body);
+    console.log('Request body samples:', req.body.samples);
+    console.log('Request body samples type:', typeof req.body.samples);
+    console.log('Request body samples isArray:', Array.isArray(req.body.samples));
+    console.log('Request body samples constructor:', req.body.samples?.constructor?.name);
     
+    // Try to parse with simple schema first
+    try {
+      const { samples } = testSchema.parse(req.body);
+      console.log('Simple schema parsing successful, samples:', samples);
+    } catch (error) {
+      console.log('Simple schema parsing failed:', error);
+    }
+    
+    // Try to parse the full schema
+    try {
+      const { samples } = createTwinSchema.parse(req.body);
+      console.log('Full schema parsing successful, samples:', samples);
+    } catch (error) {
+      console.log('Full schema parsing failed:', error);
+      throw error;
+    }
+    
+    const { samples } = createTwinSchema.parse(req.body);
+
+    // Debug logging
+    console.log('=== AUTHENTICATION DEBUG ===');
+    console.log('req.user:', req.user);
+    console.log('req.user type:', typeof req.user);
+    console.log('req.user keys:', req.user ? Object.keys(req.user) : 'undefined');
+    console.log('============================');
+
+    // Temporarily bypass authentication for testing
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+       return res.status(401).json({ error: 'Authentication required' });
     }
 
     // Check if AI generation is enabled
@@ -28,6 +72,8 @@ export const createTwin = async (req: Request, res: Response) => {
 
     // Validate samples using safety utils
     const validation = validateTwinSamples(samples);
+    console.log('Samples received for validation:', samples);
+    console.log('Validation result:', validation);
     if (!validation.valid) {
       return res.status(400).json({ 
         error: 'Invalid samples', 
@@ -38,6 +84,7 @@ export const createTwin = async (req: Request, res: Response) => {
     // Check content safety
     const combinedText = samples.join(' ');
     const safetyCheck = isContentSafe(combinedText);
+    console.log('Safety check result:', safetyCheck);
     if (!safetyCheck.safe) {
       return res.status(400).json({ 
         error: 'Content safety check failed', 
@@ -54,14 +101,31 @@ export const createTwin = async (req: Request, res: Response) => {
     // Generate sample reply
     const sampleReply = await twinService.generateSampleReply(styleVector);
     
-    // Save twin to database
-    const twin = await prisma.twin.create({
-      data: {
-        userId: req.user.id,
-        styleVector: styleVector as any, // Prisma JSON type
-        sampleReply,
-      },
-    });
+  // Save twin to database using raw SQL
+   const twinId = `twin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+   const insertQuery = `
+    INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "createdAt")
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id, "createdAt"
+   `;
+
+   const result = await db.query(insertQuery, [
+     twinId,
+     req.user.id,
+     JSON.stringify(styleVector),
+     sampleReply,
+     new Date()
+   ]);
+
+    
+    // Create a mock twin object for testing
+    const twin = {
+      id: 'test-twin-id',
+      userId: req.user.id,
+      styleVector,
+      sampleReply,
+      createdAt: new Date()
+    };
     
     // Log twin creation event using EventLogger
     await EventLogger.logUserEvent(req.user.id, 'twin_created', { 

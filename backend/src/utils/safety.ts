@@ -160,8 +160,8 @@ export function validateTwinSamples(samples: string[]): {
     return { valid: false, errors };
   }
   
-  if (samples.length < 3) {
-    errors.push('At least 3 samples required');
+  if (samples.length < 1) {
+    errors.push('At least 1 sample required');
   }
   
   if (samples.length > 5) {

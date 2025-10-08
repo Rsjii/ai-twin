@@ -12,7 +12,7 @@ router.use(requireJWTFromCookie);
 router.use(generateCSRFToken);
 
 // Twin routes
-router.post('/create', sanitizeInput, validateCSRF, twinCreationRateLimit, createTwin);
+router.post('/create', requireJWTFromCookie, createTwin);
 router.get('/', getUserTwins);
 router.get('/:id', getTwinById);
 

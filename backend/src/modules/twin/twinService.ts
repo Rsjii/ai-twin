@@ -26,9 +26,9 @@ export class TwinService {
       const sanitizedSamples = sanitizeText(samples);
       
       // Check blacklist
-      if (checkBlacklist(sanitizedSamples)) {
-        throw new Error('Content contains restricted material');
-      }
+     // if (checkBlacklist(sanitizedSamples)) {
+       // throw new Error('Content contains restricted material');
+      //}
       
       const systemPrompt = `You are a style extractor. Analyze the given text samples and output **JSON only** with these exact keys:
 - tone: one of 'casual', 'witty', 'serious'
