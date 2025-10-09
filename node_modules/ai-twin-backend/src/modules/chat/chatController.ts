@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { prisma } from '../../config/prisma';
 import { TwinService } from '../twin/twinService';
 import { logger } from '../../config/logger';
@@ -80,9 +80,13 @@ export const getChat = async (req: AuthenticatedRequest, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
+    if (!id) {
+      return res.status(400).json({ error: 'Chat ID is required' });
+    }
+
     const chat = await prisma.chat.findFirst({
       where: {
-        id,
+        id: id,
         userId: req.user.id,
       },
       include: {
@@ -140,7 +144,7 @@ export const getUserChats = async (req: AuthenticatedRequest, res: Response) => 
   }
 };
 
-// Get chat history with full message details
+// Get chat history for user (all previous chats)
 export const getChatHistory = async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) {
@@ -154,38 +158,36 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response) =
           select: {
             id: true,
             sampleReply: true,
-            createdAt: true,
           },
         },
         messages: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+        _count: {
           select: {
-            id: true,
-            content: true,
-            sender: true,
-            createdAt: true,
+            messages: true,
           },
         },
       },
       orderBy: { createdAt: 'desc' },
     });
-    
-    // Format chats for frontend
-    const formattedChats = chats.map(chat => ({
+
+    // Format chat history with summary
+    const chatHistory = chats.map(chat => ({
       id: chat.id,
       twinId: chat.twinId,
-      twinSample: chat.twin.sampleReply,
-      twinCreatedAt: chat.twin.createdAt,
-      messageCount: chat.messages.length,
-      lastMessage: chat.messages.length > 0 ? chat.messages[chat.messages.length - 1] : null,
-      firstMessage: chat.messages.length > 0 ? chat.messages[0] : null,
+      twin: chat.twin,
+      messageCount: chat._count.messages,
+      lastMessage: chat.messages[0] || null,
       createdAt: chat.createdAt,
-      messages: chat.messages,
+      updatedAt: chat.messages[0]?.createdAt || chat.createdAt,
     }));
     
     res.json({ 
-      chats: formattedChats,
-      totalChats: chats.length 
+      success: true,
+      chats: chatHistory,
+      total: chatHistory.length 
     });
   } catch (error) {
     logger.error('Get chat history error:', error);
@@ -193,13 +195,69 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response) =
   }
 };
 
-// Get or create chat for a twin
-export const getOrCreateChat = async (req: AuthenticatedRequest, res: Response) => {
+// Get specific chat with all messages
+export const getChatMessages = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { twinId } = req.params;
+    const { id } = req.params;
     
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (!id) {
+      return res.status(400).json({ error: 'Chat ID is required' });
+    }
+
+    const chat = await prisma.chat.findFirst({
+      where: {
+        id: id,
+        userId: req.user.id,
+      },
+      include: {
+        twin: {
+          select: {
+            id: true,
+            styleVector: true,
+            sampleReply: true,
+          },
+        },
+        messages: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    if (!chat) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    res.json({
+      success: true,
+      chat: {
+        id: chat.id,
+        twinId: chat.twinId,
+        twin: chat.twin,
+        messages: chat.messages,
+        createdAt: chat.createdAt,
+      },
+    });
+  } catch (error) {
+    logger.error('Get chat messages error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Continue existing chat or create new one
+export const continueChat = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { twinId } = req.body;
+    
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (!twinId) {
+      return res.status(400).json({ error: 'Twin ID is required' });
     }
 
     // Verify twin belongs to user
@@ -214,60 +272,53 @@ export const getOrCreateChat = async (req: AuthenticatedRequest, res: Response) 
       return res.status(404).json({ error: 'Twin not found' });
     }
 
-    // Check if there's an existing recent chat (within last 24 hours)
+    // Find the most recent chat with this twin
     const existingChat = await prisma.chat.findFirst({
       where: {
         userId: req.user.id,
         twinId: twinId,
-        createdAt: {
-          gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
-        },
-      },
-      include: {
-        messages: {
-          orderBy: { createdAt: 'asc' },
-        },
       },
       orderBy: { createdAt: 'desc' },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
     });
 
+    let chat;
+    
     if (existingChat) {
-      // Return existing chat
-      return res.json({
-        success: true,
-        chatId: existingChat.id,
-        isNewChat: false,
-        messages: existingChat.messages,
-        redirect: `/chat/${existingChat.id}`,
+      // Continue existing chat
+      chat = existingChat;
+    } else {
+      // Create new chat
+      chat = await prisma.chat.create({
+        data: {
+          userId: req.user.id,
+          twinId: twinId,
+        },
       });
     }
 
-    // Create new chat
-    const chat = await prisma.chat.create({
-      data: {
-        userId: req.user.id,
-        twinId: twinId,
-      },
-    });
-    
-    // Log chat started event
+    // Log chat continued/started event
     await prisma.event.create({
       data: {
         userId: req.user.id,
-        type: 'chat_started',
+        type: existingChat ? 'chat_continued' : 'chat_started',
         meta: { chatId: chat.id, twinId },
       },
     });
-    
+
     res.json({
       success: true,
       chatId: chat.id,
-      isNewChat: true,
-      messages: [],
+      isNewChat: !existingChat,
       redirect: `/chat/${chat.id}`,
     });
   } catch (error) {
-    logger.error('Get or create chat error:', error);
+    logger.error('Continue chat error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -281,6 +332,10 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response) =>
       return res.status(401).json({ error: 'Authentication required' });
     }
 
+    if (!id) {
+      return res.status(400).json({ error: 'Chat ID is required' });
+    }
+
     // Validate message lengths
     for (const message of messages) {
       if (!validateMessageLength(message)) {
@@ -291,7 +346,7 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response) =>
     // Get chat and twin
     const chat = await prisma.chat.findFirst({
       where: {
-        id,
+        id: id,
         userId: req.user.id,
       },
       include: {
@@ -346,10 +401,14 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
       return res.status(400).json({ error: 'Message contains restricted content' });
     }
 
+    if (!id) {
+      return res.status(400).json({ error: 'Chat ID is required' });
+    }
+
     // Get chat
     const chat = await prisma.chat.findFirst({
       where: {
-        id,
+        id: id,
         userId: req.user.id,
       },
     });
