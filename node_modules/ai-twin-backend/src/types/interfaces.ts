@@ -14,11 +14,22 @@ export interface User {
 }
 
 // AI Twin Interface
+// Instruction State Interface (user-controlled tweaks)
+export interface InstructionState {
+  banned_topics?: string[];     // ["politics","romance","finance","health"]
+  force_policies?: string[];    // ["no_romance","no_advice"]
+  tone_override?: 'casual' | 'witty' | 'serious';
+  emoji_cap?: number;           // 0..1
+  extra_signature?: string[];
+  notes?: string;               // freeform guidance
+}
+
 export interface Twin {
   id: string;
   userId: string;
   user: User;
   styleVector: StyleVector;
+  instructions?: InstructionState;
   sampleReply?: string;
   createdAt: Date;
   chats: Chat[];
