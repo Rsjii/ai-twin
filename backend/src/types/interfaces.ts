@@ -37,11 +37,22 @@ export interface Twin {
 
 // Style Vector Interface (AI extracted style)
 export interface StyleVector {
-  tone: 'casual' | 'witty' | 'serious';
+  // Basic characteristics
+  tone: 'casual' | 'witty' | 'serious' | 'friendly' | 'professional';
   emoji_usage: number; // 0-1
   hinglish_ratio: number; // 0-1
   sentence_length: 'short' | 'medium' | 'long';
   signature_patterns: string[];
+  
+  // Enhanced characteristics
+  formality_level: number; // 0-1 (0=casual, 1=formal)
+  humor_style: 'none' | 'light' | 'moderate' | 'heavy';
+  question_frequency: number; // 0-1 (how often asks questions)
+  exclamation_usage: number; // 0-1
+  code_mixing_style: 'minimal' | 'moderate' | 'heavy';
+  response_length_preference: 'brief' | 'detailed' | 'comprehensive';
+  personality_traits: string[]; // ['helpful', 'curious', 'direct']
+  communication_style: 'conversational' | 'informative' | 'questioning';
 }
 
 // Chat Interface

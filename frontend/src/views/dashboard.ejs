@@ -115,53 +115,26 @@
         </div>
         <% } %>
 
-        <!-- Chat History Section -->
+        <!-- Recent Chats Section -->
         <div class="mt-8 glass-effect rounded-2xl shadow-2xl p-8 animate-fade-in">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center">
-                    <div class="w-12 h-12 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl flex items-center justify-center mr-4">
-                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                        </svg>
-                    </div>
-                    <h2 class="text-2xl font-bold text-gray-900">Chat History</h2>
+            <div class="flex items-center mb-6">
+                <div class="w-12 h-12 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl flex items-center justify-center mr-4">
+                    <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
                 </div>
-                <button onclick="refreshChatHistory()" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 font-semibold">
-                    <span class="flex items-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                        Refresh
-                    </span>
-                </button>
+                <h2 class="text-2xl font-bold text-gray-900">Recent Chats</h2>
             </div>
-            
-            <!-- Chat History List -->
-            <div id="chatsList" class="space-y-4 max-h-96 overflow-y-auto">
+            <div id="chatsList" class="space-y-4">
                 <div class="flex items-center justify-center py-8">
                     <div class="text-center">
                         <div class="w-16 h-16 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <svg class="w-8 h-8 text-primary animate-bounce-gentle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                             </svg>
-                        </div>
-                        <p class="text-gray-500 text-lg">Loading chat history...</p>
-                    </div>
-                </div>
             </div>
-            
-            <!-- No Chats State -->
-            <div id="noChatsState" class="hidden text-center py-8">
-                <div class="w-16 h-16 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                    </svg>
+                        <p class="text-gray-500 text-lg">Loading chats...</p>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">No Chat History Yet</h3>
-                <p class="text-gray-600 mb-4">Start a conversation with your AI twin to see your chat history here.</p>
-                <button onclick="startNewChat()" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all duration-300 font-semibold">
-                    Start Your First Chat
-                </button>
             </div>
         </div>
         </div>
@@ -173,10 +146,10 @@
     console.log('window.csrfToken:', window.csrfToken);
     console.log('=== DASHBOARD SCRIPT LOADED ===');
 // Load twins and chats on page load
-document.addEventListener('DOMContentLoaded', () => {
+/*document.addEventListener('DOMContentLoaded', () => {
     loadTwins();
     loadChats();
-});
+});*/
 
 async function loadTwins() {
     try {
@@ -261,99 +234,53 @@ async function loadChats() {
         
         if (response.ok) {
             const chatsList = document.getElementById('chatsList');
-            const noChatsState = document.getElementById('noChatsState');
-            
             if (result.chats.length === 0) {
-                chatsList.innerHTML = '';
-                noChatsState.classList.remove('hidden');
+                chatsList.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                        </div>
+                        <p class="text-gray-500 text-lg">No chats yet.</p>
+                        <p class="text-gray-400 text-sm mt-2">Start a conversation with your AI twin to see chats here.</p>
+                    </div>
+                `;
             } else {
-                noChatsState.classList.add('hidden');
-                chatsList.innerHTML = result.chats.map(chat => {
-                    const lastMessage = chat.messages && chat.messages.length > 0 ? chat.messages[0] : null;
-                    const messagePreview = lastMessage ? 
-                        (lastMessage.content.length > 50 ? lastMessage.content.substring(0, 50) + '...' : lastMessage.content) : 
-                        'No messages yet';
-                    
-                    return `
-                        <div class="bg-white/80 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:shadow-lg transition-all duration-300 group cursor-pointer" onclick="openChat('${chat.id}')">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-4 flex-1">
-                                    <div class="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
-                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="flex-1">
-                                        <div class="flex items-center justify-between mb-1">
-                                            <p class="font-semibold text-gray-900 text-lg">Chat #${chat.id.slice(-6)}</p>
-                                            <span class="text-xs text-gray-500">${formatRelativeTime(chat.createdAt)}</span>
-                                        </div>
-                                        <p class="text-sm text-gray-600 mb-2">${messagePreview}</p>
-                                        <div class="flex items-center text-xs text-gray-500">
-                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                            </svg>
-                                            ${new Date(chat.createdAt).toLocaleDateString()}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="ml-4">
-                                    <svg class="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                chatsList.innerHTML = result.chats.map(chat => `
+                    <div class="bg-white/80 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:shadow-lg transition-all duration-300 group">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                                     </svg>
                                 </div>
+                                <div>
+                                    <p class="font-semibold text-gray-900 text-lg">Chat #${chat.id.slice(-6)}</p>
+                                    <p class="text-sm text-gray-600 flex items-center">
+                                        <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        Created: ${new Date(chat.createdAt).toLocaleDateString()}
+                                    </p>
+                                </div>
                             </div>
+                            <a href="/chat/${chat.id}" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold group/btn">
+                                <span class="flex items-center">
+                                    <svg class="w-5 h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                    </svg>
+                                    Open Chat
+                                </span>
+                            </a>
                         </div>
-                    `;
-                }).join('');
+                    </div>
+                `).join('');
             }
         }
     } catch (error) {
         console.error('Load chats error:', error);
-        showFlashMessage('Failed to load chat history', 'error');
-    }
-}
-
-async function refreshChatHistory() {
-    const chatsList = document.getElementById('chatsList');
-    const noChatsState = document.getElementById('noChatsState');
-    
-    // Show loading state
-    chatsList.innerHTML = `
-        <div class="flex items-center justify-center py-8">
-            <div class="text-center">
-                <div class="w-16 h-16 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-primary animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                    </svg>
-                </div>
-                <p class="text-gray-500 text-lg">Refreshing chat history...</p>
-            </div>
-        </div>
-    `;
-    noChatsState.classList.add('hidden');
-    
-    await loadChats();
-}
-
-function openChat(chatId) {
-    window.location.href = `/chat/${chatId}`;
-}
-
-function formatRelativeTime(dateString) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) {
-        return 'Just now';
-    } else if (diffInHours < 24) {
-        return `${diffInHours}h ago`;
-    } else if (diffInHours < 168) { // 7 days
-        const days = Math.floor(diffInHours / 24);
-        return `${days}d ago`;
-    } else {
-        return date.toLocaleDateString();
     }
 }
 
