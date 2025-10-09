@@ -926,6 +926,15 @@ app.get('/twin/create', extractJWTFromCookie, optionalAuth, (req, res) => {
   });
 });
 
+// Chat history page route
+app.get('/chat/history', requireJWTFromCookie, (req: any, res) => {
+  res.render('chat-history', {
+    title: 'Chat History - AI Twin',
+    user: req.user,
+    csrfToken: res.locals['csrfToken'],
+  });
+});
+
 // Chat page route
 app.get('/chat/:id', (req, res) => {
   if (!req.user) {

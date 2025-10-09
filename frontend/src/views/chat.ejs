@@ -1,10 +1,43 @@
 <%- include('layout', { title: 'Chat - AI Twin', body: `
 <div class="px-4 py-6 sm:px-0">
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-7xl mx-auto">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold text-gray-900">Chat with Your AI Twin</h1>
-            <a href="/dashboard" class="text-primary hover:text-secondary">← Back to Dashboard</a>
+            <div class="flex space-x-4">
+                <a href="/chat/history" class="text-primary hover:text-secondary flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Chat History
+                </a>
+                <a href="/dashboard" class="text-primary hover:text-secondary">← Back to Dashboard</a>
+            </div>
         </div>
+        
+        <div class="grid lg:grid-cols-4 gap-6">
+            <!-- Chat History Sidebar -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-lg p-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800">Recent Chats</h2>
+                        <a href="/chat/history" class="text-sm text-primary hover:text-secondary">View All</a>
+                    </div>
+                    
+                    <div id="recentChatsList" class="space-y-2 max-h-64 overflow-y-auto">
+                        <div class="text-center py-4">
+                            <div class="w-8 h-8 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg flex items-center justify-center mx-auto mb-2">
+                                <svg class="w-4 h-4 text-primary animate-bounce-gentle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                            </div>
+                            <p class="text-gray-500 text-sm">Loading recent chats...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Chat Area -->
+            <div class="lg:col-span-3">
         
         <div class="bg-white rounded-lg shadow-lg">
             <div id="chatContainer" class="h-96 overflow-y-auto p-6 border-b">
@@ -52,6 +85,7 @@
                     <span id="charCount">0</span> / 300 characters
                 </div>
             </div>
+            </div>
         </div>
     </div>
 </div>
@@ -63,6 +97,7 @@ let chatId = '<%= chatId %>';
 // Load chat on page load
 document.addEventListener('DOMContentLoaded', () => {
     loadChat();
+    loadRecentChats();
 });
 
 // Character counter
@@ -138,6 +173,50 @@ function displayMessages(messages) {
     // Scroll to bottom
     const chatContainer = document.getElementById('chatContainer');
     chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+async function loadRecentChats() {
+    try {
+        const response = await fetch('/api/chat/history', {
+            headers: {
+                'X-CSRF-Token': window.csrfToken
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            displayRecentChats(result.chats.slice(0, 5)); // Show only last 5 chats
+        } else {
+            console.error('Failed to load recent chats');
+        }
+    } catch (error) {
+        console.error('Load recent chats error:', error);
+    }
+}
+
+function displayRecentChats(chats) {
+    const recentChatsList = document.getElementById('recentChatsList');
+    
+    if (chats.length === 0) {
+        recentChatsList.innerHTML = '<p class="text-gray-500 text-sm text-center">No recent chats</p>';
+        return;
+    }
+    
+    recentChatsList.innerHTML = chats.map(chat => \`
+        <div class="p-3 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors" onclick="loadChatById('\${chat.id}')">
+            <div class="flex items-start justify-between mb-1">
+                <h4 class="font-medium text-gray-800 text-sm">Chat #\${chat.id.slice(-6)}</h4>
+                <span class="text-xs text-gray-500">\${chat.messageCount}</span>
+            </div>
+            <p class="text-xs text-gray-600 truncate">\${chat.lastMessage ? chat.lastMessage.content : 'No messages'}</p>
+            <p class="text-xs text-gray-500 mt-1">\${new Date(chat.createdAt).toLocaleDateString()}</p>
+        </div>
+    \`).join('');
+}
+
+function loadChatById(chatId) {
+    window.location.href = \`/chat/\${chatId}\`;
 }
 
 function addMessageToChat(content, sender) {
