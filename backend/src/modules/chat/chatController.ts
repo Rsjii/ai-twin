@@ -5,6 +5,7 @@ import { logger } from '../../config/logger';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { checkBlacklist, validateMessageLength } from '../../middleware/security';
+import { twinQueries } from '../../config/database';
 
 const twinService = new TwinService();
 
@@ -243,6 +244,11 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
         meta: { chatId: chat.id, messageId: message.id },
       },
     });
+
+    // Update style vector based on new conversation (async, don't wait)
+    updateStyleVectorAfterChat(chat.twinId, req.user.id).catch(error => {
+      logger.error('Style vector update failed:', error);
+    });
     
     res.json({
       success: true,
@@ -261,3 +267,44 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// Helper function to update style vector after chat
+async function updateStyleVectorAfterChat(twinId: string, userId: string) {
+  try {
+    // Get the twin's current style vector
+    const twin = await twinQueries.findById(twinId);
+    if (!twin) {
+      logger.warn('Twin not found for style vector update:', twinId);
+      return;
+    }
+
+    // Get recent messages from this chat (last 10 messages)
+    const recentMessages = await prisma.message.findMany({
+      where: { chatId: twinId },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: { content: true, sender: true }
+    });
+
+    // Filter only human messages for style analysis
+    const humanMessages = recentMessages
+      .filter(msg => msg.sender === 'human')
+      .map(msg => msg.content);
+
+    if (humanMessages.length === 0) {
+      logger.info('No human messages found for style vector update');
+      return;
+    }
+
+    // Update style vector based on new conversations
+    const currentStyleVector = twin.styleVector as any;
+    const updatedStyleVector = await twinService.updateStyleVector(currentStyleVector, humanMessages);
+
+    // Save updated style vector to database
+    await twinQueries.updateStyleVector(userId, updatedStyleVector);
+
+    logger.info('Style vector updated successfully for twin:', twinId);
+  } catch (error) {
+    logger.error('Error updating style vector:', error);
+  }
+}

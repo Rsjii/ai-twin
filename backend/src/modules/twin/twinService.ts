@@ -8,22 +8,11 @@ const openai = new OpenAI({
 });
 
 export interface StyleVector {
-  // Basic characteristics
-  tone: 'casual' | 'witty' | 'serious' | 'friendly' | 'professional';
+  tone: 'casual' | 'witty' | 'serious';
   emoji_usage: number; // 0-1
   hinglish_ratio: number; // 0-1
   sentence_length: 'short' | 'medium' | 'long';
   signature_patterns: string[];
-  
-  // Enhanced characteristics
-  formality_level: number; // 0-1 (0=casual, 1=formal)
-  humor_style: 'none' | 'light' | 'moderate' | 'heavy';
-  question_frequency: number; // 0-1 (how often asks questions)
-  exclamation_usage: number; // 0-1
-  code_mixing_style: 'minimal' | 'moderate' | 'heavy';
-  response_length_preference: 'brief' | 'detailed' | 'comprehensive';
-  personality_traits: string[]; // ['helpful', 'curious', 'direct']
-  communication_style: 'conversational' | 'informative' | 'questioning';
 }
 
 export class TwinService {
@@ -43,18 +32,18 @@ export class TwinService {
       
       const systemPrompt = `You are a comprehensive style extractor. Analyze the given text samples and output **JSON only** with these exact keys:
 
-BASIC CHARACTERISTICS:
+Basic characteristics:
 - tone: one of 'casual', 'witty', 'serious', 'friendly', 'professional'
 - emoji_usage: number between 0 and 1 (how often emojis are used)
 - hinglish_ratio: number between 0 and 1 (mix of Hindi/English)
 - sentence_length: one of 'short', 'medium', 'long'
 - signature_patterns: array of 3-5 unique phrases or patterns from the text
 
-ENHANCED CHARACTERISTICS:
+Enhanced characteristics:
 - formality_level: number between 0 and 1 (0=casual, 1=formal)
 - humor_style: one of 'none', 'light', 'moderate', 'heavy'
 - question_frequency: number between 0 and 1 (how often asks questions)
-- exclamation_usage: number between 0 and 1 (use of exclamation marks)
+- exclamation_usage: number between 0 and 1 (how often uses exclamations)
 - code_mixing_style: one of 'minimal', 'moderate', 'heavy'
 - response_length_preference: one of 'brief', 'detailed', 'comprehensive'
 - personality_traits: array of traits like ['helpful', 'curious', 'direct', 'analytical', 'creative']
@@ -127,26 +116,9 @@ If the content would be unsafe or inappropriate, respond with: '[not allowed]'`;
         return '[not allowed]';
       }
 
-      const systemPrompt = `You are this person's AI Twin. Match their style exactly:
-
-STYLE CHARACTERISTICS:
-- Tone: ${styleVector.tone}
-- Formality: ${styleVector.formality_level} (0=casual, 1=formal)
-- Humor: ${styleVector.humor_style}
-- Communication: ${styleVector.communication_style}
-- Response length: ${styleVector.response_length_preference}
-- Code mixing: ${styleVector.code_mixing_style} (${styleVector.hinglish_ratio} ratio)
-- Emoji usage: ${styleVector.emoji_usage}
-- Personality: ${styleVector.personality_traits.join(', ')}
-- Signature patterns: ${styleVector.signature_patterns.join(', ')}
-
-CONSTRAINTS:
-- 1–2 short lines only
-- Match their exact communication style
-- Use their signature patterns naturally
-- No politics, health, finance, or sensitive topics
-- If restricted, reply: "[not allowed]"
-- Keep replies friendly and personalized`;
+      const systemPrompt = `Imitate user's style: ${JSON.stringify(styleVector)}. 
+Reply in 1–2 short lines, casual, code-mixed Hinglish (~${styleVector.hinglish_ratio} ratio), light emojis if appropriate.
+No politics, health, finance, or sensitive topics. If unsafe, say: '[not allowed]'`;
 
       const userPrompt = conversationHistory.slice(-4).join('\n'); // Last 4 messages
 
@@ -172,17 +144,75 @@ CONSTRAINTS:
     }
   }
 
+  async updateStyleVector(currentVector: StyleVector, newConversations: string[]): Promise<StyleVector> {
+    try {
+      if (!newConversations || newConversations.length === 0) {
+        return currentVector;
+      }
+
+      const combinedNewText = newConversations.join('\n---\n');
+      
+      const systemPrompt = `You are a style vector updater. Given the current style vector and new conversation data, update the style characteristics to reflect the user's evolving communication patterns.
+
+Current style vector: ${JSON.stringify(currentVector)}
+
+New conversation data: ${combinedNewText}
+
+Update the style vector by analyzing the new conversations and adjusting the characteristics accordingly. Return the updated JSON with the same structure as the current vector.
+
+Focus on:
+- Tone shifts (casual to professional, etc.)
+- Emoji usage patterns
+- Hinglish ratio changes
+- Sentence length preferences
+- New signature patterns
+- Formality level adjustments
+- Humor style evolution
+- Question frequency changes
+- Personality trait development
+- Communication style shifts
+
+Return only valid JSON, no other text.`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Update the style vector based on new conversations: ${combinedNewText}` }
+        ],
+        temperature: 0.3,
+        max_tokens: 800,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from OpenAI');
+      }
+
+      const updatedVector = JSON.parse(content) as StyleVector;
+      
+      // Validate the updated vector
+      if (!this.validateStyleVector(updatedVector)) {
+        logger.warn('Invalid updated style vector, returning current vector');
+        return currentVector;
+      }
+
+      return updatedVector;
+    } catch (error) {
+      logger.error('Style vector update error:', error);
+      // Return current vector if update fails
+      return currentVector;
+    }
+  }
+
   private validateStyleVector(vector: any): vector is StyleVector {
     return (
       vector &&
-      // Basic characteristics validation
       typeof vector.tone === 'string' && ['casual', 'witty', 'serious', 'friendly', 'professional'].includes(vector.tone) &&
       typeof vector.emoji_usage === 'number' && vector.emoji_usage >= 0 && vector.emoji_usage <= 1 &&
       typeof vector.hinglish_ratio === 'number' && vector.hinglish_ratio >= 0 && vector.hinglish_ratio <= 1 &&
       typeof vector.sentence_length === 'string' && ['short', 'medium', 'long'].includes(vector.sentence_length) &&
       Array.isArray(vector.signature_patterns) && vector.signature_patterns.length >= 3 &&
-      
-      // Enhanced characteristics validation
       typeof vector.formality_level === 'number' && vector.formality_level >= 0 && vector.formality_level <= 1 &&
       typeof vector.humor_style === 'string' && ['none', 'light', 'moderate', 'heavy'].includes(vector.humor_style) &&
       typeof vector.question_frequency === 'number' && vector.question_frequency >= 0 && vector.question_frequency <= 1 &&

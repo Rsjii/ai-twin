@@ -221,6 +221,19 @@ export const twinQueries = {
       [JSON.stringify(instructions), userId]
     );
     return result.rows[0];
+  },
+
+  updateStyleVector: async (userId: string, styleVector: any) => {
+    const result = await db.query(
+      'UPDATE "Twin" SET "styleVector" = $1 WHERE "userId" = $2 RETURNING *',
+      [JSON.stringify(styleVector), userId]
+    );
+    return result.rows[0];
+  },
+
+  findById: async (twinId: string) => {
+    const result = await db.query('SELECT * FROM "Twin" WHERE id = $1', [twinId]);
+    return result.rows[0];
   }
 };
 
