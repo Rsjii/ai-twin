@@ -9,6 +9,7 @@ export declare class TwinService {
     extractStyle(samples: string): Promise<StyleVector>;
     generateSampleReply(styleVector: StyleVector): Promise<string>;
     generateDraft(styleVector: StyleVector, conversationHistory: string[]): Promise<string>;
+    updateStyleVector(currentVector: StyleVector, newConversations: string[]): Promise<StyleVector>;
     private validateStyleVector;
 }
 //# sourceMappingURL=twinService.d.ts.map

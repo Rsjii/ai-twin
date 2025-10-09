@@ -17,9 +17,9 @@ exports.globalRateLimit = (0, express_rate_limit_1.default)({
 });
 exports.twinCreationRateLimit = (0, express_rate_limit_1.default)({
     windowMs: 60 * 60 * 1000,
-    max: 2,
+    max: 10,
     keyGenerator: (req) => {
-        return req.user?.id || req.ip;
+        return req.user?.userId || req.ip || 'unknown';
     },
     message: {
         error: 'Twin creation limit exceeded. You can create 2 twins per hour.',
@@ -32,7 +32,7 @@ exports.draftGenerationRateLimit = (0, express_rate_limit_1.default)({
     windowMs: 30 * 1000,
     max: 1,
     keyGenerator: (req) => {
-        return req.user?.id || req.ip;
+        return req.user?.userId || req.ip || 'unknown';
     },
     message: {
         error: 'Please wait 30 seconds before generating another draft.',
@@ -55,7 +55,7 @@ exports.profileLinkRateLimit = (0, express_rate_limit_1.default)({
     windowMs: 60 * 60 * 1000,
     max: 10,
     keyGenerator: (req) => {
-        return req.user?.id || req.ip;
+        return req.user?.userId || req.ip || 'unknown';
     },
     message: {
         error: 'Profile link generation limit exceeded. You can generate 10 links per hour.',
@@ -68,7 +68,7 @@ exports.inviteCreationRateLimit = (0, express_rate_limit_1.default)({
     windowMs: 24 * 60 * 60 * 1000,
     max: 5,
     keyGenerator: (req) => {
-        return req.user?.id || req.ip;
+        return req.user?.userId || req.ip || 'unknown';
     },
     message: {
         error: 'Invite creation limit exceeded. You can create 5 invites per day.',
@@ -81,7 +81,7 @@ exports.apiRateLimit = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000,
     max: 100,
     keyGenerator: (req) => {
-        return req.user?.id || req.ip;
+        return req.user?.userId || req.ip || 'unknown';
     },
     message: {
         error: 'API rate limit exceeded. Please slow down your requests.',

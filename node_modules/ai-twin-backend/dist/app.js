@@ -53,14 +53,13 @@ const inviteRoutes_1 = __importDefault(require("./modules/invite/inviteRoutes"))
 const analyticsRoutes_1 = __importDefault(require("./modules/analytics/analyticsRoutes"));
 const jwtCookie_1 = require("./middleware/jwtCookie");
 const csrf_1 = require("./middleware/csrf");
-const validation_1 = require("./middleware/validation");
 const auth_1 = require("./middleware/auth");
 const app = (0, express_1.default)();
 app.use((0, helmet_1.default)({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://fonts.googleapis.com"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
             imgSrc: ["'self'", "data:", "https:"],
         },
@@ -99,8 +98,6 @@ app.set('views', '../frontend/src/views');
 app.use(express_1.default.static('../frontend/src/public'));
 app.use('/uploads', express_1.default.static('public/uploads'));
 app.use(csrf_1.generateCSRFToken);
-app.use(validation_1.sanitizeInput);
-app.use(auth_1.optionalAuth);
 app.use('/api/auth', authRoutes_1.default);
 app.use('/api/twin', twinRoutes_1.default);
 app.use('/api/chat', chatRoutes_1.default);
@@ -598,6 +595,8 @@ app.get('/dashboard', jwtCookie_1.extractJWTFromCookie, async (req, res) => {
     if (!fullUser) {
         return res.redirect('/auth');
     }
+    const userTwins = await database_1.twinQueries.findByUserId(fullUser.id);
+    const hasTwins = userTwins.length > 0;
     const user = {
         id: fullUser.id,
         email: fullUser.email,
@@ -608,48 +607,210 @@ app.get('/dashboard', jwtCookie_1.extractJWTFromCookie, async (req, res) => {
     res.render('layout', {
         title: 'Dashboard - AI Twin',
         user: user,
+        hasTwins: hasTwins,
+        twins: userTwins,
         csrfToken: res.locals['csrfToken'],
         body: `
     <div class="px-4 py-6 sm:px-0">
-        <div class="max-w-7xl mx-auto">
-            <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">Welcome back, ${user?.handle || user?.email || 'User'}!</h1>
-                <p class="text-gray-600 mt-2">Manage your AI twins and conversations</p>
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-900 mb-8">Welcome, ${user?.handle || user?.email || 'User'}!</h1>
+            
+            <div class="grid md:grid-cols-2 gap-8 mb-8">
+                ${hasTwins ? `
+                    <!-- Chat with Twin Button -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Chat with Your AI Twin</h3>
+                        <p class="text-gray-600 mb-4">Start a conversation with your AI twin</p>
+                        <button onclick="startNewChat()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                            Start Chat
+                        </button>
+                    </div>
+                ` : `
+                    <!-- Create Twin Button -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Create New AI Twin</h3>
+                        <p class="text-gray-600 mb-4">Upload text samples to create your AI twin</p>
+                        <a href="/twin/create" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                            Create Twin
+                        </a>
+                    </div>
+                `}
+                
+                <!-- My Twins Section -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">My AI Twins</h3>
+                    <p class="text-gray-600 mb-4">
+                        ${hasTwins ? `You have ${userTwins.length} AI twin${userTwins.length > 1 ? 's' : ''} created.` : 'You haven\'t created any AI twins yet.'}
+                    </p>
+                    <a href="/my-twins" class="inline-block bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors font-semibold">
+                        View My Twins
+                    </a>
+                    <div id="twinsList" class="mt-4 space-y-3"></div>
+                </div>
             </div>
             
-            <div class="grid md:grid-cols-2 gap-8">
-                <!-- Create New Twin -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Create New AI Twin</h2>
-                    <p class="text-gray-600 mb-4">
-                        Upload your text samples to create an AI version of yourself.
-                    </p>
-                    <a href="/twin/create" class="inline-block bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors font-semibold">
-                        Create Twin
-                    </a>
+            ${hasTwins ? `
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Profile Link</h3>
+                    <p class="text-gray-600 mb-4">Generate shareable profile</p>
+                    <button onclick="generateProfileLink()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                        Generate Link
+                    </button>
                 </div>
                 
-                <!-- My Twins -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">My AI Twins</h2>
-                    <p class="text-gray-600 mb-4">
-                        You haven't created any AI twins yet.
-                    </p>
-                    <a href="/twin/create" class="inline-block bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition-colors font-semibold">
-                        Get Started
-                    </a>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Invite Friends</h3>
+                    <p class="text-gray-600 mb-4">Create referral link</p>
+                    <button onclick="createInvite()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                        Create Invite
+                    </button>
                 </div>
             </div>
-            
-            <!-- Recent Activity -->
+            ` : ''}
+
+            <!-- Recent Chats Section -->
             <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">Recent Activity</h2>
-                <p class="text-gray-600">No recent activity to show.</p>
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Recent Chats</h2>
+                <div id="chatsList" class="space-y-3">
+                    <p class="text-gray-500">Loading chats...</p>
+                </div>
             </div>
         </div>
     </div>
+    
+    <script>
+        async function startNewChat() {
+            try {
+                const response = await fetch('/api/chat/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '${res.locals['csrfToken']}'
+                    },
+                    body: JSON.stringify({ twinId: 'latest' })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    window.location.href = result.redirect;
+                } else {
+                    alert(result.error || 'Failed to start chat');
+                }
+            } catch (error) {
+                console.error('Start chat error:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+        
+        async function loadTwins() {
+            try {
+                const response = await fetch('/api/twin', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'X-CSRF-Token': '${res.locals['csrfToken']}'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    const twinsList = document.getElementById('twinsList');
+                    if (result.twins.length === 0) {
+                        twinsList.innerHTML = '<p class="text-gray-500">No twins created yet.</p>';
+                    } else {
+                        twinsList.innerHTML = result.twins.map(twin => \`
+                            <div class="border rounded-lg p-3">
+                                <p class="font-medium">Twin #\${twin.id.slice(-6)}</p>
+                                <p class="text-sm text-gray-600">Created: \${new Date(twin.createdAt).toLocaleDateString()}</p>
+                            </div>
+                        \`).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Load twins error:', error);
+            }
+        }
+        
+        async function generateProfileLink() {
+            try {
+                const response = await fetch('/api/profile/link', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '${res.locals['csrfToken']}'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    navigator.clipboard.writeText(window.location.origin + result.profileUrl);
+                    alert('Profile link copied to clipboard!');
+                } else {
+                    alert(result.error || 'Failed to generate profile link');
+                }
+            } catch (error) {
+                console.error('Generate profile link error:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+        
+        async function createInvite() {
+            try {
+                const response = await fetch('/api/invite/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '${res.locals['csrfToken']}'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    navigator.clipboard.writeText(window.location.origin + result.inviteUrl);
+                    alert('Invite link copied to clipboard!');
+                } else {
+                    alert(result.error || 'Failed to create invite');
+                }
+            } catch (error) {
+                console.error('Create invite error:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+    </script>
     `
     });
+});
+app.get('/my-twins', jwtCookie_1.requireJWTFromCookie, async (req, res) => {
+    try {
+        console.log('=== MY TWINS ENDPOINT ===');
+        console.log('req.user:', req.user);
+        console.log('req.user.id:', req.user?.id);
+        console.log('========================');
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+        const twins = await database_1.db.query(`
+      SELECT id, "styleVector", "sampleReply", "createdAt" 
+      FROM "Twin" 
+      WHERE "userId" = $1 
+      ORDER BY "createdAt" DESC
+    `, [req.user.id]);
+        console.log('Found twins:', twins.rows);
+        res.render('my-twins', {
+            title: 'My AI Twins',
+            user: req.user,
+            twins: twins.rows
+        });
+    }
+    catch (error) {
+        console.error('Error fetching twins:', error);
+        res.status(500).json({ error: 'Failed to load twins', details: error.message });
+    }
 });
 app.get('/twin/create', jwtCookie_1.extractJWTFromCookie, auth_1.optionalAuth, (req, res) => {
     const user = req.user || req.user;
@@ -659,6 +820,13 @@ app.get('/twin/create', jwtCookie_1.extractJWTFromCookie, auth_1.optionalAuth, (
     res.render('twin_create', {
         title: 'Create Twin - AI Twin',
         user: user,
+        csrfToken: res.locals['csrfToken'],
+    });
+});
+app.get('/chat/history', jwtCookie_1.requireJWTFromCookie, (req, res) => {
+    res.render('chat-history', {
+        title: 'Chat History - AI Twin',
+        user: req.user,
         csrfToken: res.locals['csrfToken'],
     });
 });

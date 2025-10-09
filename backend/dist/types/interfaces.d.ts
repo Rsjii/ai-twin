@@ -9,21 +9,38 @@ export interface User {
     invitesGot: Invite[];
     events: Event[];
 }
+export interface InstructionState {
+    banned_topics?: string[];
+    force_policies?: string[];
+    tone_override?: 'casual' | 'witty' | 'serious';
+    emoji_cap?: number;
+    extra_signature?: string[];
+    notes?: string;
+}
 export interface Twin {
     id: string;
     userId: string;
     user: User;
     styleVector: StyleVector;
+    instructions?: InstructionState;
     sampleReply?: string;
     createdAt: Date;
     chats: Chat[];
 }
 export interface StyleVector {
-    tone: 'casual' | 'witty' | 'serious';
+    tone: 'casual' | 'witty' | 'serious' | 'friendly' | 'professional';
     emoji_usage: number;
     hinglish_ratio: number;
     sentence_length: 'short' | 'medium' | 'long';
     signature_patterns: string[];
+    formality_level: number;
+    humor_style: 'none' | 'light' | 'moderate' | 'heavy';
+    question_frequency: number;
+    exclamation_usage: number;
+    code_mixing_style: 'minimal' | 'moderate' | 'heavy';
+    response_length_preference: 'brief' | 'detailed' | 'comprehensive';
+    personality_traits: string[];
+    communication_style: 'conversational' | 'informative' | 'questioning';
 }
 export interface Chat {
     id: string;

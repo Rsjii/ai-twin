@@ -10,8 +10,11 @@ export declare const userQueries: {
     updateProfile: (email: string, name: string, handle: string, dob: string, phone: string, bio: string, profileImage?: string | null) => Promise<any>;
 };
 export declare const twinQueries: {
-    create: (userId: string, styleVector: any, sampleReply?: string) => Promise<any>;
+    create: (userId: string, styleVector: any, sampleReply?: string, instructions?: any) => Promise<any>;
     findByUserId: (userId: string) => Promise<any[]>;
+    updateInstructions: (userId: string, instructions: any) => Promise<any>;
+    updateStyleVector: (userId: string, styleVector: any) => Promise<any>;
+    findById: (twinId: string) => Promise<any>;
 };
 export declare const chatQueries: {
     create: (userId: string, twinId: string) => Promise<any>;

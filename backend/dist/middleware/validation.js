@@ -34,6 +34,9 @@ const sanitizeInput = (req, res, next) => {
         if (typeof obj === 'string') {
             return obj.trim().replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
         }
+        if (Array.isArray(obj)) {
+            return obj.map(item => sanitize(item));
+        }
         if (typeof obj === 'object' && obj !== null) {
             const sanitized = {};
             for (const key in obj) {

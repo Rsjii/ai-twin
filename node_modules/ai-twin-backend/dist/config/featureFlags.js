@@ -8,15 +8,15 @@ exports.getValidationSettings = getValidationSettings;
 exports.logFeatureUsage = logFeatureUsage;
 function getFeatureFlags() {
     return {
-        VALIDATION_MODE: process.env['VALIDATION_MODE'] === 'true' || process.env['NODE_ENV'] === 'development',
-        ENABLE_AI_GENERATION: process.env['ENABLE_AI_GENERATION'] !== 'false',
-        ENABLE_PUBLIC_PROFILES: process.env['ENABLE_PUBLIC_PROFILES'] !== 'false',
-        ENABLE_INVITES: process.env['ENABLE_INVITES'] !== 'false',
-        ENABLE_ANALYTICS: process.env['ENABLE_ANALYTICS'] !== 'false',
-        ENABLE_RATE_LIMITING: process.env['ENABLE_RATE_LIMITING'] !== 'false',
-        ENABLE_CONTENT_FILTERING: process.env['ENABLE_CONTENT_FILTERING'] !== 'false',
-        ENABLE_EMAIL_NOTIFICATIONS: process.env['ENABLE_EMAIL_NOTIFICATIONS'] !== 'false',
-        DEBUG_MODE: process.env['NODE_ENV'] === 'development' || process.env['DEBUG_MODE'] === 'true',
+        VALIDATION_MODE: process.env.VALIDATION_MODE === 'true' || process.env.NODE_ENV === 'development',
+        ENABLE_AI_GENERATION: process.env.ENABLE_AI_GENERATION !== 'false',
+        ENABLE_PUBLIC_PROFILES: process.env.ENABLE_PUBLIC_PROFILES !== 'false',
+        ENABLE_INVITES: process.env.ENABLE_INVITES !== 'false',
+        ENABLE_ANALYTICS: process.env.ENABLE_ANALYTICS !== 'false',
+        ENABLE_RATE_LIMITING: process.env.ENABLE_RATE_LIMITING !== 'false',
+        ENABLE_CONTENT_FILTERING: process.env.ENABLE_CONTENT_FILTERING !== 'false',
+        ENABLE_EMAIL_NOTIFICATIONS: process.env.ENABLE_EMAIL_NOTIFICATIONS !== 'false',
+        DEBUG_MODE: process.env.NODE_ENV === 'development' || process.env.DEBUG_MODE === 'true',
     };
 }
 function isFeatureEnabled(feature) {
@@ -24,7 +24,7 @@ function isFeatureEnabled(feature) {
     return flags[feature];
 }
 function requireFeature(feature) {
-    return (_req, res, next) => {
+    return (req, res, next) => {
         if (!isFeatureEnabled(feature)) {
             return res.status(503).json({
                 error: 'Feature not available',

@@ -68,7 +68,7 @@ export const startChat = async (req: AuthenticatedRequest, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Invalid input', details: error.errors });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -110,7 +110,7 @@ export const getChat = async (req: AuthenticatedRequest, res: Response) => {
     res.json({ chat });
   } catch (error) {
     logger.error('Get chat error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -140,7 +140,7 @@ export const getUserChats = async (req: AuthenticatedRequest, res: Response) => 
     res.json({ chats });
   } catch (error) {
     logger.error('Get chats error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -191,7 +191,7 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response) =
     });
   } catch (error) {
     logger.error('Get chat history error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -243,7 +243,7 @@ export const getChatMessages = async (req: AuthenticatedRequest, res: Response) 
     });
   } catch (error) {
     logger.error('Get chat messages error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -319,7 +319,7 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response) => 
     });
   } catch (error) {
     logger.error('Continue chat error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -379,7 +379,7 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response) =>
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Invalid input', details: error.errors });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -455,7 +455,7 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Invalid input', details: error.errors });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 

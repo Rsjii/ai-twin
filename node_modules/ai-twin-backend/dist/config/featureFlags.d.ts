@@ -11,7 +11,7 @@ export interface FeatureFlags {
 }
 export declare function getFeatureFlags(): FeatureFlags;
 export declare function isFeatureEnabled(feature: keyof FeatureFlags): boolean;
-export declare function requireFeature(feature: keyof FeatureFlags): (_req: any, res: any, next: any) => any;
+export declare function requireFeature(feature: keyof FeatureFlags): (req: any, res: any, next: any) => any;
 export declare function getValidationSettings(): {
     requireApproval: boolean;
     strictRateLimiting: boolean;

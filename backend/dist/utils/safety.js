@@ -91,8 +91,8 @@ function validateTwinSamples(samples) {
         errors.push('Samples must be an array');
         return { valid: false, errors };
     }
-    if (samples.length < 3) {
-        errors.push('At least 3 samples required');
+    if (samples.length < 1) {
+        errors.push('At least 1 sample required');
     }
     if (samples.length > 5) {
         errors.push('Maximum 5 samples allowed');

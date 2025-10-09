@@ -6,15 +6,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.extractTokenFromHeader = exports.verifyJWT = exports.generateJWT = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const logger_1 = require("../config/logger");
-const JWT_SECRET = process.env['JWT_SECRET'] || 'your-super-secret-jwt-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 const JWT_EXPIRES_IN = '7d';
 const generateJWT = (payload) => {
     try {
-        const jwtPayload = {
-            ...payload,
-            id: payload.userId,
-        };
-        const token = jsonwebtoken_1.default.sign(jwtPayload, JWT_SECRET, {
+        const token = jsonwebtoken_1.default.sign(payload, JWT_SECRET, {
             expiresIn: JWT_EXPIRES_IN,
             issuer: 'ai-twin-app'
         });

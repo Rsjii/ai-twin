@@ -93,6 +93,7 @@ CREATE TABLE IF NOT EXISTS "Event" (
 CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX IF NOT EXISTS "User_handle_key" ON "User"("handle");
 CREATE UNIQUE INDEX IF NOT EXISTS "Invite_code_key" ON "Invite"("code");
+CREATE UNIQUE INDEX IF NOT EXISTS "Twin_userId_key" ON "Twin"("userId");
 
 -- Add missing columns to User table if they don't exist
 DO $$ 
@@ -111,6 +112,10 @@ BEGIN
     
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'profileImage') THEN
         ALTER TABLE "User" ADD COLUMN "profileImage" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'instructions') THEN
+        ALTER TABLE "Twin" ADD COLUMN "instructions" JSONB;
     END IF;
 END $$;
 
@@ -178,14 +183,26 @@ exports.userQueries = {
     }
 };
 exports.twinQueries = {
-    create: async (userId, styleVector, sampleReply) => {
+    create: async (userId, styleVector, sampleReply, instructions) => {
         const id = generateId();
-        const result = await db_1.db.query('INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply") VALUES ($1, $2, $3, $4) RETURNING *', [id, userId, JSON.stringify(styleVector), sampleReply]);
+        const result = await db_1.db.query('INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "instructions") VALUES ($1, $2, $3, $4, $5) RETURNING *', [id, userId, JSON.stringify(styleVector), sampleReply, instructions ? JSON.stringify(instructions) : null]);
         return result.rows[0];
     },
     findByUserId: async (userId) => {
         const result = await db_1.db.query('SELECT * FROM "Twin" WHERE "userId" = $1', [userId]);
         return result.rows;
+    },
+    updateInstructions: async (userId, instructions) => {
+        const result = await db_1.db.query('UPDATE "Twin" SET "instructions" = $1 WHERE "userId" = $2 RETURNING *', [JSON.stringify(instructions), userId]);
+        return result.rows[0];
+    },
+    updateStyleVector: async (userId, styleVector) => {
+        const result = await db_1.db.query('UPDATE "Twin" SET "styleVector" = $1 WHERE "userId" = $2 RETURNING *', [JSON.stringify(styleVector), userId]);
+        return result.rows[0];
+    },
+    findById: async (twinId) => {
+        const result = await db_1.db.query('SELECT * FROM "Twin" WHERE id = $1', [twinId]);
+        return result.rows[0];
     }
 };
 exports.chatQueries = {
