@@ -10,6 +10,7 @@ import cookieParser from 'cookie-parser';
 import { config } from './config/env';
 import { logger } from './config/logger';
 import { db, userQueries, twinQueries } from './config/database';
+import { prisma } from './config/prisma';
 
 // Import routes
 import authRoutes from './modules/auth/authRoutes';
@@ -670,7 +671,7 @@ app.get('/change-password', extractJWTFromCookie, async (req, res) => {
 });
 
 // Dashboard route
-app.get('/dashboard', extractJWTFromCookie, async (req: any, res) => {
+app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, res) => {
   // Check if user is authenticated via JWT
   if (!req.user) {
     return res.redirect('/auth');
@@ -713,9 +714,9 @@ app.get('/dashboard', extractJWTFromCookie, async (req: any, res) => {
                     <div class="bg-white rounded-lg shadow p-6">
                         <h3 class="text-lg font-semibold text-gray-800 mb-2">Chat with Your AI Twin</h3>
                         <p class="text-gray-600 mb-4">Start a conversation with your AI twin</p>
-                        <button onclick="startNewChat()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                        <a href="/chat/continue" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
                             Start Chat
-                        </button>
+                        </a>
                     </div>
                 ` : `
                     <!-- Create Twin Button -->
@@ -774,22 +775,8 @@ app.get('/dashboard', extractJWTFromCookie, async (req: any, res) => {
     <script>
         async function startNewChat() {
             try {
-                const response = await fetch('/api/chat/start', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': '${res.locals['csrfToken']}'
-                    },
-                    body: JSON.stringify({ twinId: 'latest' })
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    window.location.href = result.redirect;
-                } else {
-                    alert(result.error || 'Failed to start chat');
-                }
+                // Simply redirect to chat continue route
+                window.location.href = '/chat/continue';
             } catch (error) {
                 console.error('Start chat error:', error);
                 alert('Network error. Please try again.');
@@ -926,6 +913,78 @@ app.get('/twin/create', extractJWTFromCookie, optionalAuth, (req, res) => {
   });
 });
 
+// Chat continue route - redirect to chat with latest twin
+app.get('/chat/continue', extractJWTFromCookie, async (req: any, res) => {
+  console.log('🚀 CHAT CONTINUE ROUTE HIT!');
+  try {
+    console.log('=== CHAT CONTINUE ROUTE ===');
+    console.log('req.user:', req.user);
+    console.log('req.user.id:', req.user.id);
+    console.log('========================');
+    
+    if (!req.user) {
+      console.log('❌ No user, redirecting to auth');
+      return res.redirect('/auth');
+    }
+
+    // Get user's latest twin using raw SQL like my-twins
+    const twins = await db.query(`
+      SELECT id, "styleVector", "sampleReply", "createdAt" 
+      FROM "Twin" 
+      WHERE "userId" = $1 
+      ORDER BY "createdAt" DESC
+      LIMIT 1
+    `, [req.user.id]);
+
+    console.log('Found twins:', twins.rows);
+
+    if (twins.rows.length === 0) {
+      console.log('❌ No twin found, redirecting to create');
+      return res.redirect('/twin/create');
+    }
+
+    const latestTwin = twins.rows[0];
+    console.log('✅ Latest twin found:', latestTwin);
+
+    // Find existing chat with this twin or create new one using raw SQL
+    let chats = await db.query(`
+      SELECT id, "userId", "twinId", "createdAt"
+      FROM "Chat"
+      WHERE "userId" = $1 AND "twinId" = $2
+      ORDER BY "createdAt" DESC
+      LIMIT 1
+    `, [req.user.id, latestTwin.id]);
+
+    console.log('Existing chats:', chats.rows);
+
+    let chat;
+    if (chats.rows.length === 0) {
+      // Create new chat using raw SQL with generated ID
+      const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newChat = await db.query(`
+        INSERT INTO "Chat" ("id", "userId", "twinId", "createdAt")
+        VALUES ($1, $2, $3, NOW())
+        RETURNING id
+      `, [chatId, req.user.id, latestTwin.id]);
+      
+      chat = { id: newChat.rows[0].id };
+      console.log('Created new chat:', chat);
+    } else {
+      chat = chats.rows[0];
+      console.log('Using existing chat:', chat);
+    }
+
+    // Redirect to chat page
+    console.log('🎯 SUCCESS! Redirecting to chat:', `/chat/${chat.id}`);
+    res.redirect(`/chat/${chat.id}`);
+  } catch (error) {
+    console.error('💥 Chat continue error:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+    res.redirect('/dashboard');
+  }
+});
+
 // Chat history page route
 app.get('/chat/history', requireJWTFromCookie, (req: any, res) => {
   res.render('chat-history', {
@@ -936,16 +995,51 @@ app.get('/chat/history', requireJWTFromCookie, (req: any, res) => {
 });
 
 // Chat page route
-app.get('/chat/:id', (req, res) => {
-  if (!req.user) {
-    return res.redirect('/auth');
+app.get('/chat/:id', extractJWTFromCookie, (req: any, res) => {
+  try {
+    console.log('🚀 CHAT PAGE ROUTE HIT!');
+    console.log('Chat ID:', req.params.id);
+    console.log('User:', req.user);
+    
+    if (!req.user) {
+      console.log('❌ No user, redirecting to auth');
+      return res.redirect('/auth');
+    }
+    
+    console.log('✅ Rendering chat page');
+    console.log('CSRF Token:', res.locals['csrfToken']);
+    console.log('User data:', JSON.stringify(req.user, null, 2));
+    
+    console.log('Rendering chat-simple template...');
+    console.log('Template data:', {
+      title: 'Chat - AI Twin',
+      user: req.user,
+      chatId: req.params.id,
+      csrfToken: res.locals['csrfToken'],
+    });
+    
+    // Test with minimal template first
+    res.render('chat-simple', {
+      title: 'Chat - AI Twin',
+      user: req.user,
+      chatId: req.params.id,
+      csrfToken: res.locals['csrfToken'],
+    });
+  } catch (error) {
+    console.error('💥 Chat page error:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+    console.error('Error type:', typeof error);
+    console.error('Error constructor:', error.constructor.name);
+    
+    // Send detailed error for debugging
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      details: error.message,
+      stack: error.stack,
+      type: error.constructor.name
+    });
   }
-  res.render('chat', {
-    title: 'Chat - AI Twin',
-    user: req.user,
-    chatId: req.params.id,
-    csrfToken: res.locals['csrfToken'],
-  });
 });
 
 // Public profile page route

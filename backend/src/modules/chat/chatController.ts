@@ -29,13 +29,25 @@ export const startChat = async (req: AuthenticatedRequest, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Verify twin belongs to user
-    const twin = await prisma.twin.findFirst({
-      where: {
-        id: twinId,
-        userId: req.user.id,
-      },
-    });
+    let twin;
+    
+    // Handle 'latest' twin ID - get the most recent twin for the user
+    if (twinId === 'latest') {
+      twin = await prisma.twin.findFirst({
+        where: {
+          userId: req.user.id,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    } else {
+      // Verify specific twin belongs to user
+      twin = await prisma.twin.findFirst({
+        where: {
+          id: twinId,
+          userId: req.user.id,
+        },
+      });
+    }
     
     if (!twin) {
       return res.status(404).json({ error: 'Twin not found' });
@@ -45,7 +57,7 @@ export const startChat = async (req: AuthenticatedRequest, res: Response) => {
     const chat = await prisma.chat.create({
       data: {
         userId: req.user.id,
-        twinId: twinId,
+        twinId: twin.id,
       },
     });
     
@@ -54,7 +66,7 @@ export const startChat = async (req: AuthenticatedRequest, res: Response) => {
       data: {
         userId: req.user.id,
         type: 'chat_started',
-        meta: { chatId: chat.id, twinId },
+        meta: { chatId: chat.id, twinId: twin.id },
       },
     });
     
@@ -260,13 +272,25 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response) => 
       return res.status(400).json({ error: 'Twin ID is required' });
     }
 
-    // Verify twin belongs to user
-    const twin = await prisma.twin.findFirst({
-      where: {
-        id: twinId,
-        userId: req.user.id,
-      },
-    });
+    let twin;
+    
+    // Handle 'latest' twin ID - get the most recent twin for the user
+    if (twinId === 'latest') {
+      twin = await prisma.twin.findFirst({
+        where: {
+          userId: req.user.id,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    } else {
+      // Verify specific twin belongs to user
+      twin = await prisma.twin.findFirst({
+        where: {
+          id: twinId,
+          userId: req.user.id,
+        },
+      });
+    }
     
     if (!twin) {
       return res.status(404).json({ error: 'Twin not found' });
@@ -276,7 +300,7 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response) => 
     const existingChat = await prisma.chat.findFirst({
       where: {
         userId: req.user.id,
-        twinId: twinId,
+        twinId: twin.id,
       },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -297,7 +321,7 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response) => 
       chat = await prisma.chat.create({
         data: {
           userId: req.user.id,
-          twinId: twinId,
+          twinId: twin.id,
         },
       });
     }
@@ -307,7 +331,7 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response) => 
       data: {
         userId: req.user.id,
         type: existingChat ? 'chat_continued' : 'chat_started',
-        meta: { chatId: chat.id, twinId },
+        meta: { chatId: chat.id, twinId: twin.id },
       },
     });
 
@@ -358,11 +382,26 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response) =>
       return res.status(404).json({ error: 'Chat not found' });
     }
     
-    // Generate draft
-    const draft = await twinService.generateDraft(
-      chat.twin.styleVector as any,
-      messages
-    );
+    // Get chat messages for context
+    const chatMessages = await prisma.message.findMany({
+      where: { chatId: chat.id },
+      orderBy: { createdAt: 'asc' },
+      select: { content: true, sender: true, createdAt: true }
+    });
+
+    // Create context with style vector + chat memory + user query
+    const context = {
+      styleVector: chat.twin.styleVector as any,
+      chatMemory: chatMessages.map(msg => ({
+        content: msg.content,
+        sender: msg.sender,
+        timestamp: msg.createdAt
+      })),
+      currentMessages: messages
+    };
+
+    // Generate draft with full context
+    const draft = await twinService.generateDraftWithContext(context);
     
     // Log draft generated event
     await prisma.event.create({
@@ -463,7 +502,10 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
 async function updateStyleVectorAfterChat(twinId: string, userId: string) {
   try {
     // Get the twin's current style vector
-    const twin = await twinQueries.findById(twinId);
+    const twin = await prisma.twin.findFirst({
+      where: { id: twinId, userId: userId }
+    });
+    
     if (!twin) {
       logger.warn('Twin not found for style vector update:', twinId);
       return;
@@ -471,7 +513,12 @@ async function updateStyleVectorAfterChat(twinId: string, userId: string) {
 
     // Get recent messages from this chat (last 10 messages)
     const recentMessages = await prisma.message.findMany({
-      where: { chatId: twinId },
+      where: { 
+        chat: {
+          twinId: twinId,
+          userId: userId
+        }
+      },
       orderBy: { createdAt: 'desc' },
       take: 10,
       select: { content: true, sender: true }
@@ -492,7 +539,10 @@ async function updateStyleVectorAfterChat(twinId: string, userId: string) {
     const updatedStyleVector = await twinService.updateStyleVector(currentStyleVector, humanMessages);
 
     // Save updated style vector to database
-    await twinQueries.updateStyleVector(userId, updatedStyleVector);
+    await prisma.twin.update({
+      where: { id: twinId },
+      data: { styleVector: updatedStyleVector }
+    });
 
     logger.info('Style vector updated successfully for twin:', twinId);
   } catch (error) {

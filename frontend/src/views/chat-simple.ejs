@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">I am your AI Twin</h1>
+            <p class="text-gray-600">Start chatting with your digital twin</p>
+            <a href="/dashboard" class="inline-block mt-4 text-blue-600 hover:text-blue-800">← Back to Dashboard</a>
+        </div>
+
+        <!-- Twin Info Section -->
+        <div id="twinInfo" class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">AI Twin #<span id="twinId">Loading...</span></h2>
+                <p class="text-gray-600 mb-4">Created: <span id="twinCreated">Loading...</span></p>
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <p class="text-blue-800 font-medium">Your AI twin is ready to chat with you!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div class="glass-effect rounded-2xl shadow-xl p-6 mb-6">
+            <div id="chatMessages" class="space-y-4 min-h-96 max-h-96 overflow-y-auto">
+                <div class="text-center text-gray-500 py-8">
+                    <p>Start a conversation with your AI twin!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Input -->
+        <div class="glass-effect rounded-2xl shadow-xl p-6">
+            <form id="messageForm" class="space-y-4">
+                <div>
+                    <label for="messageInput" class="block text-sm font-medium text-gray-700 mb-2">Your Message</label>
+                    <textarea 
+                        id="messageInput" 
+                        name="message"
+                        rows="3"
+                        placeholder="Type your message here..."
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        maxlength="300"
+                        required
+                    ></textarea>
+                    <div class="mt-2 text-sm text-gray-500 text-right">
+                        <span id="charCount">0</span> / 300 characters
+                    </div>
+                </div>
+                <div class="flex space-x-4">
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                        Send Message
+                    </button>
+                    <button type="button" onclick="loadChatHistory()" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors font-semibold">
+                        Load History
+                    </button>
+                </div>
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let chatId = '<%= chatId %>';
+        window.csrfToken = '<%= csrfToken %>';
+
+        // Load chat on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTwinInfo();
+            loadChat();
+        });
+
+        // Character counter
+        const messageInput = document.getElementById('messageInput');
+        if (messageInput) {
+            messageInput.addEventListener('input', (e) => {
+                const count = e.target.value.length;
+                const charCount = document.getElementById('charCount');
+                if (charCount) {
+                    charCount.textContent = count;
+                }
+            });
+        }
+
+        // Message form submission
+        const messageForm = document.getElementById('messageForm');
+        if (messageForm) {
+            messageForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const messageInput = document.getElementById('messageInput');
+                if (!messageInput) return;
+                
+                const message = messageInput.value.trim();
+                
+                if (!message) return;
+                
+                // Add user message to chat
+                addMessageToChat(message, 'user');
+                
+                // Clear input
+                messageInput.value = '';
+                document.getElementById('charCount').textContent = '0';
+                
+                // Show loading indicator
+                showLoadingMessage();
+                
+                // Generate AI response
+                await generateAIResponse(message);
+            });
+        }
+
+        async function loadTwinInfo() {
+            try {
+                const response = await fetch('/api/twin', {
+                    headers: {
+                        'X-CSRF-Token': window.csrfToken
+                    }
+                });
+                
+                const result = await response.json();
+                console.log('result:', result);
+                
+                if (response.ok && result.twins.length > 0) {
+                    const latestTwin = result.twins[0];
+                    console.log('Latest twin:', latestTwin);
+                    
+                    // Update twin info display
+                    document.getElementById('twinId').textContent = latestTwin.id.slice(-6);
+                    document.getElementById('twinCreated').textContent = new Date(latestTwin.createdAt).toLocaleDateString();
+                } else {
+                    console.error('No twins found');
+                }
+            } catch (error) {
+                console.error('Load twin info error:', error);
+            }
+        }
+
+        async function loadChat() {
+            try {
+                const response = await fetch(`/api/chat/${chatId}`, {
+                    headers: {
+                        'X-CSRF-Token': window.csrfToken
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.chat.messages.length > 0) {
+                    displayMessages(result.chat.messages);
+                }
+            } catch (error) {
+                console.error('Load chat error:', error);
+            }
+        }
+
+        function displayMessages(messages) {
+            const chatMessages = document.getElementById('chatMessages');
+            
+            chatMessages.innerHTML = messages.map(msg => `
+                <div class="flex ${msg.sender === 'human' ? 'justify-end' : 'justify-start'}">
+                    <div class="max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
+                        msg.sender === 'human' 
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-gray-200 text-gray-800'
+                    }">
+                        <p class="text-sm">${msg.content}</p>
+                        <p class="text-xs mt-1 opacity-75">
+                            ${new Date(msg.createdAt).toLocaleTimeString()}
+                        </p>
+                    </div>
+                </div>
+            `).join('');
+            
+            scrollToBottom();
+        }
+
+        function addMessageToChat(message, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            messageDiv.innerHTML = `
+                <div class="max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
+                    sender === 'user' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-200 text-gray-800'
+                }">
+                    <p class="text-sm">${message}</p>
+                    <p class="text-xs mt-1 opacity-75">
+                        ${new Date().toLocaleTimeString()}
+                    </p>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function showLoadingMessage() {
+            const chatMessages = document.getElementById('chatMessages');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'loadingMessage';
+            loadingDiv.className = 'flex justify-start';
+            loadingDiv.innerHTML = `
+                <div class="max-w-xs lg:max-w-md px-4 py-3 rounded-lg bg-gray-200 text-gray-800">
+                    <p class="text-sm">AI Twin is thinking...</p>
+                </div>
+            `;
+            
+            chatMessages.appendChild(loadingDiv);
+            scrollToBottom();
+        }
+
+        function removeLoadingMessage() {
+            const loadingMessage = document.getElementById('loadingMessage');
+            if (loadingMessage) {
+                loadingMessage.remove();
+            }
+        }
+
+        async function generateAIResponse(userMessage) {
+            try {
+                const response = await fetch(`/api/chat/${chatId}/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken
+                    },
+                    body: JSON.stringify({ message: userMessage })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    removeLoadingMessage();
+                    addMessageToChat(result.response, 'ai');
+                } else {
+                    removeLoadingMessage();
+                    addMessageToChat('Sorry, I encountered an error. Please try again.', 'ai');
+                }
+            } catch (error) {
+                console.error('Generate AI response error:', error);
+                removeLoadingMessage();
+                addMessageToChat('Sorry, I encountered an error. Please try again.', 'ai');
+            }
+        }
+
+        function scrollToBottom() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function loadChatHistory() {
+            try {
+                const response = await fetch(`/api/chat/${chatId}/history`, {
+                    headers: {
+                        'X-CSRF-Token': window.csrfToken
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.messages) {
+                    displayMessages(result.messages);
+                }
+            } catch (error) {
+                console.error('Load chat history error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

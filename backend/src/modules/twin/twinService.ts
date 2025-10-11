@@ -70,13 +70,17 @@ Return only valid JSON, no other text.`;
       
       // Validate the response structure
       if (!this.validateStyleVector(styleVector)) {
-        throw new Error('Invalid style vector format');
+        logger.warn('Style vector validation failed, using fallback:', styleVector);
+        // Return a default style vector if validation fails
+        return this.getDefaultStyleVector();
       }
 
       return styleVector;
     } catch (error) {
       logger.error('Style extraction error:', error);
-      throw error;
+      // If there's an error, return default style vector instead of throwing
+      logger.warn('Using default style vector due to error');
+      return this.getDefaultStyleVector();
     }
   }
 
@@ -203,6 +207,71 @@ Return only valid JSON, no other text.`;
       // Return current vector if update fails
       return currentVector;
     }
+  }
+
+  async generateDraftWithContext(context: {
+    styleVector: StyleVector;
+    chatMemory: Array<{content: string, sender: string, timestamp: Date}>;
+    currentMessages: string[];
+  }): Promise<string> {
+    try {
+      const { styleVector, chatMemory, currentMessages } = context;
+      
+      // Create system prompt with style vector
+      const systemPrompt = `You are an AI twin that mimics the user's communication style. 
+      
+Style Vector:
+- Tone: ${styleVector.tone}
+- Emoji Usage: ${styleVector.emoji_usage}
+- Hinglish Ratio: ${styleVector.hinglish_ratio}
+- Sentence Length: ${styleVector.sentence_length}
+- Signature Patterns: ${styleVector.signature_patterns.join(', ')}
+- Formality Level: ${styleVector.formality_level}
+- Humor Style: ${styleVector.humor_style}
+- Communication Style: ${styleVector.communication_style}
+- Personality Traits: ${styleVector.personality_traits.join(', ')}
+
+Chat Memory (Previous conversation context):
+${chatMemory.map(msg => `${msg.sender}: ${msg.content}`).join('\n')}
+
+Current Messages:
+${currentMessages.join('\n')}
+
+Respond as the user's AI twin, maintaining their style and personality. Keep the response natural and conversational.`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: currentMessages.join('\n') }
+        ],
+        max_tokens: 500,
+        temperature: 0.7
+      });
+
+      return response.choices[0]?.message?.content || 'Sorry, I couldn\'t generate a response.';
+    } catch (error) {
+      logger.error('Generate draft with context error:', error);
+      throw new Error('Failed to generate draft');
+    }
+  }
+
+  private getDefaultStyleVector(): StyleVector {
+    return {
+      tone: 'friendly',
+      emoji_usage: 0.3,
+      hinglish_ratio: 0.2,
+      sentence_length: 'medium',
+      signature_patterns: ['Hey!', 'What do you think?', 'Let me know'],
+      formality_level: 0.5,
+      humor_style: 'light',
+      question_frequency: 0.4,
+      exclamation_usage: 0.3,
+      code_mixing_style: 'minimal',
+      response_length_preference: 'detailed',
+      personality_traits: ['helpful', 'curious'],
+      communication_style: 'conversational'
+    };
   }
 
   private validateStyleVector(vector: any): vector is StyleVector {
