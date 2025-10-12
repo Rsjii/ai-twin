@@ -15,7 +15,11 @@ import { prisma } from './config/prisma';
 // Import routes
 import authRoutes from './modules/auth/authRoutes';
 import twinRoutes from './modules/twin/twinRoutes';
+import publicTwinRoutes from './modules/twin/publicTwinRoutes';
 import chatRoutes from './modules/chat/chatRoutes';
+import publicChatRoutes from './modules/chat/publicChatRoutes';
+import socialRoutes from './modules/social/socialRoutes';
+import discoverRoutes from './modules/discover/discoverRoutes';
 import profileRoutes from './modules/profile/profileRoutes';
 import inviteRoutes from './modules/invite/inviteRoutes';
 import analyticsRoutes from './modules/analytics/analyticsRoutes';
@@ -99,10 +103,69 @@ app.use(generateCSRFToken);
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/twin', twinRoutes);
+app.use('/api/public-twin', publicTwinRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/public-chat', publicChatRoutes);
+app.use('/api/social', socialRoutes);
+app.use('/api/discover', discoverRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/invite', inviteRoutes);
 app.use('/api/metrics', analyticsRoutes);
+
+// Discover page route
+app.get('/discover', (req, res) => {
+  res.render('discover');
+});
+
+// Public twin profile route (twinverse.ai/@handle)
+app.get('/@:handle', async (req: any, res) => {
+  try {
+    const { handle } = req.params;
+    
+    // Get public twin profile
+    const publicTwin = await db.query(`
+      SELECT t.*, u.handle as userHandle, u.name as userName
+      FROM "Twin" t
+      JOIN "User" u ON t."userId" = u.id
+      WHERE t."publicHandle" = $1 AND t."isPublic" = true
+    `, [handle]);
+
+    if (publicTwin.rows.length === 0) {
+      return res.status(404).render('404', { 
+        title: 'Twin Not Found',
+        message: 'This twin profile is not public or does not exist'
+      });
+    }
+
+    const twin = publicTwin.rows[0];
+    
+    // Render public profile page
+    res.render('public-profile', {
+      title: `@${handle} - AI Twin`,
+      twin: {
+        id: twin.id,
+        publicHandle: twin.publicHandle,
+        bio: twin.bio,
+        profileImage: twin.profileImage,
+        verified: twin.verified,
+        likeCount: twin.likeCount,
+        followCount: twin.followCount,
+        chatCount: twin.chatCount,
+        sampleReply: twin.sampleReply,
+        createdAt: twin.createdAt,
+        userHandle: twin.userHandle,
+        userName: twin.userName
+      }
+    });
+
+  } catch (error) {
+    console.error('Public profile error:', error);
+    res.status(500).render('404', { 
+      title: 'Error',
+      message: 'Something went wrong'
+    });
+  }
+});
 
 // Test route
 app.get('/test', (req, res) => {

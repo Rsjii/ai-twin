@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-shadow { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-2xl font-bold text-gray-900">Twinverse</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/auth" class="text-gray-600 hover:text-gray-900">Login</a>
+                    <a href="/auth" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Get Started</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Twin Profile Card -->
+        <div class="bg-white rounded-2xl card-shadow overflow-hidden">
+            <!-- Profile Header -->
+            <div class="gradient-bg px-8 py-12 text-white">
+                <div class="flex items-center space-x-6">
+                    <!-- Profile Image -->
+                    <div class="w-24 h-24 rounded-full bg-white bg-opacity-20 flex items-center justify-center overflow-hidden">
+                        <% if (twin.profileImage) { %>
+                            <img src="<%= twin.profileImage %>" alt="<%= twin.publicHandle %>" class="w-full h-full object-cover">
+                        <% } else { %>
+                            <div class="w-full h-full bg-white bg-opacity-30 flex items-center justify-center">
+                                <span class="text-3xl font-bold"><%= twin.publicHandle.charAt(0).toUpperCase() %></span>
+                            </div>
+                        <% } %>
+                    </div>
+                    
+                    <!-- Profile Info -->
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-3 mb-2">
+                            <h1 class="text-3xl font-bold">@<%= twin.publicHandle %></h1>
+                            <% if (twin.verified) { %>
+                                <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                            <% } %>
+                        </div>
+                        
+                        <p class="text-lg opacity-90 mb-4">
+                            Created by <span class="font-semibold"><%= twin.userName || twin.userHandle %></span>
+                        </p>
+                        
+                        <% if (twin.bio) { %>
+                            <p class="text-lg opacity-90 max-w-2xl"><%= twin.bio %></p>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="px-8 py-6 border-b">
+                <div class="grid grid-cols-3 gap-8 text-center">
+                    <div>
+                        <div class="text-2xl font-bold text-gray-900 like-count"><%= twin.likeCount %></div>
+                        <div class="text-sm text-gray-600">Likes</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-gray-900 follow-count"><%= twin.followCount %></div>
+                        <div class="text-sm text-gray-600">Followers</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-gray-900"><%= twin.chatCount %></div>
+                        <div class="text-sm text-gray-600">Chats</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sample Reply -->
+            <% if (twin.sampleReply) { %>
+                <div class="px-8 py-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Sample Response</h3>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-gray-700 italic">"<%= twin.sampleReply %>"</p>
+                    </div>
+                </div>
+            <% } %>
+
+            <!-- Action Buttons -->
+            <div class="px-8 py-6 bg-gray-50">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button id="chatNowBtn" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                        💬 Chat Now
+                    </button>
+                    <button id="likeBtn" class="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                        ❤️ Like
+                    </button>
+                    <button id="followBtn" class="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                        👥 Follow
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Modal (Hidden by default) -->
+        <div id="chatModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+                    <div class="p-6 border-b flex items-center justify-between">
+                        <h3 class="text-xl font-semibold">Chat with @<%= twin.publicHandle %></h3>
+                        <button id="closeChatBtn" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Chat Messages Area -->
+                    <div id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-4 min-h-[400px] max-h-[500px]">
+                        <div class="text-center py-8">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p class="text-gray-600">Starting chat...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat Input -->
+                    <div class="p-6 border-t bg-gray-50">
+                        <div class="flex space-x-4">
+                            <input 
+                                type="text" 
+                                id="messageInput" 
+                                placeholder="Type your message..." 
+                                class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                maxlength="1000"
+                            >
+                            <button id="sendMessageBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                Send
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">You can chat with this AI twin without logging in!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentChatId = null;
+        let isChatting = false;
+
+        // Chat modal functionality
+        document.getElementById('chatNowBtn').addEventListener('click', function() {
+            document.getElementById('chatModal').classList.remove('hidden');
+            startPublicChat();
+        });
+
+        document.getElementById('closeChatBtn').addEventListener('click', function() {
+            document.getElementById('chatModal').classList.add('hidden');
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('chatModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+            }
+        });
+
+        // Start public chat
+        async function startPublicChat() {
+            try {
+                const response = await fetch('/api/public-chat/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        twinId: '<%= twin.id %>'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentChatId = data.chatId;
+                    document.getElementById('chatMessages').innerHTML = `
+                        <div class="text-center py-4">
+                            <p class="text-gray-600">Chat started! You can now talk to @<%= twin.publicHandle %>.</p>
+                        </div>
+                    `;
+                    isChatting = true;
+                } else {
+                    throw new Error(data.error || 'Failed to start chat');
+                }
+            } catch (error) {
+                console.error('Error starting chat:', error);
+                document.getElementById('chatMessages').innerHTML = `
+                    <div class="text-center py-4">
+                        <p class="text-red-600">Failed to start chat. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Send message
+        document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message || !currentChatId || isChatting) return;
+            
+            isChatting = true;
+            const sendBtn = document.getElementById('sendMessageBtn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            
+            // Add user message to chat
+            addMessageToChat(message, 'human');
+            messageInput.value = '';
+            
+            try {
+                const response = await fetch(`/api/public-chat/${currentChatId}/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+                
+                if (data.success && data.messages) {
+                    // Add AI response
+                    const aiMessage = data.messages.find(m => m.sender === 'twin');
+                    if (aiMessage) {
+                        addMessageToChat(aiMessage.content, 'twin');
+                    }
+                } else {
+                    throw new Error(data.error || 'Failed to send message');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                addMessageToChat('Sorry, I had trouble responding. Please try again.', 'twin');
+            } finally {
+                isChatting = false;
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send';
+            }
+        }
+
+        function addMessageToChat(content, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            
+            if (sender === 'human') {
+                messageDiv.className = 'flex justify-end';
+                messageDiv.innerHTML = `
+                    <div class="bg-blue-600 text-white px-4 py-2 rounded-lg max-w-xs">
+                        ${content}
+                    </div>
+                `;
+            } else {
+                messageDiv.className = 'flex justify-start';
+                messageDiv.innerHTML = `
+                    <div class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg max-w-xs">
+                        ${content}
+                    </div>
+                `;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Like and Follow buttons functionality
+        document.getElementById('likeBtn').addEventListener('click', function() {
+            toggleLike();
+        });
+
+        document.getElementById('followBtn').addEventListener('click', function() {
+            toggleFollow();
+        });
+
+        // Toggle like functionality
+        async function toggleLike() {
+            try {
+                const response = await fetch('/api/social/toggle-like', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        twinId: '<%= twin.id %>'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update like count display
+                    const likeCountElement = document.querySelector('.like-count');
+                    if (likeCountElement) {
+                        likeCountElement.textContent = data.likeCount;
+                    }
+                    
+                    // Update button text
+                    const likeBtn = document.getElementById('likeBtn');
+                    if (data.action === 'liked') {
+                        likeBtn.textContent = '❤️ Liked';
+                        likeBtn.classList.add('bg-red-100', 'text-red-600');
+                    } else {
+                        likeBtn.textContent = '❤️ Like';
+                        likeBtn.classList.remove('bg-red-100', 'text-red-600');
+                    }
+                } else {
+                    if (data.error === 'Authentication required') {
+                        alert('Please log in to like this twin!');
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                }
+            } catch (error) {
+                console.error('Error toggling like:', error);
+                alert('Please log in to like this twin!');
+            }
+        }
+
+        // Toggle follow functionality
+        async function toggleFollow() {
+            try {
+                const response = await fetch('/api/social/toggle-follow', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        twinId: '<%= twin.id %>'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update follow count display
+                    const followCountElement = document.querySelector('.follow-count');
+                    if (followCountElement) {
+                        followCountElement.textContent = data.followCount;
+                    }
+                    
+                    // Update button text
+                    const followBtn = document.getElementById('followBtn');
+                    if (data.action === 'followed') {
+                        followBtn.textContent = '👥 Following';
+                        followBtn.classList.add('bg-blue-100', 'text-blue-600');
+                    } else {
+                        followBtn.textContent = '👥 Follow';
+                        followBtn.classList.remove('bg-blue-100', 'text-blue-600');
+                    }
+                } else {
+                    if (data.error === 'Authentication required') {
+                        alert('Please log in to follow this twin!');
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                }
+            } catch (error) {
+                console.error('Error toggling follow:', error);
+                alert('Please log in to follow this twin!');
+            }
+        }
+    </script>
+</body>
+</html>

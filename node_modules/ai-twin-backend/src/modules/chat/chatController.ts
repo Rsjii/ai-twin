@@ -32,20 +32,20 @@ export const startChat = async (req: AuthenticatedRequest, res: Response) => {
     
     // Handle 'latest' twin ID - get the most recent twin for the user
     if (twinId === 'latest') {
-      twin = await prisma.twin.findFirst({
-        where: {
-          userId: req.user.id,
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+      const twinResult = await db.query(`
+        SELECT * FROM "Twin"
+        WHERE "userId" = $1
+        ORDER BY "createdAt" DESC
+        LIMIT 1
+      `, [req.user.id]);
+      twin = twinResult.rows[0];
     } else {
       // Verify specific twin belongs to user
-      twin = await prisma.twin.findFirst({
-        where: {
-          id: twinId,
-          userId: req.user.id,
-        },
-      });
+      const twinResult = await db.query(`
+        SELECT * FROM "Twin"
+        WHERE id = $1 AND "userId" = $2
+      `, [twinId, req.user.id]);
+      twin = twinResult.rows[0];
     }
     
     if (!twin) {
@@ -53,21 +53,20 @@ export const startChat = async (req: AuthenticatedRequest, res: Response) => {
     }
     
     // Create chat
-    const chat = await prisma.chat.create({
-      data: {
-        userId: req.user.id,
-        twinId: twin.id,
-      },
-    });
+    const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const chatResult = await db.query(`
+      INSERT INTO "Chat" (id, "userId", "twinId", "createdAt")
+      VALUES ($1, $2, $3, NOW())
+      RETURNING *
+    `, [chatId, req.user.id, twin.id]);
+    const chat = chatResult.rows[0];
     
     // Log chat started event
-    await prisma.event.create({
-      data: {
-        userId: req.user.id,
-        type: 'chat_started',
-        meta: { chatId: chat.id, twinId: twin.id },
-      },
-    });
+    const eventId = `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    await db.query(`
+      INSERT INTO "Event" (id, "userId", type, meta, "createdAt")
+      VALUES ($1, $2, $3, $4, NOW())
+    `, [eventId, req.user.id, 'chat_started', JSON.stringify({ chatId: chat.id, twinId: twin.id })]);
     
     res.json({
       success: true,
@@ -131,24 +130,24 @@ export const getUserChats = async (req: AuthenticatedRequest, res: Response) => 
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const chats = await prisma.chat.findMany({
-      where: { userId: req.user.id },
-      include: {
-        twin: {
-          select: {
-            id: true,
-            sampleReply: true,
-          },
-        },
-        messages: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const chats = await db.query(`
+      SELECT c.id, c."twinId", c."createdAt",
+             t.id as twin_id, t."sampleReply",
+             m.content as last_message, m."createdAt" as last_message_time
+      FROM "Chat" c
+      JOIN "Twin" t ON c."twinId" = t.id
+      LEFT JOIN LATERAL (
+        SELECT content, "createdAt"
+        FROM "Message" 
+        WHERE "chatId" = c.id 
+        ORDER BY "createdAt" DESC 
+        LIMIT 1
+      ) m ON true
+      WHERE c."userId" = $1
+      ORDER BY c."createdAt" DESC
+    `, [req.user.id]);
     
-    res.json({ chats });
+    res.json({ chats: chats.rows });
   } catch (error) {
     logger.error('Get chats error:', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -162,37 +161,44 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response) =
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const chats = await prisma.chat.findMany({
-      where: { userId: req.user.id },
-      include: {
-        twin: {
-          select: {
-            id: true,
-            sampleReply: true,
-          },
-        },
-        messages: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-        _count: {
-          select: {
-            messages: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const chats = await db.query(`
+      SELECT c.id, c."twinId", c."createdAt",
+             t.id as twin_id, t."sampleReply",
+             m.content as last_message, m."createdAt" as last_message_time,
+             msg_count.message_count
+      FROM "Chat" c
+      JOIN "Twin" t ON c."twinId" = t.id
+      LEFT JOIN LATERAL (
+        SELECT content, "createdAt"
+        FROM "Message" 
+        WHERE "chatId" = c.id 
+        ORDER BY "createdAt" DESC 
+        LIMIT 1
+      ) m ON true
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*) as message_count
+        FROM "Message" 
+        WHERE "chatId" = c.id
+      ) msg_count ON true
+      WHERE c."userId" = $1
+      ORDER BY c."createdAt" DESC
+    `, [req.user.id]);
 
     // Format chat history with summary
-    const chatHistory = chats.map(chat => ({
+    const chatHistory = chats.rows.map(chat => ({
       id: chat.id,
       twinId: chat.twinId,
-      twin: chat.twin,
-      messageCount: chat._count.messages,
-      lastMessage: chat.messages[0] || null,
+      twin: {
+        id: chat.twin_id,
+        sampleReply: chat.sampleReply
+      },
+      messageCount: parseInt(chat.message_count) || 0,
+      lastMessage: chat.last_message ? {
+        content: chat.last_message,
+        createdAt: chat.last_message_time
+      } : null,
       createdAt: chat.createdAt,
-      updatedAt: chat.messages[0]?.createdAt || chat.createdAt,
+      updatedAt: chat.last_message_time || chat.createdAt,
     }));
     
     res.json({ 

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discover AI Twins - Twinverse</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-2xl font-bold text-blue-600">Twinverse</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/discover" class="text-blue-600 font-medium">Discover</a>
+                    <a href="/dashboard" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+                    <a href="/auth" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Login</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Discover AI Twins</h1>
+            <p class="text-gray-600">Explore trending, popular, and recommended AI twins from the community</p>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="mb-8">
+            <div class="max-w-2xl mx-auto">
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        id="searchInput"
+                        placeholder="Search twins by handle, bio, or creator..." 
+                        class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="mb-8">
+            <div class="flex space-x-1 bg-gray-100 p-1 rounded-lg max-w-2xl mx-auto">
+                <button class="filter-tab active" data-filter="trending">🔥 Trending</button>
+                <button class="filter-tab" data-filter="recent">🆕 Recent</button>
+                <button class="filter-tab" data-filter="popular">⭐ Popular</button>
+                <button class="filter-tab" data-filter="most-liked">❤️ Most Liked</button>
+                <button class="filter-tab" data-filter="most-followed">👥 Most Followed</button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading twins...</p>
+        </div>
+
+        <!-- Twins Grid -->
+        <div id="twinsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 hidden">
+            <!-- Twin cards will be populated here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-12 hidden">
+            <div class="text-gray-400 text-6xl mb-4">🤖</div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No twins found</h3>
+            <p class="text-gray-600">Try adjusting your search or filters</p>
+        </div>
+
+        <!-- Load More Button -->
+        <div id="loadMoreContainer" class="text-center mt-8 hidden">
+            <button id="loadMoreBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                Load More
+            </button>
+        </div>
+    </div>
+
+    <!-- Twin Card Template -->
+    <template id="twinCardTemplate">
+        <div class="twin-card bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow">
+            <div class="p-6">
+                <!-- Twin Header -->
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                        <span class="twin-initial">A</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900 truncate">
+                            @<span class="twin-handle">handle</span>
+                        </h3>
+                        <p class="text-sm text-gray-600 truncate">
+                            by <span class="creator-name">Creator</span>
+                        </p>
+                    </div>
+                    <div class="twin-verified hidden">
+                        <i class="fas fa-check-circle text-blue-500"></i>
+                    </div>
+                </div>
+
+                <!-- Twin Bio -->
+                <p class="text-gray-700 text-sm mb-4 line-clamp-2 twin-bio">
+                    Bio content here...
+                </p>
+
+                <!-- Sample Reply -->
+                <div class="twin-sample-reply hidden bg-gray-50 rounded-lg p-3 mb-4">
+                    <p class="text-sm text-gray-600 italic">
+                        "<span class="sample-text">Sample reply...</span>"
+                    </p>
+                </div>
+
+                <!-- Stats -->
+                <div class="flex justify-between text-sm text-gray-600 mb-4">
+                    <span><i class="fas fa-heart text-red-500"></i> <span class="like-count">0</span></span>
+                    <span><i class="fas fa-users text-blue-500"></i> <span class="follow-count">0</span></span>
+                    <span><i class="fas fa-comments text-green-500"></i> <span class="chat-count">0</span></span>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex space-x-2">
+                    <button class="twin-chat-btn flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                        <i class="fas fa-comment mr-2"></i>Chat
+                    </button>
+                    <button class="twin-like-btn bg-gray-100 text-gray-700 py-2 px-3 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                    <button class="twin-follow-btn bg-gray-100 text-gray-700 py-2 px-3 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-user-plus"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        let currentFilter = 'trending';
+        let currentPage = 0;
+        let isLoading = false;
+        let hasMore = true;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTwins();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Filter tabs
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const filter = this.dataset.filter;
+                    setActiveFilter(filter);
+                    currentPage = 0;
+                    hasMore = true;
+                    loadTwins();
+                });
+            });
+
+            // Search input
+            let searchTimeout;
+            document.getElementById('searchInput').addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    currentPage = 0;
+                    hasMore = true;
+                    loadTwins();
+                }, 500);
+            });
+
+            // Load more button
+            document.getElementById('loadMoreBtn').addEventListener('click', loadMore);
+        }
+
+        function setActiveFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active', 'bg-blue-600', 'text-white');
+                tab.classList.add('bg-transparent', 'text-gray-600');
+            });
+            document.querySelector(`[data-filter="${filter}"]`).classList.add('active', 'bg-blue-600', 'text-white');
+            document.querySelector(`[data-filter="${filter}"]`).classList.remove('bg-transparent', 'text-gray-600');
+        }
+
+        async function loadTwins() {
+            if (isLoading) return;
+            
+            isLoading = true;
+            showLoading();
+
+            try {
+                const searchQuery = document.getElementById('searchInput').value.trim();
+                let url = `/api/discover/${currentFilter}?limit=12&offset=${currentPage * 12}`;
+                
+                if (searchQuery) {
+                    url = `/api/discover/search?query=${encodeURIComponent(searchQuery)}&limit=12&offset=${currentPage * 12}`;
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    if (currentPage === 0) {
+                        clearTwinsGrid();
+                    }
+                    
+                    if (data.twins.length === 0) {
+                        showEmptyState();
+                    } else {
+                        hideEmptyState();
+                        data.twins.forEach(twin => addTwinCard(twin));
+                        
+                        if (data.twins.length < 12) {
+                            hasMore = false;
+                            hideLoadMore();
+                        } else {
+                            showLoadMore();
+                        }
+                    }
+                } else {
+                    showError(data.error || 'Failed to load twins');
+                }
+            } catch (error) {
+                console.error('Error loading twins:', error);
+                showError('Failed to load twins');
+            } finally {
+                isLoading = false;
+                hideLoading();
+            }
+        }
+
+        async function loadMore() {
+            if (!hasMore || isLoading) return;
+            
+            currentPage++;
+            await loadTwins();
+        }
+
+        function addTwinCard(twin) {
+            const template = document.getElementById('twinCardTemplate');
+            const clone = template.content.cloneNode(true);
+            
+            // Update twin data
+            clone.querySelector('.twin-handle').textContent = twin.publicHandle;
+            clone.querySelector('.creator-name').textContent = twin.userName || twin.userHandle;
+            clone.querySelector('.twin-bio').textContent = twin.bio || 'No bio available';
+            clone.querySelector('.like-count').textContent = twin.likeCount || 0;
+            clone.querySelector('.follow-count').textContent = twin.followCount || 0;
+            clone.querySelector('.chat-count').textContent = twin.chatCount || 0;
+            
+            // Show verified badge if applicable
+            if (twin.verified) {
+                clone.querySelector('.twin-verified').classList.remove('hidden');
+            }
+            
+            // Show sample reply if available
+            if (twin.sampleReply) {
+                clone.querySelector('.twin-sample-reply').classList.remove('hidden');
+                clone.querySelector('.sample-text').textContent = twin.sampleReply;
+            }
+            
+            // Set initial letter for avatar
+            const initial = twin.publicHandle.charAt(0).toUpperCase();
+            clone.querySelector('.twin-initial').textContent = initial;
+            
+            // Add event listeners
+            const chatBtn = clone.querySelector('.twin-chat-btn');
+            const likeBtn = clone.querySelector('.twin-like-btn');
+            const followBtn = clone.querySelector('.twin-follow-btn');
+            
+            chatBtn.addEventListener('click', () => {
+                window.location.href = `/@${twin.publicHandle}`;
+            });
+            
+            likeBtn.addEventListener('click', () => {
+                toggleLike(twin.id, likeBtn);
+            });
+            
+            followBtn.addEventListener('click', () => {
+                toggleFollow(twin.id, followBtn);
+            });
+            
+            document.getElementById('twinsGrid').appendChild(clone);
+        }
+
+        async function toggleLike(twinId, button) {
+            try {
+                const response = await fetch('/api/social/toggle-like', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ twinId })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update button state
+                    if (data.action === 'liked') {
+                        button.classList.add('bg-red-100', 'text-red-600');
+                        button.innerHTML = '<i class="fas fa-heart"></i>';
+                    } else {
+                        button.classList.remove('bg-red-100', 'text-red-600');
+                        button.innerHTML = '<i class="far fa-heart"></i>';
+                    }
+                    
+                    // Update like count in the card
+                    const card = button.closest('.twin-card');
+                    const likeCount = card.querySelector('.like-count');
+                    likeCount.textContent = data.likeCount;
+                } else {
+                    if (data.error === 'Authentication required') {
+                        alert('Please log in to like this twin!');
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                }
+            } catch (error) {
+                console.error('Error toggling like:', error);
+                alert('Please log in to like this twin!');
+            }
+        }
+
+        async function toggleFollow(twinId, button) {
+            try {
+                const response = await fetch('/api/social/toggle-follow', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ twinId })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update button state
+                    if (data.action === 'followed') {
+                        button.classList.add('bg-blue-100', 'text-blue-600');
+                        button.innerHTML = '<i class="fas fa-user-check"></i>';
+                    } else {
+                        button.classList.remove('bg-blue-100', 'text-blue-600');
+                        button.innerHTML = '<i class="fas fa-user-plus"></i>';
+                    }
+                    
+                    // Update follow count in the card
+                    const card = button.closest('.twin-card');
+                    const followCount = card.querySelector('.follow-count');
+                    followCount.textContent = data.followCount;
+                } else {
+                    if (data.error === 'Authentication required') {
+                        alert('Please log in to follow this twin!');
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                }
+            } catch (error) {
+                console.error('Error toggling follow:', error);
+                alert('Please log in to follow this twin!');
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('twinsGrid').classList.add('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingState').classList.add('hidden');
+        }
+
+        function showEmptyState() {
+            document.getElementById('emptyState').classList.remove('hidden');
+            document.getElementById('twinsGrid').classList.add('hidden');
+            hideLoadMore();
+        }
+
+        function hideEmptyState() {
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('twinsGrid').classList.remove('hidden');
+        }
+
+        function clearTwinsGrid() {
+            document.getElementById('twinsGrid').innerHTML = '';
+        }
+
+        function showLoadMore() {
+            document.getElementById('loadMoreContainer').classList.remove('hidden');
+        }
+
+        function hideLoadMore() {
+            document.getElementById('loadMoreContainer').classList.add('hidden');
+        }
+
+        function showError(message) {
+            alert('Error: ' + message);
+        }
+    </script>
+
+    <style>
+        .filter-tab {
+            flex: 1;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .filter-tab.active {
+            background-color: #2563eb;
+            color: white;
+        }
+        
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</body>
+</html>

@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { prisma } from '../../config/prisma';
 import { db } from '../../config/database';
 import { TwinService } from './twinService';
 import { logger } from '../../config/logger';
@@ -200,19 +199,15 @@ export const getUserTwins = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const twins = await prisma.twin.findMany({
-      where: { userId: req.user.id },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        styleVector: true,
-        sampleReply: true,
-        createdAt: true,
-      },
-    });
+    const twins = await db.query(`
+      SELECT id, "styleVector", "sampleReply", "createdAt"
+      FROM "Twin"
+      WHERE "userId" = $1
+      ORDER BY "createdAt" DESC
+    `, [req.user.id]);
     
-    console.log('Found twins:', twins);
-    res.json({ twins });
+    console.log('Found twins:', twins.rows);
+    res.json({ twins: twins.rows });
   } catch (error) {
     logger.error('Get twins error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -227,12 +222,12 @@ export const getTwinById = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const twin = await prisma.twin.findFirst({
-      where: {
-        id,
-        userId: req.user.id,
-      },
-    });
+    const twinResult = await db.query(`
+      SELECT * FROM "Twin"
+      WHERE id = $1 AND "userId" = $2
+    `, [id, req.user.id]);
+    
+    const twin = twinResult.rows[0];
     
     if (!twin) {
       return res.status(404).json({ error: 'Twin not found' });
