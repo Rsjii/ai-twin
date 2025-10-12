@@ -69,3 +69,68 @@ UPDATE "Twin" SET
     "followCount" = 0,
     "chatCount" = 0
 WHERE "isPublic" IS NULL;
+
+-- Phase 8: Privacy and Moderation Tables
+
+-- Add privacy columns to Twin table
+ALTER TABLE "Twin" ADD COLUMN IF NOT EXISTS "allowPublicChat" BOOLEAN DEFAULT true;
+ALTER TABLE "Twin" ADD COLUMN IF NOT EXISTS "showChatHistory" BOOLEAN DEFAULT true;
+ALTER TABLE "Twin" ADD COLUMN IF NOT EXISTS "allowAnonymousChat" BOOLEAN DEFAULT true;
+ALTER TABLE "Twin" ADD COLUMN IF NOT EXISTS "requireLogin" BOOLEAN DEFAULT false;
+ALTER TABLE "Twin" ADD COLUMN IF NOT EXISTS "allowLikes" BOOLEAN DEFAULT true;
+ALTER TABLE "Twin" ADD COLUMN IF NOT EXISTS "allowFollows" BOOLEAN DEFAULT true;
+ALTER TABLE "Twin" ADD COLUMN IF NOT EXISTS "allowShares" BOOLEAN DEFAULT true;
+ALTER TABLE "Twin" ADD COLUMN IF NOT EXISTS "moderateMessages" BOOLEAN DEFAULT false;
+ALTER TABLE "Twin" ADD COLUMN IF NOT EXISTS "allowDirectMessages" BOOLEAN DEFAULT true;
+
+-- Create TwinBlockedUsers table for privacy controls
+CREATE TABLE IF NOT EXISTS "TwinBlockedUsers" (
+    "id" TEXT NOT NULL,
+    "twinId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "TwinBlockedUsers_pkey" PRIMARY KEY ("id")
+);
+
+-- Create ContentReport table for content moderation
+CREATE TABLE IF NOT EXISTS "ContentReport" (
+    "id" TEXT NOT NULL,
+    "contentId" TEXT NOT NULL,
+    "contentType" TEXT NOT NULL,
+    "reason" TEXT NOT NULL,
+    "description" TEXT,
+    "reporterId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ContentReport_pkey" PRIMARY KEY ("id")
+);
+
+-- Create ModerationSettings table
+CREATE TABLE IF NOT EXISTS "ModerationSettings" (
+    "id" TEXT NOT NULL,
+    "useAIModeration" BOOLEAN DEFAULT true,
+    "moderationLevel" TEXT DEFAULT 'basic',
+    "spamThreshold" DOUBLE PRECISION DEFAULT 0.7,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ModerationSettings_pkey" PRIMARY KEY ("id")
+);
+
+-- Create indexes for new tables
+CREATE UNIQUE INDEX IF NOT EXISTS "TwinBlockedUsers_twinId_userId_key" ON "TwinBlockedUsers"("twinId", "userId");
+CREATE INDEX IF NOT EXISTS "ContentReport_contentId_idx" ON "ContentReport"("contentId");
+CREATE INDEX IF NOT EXISTS "ContentReport_reporterId_idx" ON "ContentReport"("reporterId");
+
+-- Add foreign key constraints for new tables
+ALTER TABLE "TwinBlockedUsers" DROP CONSTRAINT IF EXISTS "TwinBlockedUsers_twinId_fkey";
+ALTER TABLE "TwinBlockedUsers" ADD CONSTRAINT "TwinBlockedUsers_twinId_fkey" FOREIGN KEY ("twinId") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "TwinBlockedUsers" DROP CONSTRAINT IF EXISTS "TwinBlockedUsers_userId_fkey";
+ALTER TABLE "TwinBlockedUsers" ADD CONSTRAINT "TwinBlockedUsers_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "ContentReport" DROP CONSTRAINT IF EXISTS "ContentReport_reporterId_fkey";
+ALTER TABLE "ContentReport" ADD CONSTRAINT "ContentReport_reporterId_fkey" FOREIGN KEY ("reporterId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Insert default moderation settings
+INSERT INTO "ModerationSettings" ("id", "useAIModeration", "moderationLevel", "spamThreshold")
+VALUES ('global', true, 'basic', 0.7)
+ON CONFLICT ("id") DO NOTHING;
