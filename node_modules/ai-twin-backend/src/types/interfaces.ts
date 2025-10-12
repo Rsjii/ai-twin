@@ -31,6 +31,14 @@ export interface Twin {
   styleVector: StyleVector;
   instructions?: InstructionState;
   sampleReply?: string;
+  isPublic: boolean;
+  publicHandle?: string;
+  bio?: string;
+  profileImage?: string;
+  verified: boolean;
+  likeCount: number;
+  followCount: number;
+  chatCount: number;
   createdAt: Date;
   chats: Chat[];
 }
@@ -123,7 +131,55 @@ export enum EventType {
   MESSAGE_APPROVED = 'message_approved',
   PROFILE_SHARED = 'profile_shared',
   INVITE_SENT = 'invite_sent',
-  INVITE_ACCEPTED = 'invite_accepted'
+  INVITE_ACCEPTED = 'invite_accepted',
+  TWIN_MADE_PUBLIC = 'twin_made_public',
+  TWIN_LIKED = 'twin_liked',
+  TWIN_FOLLOWED = 'twin_followed',
+  PUBLIC_CHAT_STARTED = 'public_chat_started'
+}
+
+// Twin Like Interface
+export interface TwinLike {
+  id: string;
+  twinId: string;
+  userId: string;
+  createdAt: Date;
+}
+
+// Twin Follow Interface
+export interface TwinFollow {
+  id: string;
+  twinId: string;
+  userId: string;
+  createdAt: Date;
+}
+
+// Public Chat Interface
+export interface PublicChat {
+  id: string;
+  twinId: string;
+  visitorId?: string;
+  messageCount: number;
+  createdAt: Date;
+  lastActivity: Date;
+}
+
+// Public Twin Profile Interface
+export interface PublicTwinProfile {
+  id: string;
+  userId: string;
+  userHandle: string;
+  userName: string;
+  publicHandle: string;
+  bio?: string;
+  profileImage?: string;
+  verified: boolean;
+  likeCount: number;
+  followCount: number;
+  chatCount: number;
+  styleVector: StyleVector;
+  sampleReply?: string;
+  createdAt: Date;
 }
 
 // API Response Interfaces
@@ -221,6 +277,31 @@ export interface CreateInviteRequest {
 
 export interface ProcessInviteRequest {
   code: string;
+}
+
+export interface MakeTwinPublicRequest {
+  publicHandle: string;
+  bio?: string;
+  profileImage?: string;
+}
+
+export interface UpdateTwinProfileRequest {
+  bio?: string;
+  profileImage?: string;
+  publicHandle?: string;
+}
+
+export interface LikeTwinRequest {
+  twinId: string;
+}
+
+export interface FollowTwinRequest {
+  twinId: string;
+}
+
+export interface StartPublicChatRequest {
+  twinId: string;
+  visitorId?: string;
 }
 
 // Configuration Interface

@@ -124,8 +124,8 @@ console.log('========================');
   // Save twin to database using raw SQL
    const twinId = `twin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
    const insertQuery = `
-    INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "createdAt")
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "isPublic", "verified", "likeCount", "followCount", "chatCount", "createdAt")
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     RETURNING id, "createdAt"
    `;
 
@@ -134,6 +134,11 @@ console.log('========================');
      req.user.id,
      JSON.stringify(styleVector),
      sampleReply,
+     false, // isPublic - default to private
+     false, // verified - default to not verified
+     0,     // likeCount - default to 0
+     0,     // followCount - default to 0
+     0,     // chatCount - default to 0
      new Date()
    ]);
 

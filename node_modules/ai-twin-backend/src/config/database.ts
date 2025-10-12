@@ -30,6 +30,14 @@ CREATE TABLE IF NOT EXISTS "Twin" (
     "userId" TEXT NOT NULL,
     "styleVector" JSONB NOT NULL,
     "sampleReply" TEXT,
+    "isPublic" BOOLEAN NOT NULL DEFAULT false,
+    "publicHandle" TEXT,
+    "bio" TEXT,
+    "profileImage" TEXT,
+    "verified" BOOLEAN NOT NULL DEFAULT false,
+    "likeCount" INTEGER NOT NULL DEFAULT 0,
+    "followCount" INTEGER NOT NULL DEFAULT 0,
+    "chatCount" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Twin_pkey" PRIMARY KEY ("id")
 );
@@ -85,11 +93,43 @@ CREATE TABLE IF NOT EXISTS "Event" (
     CONSTRAINT "Event_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "TwinLike" (
+    "id" TEXT NOT NULL,
+    "twinId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "TwinLike_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "TwinFollow" (
+    "id" TEXT NOT NULL,
+    "twinId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "TwinFollow_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PublicChat" (
+    "id" TEXT NOT NULL,
+    "twinId" TEXT NOT NULL,
+    "visitorId" TEXT,
+    "messageCount" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastActivity" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PublicChat_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX IF NOT EXISTS "User_handle_key" ON "User"("handle");
 CREATE UNIQUE INDEX IF NOT EXISTS "Invite_code_key" ON "Invite"("code");
 CREATE UNIQUE INDEX IF NOT EXISTS "Twin_userId_key" ON "Twin"("userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "Twin_publicHandle_key" ON "Twin"("publicHandle");
+CREATE UNIQUE INDEX IF NOT EXISTS "TwinLike_twinId_userId_key" ON "TwinLike"("twinId", "userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "TwinFollow_twinId_userId_key" ON "TwinFollow"("twinId", "userId");
 
 -- Add missing columns to User table if they don't exist
 DO $$ 
@@ -112,6 +152,39 @@ BEGIN
     
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'instructions') THEN
         ALTER TABLE "Twin" ADD COLUMN "instructions" JSONB;
+    END IF;
+    
+    -- Add new public twin columns
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'isPublic') THEN
+        ALTER TABLE "Twin" ADD COLUMN "isPublic" BOOLEAN DEFAULT false;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'publicHandle') THEN
+        ALTER TABLE "Twin" ADD COLUMN "publicHandle" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'bio') THEN
+        ALTER TABLE "Twin" ADD COLUMN "bio" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'profileImage') THEN
+        ALTER TABLE "Twin" ADD COLUMN "profileImage" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'verified') THEN
+        ALTER TABLE "Twin" ADD COLUMN "verified" BOOLEAN DEFAULT false;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'likeCount') THEN
+        ALTER TABLE "Twin" ADD COLUMN "likeCount" INTEGER DEFAULT 0;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'followCount') THEN
+        ALTER TABLE "Twin" ADD COLUMN "followCount" INTEGER DEFAULT 0;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'chatCount') THEN
+        ALTER TABLE "Twin" ADD COLUMN "chatCount" INTEGER DEFAULT 0;
     END IF;
 END $$;
 
@@ -136,6 +209,21 @@ ALTER TABLE "Invite" ADD CONSTRAINT "Invite_acceptedBy_fkey" FOREIGN KEY ("accep
 
 ALTER TABLE "Event" DROP CONSTRAINT IF EXISTS "Event_userId_fkey";
 ALTER TABLE "Event" ADD CONSTRAINT "Event_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE "TwinLike" DROP CONSTRAINT IF EXISTS "TwinLike_twinId_fkey";
+ALTER TABLE "TwinLike" ADD CONSTRAINT "TwinLike_twinId_fkey" FOREIGN KEY ("twinId") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "TwinLike" DROP CONSTRAINT IF EXISTS "TwinLike_userId_fkey";
+ALTER TABLE "TwinLike" ADD CONSTRAINT "TwinLike_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "TwinFollow" DROP CONSTRAINT IF EXISTS "TwinFollow_twinId_fkey";
+ALTER TABLE "TwinFollow" ADD CONSTRAINT "TwinFollow_twinId_fkey" FOREIGN KEY ("twinId") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "TwinFollow" DROP CONSTRAINT IF EXISTS "TwinFollow_userId_fkey";
+ALTER TABLE "TwinFollow" ADD CONSTRAINT "TwinFollow_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "PublicChat" DROP CONSTRAINT IF EXISTS "PublicChat_twinId_fkey";
+ALTER TABLE "PublicChat" ADD CONSTRAINT "PublicChat_twinId_fkey" FOREIGN KEY ("twinId") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 `;
 
 export async function initializeDatabase() {
@@ -289,6 +377,193 @@ export const otpQueries = {
 
   markAsUsed: async (id: string) => {
     const result = await db.query('UPDATE "OTP" SET used = true WHERE id = $1 RETURNING *', [id]);
+    return result.rows[0];
+  }
+};
+
+// Public Twin Queries
+export const publicTwinQueries = {
+  makePublic: async (twinId: string, publicHandle: string, bio?: string, profileImage?: string) => {
+    const result = await db.query(
+      'UPDATE "Twin" SET "isPublic" = true, "publicHandle" = $1, "bio" = $2, "profileImage" = $3 WHERE id = $4 RETURNING *',
+      [publicHandle, bio || null, profileImage || null, twinId]
+    );
+    return result.rows[0];
+  },
+
+  makePrivate: async (twinId: string) => {
+    const result = await db.query(
+      'UPDATE "Twin" SET "isPublic" = false, "publicHandle" = null WHERE id = $1 RETURNING *',
+      [twinId]
+    );
+    return result.rows[0];
+  },
+
+  findByPublicHandle: async (publicHandle: string) => {
+    const result = await db.query(
+      'SELECT t.*, u.handle as userHandle, u.name as userName FROM "Twin" t JOIN "User" u ON t."userId" = u.id WHERE t."publicHandle" = $1 AND t."isPublic" = true',
+      [publicHandle]
+    );
+    return result.rows[0];
+  },
+
+  getPublicTwins: async (limit = 20, offset = 0) => {
+    const result = await db.query(
+      `SELECT t.*, u.handle as userHandle, u.name as userName 
+       FROM "Twin" t 
+       JOIN "User" u ON t."userId" = u.id 
+       WHERE t."isPublic" = true 
+       ORDER BY t."likeCount" DESC, t."chatCount" DESC, t."createdAt" DESC 
+       LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+    return result.rows;
+  },
+
+  updateProfile: async (twinId: string, bio?: string, profileImage?: string, publicHandle?: string) => {
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (bio !== undefined) {
+      updates.push(`"bio" = $${paramCount}`);
+      values.push(bio);
+      paramCount++;
+    }
+    if (profileImage !== undefined) {
+      updates.push(`"profileImage" = $${paramCount}`);
+      values.push(profileImage);
+      paramCount++;
+    }
+    if (publicHandle !== undefined) {
+      updates.push(`"publicHandle" = $${paramCount}`);
+      values.push(publicHandle);
+      paramCount++;
+    }
+
+    if (updates.length === 0) {
+      throw new Error('No fields to update');
+    }
+
+    values.push(twinId);
+    const result = await db.query(
+      `UPDATE "Twin" SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+    return result.rows[0];
+  }
+};
+
+// Twin Like Queries
+export const twinLikeQueries = {
+  create: async (twinId: string, userId: string) => {
+    const id = generateId();
+    const result = await db.query(
+      'INSERT INTO "TwinLike" (id, "twinId", "userId") VALUES ($1, $2, $3) RETURNING *',
+      [id, twinId, userId]
+    );
+    // Update like count
+    await db.query('UPDATE "Twin" SET "likeCount" = "likeCount" + 1 WHERE id = $1', [twinId]);
+    return result.rows[0];
+  },
+
+  remove: async (twinId: string, userId: string) => {
+    const result = await db.query(
+      'DELETE FROM "TwinLike" WHERE "twinId" = $1 AND "userId" = $2 RETURNING *',
+      [twinId, userId]
+    );
+    // Update like count
+    if (result.rows.length > 0) {
+      await db.query('UPDATE "Twin" SET "likeCount" = "likeCount" - 1 WHERE id = $1', [twinId]);
+    }
+    return result.rows[0];
+  },
+
+  findByTwinAndUser: async (twinId: string, userId: string) => {
+    const result = await db.query(
+      'SELECT * FROM "TwinLike" WHERE "twinId" = $1 AND "userId" = $2',
+      [twinId, userId]
+    );
+    return result.rows[0];
+  },
+
+  getTwinLikes: async (twinId: string) => {
+    const result = await db.query(
+      'SELECT COUNT(*) as count FROM "TwinLike" WHERE "twinId" = $1',
+      [twinId]
+    );
+    return parseInt(result.rows[0].count);
+  }
+};
+
+// Twin Follow Queries
+export const twinFollowQueries = {
+  create: async (twinId: string, userId: string) => {
+    const id = generateId();
+    const result = await db.query(
+      'INSERT INTO "TwinFollow" (id, "twinId", "userId") VALUES ($1, $2, $3) RETURNING *',
+      [id, twinId, userId]
+    );
+    // Update follow count
+    await db.query('UPDATE "Twin" SET "followCount" = "followCount" + 1 WHERE id = $1', [twinId]);
+    return result.rows[0];
+  },
+
+  remove: async (twinId: string, userId: string) => {
+    const result = await db.query(
+      'DELETE FROM "TwinFollow" WHERE "twinId" = $1 AND "userId" = $2 RETURNING *',
+      [twinId, userId]
+    );
+    // Update follow count
+    if (result.rows.length > 0) {
+      await db.query('UPDATE "Twin" SET "followCount" = "followCount" - 1 WHERE id = $1', [twinId]);
+    }
+    return result.rows[0];
+  },
+
+  findByTwinAndUser: async (twinId: string, userId: string) => {
+    const result = await db.query(
+      'SELECT * FROM "TwinFollow" WHERE "twinId" = $1 AND "userId" = $2',
+      [twinId, userId]
+    );
+    return result.rows[0];
+  },
+
+  getTwinFollows: async (twinId: string) => {
+    const result = await db.query(
+      'SELECT COUNT(*) as count FROM "TwinFollow" WHERE "twinId" = $1',
+      [twinId]
+    );
+    return parseInt(result.rows[0].count);
+  }
+};
+
+// Public Chat Queries
+export const publicChatQueries = {
+  create: async (twinId: string, visitorId?: string) => {
+    const id = generateId();
+    const result = await db.query(
+      'INSERT INTO "PublicChat" (id, "twinId", "visitorId") VALUES ($1, $2, $3) RETURNING *',
+      [id, twinId, visitorId || null]
+    );
+    // Update chat count
+    await db.query('UPDATE "Twin" SET "chatCount" = "chatCount" + 1 WHERE id = $1', [twinId]);
+    return result.rows[0];
+  },
+
+  updateMessageCount: async (chatId: string) => {
+    const result = await db.query(
+      'UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "lastActivity" = NOW() WHERE id = $1 RETURNING *',
+      [chatId]
+    );
+    return result.rows[0];
+  },
+
+  findByTwinAndVisitor: async (twinId: string, visitorId?: string) => {
+    const result = await db.query(
+      'SELECT * FROM "PublicChat" WHERE "twinId" = $1 AND ("visitorId" = $2 OR ("visitorId" IS NULL AND $2 IS NULL)) ORDER BY "createdAt" DESC LIMIT 1',
+      [twinId, visitorId || null]
+    );
     return result.rows[0];
   }
 };
