@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { startChat, getChat, getUserChats, generateDraft, sendMessage, getChatHistory, getChatMessages, continueChat } from './chatController';
-import { requireAuth } from '../../middleware/auth';
+import { startChat, getChat, getUserChats, generateDraft, sendMessage, getChatHistory, getChatMessages, continueChat, handleUserMessage } from './chatController';
+import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import { draftGenerationRateLimit } from '../../middleware/rateLimit';
 import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
 import { sanitizeInput } from '../../middleware/validation';
@@ -8,7 +8,7 @@ import { sanitizeInput } from '../../middleware/validation';
 const router = Router();
 
 // Apply authentication and CSRF protection
-router.use(requireAuth);
+router.use(requireJWTFromCookie);
 router.use(generateCSRFToken);
 
 // Chat routes
@@ -20,5 +20,6 @@ router.get('/:id', getChat);
 router.get('/:id/messages', getChatMessages);
 router.post('/:id/draft', sanitizeInput, validateCSRF, draftGenerationRateLimit, generateDraft);
 router.post('/:id/send', sanitizeInput, validateCSRF, sendMessage);
+router.post('/:id/message', sanitizeInput, handleUserMessage);
 
 export default router;

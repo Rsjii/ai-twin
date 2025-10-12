@@ -5,7 +5,6 @@ import { logger } from '../../config/logger';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { checkBlacklist, validateMessageLength } from '../../middleware/security';
-import { twinQueries } from '../../config/database';
 
 const twinService = new TwinService();
 
@@ -498,9 +497,190 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
+// New function to handle user messages and generate AI responses
+export const handleUserMessage = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { message } = req.body;
+    const { id } = req.params;
+    
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Validate message
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({ error: 'Message cannot be empty' });
+    }
+
+    if (!validateMessageLength(message)) {
+      return res.status(400).json({ error: 'Message length invalid' });
+    }
+
+    if (checkBlacklist(message)) {
+      return res.status(400).json({ error: 'Message contains restricted content' });
+    }
+
+    if (!id) {
+      return res.status(400).json({ error: 'Chat ID is required' });
+    }
+
+    // Get chat with twin information
+    const chat = await prisma.chat.findFirst({
+      where: {
+        id: id,
+        userId: req.user.id,
+      },
+      include: {
+        twin: true,
+      },
+    });
+    
+    if (!chat) {
+      logger.error('Chat not found:', { chatId: id, userId: req.user.id });
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    if (!chat.twin) {
+      logger.error('Twin not found for chat:', { chatId: id, twinId: chat.twinId });
+      return res.status(404).json({ error: 'Twin not found for this chat' });
+    }
+
+    logger.info('Chat found:', { 
+      chatId: chat.id, 
+      twinId: chat.twinId, 
+      userId: chat.userId,
+      styleVector: chat.twin.styleVector 
+    });
+
+    // Save user message
+    let userMessage;
+    try {
+      userMessage = await prisma.message.create({
+        data: {
+          chatId: chat.id,
+          sender: 'human',
+          content: message.trim(),
+          approved: true,
+        },
+      });
+      logger.info('User message saved successfully:', userMessage.id);
+    } catch (error) {
+      logger.error('Failed to save user message:', error);
+      return res.status(500).json({ error: 'Failed to save user message' });
+    }
+
+    // Get recent chat context (last 10 messages)
+    const recentMessages = await prisma.message.findMany({
+      where: { chatId: chat.id },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: { content: true, sender: true, createdAt: true }
+    });
+
+    // Create context for AI response generation
+    const context = {
+      styleVector: chat.twin.styleVector as any,
+      chatMemory: recentMessages.reverse().map(msg => ({
+        content: msg.content,
+        sender: msg.sender,
+        timestamp: msg.createdAt
+      })),
+      currentMessages: [message.trim()]
+    };
+
+    // Generate AI response using TwinService
+    let aiResponse;
+    try {
+      logger.info('Generating AI response with context:', {
+        styleVector: context.styleVector,
+        chatMemoryLength: context.chatMemory.length,
+        currentMessages: context.currentMessages
+      });
+      
+      aiResponse = await twinService.generateDraftWithContext(context);
+      
+      if (!aiResponse || aiResponse.trim().length === 0) {
+        throw new Error('Empty response from AI');
+      }
+      
+      logger.info('AI response generated successfully:', aiResponse.substring(0, 100));
+    } catch (error) {
+      logger.error('AI response generation failed:', error);
+      aiResponse = "I'm having trouble thinking right now. Could you try again?";
+    }
+
+    // Save AI response
+    let aiMessage;
+    try {
+      aiMessage = await prisma.message.create({
+        data: {
+          chatId: chat.id,
+          sender: 'twin',
+          content: aiResponse,
+          approved: true,
+        },
+      });
+      logger.info('AI message saved successfully:', aiMessage.id);
+    } catch (error) {
+      logger.error('Failed to save AI message:', error);
+      return res.status(500).json({ error: 'Failed to save AI response' });
+    }
+
+    // Log chat message event
+    try {
+      await prisma.event.create({
+        data: {
+          userId: req.user.id,
+          type: 'chat_message',
+          meta: { 
+            chatId: chat.id, 
+            twinId: chat.twinId,
+            userMessageId: userMessage.id,
+            aiMessageId: aiMessage.id
+          },
+        },
+      });
+      logger.info('Chat event logged successfully');
+    } catch (error) {
+      logger.error('Failed to log chat event:', error);
+      // Don't fail the request for logging errors
+    }
+
+    // Update style vector based on new conversation (async, don't wait)
+    updateStyleVectorAfterChat(chat.twinId, req.user.id).catch(error => {
+      logger.error('Style vector update failed:', error);
+    });
+    
+    res.json({
+      success: true,
+      response: aiResponse,
+      userMessage: {
+        id: userMessage.id,
+        content: userMessage.content,
+        sender: userMessage.sender,
+        createdAt: userMessage.createdAt,
+      },
+      aiMessage: {
+        id: aiMessage.id,
+        content: aiMessage.content,
+        sender: aiMessage.sender,
+        createdAt: aiMessage.createdAt,
+      },
+    });
+  } catch (error) {
+    logger.error('Handle user message error:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    }
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 // Helper function to update style vector after chat
 async function updateStyleVectorAfterChat(twinId: string, userId: string) {
   try {
+    logger.info('Starting style vector update for twin:', twinId);
+    
     // Get the twin's current style vector
     const twin = await prisma.twin.findFirst({
       where: { id: twinId, userId: userId }
@@ -510,6 +690,8 @@ async function updateStyleVectorAfterChat(twinId: string, userId: string) {
       logger.warn('Twin not found for style vector update:', twinId);
       return;
     }
+
+    logger.info('Found twin for style vector update:', twin.id);
 
     // Get recent messages from this chat (last 10 messages)
     const recentMessages = await prisma.message.findMany({
@@ -524,6 +706,8 @@ async function updateStyleVectorAfterChat(twinId: string, userId: string) {
       select: { content: true, sender: true }
     });
 
+    logger.info('Found recent messages:', recentMessages.length);
+
     // Filter only human messages for style analysis
     const humanMessages = recentMessages
       .filter(msg => msg.sender === 'human')
@@ -534,14 +718,19 @@ async function updateStyleVectorAfterChat(twinId: string, userId: string) {
       return;
     }
 
+    logger.info('Human messages for style analysis:', humanMessages.length);
+
     // Update style vector based on new conversations
     const currentStyleVector = twin.styleVector as any;
+    logger.info('Current style vector:', JSON.stringify(currentStyleVector, null, 2));
+    
     const updatedStyleVector = await twinService.updateStyleVector(currentStyleVector, humanMessages);
+    logger.info('Updated style vector:', JSON.stringify(updatedStyleVector, null, 2));
 
     // Save updated style vector to database
     await prisma.twin.update({
       where: { id: twinId },
-      data: { styleVector: updatedStyleVector }
+      data: { styleVector: updatedStyleVector as any }
     });
 
     logger.info('Style vector updated successfully for twin:', twinId);
