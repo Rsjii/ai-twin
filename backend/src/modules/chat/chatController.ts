@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { prisma } from '../../config/prisma';
+import { db } from '../../config/database';
 import { TwinService } from '../twin/twinService';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
@@ -524,62 +524,144 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       return res.status(400).json({ error: 'Chat ID is required' });
     }
 
-    // Get chat with twin information
-    const chat = await prisma.chat.findFirst({
-      where: {
-        id: id,
-        userId: req.user.id,
-      },
-      include: {
-        twin: true,
-      },
+    // Get chat with twin information using raw SQL
+    const chatResult = await db.query(`
+      SELECT c.id, c."userId", c."twinId", c."createdAt",
+             t.id as twin_id, t."styleVector", t."sampleReply", t."instructions"
+      FROM "Chat" c
+      JOIN "Twin" t ON c."twinId" = t.id
+      WHERE c.id = $1 AND c."userId" = $2
+    `, [id, req.user.id]);
+    
+    logger.info('Chat query result:', {
+      chatId: id,
+      userId: req.user.id,
+      rowsFound: chatResult.rows.length,
+      rows: chatResult.rows
     });
     
-    if (!chat) {
-      logger.error('Chat not found:', { chatId: id, userId: req.user.id });
-      return res.status(404).json({ error: 'Chat not found' });
+    // Also try to find any chats for this user to debug
+    const allChatsResult = await db.query(`
+      SELECT c.id, c."userId", c."twinId"
+      FROM "Chat" c
+      WHERE c."userId" = $1
+      LIMIT 5
+    `, [req.user.id]);
+    
+    logger.info('All chats for user:', {
+      userId: req.user.id,
+      totalChats: allChatsResult.rows.length,
+      chats: allChatsResult.rows
+    });
+    
+    if (chatResult.rows.length === 0) {
+      logger.info('Chat not found, creating new chat for user:', { chatId: id, userId: req.user.id });
+      
+      // Get user's latest twin
+      const twinResult = await db.query(`
+        SELECT id, "styleVector", "sampleReply", "instructions"
+        FROM "Twin"
+        WHERE "userId" = $1
+        ORDER BY "createdAt" DESC
+        LIMIT 1
+      `, [req.user.id]);
+      
+      if (twinResult.rows.length === 0) {
+        logger.error('No twin found for user:', req.user.id);
+        return res.status(404).json({ error: 'No twin found. Please create a twin first.' });
+      }
+      
+      const twin = twinResult.rows[0];
+      logger.info('Found twin for new chat:', twin.id);
+      
+      // Create new chat
+      const newChatResult = await db.query(`
+        INSERT INTO "Chat" ("id", "userId", "twinId", "createdAt")
+        VALUES ($1, $2, $3, NOW())
+        RETURNING id, "userId", "twinId", "createdAt"
+      `, [id, req.user.id, twin.id]);
+      
+      if (newChatResult.rows.length === 0) {
+        logger.error('Failed to create new chat');
+        return res.status(500).json({ error: 'Failed to create chat' });
+      }
+      
+      const newChat = newChatResult.rows[0];
+      logger.info('New chat created:', newChat.id);
+      
+      // Log chat started event
+      try {
+        await db.query(`
+          INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
+          VALUES ($1, $2, $3, $4, NOW())
+        `, [
+          `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          req.user.id,
+          'chat_started',
+          JSON.stringify({ chatId: newChat.id, twinId: twin.id })
+        ]);
+        logger.info('Chat started event logged');
+      } catch (error) {
+        logger.error('Failed to log chat started event:', error);
+      }
+      
+      // Update chat variable to use the new chat
+      chatResult.rows = [{
+        id: newChat.id,
+        userId: newChat.userId,
+        twinId: newChat.twinId,
+        createdAt: newChat.createdAt,
+        twin_id: twin.id,
+        styleVector: twin.styleVector,
+        sampleReply: twin.sampleReply,
+        instructions: twin.instructions
+      }];
     }
 
-    if (!chat.twin) {
-      logger.error('Twin not found for chat:', { chatId: id, twinId: chat.twinId });
-      return res.status(404).json({ error: 'Twin not found for this chat' });
-    }
-
+    const chat = chatResult.rows[0];
     logger.info('Chat found:', { 
       chatId: chat.id, 
       twinId: chat.twinId, 
       userId: chat.userId,
-      styleVector: chat.twin.styleVector 
+      styleVector: chat.styleVector 
     });
 
-    // Save user message
+    // Save user message using raw SQL
     let userMessage;
     try {
-      userMessage = await prisma.message.create({
-        data: {
-          chatId: chat.id,
-          sender: 'human',
-          content: message.trim(),
-          approved: true,
-        },
-      });
+      const userMessageResult = await db.query(`
+        INSERT INTO "Message" ("id", "chatId", "sender", "content", "approved", "createdAt")
+        VALUES ($1, $2, $3, $4, $5, NOW())
+        RETURNING id, "chatId", sender, content, approved, "createdAt"
+      `, [
+        `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        chat.id,
+        'human',
+        message.trim(),
+        true
+      ]);
+      
+      userMessage = userMessageResult.rows[0];
       logger.info('User message saved successfully:', userMessage.id);
     } catch (error) {
       logger.error('Failed to save user message:', error);
       return res.status(500).json({ error: 'Failed to save user message' });
     }
 
-    // Get recent chat context (last 10 messages)
-    const recentMessages = await prisma.message.findMany({
-      where: { chatId: chat.id },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-      select: { content: true, sender: true, createdAt: true }
-    });
+    // Get recent chat context (last 10 messages) using raw SQL
+    const recentMessagesResult = await db.query(`
+      SELECT content, sender, "createdAt"
+      FROM "Message"
+      WHERE "chatId" = $1
+      ORDER BY "createdAt" DESC
+      LIMIT 10
+    `, [chat.id]);
+    
+    const recentMessages = recentMessagesResult.rows;
 
     // Create context for AI response generation
     const context = {
-      styleVector: chat.twin.styleVector as any,
+      styleVector: chat.styleVector as any,
       chatMemory: recentMessages.reverse().map(msg => ({
         content: msg.content,
         sender: msg.sender,
@@ -609,37 +691,44 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       aiResponse = "I'm having trouble thinking right now. Could you try again?";
     }
 
-    // Save AI response
+    // Save AI response using raw SQL
     let aiMessage;
     try {
-      aiMessage = await prisma.message.create({
-        data: {
-          chatId: chat.id,
-          sender: 'twin',
-          content: aiResponse,
-          approved: true,
-        },
-      });
+      const aiMessageResult = await db.query(`
+        INSERT INTO "Message" ("id", "chatId", "sender", "content", "approved", "createdAt")
+        VALUES ($1, $2, $3, $4, $5, NOW())
+        RETURNING id, "chatId", sender, content, approved, "createdAt"
+      `, [
+        `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        chat.id,
+        'twin',
+        aiResponse,
+        true
+      ]);
+      
+      aiMessage = aiMessageResult.rows[0];
       logger.info('AI message saved successfully:', aiMessage.id);
     } catch (error) {
       logger.error('Failed to save AI message:', error);
       return res.status(500).json({ error: 'Failed to save AI response' });
     }
 
-    // Log chat message event
+    // Log chat message event using raw SQL
     try {
-      await prisma.event.create({
-        data: {
-          userId: req.user.id,
-          type: 'chat_message',
-          meta: { 
-            chatId: chat.id, 
-            twinId: chat.twinId,
-            userMessageId: userMessage.id,
-            aiMessageId: aiMessage.id
-          },
-        },
-      });
+      await db.query(`
+        INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
+        VALUES ($1, $2, $3, $4, NOW())
+      `, [
+        `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        req.user.id,
+        'chat_message',
+        JSON.stringify({ 
+          chatId: chat.id, 
+          twinId: chat.twinId,
+          userMessageId: userMessage.id,
+          aiMessageId: aiMessage.id
+        })
+      ]);
       logger.info('Chat event logged successfully');
     } catch (error) {
       logger.error('Failed to log chat event:', error);
@@ -681,30 +770,32 @@ async function updateStyleVectorAfterChat(twinId: string, userId: string) {
   try {
     logger.info('Starting style vector update for twin:', twinId);
     
-    // Get the twin's current style vector
-    const twin = await prisma.twin.findFirst({
-      where: { id: twinId, userId: userId }
-    });
+    // Get the twin's current style vector using raw SQL
+    const twinResult = await db.query(`
+      SELECT id, "styleVector"
+      FROM "Twin"
+      WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
     
-    if (!twin) {
+    if (twinResult.rows.length === 0) {
       logger.warn('Twin not found for style vector update:', twinId);
       return;
     }
 
+    const twin = twinResult.rows[0];
     logger.info('Found twin for style vector update:', twin.id);
 
-    // Get recent messages from this chat (last 10 messages)
-    const recentMessages = await prisma.message.findMany({
-      where: { 
-        chat: {
-          twinId: twinId,
-          userId: userId
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-      select: { content: true, sender: true }
-    });
+    // Get recent messages from this chat (last 10 messages) using raw SQL
+    const recentMessagesResult = await db.query(`
+      SELECT m.content, m.sender
+      FROM "Message" m
+      JOIN "Chat" c ON m."chatId" = c.id
+      WHERE c."twinId" = $1 AND c."userId" = $2
+      ORDER BY m."createdAt" DESC
+      LIMIT 10
+    `, [twinId, userId]);
+    
+    const recentMessages = recentMessagesResult.rows;
 
     logger.info('Found recent messages:', recentMessages.length);
 
@@ -727,11 +818,12 @@ async function updateStyleVectorAfterChat(twinId: string, userId: string) {
     const updatedStyleVector = await twinService.updateStyleVector(currentStyleVector, humanMessages);
     logger.info('Updated style vector:', JSON.stringify(updatedStyleVector, null, 2));
 
-    // Save updated style vector to database
-    await prisma.twin.update({
-      where: { id: twinId },
-      data: { styleVector: updatedStyleVector as any }
-    });
+    // Save updated style vector to database using raw SQL
+    await db.query(`
+      UPDATE "Twin"
+      SET "styleVector" = $1
+      WHERE id = $2
+    `, [JSON.stringify(updatedStyleVector), twinId]);
 
     logger.info('Style vector updated successfully for twin:', twinId);
   } catch (error) {

@@ -217,48 +217,121 @@ Return only valid JSON, no other text.`;
     try {
       const { styleVector, chatMemory, currentMessages } = context;
       
-      // Create system prompt with style vector
-      const systemPrompt = `You are an AI twin that mimics the user's communication style. 
+      logger.info('TwinService generateDraftWithContext called with:', {
+        styleVectorKeys: Object.keys(styleVector),
+        chatMemoryLength: chatMemory.length,
+        currentMessagesLength: currentMessages.length,
+        styleVector: JSON.stringify(styleVector, null, 2),
+        currentMessages: currentMessages
+      });
       
-Style Vector:
-- Tone: ${styleVector.tone}
-- Emoji Usage: ${styleVector.emoji_usage}
-- Hinglish Ratio: ${styleVector.hinglish_ratio}
-- Sentence Length: ${styleVector.sentence_length}
-- Signature Patterns: ${styleVector.signature_patterns.join(', ')}
-- Formality Level: ${styleVector.formality_level}
-- Humor Style: ${styleVector.humor_style}
-- Communication Style: ${styleVector.communication_style}
-- Personality Traits: ${styleVector.personality_traits.join(', ')}
+      // Validate inputs
+      if (!styleVector || !currentMessages || currentMessages.length === 0) {
+        logger.error('Invalid context provided:', { styleVector, currentMessages });
+        throw new Error('Invalid context provided');
+      }
+      
+      // Create system prompt similar to twin creation
+      const systemPrompt = `You are an AI twin that mimics the user's communication style. 
 
-Chat Memory (Previous conversation context):
+User's style:
+- Tone: ${styleVector.tone || 'casual'}
+- Communication: ${styleVector.communication_style || 'conversational'}
+
+Previous conversation:
 ${chatMemory.map(msg => `${msg.sender}: ${msg.content}`).join('\n')}
 
-Current Messages:
-${currentMessages.join('\n')}
+Respond as the user's AI twin. Keep it natural and conversational. Return only the response, no other text.`;
 
-Respond as the user's AI twin, maintaining their style and personality. Keep the response natural and conversational.`;
+      logger.info('System prompt created, calling OpenAI...');
+      logger.info('System prompt length:', systemPrompt.length);
+      logger.info('User message:', currentMessages.join('\n'));
+      logger.info('OpenAI API Key present:', !!config.openaiApiKey);
+      
+      // Add timeout and better error handling
+      const response = await Promise.race([
+        openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: currentMessages.join('\n') }
+          ],
+          max_tokens: 500,
+          temperature: 0.7
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('OpenAI API timeout')), 30000)
+        )
+      ]) as any;
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: currentMessages.join('\n') }
-        ],
-        max_tokens: 500,
-        temperature: 0.7
+      logger.info('OpenAI response object:', {
+        choices: response.choices?.length,
+        usage: response.usage
       });
 
-      return response.choices[0]?.message?.content || 'Sorry, I couldn\'t generate a response.';
+      const result = response.choices[0]?.message?.content;
+      logger.info('OpenAI response received:', result?.substring(0, 100));
+      
+      if (!result || result.trim().length === 0) {
+        logger.error('Empty response from OpenAI');
+        return 'Sorry, I couldn\'t generate a response.';
+      }
+      
+      return result;
     } catch (error) {
       logger.error('Generate draft with context error:', error);
-      throw new Error('Failed to generate draft');
+      logger.error('Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        context: {
+          styleVector: context.styleVector,
+          chatMemoryLength: context.chatMemory?.length,
+          currentMessages: context.currentMessages
+        }
+      });
+      
+      // Return a fallback response instead of throwing
+      logger.error('OpenAI API failed, using fallback response');
+      return this.generateFallbackResponse(currentMessages[0]);
     }
+  }
+
+  private generateFallbackResponse(userMessage: string): string {
+    const responses = [
+      "Hey! That's interesting. Tell me more about it!",
+      "I see what you mean. What do you think about that?",
+      "That's a good point! I'm curious to hear more.",
+      "Interesting! I'd love to know more about your thoughts on this.",
+      "That sounds cool! Can you elaborate on that?",
+      "I'm following you! What's your take on this?",
+      "That's fascinating! I'd like to understand better.",
+      "Good question! What made you think of that?",
+      "I hear you! That's definitely worth discussing.",
+      "That's interesting! I'm curious about your perspective."
+    ];
+    
+    // Simple keyword-based responses
+    const message = userMessage.toLowerCase();
+    if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
+      return "Hey there! How's it going?";
+    }
+    if (message.includes('how are you') || message.includes('how are you doing')) {
+      return "I'm doing great! Thanks for asking. How about you?";
+    }
+    if (message.includes('what') && message.includes('doing')) {
+      return "Just chatting with you! What about you? What's keeping you busy?";
+    }
+    if (message.includes('?')) {
+      return "That's a great question! I'm thinking about it. What's your take on this?";
+    }
+    
+    // Random response
+    return responses[Math.floor(Math.random() * responses.length)];
   }
 
   private getDefaultStyleVector(): StyleVector {
     return {
-      tone: 'friendly',
+      tone: 'casual',
       emoji_usage: 0.3,
       hinglish_ratio: 0.2,
       sentence_length: 'medium',
