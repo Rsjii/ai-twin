@@ -423,6 +423,63 @@ export const getMostFollowedTwins = async (req: Request, res: Response) => {
   }
 };
 
+// Get popular twins (most liked + most followed + most chatted)
+export const getPopularTwins = async (req: Request, res: Response) => {
+  try {
+    const { limit, offset } = trendingSchema.parse(req.query);
+
+    // Get popular twins based on combined engagement
+    const popularTwins = await db.query(`
+      SELECT 
+        t.id,
+        t."publicHandle",
+        t."bio",
+        t."profileImage",
+        t."verified",
+        t."likeCount",
+        t."followCount",
+        t."chatCount",
+        t."sampleReply",
+        t."createdAt",
+        u.handle as "userHandle",
+        u.name as "userName",
+        -- Calculate popularity score
+        (
+          t."likeCount" * 0.4 +
+          t."followCount" * 0.3 +
+          t."chatCount" * 0.3
+        ) as popularity_score
+      FROM "Twin" t
+      JOIN "User" u ON t."userId" = u.id
+      WHERE t."isPublic" = true
+      ORDER BY popularity_score DESC, t."createdAt" DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
+
+    res.json({
+      success: true,
+      twins: popularTwins.rows,
+      pagination: {
+        limit,
+        offset,
+        total: popularTwins.rows.length
+      }
+    });
+
+  } catch (error) {
+    logger.error('Get popular twins error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Invalid input', 
+        details: error.errors 
+      });
+    }
+    
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 // Get discover feed (mixed content)
 export const getDiscoverFeed = async (req: Request, res: Response) => {
   try {
