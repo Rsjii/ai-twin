@@ -8,6 +8,7 @@ export interface JWTPayload {
   userId: string;
   email: string;
   handle: string;
+  id?: string; // Added for compatibility with middleware
   iat?: number;
   exp?: number;
 }

@@ -14,16 +14,17 @@ declare global {
 export const extractJWTFromCookie = (req: Request, res: Response, next: NextFunction) => {
   try {
     // Try to get JWT from cookie first
-    const tokenFromCookie = req.cookies?.jwtToken;
+    const tokenFromCookie = req.cookies?.['jwtToken'];
     
     if (tokenFromCookie) {
       try {
         const decoded = verifyJWT(tokenFromCookie);
         // Map JWT payload to expected user structure
         req.user = {
-          id: decoded.userId,
+          userId: decoded.userId,
           email: decoded.email,
-          handle: decoded.handle
+          handle: decoded.handle,
+          id: decoded.userId // Add id field for compatibility
         };
         logger.info(`JWT extracted from cookie for user: ${decoded.email}`);
         return next();
@@ -50,7 +51,7 @@ export const requireJWTFromCookie = (req: Request, res: Response, next: NextFunc
   console.log('============================');
   
     // Try to get JWT from cookie first
-    const tokenFromCookie = req.cookies?.jwtToken;
+    const tokenFromCookie = req.cookies?.['jwtToken'];
     
     if (!tokenFromCookie) {
       logger.warn('No JWT token found in cookie');
@@ -61,9 +62,10 @@ export const requireJWTFromCookie = (req: Request, res: Response, next: NextFunc
       const decoded = verifyJWT(tokenFromCookie);
       // Map JWT payload to expected user structure
       req.user = {
-        id: decoded.userId,
+        userId: decoded.userId,
         email: decoded.email,
-        handle: decoded.handle
+        handle: decoded.handle,
+        id: decoded.userId // Add id field for compatibility
       };
       logger.info(`JWT verified from cookie for user: ${decoded.email}`);
       console.log('=== JWT MIDDLEWARE DEBUG ===');

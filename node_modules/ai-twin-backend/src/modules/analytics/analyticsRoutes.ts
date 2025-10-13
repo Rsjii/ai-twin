@@ -1,13 +1,17 @@
 import { Router } from 'express';
-import { getMetricsSummary, getUserAnalytics } from './analyticsController';
-import { requireAuth } from '../../middleware/auth';
+import { getMetricsSummary, getUserAnalytics, debugUserData, createSampleData } from './analyticsController';
+import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 
 const router = Router();
 
 // Public metrics endpoint
 router.get('/summary', getMetricsSummary);
 
-// Protected user analytics
-router.get('/user', requireAuth, getUserAnalytics);
+// Debug endpoints
+router.get('/debug', requireJWTFromCookie, debugUserData);
+router.post('/create-sample', requireJWTFromCookie, createSampleData);
+
+// Protected user analytics - using JWT authentication
+router.get('/user', requireJWTFromCookie, getUserAnalytics);
 
 export default router;

@@ -124,6 +124,247 @@ app.get('/discover', (req, res) => {
   res.render('discover');
 });
 
+// Analytics dashboard route
+app.get('/analytics', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
+  
+  // Fetch full user data from database
+  const fullUser = await userQueries.findByEmail(req.user.email);
+  if (!fullUser) {
+    return res.redirect('/auth');
+  }
+  
+  // Set user data
+  const user = {
+    id: fullUser.id,
+    email: fullUser.email,
+    handle: fullUser.handle,
+    name: fullUser.name,
+    profileImage: fullUser.profileImage,
+  };
+  
+  res.render('layout', {
+    title: 'Analytics Dashboard - AI Twin',
+    user: user,
+    csrfToken: res.locals['csrfToken'],
+    body: `
+    <div class="px-4 py-6 sm:px-0">
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-900 mb-8">Analytics Dashboard</h1>
+            
+            <!-- Overview Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-blue-100 rounded-lg">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Views</p>
+                            <p class="text-2xl font-semibold text-gray-900" id="totalViews">-</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-green-100 rounded-lg">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Likes</p>
+                            <p class="text-2xl font-semibold text-gray-900" id="totalLikes">-</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-purple-100 rounded-lg">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Followers</p>
+                            <p class="text-2xl font-semibold text-gray-900" id="totalFollowers">-</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-orange-100 rounded-lg">
+                            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Chats</p>
+                            <p class="text-2xl font-semibold text-gray-900" id="totalChats">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Engagement Over Time</h3>
+                    <div id="engagementChart" class="h-64 flex items-center justify-center text-gray-500">
+                        <p>Chart will be loaded here</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Performing Content</h3>
+                    <div id="topContent" class="space-y-3">
+                        <p class="text-gray-500">Loading...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                </div>
+                <div class="p-6">
+                    <div id="recentActivity" class="space-y-4">
+                        <p class="text-gray-500">Loading recent activity...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Debug Section -->
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-6">
+                <h3 class="text-lg font-semibold text-yellow-800 mb-2">Debug Tools</h3>
+                <p class="text-sm text-yellow-700 mb-4">Use these tools to debug analytics data</p>
+                <div class="flex space-x-3">
+                    <button onclick="debugUserData()" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 text-sm">
+                        Debug User Data
+                    </button>
+                    <button onclick="createSampleData()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm">
+                        Create Sample Data
+                    </button>
+                    <button onclick="loadAnalytics()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
+                        Refresh Analytics
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Debug function to check user data
+        async function debugUserData() {
+            try {
+                console.log('=== DEBUGGING USER DATA ===');
+                const response = await fetch('/api/metrics/debug');
+                const data = await response.json();
+                console.log('Debug data:', data);
+                
+                if (data.success) {
+                    alert(\`Debug Info:\\nUser: \${data.user?.email || 'No user'}\\nTwins: \${data.counts?.twins || 0}\\nChats: \${data.counts?.chats || 0}\\nEvents: \${data.counts?.events || 0}\`);
+                } else {
+                    alert('Debug failed: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Debug error:', error);
+                alert('Debug error: ' + error.message);
+            }
+        }
+        
+        // Create sample data function
+        async function createSampleData() {
+            try {
+                console.log('Creating sample data...');
+                const response = await fetch('/api/metrics/create-sample', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                const data = await response.json();
+                console.log('Sample data response:', data);
+                
+                if (data.success) {
+                    alert('Sample data created successfully! Refreshing analytics...');
+                    loadAnalytics();
+                } else {
+                    alert('Failed to create sample data: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Create sample data error:', error);
+                alert('Error creating sample data: ' + error.message);
+            }
+        }
+        
+        // Load analytics data
+        async function loadAnalytics() {
+            try {
+                console.log('Loading analytics data...');
+                
+                // Load user analytics
+                const response = await fetch('/api/metrics/user');
+                const data = await response.json();
+                
+                console.log('Raw analytics response:', data);
+                
+                if (data.success) {
+                    console.log('Analytics data:', data);
+                    
+                    // Update overview cards
+                    document.getElementById('totalViews').textContent = data.analytics?.totalViews || 0;
+                    document.getElementById('totalLikes').textContent = data.analytics?.totalLikes || 0;
+                    document.getElementById('totalFollowers').textContent = data.analytics?.totalFollowers || 0;
+                    document.getElementById('totalChats').textContent = data.analytics?.totalChats || 0;
+                    
+                    // Update recent activity
+                    const activityContainer = document.getElementById('recentActivity');
+                    if (data.analytics?.recentActivity && data.analytics.recentActivity.length > 0) {
+                        activityContainer.innerHTML = data.analytics.recentActivity.map(activity => \`
+                            <div class="flex items-center space-x-3">
+                                <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-gray-900">\${activity.description}</p>
+                                    <p class="text-xs text-gray-500">\${new Date(activity.timestamp).toLocaleString()}</p>
+                                </div>
+                            </div>
+                        \`).join('');
+                    } else {
+                        activityContainer.innerHTML = '<p class="text-gray-500">No recent activity</p>';
+                    }
+                } else {
+                    console.error('Failed to load analytics:', data.error);
+                    // Show error message to user
+                    document.getElementById('totalViews').textContent = 'Error';
+                    document.getElementById('totalLikes').textContent = 'Error';
+                    document.getElementById('totalFollowers').textContent = 'Error';
+                    document.getElementById('totalChats').textContent = 'Error';
+                }
+            } catch (error) {
+                console.error('Analytics loading error:', error);
+                // Show error message to user
+                document.getElementById('totalViews').textContent = 'Error';
+                document.getElementById('totalLikes').textContent = 'Error';
+                document.getElementById('totalFollowers').textContent = 'Error';
+                document.getElementById('totalChats').textContent = 'Error';
+            }
+        }
+        
+        // Load analytics on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAnalytics();
+        });
+    </script>
+    `
+  });
+});
+
 // Public twin profile route (twinverse.ai/@handle)
 app.get('/@:handle', async (req: any, res) => {
   try {
@@ -845,6 +1086,14 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                 </svg>
                                 Discover Twins
+                            </span>
+                        </a>
+                        <a href="/analytics" class="flex-1 bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-lg hover:bg-white/30 transition-all duration-300 font-semibold inline-flex items-center justify-center border border-white/30">
+                            <span class="flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                Analytics
                             </span>
                         </a>
                     </div>
