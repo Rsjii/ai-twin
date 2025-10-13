@@ -6,13 +6,13 @@ import { z } from 'zod';
 // Validation schemas
 const searchSchema = z.object({
   query: z.string().min(1, 'Search query is required').max(100, 'Search query too long'),
-  limit: z.number().min(1).max(50).optional().default(20),
-  offset: z.number().min(0).optional().default(0)
+  limit: z.coerce.number().min(1).max(50).optional().default(20),
+  offset: z.coerce.number().min(0).optional().default(0)
 });
 
 const trendingSchema = z.object({
-  limit: z.number().min(1).max(50).optional().default(20),
-  offset: z.number().min(0).optional().default(0),
+  limit: z.coerce.number().min(1).max(50).optional().default(20),
+  offset: z.coerce.number().min(0).optional().default(0),
   timeframe: z.enum(['day', 'week', 'month', 'all']).optional().default('week')
 });
 

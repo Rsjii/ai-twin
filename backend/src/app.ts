@@ -43,9 +43,10 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://fonts.googleapis.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
       imgSrc: ["'self'", "data:", "https:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
     },
   },
 }));
@@ -1026,7 +1027,7 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
                             </div>
                         </div>
                         <div class="flex space-x-3">
-                            <a href="/@\${twin.publicHandle}" target="_blank" class="flex-1 bg-white/20 text-white py-2 px-4 rounded-lg hover:bg-white/30 transition-colors text-center">
+                            <a href="/@\${twin.publicHandle}"  class="flex-1 bg-white/20 text-white py-2 px-4 rounded-lg hover:bg-white/30 transition-colors text-center">
                                 View Public Profile
                             </a>
                             <button onclick="sharePublicTwin('\${twin.publicHandle}')" class="flex-1 bg-white/20 text-white py-2 px-4 rounded-lg hover:bg-white/30 transition-colors">
