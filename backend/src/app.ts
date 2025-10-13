@@ -811,6 +811,45 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
                 </div>
             </div>
             
+            <!-- Public Twin Management Section -->
+            <div class="mb-8">
+                <div class="bg-gradient-to-r from-green-500 to-blue-500 rounded-lg shadow-lg p-6 text-white">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">🌐 Public Twin Profile</h3>
+                            <p class="text-white/90">Make your AI twin public and share it with the world!</p>
+                        </div>
+                    </div>
+                    <div id="publicTwinStatus" class="mb-4">
+                        <!-- Status will be loaded here -->
+                    </div>
+                    <div class="flex space-x-4">
+                        <button onclick="loadPublicTwinStatus()" class="flex-1 bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-lg hover:bg-white/30 transition-all duration-300 font-semibold border border-white/30">
+                            <span class="flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                Manage Public Profile
+                            </span>
+                        </button>
+                        <a href="/discover" class="flex-1 bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-lg hover:bg-white/30 transition-all duration-300 font-semibold inline-flex items-center justify-center border border-white/30">
+                            <span class="flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                Discover Twins
+                            </span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
             ${hasTwins ? `
             <div class="grid md:grid-cols-2 gap-6 mb-8">
                 <div class="bg-white rounded-lg shadow p-6">
@@ -929,6 +968,146 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
                 alert('Network error. Please try again.');
             }
         }
+        
+        // Public Twin Management Functions
+        async function loadPublicTwinStatus() {
+            try {
+                const response = await fetch('/api/public-twin/my-profile');
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    displayPublicTwinStatus(data.twin);
+                } else {
+                    displayPublicTwinStatus(null);
+                }
+            } catch (error) {
+                console.error('Load public twin status error:', error);
+                displayPublicTwinStatus(null);
+            }
+        }
+
+        function displayPublicTwinStatus(twin) {
+            const statusContainer = document.getElementById('publicTwinStatus');
+            
+            if (twin && twin.isPublic) {
+                statusContainer.innerHTML = \`
+                    <div class="bg-white/20 backdrop-blur-sm rounded-lg p-4 border border-white/30">
+                        <div class="flex items-center mb-3">
+                            <div class="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center mr-3">
+                                <svg class="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-semibold text-white">Your twin is public!</h4>
+                                <p class="text-white/80">@\${twin.publicHandle}</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4 text-center mb-4">
+                            <div>
+                                <div class="text-2xl font-bold text-white">\${twin.likeCount || 0}</div>
+                                <div class="text-sm text-white/80">Likes</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-white">\${twin.followCount || 0}</div>
+                                <div class="text-sm text-white/80">Followers</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-white">\${twin.chatCount || 0}</div>
+                                <div class="text-sm text-white/80">Chats</div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-3">
+                            <a href="/@\${twin.publicHandle}" target="_blank" class="flex-1 bg-white/20 text-white py-2 px-4 rounded-lg hover:bg-white/30 transition-colors text-center">
+                                View Public Profile
+                            </a>
+                            <button onclick="sharePublicTwin('\${twin.publicHandle}')" class="flex-1 bg-white/20 text-white py-2 px-4 rounded-lg hover:bg-white/30 transition-colors">
+                                Share
+                            </button>
+                            <button onclick="editPublicProfile()" class="flex-1 bg-white/20 text-white py-2 px-4 rounded-lg hover:bg-white/30 transition-colors">
+                                Edit
+                            </button>
+                        </div>
+                    </div>
+                \`;
+            } else {
+                statusContainer.innerHTML = \`
+                    <div class="bg-white/20 backdrop-blur-sm rounded-lg p-4 border border-white/30">
+                        <div class="flex items-center mb-3">
+                            <div class="w-8 h-8 bg-gray-500/20 rounded-full flex items-center justify-center mr-3">
+                                <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-semibold text-white">Your twin is private</h4>
+                                <p class="text-white/80">Make it public to let others discover and chat with it</p>
+                            </div>
+                        </div>
+                        <button onclick="makeTwinPublic()" class="w-full bg-white/20 text-white py-3 px-6 rounded-lg hover:bg-white/30 transition-colors font-semibold">
+                            Make Twin Public
+                        </button>
+                    </div>
+                \`;
+            }
+        }
+
+        async function makeTwinPublic() {
+            try {
+                const response = await fetch('/api/public-twin/make-public', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '${res.locals['csrfToken']}'
+                    },
+                    body: JSON.stringify({
+                        bio: 'Check out my AI twin!',
+                        publicHandle: generateHandle()
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    alert('Twin made public successfully!');
+                    loadPublicTwinStatus();
+                } else {
+                    alert(result.error || 'Failed to make twin public');
+                }
+            } catch (error) {
+                console.error('Make twin public error:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+
+        async function sharePublicTwin(handle) {
+            const url = \`\${window.location.origin}/@\${handle}\`;
+            try {
+                await navigator.clipboard.writeText(url);
+                alert('Public profile link copied to clipboard!');
+            } catch (error) {
+                console.error('Copy to clipboard error:', error);
+                alert('Failed to copy link. Please copy manually: ' + url);
+            }
+        }
+
+        function editPublicProfile() {
+            alert('Edit profile functionality coming soon!');
+        }
+
+        function generateHandle() {
+            const adjectives = ['cool', 'smart', 'awesome', 'brilliant', 'amazing', 'fantastic', 'incredible', 'wonderful'];
+            const nouns = ['twin', 'ai', 'bot', 'assistant', 'helper', 'companion', 'friend', 'buddy'];
+            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const noun = nouns[Math.floor(Math.random() * nouns.length)];
+            const num = Math.floor(Math.random() * 1000);
+            return \`\${adj}\${noun}\${num}\`;
+        }
+        
+        // Load public twin status on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPublicTwinStatus();
+        });
     </script>
     `
   });
