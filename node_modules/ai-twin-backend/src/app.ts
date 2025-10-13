@@ -972,24 +972,32 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
         // Public Twin Management Functions
         async function loadPublicTwinStatus() {
             try {
+                console.log('🔍 Loading public twin status...');
                 const response = await fetch('/api/public-twin/my-profile');
+                console.log('Response status:', response.status);
                 const data = await response.json();
+                console.log('Response data:', data);
                 
                 if (response.ok && data.success) {
+                    console.log('✅ Twin found, displaying status');
                     displayPublicTwinStatus(data.twin);
                 } else {
+                    console.log('❌ No twin found or error, showing private status');
                     displayPublicTwinStatus(null);
                 }
             } catch (error) {
-                console.error('Load public twin status error:', error);
+                console.error('❌ Load public twin status error:', error);
                 displayPublicTwinStatus(null);
             }
         }
 
         function displayPublicTwinStatus(twin) {
+            console.log('🎨 Displaying public twin status for:', twin);
             const statusContainer = document.getElementById('publicTwinStatus');
+            console.log('Status container found:', statusContainer);
             
             if (twin && twin.isPublic) {
+                console.log('✅ Twin is public, showing public status');
                 statusContainer.innerHTML = \`
                     <div class="bg-white/20 backdrop-blur-sm rounded-lg p-4 border border-white/30">
                         <div class="flex items-center mb-3">
@@ -1031,6 +1039,7 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
                     </div>
                 \`;
             } else {
+                console.log('❌ Twin is private, showing private status');
                 statusContainer.innerHTML = \`
                     <div class="bg-white/20 backdrop-blur-sm rounded-lg p-4 border border-white/30">
                         <div class="flex items-center mb-3">
@@ -1044,7 +1053,7 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
                                 <p class="text-white/80">Make it public to let others discover and chat with it</p>
                             </div>
                         </div>
-                        <button onclick="makeTwinPublic()" class="w-full bg-white/20 text-white py-3 px-6 rounded-lg hover:bg-white/30 transition-colors font-semibold">
+                        <button id="makeTwinPublicBtn" class="w-full bg-white/20 text-white py-3 px-6 rounded-lg hover:bg-white/30 transition-colors font-semibold">
                             Make Twin Public
                         </button>
                     </div>
@@ -1054,6 +1063,11 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
 
         async function makeTwinPublic() {
             try {
+                console.log('🚀 Making twin public...');
+                
+                const handle = generateHandle();
+                console.log('Generated handle:', handle);
+                
                 const response = await fetch('/api/public-twin/make-public', {
                     method: 'POST',
                     headers: {
@@ -1062,11 +1076,13 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
                     },
                     body: JSON.stringify({
                         bio: 'Check out my AI twin!',
-                        publicHandle: generateHandle()
+                        publicHandle: handle
                     })
                 });
                 
+                console.log('Response status:', response.status);
                 const result = await response.json();
+                console.log('Response data:', result);
                 
                 if (response.ok && result.success) {
                     alert('Twin made public successfully!');
@@ -1081,7 +1097,7 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
         }
 
         async function sharePublicTwin(handle) {
-            const url = \`\${window.location.origin}/@\${handle}\`;
+            const url = window.location.origin + '/@' + handle;
             try {
                 await navigator.clipboard.writeText(url);
                 alert('Public profile link copied to clipboard!');
@@ -1101,13 +1117,34 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
             const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
             const noun = nouns[Math.floor(Math.random() * nouns.length)];
             const num = Math.floor(Math.random() * 1000);
-            return \`\${adj}\${noun}\${num}\`;
+            return adj + noun + num;
         }
         
         // Load public twin status on page load
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 DOM loaded, loading public twin status...');
             loadPublicTwinStatus();
         });
+        
+        // Also call immediately in case DOM is already loaded
+        console.log('🚀 Script loaded, calling loadPublicTwinStatus immediately...');
+        setTimeout(() => {
+            loadPublicTwinStatus();
+        }, 1000);
+        
+        // Add event listener for make twin public button
+        setTimeout(() => {
+            const makePublicBtn = document.getElementById('makeTwinPublicBtn');
+            if (makePublicBtn) {
+                console.log('✅ Make Twin Public button found, adding event listener');
+                makePublicBtn.addEventListener('click', function() {
+                    console.log('🔥 Make Twin Public button clicked!');
+                    makeTwinPublic();
+                });
+            } else {
+                console.log('❌ Make Twin Public button not found');
+            }
+        }, 2000);
     </script>
     `
   });
