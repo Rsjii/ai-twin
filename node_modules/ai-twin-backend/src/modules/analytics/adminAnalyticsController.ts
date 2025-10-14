@@ -633,7 +633,7 @@ export const getDetailedUsersPage = async (req: Request, res: Response) => {
     
     // Simple query first
     const usersResult = await db.query(`
-      SELECT u.id, u.email, u.handle, u."createdAt", u."lastLoginAt"
+      SELECT u.id, u.email, u.handle, u."createdAt"
       FROM "User" u
       ${whereClause}
       ORDER BY u."createdAt" DESC
@@ -649,7 +649,7 @@ export const getDetailedUsersPage = async (req: Request, res: Response) => {
     const summaryResult = await db.query(`
       SELECT 
         COUNT(*) as totalUsers,
-        COUNT(CASE WHEN "lastLoginAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as activeToday,
+        COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
         COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as newThisWeek,
         COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as newThisMonth
       FROM "User"
