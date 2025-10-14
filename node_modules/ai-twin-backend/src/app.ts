@@ -26,6 +26,7 @@ import moderationRoutes from './modules/moderation/moderationRoutes';
 import profileRoutes from './modules/profile/profileRoutes';
 import inviteRoutes from './modules/invite/inviteRoutes';
 import analyticsRoutes from './modules/analytics/analyticsRoutes';
+import adminAnalyticsRoutes from './modules/analytics/adminAnalyticsRoutes';
 
 // Import JWT middleware
 import { authenticateJWT, optionalJWT } from './middleware/jwtAuth';
@@ -118,10 +119,41 @@ app.use('/api/moderation', moderationRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/invite', inviteRoutes);
 app.use('/api/metrics', analyticsRoutes);
+app.use('/api/admin/analytics', adminAnalyticsRoutes);
 
 // Discover page route
 app.get('/discover', (req, res) => {
   res.render('discover');
+});
+
+// Admin Analytics dashboard route
+app.get('/admin/analytics', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
+  // Check if user is admin
+  const adminEmails = ['admin@aitwin.com', 'i@gmail.com'];
+  if (!req.user || !req.user.email || !adminEmails.includes(req.user.email)) {
+    return res.status(403).render('403', { 
+      title: 'Access Denied',
+      message: 'Admin access required'
+    });
+  }
+
+  // Fetch full user data from database
+  const fullUser = await userQueries.findByEmail(req.user.email);
+  if (!fullUser) {
+    return res.redirect('/auth');
+  }
+
+  res.render('admin-analytics', {
+    title: 'Admin Analytics Dashboard - AI Twin',
+    user: {
+      id: fullUser.id,
+      email: fullUser.email,
+      handle: fullUser.handle,
+      name: fullUser.name,
+      profileImage: fullUser.profileImage
+    },
+    csrfToken: res.locals['csrfToken']
+  });
 });
 
 // Analytics dashboard route

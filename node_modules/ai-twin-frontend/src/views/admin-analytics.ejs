@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .metric-card { transition: all 0.3s ease; }
+        .metric-card:hover { transform: translateY(-2px); }
+        .chart-container { position: relative; height: 300px; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-xl font-bold text-gray-900">AI Twin</a>
+                    <span class="ml-4 px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">Admin</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/analytics" class="text-gray-600 hover:text-gray-900">User Analytics</a>
+                    <a href="/dashboard" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+                    <div class="flex items-center space-x-2">
+                        <img src="<%= user.profileImage || '/uploads/profiles/default.jpg' %>" alt="Profile" class="w-8 h-8 rounded-full">
+                        <span class="text-sm font-medium text-gray-700"><%= user.handle || user.email %></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Admin Analytics Dashboard</h1>
+            <p class="text-gray-600 mt-2">Comprehensive analytics and monitoring for AI Twin platform</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="text-gray-600 mt-4">Loading analytics data...</p>
+        </div>
+
+        <!-- Main Content -->
+        <div id="mainContent" class="hidden">
+            <!-- Overview Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="metric-card bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-blue-100 rounded-lg">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Users</p>
+                            <p class="text-2xl font-bold text-gray-900" id="totalUsers">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-green-100 rounded-lg">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Twins</p>
+                            <p class="text-2xl font-bold text-gray-900" id="totalTwins">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-purple-100 rounded-lg">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Chats</p>
+                            <p class="text-2xl font-bold text-gray-900" id="totalChats">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-orange-100 rounded-lg">
+                            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Messages</p>
+                            <p class="text-2xl font-bold text-gray-900" id="totalMessages">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Time-based Metrics -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Daily Metrics -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Today's Activity</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">New Users</span>
+                            <span class="font-medium" id="dailyUsers">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">New Twins</span>
+                            <span class="font-medium" id="dailyTwins">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">New Chats</span>
+                            <span class="font-medium" id="dailyChats">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Messages Sent</span>
+                            <span class="font-medium" id="dailyMessages">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Events</span>
+                            <span class="font-medium" id="dailyEvents">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weekly Metrics -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">This Week</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">New Users</span>
+                            <span class="font-medium" id="weeklyUsers">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">New Twins</span>
+                            <span class="font-medium" id="weeklyTwins">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">New Chats</span>
+                            <span class="font-medium" id="weeklyChats">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Messages Sent</span>
+                            <span class="font-medium" id="weeklyMessages">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Events</span>
+                            <span class="font-medium" id="weeklyEvents">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Metrics -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">This Month</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">New Users</span>
+                            <span class="font-medium" id="monthlyUsers">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">New Twins</span>
+                            <span class="font-medium" id="monthlyTwins">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">New Chats</span>
+                            <span class="font-medium" id="monthlyChats">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Messages Sent</span>
+                            <span class="font-medium" id="monthlyMessages">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Events</span>
+                            <span class="font-medium" id="monthlyEvents">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Activity & Engagement -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- User Activity -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">User Activity</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Active Users Today</span>
+                            <span class="text-lg font-bold text-blue-600" id="activeUsersToday">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">New Users Today</span>
+                            <span class="text-lg font-bold text-green-600" id="newUsersToday">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">New Users This Week</span>
+                            <span class="text-lg font-bold text-green-600" id="newUsersThisWeek">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">New Users This Month</span>
+                            <span class="text-lg font-bold text-green-600" id="newUsersThisMonth">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Engagement Metrics -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Engagement</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Avg Messages per Chat</span>
+                            <span class="text-lg font-bold text-purple-600" id="avgMessagesPerChat">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Avg Chats per User</span>
+                            <span class="text-lg font-bold text-purple-600" id="avgChatsPerUser">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Avg Events per User</span>
+                            <span class="text-lg font-bold text-purple-600" id="avgEventsPerUser">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Event Breakdown Chart -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Event Breakdown</h3>
+                    <div class="chart-container">
+                        <canvas id="eventBreakdownChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Growth Trends Chart -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Growth Trends</h3>
+                    <div class="chart-container">
+                        <canvas id="growthTrendsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Content & Recent Activity -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Top Performing Twins -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Performing Twins</h3>
+                    <div id="topTwins" class="space-y-3">
+                        <p class="text-gray-500">Loading...</p>
+                    </div>
+                </div>
+
+                <!-- Most Active Users -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Most Active Users</h3>
+                    <div id="mostActiveUsers" class="space-y-3">
+                        <p class="text-gray-500">Loading...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">Recent Signups</h4>
+                        <div id="recentSignups" class="space-y-2">
+                            <p class="text-gray-500 text-sm">Loading...</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">Recent Twins</h4>
+                        <div id="recentTwins" class="space-y-2">
+                            <p class="text-gray-500 text-sm">Loading...</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">Recent Chats</h4>
+                        <div id="recentChats" class="space-y-2">
+                            <p class="text-gray-500 text-sm">Loading...</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">Recent Events</h4>
+                        <div id="recentEvents" class="space-y-2">
+                            <p class="text-gray-500 text-sm">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load admin analytics data
+        async function loadAdminAnalytics() {
+            try {
+                console.log('Loading admin analytics data...');
+                
+                const response = await fetch('/api/admin/analytics/dashboard');
+                const data = await response.json();
+                
+                console.log('Admin analytics data:', data);
+                
+                if (data.success) {
+                    // Hide loading state
+                    document.getElementById('loadingState').classList.add('hidden');
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    
+                    // Update overview cards
+                    document.getElementById('totalUsers').textContent = data.metrics.lifetime.users;
+                    document.getElementById('totalTwins').textContent = data.metrics.lifetime.twins;
+                    document.getElementById('totalChats').textContent = data.metrics.lifetime.chats;
+                    document.getElementById('totalMessages').textContent = data.metrics.lifetime.messages;
+                    
+                    // Update daily metrics
+                    document.getElementById('dailyUsers').textContent = data.metrics.daily.users;
+                    document.getElementById('dailyTwins').textContent = data.metrics.daily.twins;
+                    document.getElementById('dailyChats').textContent = data.metrics.daily.chats;
+                    document.getElementById('dailyMessages').textContent = data.metrics.daily.messages;
+                    document.getElementById('dailyEvents').textContent = data.metrics.daily.events;
+                    
+                    // Update weekly metrics
+                    document.getElementById('weeklyUsers').textContent = data.metrics.weekly.users;
+                    document.getElementById('weeklyTwins').textContent = data.metrics.weekly.twins;
+                    document.getElementById('weeklyChats').textContent = data.metrics.weekly.chats;
+                    document.getElementById('weeklyMessages').textContent = data.metrics.weekly.messages;
+                    document.getElementById('weeklyEvents').textContent = data.metrics.weekly.events;
+                    
+                    // Update monthly metrics
+                    document.getElementById('monthlyUsers').textContent = data.metrics.monthly.users;
+                    document.getElementById('monthlyTwins').textContent = data.metrics.monthly.twins;
+                    document.getElementById('monthlyChats').textContent = data.metrics.monthly.chats;
+                    document.getElementById('monthlyMessages').textContent = data.metrics.monthly.messages;
+                    document.getElementById('monthlyEvents').textContent = data.metrics.monthly.events;
+                    
+                    // Update user activity
+                    document.getElementById('activeUsersToday').textContent = data.metrics.userActivity.activeUsersToday;
+                    document.getElementById('newUsersToday').textContent = data.metrics.userActivity.newUsersToday;
+                    document.getElementById('newUsersThisWeek').textContent = data.metrics.userActivity.newUsersThisWeek;
+                    document.getElementById('newUsersThisMonth').textContent = data.metrics.userActivity.newUsersThisMonth;
+                    
+                    // Update engagement metrics
+                    document.getElementById('avgMessagesPerChat').textContent = data.metrics.engagement.avgMessagesPerChat.toFixed(2);
+                    document.getElementById('avgChatsPerUser').textContent = data.metrics.engagement.avgChatsPerUser.toFixed(2);
+                    document.getElementById('avgEventsPerUser').textContent = data.metrics.engagement.avgEventsPerUser.toFixed(2);
+                    
+                    // Update content sections
+                    updateTopTwins(data.content.topContent.topTwins);
+                    updateMostActiveUsers(data.content.topContent.mostActiveUsers);
+                    updateRecentActivity(data.content.recentActivity);
+                    
+                    // Create charts
+                    createEventBreakdownChart(data.content.eventBreakdown);
+                    createGrowthTrendsChart(data.metrics);
+                } else {
+                    console.error('Failed to load admin analytics:', data.error);
+                    document.getElementById('loadingState').innerHTML = '<p class="text-red-600">Failed to load analytics data</p>';
+                }
+            } catch (error) {
+                console.error('Admin analytics loading error:', error);
+                document.getElementById('loadingState').innerHTML = '<p class="text-red-600">Error loading analytics data</p>';
+            }
+        }
+        
+        function updateTopTwins(twins) {
+            const container = document.getElementById('topTwins');
+            if (twins && twins.length > 0) {
+                container.innerHTML = twins.slice(0, 5).map(twin => `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-medium text-gray-900">${twin.userHandle || 'Unknown'}</p>
+                            <p class="text-sm text-gray-600">${twin.likeCount || 0} likes, ${twin.chatCount || 0} chats</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-gray-900">${twin.likeCount || 0}</p>
+                            <p class="text-xs text-gray-600">likes</p>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p class="text-gray-500">No twins found</p>';
+            }
+        }
+        
+        function updateMostActiveUsers(users) {
+            const container = document.getElementById('mostActiveUsers');
+            if (users && users.length > 0) {
+                container.innerHTML = users.slice(0, 5).map(user => `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-medium text-gray-900">${user.handle || user.email}</p>
+                            <p class="text-sm text-gray-600">${user.eventCount || 0} events</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-gray-900">${user.eventCount || 0}</p>
+                            <p class="text-xs text-gray-600">events</p>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p class="text-gray-500">No users found</p>';
+            }
+        }
+        
+        function updateRecentActivity(activity) {
+            // Update recent signups
+            const signupsContainer = document.getElementById('recentSignups');
+            if (activity.recentSignups && activity.recentSignups.length > 0) {
+                signupsContainer.innerHTML = activity.recentSignups.slice(0, 3).map(user => `
+                    <div class="text-sm">
+                        <p class="font-medium text-gray-900">${user.handle || user.email}</p>
+                        <p class="text-gray-600">${new Date(user.createdAt).toLocaleDateString()}</p>
+                    </div>
+                `).join('');
+            } else {
+                signupsContainer.innerHTML = '<p class="text-gray-500 text-sm">No recent signups</p>';
+            }
+            
+            // Update recent twins
+            const twinsContainer = document.getElementById('recentTwins');
+            if (activity.recentTwins && activity.recentTwins.length > 0) {
+                twinsContainer.innerHTML = activity.recentTwins.slice(0, 3).map(twin => `
+                    <div class="text-sm">
+                        <p class="font-medium text-gray-900">${twin.userHandle || 'Unknown'}</p>
+                        <p class="text-gray-600">${new Date(twin.createdAt).toLocaleDateString()}</p>
+                    </div>
+                `).join('');
+            } else {
+                twinsContainer.innerHTML = '<p class="text-gray-500 text-sm">No recent twins</p>';
+            }
+            
+            // Update recent chats
+            const chatsContainer = document.getElementById('recentChats');
+            if (activity.recentChats && activity.recentChats.length > 0) {
+                chatsContainer.innerHTML = activity.recentChats.slice(0, 3).map(chat => `
+                    <div class="text-sm">
+                        <p class="font-medium text-gray-900">${chat.userHandle || 'Unknown'}</p>
+                        <p class="text-gray-600">${new Date(chat.createdAt).toLocaleDateString()}</p>
+                    </div>
+                `).join('');
+            } else {
+                chatsContainer.innerHTML = '<p class="text-gray-500 text-sm">No recent chats</p>';
+            }
+            
+            // Update recent events
+            const eventsContainer = document.getElementById('recentEvents');
+            if (activity.recentEvents && activity.recentEvents.length > 0) {
+                eventsContainer.innerHTML = activity.recentEvents.slice(0, 3).map(event => `
+                    <div class="text-sm">
+                        <p class="font-medium text-gray-900">${event.type}</p>
+                        <p class="text-gray-600">${new Date(event.createdAt).toLocaleDateString()}</p>
+                    </div>
+                `).join('');
+            } else {
+                eventsContainer.innerHTML = '<p class="text-gray-500 text-sm">No recent events</p>';
+            }
+        }
+        
+        function createEventBreakdownChart(eventBreakdown) {
+            const ctx = document.getElementById('eventBreakdownChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(eventBreakdown),
+                    datasets: [{
+                        data: Object.values(eventBreakdown),
+                        backgroundColor: [
+                            '#3B82F6',
+                            '#10B981',
+                            '#F59E0B',
+                            '#EF4444',
+                            '#8B5CF6',
+                            '#06B6D4'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createGrowthTrendsChart(metrics) {
+            const ctx = document.getElementById('growthTrendsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Daily', 'Weekly', 'Monthly'],
+                    datasets: [
+                        {
+                            label: 'Users',
+                            data: [metrics.daily.users, metrics.weekly.users, metrics.monthly.users],
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Twins',
+                            data: [metrics.daily.twins, metrics.weekly.twins, metrics.monthly.twins],
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Chats',
+                            data: [metrics.daily.chats, metrics.weekly.chats, metrics.monthly.chats],
+                            borderColor: '#F59E0B',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Load analytics on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminAnalytics();
+        });
+    </script>
+</body>
+</html>
