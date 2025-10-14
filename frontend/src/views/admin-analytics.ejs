@@ -64,7 +64,7 @@
                     <button onclick="loadTimeBasedAnalytics('month')" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-gray-100 text-gray-700 hover:bg-gray-200">
                         Monthly
                     </button>
-                    <button onclick="loadAdminAnalytics()" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-gray-100 text-gray-700 hover:bg-gray-200">
+                    <button onclick="loadTimeBasedAnalytics('all')" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-gray-100 text-gray-700 hover:bg-gray-200">
                         All Time
                     </button>
                 </div>
@@ -73,7 +73,7 @@
 
         <!-- Overview Cards with Hover Effects -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('users')">
+            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('users')" data-type="users">
                 <div class="flex items-center">
                     <div class="p-2 bg-blue-100 rounded-lg">
                         <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,7 +88,7 @@
                 </div>
             </div>
 
-            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('twins')">
+            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('twins')" data-type="twins">
                 <div class="flex items-center">
                     <div class="p-2 bg-green-100 rounded-lg">
                         <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -103,7 +103,7 @@
                 </div>
             </div>
 
-            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('chats')">
+            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('chats')" data-type="chats">
                 <div class="flex items-center">
                     <div class="p-2 bg-purple-100 rounded-lg">
                         <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,7 +118,7 @@
                 </div>
             </div>
 
-            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('messages')">
+            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('messages')" data-type="messages">
                 <div class="flex items-center">
                     <div class="p-2 bg-orange-100 rounded-lg">
                         <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -626,6 +626,10 @@
             });
         }
         
+        // Global state for current time period
+        let currentTimePeriod = 'today';
+        let currentAnalyticsData = null;
+
         // Time-based analytics loading
         async function loadTimeBasedAnalytics(period) {
             try {
@@ -636,48 +640,109 @@
                     btn.classList.remove('bg-blue-600', 'text-white');
                     btn.classList.add('bg-gray-100', 'text-gray-700');
                 });
-                event.target.classList.remove('bg-gray-100', 'text-gray-700');
-                event.target.classList.add('bg-blue-600', 'text-white');
                 
-                const response = await fetch(`/api/admin/analytics/time/${period}`);
+                // Find the clicked button and update its style
+                const buttons = document.querySelectorAll('.time-filter-btn');
+                buttons.forEach(btn => {
+                    if (btn.textContent.trim().toLowerCase().includes(period.toLowerCase()) || 
+                        (period === 'today' && btn.textContent.trim().toLowerCase().includes('today')) ||
+                        (period === 'week' && btn.textContent.trim().toLowerCase().includes('7 days')) ||
+                        (period === 'month' && btn.textContent.trim().toLowerCase().includes('monthly')) ||
+                        (period === 'all' && btn.textContent.trim().toLowerCase().includes('all time'))) {
+                        btn.classList.remove('bg-gray-100', 'text-gray-700');
+                        btn.classList.add('bg-blue-600', 'text-white');
+                    }
+                });
+                
+                currentTimePeriod = period;
+                
+                let response;
+                if (period === 'all') {
+                    // Load all-time data
+                    response = await fetch('/api/admin/analytics/dashboard');
+                } else {
+                    // Load time-based data
+                    response = await fetch(`/api/admin/analytics/time/${period}`);
+                }
+                
                 const data = await response.json();
+                console.log(`${period} analytics data:`, data);
                 
                 if (data.success) {
-                    // Update metrics with time-based data
-                    document.getElementById('totalUsers').textContent = data.data.summary.users;
-                    document.getElementById('totalTwins').textContent = data.data.summary.twins;
-                    document.getElementById('totalChats').textContent = data.data.summary.chats;
-                    document.getElementById('totalMessages').textContent = data.data.summary.messages;
+                    currentAnalyticsData = data.data || data.metrics;
+                    
+                    if (period === 'all') {
+                        // Update with all-time data
+                        document.getElementById('totalUsers').textContent = data.metrics.lifetime.users;
+                        document.getElementById('totalTwins').textContent = data.metrics.lifetime.twins;
+                        document.getElementById('totalChats').textContent = data.metrics.lifetime.chats;
+                        document.getElementById('totalMessages').textContent = data.metrics.lifetime.messages;
+                    } else {
+                        // Update with time-based data
+                        document.getElementById('totalUsers').textContent = data.data.summary.users;
+                        document.getElementById('totalTwins').textContent = data.data.summary.twins;
+                        document.getElementById('totalChats').textContent = data.data.summary.chats;
+                        document.getElementById('totalMessages').textContent = data.data.summary.messages;
+                    }
                     
                     // Update charts with new data
-                    createTimeBasedChart(data.data.breakdown, period);
+                    if (period !== 'all') {
+                        createTimeBasedChart(data.data.breakdown, period);
+                    }
+                    
+                    // Show success message
+                    showNotification(`Loaded ${period} analytics successfully!`, 'success');
+                } else {
+                    showNotification(`Error loading ${period} analytics: ${data.error}`, 'error');
                 }
             } catch (error) {
                 console.error('Time-based analytics error:', error);
+                showNotification(`Error loading ${period} analytics: ${error.message}`, 'error');
             }
         }
         
         // Show detailed view for metrics
         function showDetailedView(type) {
-            document.getElementById('detailedModalTitle').textContent = `${type.charAt(0).toUpperCase() + type.slice(1)} Detailed View`;
-            document.getElementById('detailedModal').classList.remove('hidden');
+            console.log(`=== CLICKING DETAILED VIEW FOR ${type.toUpperCase()} ===`);
+            console.log(`Opening detailed page for ${type}`);
+            console.log(`URL: /admin/analytics/page/${type}`);
             
-            // Load detailed data based on type
-            loadDetailedData(type);
+            // Open detailed page in new window/tab
+            const newWindow = window.open(`/admin/analytics/page/${type}`, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+            
+            if (!newWindow) {
+                console.error('Failed to open new window - popup blocked');
+                alert('Please allow popups for this site to view detailed analytics');
+            } else {
+                console.log('New window opened successfully');
+            }
         }
         
         // Load detailed data for specific metric type
-        async function loadDetailedData(type) {
+        async function loadDetailedData(type, timePeriod = 'today') {
             try {
-                console.log(`Loading detailed data for ${type}...`);
-                const response = await fetch(`/api/admin/analytics/detailed/${type}`);
-                const data = await response.json();
+                console.log(`Loading detailed data for ${type} in ${timePeriod} period...`);
                 
-                console.log(`Detailed ${type} data:`, data);
+                let response;
+                if (timePeriod === 'all') {
+                    // Load all-time detailed data
+                    response = await fetch(`/api/admin/analytics/detailed/${type}`);
+                } else {
+                    // Load time-based detailed data
+                    response = await fetch(`/api/admin/analytics/time/${timePeriod}`);
+                }
+                
+                const data = await response.json();
+                console.log(`Detailed ${type} data for ${timePeriod}:`, data);
                 
                 if (data.success) {
                     const content = document.getElementById('detailedModalContent');
-                    content.innerHTML = generateDetailedContent(type, data.data);
+                    if (timePeriod === 'all') {
+                        content.innerHTML = generateDetailedContent(type, data.data);
+                    } else {
+                        // For time-based data, show summary and breakdown
+                        content.innerHTML = generateTimeBasedDetailedContent(type, data.data, timePeriod);
+                    }
                 } else {
                     document.getElementById('detailedModalContent').innerHTML = '<p class="text-red-600">Error: ' + data.error + '</p>';
                 }
@@ -687,6 +752,95 @@
             }
         }
         
+        // Generate time-based detailed content
+        function generateTimeBasedDetailedContent(type, data, timePeriod) {
+            const periodLabel = timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1);
+            
+            return `
+                <div class="space-y-6">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-blue-900">${periodLabel} Summary</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-blue-600">${data.summary.users || 0}</p>
+                                <p class="text-sm text-blue-800">Users</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-green-600">${data.summary.twins || 0}</p>
+                                <p class="text-sm text-green-800">Twins</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-purple-600">${data.summary.chats || 0}</p>
+                                <p class="text-sm text-purple-800">Chats</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-orange-600">${data.summary.messages || 0}</p>
+                                <p class="text-sm text-orange-800">Messages</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${data.breakdown && data.breakdown.hourly ? `
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="font-semibold mb-4">Hourly Breakdown</h4>
+                        <div class="space-y-2 max-h-48 overflow-y-auto">
+                            ${data.breakdown.hourly.map(hour => `
+                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                    <span class="font-medium">${hour.hour}:00</span>
+                                    <span class="text-blue-600 font-bold">${hour.count} events</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${data.breakdown && data.breakdown.daily ? `
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="font-semibold mb-4">Daily Breakdown</h4>
+                        <div class="space-y-2 max-h-48 overflow-y-auto">
+                            ${data.breakdown.daily.map(day => `
+                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                    <span class="font-medium">${new Date(day.date).toLocaleDateString()}</span>
+                                    <span class="text-green-600 font-bold">${day.count} events</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${data.topContent && data.topContent.users ? `
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="font-semibold mb-4">Top Active Users</h4>
+                        <div class="space-y-2 max-h-48 overflow-y-auto">
+                            ${data.topContent.users.slice(0, 10).map(user => `
+                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                    <div>
+                                        <p class="font-medium">${user.handle || user.email}</p>
+                                        <p class="text-sm text-gray-600">${user.eventCount || 0} events</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${data.eventBreakdown ? `
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="font-semibold mb-4">Event Breakdown</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            ${Object.entries(data.eventBreakdown).map(([eventType, count]) => `
+                                <div class="text-center p-3 bg-gray-50 rounded">
+                                    <p class="font-bold text-lg">${count}</p>
+                                    <p class="text-sm text-gray-600">${eventType}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
         // Generate detailed content based on type
         function generateDetailedContent(type, data) {
             switch (type) {
@@ -1086,10 +1240,62 @@
             };
         }
         
+        // Notification function
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                type === 'warning' ? 'bg-yellow-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Test click functionality
+        function testClickFunctionality() {
+            console.log('=== TESTING CLICK FUNCTIONALITY ===');
+            console.log('showDetailedView function exists:', typeof showDetailedView);
+            console.log('Testing showDetailedView with users...');
+            showDetailedView('users');
+        }
+
+        // Alternative click handler using event delegation
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.metric-card')) {
+                const card = e.target.closest('.metric-card');
+                const type = card.getAttribute('data-type');
+                if (type) {
+                    console.log(`=== ALTERNATIVE CLICK HANDLER TRIGGERED FOR ${type.toUpperCase()} ===`);
+                    showDetailedView(type);
+                }
+            }
+        });
+
         // Load analytics on page load
         document.addEventListener('DOMContentLoaded', () => {
             loadAdminAnalytics();
             loadUsersList();
+            
+            // Test click functionality after 2 seconds
+            setTimeout(() => {
+                console.log('=== ADMIN ANALYTICS DASHBOARD LOADED ===');
+                console.log('Click functionality test available - call testClickFunctionality() in console');
+                console.log('Alternative click handler also available via event delegation');
+            }, 2000);
         });
     </script>
 </body>

@@ -156,6 +156,47 @@ app.get('/admin/analytics', requireJWTFromCookie, generateCSRFToken, async (req:
   });
 });
 
+// Admin Analytics detailed pages routes
+app.get('/admin/analytics/page/:type', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
+  // Check if user is admin
+  const adminEmails = ['admin@aitwin.com', 'i@gmail.com'];
+  if (!req.user || !req.user.email || !adminEmails.includes(req.user.email)) {
+    return res.status(403).render('403', { 
+      title: 'Access Denied',
+      message: 'Admin access required'
+    });
+  }
+
+  const { type } = req.params;
+  const validTypes = ['users', 'twins', 'chats', 'messages'];
+  
+  if (!validTypes.includes(type)) {
+    return res.status(404).render('404', {
+      title: 'Page Not Found',
+      message: 'Invalid page type'
+    });
+  }
+
+  // Fetch full user data from database
+  const fullUser = await userQueries.findByEmail(req.user.email);
+  if (!fullUser) {
+    return res.redirect('/auth');
+  }
+
+  res.render(`admin-analytics-${type}`, {
+    title: `Admin Analytics - ${type.charAt(0).toUpperCase() + type.slice(1)} - AI Twin`,
+    user: {
+      id: fullUser.id,
+      email: fullUser.email,
+      handle: fullUser.handle,
+      name: fullUser.name,
+      profileImage: fullUser.profileImage
+    },
+    pageType: type,
+    csrfToken: res.locals['csrfToken']
+  });
+});
+
 // Analytics dashboard route
 app.get('/analytics', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
   

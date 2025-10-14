@@ -615,6 +615,280 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
   }
 };
 
+// Get detailed users page data with pagination
+export const getDetailedUsersPage = async (req: Request, res: Response) => {
+  try {
+    console.log('=== GET DETAILED USERS PAGE ===');
+    
+    const { page = 1, limit = 10, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    
+    let whereClause = '';
+    let queryParams: any[] = [];
+    
+    if (search) {
+      whereClause = 'WHERE u.email ILIKE $1 OR u.handle ILIKE $1';
+      queryParams.push(`%${search}%`);
+    }
+    
+    // Simple query first
+    const usersResult = await db.query(`
+      SELECT u.id, u.email, u.handle, u."createdAt", u."lastLoginAt"
+      FROM "User" u
+      ${whereClause}
+      ORDER BY u."createdAt" DESC
+      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+    `, [...queryParams, parseInt(limit as string), offset]);
+    
+    // Get total count
+    const totalResult = await db.query(`
+      SELECT COUNT(*) as total FROM "User" u ${whereClause}
+    `, queryParams);
+    
+    // Get summary
+    const summaryResult = await db.query(`
+      SELECT 
+        COUNT(*) as totalUsers,
+        COUNT(CASE WHEN "lastLoginAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as activeToday,
+        COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as newThisWeek,
+        COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as newThisMonth
+      FROM "User"
+    `);
+    
+    console.log('Users page data fetched successfully');
+    
+    res.json({
+      success: true,
+      data: {
+        users: usersResult.rows,
+        pagination: {
+          currentPage: parseInt(page as string),
+          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
+          totalItems: parseInt(totalResult.rows[0].total),
+          itemsPerPage: parseInt(limit as string)
+        },
+        summary: summaryResult.rows[0]
+      }
+    });
+    
+  } catch (error) {
+    console.error('=== ERROR IN GET DETAILED USERS PAGE ===');
+    console.error('Error details:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
+  }
+};
+
+// Get detailed twins page data with pagination
+export const getDetailedTwinsPage = async (req: Request, res: Response) => {
+  try {
+    console.log('=== GET DETAILED TWINS PAGE ===');
+    
+    const { page = 1, limit = 10, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    
+    let whereClause = '';
+    let queryParams: any[] = [];
+    
+    if (search) {
+      whereClause = 'WHERE u.email ILIKE $1 OR u.handle ILIKE $1';
+      queryParams.push(`%${search}%`);
+    }
+    
+    const twinsResult = await db.query(`
+      SELECT t.id, t."createdAt",
+             u.handle as "userHandle", u.email as "userEmail"
+      FROM "Twin" t
+      JOIN "User" u ON t."userId" = u.id
+      ${whereClause}
+      ORDER BY t."createdAt" DESC
+      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+    `, [...queryParams, parseInt(limit as string), offset]);
+    
+    // Get total count
+    const totalResult = await db.query(`
+      SELECT COUNT(*) as total FROM "Twin" t JOIN "User" u ON t."userId" = u.id ${whereClause}
+    `, queryParams);
+    
+    // Get summary
+    const summaryResult = await db.query(`
+      SELECT 
+        COUNT(*) as totalTwins,
+        COUNT(CASE WHEN t."createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
+        COUNT(CASE WHEN t."createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as newThisWeek,
+        COUNT(CASE WHEN t."createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as newThisMonth
+      FROM "Twin" t
+    `);
+    
+    console.log('Twins page data fetched successfully');
+    
+    res.json({
+      success: true,
+      data: {
+        twins: twinsResult.rows,
+        pagination: {
+          currentPage: parseInt(page as string),
+          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
+          totalItems: parseInt(totalResult.rows[0].total),
+          itemsPerPage: parseInt(limit as string)
+        },
+        summary: summaryResult.rows[0]
+      }
+    });
+    
+  } catch (error) {
+    console.error('=== ERROR IN GET DETAILED TWINS PAGE ===');
+    console.error('Error details:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
+  }
+};
+
+// Get detailed chats page data with pagination
+export const getDetailedChatsPage = async (req: Request, res: Response) => {
+  try {
+    console.log('=== GET DETAILED CHATS PAGE ===');
+    
+    const { page = 1, limit = 10, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    
+    let whereClause = '';
+    let queryParams: any[] = [];
+    
+    if (search) {
+      whereClause = 'WHERE u.email ILIKE $1 OR u.handle ILIKE $1';
+      queryParams.push(`%${search}%`);
+    }
+    
+    // Simple query first
+    const chatsResult = await db.query(`
+      SELECT c.id, c."createdAt",
+             u.handle as "userHandle", u.email as "userEmail"
+      FROM "Chat" c
+      JOIN "User" u ON c."userId" = u.id
+      ${whereClause}
+      ORDER BY c."createdAt" DESC
+      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+    `, [...queryParams, parseInt(limit as string), offset]);
+    
+    // Get total count
+    const totalResult = await db.query(`
+      SELECT COUNT(*) as total FROM "Chat" c JOIN "User" u ON c."userId" = u.id ${whereClause}
+    `, queryParams);
+    
+    // Get summary
+    const summaryResult = await db.query(`
+      SELECT 
+        COUNT(*) as totalChats,
+        COUNT(CASE WHEN c."createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
+        COUNT(CASE WHEN c."createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as newThisWeek,
+        COUNT(CASE WHEN c."createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as newThisMonth
+      FROM "Chat" c
+    `);
+    
+    console.log('Chats page data fetched successfully');
+    
+    res.json({
+      success: true,
+      data: {
+        chats: chatsResult.rows,
+        pagination: {
+          currentPage: parseInt(page as string),
+          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
+          totalItems: parseInt(totalResult.rows[0].total),
+          itemsPerPage: parseInt(limit as string)
+        },
+        summary: summaryResult.rows[0]
+      }
+    });
+    
+  } catch (error) {
+    console.error('=== ERROR IN GET DETAILED CHATS PAGE ===');
+    console.error('Error details:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
+  }
+};
+
+// Get detailed messages page data with pagination
+export const getDetailedMessagesPage = async (req: Request, res: Response) => {
+  try {
+    console.log('=== GET DETAILED MESSAGES PAGE ===');
+    
+    const { page = 1, limit = 10, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    
+    let whereClause = '';
+    let queryParams: any[] = [];
+    
+    if (search) {
+      whereClause = 'WHERE u.email ILIKE $1 OR u.handle ILIKE $1 OR m.content ILIKE $1';
+      queryParams.push(`%${search}%`);
+    }
+    
+    // Simple query first
+    const messagesResult = await db.query(`
+      SELECT m.id, m.content, m."createdAt",
+             u.handle as "userHandle", u.email as "userEmail",
+             c.id as "chatId"
+      FROM "Message" m
+      JOIN "Chat" c ON m."chatId" = c.id
+      JOIN "User" u ON c."userId" = u.id
+      ${whereClause}
+      ORDER BY m."createdAt" DESC
+      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+    `, [...queryParams, parseInt(limit as string), offset]);
+    
+    // Get total count
+    const totalResult = await db.query(`
+      SELECT COUNT(*) as total FROM "Message" m 
+      JOIN "Chat" c ON m."chatId" = c.id 
+      JOIN "User" u ON c."userId" = u.id 
+      ${whereClause}
+    `, queryParams);
+    
+    // Get summary
+    const summaryResult = await db.query(`
+      SELECT 
+        COUNT(*) as totalMessages,
+        COUNT(CASE WHEN m."createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
+        COUNT(CASE WHEN m."createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as newThisWeek,
+        COUNT(CASE WHEN m."createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as newThisMonth
+      FROM "Message" m
+    `);
+    
+    console.log('Messages page data fetched successfully');
+    
+    res.json({
+      success: true,
+      data: {
+        messages: messagesResult.rows,
+        pagination: {
+          currentPage: parseInt(page as string),
+          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
+          totalItems: parseInt(totalResult.rows[0].total),
+          itemsPerPage: parseInt(limit as string)
+        },
+        summary: summaryResult.rows[0]
+      }
+    });
+    
+  } catch (error) {
+    console.error('=== ERROR IN GET DETAILED MESSAGES PAGE ===');
+    console.error('Error details:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
+  }
+};
+
 // Get system health metrics
 export const getSystemHealth = async (req: Request, res: Response) => {
   try {
