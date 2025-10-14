@@ -305,6 +305,316 @@ export const getAdminUserAnalytics = async (req: Request, res: Response) => {
   }
 };
 
+// Get detailed user information for admin
+export const getDetailedUserInfo = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+
+    // Get comprehensive user data
+    const [
+      userResult,
+      userTwinsResult,
+      userChatsResult,
+      userMessagesResult,
+      userEventsResult,
+      userInvitesResult,
+      userActivityResult,
+      userEngagementResult,
+      userTimelineResult
+    ] = await Promise.all([
+      db.query('SELECT * FROM "User" WHERE id = $1', [userId]),
+      db.query('SELECT * FROM "Twin" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [userId]),
+      db.query('SELECT c.*, t.id as twinId FROM "Chat" c LEFT JOIN "Twin" t ON c."twinId" = t.id WHERE c."userId" = $1 ORDER BY c."createdAt" DESC', [userId]),
+      db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [userId]),
+      db.query('SELECT * FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 50', [userId]),
+      db.query('SELECT * FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1 ORDER BY "createdAt" DESC', [userId]),
+      db.query('SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC LIMIT 30', [userId]),
+      db.query('SELECT AVG(chat_count) as avg_chats, AVG(message_count) as avg_messages FROM (SELECT COUNT(c.id) as chat_count, COUNT(m.id) as message_count FROM "Chat" c LEFT JOIN "Message" m ON c.id = m."chatId" WHERE c."userId" = $1 GROUP BY c.id) as subquery', [userId]),
+      db.query('SELECT DATE("createdAt") as date, COUNT(*) as events FROM "Event" WHERE "userId" = $1 GROUP BY DATE("createdAt") ORDER BY date DESC LIMIT 30', [userId])
+    ]);
+
+    const user = userResult.rows[0];
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const detailedUserInfo = {
+      user,
+      stats: {
+        twins: userTwinsResult.rows.length,
+        chats: userChatsResult.rows.length,
+        messages: parseInt(userMessagesResult.rows[0].count),
+        events: userEventsResult.rows.length,
+        invites: userInvitesResult.rows.length,
+        avgChatsPerDay: parseFloat(userEngagementResult.rows[0].avg_chats || 0),
+        avgMessagesPerDay: parseFloat(userEngagementResult.rows[0].avg_messages || 0)
+      },
+      twins: userTwinsResult.rows,
+      chats: userChatsResult.rows,
+      events: userEventsResult.rows,
+      invites: userInvitesResult.rows,
+      activity: userActivityResult.rows,
+      timeline: userTimelineResult.rows
+    };
+
+    res.json({
+      success: true,
+      data: detailedUserInfo
+    });
+
+  } catch (error) {
+    logger.error('Detailed user info error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Remove user (admin only)
+export const removeUser = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+
+    // Check if user exists
+    const userResult = await db.query('SELECT * FROM "User" WHERE id = $1', [userId]);
+    if (!userResult.rows[0]) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Delete user and all related data (cascade)
+    await db.query('DELETE FROM "User" WHERE id = $1', [userId]);
+
+    res.json({
+      success: true,
+      message: 'User and all related data removed successfully'
+    });
+
+  } catch (error) {
+    logger.error('Remove user error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Get time-based analytics with detailed breakdown
+export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
+  try {
+    const { period } = req.params; // today, week, month
+    
+    let timeFilter = '';
+    let interval = '';
+    
+    switch (period) {
+      case 'today':
+        timeFilter = 'DATE("createdAt") = CURRENT_DATE';
+        interval = '1 hour';
+        break;
+      case 'week':
+        timeFilter = '"createdAt" >= NOW() - INTERVAL \'7 days\'';
+        interval = '1 day';
+        break;
+      case 'month':
+        timeFilter = '"createdAt" >= NOW() - INTERVAL \'30 days\'';
+        interval = '1 day';
+        break;
+      default:
+        return res.status(400).json({ error: 'Invalid period. Use: today, week, month' });
+    }
+
+    // Get detailed time-based analytics
+    const [
+      usersResult,
+      twinsResult,
+      chatsResult,
+      messagesResult,
+      eventsResult,
+      hourlyBreakdownResult,
+      dailyBreakdownResult,
+      topUsersResult,
+      topTwinsResult,
+      eventBreakdownResult
+    ] = await Promise.all([
+      db.query(`SELECT COUNT(*) as count FROM "User" WHERE ${timeFilter}`),
+      db.query(`SELECT COUNT(*) as count FROM "Twin" WHERE ${timeFilter}`),
+      db.query(`SELECT COUNT(*) as count FROM "Chat" WHERE ${timeFilter}`),
+      db.query(`SELECT COUNT(*) as count FROM "Message" WHERE ${timeFilter}`),
+      db.query(`SELECT COUNT(*) as count FROM "Event" WHERE ${timeFilter}`),
+      db.query(`SELECT EXTRACT(HOUR FROM "createdAt") as hour, COUNT(*) as count FROM "Event" WHERE ${timeFilter} GROUP BY EXTRACT(HOUR FROM "createdAt") ORDER BY hour`),
+      db.query(`SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Event" WHERE ${timeFilter} GROUP BY DATE("createdAt") ORDER BY date`),
+      db.query(`SELECT u.*, COUNT(e.id) as eventCount FROM "User" u LEFT JOIN "Event" e ON u.id = e."userId" WHERE ${timeFilter} GROUP BY u.id ORDER BY eventCount DESC LIMIT 10`),
+      db.query(`SELECT t.*, u.handle as userHandle FROM "Twin" t JOIN "User" u ON t."userId" = u.id WHERE ${timeFilter} ORDER BY t."likeCount" DESC, t."chatCount" DESC LIMIT 10`),
+      db.query(`SELECT type, COUNT(*) as count FROM "Event" WHERE ${timeFilter} GROUP BY type ORDER BY count DESC`)
+    ]);
+
+    const timeBasedAnalytics = {
+      period,
+      summary: {
+        users: parseInt(usersResult.rows[0].count),
+        twins: parseInt(twinsResult.rows[0].count),
+        chats: parseInt(chatsResult.rows[0].count),
+        messages: parseInt(messagesResult.rows[0].count),
+        events: parseInt(eventsResult.rows[0].count)
+      },
+      breakdown: {
+        hourly: hourlyBreakdownResult.rows,
+        daily: dailyBreakdownResult.rows
+      },
+      topContent: {
+        users: topUsersResult.rows,
+        twins: topTwinsResult.rows
+      },
+      eventBreakdown: eventBreakdownResult.rows.reduce((acc, event) => {
+        acc[event.type] = parseInt(event.count);
+        return acc;
+      }, {} as Record<string, number>)
+    };
+
+    res.json({
+      success: true,
+      data: timeBasedAnalytics
+    });
+
+  } catch (error) {
+    logger.error('Time-based analytics error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Get detailed users list for admin
+export const getUsersList = async (req: Request, res: Response) => {
+  try {
+    const { search, limit = 50, offset = 0 } = req.query;
+    
+    let whereClause = '';
+    let queryParams: any[] = [];
+    
+    if (search) {
+      whereClause = 'WHERE u.email ILIKE $1 OR u.handle ILIKE $1';
+      queryParams.push(`%${search}%`);
+    }
+    
+    const usersResult = await db.query(`
+      SELECT u.*, 
+             COUNT(DISTINCT t.id) as twinCount,
+             COUNT(DISTINCT c.id) as chatCount,
+             COUNT(DISTINCT e.id) as eventCount,
+             MAX(e."createdAt") as lastActivity
+      FROM "User" u
+      LEFT JOIN "Twin" t ON u.id = t."userId"
+      LEFT JOIN "Chat" c ON u.id = c."userId"
+      LEFT JOIN "Event" e ON u.id = e."userId"
+      ${whereClause}
+      GROUP BY u.id
+      ORDER BY u."createdAt" DESC
+      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+    `, [...queryParams, parseInt(limit as string), parseInt(offset as string)]);
+    
+    const totalUsersResult = await db.query(`
+      SELECT COUNT(*) as total FROM "User" u ${whereClause}
+    `, queryParams);
+    
+    res.json({
+      success: true,
+      data: {
+        users: usersResult.rows,
+        total: parseInt(totalUsersResult.rows[0].total),
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string)
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Get users list error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Get detailed metrics for specific type
+export const getDetailedMetrics = async (req: Request, res: Response) => {
+  try {
+    const { type } = req.params;
+    
+    let data: any = {};
+    
+    switch (type) {
+      case 'users':
+        const [totalUsersResult, activeUsersResult, newUsersResult, usersListResult] = await Promise.all([
+          db.query('SELECT COUNT(*) as count FROM "User"'),
+          db.query('SELECT COUNT(*) as count FROM "User" WHERE "lastLoginAt" >= NOW() - INTERVAL \'24 hours\''),
+          db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
+          db.query('SELECT u.*, COUNT(DISTINCT t.id) as twinCount, COUNT(DISTINCT c.id) as chatCount FROM "User" u LEFT JOIN "Twin" t ON u.id = t."userId" LEFT JOIN "Chat" c ON u.id = c."userId" GROUP BY u.id ORDER BY u."createdAt" DESC LIMIT 20')
+        ]);
+        
+        data = {
+          totalUsers: parseInt(totalUsersResult.rows[0].count),
+          activeUsers: parseInt(activeUsersResult.rows[0].count),
+          newUsers: parseInt(newUsersResult.rows[0].count),
+          users: usersListResult.rows
+        };
+        break;
+        
+      case 'twins':
+        const [totalTwinsResult, popularTwinsResult, recentTwinsResult] = await Promise.all([
+          db.query('SELECT COUNT(*) as count FROM "Twin"'),
+          db.query('SELECT t.*, u.handle as userHandle, u.email as userEmail FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."likeCount" DESC, t."chatCount" DESC LIMIT 20'),
+          db.query('SELECT t.*, u.handle as userHandle, u.email as userEmail FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."createdAt" DESC LIMIT 20')
+        ]);
+        
+        data = {
+          totalTwins: parseInt(totalTwinsResult.rows[0].count),
+          popularTwins: popularTwinsResult.rows,
+          recentTwins: recentTwinsResult.rows
+        };
+        break;
+        
+      case 'chats':
+        const [totalChatsResult, activeChatsResult, chatStatsResult] = await Promise.all([
+          db.query('SELECT COUNT(*) as count FROM "Chat"'),
+          db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "createdAt" >= NOW() - INTERVAL \'24 hours\''),
+          db.query('SELECT c.*, u.handle as userHandle, u.email as userEmail, t.id as twinId FROM "Chat" c JOIN "User" u ON c."userId" = u.id LEFT JOIN "Twin" t ON c."twinId" = t.id ORDER BY c."createdAt" DESC LIMIT 20')
+        ]);
+        
+        data = {
+          totalChats: parseInt(totalChatsResult.rows[0].count),
+          activeChats: parseInt(activeChatsResult.rows[0].count),
+          chats: chatStatsResult.rows
+        };
+        break;
+        
+      case 'messages':
+        const [totalMessagesResult, recentMessagesResult, messageStatsResult] = await Promise.all([
+          db.query('SELECT COUNT(*) as count FROM "Message"'),
+          db.query('SELECT COUNT(*) as count FROM "Message" WHERE "createdAt" >= NOW() - INTERVAL \'24 hours\''),
+          db.query('SELECT m.*, c.id as chatId, u.handle as userHandle FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id JOIN "User" u ON c."userId" = u.id ORDER BY m."createdAt" DESC LIMIT 20')
+        ]);
+        
+        data = {
+          totalMessages: parseInt(totalMessagesResult.rows[0].count),
+          recentMessages: parseInt(recentMessagesResult.rows[0].count),
+          messages: messageStatsResult.rows
+        };
+        break;
+        
+      default:
+        return res.status(400).json({ error: 'Invalid metric type' });
+    }
+    
+    res.json({
+      success: true,
+      data
+    });
+    
+  } catch (error) {
+    logger.error('Get detailed metrics error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 // Get system health metrics
 export const getSystemHealth = async (req: Request, res: Response) => {
   try {

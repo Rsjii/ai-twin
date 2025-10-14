@@ -231,14 +231,14 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
     
     try {
       console.log('Fetching analytics data for user:', userId);
-      const [
+    const [
         twinsResult,
         chatsResult,
         messagesResult,
         invitesSentResult,
         invitesReceivedResult,
         eventsResult
-      ] = await Promise.all([
+    ] = await Promise.all([
         db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "userId" = $1', [userId]),
         db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [userId]),
         db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [userId]),
@@ -275,8 +275,8 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
 
       userEventBreakdown = userEventTypesResult.rows.reduce((acc, event) => {
         acc[event.type] = parseInt(event.count);
-        return acc;
-      }, {} as Record<string, number>);
+      return acc;
+    }, {} as Record<string, number>);
       console.log('Event breakdown fetched:', userEventBreakdown);
 
       // Get recent activity (last 10 events)

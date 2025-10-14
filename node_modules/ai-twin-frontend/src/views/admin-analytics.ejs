@@ -50,64 +50,89 @@
 
         <!-- Main Content -->
         <div id="mainContent" class="hidden">
-            <!-- Overview Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="metric-card bg-white rounded-lg shadow-sm p-6">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-blue-100 rounded-lg">
-                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Total Users</p>
-                            <p class="text-2xl font-bold text-gray-900" id="totalUsers">-</p>
-                        </div>
-                    </div>
+        <!-- Time Filter Tabs -->
+        <div class="mb-8">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Time Period Filter</h3>
+                <div class="flex space-x-4">
+                    <button onclick="loadTimeBasedAnalytics('today')" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700">
+                        Today
+                    </button>
+                    <button onclick="loadTimeBasedAnalytics('week')" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-gray-100 text-gray-700 hover:bg-gray-200">
+                        7 Days
+                    </button>
+                    <button onclick="loadTimeBasedAnalytics('month')" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-gray-100 text-gray-700 hover:bg-gray-200">
+                        Monthly
+                    </button>
+                    <button onclick="loadAdminAnalytics()" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-gray-100 text-gray-700 hover:bg-gray-200">
+                        All Time
+                    </button>
                 </div>
+            </div>
+        </div>
 
-                <div class="metric-card bg-white rounded-lg shadow-sm p-6">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-green-100 rounded-lg">
-                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Total Twins</p>
-                            <p class="text-2xl font-bold text-gray-900" id="totalTwins">-</p>
-                        </div>
+        <!-- Overview Cards with Hover Effects -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('users')">
+                <div class="flex items-center">
+                    <div class="p-2 bg-blue-100 rounded-lg">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                        </svg>
                     </div>
-                </div>
-
-                <div class="metric-card bg-white rounded-lg shadow-sm p-6">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-purple-100 rounded-lg">
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Total Chats</p>
-                            <p class="text-2xl font-bold text-gray-900" id="totalChats">-</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="metric-card bg-white rounded-lg shadow-sm p-6">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-orange-100 rounded-lg">
-                            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Total Messages</p>
-                            <p class="text-2xl font-bold text-gray-900" id="totalMessages">-</p>
-                        </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Users</p>
+                        <p class="text-2xl font-bold text-gray-900" id="totalUsers">-</p>
+                        <p class="text-xs text-gray-500 mt-1">Click for details</p>
                     </div>
                 </div>
             </div>
+
+            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('twins')">
+                <div class="flex items-center">
+                    <div class="p-2 bg-green-100 rounded-lg">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Twins</p>
+                        <p class="text-2xl font-bold text-gray-900" id="totalTwins">-</p>
+                        <p class="text-xs text-gray-500 mt-1">Click for details</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('chats')">
+                <div class="flex items-center">
+                    <div class="p-2 bg-purple-100 rounded-lg">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Chats</p>
+                        <p class="text-2xl font-bold text-gray-900" id="totalChats">-</p>
+                        <p class="text-xs text-gray-500 mt-1">Click for details</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('messages')">
+                <div class="flex items-center">
+                    <div class="p-2 bg-orange-100 rounded-lg">
+                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Messages</p>
+                        <p class="text-2xl font-bold text-gray-900" id="totalMessages">-</p>
+                        <p class="text-xs text-gray-500 mt-1">Click for details</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
             <!-- Time-based Metrics -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -276,6 +301,18 @@
                 </div>
             </div>
 
+            <!-- User Management Section -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">User Management</h3>
+                <div class="mb-4">
+                    <input type="text" id="userSearchInput" placeholder="Search users by email or handle..." 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div id="usersList" class="space-y-3">
+                    <p class="text-gray-500">Loading users...</p>
+                </div>
+            </div>
+
             <!-- Recent Activity -->
             <div class="bg-white rounded-lg shadow-sm p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
@@ -303,6 +340,48 @@
                         <div id="recentEvents" class="space-y-2">
                             <p class="text-gray-500 text-sm">Loading...</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed User Modal -->
+    <div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-gray-900">User Details</h3>
+                        <button onclick="closeUserModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="userModalContent">
+                        <!-- User details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed View Modal -->
+    <div id="detailedModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-gray-900" id="detailedModalTitle">Detailed View</h3>
+                        <button onclick="closeDetailedModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="detailedModalContent">
+                        <!-- Detailed content will be loaded here -->
                     </div>
                 </div>
             </div>
@@ -547,9 +626,470 @@
             });
         }
         
+        // Time-based analytics loading
+        async function loadTimeBasedAnalytics(period) {
+            try {
+                console.log(`Loading ${period} analytics...`);
+                
+                // Update active button
+                document.querySelectorAll('.time-filter-btn').forEach(btn => {
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('bg-gray-100', 'text-gray-700');
+                });
+                event.target.classList.remove('bg-gray-100', 'text-gray-700');
+                event.target.classList.add('bg-blue-600', 'text-white');
+                
+                const response = await fetch(`/api/admin/analytics/time/${period}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update metrics with time-based data
+                    document.getElementById('totalUsers').textContent = data.data.summary.users;
+                    document.getElementById('totalTwins').textContent = data.data.summary.twins;
+                    document.getElementById('totalChats').textContent = data.data.summary.chats;
+                    document.getElementById('totalMessages').textContent = data.data.summary.messages;
+                    
+                    // Update charts with new data
+                    createTimeBasedChart(data.data.breakdown, period);
+                }
+            } catch (error) {
+                console.error('Time-based analytics error:', error);
+            }
+        }
+        
+        // Show detailed view for metrics
+        function showDetailedView(type) {
+            document.getElementById('detailedModalTitle').textContent = `${type.charAt(0).toUpperCase() + type.slice(1)} Detailed View`;
+            document.getElementById('detailedModal').classList.remove('hidden');
+            
+            // Load detailed data based on type
+            loadDetailedData(type);
+        }
+        
+        // Load detailed data for specific metric type
+        async function loadDetailedData(type) {
+            try {
+                console.log(`Loading detailed data for ${type}...`);
+                const response = await fetch(`/api/admin/analytics/detailed/${type}`);
+                const data = await response.json();
+                
+                console.log(`Detailed ${type} data:`, data);
+                
+                if (data.success) {
+                    const content = document.getElementById('detailedModalContent');
+                    content.innerHTML = generateDetailedContent(type, data.data);
+                } else {
+                    document.getElementById('detailedModalContent').innerHTML = '<p class="text-red-600">Error: ' + data.error + '</p>';
+                }
+            } catch (error) {
+                console.error('Detailed data error:', error);
+                document.getElementById('detailedModalContent').innerHTML = '<p class="text-red-600">Error loading detailed data: ' + error.message + '</p>';
+            }
+        }
+        
+        // Generate detailed content based on type
+        function generateDetailedContent(type, data) {
+            switch (type) {
+                case 'users':
+                    return generateUsersDetailedContent(data);
+                case 'twins':
+                    return generateTwinsDetailedContent(data);
+                case 'chats':
+                    return generateChatsDetailedContent(data);
+                case 'messages':
+                    return generateMessagesDetailedContent(data);
+                default:
+                    return '<p>No detailed content available</p>';
+            }
+        }
+        
+        // Generate users detailed content
+        function generateUsersDetailedContent(data) {
+            return `
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-blue-900">Total Users</h4>
+                            <p class="text-2xl font-bold text-blue-600">${data.totalUsers || 0}</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-green-900">Active Today</h4>
+                            <p class="text-2xl font-bold text-green-600">${data.activeUsers || 0}</p>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-purple-900">New This Week</h4>
+                            <p class="text-2xl font-bold text-purple-600">${data.newUsers || 0}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="font-semibold mb-4">User List</h4>
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            ${data.users && data.users.length > 0 ? data.users.map(user => `
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                            ${(user.handle || user.email).charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">${user.handle || 'No handle'}</p>
+                                            <p class="text-sm text-gray-600">${user.email}</p>
+                                            <p class="text-xs text-gray-500">Joined: ${new Date(user.createdAt).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-4">
+                                        <div class="text-center">
+                                            <p class="text-sm font-medium">${user.twinCount || 0}</p>
+                                            <p class="text-xs text-gray-500">Twins</p>
+                                        </div>
+                                        <div class="text-center">
+                                            <p class="text-sm font-medium">${user.chatCount || 0}</p>
+                                            <p class="text-xs text-gray-500">Chats</p>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button onclick="viewUserDetails('${user.id}')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                                                View
+                                            </button>
+                                            <button onclick="removeUser('${user.id}')" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('') : '<p class="text-gray-500 text-center py-4">No users found</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Generate twins detailed content
+        function generateTwinsDetailedContent(data) {
+            return `
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-green-900">Total Twins</h4>
+                            <p class="text-2xl font-bold text-green-600">${data.totalTwins || 0}</p>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-blue-900">Popular Twins</h4>
+                            <p class="text-2xl font-bold text-blue-600">${data.popularTwins ? data.popularTwins.length : 0}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="font-semibold mb-4">Popular Twins</h4>
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            ${data.popularTwins && data.popularTwins.length > 0 ? data.popularTwins.map(twin => `
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p class="font-medium">${twin.userHandle || twin.userEmail}</p>
+                                        <p class="text-sm text-gray-600">Likes: ${twin.likeCount || 0}, Chats: ${twin.chatCount || 0}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm text-gray-500">Created: ${new Date(twin.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                            `).join('') : '<p class="text-gray-500 text-center py-4">No twins found</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Generate chats detailed content
+        function generateChatsDetailedContent(data) {
+            return `
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-purple-900">Total Chats</h4>
+                            <p class="text-2xl font-bold text-purple-600">${data.totalChats || 0}</p>
+                        </div>
+                        <div class="bg-orange-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-orange-900">Active Today</h4>
+                            <p class="text-2xl font-bold text-orange-600">${data.activeChats || 0}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="font-semibold mb-4">Recent Chats</h4>
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            ${data.chats && data.chats.length > 0 ? data.chats.map(chat => `
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p class="font-medium">${chat.userHandle || chat.userEmail}</p>
+                                        <p class="text-sm text-gray-600">Twin ID: ${chat.twinId || 'N/A'}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm text-gray-500">${new Date(chat.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                            `).join('') : '<p class="text-gray-500 text-center py-4">No chats found</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Generate messages detailed content
+        function generateMessagesDetailedContent(data) {
+            return `
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-orange-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-orange-900">Total Messages</h4>
+                            <p class="text-2xl font-bold text-orange-600">${data.totalMessages || 0}</p>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-red-900">Recent Messages</h4>
+                            <p class="text-2xl font-bold text-red-600">${data.recentMessages || 0}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="font-semibold mb-4">Recent Messages</h4>
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            ${data.messages && data.messages.length > 0 ? data.messages.map(message => `
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p class="font-medium">${message.userHandle || 'Unknown'}</p>
+                                        <p class="text-sm text-gray-600">${message.content ? message.content.substring(0, 50) + '...' : 'No content'}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm text-gray-500">${new Date(message.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                            `).join('') : '<p class="text-gray-500 text-center py-4">No messages found</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // View user details
+        async function viewUserDetails(userId) {
+            try {
+                const response = await fetch(`/api/admin/analytics/user/${userId}/detailed`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('userModalContent').innerHTML = generateUserDetailsContent(data.data);
+                    document.getElementById('userModal').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('User details error:', error);
+            }
+        }
+        
+        // Generate user details content
+        function generateUserDetailsContent(userData) {
+            return `
+                <div class="space-y-6">
+                    <!-- User Info -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-3">User Information</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600">Email</p>
+                                <p class="font-medium">${userData.user.email}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Handle</p>
+                                <p class="font-medium">${userData.user.handle || 'Not set'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Created</p>
+                                <p class="font-medium">${new Date(userData.user.createdAt).toLocaleDateString()}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Active</p>
+                                <p class="font-medium">${userData.user.active ? 'Yes' : 'No'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- User Stats -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-blue-50 p-4 rounded-lg text-center">
+                            <p class="text-2xl font-bold text-blue-600">${userData.stats.twins}</p>
+                            <p class="text-sm text-blue-800">Twins</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg text-center">
+                            <p class="text-2xl font-bold text-green-600">${userData.stats.chats}</p>
+                            <p class="text-sm text-green-800">Chats</p>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg text-center">
+                            <p class="text-2xl font-bold text-purple-600">${userData.stats.messages}</p>
+                            <p class="text-sm text-purple-800">Messages</p>
+                        </div>
+                        <div class="bg-orange-50 p-4 rounded-lg text-center">
+                            <p class="text-2xl font-bold text-orange-600">${userData.stats.events}</p>
+                            <p class="text-sm text-orange-800">Events</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="font-semibold mb-3">Recent Activity</h4>
+                        <div class="space-y-2 max-h-48 overflow-y-auto">
+                            ${userData.events.slice(0, 10).map(event => `
+                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                    <div>
+                                        <p class="text-sm font-medium">${event.type}</p>
+                                        <p class="text-xs text-gray-600">${new Date(event.createdAt).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex space-x-4">
+                        <button onclick="removeUser('${userData.user.id}')" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                            Remove User
+                        </button>
+                        <button onclick="closeUserModal()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Remove user
+        async function removeUser(userId) {
+            if (confirm('Are you sure you want to remove this user? This action cannot be undone.')) {
+                try {
+                    const response = await fetch(`/api/admin/analytics/user/${userId}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('User removed successfully');
+                        loadAdminAnalytics(); // Refresh data
+                        closeUserModal();
+                    } else {
+                        alert('Error removing user: ' + data.error);
+                    }
+                } catch (error) {
+                    console.error('Remove user error:', error);
+                    alert('Error removing user');
+                }
+            }
+        }
+        
+        // Modal functions
+        function closeUserModal() {
+            document.getElementById('userModal').classList.add('hidden');
+        }
+        
+        function closeDetailedModal() {
+            document.getElementById('detailedModal').classList.add('hidden');
+        }
+        
+        // Close modals when clicking outside
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'userModal') closeUserModal();
+            if (e.target.id === 'detailedModal') closeDetailedModal();
+        });
+        
+        // Load users list
+        async function loadUsersList(search = '') {
+            try {
+                console.log('Loading users list...');
+                const url = search ? `/api/admin/analytics/users?search=${encodeURIComponent(search)}` : '/api/admin/analytics/users';
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                console.log('Users list data:', data);
+                
+                if (data.success) {
+                    const usersList = document.getElementById('usersList');
+                    if (data.data.users && data.data.users.length > 0) {
+                        usersList.innerHTML = data.data.users.map(user => `
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" onclick="viewUserDetails('${user.id}')">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                                        ${(user.handle || user.email).charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-gray-900">${user.handle || 'No handle'}</p>
+                                        <p class="text-sm text-gray-600">${user.email}</p>
+                                        <p class="text-xs text-gray-500">Joined: ${new Date(user.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <div class="text-center">
+                                        <p class="text-sm font-medium text-gray-900">${user.twinCount || 0}</p>
+                                        <p class="text-xs text-gray-500">Twins</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-sm font-medium text-gray-900">${user.chatCount || 0}</p>
+                                        <p class="text-xs text-gray-500">Chats</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-sm font-medium text-gray-900">${user.eventCount || 0}</p>
+                                        <p class="text-xs text-gray-500">Events</p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button onclick="event.stopPropagation(); viewUserDetails('${user.id}')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                                            View
+                                        </button>
+                                        <button onclick="event.stopPropagation(); removeUser('${user.id}')" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        usersList.innerHTML = '<p class="text-gray-500 text-center py-8">No users found</p>';
+                    }
+                } else {
+                    document.getElementById('usersList').innerHTML = '<p class="text-red-600">Error loading users: ' + data.error + '</p>';
+                }
+            } catch (error) {
+                console.error('Load users error:', error);
+                document.getElementById('usersList').innerHTML = '<p class="text-red-600">Error loading users: ' + error.message + '</p>';
+            }
+        }
+        
+        // Search users
+        function searchUsers() {
+            const searchInput = document.getElementById('userSearchInput');
+            const searchTerm = searchInput.value.trim();
+            console.log('Searching users:', searchTerm);
+            loadUsersList(searchTerm);
+        }
+        
+        // Add search functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('userSearchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', debounce(searchUsers, 300));
+            }
+        });
+        
+        // Debounce function for search
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
         // Load analytics on page load
         document.addEventListener('DOMContentLoaded', () => {
             loadAdminAnalytics();
+            loadUsersList();
         });
     </script>
 </body>
