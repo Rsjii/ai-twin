@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Your AI Twin - Onboarding</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#4f46e5',
+                        accent: '#8b5cf6',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .step-active {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+        }
+        .step-completed {
+            background: #10b981;
+            color: white;
+        }
+        .step-pending {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+        .personality-chart {
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        .tone-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            border-radius: 5px;
+            background: #e5e7eb;
+            outline: none;
+        }
+        .tone-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #6366f1;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+        }
+        .tone-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #6366f1;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen font-inter">
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-xl border-b border-white/20 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-3 group">
+                        <div class="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                            <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" stroke="currentColor" fill="none">
+                                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+                            </svg>
+                        </div>
+                        <span class="text-2xl font-bold gradient-text">AI Twin</span>
+                    </a>
+                </div>
+                
+                <!-- Progress Indicator -->
+                <div class="hidden md:flex items-center space-x-2">
+                    <span class="text-sm text-gray-600">Step <span id="currentStepNumber">1</span> of 7</span>
+                    <div class="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div id="progressBar" class="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500" style="width: 14.28%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="px-4 py-8 sm:px-0">
+        <div class="max-w-4xl mx-auto">
+            <!-- Progress Steps -->
+            <div class="mb-8">
+                <div class="flex items-center justify-center space-x-2 md:space-x-4 overflow-x-auto pb-4">
+                    <div class="flex items-center space-x-2">
+                        <div id="step1" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-active">1</div>
+                        <span class="hidden md:block text-sm font-medium text-gray-700">Basic Info</span>
+                    </div>
+                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                    <div class="flex items-center space-x-2">
+                        <div id="step2" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">2</div>
+                        <span class="hidden md:block text-sm font-medium text-gray-700">Personality</span>
+                    </div>
+                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                    <div class="flex items-center space-x-2">
+                        <div id="step3" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">3</div>
+                        <span class="hidden md:block text-sm font-medium text-gray-700">Tone</span>
+                    </div>
+                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                    <div class="flex items-center space-x-2">
+                        <div id="step4" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">4</div>
+                        <span class="hidden md:block text-sm font-medium text-gray-700">Language</span>
+                    </div>
+                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                    <div class="flex items-center space-x-2">
+                        <div id="step5" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">5</div>
+                        <span class="hidden md:block text-sm font-medium text-gray-700">Context</span>
+                    </div>
+                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                    <div class="flex items-center space-x-2">
+                        <div id="step6" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">6</div>
+                        <span class="hidden md:block text-sm font-medium text-gray-700">Samples</span>
+                    </div>
+                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                    <div class="flex items-center space-x-2">
+                        <div id="step7" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">7</div>
+                        <span class="hidden md:block text-sm font-medium text-gray-700">Preview</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 p-8">
+                <form id="onboardingForm">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <!-- Step 1: Basic Information -->
+                    <div id="step1-content" class="step-content fade-in">
+                        <div class="mb-8">
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">Let's Get Started!</h1>
+                            <p class="text-gray-600">Tell us a bit about yourself to create your perfect AI twin.</p>
+                        </div>
+
+                        <div class="space-y-6">
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                                    <input type="text" id="fullName" name="fullName" required
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                                           placeholder="Enter your full name">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Username *</label>
+                                    <input type="text" id="username" name="username" required
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                                           placeholder="Choose a unique username">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Short Bio *</label>
+                                <textarea id="bio" name="bio" required rows="3"
+                                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                                          placeholder="Tell us about yourself in 50-150 characters"></textarea>
+                                <p class="text-sm text-gray-500 mt-1"><span id="bioCount">0</span>/150 characters</p>
+                            </div>
+
+                            <div class="grid md:grid-cols-3 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Age Range *</label>
+                                    <select id="ageRange" name="ageRange" required
+                                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                                        <option value="">Select age range</option>
+                                        <option value="18-25">18-25</option>
+                                        <option value="26-35">26-35</option>
+                                        <option value="36-45">36-45</option>
+                                        <option value="46-55">46-55</option>
+                                        <option value="55+">55+</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Profession *</label>
+                                    <select id="profession" name="profession" required
+                                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                                        <option value="">Select profession</option>
+                                        <option value="Technology">Technology</option>
+                                        <option value="Healthcare">Healthcare</option>
+                                        <option value="Education">Education</option>
+                                        <option value="Business">Business</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="Creative">Creative</option>
+                                        <option value="Marketing">Marketing</option>
+                                        <option value="Sales">Sales</option>
+                                        <option value="Student">Student</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Location *</label>
+                                    <select id="location" name="location" required
+                                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                                        <option value="">Select location</option>
+                                        <option value="North America">North America</option>
+                                        <option value="Europe">Europe</option>
+                                        <option value="Asia">Asia</option>
+                                        <option value="South America">South America</option>
+                                        <option value="Africa">Africa</option>
+                                        <option value="Oceania">Oceania</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Personality Assessment -->
+                    <div id="step2-content" class="step-content hidden">
+                        <div class="mb-8">
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">Personality Assessment</h1>
+                            <p class="text-gray-600">Help us understand your personality through these questions.</p>
+                        </div>
+
+                        <div class="space-y-8">
+                            <!-- OCEAN Questions -->
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Personality Traits</h3>
+                                <div class="space-y-6">
+                                    <!-- Openness Questions -->
+                                    <div class="border-l-4 border-blue-500 pl-4">
+                                        <h4 class="font-medium text-gray-800 mb-3">Openness to Experience</h4>
+                                        <div class="space-y-4">
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I enjoy trying new foods and cuisines from different cultures</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness1" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness1" value="2" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness1" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness1" value="4" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness1" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I often daydream and imagine creative scenarios</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness2" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness2" value="2" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness2" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness2" value="4" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness2" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I prefer traditional methods over new, experimental approaches</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness3" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness3" value="4" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness3" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness3" value="2" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="openness3" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Conscientiousness Questions -->
+                                    <div class="border-l-4 border-green-500 pl-4">
+                                        <h4 class="font-medium text-gray-800 mb-3">Conscientiousness</h4>
+                                        <div class="space-y-4">
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I always plan my day and stick to my schedule</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness1" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness1" value="2" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness1" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness1" value="4" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness1" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I often leave tasks until the last minute</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness2" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness2" value="4" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness2" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness2" value="2" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness2" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I pay attention to details and rarely make careless mistakes</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness3" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness2" value="2" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness3" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness3" value="4" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="conscientiousness3" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Extraversion Questions -->
+                                    <div class="border-l-4 border-yellow-500 pl-4">
+                                        <h4 class="font-medium text-gray-800 mb-3">Extraversion</h4>
+                                        <div class="space-y-4">
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I feel energized after spending time with large groups of people</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion1" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion1" value="2" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion1" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion1" value="4" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion1" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I prefer quiet evenings at home over going to parties</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion2" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion2" value="4" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion2" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion2" value="2" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion2" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I enjoy being the center of attention in social situations</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion3" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion3" value="2" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion3" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion3" value="4" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="extraversion3" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Agreeableness Questions -->
+                                    <div class="border-l-4 border-purple-500 pl-4">
+                                        <h4 class="font-medium text-gray-800 mb-3">Agreeableness</h4>
+                                        <div class="space-y-4">
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I often put others' needs before my own</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness1" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness1" value="2" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness1" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness1" value="4" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness1" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I enjoy debating and arguing different viewpoints</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness2" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness2" value="4" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness2" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness2" value="2" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness2" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I find it easy to trust people I've just met</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness3" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness3" value="2" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness3" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness3" value="4" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="agreeableness3" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Neuroticism Questions -->
+                                    <div class="border-l-4 border-red-500 pl-4">
+                                        <h4 class="font-medium text-gray-800 mb-3">Neuroticism</h4>
+                                        <div class="space-y-4">
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I worry about things that might go wrong</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism1" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism1" value="2" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism1" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism1" value="4" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism1" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I stay calm under pressure</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism2" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism2" value="4" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism2" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism2" value="2" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism2" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="question-group">
+                                                <p class="text-sm text-gray-700 mb-2">I often feel stressed or anxious about daily tasks</p>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism3" value="1" class="mr-2">
+                                                        <span class="text-sm">Strongly Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism3" value="2" class="mr-2">
+                                                        <span class="text-sm">Disagree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism3" value="3" class="mr-2">
+                                                        <span class="text-sm">Neutral</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism3" value="4" class="mr-2">
+                                                        <span class="text-sm">Agree</span>
+                                                    </label>
+                                                    <label class="flex items-center">
+                                                        <input type="radio" name="neuroticism3" value="5" class="mr-2">
+                                                        <span class="text-sm">Strongly Agree</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Communication Style Questions -->
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Communication Style</h3>
+                                <div class="space-y-6">
+                                    <div class="question-group">
+                                        <p class="text-sm text-gray-700 mb-2">In professional emails, I prefer formal language over casual</p>
+                                        <div class="flex space-x-4">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="formality" value="1" class="mr-2">
+                                                <span class="text-sm">Strongly Disagree</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="formality" value="2" class="mr-2">
+                                                <span class="text-sm">Disagree</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="formality" value="3" class="mr-2">
+                                                <span class="text-sm">Neutral</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="formality" value="4" class="mr-2">
+                                                <span class="text-sm">Agree</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="formality" value="5" class="mr-2">
+                                                <span class="text-sm">Strongly Agree</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="question-group">
+                                        <p class="text-sm text-gray-700 mb-2">I use emojis and abbreviations frequently in messages</p>
+                                        <div class="flex space-x-4">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="casual" value="1" class="mr-2">
+                                                <span class="text-sm">Strongly Disagree</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="casual" value="2" class="mr-2">
+                                                <span class="text-sm">Disagree</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="casual" value="3" class="mr-2">
+                                                <span class="text-sm">Neutral</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="casual" value="4" class="mr-2">
+                                                <span class="text-sm">Agree</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="casual" value="5" class="mr-2">
+                                                <span class="text-sm">Strongly Agree</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="question-group">
+                                        <p class="text-sm text-gray-700 mb-2">I enjoy making jokes and being funny in conversations</p>
+                                        <div class="flex space-x-4">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="humor" value="1" class="mr-2">
+                                                <span class="text-sm">Strongly Disagree</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="humor" value="2" class="mr-2">
+                                                <span class="text-sm">Disagree</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="humor" value="3" class="mr-2">
+                                                <span class="text-sm">Neutral</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="humor" value="4" class="mr-2">
+                                                <span class="text-sm">Agree</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="humor" value="5" class="mr-2">
+                                                <span class="text-sm">Strongly Agree</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="question-group">
+                                        <p class="text-sm text-gray-700 mb-2">I prefer to be direct and say exactly what I mean</p>
+                                        <div class="flex space-x-4">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="directness" value="1" class="mr-2">
+                                                <span class="text-sm">Strongly Disagree</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="directness" value="2" class="mr-2">
+                                                <span class="text-sm">Disagree</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="directness" value="3" class="mr-2">
+                                                <span class="text-sm">Neutral</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="directness" value="4" class="mr-2">
+                                                <span class="text-sm">Agree</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="directness" value="5" class="mr-2">
+                                                <span class="text-sm">Strongly Agree</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Tone & Communication Preferences -->
+                    <div id="step3-content" class="step-content hidden">
+                        <div class="mb-8">
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">Tone & Communication Style</h1>
+                            <p class="text-gray-600">Fine-tune how your AI twin communicates by adjusting these sliders.</p>
+                        </div>
+
+                        <div class="space-y-8">
+                            <!-- Tone Sliders -->
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-6">Communication Tone</h3>
+                                <div class="space-y-8">
+                                    <div class="tone-slider-group">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="text-sm font-medium text-gray-700">Formal</label>
+                                            <span id="formalValue" class="text-sm text-primary font-semibold">50</span>
+                                            <label class="text-sm font-medium text-gray-700">Casual</label>
+                                        </div>
+                                        <input type="range" id="formalCasual" name="formalCasual" min="0" max="100" value="50" class="tone-slider w-full">
+                                    </div>
+
+                                    <div class="tone-slider-group">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="text-sm font-medium text-gray-700">Serious</label>
+                                            <span id="seriousValue" class="text-sm text-primary font-semibold">50</span>
+                                            <label class="text-sm font-medium text-gray-700">Playful</label>
+                                        </div>
+                                        <input type="range" id="seriousPlayful" name="seriousPlayful" min="0" max="100" value="50" class="tone-slider w-full">
+                                    </div>
+
+                                    <div class="tone-slider-group">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="text-sm font-medium text-gray-700">Direct</label>
+                                            <span id="directValue" class="text-sm text-primary font-semibold">50</span>
+                                            <label class="text-sm font-medium text-gray-700">Diplomatic</label>
+                                        </div>
+                                        <input type="range" id="directDiplomatic" name="directDiplomatic" min="0" max="100" value="50" class="tone-slider w-full">
+                                    </div>
+
+                                    <div class="tone-slider-group">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="text-sm font-medium text-gray-700">Enthusiastic</label>
+                                            <span id="enthusiasticValue" class="text-sm text-primary font-semibold">50</span>
+                                            <label class="text-sm font-medium text-gray-700">Reserved</label>
+                                        </div>
+                                        <input type="range" id="enthusiasticReserved" name="enthusiasticReserved" min="0" max="100" value="50" class="tone-slider w-full">
+                                    </div>
+
+                                    <div class="tone-slider-group">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="text-sm font-medium text-gray-700">Technical</label>
+                                            <span id="technicalValue" class="text-sm text-primary font-semibold">50</span>
+                                            <label class="text-sm font-medium text-gray-700">Simple</label>
+                                        </div>
+                                        <input type="range" id="technicalSimple" name="technicalSimple" min="0" max="100" value="50" class="tone-slider w-full">
+                                    </div>
+
+                                    <div class="tone-slider-group">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="text-sm font-medium text-gray-700">Warm</label>
+                                            <span id="warmValue" class="text-sm text-primary font-semibold">50</span>
+                                            <label class="text-sm font-medium text-gray-700">Professional</label>
+                                        </div>
+                                        <input type="range" id="warmProfessional" name="warmProfessional" min="0" max="100" value="50" class="tone-slider w-full">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Communication Scenarios -->
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Communication Scenarios</h3>
+                                <div class="space-y-6">
+                                    <div class="scenario-group">
+                                        <p class="text-sm font-medium text-gray-700 mb-3">Meeting Someone New:</p>
+                                        <div class="space-y-2">
+                                            <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="radio" name="greetingStyle" value="casual" class="mr-3">
+                                                <span class="text-sm">"Hey! Nice to meet you, I'm [name]"</span>
+                                            </label>
+                                            <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="radio" name="greetingStyle" value="formal" class="mr-3">
+                                                <span class="text-sm">"Hello, it's a pleasure to make your acquaintance"</span>
+                                            </label>
+                                            <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="radio" name="greetingStyle" value="friendly" class="mr-3">
+                                                <span class="text-sm">"Hi there! How's it going?"</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="scenario-group">
+                                        <p class="text-sm font-medium text-gray-700 mb-3">Giving Bad News:</p>
+                                        <div class="space-y-2">
+                                            <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="radio" name="badNewsStyle" value="direct" class="mr-3">
+                                                <span class="text-sm">"I have to be honest with you about something..."</span>
+                                            </label>
+                                            <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="radio" name="badNewsStyle" value="formal" class="mr-3">
+                                                <span class="text-sm">"Unfortunately, I need to share some difficult news"</span>
+                                            </label>
+                                            <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="radio" name="badNewsStyle" value="casual" class="mr-3">
+                                                <span class="text-sm">"So, here's the thing that happened..."</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="scenario-group">
+                                        <p class="text-sm font-medium text-gray-700 mb-3">Expressing Excitement:</p>
+                                        <div class="space-y-2">
+                                            <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="radio" name="excitementStyle" value="enthusiastic" class="mr-3">
+                                                <span class="text-sm">"OMG, that's amazing! I'm so excited!"</span>
+                                            </label>
+                                            <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="radio" name="excitementStyle" value="formal" class="mr-3">
+                                                <span class="text-sm">"That's wonderful news! I'm delighted to hear it"</span>
+                                            </label>
+                                            <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="radio" name="excitementStyle" value="moderate" class="mr-3">
+                                                <span class="text-sm">"Wow, that's really cool! Tell me more!"</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Writing Style & Language Patterns -->
+                    <div id="step4-content" class="step-content hidden">
+                        <div class="mb-8">
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">Writing Style & Language</h1>
+                            <p class="text-gray-600">Define your preferred language patterns and writing style.</p>
+                        </div>
+
+                        <div class="space-y-8">
+                            <!-- Language Preferences -->
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Language Preferences</h3>
+                                <div class="grid md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Preferred Greeting Style</label>
+                                        <select id="greetingStyle" name="greetingStyle" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                                            <option value="">Select greeting style</option>
+                                            <option value="formal">Formal: "Hello", "Good morning"</option>
+                                            <option value="casual">Casual: "Hey", "Hi there"</option>
+                                            <option value="friendly">Friendly: "Hey!", "Hi!"</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Preferred Closing Style</label>
+                                        <select id="closingStyle" name="closingStyle" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                                            <option value="">Select closing style</option>
+                                            <option value="formal">Formal: "Best regards", "Sincerely"</option>
+                                            <option value="casual">Casual: "Talk soon", "Catch you later"</option>
+                                            <option value="friendly">Friendly: "Take care!", "See you soon!"</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Punctuation & Vocabulary -->
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Writing Style</h3>
+                                <div class="grid md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Punctuation Style</label>
+                                        <select id="punctuationStyle" name="punctuationStyle" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                                            <option value="">Select punctuation style</option>
+                                            <option value="conservative">Conservative: Minimal punctuation</option>
+                                            <option value="expressive">Expressive: Lots of exclamation marks</option>
+                                            <option value="balanced">Balanced: Moderate use</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Technical Terms Usage</label>
+                                        <select id="vocabularyLevel" name="vocabularyLevel" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                                            <option value="">Select vocabulary level</option>
+                                            <option value="high">High: Use industry-specific jargon</option>
+                                            <option value="medium">Medium: Mix of technical and simple terms</option>
+                                            <option value="low">Low: Simple, everyday language</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Slang & Informal Language -->
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Informal Language</h3>
+                                <div class="space-y-4">
+                                    <div class="question-group">
+                                        <p class="text-sm text-gray-700 mb-2">How often do you use slang and informal expressions?</p>
+                                        <div class="flex space-x-4">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="slangUsage" value="high" class="mr-2">
+                                                <span class="text-sm">High: Use current slang and abbreviations</span>
+                                            </label>
+                                        </div>
+                                        <div class="flex space-x-4 mt-2">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="slangUsage" value="medium" class="mr-2">
+                                                <span class="text-sm">Medium: Occasional informal expressions</span>
+                                            </label>
+                                        </div>
+                                        <div class="flex space-x-4 mt-2">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="slangUsage" value="low" class="mr-2">
+                                                <span class="text-sm">Low: Avoid slang, prefer standard language</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: Context & Background Information -->
+                    <div id="step5-content" class="step-content hidden">
+                        <div class="mb-8">
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">Context & Background</h1>
+                            <p class="text-gray-600">Help us understand your interests and how you'll use your AI twin.</p>
+                        </div>
+
+                        <div class="space-y-8">
+                            <!-- Interests & Hobbies -->
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Interests & Hobbies</h3>
+                                <p class="text-sm text-gray-600 mb-4">Select all that apply (choose 3-5):</p>
+                                <div class="grid md:grid-cols-3 gap-4">
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="interests" value="technology" class="mr-3">
+                                        <span class="text-sm">Technology & AI</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="interests" value="sports" class="mr-3">
+                                        <span class="text-sm">Sports & Fitness</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="interests" value="arts" class="mr-3">
+                                        <span class="text-sm">Arts & Culture</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="interests" value="travel" class="mr-3">
+                                        <span class="text-sm">Travel & Adventure</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="interests" value="food" class="mr-3">
+                                        <span class="text-sm">Food & Cooking</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="interests" value="music" class="mr-3">
+                                        <span class="text-sm">Music & Entertainment</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="interests" value="books" class="mr-3">
+                                        <span class="text-sm">Books & Reading</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="interests" value="gaming" class="mr-3">
+                                        <span class="text-sm">Gaming</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="interests" value="business" class="mr-3">
+                                        <span class="text-sm">Business & Entrepreneurship</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="interests" value="science" class="mr-3">
+                                        <span class="text-sm">Science & Nature</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Communication Context -->
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Communication Context</h3>
+                                <div class="grid md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Primary Use Case</label>
+                                        <select id="primaryUseCase" name="primaryUseCase" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                                            <option value="personal">Personal conversations</option>
+                                            <option value="professional">Professional networking</option>
+                                            <option value="customer-service">Customer service</option>
+                                            <option value="content-creation">Content creation</option>
+                                            <option value="educational">Educational purposes</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Target Audience</label>
+                                        <select id="targetAudience" name="targetAudience" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                                            <option value="friends-family">Friends and family</option>
+                                            <option value="colleagues">Professional colleagues</option>
+                                            <option value="general-public">General public</option>
+                                            <option value="industry-specific">Specific industry</option>
+                                            <option value="students">Students/learners</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 6: Enhanced Text Samples Collection -->
+                    <div id="step6-content" class="step-content hidden">
+                        <div class="mb-8">
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">Text Samples (Optional)</h1>
+                            <p class="text-gray-600">Provide real examples of your writing to make your AI twin more accurate.</p>
+                        </div>
+
+                        <div class="space-y-8">
+                            <!-- Sample Categories -->
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Choose Sample Categories</h3>
+                                <p class="text-sm text-gray-600 mb-4">Select 2-3 categories that best represent your communication style:</p>
+                                <div class="grid md:grid-cols-2 gap-4">
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="sampleCategories" value="social-media" class="mr-3">
+                                        <span class="text-sm">Social Media Posts (Twitter, Instagram, LinkedIn)</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="sampleCategories" value="emails" class="mr-3">
+                                        <span class="text-sm">Email Communications (Professional, Personal)</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="sampleCategories" value="messages" class="mr-3">
+                                        <span class="text-sm">Text Messages (Casual conversations)</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="sampleCategories" value="professional" class="mr-3">
+                                        <span class="text-sm">Professional Writing (Reports, proposals)</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="sampleCategories" value="creative" class="mr-3">
+                                        <span class="text-sm">Creative Writing (Stories, poems, blogs)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Sample Collection Interface -->
+                            <div id="sampleCollection" class="hidden">
+                                <div class="bg-gray-50 rounded-xl p-6">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Add Your Samples</h3>
+                                    <div id="sampleInputs" class="space-y-4">
+                                        <!-- Sample inputs will be dynamically generated -->
+                                    </div>
+                                    <button type="button" id="addSampleBtn" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors">
+                                        + Add Another Sample
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Skip Option -->
+                            <div class="text-center">
+                                <button type="button" id="skipSamplesBtn" class="text-gray-500 hover:text-gray-700 underline">
+                                    Skip this step (optional)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 7: AI Twin Preview & Confirmation -->
+                    <div id="step7-content" class="step-content hidden">
+                        <div class="mb-8">
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">Your AI Twin Preview</h1>
+                            <p class="text-gray-600">Here's what your AI twin will be like based on your preferences.</p>
+                        </div>
+
+                        <div class="space-y-8">
+                            <!-- Personality Summary -->
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Personality Summary</h3>
+                                <div class="personality-chart">
+                                    <canvas id="personalityChart" width="300" height="300"></canvas>
+                                </div>
+                                <div id="personalityTraits" class="mt-4 grid grid-cols-2 md:grid-cols-5 gap-4">
+                                    <!-- Personality traits will be displayed here -->
+                                </div>
+                            </div>
+
+                            <!-- Communication Style Summary -->
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Communication Style</h3>
+                                <div id="communicationSummary" class="space-y-3">
+                                    <!-- Communication style summary will be displayed here -->
+                                </div>
+                            </div>
+
+                            <!-- Sample Conversation -->
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Sample Conversation</h3>
+                                <div class="bg-white rounded-lg p-4 space-y-4">
+                                    <div class="flex items-start space-x-3">
+                                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">U</div>
+                                        <div class="bg-blue-50 rounded-lg p-3 max-w-md">
+                                            <p class="text-sm">Hi! How are you doing today?</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start space-x-3 justify-end">
+                                        <div class="bg-gray-100 rounded-lg p-3 max-w-md">
+                                            <p id="sampleResponse" class="text-sm">Loading sample response...</p>
+                                        </div>
+                                        <div class="w-8 h-8 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white text-sm font-semibold">AI</div>
+                                    </div>
+                                </div>
+                                <button type="button" id="regenerateResponseBtn" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors">
+                                    Regenerate Response
+                                </button>
+                            </div>
+
+                            <!-- Final Confirmation -->
+                            <div class="bg-gradient-to-r from-primary to-accent rounded-xl p-6 text-white">
+                                <h3 class="text-lg font-semibold mb-4">Ready to Create Your AI Twin?</h3>
+                                <p class="mb-4">Your AI twin will be created with all the preferences and personality traits you've selected. You can always modify these settings later.</p>
+                                <div class="flex space-x-4">
+                                    <button type="button" id="editSettingsBtn" class="px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-all duration-300 font-semibold">
+                                        Edit Settings
+                                    </button>
+                                    <button type="submit" id="createTwinBtn" class="px-6 py-3 bg-white text-primary rounded-lg hover:bg-gray-100 transition-all duration-300 font-semibold">
+                                        Create My AI Twin
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Buttons -->
+                    <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+                        <button type="button" id="prevBtn" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold hidden">
+                            ← Previous
+                        </button>
+                        <div class="flex-1"></div>
+                        <button type="button" id="nextBtn" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors font-semibold">
+                            Next →
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentStep = 1;
+        const totalSteps = 7;
+        let onboardingData = {};
+        let personalityChart = null;
+
+        // Initialize the onboarding flow
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeOnboarding();
+            setupEventListeners();
+            updateProgress();
+        });
+
+        function initializeOnboarding() {
+            // Show first step
+            showStep(1);
+            
+            // Initialize bio character counter
+            const bioTextarea = document.getElementById('bio');
+            const bioCount = document.getElementById('bioCount');
+            
+            bioTextarea.addEventListener('input', function() {
+                bioCount.textContent = this.value.length;
+            });
+
+            // Initialize tone sliders
+            initializeToneSliders();
+        }
+
+        function setupEventListeners() {
+            // Navigation buttons
+            document.getElementById('nextBtn').addEventListener('click', nextStep);
+            document.getElementById('prevBtn').addEventListener('click', prevStep);
+
+            // Form submission
+            document.getElementById('onboardingForm').addEventListener('submit', handleFormSubmission);
+
+            // Sample category selection
+            document.querySelectorAll('input[name="sampleCategories"]').forEach(checkbox => {
+                checkbox.addEventListener('change', handleSampleCategoryChange);
+            });
+
+            // Add sample button
+            document.getElementById('addSampleBtn').addEventListener('click', addSampleInput);
+
+            // Skip samples button
+            document.getElementById('skipSamplesBtn').addEventListener('click', skipSamples);
+
+            // Regenerate response button
+            document.getElementById('regenerateResponseBtn').addEventListener('click', regenerateSampleResponse);
+
+            // Edit settings button
+            document.getElementById('editSettingsBtn').addEventListener('click', editSettings);
+        }
+
+        function initializeToneSliders() {
+            const sliders = [
+                'formalCasual', 'seriousPlayful', 'directDiplomatic',
+                'enthusiasticReserved', 'technicalSimple', 'warmProfessional'
+            ];
+
+            sliders.forEach(sliderId => {
+                const slider = document.getElementById(sliderId);
+                const valueSpan = document.getElementById(sliderId.replace(/([A-Z])/g, '$1').toLowerCase() + 'Value');
+                
+                slider.addEventListener('input', function() {
+                    valueSpan.textContent = this.value;
+                });
+            });
+        }
+
+        function showStep(step) {
+            // Hide all step contents
+            document.querySelectorAll('.step-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            // Show current step content
+            document.getElementById(`step${step}-content`).classList.remove('hidden');
+            document.getElementById(`step${step}-content`).classList.add('fade-in');
+
+            // Update step indicators
+            for (let i = 1; i <= totalSteps; i++) {
+                const stepElement = document.getElementById(`step${i}`);
+                if (i < step) {
+                    stepElement.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-completed';
+                } else if (i === step) {
+                    stepElement.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-active';
+                } else {
+                    stepElement.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending';
+                }
+            }
+
+            // Update navigation buttons
+            updateNavigationButtons(step);
+        }
+
+        function updateNavigationButtons(step) {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            // Show/hide previous button
+            if (step > 1) {
+                prevBtn.classList.remove('hidden');
+            } else {
+                prevBtn.classList.add('hidden');
+            }
+
+            // Update next button text
+            if (step === totalSteps) {
+                nextBtn.textContent = 'Create My AI Twin';
+                nextBtn.type = 'submit';
+            } else {
+                nextBtn.textContent = 'Next →';
+                nextBtn.type = 'button';
+            }
+        }
+
+        function updateProgress() {
+            const progress = (currentStep / totalSteps) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+            document.getElementById('currentStepNumber').textContent = currentStep;
+        }
+
+        function nextStep() {
+            if (validateCurrentStep()) {
+                saveCurrentStepData();
+                
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    showStep(currentStep);
+                    updateProgress();
+                    
+                    // Special handling for step 7 (preview)
+                    if (currentStep === 7) {
+                        generatePreview();
+                    }
+                }
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                showStep(currentStep);
+                updateProgress();
+            }
+        }
+
+        function validateCurrentStep() {
+            switch (currentStep) {
+                case 1:
+                    return validateBasicInfo();
+                case 2:
+                    return validatePersonalityAssessment();
+                case 3:
+                    return validateTonePreferences();
+                case 4:
+                    return validateLanguagePreferences();
+                case 5:
+                    return validateContextInfo();
+                case 6:
+                    return true; // Optional step
+                case 7:
+                    return true; // Preview step
+                default:
+                    return true;
+            }
+        }
+
+        function validateBasicInfo() {
+            const requiredFields = ['fullName', 'username', 'bio', 'ageRange', 'profession', 'location'];
+            let isValid = true;
+
+            requiredFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (!field.value.trim()) {
+                    field.classList.add('border-red-500');
+                    isValid = false;
+                } else {
+                    field.classList.remove('border-red-500');
+                }
+            });
+
+            // Validate bio length
+            const bio = document.getElementById('bio');
+            if (bio.value.length < 50 || bio.value.length > 150) {
+                bio.classList.add('border-red-500');
+                isValid = false;
+            }
+
+            if (!isValid) {
+                showMessage('Please fill in all required fields correctly.', 'error');
+            }
+
+            return isValid;
+        }
+
+        function validatePersonalityAssessment() {
+            const requiredQuestions = [
+                'openness1', 'openness2', 'openness3',
+                'conscientiousness1', 'conscientiousness2', 'conscientiousness3',
+                'extraversion1', 'extraversion2', 'extraversion3',
+                'agreeableness1', 'agreeableness2', 'agreeableness3',
+                'neuroticism1', 'neuroticism2', 'neuroticism3',
+                'formality', 'casual', 'humor', 'directness'
+            ];
+
+            let isValid = true;
+            requiredQuestions.forEach(questionName => {
+                if (!document.querySelector(`input[name="${questionName}"]:checked`)) {
+                    isValid = false;
+                }
+            });
+
+            if (!isValid) {
+                showMessage('Please answer all personality questions.', 'error');
+            }
+
+            return isValid;
+        }
+
+        function validateTonePreferences() {
+            // Tone sliders are always valid (have default values)
+            return true;
+        }
+
+        function validateLanguagePreferences() {
+            const requiredFields = ['greetingStyle', 'closingStyle', 'punctuationStyle', 'vocabularyLevel'];
+            let isValid = true;
+
+            console.log('Validating language preferences...');
+
+            // Check select fields
+            requiredFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                console.log(`Field ${fieldId}:`, field ? field.value : 'NOT FOUND');
+                if (!field || !field.value) {
+                    if (field) field.classList.add('border-red-500');
+                    isValid = false;
+                } else {
+                    field.classList.remove('border-red-500');
+                }
+            });
+
+            // Check slangUsage radio buttons
+            const slangUsageSelected = document.querySelector('input[name="slangUsage"]:checked');
+            console.log('Slang usage selected:', slangUsageSelected ? slangUsageSelected.value : 'NONE');
+            if (!slangUsageSelected) {
+                isValid = false;
+                showMessage('Please select your slang usage preference.', 'error');
+            }
+
+            console.log('Language validation result:', isValid);
+
+            if (!isValid) {
+                showMessage('Please select all language preferences.', 'error');
+            }
+
+            return isValid;
+        }
+
+        function validateContextInfo() {
+            const interests = document.querySelectorAll('input[name="interests"]:checked');
+            const primaryUseCase = document.getElementById('primaryUseCase');
+            const targetAudience = document.getElementById('targetAudience');
+
+            let isValid = true;
+
+            if (interests.length < 3) {
+                showMessage('Please select at least 3 interests.', 'error');
+                isValid = false;
+            }
+
+            if (!primaryUseCase.value || !targetAudience.value) {
+                showMessage('Please select your primary use case and target audience.', 'error');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        function saveCurrentStepData() {
+            switch (currentStep) {
+                case 1:
+                    saveBasicInfo();
+                    break;
+                case 2:
+                    savePersonalityData();
+                    break;
+                case 3:
+                    saveToneData();
+                    break;
+                case 4:
+                    saveLanguageData();
+                    break;
+                case 5:
+                    saveContextData();
+                    break;
+                case 6:
+                    saveSampleData();
+                    break;
+            }
+        }
+
+        function saveBasicInfo() {
+            onboardingData.basicInfo = {
+                fullName: document.getElementById('fullName').value,
+                username: document.getElementById('username').value,
+                bio: document.getElementById('bio').value,
+                ageRange: document.getElementById('ageRange').value,
+                profession: document.getElementById('profession').value,
+                location: document.getElementById('location').value
+            };
+        }
+
+        function savePersonalityData() {
+            console.log('Saving personality data...');
+            
+            // OCEAN scores
+            const oceanScores = {
+                openness: calculateOCEANScore(['openness1', 'openness2', 'openness3']),
+                conscientiousness: calculateOCEANScore(['conscientiousness1', 'conscientiousness2', 'conscientiousness3']),
+                extraversion: calculateOCEANScore(['extraversion1', 'extraversion2', 'extraversion3']),
+                agreeableness: calculateOCEANScore(['agreeableness1', 'agreeableness2', 'agreeableness3']),
+                neuroticism: calculateOCEANScore(['neuroticism1', 'neuroticism2', 'neuroticism3'])
+            };
+
+            // Communication style scores
+            const communicationStyle = {
+                formality: parseInt(document.querySelector('input[name="formality"]:checked')?.value || 3),
+                casual: parseInt(document.querySelector('input[name="casual"]:checked')?.value || 3),
+                humor: parseInt(document.querySelector('input[name="humor"]:checked')?.value || 3),
+                directness: parseInt(document.querySelector('input[name="directness"]:checked')?.value || 3)
+            };
+
+            console.log('OCEAN scores:', oceanScores);
+            console.log('Communication style:', communicationStyle);
+
+            onboardingData.personality = {
+                ocean: oceanScores,
+                communicationStyle: communicationStyle
+            };
+            
+            console.log('Saved personality data:', onboardingData.personality);
+        }
+
+        function calculateOCEANScore(questionNames) {
+            let total = 0;
+            let count = 0;
+            
+            console.log(`Calculating OCEAN score for: ${questionNames.join(', ')}`);
+            
+            questionNames.forEach(questionName => {
+                const selected = document.querySelector(`input[name="${questionName}"]:checked`);
+                console.log(`${questionName}:`, selected ? selected.value : 'NOT SELECTED');
+                if (selected) {
+                    total += parseInt(selected.value);
+                    count++;
+                }
+            });
+            
+            const score = count > 0 ? total / count : 3; // Default to neutral if no answers
+            console.log(`Final score: ${score} (total: ${total}, count: ${count})`);
+            return score;
+        }
+
+        function saveToneData() {
+            const toneSliders = [
+                'formalCasual', 'seriousPlayful', 'directDiplomatic',
+                'enthusiasticReserved', 'technicalSimple', 'warmProfessional'
+            ];
+
+            const tone = {};
+            toneSliders.forEach(sliderId => {
+                const slider = document.getElementById(sliderId);
+                tone[sliderId] = parseInt(slider.value);
+            });
+
+            // Communication scenarios
+            const scenarios = {
+                greetingStyle: document.querySelector('input[name="greetingStyle"]:checked')?.value,
+                badNewsStyle: document.querySelector('input[name="badNewsStyle"]:checked')?.value,
+                excitementStyle: document.querySelector('input[name="excitementStyle"]:checked')?.value
+            };
+
+            onboardingData.tone = {
+                sliders: tone,
+                scenarios: scenarios
+            };
+        }
+
+        function saveLanguageData() {
+            onboardingData.language = {
+                greetingStyle: document.getElementById('greetingStyle').value,
+                closingStyle: document.getElementById('closingStyle').value,
+                punctuationStyle: document.getElementById('punctuationStyle').value,
+                vocabularyLevel: document.getElementById('vocabularyLevel').value,
+                slangUsage: document.querySelector('input[name="slangUsage"]:checked')?.value
+            };
+        }
+
+        function saveContextData() {
+            const interests = Array.from(document.querySelectorAll('input[name="interests"]:checked'))
+                .map(checkbox => checkbox.value);
+
+            onboardingData.context = {
+                interests: interests,
+                primaryUseCase: document.getElementById('primaryUseCase').value,
+                targetAudience: document.getElementById('targetAudience').value
+            };
+        }
+
+        function saveSampleData() {
+            const selectedCategories = Array.from(document.querySelectorAll('input[name="sampleCategories"]:checked'))
+                .map(checkbox => checkbox.value);
+
+            const samples = [];
+            document.querySelectorAll('.sample-input').forEach(input => {
+                if (input.value.trim()) {
+                    samples.push({
+                        category: input.dataset.category,
+                        content: input.value.trim()
+                    });
+                }
+            });
+
+            onboardingData.samples = {
+                categories: selectedCategories,
+                content: samples
+            };
+        }
+
+        function handleSampleCategoryChange() {
+            const selectedCategories = Array.from(document.querySelectorAll('input[name="sampleCategories"]:checked'))
+                .map(checkbox => checkbox.value);
+
+            const sampleCollection = document.getElementById('sampleCollection');
+            const sampleInputs = document.getElementById('sampleInputs');
+
+            if (selectedCategories.length > 0) {
+                sampleCollection.classList.remove('hidden');
+                generateSampleInputs(selectedCategories);
+            } else {
+                sampleCollection.classList.add('hidden');
+            }
+        }
+
+        function generateSampleInputs(categories) {
+            const sampleInputs = document.getElementById('sampleInputs');
+            sampleInputs.innerHTML = '';
+
+            categories.forEach(category => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'space-y-2';
+                
+                const label = document.createElement('label');
+                label.className = 'block text-sm font-medium text-gray-700';
+                label.textContent = getCategoryLabel(category);
+                
+                const textarea = document.createElement('textarea');
+                textarea.className = 'sample-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent';
+                textarea.rows = 3;
+                textarea.placeholder = `Enter your ${getCategoryLabel(category).toLowerCase()} sample...`;
+                textarea.dataset.category = category;
+                
+                categoryDiv.appendChild(label);
+                categoryDiv.appendChild(textarea);
+                sampleInputs.appendChild(categoryDiv);
+            });
+        }
+
+        function getCategoryLabel(category) {
+            const labels = {
+                'social-media': 'Social Media Posts',
+                'emails': 'Email Communications',
+                'messages': 'Text Messages',
+                'professional': 'Professional Writing',
+                'creative': 'Creative Writing'
+            };
+            return labels[category] || category;
+        }
+
+        function addSampleInput() {
+            const selectedCategories = Array.from(document.querySelectorAll('input[name="sampleCategories"]:checked'))
+                .map(checkbox => checkbox.value);
+
+            if (selectedCategories.length === 0) {
+                showMessage('Please select at least one category first.', 'error');
+                return;
+            }
+
+            // Add another input for the first selected category
+            const firstCategory = selectedCategories[0];
+            const sampleInputs = document.getElementById('sampleInputs');
+            
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'space-y-2';
+            
+            const label = document.createElement('label');
+            label.className = 'block text-sm font-medium text-gray-700';
+            label.textContent = getCategoryLabel(firstCategory) + ' (Additional)';
+            
+            const textarea = document.createElement('textarea');
+            textarea.className = 'sample-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent';
+            textarea.rows = 3;
+            textarea.placeholder = `Enter another ${getCategoryLabel(firstCategory).toLowerCase()} sample...`;
+            textarea.dataset.category = firstCategory;
+            
+            categoryDiv.appendChild(label);
+            categoryDiv.appendChild(textarea);
+            sampleInputs.appendChild(categoryDiv);
+        }
+
+        function skipSamples() {
+            onboardingData.samples = {
+                categories: [],
+                content: []
+            };
+            nextStep();
+        }
+
+        function generatePreview() {
+            console.log('Generating preview...');
+            console.log('onboardingData:', onboardingData);
+            
+            // Generate personality chart
+            generatePersonalityChart();
+            
+            // Generate communication summary
+            generateCommunicationSummary();
+            
+            // Generate sample response
+            generateSampleResponse();
+        }
+
+        function generatePersonalityChart() {
+            const ctx = document.getElementById('personalityChart').getContext('2d');
+            
+            if (personalityChart) {
+                personalityChart.destroy();
+            }
+
+            const oceanData = onboardingData.personality?.ocean || {};
+            console.log('Personality data for chart:', oceanData);
+            const data = {
+                labels: ['Openness', 'Conscientiousness', 'Extraversion', 'Agreeableness', 'Neuroticism'],
+                datasets: [{
+                    label: 'Personality Traits',
+                    data: [
+                        oceanData.openness || 3,
+                        oceanData.conscientiousness || 3,
+                        oceanData.extraversion || 3,
+                        oceanData.agreeableness || 3,
+                        oceanData.neuroticism || 3
+                    ],
+                    backgroundColor: [
+                        'rgba(99, 102, 241, 0.2)',
+                        'rgba(16, 185, 129, 0.2)',
+                        'rgba(245, 158, 11, 0.2)',
+                        'rgba(139, 92, 246, 0.2)',
+                        'rgba(239, 68, 68, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(99, 102, 241, 1)',
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(245, 158, 11, 1)',
+                        'rgba(139, 92, 246, 1)',
+                        'rgba(239, 68, 68, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            };
+
+            personalityChart = new Chart(ctx, {
+                type: 'radar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 5,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Generate personality traits display
+            generatePersonalityTraits(oceanData);
+        }
+
+        function generatePersonalityTraits(oceanData) {
+            const traitsDiv = document.getElementById('personalityTraits');
+            const traits = [
+                { name: 'Openness', value: oceanData.openness || 3, color: 'bg-blue-500' },
+                { name: 'Conscientiousness', value: oceanData.conscientiousness || 3, color: 'bg-green-500' },
+                { name: 'Extraversion', value: oceanData.extraversion || 3, color: 'bg-yellow-500' },
+                { name: 'Agreeableness', value: oceanData.agreeableness || 3, color: 'bg-purple-500' },
+                { name: 'Neuroticism', value: oceanData.neuroticism || 3, color: 'bg-red-500' }
+            ];
+
+            let traitsHTML = '';
+            traits.forEach(trait => {
+                const percentage = (trait.value / 5) * 100;
+                traitsHTML += `
+                    <div class="text-center">
+                        <div class="text-sm font-medium text-gray-700 mb-1">${trait.name}</div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                            <div class="${trait.color} h-2 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+                        </div>
+                        <div class="text-xs text-gray-500">${trait.value.toFixed(1)}/5</div>
+                    </div>
+                `;
+            });
+
+            traitsDiv.innerHTML = traitsHTML;
+        }
+
+        function generateCommunicationSummary() {
+            const summaryDiv = document.getElementById('communicationSummary');
+            const tone = onboardingData.tone?.sliders || {};
+            const language = onboardingData.language || {};
+
+            let summaryHTML = '';
+
+            // Tone summary
+            if (tone.formalCasual !== undefined) {
+                const formality = tone.formalCasual > 50 ? 'Formal' : 'Casual';
+                summaryHTML += `<div class="flex justify-between items-center p-2 bg-white rounded-lg">
+                    <span class="text-sm font-medium">Communication Style:</span>
+                    <span class="text-sm text-primary">${formality}</span>
+                </div>`;
+            }
+
+            // Language preferences
+            if (language.vocabularyLevel) {
+                summaryHTML += `<div class="flex justify-between items-center p-2 bg-white rounded-lg">
+                    <span class="text-sm font-medium">Vocabulary Level:</span>
+                    <span class="text-sm text-primary">${language.vocabularyLevel}</span>
+                </div>`;
+            }
+
+            if (language.slangUsage) {
+                summaryHTML += `<div class="flex justify-between items-center p-2 bg-white rounded-lg">
+                    <span class="text-sm font-medium">Slang Usage:</span>
+                    <span class="text-sm text-primary">${language.slangUsage}</span>
+                </div>`;
+            }
+
+            summaryDiv.innerHTML = summaryHTML;
+        }
+
+        function generateSampleResponse() {
+            const sampleResponseDiv = document.getElementById('sampleResponse');
+            sampleResponseDiv.textContent = 'Generating sample response...';
+
+            // Simulate API call to generate sample response
+            setTimeout(() => {
+                const responses = [
+                    "Hey there! I'm doing great, thanks for asking! How about you?",
+                    "Hello! I'm doing well, thank you. How are you doing today?",
+                    "Hi! I'm fantastic, thanks! What's new with you?",
+                    "Hey! I'm doing awesome! How's your day going?",
+                    "Hello there! I'm doing wonderful, thank you. How are you?"
+                ];
+                
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                sampleResponseDiv.textContent = randomResponse;
+            }, 1500);
+        }
+
+        function regenerateSampleResponse() {
+            generateSampleResponse();
+        }
+
+        function editSettings() {
+            // Go back to step 1 to edit settings
+            currentStep = 1;
+            showStep(currentStep);
+            updateProgress();
+        }
+
+        function handleFormSubmission(e) {
+            e.preventDefault();
+            
+            if (currentStep === totalSteps) {
+                createAITwin();
+            }
+        }
+
+        function createAITwin() {
+            const createBtn = document.getElementById('createTwinBtn');
+            const originalText = createBtn.textContent;
+            
+            createBtn.textContent = 'Creating Your AI Twin...';
+            createBtn.disabled = true;
+
+            // Prepare data for API
+            const twinData = {
+                ...onboardingData,
+                onboardingCompleted: true,
+                completedAt: new Date().toISOString()
+            };
+
+            fetch('/api/onboarding/create-enhanced-twin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('input[name="_csrf"]')?.value || ''
+                },
+                credentials: 'include',
+                body: JSON.stringify(twinData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showMessage('Your AI Twin has been created successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 2000);
+                } else {
+                    showMessage(result.error || 'Failed to create AI Twin', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating twin:', error);
+                showMessage('Network error. Please try again.', 'error');
+            })
+            .finally(() => {
+                createBtn.textContent = originalText;
+                createBtn.disabled = false;
+            });
+        }
+
+        function showMessage(message, type = 'info') {
+            // Create message element
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            messageDiv.textContent = message;
+
+            document.body.appendChild(messageDiv);
+
+            // Remove message after 5 seconds
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

@@ -27,6 +27,7 @@ import profileRoutes from './modules/profile/profileRoutes';
 import inviteRoutes from './modules/invite/inviteRoutes';
 import analyticsRoutes from './modules/analytics/analyticsRoutes';
 import adminAnalyticsRoutes from './modules/analytics/adminAnalyticsRoutes';
+import onboardingRoutes from './modules/onboarding/onboardingRoutes';
 
 // Import JWT middleware
 import { authenticateJWT, optionalJWT } from './middleware/jwtAuth';
@@ -120,10 +121,20 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/invite', inviteRoutes);
 app.use('/api/metrics', analyticsRoutes);
 app.use('/api/admin/analytics', adminAnalyticsRoutes);
+app.use('/api/onboarding', onboardingRoutes);
 
 // Discover page route
 app.get('/discover', (req, res) => {
   res.render('discover');
+});
+
+// Enhanced onboarding page route
+app.get('/onboarding', requireJWTFromCookie, generateCSRFToken, (req: any, res) => {
+  res.render('onboarding', { 
+    title: 'Create Your AI Twin - Enhanced Onboarding',
+    user: req.user,
+    csrfToken: res.locals['csrfToken']
+  });
 });
 
 // Admin Analytics dashboard route
