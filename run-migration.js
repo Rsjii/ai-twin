@@ -2,48 +2,87 @@ const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
-// Database connection - using same config as backend
-const db = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres.ovqfpobyqbbquvfxhibi:WzKZY+gg.H74hqZ@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres',
-  ssl: {
-    rejectUnauthorized: false
-  }
+// Database configuration
+const pool = new Pool({
+  user: 'postgres',
+  host: 'localhost',
+  database: 'aitwin',
+  password: 'password',
+  port: 5432,
 });
 
 async function runMigration() {
+  const client = await pool.connect();
+  
   try {
-    console.log('🚀 Starting database migration...');
+    console.log('Starting database migration...');
     
-    // Read the migration file
-    const migrationPath = path.join(__dirname, 'backend/migrations/001_add_public_twin_features.sql');
-    const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+    // Check if columns already exist
+    const checkUserColumns = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'User' AND column_name IN ('personaData', 'onboardingCompleted', 'updatedAt')
+    `);
     
-    // Execute the migration
-    await db.query(migrationSQL);
+    const checkTwinColumns = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'Twin' AND column_name IN ('personaData', 'systemPrompt', 'tokenLimit', 'tier', 'updatedAt')
+    `);
     
-    console.log('✅ Migration completed successfully!');
-    console.log('📊 New features added:');
-    console.log('   - Public twin profiles');
-    console.log('   - Like/Follow system');
-    console.log('   - Public chat system');
-    console.log('   - Engagement metrics');
+    console.log('Existing User columns:', checkUserColumns.rows.map(r => r.column_name));
+    console.log('Existing Twin columns:', checkTwinColumns.rows.map(r => r.column_name));
+    
+    // Add missing User columns
+    if (!checkUserColumns.rows.find(r => r.column_name === 'personaData')) {
+      await client.query('ALTER TABLE "User" ADD COLUMN "personaData" JSON');
+      console.log('Added personaData column to User table');
+    }
+    
+    if (!checkUserColumns.rows.find(r => r.column_name === 'onboardingCompleted')) {
+      await client.query('ALTER TABLE "User" ADD COLUMN "onboardingCompleted" BOOLEAN DEFAULT false');
+      console.log('Added onboardingCompleted column to User table');
+    }
+    
+    if (!checkUserColumns.rows.find(r => r.column_name === 'updatedAt')) {
+      await client.query('ALTER TABLE "User" ADD COLUMN "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+      console.log('Added updatedAt column to User table');
+    }
+    
+    // Add missing Twin columns
+    if (!checkTwinColumns.rows.find(r => r.column_name === 'personaData')) {
+      await client.query('ALTER TABLE "Twin" ADD COLUMN "personaData" JSON');
+      console.log('Added personaData column to Twin table');
+    }
+    
+    if (!checkTwinColumns.rows.find(r => r.column_name === 'systemPrompt')) {
+      await client.query('ALTER TABLE "Twin" ADD COLUMN "systemPrompt" TEXT');
+      console.log('Added systemPrompt column to Twin table');
+    }
+    
+    if (!checkTwinColumns.rows.find(r => r.column_name === 'tokenLimit')) {
+      await client.query('ALTER TABLE "Twin" ADD COLUMN "tokenLimit" INTEGER DEFAULT 500');
+      console.log('Added tokenLimit column to Twin table');
+    }
+    
+    if (!checkTwinColumns.rows.find(r => r.column_name === 'tier')) {
+      await client.query('ALTER TABLE "Twin" ADD COLUMN "tier" VARCHAR(50) DEFAULT \'free\'');
+      console.log('Added tier column to Twin table');
+    }
+    
+    if (!checkTwinColumns.rows.find(r => r.column_name === 'updatedAt')) {
+      await client.query('ALTER TABLE "Twin" ADD COLUMN "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+      console.log('Added updatedAt column to Twin table');
+    }
+    
+    console.log('Migration completed successfully!');
     
   } catch (error) {
-    console.error('❌ Migration failed:', error);
-    throw error;
+    console.error('Migration failed:', error);
   } finally {
-    // Close database connection
-    await db.end();
+    client.release();
+    await pool.end();
   }
 }
 
-// Run migration
-runMigration()
-  .then(() => {
-    console.log('🎉 Migration process completed!');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('💥 Migration process failed:', error);
-    process.exit(1);
-  });
+runMigration();

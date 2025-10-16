@@ -8,11 +8,19 @@ const openai = new OpenAI({
 });
 
 export interface StyleVector {
-  tone: 'casual' | 'witty' | 'serious';
+  tone: 'casual' | 'witty' | 'serious' | 'friendly' | 'professional';
   emoji_usage: number; // 0-1
   hinglish_ratio: number; // 0-1
   sentence_length: 'short' | 'medium' | 'long';
   signature_patterns: string[];
+  formality_level?: number; // 0-1
+  humor_style?: 'none' | 'light' | 'moderate' | 'heavy';
+  question_frequency?: number; // 0-1
+  exclamation_usage?: number; // 0-1
+  code_mixing_style?: 'minimal' | 'moderate' | 'heavy';
+  response_length_preference?: 'brief' | 'detailed' | 'comprehensive';
+  personality_traits?: string[];
+  communication_style?: 'conversational' | 'informative' | 'questioning';
 }
 
 export class TwinService {
@@ -286,47 +294,123 @@ Respond as the user's AI twin. Keep it natural and conversational. Return only t
         context: {
           styleVector: context.styleVector,
           chatMemoryLength: context.chatMemory?.length,
-          currentMessages: context.currentMessages
+          currentMessages: context.currentMessages || []
         }
       });
       
       // Return a fallback response instead of throwing
       logger.error('OpenAI API failed, using fallback response');
-      return this.generateFallbackResponse(currentMessages[0]);
+      return this.generateFallbackResponse(context.currentMessages?.[0] || 'Hello', {});
     }
   }
 
-  private generateFallbackResponse(userMessage: string): string {
-    const responses = [
-      "Hey! That's interesting. Tell me more about it!",
-      "I see what you mean. What do you think about that?",
-      "That's a good point! I'm curious to hear more.",
-      "Interesting! I'd love to know more about your thoughts on this.",
-      "That sounds cool! Can you elaborate on that?",
-      "I'm following you! What's your take on this?",
-      "That's fascinating! I'd like to understand better.",
-      "Good question! What made you think of that?",
-      "I hear you! That's definitely worth discussing.",
-      "That's interesting! I'm curious about your perspective."
+
+  // Enhanced method to generate AI response using persona data
+  async generatePersonaResponse(
+    userMessage: string, 
+    personaData: any, 
+    systemPrompt: string, 
+    chatHistory: any[] = [],
+    tokenLimit: number = 500
+  ): Promise<string> {
+    try {
+      // Build context from chat history
+      const chatContext = chatHistory
+        .slice(-10) // Last 10 messages for context
+        .map(msg => `${msg.sender === 'human' ? 'User' : 'AI'}: ${msg.content}`)
+        .join('\n');
+
+      // Create the full prompt
+      const fullPrompt = `${systemPrompt}
+
+CHAT HISTORY:
+${chatContext}
+
+USER MESSAGE: ${userMessage}
+
+INSTRUCTIONS:
+- Respond as ${personaData.name || 'the user'}
+- Use your personality traits and communication style
+- Keep response under ${tokenLimit} tokens
+- Be authentic to your persona
+- Reference your interests and background when relevant
+
+RESPONSE:`;
+
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: fullPrompt
+          }
+        ],
+        max_tokens: tokenLimit,
+        temperature: 0.7,
+      });
+
+      const response = completion.choices[0]?.message?.content?.trim() || '';
+      
+      if (!response) {
+        throw new Error('No response generated');
+      }
+
+      return response;
+    } catch (error) {
+      logger.error('Error generating persona response:', error);
+      return this.generateFallbackResponse(userMessage, personaData);
+    }
+  }
+
+  // Fallback response generator using persona data
+  private generateFallbackResponse(userMessage: string, personaData: any): string {
+    const name = personaData.name || 'there';
+    const personality = personaData.personality || {};
+    const tone = personaData.tone || {};
+    
+    // Use personality traits to generate appropriate responses
+    const isExtraverted = personality.ocean?.extraversion > 3;
+    const isHumorous = personality.communicationStyle?.humor > 3;
+    const isFormal = tone.sliders?.formalCasual > 50;
+    
+    const message = userMessage.toLowerCase();
+    
+    if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
+      if (isFormal) {
+        return `Hello! It's a pleasure to meet you. I'm ${name}. How may I assist you today?`;
+      } else if (isExtraverted) {
+        return `Hey there! Great to meet you! I'm ${name}. What's going on?`;
+      } else {
+        return `Hi! I'm ${name}. How are you doing?`;
+      }
+    }
+    
+    if (message.includes('how are you')) {
+      if (isHumorous) {
+        return `I'm doing fantastic! Life's treating me well. How about you? What's the latest?`;
+      } else if (isFormal) {
+        return `I'm doing well, thank you for asking. I hope you're having a good day as well.`;
+      } else {
+        return `I'm doing great! Thanks for asking. How are you doing?`;
+      }
+    }
+    
+    // Default responses based on personality
+    const responses = isFormal ? [
+      "That's an interesting point. I'd like to hear more about your perspective on this.",
+      "I appreciate you sharing that with me. What are your thoughts on this matter?",
+      "That's quite thoughtful. I'm curious about your experience with this."
+    ] : isExtraverted ? [
+      "That's awesome! Tell me more about that!",
+      "Wow, that sounds really cool! I'd love to hear more!",
+      "That's fascinating! What else can you tell me about it?"
+    ] : [
+      "That's interesting. I'd like to understand more about that.",
+      "Thanks for sharing that. What's your take on this?",
+      "That's a good point. I'm curious to hear more."
     ];
     
-    // Simple keyword-based responses
-    const message = userMessage.toLowerCase();
-    if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
-      return "Hey there! How's it going?";
-    }
-    if (message.includes('how are you') || message.includes('how are you doing')) {
-      return "I'm doing great! Thanks for asking. How about you?";
-    }
-    if (message.includes('what') && message.includes('doing')) {
-      return "Just chatting with you! What about you? What's keeping you busy?";
-    }
-    if (message.includes('?')) {
-      return "That's a great question! I'm thinking about it. What's your take on this?";
-    }
-    
-    // Random response
-    return responses[Math.floor(Math.random() * responses.length)];
+    return responses[Math.floor(Math.random() * responses.length)] || "That's interesting! Tell me more about that.";
   }
 
   private getDefaultStyleVector(): StyleVector {

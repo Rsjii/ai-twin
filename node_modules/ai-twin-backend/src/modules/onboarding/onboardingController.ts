@@ -130,21 +130,45 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
 
     // Save enhanced twin to database
     const twinId = `twin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const insertQuery = `
-      INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "personaData", "systemPrompt", "createdAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, "createdAt"
-    `;
+    
+    // Check if enhanced columns exist, if not use basic insert
+    let insertQuery, insertParams;
+    
+    try {
+      // Try enhanced insert first
+      insertQuery = `
+        INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "personaData", "systemPrompt", "tokenLimit", "tier", "createdAt")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING id, "createdAt"
+      `;
+      insertParams = [
+        twinId,
+        req.user.id,
+        JSON.stringify(styleVector),
+        sampleReply,
+        JSON.stringify(personaData),
+        systemPrompt,
+        500, // tokenLimit
+        'free', // tier
+        new Date()
+      ];
+    } catch (error) {
+      // Fallback to basic insert if enhanced columns don't exist
+      insertQuery = `
+        INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "createdAt")
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id, "createdAt"
+      `;
+      insertParams = [
+        twinId,
+        req.user.id,
+        JSON.stringify(styleVector),
+        sampleReply,
+        new Date()
+      ];
+    }
 
-    const result = await db.query(insertQuery, [
-      twinId,
-      req.user.id,
-      JSON.stringify(styleVector),
-      sampleReply,
-      JSON.stringify(personaData),
-      systemPrompt,
-      new Date()
-    ]);
+    const result = await db.query(insertQuery, insertParams);
 
     // Log twin creation event
     await EventLogger.logUserEvent(req.user.id, 'enhanced_twin_created', { 
@@ -187,37 +211,62 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
 };
 
 async function updateUserProfile(userId: string, data: any) {
-  const updateQuery = `
-    UPDATE "User" 
-    SET 
-      name = $1,
-      handle = $2,
-      bio = $3,
-      "personaData" = $4,
-      "onboardingCompleted" = $5,
-      "updatedAt" = $6
-    WHERE id = $7
-  `;
+  // Try enhanced update first, fallback to basic update
+  let updateQuery, updateParams;
+  
+  try {
+    // Enhanced update with persona data
+    updateQuery = `
+      UPDATE "User" 
+      SET 
+        name = $1,
+        handle = $2,
+        bio = $3,
+        "personaData" = $4,
+        "onboardingCompleted" = $5,
+        "updatedAt" = $6
+      WHERE id = $7
+    `;
+    
+    const personaData = {
+      basicInfo: data.basicInfo,
+      personality: data.personality,
+      tone: data.tone,
+      language: data.language,
+      context: data.context,
+      samples: data.samples,
+      completedAt: data.completedAt
+    };
 
-  const personaData = {
-    basicInfo: data.basicInfo,
-    personality: data.personality,
-    tone: data.tone,
-    language: data.language,
-    context: data.context,
-    samples: data.samples,
-    completedAt: data.completedAt
-  };
+    updateParams = [
+      data.basicInfo.fullName,
+      data.basicInfo.username,
+      data.basicInfo.bio,
+      JSON.stringify(personaData),
+      data.onboardingCompleted,
+      new Date(),
+      userId
+    ];
+  } catch (error) {
+    // Fallback to basic update
+    updateQuery = `
+      UPDATE "User" 
+      SET 
+        name = $1,
+        handle = $2,
+        bio = $3
+      WHERE id = $4
+    `;
+    
+    updateParams = [
+      data.basicInfo.fullName,
+      data.basicInfo.username,
+      data.basicInfo.bio,
+      userId
+    ];
+  }
 
-  await db.query(updateQuery, [
-    data.basicInfo.fullName,
-    data.basicInfo.username,
-    data.basicInfo.bio,
-    JSON.stringify(personaData),
-    data.onboardingCompleted,
-    new Date(),
-    userId
-  ]);
+  await db.query(updateQuery, updateParams);
 }
 
 function createPersonaData(data: any) {

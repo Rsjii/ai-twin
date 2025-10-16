@@ -60,7 +60,7 @@
                 <nav class="hidden md:flex space-x-8">
                     <a href="/dashboard" class="text-gray-600 hover:text-primary transition-colors font-medium">Dashboard</a>
                     <a href="/profile" class="text-gray-600 hover:text-primary transition-colors font-medium">Profile</a>
-                    <a href="/twin/create" class="text-primary font-semibold">Create Twin</a>
+                    <a href="/onboarding" class="text-primary font-semibold">Create Twin</a>
                 </nav>
                 
                 <!-- User Menu -->
@@ -90,405 +90,71 @@
             <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 p-8">
                 <div class="mb-8">
                     <h1 class="text-3xl font-bold text-gray-900 mb-2">Create Your AI Twin</h1>
-                    <p class="text-gray-600">Upload 3-5 text samples to create an AI version of yourself that chats in your unique style.</p>
+                    <p class="text-gray-600">Complete our enhanced onboarding to create an AI version of yourself with comprehensive personality analysis and communication style.</p>
                 </div>
 
-                <!-- Progress Steps -->
+                <!-- Enhanced Onboarding Steps -->
                 <div class="mb-8">
-                    <div class="flex items-center justify-center space-x-4">
-                        <div class="flex items-center">
-                            <div id="step1" class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold">1</div>
-                            <span class="ml-2 text-sm font-medium text-gray-700">Upload Samples</span>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold mb-2">1</div>
+                            <span class="text-sm font-medium text-gray-700">Basic Info</span>
                         </div>
-                        <div class="w-16 h-0.5 bg-gray-300"></div>
-                        <div class="flex items-center">
-                            <div id="step2" class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">2</div>
-                            <span class="ml-2 text-sm font-medium text-gray-500">AI Analysis</span>
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold mb-2">2</div>
+                            <span class="text-sm font-medium text-gray-700">Personality</span>
                         </div>
-                        <div class="w-16 h-0.5 bg-gray-300"></div>
-                        <div class="flex items-center">
-                            <div id="step3" class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">3</div>
-                            <span class="ml-2 text-sm font-medium text-gray-500">Create Twin</span>
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold mb-2">3</div>
+                            <span class="text-sm font-medium text-gray-700">Tone & Style</span>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold mb-2">4</div>
+                            <span class="text-sm font-medium text-gray-700">Create Twin</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Main Form -->
-        <div class="bg-white rounded-lg shadow-lg p-8">
-                    <form id="twinCreationForm">
-                        <!-- Sample Input Areas -->
-                        <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-700 mb-4">
-                                Text Samples (1 required, 2-4 optional, 10-1000 characters each)
-                            </label>
-                            
-                            <div id="sampleInputs" class="space-y-4">
-                                <!-- Sample inputs will be generated here -->
-                            </div>
-                            
-                            <div class="mt-4 flex justify-between">
-                                <button type="button" id="addSample" class="text-primary hover:text-secondary text-sm font-medium">
-                                    + Add Another Sample
-                                </button>
-                                <span id="sampleCount" class="text-sm text-gray-500">1 sample</span>
-                            </div>
-                        </div>
+                <!-- Enhanced Onboarding Description -->
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <div class="text-center mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4">Enhanced AI Twin Creation</h2>
+                        <p class="text-gray-600 mb-6">Our new onboarding process creates a more accurate and personalized AI twin by analyzing your personality, communication style, and preferences.</p>
+                    </div>
 
-                        <!-- Character Count -->
-                <div class="mb-6">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Total Characters:</span>
-                                <span id="totalChars" class="text-sm font-medium text-gray-900">0</span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
-                                <div id="charProgress" class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Minimum: 250 characters | Maximum: 3000 characters</p>
+                    <div class="grid md:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-blue-50 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-blue-900 mb-3">🎯 Personality Analysis</h3>
+                            <p class="text-blue-800">Complete OCEAN Big Five personality assessment to understand your core traits and communication patterns.</p>
                         </div>
+                        <div class="bg-green-50 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-green-900 mb-3">💬 Communication Style</h3>
+                            <p class="text-green-800">Fine-tune your AI twin's tone, formality level, humor style, and language preferences.</p>
+                        </div>
+                        <div class="bg-purple-50 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-purple-900 mb-3">📝 Writing Patterns</h3>
+                            <p class="text-purple-800">Customize greetings, closings, punctuation style, and vocabulary level to match your writing.</p>
+                        </div>
+                        <div class="bg-orange-50 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-orange-900 mb-3">🎨 Context & Interests</h3>
+                            <p class="text-orange-800">Provide background information, interests, and use cases to make your AI twin more contextual.</p>
+                        </div>
+                    </div>
 
-                        <!-- Safety Notice -->
-                        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div class="ml-3">
-                                    <h3 class="text-sm font-medium text-blue-800">Content Safety</h3>
-                                    <div class="mt-2 text-sm text-blue-700">
-                                        <p>Your samples will be checked for:</p>
-                                        <ul class="list-disc list-inside mt-1">
-                                            <li>Celebrity/brand impersonation</li>
-                                            <li>Inappropriate content</li>
-                                            <li>Suspicious patterns (URLs, personal info)</li>
-                                        </ul>
-                                    </div>
-                                </div>
+                    <!-- Start Button -->
+                    <div class="text-center">
+                        <a 
+                            href="/onboarding"
+                            class="inline-block bg-primary text-white px-8 py-3 rounded-lg hover:bg-secondary transition-colors font-semibold text-lg"
+                        >
+                            Start Enhanced Onboarding
+                        </a>
+                        <p class="text-sm text-gray-500 mt-3">Takes about 5-10 minutes to complete</p>
                     </div>
                 </div>
-                
-                        <!-- Submit Button -->
-                        <div class="flex justify-end">
-                <button 
-                    type="submit"
-                                id="createTwinBtn"
-                                class="bg-primary text-white px-8 py-3 rounded-lg hover:bg-secondary transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled
-                >
-                                Create My AI Twin
-                </button>
-                        </div>
-                
-                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            </form>
-        </div>
-        
-                <!-- Results Section (Hidden initially) -->
-                <div id="resultsSection" class="hidden mt-8 bg-white rounded-lg shadow-lg p-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-6">Your AI Twin Analysis</h2>
-                    
-                    <!-- Style Vector Display -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Communication Style</h3>
-                        <div id="styleVector" class="grid md:grid-cols-2 gap-4">
-                            <!-- Style vector will be populated here -->
-                        </div>
-                    </div>
-
-                    <!-- Sample Reply -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Sample Reply</h3>
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <p id="sampleReply" class="text-gray-800 italic">"Hello! How are you doing today?"</p>
-                            <p class="text-xs text-gray-500 mt-2">This is how your AI twin would respond in your style</p>
-            </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="flex justify-between">
-                        <button id="saveTwinBtn" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold">
-                            Save My Twin
-                        </button>
-                        <button id="createAnotherBtn" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors font-semibold">
-                            Create Another
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Error/Success Messages -->
-                <div id="messageContainer" class="mt-6"></div>
         </div>
     </div>
 </div>
 
-<script>
-    let sampleCount = 1;
-    let samples = [];
-
-    // Initialize the form
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeSampleInputs();
-        updateCharacterCount();
-        updateSubmitButton();
-    });
-
-    function initializeSampleInputs() {
-        const container = document.getElementById('sampleInputs');
-        container.innerHTML = '';
-        
-        for (let i = 0; i < sampleCount; i++) {
-            const sampleDiv = document.createElement('div');
-            sampleDiv.className = 'relative';
-            sampleDiv.innerHTML = `
-                <label class="block text-sm font-medium text-gray-700 mb-2">Sample ${i + 1}</label>
-                <textarea 
-                    id="sample${i}" 
-                    name="sample${i}"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                    rows="3"
-                    placeholder="Paste your text sample here (10-1000 characters)..."
-                    minlength="10"
-                    maxlength="1000"
-                ></textarea>
-                <div class="flex justify-between items-center mt-1">
-                    <span class="text-xs text-gray-500">10-1000 characters</span>
-                    <span id="charCount${i}" class="text-xs text-gray-500">0 characters</span>
-                </div>
-                ${i >= 1 ? `<button type="button" onclick="removeSample(${i})" class="absolute top-0 right-0 text-red-500 hover:text-red-700 text-sm">Remove</button>` : ''}
-            `;
-            container.appendChild(sampleDiv);
-            
-            // Add event listener for character count
-            const textarea = sampleDiv.querySelector('textarea');
-            const charCount = sampleDiv.querySelector(`#charCount${i}`);
-            
-            textarea.addEventListener('input', function() {
-                const length = this.value.length;
-                charCount.textContent = length + ' characters';
-                updateCharacterCount();
-                updateSubmitButton();
-            });
-        }
-        
-        updateSampleCount();
-    }
-
-    function addSample() {
-        if (sampleCount < 5) {
-            sampleCount++;
-            initializeSampleInputs();
-        }
-    }
-
-    function removeSample(index) {
-        if (sampleCount > 1) {
-            sampleCount--;
-            initializeSampleInputs();
-        }
-    }
-
-    function updateSampleCount() {
-        document.getElementById('sampleCount').textContent = sampleCount + ' samples';
-    }
-
-    function updateCharacterCount() {
-        let totalChars = 0;
-        for (let i = 0; i < sampleCount; i++) {
-            const textarea = document.getElementById(`sample${i}`);
-            if (textarea) {
-                totalChars += textarea.value.length;
-            }
-        }
-        
-        document.getElementById('totalChars').textContent = totalChars;
-        
-        // Update progress bar
-        const progress = Math.min((totalChars / 3000) * 100, 100);
-        document.getElementById('charProgress').style.width = progress + '%';
-        
-        // Change color based on progress
-        const progressBar = document.getElementById('charProgress');
-        if (totalChars < 250) {
-            progressBar.className = 'bg-red-500 h-2 rounded-full transition-all duration-300';
-        } else if (totalChars > 3000) {
-            progressBar.className = 'bg-red-500 h-2 rounded-full transition-all duration-300';
-        } else {
-            progressBar.className = 'bg-primary h-2 rounded-full transition-all duration-300';
-        }
-    }
-
-    function updateSubmitButton() {
-        const button = document.getElementById('createTwinBtn');
-        let totalChars = 0;
-        let validSamples = 0;
-        
-        for (let i = 0; i < sampleCount; i++) {
-            const textarea = document.getElementById(`sample${i}`);
-            if (textarea) {
-                const length = textarea.value.length;
-                totalChars += length;
-                if (length >= 10 && length <= 1000) {
-                    validSamples++;
-                }
-            }
-        }
-        
-        const isValid = validSamples >= 1 && totalChars >= 250 && totalChars <= 3000;
-        button.disabled = !isValid;
-    }
-
-    function showMessage(message, type = 'error') {
-        const container = document.getElementById('messageContainer');
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `p-4 rounded-lg ${type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' : 'bg-green-100 border border-green-400 text-green-700'}`;
-        messageDiv.textContent = message;
-        
-        container.innerHTML = '';
-        container.appendChild(messageDiv);
-        
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-            messageDiv.remove();
-        }, 5000);
-    }
-
-    function updateProgress(step) {
-        // Update step indicators
-        for (let i = 1; i <= 3; i++) {
-            const stepEl = document.getElementById(`step${i}`);
-            if (i <= step) {
-                stepEl.className = 'w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold';
-            } else {
-                stepEl.className = 'w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold';
-            }
-        }
-    }
-
-    function displayResults(twinData) {
-        // Update progress to step 3
-        updateProgress(3);
-        
-        // Display style vector
-        const styleVector = document.getElementById('styleVector');
-        styleVector.innerHTML = `
-            <div class="bg-gray-50 rounded-lg p-4">
-                <h4 class="font-semibold text-gray-800 mb-2">Tone</h4>
-                <p class="text-gray-600 capitalize">${twinData.styleVector.tone}</p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-                <h4 class="font-semibold text-gray-800 mb-2">Emoji Usage</h4>
-                <p class="text-gray-600">${Math.round(twinData.styleVector.emoji_usage * 100)}%</p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-                <h4 class="font-semibold text-gray-800 mb-2">Hinglish Ratio</h4>
-                <p class="text-gray-600">${Math.round(twinData.styleVector.hinglish_ratio * 100)}%</p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-                <h4 class="font-semibold text-gray-800 mb-2">Sentence Length</h4>
-                <p class="text-gray-600 capitalize">${twinData.styleVector.sentence_length}</p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-4 md:col-span-2">
-                <h4 class="font-semibold text-gray-800 mb-2">Signature Patterns</h4>
-                <p class="text-gray-600">${twinData.styleVector.signature_patterns.join(', ')}</p>
-            </div>
-        `;
-        
-        // Display sample reply
-        document.getElementById('sampleReply').textContent = twinData.sampleReply;
-        
-        // Show results section
-        document.getElementById('resultsSection').classList.remove('hidden');
-        
-        // Scroll to results
-        document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // Form submission
-    document.getElementById('twinCreationForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-        const button = document.getElementById('createTwinBtn');
-        const originalText = button.textContent;
-        
-        // Update progress to step 2
-        updateProgress(2);
-        
-        // Collect samples
-        samples = [];
-        for (let i = 0; i < sampleCount; i++) {
-            const textarea = document.getElementById(`sample${i}`);
-            if (textarea && textarea.value.trim()) {
-                samples.push(textarea.value.trim());
-            }
-        }
-        
-        console.log('Samples being sent:', samples);
-
-        if (samples.length < 1) {
-            showMessage('Please provide at least 1 valid sample');
-        return;
-    }
-    
-        // Show loading state
-        button.textContent = 'Creating Twin...';
-        button.disabled = true;
-    
-    try {
-        const response = await fetch('/api/twin/create', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                    'X-CSRF-Token': document.querySelector('input[name="_csrf"]').value
-            },
-                credentials: 'include',
-            body: JSON.stringify({ samples })
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-                showMessage('AI Twin created successfully!', 'success');
-                displayResults(result.twin);
-        } else {
-                showMessage(result.error || 'Failed to create twin');
-        }
-    } catch (error) {
-            console.error('Error creating twin:', error);
-            showMessage('Network error. Please try again.');
-    } finally {
-            button.textContent = originalText;
-            button.disabled = false;
-        }
-    });
-
-    // Save twin button
-    document.getElementById('saveTwinBtn').addEventListener('click', function() {
-        showMessage('Twin saved successfully! Redirecting to dashboard...', 'success');
-        setTimeout(() => {
-            window.location.href = '/dashboard';
-        }, 2000);
-    });
-
-    // Create another button
-    document.getElementById('createAnotherBtn').addEventListener('click', function() {
-        document.getElementById('resultsSection').classList.add('hidden');
-        document.getElementById('messageContainer').innerHTML = '';
-        updateProgress(1);
-        
-        // Reset form
-        for (let i = 0; i < sampleCount; i++) {
-            const textarea = document.getElementById(`sample${i}`);
-            if (textarea) {
-                textarea.value = '';
-            }
-        }
-        updateCharacterCount();
-        updateSubmitButton();
-    });
-
-    // Add sample button
-    document.getElementById('addSample').addEventListener('click', addSample);
-</script>
 </body>
 </html>

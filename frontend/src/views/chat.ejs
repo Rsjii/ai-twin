@@ -113,8 +113,35 @@ document.getElementById('messageForm').addEventListener('submit', async (e) => {
     e.target.reset();
     document.getElementById('charCount').textContent = '0';
     
-    // Generate draft
-    await generateDraft();
+    // Try enhanced chat first, fallback to draft system
+    try {
+        const response = await fetch(`/api/enhanced-chat/${chatId}/send-enhanced`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            },
+            body: JSON.stringify({ content: message })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result.messages && result.messages.length > 1) {
+                // Enhanced chat returns both messages
+                const aiMessage = result.messages.find(msg => msg.sender === 'twin');
+                if (aiMessage) {
+                    addMessageToChat(aiMessage.content, 'twin');
+                }
+            }
+        } else {
+            // Fallback to draft system
+            await generateDraft();
+        }
+    } catch (error) {
+        console.error('Enhanced chat error:', error);
+        // Fallback to draft system
+        await generateDraft();
+    }
 });
 
 async function loadChat() {
@@ -229,7 +256,8 @@ async function approveDraft() {
     if (!currentDraft) return;
     
     try {
-        const response = await fetch(`/api/chat/${chatId}/send`, {
+        // Try enhanced chat first, fallback to basic chat
+        let response = await fetch(`/api/enhanced-chat/${chatId}/send-enhanced`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -238,10 +266,30 @@ async function approveDraft() {
             body: JSON.stringify({ content: currentDraft })
         });
         
+        // If enhanced chat fails, try basic chat
+        if (!response.ok) {
+            response = await fetch(`/api/chat/${chatId}/send`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                body: JSON.stringify({ content: currentDraft })
+            });
+        }
+        
         const result = await response.json();
         
         if (response.ok) {
-            addMessageToChat(currentDraft, 'twin');
+            if (result.messages) {
+                // Enhanced chat returns both messages
+                result.messages.forEach(msg => {
+                    addMessageToChat(msg.content, msg.sender);
+                });
+            } else {
+                // Basic chat just adds the draft
+                addMessageToChat(currentDraft, 'twin');
+            }
             hideDraftSection();
             showFlashMessage('Message sent!', 'success');
         } else {
@@ -340,19 +388,38 @@ async function loadChatById(chatId) {
 
 async function startNewChat() {
     try {
-        const response = await fetch('/api/chat/continue', {
+        // Try enhanced chat first, fallback to basic chat
+        let response = await fetch('/api/enhanced-chat/start-enhanced', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': window.csrfToken
             },
+            credentials: 'include',
             body: JSON.stringify({ twinId: 'latest' })
         });
+        
+        // If enhanced chat fails, try basic chat
+        if (!response.ok) {
+            response = await fetch('/api/chat/continue', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                body: JSON.stringify({ twinId: 'latest' })
+            });
+        }
         
         const result = await response.json();
         
         if (response.ok) {
-            window.location.href = result.redirect;
+            if (result.redirect) {
+                window.location.href = result.redirect;
+            } else {
+                chatId = result.chat.id;
+                window.location.href = `/chat/${chatId}`;
+            }
         } else {
             showFlashMessage(result.error || 'Failed to start new chat', 'error');
         }
