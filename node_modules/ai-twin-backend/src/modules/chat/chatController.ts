@@ -432,7 +432,8 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response) =>
         sender: msg.sender,
         timestamp: msg.createdAt
       })),
-      currentMessages: messages
+      currentMessages: messages,
+      twinId: chat.twinId // Add twinId for memory retrieval
     };
 
     // Generate draft with full context
@@ -722,7 +723,8 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
         sender: msg.sender,
         timestamp: msg.createdAt
       })),
-      currentMessages: [message.trim()]
+      currentMessages: [message.trim()],
+      twinId: chat.twinId // Add twinId for memory retrieval
     };
 
     // Generate AI response using TwinService
@@ -928,7 +930,12 @@ async function updateChatVectorAfterMessage(chatId: string, newMessages: Array<{
     
     if (currentChatVector) {
       // Update existing chat vector
-      updatedChatVector = await twinService.updateChatVector(currentChatVector, newMessages);
+      const newMessagesWithTimestamp = newMessages.map(msg => ({
+        content: msg.content,
+        sender: msg.sender,
+        timestamp: msg.createdAt
+      }));
+      updatedChatVector = await twinService.updateChatVector(currentChatVector, newMessagesWithTimestamp);
     } else {
       // Generate new chat vector
       updatedChatVector = await twinService.generateChatVector(allMessages);

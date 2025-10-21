@@ -30,6 +30,10 @@ import analyticsRoutes from './modules/analytics/analyticsRoutes';
 import adminAnalyticsRoutes from './modules/analytics/adminAnalyticsRoutes';
 import onboardingRoutes from './modules/onboarding/onboardingRoutes';
 import styleAnchorsRoutes from './modules/twin/styleAnchorsRoutes';
+import styleCorrectionsRoutes from './modules/twin/styleCorrectionsRoutes';
+import aiRunsRoutes from './modules/twin/aiRunsRoutes';
+import memoryRoutes from './modules/memory/memoryRoutes';
+import enhancedChatRoutes from './modules/chat/enhancedChatRoutes';
 
 // Import JWT middleware
 import { authenticateJWT, optionalJWT } from './middleware/jwtAuth';
@@ -126,6 +130,10 @@ app.use('/api/metrics', analyticsRoutes);
 app.use('/api/admin/analytics', adminAnalyticsRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/style-anchors', styleAnchorsRoutes);
+app.use('/api/style-corrections', styleCorrectionsRoutes);
+app.use('/api/ai-runs', aiRunsRoutes);
+app.use('/api/memory', memoryRoutes);
+app.use('/api/chat', enhancedChatRoutes);
 
 // Discover page route
 app.get('/discover', (req, res) => {
@@ -146,6 +154,46 @@ app.get('/style-anchors', requireJWTFromCookie, generateCSRFToken, (req: any, re
   res.render('style-anchors', { 
     title: 'Style Anchors - AI Twin',
     user: req.user,
+    csrfToken: res.locals['csrfToken']
+  });
+});
+
+// Memory Management page route
+app.get('/memory-management', requireJWTFromCookie, generateCSRFToken, (req: any, res) => {
+  res.render('memory-management', { 
+    title: 'Memory Management - AI Twin',
+    user: req.user,
+    twinId: req.query.twinId || 'default',
+    csrfToken: res.locals['csrfToken']
+  });
+});
+
+// Style Corrections page route
+app.get('/style-corrections', requireJWTFromCookie, generateCSRFToken, (req: any, res) => {
+  res.render('style-corrections', { 
+    title: 'Style Corrections - AI Twin',
+    user: req.user,
+    twinId: req.query.twinId || 'default',
+    csrfToken: res.locals['csrfToken']
+  });
+});
+
+// AI Runs Analytics page route
+app.get('/ai-runs', requireJWTFromCookie, generateCSRFToken, (req: any, res) => {
+  res.render('ai-runs', { 
+    title: 'AI Runs Analytics - AI Twin',
+    user: req.user,
+    twinId: req.query.twinId || 'default',
+    csrfToken: res.locals['csrfToken']
+  });
+});
+
+// Enhanced Chat page route
+app.get('/chat-enhanced', requireJWTFromCookie, generateCSRFToken, (req: any, res) => {
+  res.render('chat-enhanced', { 
+    title: 'Enhanced Chat - AI Twin',
+    user: req.user,
+    chatId: req.query.chatId || 'default',
     csrfToken: res.locals['csrfToken']
   });
 });

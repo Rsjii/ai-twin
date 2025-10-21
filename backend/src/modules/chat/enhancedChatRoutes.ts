@@ -1,21 +1,19 @@
-import express from 'express';
-import { sendEnhancedMessage, startEnhancedChat } from './enhancedChatController';
-import { requireJWTFromCookie } from '../../middleware/jwtCookie';
-import { generateCSRFToken } from '../../middleware/csrf';
+import { Router } from 'express';
+import { authenticateJWT } from '../../middleware/jwtAuth';
+import {
+  generateEnhancedReply,
+  applyStyleCorrection,
+  addToAnchors
+} from './enhancedChatController';
 
-const router = express.Router();
+const router = Router();
 
-// Enhanced chat routes with persona data
-router.post('/start-enhanced', 
-  requireJWTFromCookie,
-  generateCSRFToken,
-  startEnhancedChat
-);
+// All routes require authentication
+router.use(authenticateJWT);
 
-router.post('/:id/send-enhanced', 
-  requireJWTFromCookie,
-  generateCSRFToken,
-  sendEnhancedMessage
-);
+// Enhanced chat endpoints
+router.post('/:id/enhanced-reply', generateEnhancedReply);
+router.post('/:id/style-correct', applyStyleCorrection);
+router.post('/:id/add-anchor', addToAnchors);
 
 export default router;

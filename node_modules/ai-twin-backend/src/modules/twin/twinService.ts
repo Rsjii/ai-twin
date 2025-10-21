@@ -192,6 +192,7 @@ Return only valid JSON, no other text.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Update the style vector based on new conversations: ${combinedNewText}` }
         ],
+        
         temperature: 0.3,
         max_tokens: 800,
       });
@@ -225,7 +226,9 @@ Return only valid JSON, no other text.`;
     chatVector?: any; // Compressed chat history
     chatMemory: Array<{content: string, sender: string, timestamp: Date}>;
     currentMessages: string[];
+    twinId?: string; // Add twinId for memory retrieval
   }): Promise<string> {
+    const startTime = Date.now();
     try {
       const { styleVector, personaData, systemPrompt, tokenLimit, chatVector, chatMemory, currentMessages } = context;
       
@@ -244,6 +247,37 @@ Return only valid JSON, no other text.`;
       if (!styleVector || !currentMessages || currentMessages.length === 0) {
         logger.error('Invalid context provided:', { styleVector, currentMessages });
         throw new Error('Invalid context provided');
+      }
+      
+      // NEW: Retrieve relevant memories if twinId is provided
+      let relevantFacts: string[] = [];
+      let relevantVoice: string[] = [];
+      
+      if (context.twinId) {
+        try {
+          const { db } = await import('../../config/database');
+          
+          // Get relevant facts
+          const factsResult = await db.query(
+            'SELECT text FROM "mem_chunks" WHERE twin_id = $1 AND bucket = $2 ORDER BY ts DESC LIMIT 3',
+            [context.twinId, 'facts']
+          );
+          relevantFacts = factsResult.rows.map(row => row.text);
+          
+          // Get relevant voice patterns
+          const voiceResult = await db.query(
+            'SELECT text FROM "mem_chunks" WHERE twin_id = $1 AND bucket = $2 ORDER BY ts DESC LIMIT 2',
+            [context.twinId, 'voice']
+          );
+          relevantVoice = voiceResult.rows.map(row => row.text);
+          
+          logger.info('Retrieved memories:', {
+            factsCount: relevantFacts.length,
+            voiceCount: relevantVoice.length
+          });
+        } catch (error) {
+          logger.warn('Failed to retrieve memories:', error);
+        }
       }
       
       // Use enhanced persona-based response if available
@@ -285,6 +319,17 @@ COMMUNICATION STYLE (CRITICAL - USE THIS):
 - Personality Traits: ${styleVector.personality_traits?.join(', ') || 'helpful, curious'}
 `;
 
+      // Include memories in system prompt
+      const memoryContext = relevantFacts.length > 0 ? `
+FACTS ABOUT YOU (use if relevant):
+${relevantFacts.map(fact => `- ${fact}`).join('\n')}
+` : '';
+
+      const voiceContext = relevantVoice.length > 0 ? `
+SIGNATURE PHRASES (use naturally):
+${relevantVoice.join(', ')}
+` : '';
+
       // Build chat history context with chatVector
       const chatContext = chatVector ? 
         `CHAT CONTEXT (COMPRESSED HISTORY):
@@ -309,6 +354,10 @@ ${userBio ? `ABOUT ${userName.toUpperCase()}: ${userBio}` : ''}
 ${userPersonality}
 
 ${styleInfo}
+
+${memoryContext}
+
+${voiceContext}
 
 ${chatContext}
 
@@ -358,6 +407,27 @@ RESPOND AS ${userName.toUpperCase()} - NO GENERIC RESPONSES ALLOWED!`;
       if (!result || result.trim().length === 0) {
         logger.error('Empty response from OpenAI');
         return 'Sorry, I couldn\'t generate a response.';
+      }
+
+      // Log AI run for quality tracking
+      if (context.twinId) {
+        try {
+          const { db } = await import('../../config/database');
+          const runId = `run_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          await db.query(
+            'INSERT INTO ai_runs (id, twin_id, mode, tokens_in, tokens_out, latency_ms) VALUES ($1, $2, $3, $4, $5, $6)',
+            [
+              runId,
+              context.twinId,
+              'human', // Mode: human interaction
+              response.usage?.prompt_tokens || 0,
+              response.usage?.completion_tokens || 0,
+              Date.now() - startTime
+            ]
+          );
+        } catch (error) {
+          logger.error('Failed to log AI run:', error);
+        }
       }
       
       return result;
