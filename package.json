@@ -17,7 +17,10 @@
     "prisma:migrate": "npm run prisma:migrate --workspace=backend",
     "prisma:studio": "npm run prisma:studio --workspace=backend",
     "setup": "node scripts/setup.js",
-    "clean": "node scripts/clean.js"
+    "clean": "node scripts/clean.js",
+    "migrate:style-learning": "node run-style-learning-migration.js",
+    "migrate:all": "npm run migrate:basic && npm run migrate:public && npm run migrate:onboarding && npm run migrate:chat-vector && npm run migrate:style-learning"
+
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.9",

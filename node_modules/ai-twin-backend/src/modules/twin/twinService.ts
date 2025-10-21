@@ -219,17 +219,24 @@ Return only valid JSON, no other text.`;
 
   async generateDraftWithContext(context: {
     styleVector: StyleVector;
+    personaData?: any;
+    systemPrompt?: string;
+    tokenLimit?: number;
+    chatVector?: any; // Compressed chat history
     chatMemory: Array<{content: string, sender: string, timestamp: Date}>;
     currentMessages: string[];
   }): Promise<string> {
     try {
-      const { styleVector, chatMemory, currentMessages } = context;
+      const { styleVector, personaData, systemPrompt, tokenLimit, chatVector, chatMemory, currentMessages } = context;
       
       logger.info('TwinService generateDraftWithContext called with:', {
         styleVectorKeys: Object.keys(styleVector),
+        hasPersonaData: !!personaData,
+        hasSystemPrompt: !!systemPrompt,
         chatMemoryLength: chatMemory.length,
         currentMessagesLength: currentMessages.length,
         styleVector: JSON.stringify(styleVector, null, 2),
+        personaData: JSON.stringify(personaData, null, 2),
         currentMessages: currentMessages
       });
       
@@ -239,20 +246,88 @@ Return only valid JSON, no other text.`;
         throw new Error('Invalid context provided');
       }
       
-      // Create system prompt similar to twin creation
-      const systemPrompt = `You are an AI twin that mimics the user's communication style. 
-
-User's style:
+      // Use enhanced persona-based response if available
+      if (personaData && systemPrompt) {
+        logger.info('Using enhanced persona-based response');
+        return await this.generatePersonaResponse(
+          currentMessages.join('\n'),
+          personaData,
+          systemPrompt,
+          chatMemory,
+          tokenLimit || 500
+        );
+      }
+      
+      // If no persona data, still use styleVector with proper context
+      logger.info('Using styleVector-based response with enhanced context');
+      
+      // Create comprehensive system prompt with ALL available data
+      const userName = personaData?.basicInfo?.fullName || personaData?.name || 'the user';
+      const userBio = personaData?.basicInfo?.bio || '';
+      const userPersonality = personaData?.personality ? 
+        `Personality: ${JSON.stringify(personaData.personality)}` : '';
+      
+      // Build comprehensive style information
+      const styleInfo = `
+COMMUNICATION STYLE (CRITICAL - USE THIS):
 - Tone: ${styleVector.tone || 'casual'}
-- Communication: ${styleVector.communication_style || 'conversational'}
+- Communication Style: ${styleVector.communication_style || 'conversational'}
+- Emoji Usage: ${styleVector.emoji_usage || 0.3} (0=none, 1=heavy)
+- Hinglish Ratio: ${styleVector.hinglish_ratio || 0.2} (0=English only, 1=mostly Hindi)
+- Sentence Length: ${styleVector.sentence_length || 'medium'}
+- Formality Level: ${styleVector.formality_level || 0.5} (0=casual, 1=formal)
+- Humor Style: ${styleVector.humor_style || 'light'}
+- Question Frequency: ${styleVector.question_frequency || 0.4}
+- Exclamation Usage: ${styleVector.exclamation_usage || 0.3}
+- Code Mixing: ${styleVector.code_mixing_style || 'minimal'}
+- Response Length: ${styleVector.response_length_preference || 'detailed'}
+- Signature Patterns: ${styleVector.signature_patterns?.join(', ') || 'none'}
+- Personality Traits: ${styleVector.personality_traits?.join(', ') || 'helpful, curious'}
+`;
 
-Previous conversation:
-${chatMemory.map(msg => `${msg.sender}: ${msg.content}`).join('\n')}
+      // Build chat history context with chatVector
+      const chatContext = chatVector ? 
+        `CHAT CONTEXT (COMPRESSED HISTORY):
+Summary: ${chatVector.summary || 'No summary available'}
+Topics Discussed: ${chatVector.topics?.join(', ') || 'None'}
+Key Points: ${chatVector.keyPoints?.join(', ') || 'None'}
+User Preferences: ${JSON.stringify(chatVector.userPreferences || {})}
+Conversation Tone: ${chatVector.conversationTone || 'neutral'}
+User Personality: ${JSON.stringify(chatVector.userPersonality || {})}
+Important Context: ${chatVector.context || 'None'}
 
-Respond as the user's AI twin. Keep it natural and conversational. Return only the response, no other text.`;
+RECENT MESSAGES:
+${chatMemory.map(msg => `${msg.sender === 'human' ? 'User' : 'AI'}: ${msg.content}`).join('\n')}` : 
+        chatMemory.length > 0 ? 
+        `CHAT HISTORY (IMPORTANT - REFERENCE THIS):
+${chatMemory.map(msg => `${msg.sender === 'human' ? 'User' : 'AI'}: ${msg.content}`).join('\n')}` : 
+        'CHAT HISTORY: This is the start of our conversation.';
+      
+      const enhancedSystemPrompt = `You are an AI twin representing ${userName}. You MUST respond as if you are this person, using their exact communication style.
 
-      logger.info('System prompt created, calling OpenAI...');
-      logger.info('System prompt length:', systemPrompt.length);
+${userBio ? `ABOUT ${userName.toUpperCase()}: ${userBio}` : ''}
+${userPersonality}
+
+${styleInfo}
+
+${chatContext}
+
+CURRENT USER MESSAGE: "${currentMessages.join(' ')}"
+
+CRITICAL INSTRUCTIONS:
+1. You ARE ${userName} - respond as them, not as an AI assistant
+2. Use the EXACT communication style defined above
+3. Reference the chat history to maintain context
+4. If asked "what is my name" or "who am i", respond with "${userName}"
+5. Be authentic to the personality and style defined above
+6. Use appropriate emoji usage (${styleVector.emoji_usage || 0.3})
+7. Mix Hindi/English as specified (${styleVector.hinglish_ratio || 0.2})
+8. Use signature patterns: ${styleVector.signature_patterns?.join(', ') || 'none'}
+
+RESPOND AS ${userName.toUpperCase()} - NO GENERIC RESPONSES ALLOWED!`;
+
+      logger.info('Enhanced system prompt created, calling OpenAI...');
+      logger.info('System prompt length:', enhancedSystemPrompt.length);
       logger.info('User message:', currentMessages.join('\n'));
       logger.info('OpenAI API Key present:', !!config.openaiApiKey);
       
@@ -261,10 +336,10 @@ Respond as the user's AI twin. Keep it natural and conversational. Return only t
         openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [
-            { role: 'system', content: systemPrompt },
+            { role: 'system', content: enhancedSystemPrompt },
             { role: 'user', content: currentMessages.join('\n') }
           ],
-          max_tokens: 500,
+          max_tokens: tokenLimit || 500,
           temperature: 0.7
         }),
         new Promise((_, reject) => 
@@ -300,7 +375,7 @@ Respond as the user's AI twin. Keep it natural and conversational. Return only t
       
       // Return a fallback response instead of throwing
       logger.error('OpenAI API failed, using fallback response');
-      return this.generateFallbackResponse(context.currentMessages?.[0] || 'Hello', {});
+      return this.generateFallbackResponse(context.currentMessages?.[0] || 'Hello', context.personaData || {});
     }
   }
 
@@ -320,22 +395,27 @@ Respond as the user's AI twin. Keep it natural and conversational. Return only t
         .map(msg => `${msg.sender === 'human' ? 'User' : 'AI'}: ${msg.content}`)
         .join('\n');
 
-      // Create the full prompt
+      // Create the full prompt with explicit instructions
+      const userName = personaData.basicInfo?.fullName || personaData.name || 'the user';
       const fullPrompt = `${systemPrompt}
 
 CHAT HISTORY:
 ${chatContext}
 
-USER MESSAGE: ${userMessage}
+USER MESSAGE: "${userMessage}"
 
-INSTRUCTIONS:
-- Respond as ${personaData.name || 'the user'}
-- Use your personality traits and communication style
+CRITICAL INSTRUCTIONS:
+- You ARE ${userName} - respond as them, not as an AI assistant
+- You know the user's name is ${userName}
+- Use your personality traits and communication style EXACTLY as defined
 - Keep response under ${tokenLimit} tokens
-- Be authentic to your persona
+- Be authentic to your persona - NO GENERIC RESPONSES
 - Reference your interests and background when relevant
+- If asked "what is my name" or "who am i", respond with "${userName}"
+- Always remember who you are representing
+- Use the communication style from your persona data
 
-RESPONSE:`;
+RESPOND AS ${userName.toUpperCase()} - NO GENERIC RESPONSES ALLOWED!`;
 
       const completion = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
@@ -358,15 +438,24 @@ RESPONSE:`;
       return response;
     } catch (error) {
       logger.error('Error generating persona response:', error);
+      logger.error('Persona data available:', !!personaData);
+      logger.error('User message:', userMessage);
+      
+      // Try to provide a personalized fallback response
+      const userName = personaData?.basicInfo?.fullName || personaData?.name || 'there';
+      if (userMessage.toLowerCase().includes('what is my name') || userMessage.toLowerCase().includes('who am i')) {
+        return `Your name is ${userName}! I know you well.`;
+      }
+      
       return this.generateFallbackResponse(userMessage, personaData);
     }
   }
 
   // Fallback response generator using persona data
   private generateFallbackResponse(userMessage: string, personaData: any): string {
-    const name = personaData.name || 'there';
-    const personality = personaData.personality || {};
-    const tone = personaData.tone || {};
+    const name = personaData?.basicInfo?.fullName || personaData?.name || 'there';
+    const personality = personaData?.personality || {};
+    const tone = personaData?.tone || {};
     
     // Use personality traits to generate appropriate responses
     const isExtraverted = personality.ocean?.extraversion > 3;
@@ -377,11 +466,11 @@ RESPONSE:`;
     
     if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
       if (isFormal) {
-        return `Hello! It's a pleasure to meet you. I'm ${name}. How may I assist you today?`;
+        return `Hello ${name}! It's a pleasure to meet you. How may I assist you today?`;
       } else if (isExtraverted) {
-        return `Hey there! Great to meet you! I'm ${name}. What's going on?`;
+        return `Hey ${name}! Great to meet you! What's going on?`;
       } else {
-        return `Hi! I'm ${name}. How are you doing?`;
+        return `Hi ${name}! How are you doing?`;
       }
     }
     
@@ -392,6 +481,14 @@ RESPONSE:`;
         return `I'm doing well, thank you for asking. I hope you're having a good day as well.`;
       } else {
         return `I'm doing great! Thanks for asking. How are you doing?`;
+      }
+    }
+    
+    if (message.includes('what is my name') || message.includes('who am i') || message.includes('my name')) {
+      if (name && name !== 'there') {
+        return `Your name is ${name}! I know you well.`;
+      } else {
+        return `I should know your name, but I'm having trouble accessing that information right now. Can you remind me?`;
       }
     }
     
@@ -429,6 +526,116 @@ RESPONSE:`;
       personality_traits: ['helpful', 'curious'],
       communication_style: 'conversational'
     };
+  }
+
+  // Generate compressed chatVector from chat history
+  async generateChatVector(chatHistory: Array<{content: string, sender: string, timestamp: Date}>): Promise<any> {
+    try {
+      if (!chatHistory || chatHistory.length === 0) {
+        return {
+          summary: 'New conversation started',
+          topics: [],
+          keyPoints: [],
+          userPreferences: {},
+          conversationTone: 'neutral'
+        };
+      }
+
+      const conversationText = chatHistory
+        .map(msg => `${msg.sender}: ${msg.content}`)
+        .join('\n');
+
+      const systemPrompt = `Analyze this conversation and create a compressed chatVector (JSON only) with:
+
+1. summary: Brief 1-2 sentence summary of what was discussed
+2. topics: Array of main topics discussed (max 5)
+3. keyPoints: Array of important points or decisions made (max 5)
+4. userPreferences: Object with user's expressed preferences, interests, likes/dislikes
+5. conversationTone: Overall tone of conversation (casual, formal, friendly, etc.)
+6. userPersonality: Any personality traits observed from user's messages
+7. context: Important context that should be remembered for future messages
+
+Conversation:
+${conversationText}
+
+Return only valid JSON, no other text.`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: 'Create chatVector for this conversation' }
+        ],
+        temperature: 0.3,
+        max_tokens: 800,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from OpenAI');
+      }
+
+      return JSON.parse(content);
+    } catch (error) {
+      logger.error('Chat vector generation error:', error);
+      return {
+        summary: 'Conversation context available',
+        topics: [],
+        keyPoints: [],
+        userPreferences: {},
+        conversationTone: 'neutral'
+      };
+    }
+  }
+
+  // Update existing chatVector with new messages
+  async updateChatVector(currentChatVector: any, newMessages: Array<{content: string, sender: string, timestamp: Date}>): Promise<any> {
+    try {
+      if (!newMessages || newMessages.length === 0) {
+        return currentChatVector;
+      }
+
+      const newConversationText = newMessages
+        .map(msg => `${msg.sender}: ${msg.content}`)
+        .join('\n');
+
+      const systemPrompt = `Update this existing chatVector with new conversation data. Return the updated JSON.
+
+Current chatVector: ${JSON.stringify(currentChatVector)}
+
+New conversation:
+${newConversationText}
+
+Update the chatVector by:
+1. Merging new topics with existing ones
+2. Adding new key points
+3. Updating user preferences based on new information
+4. Adjusting conversation tone if changed
+5. Adding new personality observations
+6. Updating context with new important information
+
+Return only valid JSON with the same structure, no other text.`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: 'Update chatVector with new conversation' }
+        ],
+        temperature: 0.3,
+        max_tokens: 1000,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from OpenAI');
+      }
+
+      return JSON.parse(content);
+    } catch (error) {
+      logger.error('Chat vector update error:', error);
+      return currentChatVector;
+    }
   }
 
   private validateStyleVector(vector: any): vector is StyleVector {

@@ -567,3 +567,170 @@ export const publicChatQueries = {
     return result.rows[0];
   }
 };
+
+// Style Anchors Queries
+export const styleAnchorsQueries = {
+  create: async (twinId: string, userUtterance: string, idealReply: string, tags: string[] = []) => {
+    const id = generateId();
+    const result = await db.query(
+      'INSERT INTO "style_anchors" (id, twin_id, user_utterance, ideal_reply, tags) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [id, twinId, userUtterance, idealReply, tags]
+    );
+    return result.rows[0];
+  },
+
+  findByTwinId: async (twinId: string, limit = 10, offset = 0) => {
+    const result = await db.query(
+      'SELECT * FROM "style_anchors" WHERE twin_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+      [twinId, limit, offset]
+    );
+    return result.rows;
+  },
+
+  findById: async (anchorId: string) => {
+    const result = await db.query('SELECT * FROM "style_anchors" WHERE id = $1', [anchorId]);
+    return result.rows[0];
+  },
+
+  update: async (anchorId: string, userUtterance: string, idealReply: string, tags: string[]) => {
+    const result = await db.query(
+      'UPDATE "style_anchors" SET user_utterance = $1, ideal_reply = $2, tags = $3 WHERE id = $4 RETURNING *',
+      [userUtterance, idealReply, tags, anchorId]
+    );
+    return result.rows[0];
+  },
+
+  delete: async (anchorId: string) => {
+    const result = await db.query('DELETE FROM "style_anchors" WHERE id = $1 RETURNING *', [anchorId]);
+    return result.rows[0];
+  },
+
+  findByTwinAndSimilarity: async (twinId: string, userMessage: string, limit = 2) => {
+    // This will be enhanced with vector similarity search later
+    const result = await db.query(
+      `SELECT *, 
+       similarity(user_utterance, $2) as sim_score 
+       FROM "style_anchors" 
+       WHERE twin_id = $1 
+       ORDER BY sim_score DESC 
+       LIMIT $3`,
+      [twinId, userMessage, limit]
+    );
+    return result.rows;
+  }
+};
+
+// Memory Chunks Queries
+export const memChunksQueries = {
+  create: async (twinId: string, bucket: 'facts' | 'voice', text: string, embedding?: number[]) => {
+    const id = generateId();
+    const result = await db.query(
+      'INSERT INTO "mem_chunks" (id, twin_id, bucket, text, embedding) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [id, twinId, bucket, text, embedding ? JSON.stringify(embedding) : null]
+    );
+    return result.rows[0];
+  },
+
+  findByTwinAndBucket: async (twinId: string, bucket: 'facts' | 'voice', limit = 10) => {
+    const result = await db.query(
+      'SELECT * FROM "mem_chunks" WHERE twin_id = $1 AND bucket = $2 ORDER BY ts DESC LIMIT $3',
+      [twinId, bucket, limit]
+    );
+    return result.rows;
+  },
+
+  findByTwinAndSimilarity: async (twinId: string, bucket: 'facts' | 'voice', queryEmbedding: number[], limit = 3) => {
+    // This will be enhanced with vector similarity search later
+    const result = await db.query(
+      `SELECT *, 
+       embedding <-> $3 as distance 
+       FROM "mem_chunks" 
+       WHERE twin_id = $1 AND bucket = $2 
+       ORDER BY distance ASC 
+       LIMIT $4`,
+      [twinId, bucket, JSON.stringify(queryEmbedding), limit]
+    );
+    return result.rows;
+  },
+
+  delete: async (chunkId: string) => {
+    const result = await db.query('DELETE FROM "mem_chunks" WHERE id = $1 RETURNING *', [chunkId]);
+    return result.rows[0];
+  }
+};
+
+// Style Corrections Queries
+export const styleCorrectionsQueries = {
+  create: async (twinId: string, knob: string, delta: number, source?: string) => {
+    const id = generateId();
+    const result = await db.query(
+      'INSERT INTO "style_corrections" (id, twin_id, knob, delta, source) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [id, twinId, knob, delta, source]
+    );
+    return result.rows[0];
+  },
+
+  findByTwinId: async (twinId: string, limit = 50) => {
+    const result = await db.query(
+      'SELECT * FROM "style_corrections" WHERE twin_id = $1 ORDER BY ts DESC LIMIT $2',
+      [twinId, limit]
+    );
+    return result.rows;
+  },
+
+  getAggregatedCorrections: async (twinId: string) => {
+    const result = await db.query(
+      `SELECT knob, SUM(delta) as total_delta, COUNT(*) as correction_count 
+       FROM "style_corrections" 
+       WHERE twin_id = $1 
+       GROUP BY knob`,
+      [twinId]
+    );
+    return result.rows;
+  }
+};
+
+// AI Runs Queries
+export const aiRunsQueries = {
+  create: async (twinId: string, mode: string, tokensIn: number, tokensOut: number, criticScore?: number, regen = false, latencyMs: number) => {
+    const id = generateId();
+    const result = await db.query(
+      'INSERT INTO "ai_runs" (id, twin_id, mode, tokens_in, tokens_out, critic_score, regen, latency_ms) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [id, twinId, mode, tokensIn, tokensOut, criticScore, regen, latencyMs]
+    );
+    return result.rows[0];
+  },
+
+  findByTwinId: async (twinId: string, limit = 100, offset = 0) => {
+    const result = await db.query(
+      'SELECT * FROM "ai_runs" WHERE twin_id = $1 ORDER BY ts DESC LIMIT $2 OFFSET $3',
+      [twinId, limit, offset]
+    );
+    return result.rows;
+  },
+
+  getQualityMetrics: async (twinId: string, days = 7) => {
+    const result = await db.query(
+      `SELECT 
+         AVG(critic_score) as avg_critic_score,
+         COUNT(*) as total_runs,
+         COUNT(CASE WHEN critic_score >= 80 THEN 1 END) as high_quality_runs,
+         AVG(latency_ms) as avg_latency,
+         AVG(tokens_in) as avg_tokens_in,
+         AVG(tokens_out) as avg_tokens_out
+       FROM "ai_runs" 
+       WHERE twin_id = $1 AND ts >= NOW() - INTERVAL '${days} days'`,
+      [twinId]
+    );
+    return result.rows[0];
+  },
+
+  getRecentRuns: async (twinId: string, hours = 24) => {
+    const result = await db.query(
+      'SELECT * FROM "ai_runs" WHERE twin_id = $1 AND ts >= NOW() - INTERVAL \'$2 hours\' ORDER BY ts DESC',
+      [twinId, hours]
+    );
+    return result.rows;
+  }
+};
+

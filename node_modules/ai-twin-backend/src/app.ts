@@ -29,6 +29,7 @@ import inviteRoutes from './modules/invite/inviteRoutes';
 import analyticsRoutes from './modules/analytics/analyticsRoutes';
 import adminAnalyticsRoutes from './modules/analytics/adminAnalyticsRoutes';
 import onboardingRoutes from './modules/onboarding/onboardingRoutes';
+import styleAnchorsRoutes from './modules/twin/styleAnchorsRoutes';
 
 // Import JWT middleware
 import { authenticateJWT, optionalJWT } from './middleware/jwtAuth';
@@ -124,6 +125,7 @@ app.use('/api/invite', inviteRoutes);
 app.use('/api/metrics', analyticsRoutes);
 app.use('/api/admin/analytics', adminAnalyticsRoutes);
 app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/style-anchors', styleAnchorsRoutes);
 
 // Discover page route
 app.get('/discover', (req, res) => {
@@ -134,6 +136,15 @@ app.get('/discover', (req, res) => {
 app.get('/onboarding', requireJWTFromCookie, generateCSRFToken, (req: any, res) => {
   res.render('onboarding', { 
     title: 'Create Your AI Twin - Enhanced Onboarding',
+    user: req.user,
+    csrfToken: res.locals['csrfToken']
+  });
+});
+
+// Style Anchors page route
+app.get('/style-anchors', requireJWTFromCookie, generateCSRFToken, (req: any, res) => {
+  res.render('style-anchors', { 
+    title: 'Style Anchors - AI Twin',
     user: req.user,
     csrfToken: res.locals['csrfToken']
   });

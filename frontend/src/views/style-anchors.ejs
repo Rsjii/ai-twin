@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Style Anchors - <%= twin.name || 'My Twin' %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <div class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center">
+                        <a href="/dashboard" class="text-gray-600 hover:text-gray-900">
+                            ← Back to Dashboard
+                        </a>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-900">Style Anchors</h1>
+                    <div class="flex space-x-2">
+                        <button onclick="autoSuggestAnchors()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            Auto-Suggest
+                        </button>
+                        <button onclick="showCreateModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                            Add Anchor
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="text-2xl font-bold text-blue-600" id="totalAnchors">0</div>
+                    <div class="text-gray-600">Total Anchors</div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="text-2xl font-bold text-green-600" id="uniqueTags">0</div>
+                    <div class="text-gray-600">Unique Tags</div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="text-2xl font-bold text-purple-600" id="avgUtteranceLength">0</div>
+                    <div class="text-gray-600">Avg Utterance Length</div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="text-2xl font-bold text-orange-600" id="avgReplyLength">0</div>
+                    <div class="text-gray-600">Avg Reply Length</div>
+                </div>
+            </div>
+
+            <!-- Anchors List -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-medium text-gray-900">Style Anchors</h2>
+                    <p class="text-sm text-gray-600">Examples of your communication style</p>
+                </div>
+                
+                <div id="anchorsList" class="divide-y divide-gray-200">
+                    <!-- Anchors will be loaded here -->
+                </div>
+                
+                <div id="loadingAnchors" class="p-8 text-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p class="mt-2 text-gray-600">Loading anchors...</p>
+                </div>
+                
+                <div id="noAnchors" class="p-8 text-center hidden">
+                    <div class="text-gray-400 mb-4">
+                        <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No style anchors yet</h3>
+                    <p class="text-gray-600 mb-4">Create your first style anchor to help your twin learn your communication style.</p>
+                    <button onclick="showCreateModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        Add Your First Anchor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div id="anchorModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900" id="modalTitle">Add Style Anchor</h3>
+                </div>
+                
+                <form id="anchorForm" class="p-6">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            User Utterance (What someone might say to you)
+                        </label>
+                        <textarea 
+                            id="userUtterance" 
+                            name="userUtterance"
+                            rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="e.g., 'Hey, how are you doing?'"
+                            required
+                        ></textarea>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Ideal Reply (How you would respond)
+                        </label>
+                        <textarea 
+                            id="idealReply" 
+                            name="idealReply"
+                            rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="e.g., 'Hey! I'm doing great, thanks for asking. How about you?'"
+                            required
+                        ></textarea>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Tags (Optional)
+                        </label>
+                        <input 
+                            id="tags" 
+                            name="tags"
+                            type="text"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="e.g., casual, friendly, question"
+                        />
+                        <p class="text-sm text-gray-500 mt-1">Separate tags with commas</p>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button 
+                            type="button" 
+                            onclick="hideCreateModal()"
+                            class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        >
+                            Save Anchor
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto-Suggest Modal -->
+    <div id="autoSuggestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">Auto-Suggest Anchors</h3>
+                    <p class="text-sm text-gray-600">AI will analyze your chat history to suggest style examples</p>
+                </div>
+                
+                <div class="p-6 overflow-y-auto max-h-[60vh]">
+                    <div id="suggestedAnchors">
+                        <!-- Suggested anchors will be loaded here -->
+                    </div>
+                    
+                    <div id="loadingSuggestions" class="text-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="mt-2 text-gray-600">Analyzing your chat history...</p>
+                    </div>
+                </div>
+                
+                <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                    <button 
+                        onclick="hideAutoSuggestModal()"
+                        class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const twinId = '<%= twinId %>';
+        let currentAnchors = [];
+        let editingAnchorId = null;
+
+        // Load anchors on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAnchors();
+            loadStats();
+        });
+
+        // Load anchors
+        async function loadAnchors() {
+            try {
+                const response = await fetch(`/api/twin/${twinId}/style/anchors`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentAnchors = data.anchors;
+                    displayAnchors(data.anchors);
+                }
+            } catch (error) {
+                console.error('Error loading anchors:', error);
+            }
+        }
+
+        // Display anchors
+        function displayAnchors(anchors) {
+            const container = document.getElementById('anchorsList');
+            const loading = document.getElementById('loadingAnchors');
+            const noAnchors = document.getElementById('noAnchors');
+            
+            loading.classList.add('hidden');
+            
+            if (anchors.length === 0) {
+                noAnchors.classList.remove('hidden');
+                return;
+            }
+            
+            noAnchors.classList.add('hidden');
+            
+            container.innerHTML = anchors.map(anchor => `
+                <div class="p-6">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="mb-2">
+                                <span class="text-sm font-medium text-gray-500">User says:</span>
+                                <p class="text-gray-900">"${anchor.user_utterance}"</p>
+                            </div>
+                            <div class="mb-3">
+                                <span class="text-sm font-medium text-gray-500">You reply:</span>
+                                <p class="text-gray-900">"${anchor.ideal_reply}"</p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                ${anchor.tags.map(tag => `
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${tag}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="flex space-x-2 ml-4">
+                            <button onclick="editAnchor('${anchor.id}')" class="text-blue-600 hover:text-blue-800">
+                                Edit
+                            </button>
+                            <button onclick="deleteAnchor('${anchor.id}')" class="text-red-600 hover:text-red-800">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Load stats
+        async function loadStats() {
+            // This would be implemented with a stats endpoint
+            // For now, just show basic counts
+            document.getElementById('totalAnchors').textContent = currentAnchors.length;
+        }
+
+        // Show create modal
+        function showCreateModal() {
+            document.getElementById('modalTitle').textContent = 'Add Style Anchor';
+            document.getElementById('anchorForm').reset();
+            editingAnchorId = null;
+            document.getElementById('anchorModal').classList.remove('hidden');
+        }
+
+        // Hide create modal
+        function hideCreateModal() {
+            document.getElementById('anchorModal').classList.add('hidden');
+        }
+
+        // Show auto-suggest modal
+        async function autoSuggestAnchors() {
+            document.getElementById('autoSuggestModal').classList.remove('hidden');
+            document.getElementById('loadingSuggestions').classList.remove('hidden');
+            document.getElementById('suggestedAnchors').innerHTML = '';
+            
+            try {
+                const response = await fetch(`/api/twin/${twinId}/style/anchors/auto-suggest`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+                
+                const data = await response.json();
+                document.getElementById('loadingSuggestions').classList.add('hidden');
+                
+                if (data.success) {
+                    displaySuggestedAnchors(data.anchors);
+                } else {
+                    alert('Failed to generate suggestions: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error getting suggestions:', error);
+                document.getElementById('loadingSuggestions').classList.add('hidden');
+                alert('Failed to generate suggestions');
+            }
+        }
+
+        // Hide auto-suggest modal
+        function hideAutoSuggestModal() {
+            document.getElementById('autoSuggestModal').classList.add('hidden');
+        }
+
+        // Display suggested anchors
+        function displaySuggestedAnchors(anchors) {
+            const container = document.getElementById('suggestedAnchors');
+            
+            if (anchors.length === 0) {
+                container.innerHTML = '<p class="text-gray-600 text-center py-4">No suggestions found</p>';
+                return;
+            }
+            
+            container.innerHTML = anchors.map(anchor => `
+                <div class="border border-gray-200 rounded-lg p-4 mb-4">
+                    <div class="mb-2">
+                        <span class="text-sm font-medium text-gray-500">User says:</span>
+                        <p class="text-gray-900">"${anchor.user_utterance}"</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="text-sm font-medium text-gray-500">You reply:</span>
+                        <p class="text-gray-900">"${anchor.ideal_reply}"</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        ${anchor.tags.map(tag => `
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${tag}</span>
+                        `).join('')}
+                    </div>
+                    <button onclick="addSuggestedAnchor('${anchor.user_utterance}', '${anchor.ideal_reply}', ${JSON.stringify(anchor.tags).replace(/"/g, '&quot;')})" 
+                            class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                        Add This Anchor
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Add suggested anchor
+        async function addSuggestedAnchor(userUtterance, idealReply, tags) {
+            try {
+                const response = await fetch(`/api/twin/${twinId}/style/anchors`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_utterance: userUtterance,
+                        ideal_reply: idealReply,
+                        tags: tags
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadAnchors();
+                    hideAutoSuggestModal();
+                } else {
+                    alert('Failed to add anchor: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error adding anchor:', error);
+                alert('Failed to add anchor');
+            }
+        }
+
+        // Edit anchor
+        function editAnchor(anchorId) {
+            const anchor = currentAnchors.find(a => a.id === anchorId);
+            if (!anchor) return;
+            
+            document.getElementById('modalTitle').textContent = 'Edit Style Anchor';
+            document.getElementById('userUtterance').value = anchor.user_utterance;
+            document.getElementById('idealReply').value = anchor.ideal_reply;
+            document.getElementById('tags').value = anchor.tags.join(', ');
+            editingAnchorId = anchorId;
+            document.getElementById('anchorModal').classList.remove('hidden');
+        }
+
+        // Delete anchor
+        async function deleteAnchor(anchorId) {
+            if (!confirm('Are you sure you want to delete this anchor?')) return;
+            
+            try {
+                const response = await fetch(`/api/twin/${twinId}/style/anchors/${anchorId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadAnchors();
+                } else {
+                    alert('Failed to delete anchor: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error deleting anchor:', error);
+                alert('Failed to delete anchor');
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('anchorForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const tags = formData.get('tags').split(',').map(tag => tag.trim()).filter(tag => tag);
+            
+            try {
+                const url = editingAnchorId 
+                    ? `/api/twin/${twinId}/style/anchors/${editingAnchorId}`
+                    : `/api/twin/${twinId}/style/anchors`;
+                
+                const method = editingAnchorId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_utterance: formData.get('userUtterance'),
+                        ideal_reply: formData.get('idealReply'),
+                        tags: tags
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    hideCreateModal();
+                    loadAnchors();
+                } else {
+                    alert('Failed to save anchor: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error saving anchor:', error);
+                alert('Failed to save anchor');
+            }
+        });
+    </script>
+</body>
+</html>

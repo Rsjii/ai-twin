@@ -53,7 +53,9 @@ model Chat {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   twinId    String
   twin      Twin     @relation(fields: [twinId], references: [id], onDelete: Cascade)
+  chatVector Json?   // Compressed chat history for context
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   messages  Message[]
 }
 
