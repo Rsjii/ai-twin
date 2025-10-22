@@ -16,19 +16,6 @@
             <p class="text-gray-600">Monitor and analyze your AI twin's performance and quality metrics</p>
         </div>
 
-        <!-- Twin Selection -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-xl font-semibold mb-4">Select Twin</h2>
-            <div class="flex items-center space-x-4">
-                <select id="twinSelect" class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Loading twins...</option>
-                </select>
-                <button id="loadTwins" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
-                    Load Twins
-                </button>
-            </div>
-        </div>
-
         <!-- Quality Dashboard -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 class="text-xl font-semibold mb-4">Quality Dashboard</h2>
@@ -91,58 +78,23 @@
     </div>
 
     <script>
-        let currentTwinId = null;
-        let qualityTrendsChart = null;
-        let modePerformanceChart = null;
-
-        // Load twins on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadTwins();
-        });
-
-        // Load twins
-        async function loadTwins() {
-            try {
-                const response = await fetch('/api/twin', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-                const twins = await response.json();
-                
-                const select = document.getElementById('twinSelect');
-                select.innerHTML = '<option value="">Select a twin...</option>';
-                
-                twins.forEach(twin => {
-                    const option = document.createElement('option');
-                    option.value = twin.id;
-                    option.textContent = twin.name || `Twin ${twin.id}`;
-                    select.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Error loading twins:', error);
-            }
-        }
-
-        // Handle twin selection
-        document.getElementById('twinSelect').addEventListener('change', function() {
-            currentTwinId = this.value;
-            if (currentTwinId) {
-                loadQualityDashboard();
-                loadRunStats();
-                loadRuns();
-            }
-        });
-
+    // Auto-load data for the current twin
+    let currentTwinId = '<%= twinId %>';
+    let qualityTrendsChart = null;
+    let modePerformanceChart = null;
+ 
+    document.addEventListener('DOMContentLoaded', function() {
+        loadQualityDashboard();
+        loadRunStats();
+        loadRuns();
+    });
         // Load quality dashboard
         async function loadQualityDashboard() {
             if (!currentTwinId) return;
 
             try {
                 const response = await fetch(`/api/ai-runs/${currentTwinId}/runs/quality-dashboard`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
+                    credentials: 'include'
                 });
                 const data = await response.json();
                 
@@ -269,9 +221,7 @@
 
             try {
                 const response = await fetch(`/api/ai-runs/${currentTwinId}/runs/stats?days=${days}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
+                    credentials: 'include'
                 });
                 const data = await response.json();
                 
@@ -314,9 +264,7 @@
 
             try {
                 const response = await fetch(`/api/ai-runs/${currentTwinId}/runs?${params}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
+                    credentials: 'include'
                 });
                 const runs = await response.json();
                 

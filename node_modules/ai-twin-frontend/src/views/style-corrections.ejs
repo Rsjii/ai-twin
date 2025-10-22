@@ -15,19 +15,6 @@
             <p class="text-gray-600">Fine-tune your AI twin's communication style based on feedback</p>
         </div>
 
-        <!-- Twin Selection -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-xl font-semibold mb-4">Select Twin</h2>
-            <div class="flex items-center space-x-4">
-                <select id="twinSelect" class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Loading twins...</option>
-                </select>
-                <button id="loadTwins" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
-                    Load Twins
-                </button>
-            </div>
-        </div>
-
         <!-- Quick Correction Interface -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 class="text-xl font-semibold mb-4">Quick Style Adjustments</h2>
@@ -117,51 +104,15 @@
     </div>
 
     <script>
-        let currentTwinId = null;
-
-        // Load twins on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadTwins();
-        });
-
-        // Load twins
-        async function loadTwins() {
-            try {
-                const response = await fetch('/api/twin', {
-                    credentials: 'include'
-                });
-                const twins = await response.json();
-                
-                const select = document.getElementById('twinSelect');
-                select.innerHTML = '<option value="">Select a twin...</option>';
-                
-                twins.forEach(twin => {
-                    const option = document.createElement('option');
-                    option.value = twin.id;
-                    option.textContent = twin.name || `Twin ${twin.id}`;
-                    select.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Error loading twins:', error);
-            }
-        }
-
-        // Handle twin selection
-        document.getElementById('twinSelect').addEventListener('change', function() {
-            currentTwinId = this.value;
-            if (currentTwinId) {
-                loadCorrections();
-                loadCorrectionStats();
-            }
-        });
-
+    // Auto-load data for the current twin
+    let currentTwinId = '<%= twinId %>';
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCorrections();
+        loadCorrectionStats();
+    });
         // Handle correction buttons
         document.addEventListener('click', async function(e) {
             if (e.target.classList.contains('correction-btn')) {
-                if (!currentTwinId) {
-                    alert('Please select a twin first');
-                    return;
-                }
 
                 const knob = e.target.dataset.knob;
                 const delta = parseInt(e.target.dataset.delta);
@@ -269,10 +220,6 @@
 
         // Apply corrections
         document.getElementById('applyCorrections').addEventListener('click', async function() {
-            if (!currentTwinId) {
-                alert('Please select a twin first');
-                return;
-            }
 
             try {
                 const response = await fetch(`/api/style-corrections/${currentTwinId}/style/corrections/apply`, {

@@ -148,13 +148,48 @@ app.get('/onboarding', requireJWTFromCookie, generateCSRFToken, (req: any, res) 
 });
 
 // Style Anchors page route
-app.get('/style-anchors', requireJWTFromCookie, generateCSRFToken, (req: any, res) => {
-  res.render('style-anchors', { 
-    title: 'Style Anchors - AI Twin',
-    user: req.user,
-    twinId: req.query.twinId || 'default',
-    csrfToken: res.locals['csrfToken']
-  });
+app.get('/style-anchors', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
+  try {
+    console.log('🚀 STYLE ANCHORS ROUTE HIT!');
+    console.log('req.user:', req.user);
+    console.log('req.user.id:', req.user?.id);
+
+    if(!req.user || !req.user.id) {
+      console.log('❌ No user, redirecting to auth');
+      return res.redirect('/auth');
+    }
+    // Get user's latest twin
+    const twinResult = await db.query(`
+      SELECT id, "styleVector", "createdAt"
+      FROM "Twin" 
+      WHERE "userId" = $1 
+      ORDER BY "createdAt" DESC 
+      LIMIT 1
+    `, [req.user.id]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).render('error', { 
+        message: 'No AI twin found. Please create one first.',
+        user: req.user 
+      });
+    }
+    
+    const twin = twinResult.rows[0];
+    console.log('✅ Twin found:', twin);
+    res.render('style-anchors', { 
+      title: 'Style Anchors - AI Twin',
+      user: req.user,
+      twin: twin,
+      twinId: twin.id,
+      csrfToken: res.locals['csrfToken']
+    });
+  } catch (error) {
+    console.error('Style anchors route error:', error);
+    res.status(500).render('error', { 
+      message: 'Internal server error',
+      user: req.user 
+    });
+  }
 });
 
 // Memory Management page route
@@ -168,25 +203,95 @@ app.get('/memory-management', requireJWTFromCookie, generateCSRFToken, (req: any
 });
 
 // Style Corrections page route
-app.get('/style-corrections', requireJWTFromCookie, generateCSRFToken, (req: any, res) => {
-  res.render('style-corrections', { 
-    title: 'Style Corrections - AI Twin',
-    user: req.user,
-    twinId: req.query.twinId || 'default',
-    csrfToken: res.locals['csrfToken']
-  });
+app.get('/style-corrections', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
+  try {
+    console.log('🚀 STYLE CORRECTIONS ROUTE HIT!');
+    console.log('req.user:', req.user);
+    console.log('req.user.id:', req.user?.id);
+
+    if(!req.user || !req.user.id) {
+      console.log('❌ No user, redirecting to auth');
+      return res.redirect('/auth');
+    }
+    // Get user's latest twin
+    const twinResult = await db.query(`
+      SELECT id, "styleVector", "createdAt"
+      FROM "Twin" 
+      WHERE "userId" = $1 
+      ORDER BY "createdAt" DESC 
+      LIMIT 1
+    `, [req.user.id]);
+    if (twinResult.rows.length === 0) {
+      console.log('❌ No twin found, redirecting to create twin');
+      return res.status(404).render('error', { 
+        message: 'No AI twin found. Please create one first.',
+        user: req.user 
+      });
+    }
+    
+    const twin = twinResult.rows[0];
+    console.log('✅ Twin found:', twin);
+    res.render('style-corrections', { 
+      title: 'Style Corrections - AI Twin',
+      user: req.user,
+      twin: twin,
+      twinId: twin.id,
+      csrfToken: res.locals['csrfToken']
+    });
+  } catch (error) {
+    console.error('Style corrections route error:', error);
+    res.status(500).render('error', { 
+      message: 'Internal server error',
+      user: req.user 
+    });
+  }
 });
 
 // AI Runs Analytics page route
-app.get('/ai-runs', requireJWTFromCookie, generateCSRFToken, (req: any, res) => {
-  res.render('ai-runs', { 
-    title: 'AI Runs Analytics - AI Twin',
-    user: req.user,
-    twinId: req.query.twinId || 'default',
-    csrfToken: res.locals['csrfToken']
-  });
-});
+app.get('/ai-runs', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
+  try {
+    console.log('🚀 AI RUNS ROUTE HIT!');
+    console.log('req.user:', req.user);
+    console.log('req.user.id:', req.user?.id);
 
+    if(!req.user || !req.user.id) {
+      console.log('❌ No user, redirecting to auth');
+      return res.redirect('/auth');
+    }
+    // Get user's latest twin
+    const twinResult = await db.query(`
+      SELECT id, "styleVector", "createdAt"
+      FROM "Twin" 
+      WHERE "userId" = $1 
+      ORDER BY "createdAt" DESC 
+      LIMIT 1
+    `, [req.user.id]);
+    
+    if (twinResult.rows.length === 0) {
+      console.log('❌ No twin found, redirecting to create twin');
+      return res.status(404).render('error', { 
+        message: 'No AI twin found. Please create one first.',
+        user: req.user 
+      });
+    }
+    
+    const twin = twinResult.rows[0];
+    console.log('✅ Twin found:', twin);
+    res.render('ai-runs', { 
+      title: 'AI Runs Analytics - AI Twin',
+      user: req.user,
+      twin: twin,
+      twinId: twin.id,
+      csrfToken: res.locals['csrfToken']
+    });
+  } catch (error) {
+    console.error('AI runs route error:', error);
+    res.status(500).render('error', { 
+      message: 'Internal server error',
+      user: req.user 
+    });
+  }
+});
 // Enhanced Chat page route
 app.get('/chat-enhanced', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
   try {
