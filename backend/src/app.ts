@@ -33,7 +33,6 @@ import styleAnchorsRoutes from './modules/twin/styleAnchorsRoutes';
 import styleCorrectionsRoutes from './modules/twin/styleCorrectionsRoutes';
 import aiRunsRoutes from './modules/twin/aiRunsRoutes';
 import memoryRoutes from './modules/memory/memoryRoutes';
-import enhancedChatRoutes from './modules/chat/enhancedChatRoutes';
 
 // Import JWT middleware
 import { authenticateJWT, optionalJWT } from './middleware/jwtAuth';
@@ -133,7 +132,6 @@ app.use('/api/style-anchors', styleAnchorsRoutes);
 app.use('/api/style-corrections', styleCorrectionsRoutes);
 app.use('/api/ai-runs', aiRunsRoutes);
 app.use('/api/memory', memoryRoutes);
-app.use('/api/chat', enhancedChatRoutes);
 
 // Discover page route
 app.get('/discover', (req, res) => {
@@ -154,6 +152,7 @@ app.get('/style-anchors', requireJWTFromCookie, generateCSRFToken, (req: any, re
   res.render('style-anchors', { 
     title: 'Style Anchors - AI Twin',
     user: req.user,
+    twinId: req.query.twinId || 'default',
     csrfToken: res.locals['csrfToken']
   });
 });
@@ -189,13 +188,74 @@ app.get('/ai-runs', requireJWTFromCookie, generateCSRFToken, (req: any, res) => 
 });
 
 // Enhanced Chat page route
-app.get('/chat-enhanced', requireJWTFromCookie, generateCSRFToken, (req: any, res) => {
-  res.render('chat-enhanced', { 
-    title: 'Enhanced Chat - AI Twin',
-    user: req.user,
-    chatId: req.query.chatId || 'default',
-    csrfToken: res.locals['csrfToken']
-  });
+app.get('/chat-enhanced', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
+  try {
+    console.log('🚀 ENHANCED CHAT ROUTE HIT!');
+    console.log('req.user:', req.user);
+    
+    if (!req.user) {
+      console.log('❌ No user, redirecting to auth');
+      return res.redirect('/auth');
+    }
+
+    // Get user's latest twin
+    const twins = await db.query(`
+      SELECT id, "styleVector", "sampleReply", "createdAt" 
+      FROM "Twin" 
+      WHERE "userId" = $1 
+      ORDER BY "createdAt" DESC
+      LIMIT 1
+    `, [req.user.id]);
+
+    console.log('Found twins:', twins.rows);
+
+    if (twins.rows.length === 0) {
+      console.log('❌ No twin found, redirecting to create');
+      return res.redirect('/twin/create');
+    }
+
+    const latestTwin = twins.rows[0];
+    console.log('✅ Latest twin found:', latestTwin);
+
+    // Find existing chat with this twin or create new one
+    let chats = await db.query(`
+      SELECT id, "userId", "twinId", "createdAt"
+      FROM "Chat"
+      WHERE "userId" = $1 AND "twinId" = $2
+      ORDER BY "createdAt" DESC
+      LIMIT 1
+    `, [req.user.id, latestTwin.id]);
+
+    console.log('Existing chats:', chats.rows);
+
+    let chat;
+    if (chats.rows.length === 0) {
+      // Create new chat
+      const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newChat = await db.query(`
+        INSERT INTO "Chat" ("id", "userId", "twinId", "createdAt")
+        VALUES ($1, $2, $3, NOW())
+        RETURNING id
+      `, [chatId, req.user.id, latestTwin.id]);
+      
+      chat = { id: newChat.rows[0].id };
+      console.log('Created new chat:', chat);
+    } else {
+      chat = chats.rows[0];
+      console.log('Using existing chat:', chat);
+    }
+
+    // Render enhanced chat page with proper chatId
+    res.render('chat-enhanced', { 
+      title: 'Enhanced Chat - AI Twin',
+      user: req.user,
+      chatId: chat.id,
+      csrfToken: res.locals['csrfToken']
+    });
+  } catch (error) {
+    console.error('💥 Enhanced chat route error:', error);
+    res.redirect('/dashboard');
+  }
 });
 
 // Admin Analytics dashboard route
@@ -1166,13 +1226,21 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
             
             <div class="grid md:grid-cols-2 gap-8 mb-8">
                 ${hasTwins ? `
-                    <!-- Chat with Twin Button -->
+                    <!-- Chat with Twin Buttons -->
                     <div class="bg-white rounded-lg shadow p-6">
                         <h3 class="text-lg font-semibold text-gray-800 mb-2">Chat with Your AI Twin</h3>
                         <p class="text-gray-600 mb-4">Start a conversation with your AI twin</p>
-                        <a href="/chat/continue" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
-                            Start Chat
-                        </a>
+                        <div class="space-y-3">
+                            <a href="/chat/continue" class="block bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors text-center">
+                                Start Regular Chat
+                            </a>
+                            <a href="/chat-enhanced" class="block bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors text-center relative">
+                                <span class="inline-flex items-center">
+                                    🚀 Enhanced Chat (Beta)
+                                    <span class="ml-2 text-xs bg-white/20 px-2 py-1 rounded-full">NEW</span>
+                                </span>
+                            </a>
+                        </div>
                     </div>
                 ` : `
                     <!-- Create Twin Button -->

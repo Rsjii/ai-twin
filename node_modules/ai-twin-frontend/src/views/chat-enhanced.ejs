@@ -35,13 +35,13 @@
             <div class="p-4">
                 <h3 class="text-sm font-medium text-gray-700 mb-2">Quick Actions</h3>
                 <div class="space-y-2">
-                    <button onclick="loadStyleAnchors()" class="w-full text-left px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
+                    <button id="loadStyleAnchorsBtn" class="w-full text-left px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
                         Manage Style Anchors
                     </button>
-                    <button onclick="loadStyleCorrections()" class="w-full text-left px-3 py-2 text-sm bg-green-50 text-green-700 rounded hover:bg-green-100">
+                    <button id="loadStyleCorrectionsBtn" class="w-full text-left px-3 py-2 text-sm bg-green-50 text-green-700 rounded hover:bg-green-100">
                         Style Corrections
                     </button>
-                    <button onclick="loadAIRuns()" class="w-full text-left px-3 py-2 text-sm bg-purple-50 text-purple-700 rounded hover:bg-purple-100">
+                    <button id="loadAIRunsBtn" class="w-full text-left px-3 py-2 text-sm bg-purple-50 text-purple-700 rounded hover:bg-purple-100">
                         AI Runs Analytics
                     </button>
                 </div>
@@ -54,8 +54,13 @@
             <div class="bg-white border-b px-6 py-4">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h1 class="text-xl font-semibold">Enhanced Chat</h1>
-                        <p class="text-sm text-gray-600">AI responses with style learning and corrections</p>
+                        <div class="flex items-center space-x-3">
+                            <a href="/dashboard" class="text-blue-600 hover:text-blue-800 text-sm">← Back to Dashboard</a>
+                            <div>
+                                <h1 class="text-xl font-semibold">Enhanced Chat</h1>
+                                <p class="text-sm text-gray-600">AI responses with style learning and corrections</p>
+                            </div>
+                        </div>
                     </div>
                     <div class="flex items-center space-x-4">
                         <div class="text-sm text-gray-600">
@@ -75,21 +80,32 @@
 
             <!-- Message Input -->
             <div class="bg-white border-t p-6">
-                <div class="flex space-x-4">
-                    <input 
-                        type="text" 
-                        id="messageInput" 
-                        placeholder="Type your message..." 
-                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        onkeypress="handleKeyPress(event)"
-                    >
-                    <button 
-                        onclick="sendMessage()" 
-                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        Send
-                    </button>
-                </div>
+                <form id="messageForm" class="space-y-4">
+                    <div>
+                        <label for="messageInput" class="block text-sm font-medium text-gray-700 mb-2">Your Message</label>
+                        <textarea 
+                            id="messageInput" 
+                            name="message"
+                            rows="3"
+                            placeholder="Type your message here..."
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            maxlength="300"
+                            required
+                        ></textarea>
+                        <div class="mt-2 text-sm text-gray-500 text-right">
+                            <span id="charCount">0</span> / 300 characters
+                        </div>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                            Send Message
+                        </button>
+                        <button type="button" onclick="loadChatHistory()" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors font-semibold">
+                            Load History
+                        </button>
+                    </div>
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                </form>
             </div>
         </div>
     </div>
@@ -160,84 +176,152 @@
 
         // Initialize chat
         document.addEventListener('DOMContentLoaded', function() {
-            // Get chat ID from URL or set default
-            currentChatId = new URLSearchParams(window.location.search).get('chatId') || 'default';
+            // Get chat ID from EJS variable
+            currentChatId = '<%= chatId %>';
+            console.log('Enhanced chat initialized with chatId:', currentChatId);
             loadChatHistory();
+            
+            // Add event listeners for style settings
+            const strictStyleCheckbox = document.getElementById('strictStyle');
+            const intentClassificationCheckbox = document.getElementById('intentClassification');
+            
+            if (strictStyleCheckbox) {
+                strictStyleCheckbox.addEventListener('change', function() {
+                    console.log('Strict style mode:', this.checked);
+                    // You can add logic here to save the setting
+                });
+            }
+            
+            if (intentClassificationCheckbox) {
+                intentClassificationCheckbox.addEventListener('change', function() {
+                    console.log('Intent classification:', this.checked);
+                    // You can add logic here to save the setting
+                });
+            }
+
+            // Add event listeners for quick action buttons
+            document.getElementById('loadStyleAnchorsBtn').addEventListener('click', function() {
+                console.log('Opening style anchors page...');
+                window.open('/style-anchors?twinId=' + getCurrentTwinId(), '_blank');
+            });
+
+            document.getElementById('loadStyleCorrectionsBtn').addEventListener('click', function() {
+                console.log('Opening style corrections page...');
+                window.open('/style-corrections?twinId=' + getCurrentTwinId(), '_blank');
+            });
+
+            document.getElementById('loadAIRunsBtn').addEventListener('click', function() {
+                console.log('Opening AI runs analytics page...');
+                window.open('/ai-runs?twinId=' + getCurrentTwinId(), '_blank');
+            });
         });
 
-        // Send message
-        async function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const message = input.value.trim();
-            
-            if (!message) return;
-            
-            // Add user message to chat
-            addMessageToChat('user', message);
-            input.value = '';
-            
-            // Show typing indicator
-            const typingId = addMessageToChat('ai', 'Thinking...', true);
-            
-            try {
-                const strictStyle = document.getElementById('strictStyle').checked;
-                const intentClassification = document.getElementById('intentClassification').checked;
+        // Message form submission
+        const messageForm = document.getElementById('messageForm');
+        if (messageForm) {
+            messageForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
                 
-                const response = await fetch(`/api/chat/${currentChatId}/enhanced-reply`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        strictStyle: strictStyle
-                    })
-                });
+                const messageInput = document.getElementById('messageInput');
+                if (!messageInput) return;
                 
-                const data = await response.json();
+                const message = messageInput.value.trim();
                 
-                if (data.success) {
-                    // Remove typing indicator
-                    removeMessage(typingId);
+                if (!message) return;
+                
+                console.log('🚀 Send message clicked!');
+                console.log('Current chatId:', currentChatId);
+                console.log('Message:', message);
+                
+                if (!currentChatId) {
+                    console.log('❌ No chatId available');
+                    alert('Chat not initialized. Please refresh the page.');
+                    return;
+                }
+                
+                // Add user message to chat
+                addMessageToChat('user', message);
+                
+                // Clear input
+                messageInput.value = '';
+                document.getElementById('charCount').textContent = '0';
+                
+                // Show loading indicator
+                const typingId = addMessageToChat('ai', 'Thinking...', true);
+                
+                try {
+                    const strictStyle = document.getElementById('strictStyle').checked;
+                    const intentClassification = document.getElementById('intentClassification').checked;
                     
-                    // Add AI response
-                    const responseId = addMessageToChat('ai', data.response, false, {
-                        intent: data.intent,
-                        criticScore: data.criticScore,
-                        latency: data.latency
+                    console.log('📡 Sending request to:', `/api/enhanced-chat/${currentChatId}/enhanced-reply`);
+                    console.log('Request body:', { message, strictStyle });
+                    
+                    const response = await fetch(`/api/enhanced-chat/${currentChatId}/enhanced-reply`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': '<%= csrfToken %>',
+                            credentials: 'include'
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            strictStyle: strictStyle
+                        })
                     });
                     
-                    // Store response metadata for actions
-                    currentResponse = data.response;
-                    responseMetadata = {
-                        intent: data.intent,
-                        criticScore: data.criticScore,
-                        latency: data.latency
-                    };
+                    console.log('📡 Response status:', response.status);
+                    const data = await response.json();
+                    console.log('📡 Response data:', data);
                     
-                    // Update display
-                    updateIntentDisplay(data.intent);
-                    updateCriticScore(data.criticScore);
-                    
-                    // Add response actions button
-                    addResponseActionsButton(responseId);
-                } else {
+                    if (data.success) {
+                        console.log('✅ Success! Adding response to chat');
+                        // Remove typing indicator
+                        removeMessage(typingId);
+                        
+                        // Add AI response
+                        const responseId = addMessageToChat('ai', data.response, false, {
+                            intent: data.intent,
+                            criticScore: data.criticScore,
+                            latency: data.latency
+                        });
+                        
+                        // Store response metadata for actions
+                        currentResponse = data.response;
+                        responseMetadata = {
+                            intent: data.intent,
+                            criticScore: data.criticScore,
+                            latency: data.latency
+                        };
+                        
+                        // Update display
+                        updateIntentDisplay(data.intent);
+                        updateCriticScore(data.criticScore);
+                        
+                        // Add response actions button
+                        addResponseActionsButton(responseId);
+                    } else {
+                        console.log('❌ API returned error:', data.error);
+                        removeMessage(typingId);
+                        addMessageToChat('ai', 'Sorry, I had trouble processing that. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('💥 Error sending message:', error);
                     removeMessage(typingId);
-                    addMessageToChat('ai', 'Sorry, I had trouble processing that. Please try again.');
+                    addMessageToChat('ai', 'Sorry, something went wrong. Please try again.');
                 }
-            } catch (error) {
-                console.error('Error sending message:', error);
-                removeMessage(typingId);
-                addMessageToChat('ai', 'Sorry, something went wrong. Please try again.');
-            }
+            });
         }
 
-        // Handle enter key
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
+        // Character counter
+        const messageInput = document.getElementById('messageInput');
+        if (messageInput) {
+            messageInput.addEventListener('input', (e) => {
+                const count = e.target.value.length;
+                const charCount = document.getElementById('charCount');
+                if (charCount) {
+                    charCount.textContent = count;
+                }
+            });
         }
 
         // Add message to chat
@@ -264,7 +348,15 @@
                     </div>
                 `;
             } else {
-                messageContent.textContent = content;
+                messageContent.innerHTML = `
+                    <p class="text-sm">${content}</p>
+                    <p class="text-xs mt-1 opacity-75">
+                        ${metadata && metadata.timestamp ? 
+                            new Date(metadata.timestamp).toLocaleTimeString() : 
+                            new Date().toLocaleTimeString()
+                        }
+                    </p>
+                `;
             }
             
             messageDiv.appendChild(messageContent);
@@ -328,11 +420,12 @@
         // Apply style correction
         async function applyStyleCorrection(knob, delta) {
             try {
-                const response = await fetch(`/api/chat/${currentChatId}/style-correct`, {
+                const response = await fetch(`/api/enhanced-chat/${currentChatId}/style-correct`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'X-CSRF-Token': '<%= csrfToken %>',
+                        credentials: 'include'
                     },
                     body: JSON.stringify({
                         knob: knob,
@@ -371,11 +464,12 @@
             if (!userUtterance) return;
             
             try {
-                const response = await fetch(`/api/chat/${currentChatId}/add-anchor`, {
+                const response = await fetch(`/api/enhanced-chat/${currentChatId}/add-anchor`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'X-CSRF-Token': '<%= csrfToken %>',
+                        credentials: 'include'
                     },
                     body: JSON.stringify({
                         userUtterance: userUtterance,
@@ -417,22 +511,53 @@
 
         // Load chat history
         async function loadChatHistory() {
-            // This would load existing chat messages
-            // For now, just show a welcome message
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            try {
+                console.log('Loading chat history for chatId:', currentChatId);
+                
+                // Clear existing messages
+                const messagesContainer = document.getElementById('chatMessages');
+                messagesContainer.innerHTML = '';
+                
+                // Try to load existing messages
+                const response = await fetch(`/api/chat/${currentChatId}`, {
+                    headers: {
+                        'X-CSRF-Token': '<%= csrfToken %>',
+                        credentials: 'include'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Chat data loaded:', data);
+                    
+                    if (data.chat && data.chat.messages && data.chat.messages.length > 0) {
+                        // Display existing messages (both user and AI)
+                        data.chat.messages.forEach(msg => {
+                            const sender = msg.sender === 'human' ? 'user' : 'ai';
+                            addMessageToChat(sender, msg.content, false, {
+                                timestamp: msg.createdAt
+                            });
+                        });
+                    } else {
+                        // Show welcome message if no history
+                        addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+                    }
+                } else {
+                    // Show welcome message if loading fails
+                    addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+                }
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+                // Show welcome message if error
+                addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            }
         }
 
-        // Quick action functions
-        function loadStyleAnchors() {
-            window.open('/style-anchors', '_blank');
-        }
 
-        function loadStyleCorrections() {
-            window.open('/style-corrections', '_blank');
-        }
-
-        function loadAIRuns() {
-            window.open('/ai-runs', '_blank');
+        // Helper function to get current twin ID
+        function getCurrentTwinId() {
+            // You can get this from the chat data or pass it from the server
+            return 'default'; // This should be replaced with actual twin ID
         }
 
         // Show notification

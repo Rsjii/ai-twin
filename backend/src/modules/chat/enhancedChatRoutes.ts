@@ -1,17 +1,19 @@
 import { Router } from 'express';
-import { authenticateJWT } from '../../middleware/jwtAuth';
+import { extractJWTFromCookie } from '../../middleware/jwtCookie';
 import {
   generateEnhancedReply,
   applyStyleCorrection,
-  addToAnchors
+  addToAnchors,
+  getChatHistory
 } from './enhancedChatController';
 
 const router = Router();
 
 // All routes require authentication
-router.use(authenticateJWT);
+router.use(extractJWTFromCookie);
 
 // Enhanced chat endpoints
+router.get('/:id', getChatHistory);
 router.post('/:id/enhanced-reply', generateEnhancedReply);
 router.post('/:id/style-correct', applyStyleCorrection);
 router.post('/:id/add-anchor', addToAnchors);

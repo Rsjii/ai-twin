@@ -128,9 +128,7 @@
         async function loadTwins() {
             try {
                 const response = await fetch('/api/twin', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
+                    credentials: 'include'
                 });
                 const twins = await response.json();
                 
@@ -173,9 +171,9 @@
                     const response = await fetch(`/api/style-corrections/${currentTwinId}/style/corrections`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            'Content-Type': 'application/json'
                         },
+                        credentials: 'include',
                         body: JSON.stringify({ knob, delta, source })
                     });
 
@@ -200,9 +198,7 @@
 
             try {
                 const response = await fetch(`/api/style-corrections/${currentTwinId}/style/corrections`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
+                    credentials: 'include'
                 });
                 const corrections = await response.json();
                 
@@ -240,9 +236,7 @@
 
             try {
                 const response = await fetch(`/api/style-corrections/${currentTwinId}/style/corrections/stats`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
+                    credentials: 'include'
                 });
                 const stats = await response.json();
                 
@@ -283,9 +277,7 @@
             try {
                 const response = await fetch(`/api/style-corrections/${currentTwinId}/style/corrections/apply`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
+                    credentials: 'include'
                 });
 
                 if (response.ok) {

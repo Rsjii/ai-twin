@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { authenticateJWT } from '../../middleware/jwtAuth';
+import { extractJWTFromCookie } from '../../middleware/jwtCookie';
 
 const router = Router();
 
 // All routes require authentication
-router.use(authenticateJWT);
+router.use(extractJWTFromCookie);
 
 // Temporary placeholder routes
 router.post('/:id/memory/ingest', (req, res) => {

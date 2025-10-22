@@ -8,3 +8,4 @@ CREATE INDEX IF NOT EXISTS idx_chat_chatvector ON "Chat"("chatVector");
 
 -- Update existing chats to have updatedAt timestamp
 UPDATE "Chat" SET "updatedAt" = NOW() WHERE "updatedAt" IS NULL;
+

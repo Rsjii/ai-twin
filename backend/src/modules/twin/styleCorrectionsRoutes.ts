@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticateJWT } from '../../middleware/jwtAuth';
+import { extractJWTFromCookie } from '../../middleware/jwtCookie';
 import {
   createCorrection,
   getCorrections,
@@ -12,7 +12,7 @@ import {
 const router = Router();
 
 // All routes require authentication
-router.use(authenticateJWT);
+router.use(extractJWTFromCookie);
 
 // Style corrections CRUD
 router.post('/:id/style/corrections', createCorrection);

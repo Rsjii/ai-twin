@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticateJWT } from '../../middleware/jwtAuth';
+import { extractJWTFromCookie } from '../../middleware/jwtCookie';
 import {
   createRun,
   getRuns,
@@ -11,7 +11,7 @@ import {
 const router = Router();
 
 // All routes require authentication
-router.use(authenticateJWT);
+router.use(extractJWTFromCookie);
 
 // AI runs CRUD
 router.post('/:id/runs', createRun);
