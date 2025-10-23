@@ -24,8 +24,8 @@ export const createCorrection = async (req: any, res: Response) => {
     const { knob, delta, source } = createCorrectionSchema.parse(req.body);
     const userId = req.user.id;
 
-    // Verify twin ownership
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND userId = $2', [twinId, userId]);
+    // Verify twin ownership - FIX THIS LINE
+    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
     if (twin.rows.length === 0) {
       return res.status(404).json({ error: 'Twin not found or access denied' });
     }
@@ -61,14 +61,14 @@ export const createCorrection = async (req: any, res: Response) => {
   }
 };
 
-// Get all corrections for a twin
+// Get all corrections for a twin - FIX THIS TOO
 export const getCorrections = async (req: any, res: Response) => {
   try {
     const { id: twinId } = req.params;
     const userId = req.user.id;
 
-    // Verify twin ownership
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND userId = $2', [twinId, userId]);
+    // Verify twin ownership - FIX THIS LINE
+    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
     if (twin.rows.length === 0) {
       return res.status(404).json({ error: 'Twin not found or access denied' });
     }
@@ -86,15 +86,15 @@ export const getCorrections = async (req: any, res: Response) => {
   }
 };
 
-// Update a correction
+// Update a correction - FIX THIS TOO
 export const updateCorrection = async (req: any, res: Response) => {
   try {
     const { id: twinId, correctionId } = req.params;
     const updates = updateCorrectionSchema.parse(req.body);
     const userId = req.user.id;
 
-    // Verify twin ownership
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND userId = $2', [twinId, userId]);
+    // Verify twin ownership - FIX THIS LINE
+    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
     if (twin.rows.length === 0) {
       return res.status(404).json({ error: 'Twin not found or access denied' });
     }
@@ -140,14 +140,14 @@ export const updateCorrection = async (req: any, res: Response) => {
   }
 };
 
-// Delete a correction
+// Delete a correction - FIX THIS TOO
 export const deleteCorrection = async (req: any, res: Response) => {
   try {
     const { id: twinId, correctionId } = req.params;
     const userId = req.user.id;
 
-    // Verify twin ownership
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND userId = $2', [twinId, userId]);
+    // Verify twin ownership - FIX THIS LINE
+    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
     if (twin.rows.length === 0) {
       return res.status(404).json({ error: 'Twin not found or access denied' });
     }
@@ -169,14 +169,14 @@ export const deleteCorrection = async (req: any, res: Response) => {
   }
 };
 
-// Get correction statistics
+// Get correction statistics - FIX THIS TOO
 export const getCorrectionStats = async (req: any, res: Response) => {
   try {
     const { id: twinId } = req.params;
     const userId = req.user.id;
 
-    // Verify twin ownership
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND userId = $2', [twinId, userId]);
+    // Verify twin ownership - FIX THIS LINE
+    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
     if (twin.rows.length === 0) {
       return res.status(404).json({ error: 'Twin not found or access denied' });
     }
@@ -208,11 +208,16 @@ export const applyCorrections = async (req: any, res: Response) => {
     const { id: twinId } = req.params;
     const userId = req.user.id;
 
+    console.log('🔧 Applying corrections for twin:', twinId, 'user:', userId);
+
     // Verify twin ownership
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND userId = $2', [twinId, userId]);
+    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
     if (twin.rows.length === 0) {
+      console.log('❌ Twin not found or access denied');
       return res.status(404).json({ error: 'Twin not found or access denied' });
     }
+
+    console.log('✅ Twin ownership verified');
 
     // Get all corrections
     const corrections = await db.query(
@@ -220,18 +225,37 @@ export const applyCorrections = async (req: any, res: Response) => {
       [twinId]
     );
 
+    console.log('📊 Found corrections:', corrections.rows.length);
+
     // Get current style vector
     const twinData = await db.query('SELECT "styleVector" FROM "Twin" WHERE id = $1', [twinId]);
     if (twinData.rows.length === 0) {
+      console.log('❌ Twin data not found');
       return res.status(404).json({ error: 'Twin not found' });
     }
 
     let styleVector = twinData.rows[0].styleVector || {};
 
+    // Initialize default style vector if it's empty or null
+    if (!styleVector || Object.keys(styleVector).length === 0) {
+      console.log('🔧 Initializing default style vector');
+      styleVector = {
+        response_length_preference: 'detailed',
+        formality_level: 0.5,
+        emoji_usage: 0.3,
+        humor_style: 'light',
+        question_frequency: 0.4
+      };
+    }
+
+    console.log('📝 Current style vector:', styleVector);
+
     // Apply corrections
     for (const correction of corrections.rows) {
       const { knob, avg_delta } = correction;
       const delta = parseFloat(avg_delta);
+
+      console.log(`🔧 Applying correction: ${knob} = ${delta}`);
 
       switch (knob) {
         case 'shorter':
@@ -258,11 +282,15 @@ export const applyCorrections = async (req: any, res: Response) => {
       }
     }
 
-    // Update style vector
+    console.log('📝 Updated style vector:', styleVector);
+
+    // Update style vector - FIX: Use JSON.stringify
     await db.query(
       'UPDATE "Twin" SET "styleVector" = $1, "updatedAt" = $2 WHERE id = $3',
-      [styleVector, new Date(), twinId]
+      [JSON.stringify(styleVector), new Date(), twinId]
     );
+
+    console.log('✅ Style vector updated successfully');
 
     res.json({
       message: 'Corrections applied successfully',
@@ -270,6 +298,7 @@ export const applyCorrections = async (req: any, res: Response) => {
     });
 
   } catch (error) {
+    console.error('❌ Error applying corrections:', error);
     logger.error('Error applying corrections:', error);
     res.status(500).json({ error: 'Failed to apply corrections' });
   }

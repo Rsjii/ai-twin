@@ -29,8 +29,8 @@ export const createRun = async (req: any, res: Response) => {
     const runData = createRunSchema.parse(req.body);
     const userId = req.user.id;
 
-    // Verify twin ownership
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND userId = $2', [twinId, userId]);
+    // Verify twin ownership - FIX THIS LINE
+    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
     if (twin.rows.length === 0) {
       return res.status(404).json({ error: 'Twin not found or access denied' });
     }
@@ -66,15 +66,15 @@ export const createRun = async (req: any, res: Response) => {
   }
 };
 
-// Get all runs for a twin
+// Get all runs for a twin - FIX THIS TOO
 export const getRuns = async (req: any, res: Response) => {
   try {
     const { id: twinId } = req.params;
     const { limit = 50, offset = 0, mode } = req.query;
     const userId = req.user.id;
 
-    // Verify twin ownership
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND userId = $2', [twinId, userId]);
+    // Verify twin ownership - FIX THIS LINE
+    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
     if (twin.rows.length === 0) {
       return res.status(404).json({ error: 'Twin not found or access denied' });
     }
@@ -103,15 +103,15 @@ export const getRuns = async (req: any, res: Response) => {
   }
 };
 
-// Update a run
+// Update a run - FIX THIS TOO
 export const updateRun = async (req: any, res: Response) => {
   try {
     const { id: twinId, runId } = req.params;
     const updates = updateRunSchema.parse(req.body);
     const userId = req.user.id;
 
-    // Verify twin ownership
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND userId = $2', [twinId, userId]);
+    // Verify twin ownership - FIX THIS LINE
+    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
     if (twin.rows.length === 0) {
       return res.status(404).json({ error: 'Twin not found or access denied' });
     }
@@ -167,15 +167,15 @@ export const updateRun = async (req: any, res: Response) => {
   }
 };
 
-// Get run statistics
+// Get run statistics - FIX THIS TOO
 export const getRunStats = async (req: any, res: Response) => {
   try {
     const { id: twinId } = req.params;
     const { days = 30 } = req.query;
     const userId = req.user.id;
 
-    // Verify twin ownership
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND userId = $2', [twinId, userId]);
+    // Verify twin ownership - FIX THIS LINE
+    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
     if (twin.rows.length === 0) {
       return res.status(404).json({ error: 'Twin not found or access denied' });
     }
@@ -226,14 +226,14 @@ export const getRunStats = async (req: any, res: Response) => {
   }
 };
 
-// Get quality dashboard data
+// Get quality dashboard data - FIX THIS TOO
 export const getQualityDashboard = async (req: any, res: Response) => {
   try {
     const { id: twinId } = req.params;
     const userId = req.user.id;
 
-    // Verify twin ownership
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND userId = $2', [twinId, userId]);
+    // Verify twin ownership - FIX THIS LINE
+    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
     if (twin.rows.length === 0) {
       return res.status(404).json({ error: 'Twin not found or access denied' });
     }
