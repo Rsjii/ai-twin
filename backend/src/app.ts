@@ -399,6 +399,25 @@ app.get('/analytics', requireJWTFromCookie, generateCSRFToken, async (req: any, 
                     </div>
                 </div>
             </div>
+
+            <!-- Feedback Analytics Section -->
+<div class="bg-white rounded-lg shadow p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Feedback Analytics</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="text-center">
+            <p class="text-2xl font-bold text-green-600" id="positiveFeedback">-</p>
+            <p class="text-sm text-gray-600">Positive Feedback</p>
+        </div>
+        <div class="text-center">
+            <p class="text-2xl font-bold text-red-600" id="negativeFeedback">-</p>
+            <p class="text-sm text-gray-600">Negative Feedback</p>
+        </div>
+        <div class="text-center">
+            <p class="text-2xl font-bold text-blue-600" id="satisfactionScore">-</p>
+            <p class="text-sm text-gray-600">Satisfaction Score</p>
+        </div>
+    </div>
+</div>
             
             <!-- Recent Activity -->
             <div class="bg-white rounded-lg shadow">
@@ -484,6 +503,16 @@ app.get('/analytics', requireJWTFromCookie, generateCSRFToken, async (req: any, 
                 // Load user analytics
                 const response = await fetch('/api/metrics/user');
                 const data = await response.json();
+
+                        // Load feedback analytics
+        const feedbackResponse = await fetch('/api/analytics/feedback');
+        const feedbackData = await feedbackResponse.json();
+        
+        if (feedbackData.success) {
+            document.getElementById('positiveFeedback').textContent = feedbackData.analytics.positiveFeedback;
+            document.getElementById('negativeFeedback').textContent = feedbackData.analytics.negativeFeedback;
+            document.getElementById('satisfactionScore').textContent = feedbackData.analytics.satisfactionScore + '%';
+        }
                 
                 console.log('Raw analytics response:', data);
                 
@@ -2153,6 +2182,41 @@ app.post('/api/enhanced-chat/:chatId/feedback', requireJWTFromCookie, async (req
     res.json({ success: true });
   } catch (error) {
     console.error('Enhanced chat feedback API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Get feedback analytics
+app.get('/api/analytics/feedback', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get feedback counts
+    const feedbackResult = await db.query(`
+      SELECT 
+        COUNT(CASE WHEN rating = 'positive' THEN 1 END) as positive_count,
+        COUNT(CASE WHEN rating = 'negative' THEN 1 END) as negative_count,
+        COUNT(*) as total_feedback
+      FROM "ChatFeedback" 
+      WHERE "userId" = $1
+    `, [userId]);
+    
+    const feedback = feedbackResult.rows[0];
+    const satisfactionScore = feedback.total_feedback > 0 
+      ? Math.round((feedback.positive_count / feedback.total_feedback) * 100)
+      : 0;
+    
+    res.json({
+      success: true,
+      analytics: {
+        positiveFeedback: feedback.positive_count,
+        negativeFeedback: feedback.negative_count,
+        totalFeedback: feedback.total_feedback,
+        satisfactionScore: satisfactionScore
+      }
+    });
+  } catch (error) {
+    console.error('Feedback analytics error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
