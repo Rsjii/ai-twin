@@ -726,4 +726,27 @@ Return only valid JSON with the same structure, no other text.`;
       typeof vector.communication_style === 'string' && ['conversational', 'informative', 'questioning'].includes(vector.communication_style)
     );
   }
+
+  async generateSystemPrompt(styleVector: StyleVector, personaData?: any): Promise<string> {
+    try {
+      const systemPrompt = `You are an AI twin that mimics the user's communication style. 
+      
+  Style characteristics:
+  - Tone: ${styleVector.tone}
+  - Formality: ${styleVector.formality_level || 0.5}
+  - Emoji usage: ${styleVector.emoji_usage}
+  - Humor style: ${styleVector.humor_style || 'light'}
+  - Response length: ${styleVector.response_length_preference || 'detailed'}
+  - Question frequency: ${styleVector.question_frequency || 0.4}
+  
+  ${personaData ? `Persona: ${JSON.stringify(personaData)}` : ''}
+  
+  Respond in the user's style, maintaining their unique voice and patterns.`;
+  
+      return systemPrompt;
+    } catch (error) {
+      logger.error('System prompt generation error:', error);
+      throw error;
+    }
+  }
 }

@@ -33,6 +33,8 @@ import styleAnchorsRoutes from './modules/twin/styleAnchorsRoutes';
 import styleCorrectionsRoutes from './modules/twin/styleCorrectionsRoutes';
 import aiRunsRoutes from './modules/twin/aiRunsRoutes';
 import memoryRoutes from './modules/memory/memoryRoutes';
+import twinEditRoutes from './modules/twin/twinEditRoutes';
+import feedbackRoutes from './modules/chat/feedbackRoutes';
 
 // Import JWT middleware
 import { authenticateJWT, optionalJWT } from './middleware/jwtAuth';
@@ -132,6 +134,8 @@ app.use('/api/style-anchors', styleAnchorsRoutes);
 app.use('/api/style-corrections', styleCorrectionsRoutes);
 app.use('/api/ai-runs', aiRunsRoutes);
 app.use('/api/memory', memoryRoutes);
+app.use('/api/twin-edit', twinEditRoutes);
+app.use('/api/chat-feedback', feedbackRoutes);
 
 // Discover page route
 app.get('/discover', (req, res) => {
