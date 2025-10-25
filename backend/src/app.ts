@@ -2107,6 +2107,136 @@ app.post('/api/chat/:chatId/regenerate', requireJWTFromCookie, async (req: any, 
   }
 });
 
+// Enhanced regenerate response endpoint
+app.post('/api/enhanced-chat/:chatId/regenerate', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { chatId } = req.params;
+    const { responseId, tonePreference } = req.body;
+    const userId = req.user.id;
+    
+    // Get the original message and regenerate
+    const chatResult = await db.query(`
+      SELECT c."twinId", c."chatVector" FROM "Chat" c
+      WHERE c.id = $1 AND c."userId" = $2
+    `, [chatId, userId]);
+    
+    if (chatResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+    
+    // Regenerate using your existing AI service
+    const newResponse = await generateResponseWithTone(chatId, tonePreference);
+    
+    res.json({ success: true, newResponse });
+  } catch (error) {
+    console.error('Regenerate error:', error);
+    res.status(500).json({ error: 'Failed to regenerate response' });
+  }
+});
+
+// Enhanced chat feedback endpoint
+app.post('/api/enhanced-chat/:chatId/feedback', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { chatId } = req.params;
+    const { responseId, rating, suggestion, tonePreference } = req.body;
+    const userId = req.user.id;
+    
+    // Store feedback in database
+    await db.query(`
+      INSERT INTO "ChatFeedback" ("chatId", "responseId", "userId", "rating", "suggestion", "tonePreference", "createdAt")
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    `, [chatId, responseId, userId, rating, suggestion, tonePreference]);
+    
+    // Update AI learning data
+    await updateAILearning(chatId, rating, suggestion, tonePreference);
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Enhanced chat feedback API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Adjust tone endpoint
+app.post('/api/enhanced-chat/:chatId/adjust-tone', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { chatId } = req.params;
+    const { responseId, tone } = req.body;
+    const userId = req.user.id;
+    
+    // Get chat and twin info
+    const chatResult = await db.query(`
+      SELECT c."twinId", c."chatVector" FROM "Chat" c
+      WHERE c.id = $1 AND c."userId" = $2
+    `, [chatId, userId]);
+    
+    if (chatResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+    
+    // Adjust tone using your AI service
+    const adjustedResponse = await adjustResponseTone(chatResult.rows[0].twinId, responseId, tone);
+    
+    res.json({ success: true, adjustedResponse });
+  } catch (error) {
+    console.error('Tone adjustment error:', error);
+    res.status(500).json({ error: 'Failed to adjust tone' });
+  }
+});
+
+// Helper function to generate response with tone
+async function generateResponseWithTone(chatId: string, tonePreference: string) {
+  try {
+    // Get chat and twin info
+    const chatResult = await db.query(`
+      SELECT c."twinId", c."chatVector", t."styleVector", t."systemPrompt" 
+      FROM "Chat" c
+      JOIN "Twin" t ON c."twinId" = t.id
+      WHERE c.id = $1
+    `, [chatId]);
+    
+    if (chatResult.rows.length === 0) {
+      throw new Error('Chat not found');
+    }
+    
+    const { twinId, chatVector, styleVector, systemPrompt } = chatResult.rows[0];
+    
+    // Use your existing AI service to generate response
+    // This is a placeholder - replace with your actual AI generation logic
+    const newResponse = `Regenerated response with ${tonePreference} tone for chat ${chatId}`;
+    
+    return newResponse;
+  } catch (error) {
+    console.error('Generate response with tone error:', error);
+    throw error;
+  }
+}
+
+// Helper function to adjust response tone
+async function adjustResponseTone(twinId: string, responseId: string, tone: string) {
+  try {
+    // Get twin info
+    const twinResult = await db.query(`
+      SELECT "styleVector", "systemPrompt" FROM "Twin" WHERE id = $1
+    `, [twinId]);
+    
+    if (twinResult.rows.length === 0) {
+      throw new Error('Twin not found');
+    }
+    
+    const { styleVector, systemPrompt } = twinResult.rows[0];
+    
+    // Use your existing AI service to adjust tone
+    // This is a placeholder - replace with your actual AI adjustment logic
+    const adjustedResponse = `Response adjusted to ${tone} tone for response ${responseId}`;
+    
+    return adjustedResponse;
+  } catch (error) {
+    console.error('Adjust response tone error:', error);
+    throw error;
+  }
+}
+
 // Helper function to update AI learning
 async function updateAILearning(chatId: string, rating: string, suggestion: string, tonePreference: string) {
   try {
@@ -2137,37 +2267,6 @@ async function updateAILearning(chatId: string, rating: string, suggestion: stri
   }
 }
 
-// Helper function to generate response with tone
-async function generateResponseWithTone(chatId: string, tonePreference: string) {
-  try {
-    // Get the last user message
-    const chatResult = await db.query(`
-      SELECT "lastUserMessage" FROM "Chat" WHERE id = $1
-    `, [chatId]);
-    
-    if (chatResult.rows.length === 0) {
-      return "I'm sorry, I couldn't find the previous message to regenerate.";
-    }
-    
-    const lastMessage = chatResult.rows[0].lastUserMessage;
-    
-    // Generate new response with tone preference
-    // This is a simplified version - you can integrate with your AI service
-    const toneInstructions = {
-      'more_casual': 'Respond in a more casual, friendly tone',
-      'more_formal': 'Respond in a more formal, professional tone',
-      'more_helpful': 'Respond in a more helpful, detailed manner'
-    };
-    
-    const instruction = toneInstructions[tonePreference] || 'Respond naturally';
-    
-    // For now, return a mock response (replace with actual AI generation)
-    return `[Regenerated with ${tonePreference} tone] ${lastMessage}`;
-  } catch (error) {
-    console.error('Generate response with tone error:', error);
-    return "I'm sorry, I couldn't regenerate the response.";
-  }
-}
 
 // Chat history page route
 app.get('/chat/history', requireJWTFromCookie, (req: any, res) => {

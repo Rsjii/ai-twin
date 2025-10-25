@@ -111,7 +111,7 @@ export const generateEnhancedReply = async (req: any, res: Response) => {
       const aiMessageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       await db.query(`
         INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
-        VALUES ($1, $2, $3, 'ai', NOW())
+        VALUES ($1, $2, $3, 'twin', NOW())
       `, [aiMessageId, chatId, response]);
       console.log('✅ AI response saved');
     } catch (error) {

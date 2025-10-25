@@ -189,11 +189,510 @@
     </div>
 </div>
     <script>
+        // Global variables
         let currentChatId = null;
         let currentResponse = null;
         let currentResponseId = null;
         let responseMetadata = null;
 
+        // Global button functions - accessible from onclick attributes
+        async function upvoteResponse(responseId) {
+            await submitFeedback(responseId, 'positive', null);
+            showNotification('Thanks for the feedback! 👍', 'success');
+        }
+
+        async function downvoteResponse(responseId) {
+    try {
+        // Show review modal for bad responses
+        const review = prompt('What could be improved in this response?');
+        
+        if (review && review.trim()) {
+            await submitFeedback(responseId, 'negative', review);
+            showNotification('Thanks for the feedback! 👎', 'success');
+        } else {
+            showNotification('Feedback cancelled', 'info');
+        }
+    } catch (error) {
+        console.error('Downvote error:', error);
+        showNotification('Error submitting feedback', 'error');
+    }
+}
+
+
+
+        function copyResponse(responseId) {
+            const responseElement = document.getElementById(responseId);
+            if (responseElement) {
+                // Get only the main content, not the timestamp
+                const contentDiv = responseElement.querySelector('.bg-white.border, .message-content, .response-content');
+                let text = contentDiv ? contentDiv.textContent : responseElement.textContent;
+                
+                // Remove timestamp if it exists (format: 7:39:43 PM)
+                text = text.replace(/\d{1,2}:\d{2}:\d{2} [AP]M/g, '').trim();
+                
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showNotification('Response copied to clipboard! 📋', 'success');
+                    }).catch(() => {
+                        fallbackCopyTextToClipboard(text);
+                    });
+                } else {
+                    fallbackCopyTextToClipboard(text);
+                }
+            } else {
+                showNotification('Could not find response to copy', 'error');
+            }
+        }
+
+        function shareResponse(responseId) {
+            const responseElement = document.getElementById(responseId);
+            if (responseElement) {
+                const contentDiv = responseElement.querySelector('.bg-white.border, .message-content, .response-content');
+                let text = contentDiv ? contentDiv.textContent : responseElement.textContent;
+                
+                // Remove timestamp if it exists
+                text = text.replace(/\d{1,2}:\d{2}:\d{2} [AP]M/g, '').trim();
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'AI Twin Response',
+                        text: text,
+                        url: window.location.href
+                    }).then(() => {
+                        showNotification('Response shared! 📤', 'success');
+                    }).catch(() => {
+                        fallbackShare(text);
+                    });
+                } else {
+                    fallbackShare(text);
+                }
+            } else {
+                showNotification('Could not find response to share', 'error');
+            }
+        }
+
+        async function regenerateResponse(responseId) {
+    try {
+        showNotification('Regenerating response... 🔄', 'info');
+        
+        // Get the original user message from the chat history
+        const messages = document.querySelectorAll('[id^="msg_"]');
+        let lastUserMessage = null;
+        
+        // Find the last user message before this AI response
+        for (let i = messages.length - 1; i >= 0; i--) {
+            const msg = messages[i];
+            if (msg.querySelector('.bg-blue-600')) { // User message
+                lastUserMessage = msg.querySelector('.bg-blue-600').textContent.trim();
+                break;
+            }
+        }
+        
+        if (!lastUserMessage) {
+            showNotification('Could not find original message to regenerate', 'error');
+            return;
+        }
+        
+        // Re-run the same prompt
+        const response = await fetch(`/api/enhanced-chat/${currentChatId}/enhanced-reply`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '<%= csrfToken %>'
+            },
+            body: JSON.stringify({
+                message: lastUserMessage,
+                strictStyle: false
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.response) {
+            // Update the response in the UI
+            const responseElement = document.getElementById(responseId);
+            if (responseElement) {
+                const contentDiv = responseElement.querySelector('.bg-white.border, .message-content');
+                if (contentDiv) {
+                    contentDiv.textContent = data.response;
+                }
+            }
+            showNotification('Response regenerated! 🔄', 'success');
+        } else {
+            showNotification('Failed to regenerate response', 'error');
+        }
+    } catch (error) {
+        console.error('Regenerate error:', error);
+        showNotification('Error regenerating response', 'error');
+    }
+}
+
+        // Helper functions
+        function fallbackCopyTextToClipboard(text) {
+            // Remove timestamp if it exists
+            const cleanText = text.replace(/\d{1,2}:\d{2}:\d{2} [AP]M/g, '').trim();
+            
+            const textArea = document.createElement("textarea");
+            textArea.value = cleanText;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showNotification('Response copied to clipboard! 📋', 'success');
+            } catch (err) {
+                showNotification('Could not copy to clipboard', 'error');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        function fallbackShare(text) {
+            // Remove timestamp if it exists
+            const cleanText = text.replace(/\d{1,2}:\d{2}:\d{2} [AP]M/g, '').trim();
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(cleanText).then(() => {
+                    showNotification('Response copied to clipboard for sharing! 📤', 'success');
+                });
+            } else {
+                showNotification('Share feature not available on this device', 'error');
+            }
+        }        
+
+        // Global submitFeedback function
+        async function submitFeedback(responseId, rating, suggestion, tonePreference) {
+            try {
+                await fetch(`/api/enhanced-chat/${currentChatId}/feedback`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '<%= csrfToken %>'
+                    },
+                    body: JSON.stringify({
+                        responseId,
+                        rating,
+                        suggestion,
+                        tonePreference
+                    })
+                });
+            } catch (error) {
+                console.error('Error submitting feedback:', error);
+            }
+        }
+
+        // Global showNotification function
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' : 
+                type === 'error' ? 'bg-red-500 text-white' : 
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Move these functions to global scope (outside DOMContentLoaded):
+
+function setStyleMode(mode) {
+    console.log('Setting style mode:', mode);
+    // Update UI to show current mode
+    document.querySelectorAll('#casualBtn, #formalBtn, #toggleStyleBtn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-100', 'text-gray-700');
+    });
+    
+    const activeBtn = document.getElementById(mode + 'Btn') || document.getElementById('toggleStyleBtn');
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-100', 'text-gray-700');
+        activeBtn.classList.add('bg-blue-600', 'text-white');
+    }
+    
+    showNotification(`Style mode: ${mode}`, 'info');
+}
+
+function giveFeedback(type) {
+    console.log('Giving feedback:', type);
+    // Send feedback to backend
+    fetch(`/api/enhanced-chat/${currentChatId}/feedback`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': '<%= csrfToken %>'
+        },
+        body: JSON.stringify({ type: type, responseId: currentResponseId })
+    });
+    
+    showNotification(`Feedback: ${type}`, 'success');
+    closeResponseActions();
+}
+
+function setTonePreference(tone) {
+    console.log('Setting tone preference:', tone);
+    showNotification(`Tone preference: ${tone}`, 'info');
+}
+
+function closeResponseActions() {
+    const modal = document.getElementById('responseActionsModal');
+    modal.classList.add('hidden');
+}
+
+// Add these functions in global scope:
+
+function getCurrentTwinId() {
+    return '<%= twinId %>';
+}
+
+// Fix the submitFeedback function name conflict
+function submitModalFeedback() {
+    const rating = document.querySelector('input[name="rating"]:checked')?.value;
+    const suggestion = document.getElementById('suggestionInput').value;
+    const tonePreference = document.querySelector('input[name="tonePreference"]:checked')?.value;
+    
+    if (rating) {
+        submitFeedback(currentResponseId, rating, suggestion, tonePreference);
+        closeResponseActions();
+        showNotification('Feedback submitted!', 'success');
+    } else {
+        showNotification('Please select a rating', 'error');
+    }
+}
+
+// Global helper functions
+function addMessageToChat(sender, content, isTyping = false, metadata = null) {
+    const messagesContainer = document.getElementById('chatMessages');
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.id = messageId;
+    messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+        sender === 'user' 
+            ? 'bg-blue-600 text-white' 
+            : 'bg-white border border-gray-200'
+    }`;
+    
+    if (isTyping) {
+        messageContent.innerHTML = `
+            <div class="flex items-center space-x-2">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                <span>${content}</span>
+            </div>
+        `;
+    } else {
+        messageContent.innerHTML = `
+            <p class="text-sm">${content}</p>
+            <p class="text-xs mt-1 opacity-75">
+                ${metadata && metadata.timestamp ? 
+                    new Date(metadata.timestamp).toLocaleTimeString() : 
+                    new Date().toLocaleTimeString()
+                }
+            </p>
+        `;
+    }
+    
+    messageDiv.appendChild(messageContent);
+    messagesContainer.appendChild(messageDiv);
+    
+    // Scroll to bottom
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    return messageId;
+}
+
+function removeMessage(messageId) {
+    const message = document.getElementById(messageId);
+    if (message) {
+        message.remove();
+    }
+}
+
+function addResponseActionsButton(responseId) {
+    const messageDiv = document.getElementById(responseId);
+    if (!messageDiv) return;
+    
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'mt-2 flex space-x-2';
+    actionsDiv.innerHTML = `
+<div class="flex space-x-2 text-xs">
+    <button id="copyBtn_${responseId}" class="text-gray-600 hover:text-gray-800">
+        📋 Copy
+    </button>
+    <button id="upvoteBtn_${responseId}" class="text-green-600 hover:text-green-800">
+        👍 Good
+    </button>
+    <button id="downvoteBtn_${responseId}" class="text-red-600 hover:text-red-800">
+        👎 Bad
+    </button>
+    <button id="regenerateBtn_${responseId}" class="text-blue-600 hover:text-blue-800">
+        🔄 Regenerate
+    </button>
+    <button id="shareBtn_${responseId}" class="text-purple-600 hover:text-purple-800">
+        📤 Share
+    </button>
+</div>`;
+
+currentResponseId = responseId;
+messageDiv.appendChild(actionsDiv);
+
+// Add event listeners after creating the HTML
+document.getElementById(`copyBtn_${responseId}`).addEventListener('click', () => copyResponse(responseId));
+document.getElementById(`upvoteBtn_${responseId}`).addEventListener('click', () => upvoteResponse(responseId));
+document.getElementById(`downvoteBtn_${responseId}`).addEventListener('click', () => downvoteResponse(responseId));
+document.getElementById(`regenerateBtn_${responseId}`).addEventListener('click', () => regenerateResponse(responseId));
+document.getElementById(`shareBtn_${responseId}`).addEventListener('click', () => shareResponse(responseId));
+}
+
+function showResponseActions(responseId) {
+    const modal = document.getElementById('responseActionsModal');
+    const modalIntent = document.getElementById('modalIntent');
+    const modalScore = document.getElementById('modalScore');
+    const modalLatency = document.getElementById('modalLatency');
+    
+    if (responseMetadata) {
+        modalIntent.textContent = responseMetadata.intent;
+        modalScore.textContent = responseMetadata.criticScore || 'N/A';
+        modalLatency.textContent = responseMetadata.latency || 'N/A';
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+async function applyStyleCorrection(knob, delta) {
+    try {
+        const response = await fetch(`/api/enhanced-chat/${currentChatId}/style-correct`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '<%= csrfToken %>',
+                credentials: 'include'
+            },
+            body: JSON.stringify({
+                knob: knob,
+                delta: delta
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update the last AI message
+            const messages = document.querySelectorAll('[id^="msg_"]');
+            const lastAIMessage = Array.from(messages).reverse().find(msg => 
+                msg.querySelector('.bg-white.border')
+            );
+            
+            if (lastAIMessage) {
+                const contentDiv = lastAIMessage.querySelector('.bg-white.border');
+                contentDiv.textContent = data.correctedResponse;
+            }
+            
+            closeResponseActions();
+            showNotification('Style correction applied!', 'success');
+        } else {
+            showNotification('Failed to apply correction', 'error');
+        }
+    } catch (error) {
+        console.error('Style correction error:', error);
+        showNotification('Error applying correction', 'error');
+    }
+}
+
+async function addToAnchors() {
+    const userUtterance = prompt('What did the user say?');
+    if (!userUtterance) return;
+    
+    try {
+        const response = await fetch(`/api/enhanced-chat/${currentChatId}/add-anchor`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '<%= csrfToken %>',
+                credentials: 'include'
+            },
+            body: JSON.stringify({
+                userUtterance: userUtterance,
+                idealReply: currentResponse
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('Added to style anchors!', 'success');
+            closeResponseActions();
+        } else {
+            showNotification('Failed to add anchor', 'error');
+        }
+    } catch (error) {
+        console.error('Add anchor error:', error);
+        showNotification('Error adding anchor', 'error');
+    }
+}
+
+function updateIntentDisplay(intent) {
+    document.getElementById('intentDisplay').textContent = `Intent: ${intent}`;
+}
+
+function updateCriticScore(score) {
+    if (score !== null) {
+        document.getElementById('criticScore').textContent = `Score: ${score}`;
+    }
+}
+
+async function loadChatHistory() {
+    try {
+        console.log('Loading chat history for chatId:', currentChatId);
+        
+        // Clear existing messages
+        const messagesContainer = document.getElementById('chatMessages');
+        messagesContainer.innerHTML = '';
+        
+        // Try to load existing messages
+        const response = await fetch(`/api/enhanced-chat/${currentChatId}`, {
+            headers: {
+                'X-CSRF-Token': '<%= csrfToken %>',
+                credentials: 'include'
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Chat data loaded:', data);
+            
+            if (data.chat && data.chat.messages && data.chat.messages.length > 0) {
+                // Display existing messages (both user and AI)
+                data.chat.messages.forEach(msg => {
+                    const sender = msg.sender === 'human' ? 'user' : 'ai';
+                    addMessageToChat(sender, msg.content, false, {
+                        timestamp: msg.createdAt
+                    });
+                });
+            } else {
+                // Show welcome message if no history
+                addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            }
+        } else {
+            // Show welcome message if loading fails
+            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+        }
+    } catch (error) {
+        console.error('Error loading chat history:', error);
+        // Show welcome message if error
+        addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+    }
+}
         // Initialize chat
         document.addEventListener('DOMContentLoaded', function() {
             // Get chat ID from EJS variable
@@ -221,7 +720,7 @@
 
             // Modal event listeners
             document.getElementById('closeModalBtn').addEventListener('click', closeResponseActions);
-            document.getElementById('submitFeedbackBtn').addEventListener('click', submitFeedback);
+            document.getElementById('submitFeedbackBtn').addEventListener('click', submitModalFeedback);
             
             // Feedback buttons
             document.getElementById('thumbsUpBtn').addEventListener('click', () => giveFeedback('positive'));
@@ -345,406 +844,6 @@
             });
         }
 
-        // Add message to chat
-        function addMessageToChat(sender, content, isTyping = false, metadata = null) {
-            const messagesContainer = document.getElementById('chatMessages');
-            const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.id = messageId;
-            messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
-            
-            const messageContent = document.createElement('div');
-            messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                sender === 'user' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white border border-gray-200'
-            }`;
-            
-            if (isTyping) {
-                messageContent.innerHTML = `
-                    <div class="flex items-center space-x-2">
-                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                        <span>${content}</span>
-                    </div>
-                `;
-            } else {
-                messageContent.innerHTML = `
-                    <p class="text-sm">${content}</p>
-                    <p class="text-xs mt-1 opacity-75">
-                        ${metadata && metadata.timestamp ? 
-                            new Date(metadata.timestamp).toLocaleTimeString() : 
-                            new Date().toLocaleTimeString()
-                        }
-                    </p>
-                `;
-            }
-            
-            messageDiv.appendChild(messageContent);
-            messagesContainer.appendChild(messageDiv);
-            
-            // Scroll to bottom
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
-            return messageId;
-        }
-
-        // Remove message
-        function removeMessage(messageId) {
-            const message = document.getElementById(messageId);
-            if (message) {
-                message.remove();
-            }
-        }
-
-        // Add response actions button
-        function addResponseActionsButton(responseId) {
-            const messageDiv = document.getElementById(responseId);
-            if (!messageDiv) return;
-            
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'mt-2 flex space-x-2';
-            actionsDiv.innerHTML = `
-<div class="flex space-x-2 text-xs">
-    <button onclick="copyResponse('${responseId}')" class="text-gray-600 hover:text-gray-800">
-        📋 Copy
-    </button>
-    <button onclick="upvoteResponse('${responseId}')" class="text-green-600 hover:text-green-800">
-        👍 Good
-    </button>
-    <button onclick="downvoteResponse('${responseId}')" class="text-red-600 hover:text-red-800">
-        👎 Bad
-    </button>
-    <button onclick="regenerateResponse('${responseId}')" class="text-blue-600 hover:text-blue-800">
-        🔄 Regenerate
-    </button>
-    <button onclick="shareResponse('${responseId}')" class="text-purple-600 hover:text-purple-800">
-        📤 Share
-    </button>
-    <button onclick="adjustTone('${responseId}')" class="text-orange-600 hover:text-orange-800">
-        🎨 Adjust Tone
-    </button>
-</div>`;            
-            // Store current response ID for actions
-            currentResponseId = responseId;
-            
-            messageDiv.appendChild(actionsDiv);
-        }
-
-        // Show response actions modal
-        function showResponseActions(responseId) {
-            const modal = document.getElementById('responseActionsModal');
-            const modalIntent = document.getElementById('modalIntent');
-            const modalScore = document.getElementById('modalScore');
-            const modalLatency = document.getElementById('modalLatency');
-            
-            if (responseMetadata) {
-                modalIntent.textContent = responseMetadata.intent;
-                modalScore.textContent = responseMetadata.criticScore || 'N/A';
-                modalLatency.textContent = responseMetadata.latency || 'N/A';
-            }
-            
-            modal.classList.remove('hidden');
-        }
-
-        // Close response actions modal
-        function closeResponseActions() {
-            const modal = document.getElementById('responseActionsModal');
-            modal.classList.add('hidden');
-        }
-
-        // Apply style correction
-        async function applyStyleCorrection(knob, delta) {
-            try {
-                const response = await fetch(`/api/enhanced-chat/${currentChatId}/style-correct`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': '<%= csrfToken %>',
-                        credentials: 'include'
-                    },
-                    body: JSON.stringify({
-                        knob: knob,
-                        delta: delta
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Update the last AI message
-                    const messages = document.querySelectorAll('[id^="msg_"]');
-                    const lastAIMessage = Array.from(messages).reverse().find(msg => 
-                        msg.querySelector('.bg-white.border')
-                    );
-                    
-                    if (lastAIMessage) {
-                        const contentDiv = lastAIMessage.querySelector('.bg-white.border');
-                        contentDiv.textContent = data.correctedResponse;
-                    }
-                    
-                    closeResponseActions();
-                    showNotification('Style correction applied!', 'success');
-                } else {
-                    showNotification('Failed to apply correction', 'error');
-                }
-            } catch (error) {
-                console.error('Style correction error:', error);
-                showNotification('Error applying correction', 'error');
-            }
-        }
-
-        // Add to anchors
-        async function addToAnchors() {
-            const userUtterance = prompt('What did the user say?');
-            if (!userUtterance) return;
-            
-            try {
-                const response = await fetch(`/api/enhanced-chat/${currentChatId}/add-anchor`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': '<%= csrfToken %>',
-                        credentials: 'include'
-                    },
-                    body: JSON.stringify({
-                        userUtterance: userUtterance,
-                        idealReply: currentResponse
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showNotification('Added to style anchors!', 'success');
-                    closeResponseActions();
-                } else {
-                    showNotification('Failed to add anchor', 'error');
-                }
-            } catch (error) {
-                console.error('Add anchor error:', error);
-                showNotification('Error adding anchor', 'error');
-            }
-        }
-
-        // Regenerate response
-        async function regenerateResponse(responseId) {
-            try {
-                const response = await fetch(`/api/chat/${currentChatId}/regenerate`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': '<%= csrfToken %>'
-                    },
-                    body: JSON.stringify({
-                        responseId: responseId,
-                        tonePreference: 'default'
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Update the response in the chat
-                    const messageDiv = document.getElementById(responseId);
-                    if (messageDiv) {
-                        const contentDiv = messageDiv.querySelector('p');
-                        if (contentDiv) {
-                            contentDiv.textContent = data.newResponse;
-                        }
-                    }
-                    showNotification('Response regenerated!', 'success');
-                } else {
-                    showNotification('Failed to regenerate response', 'error');
-                }
-            } catch (error) {
-                console.error('Regenerate response error:', error);
-                showNotification('Error regenerating response', 'error');
-            }
-        }
-
-        // Update intent display
-        function updateIntentDisplay(intent) {
-            document.getElementById('intentDisplay').textContent = `Intent: ${intent}`;
-        }
-
-        // Update critic score display
-        function updateCriticScore(score) {
-            if (score !== null) {
-                document.getElementById('criticScore').textContent = `Score: ${score}`;
-            }
-        }
-
-        // Load chat history
-        async function loadChatHistory() {
-            try {
-                console.log('Loading chat history for chatId:', currentChatId);
-                
-                // Clear existing messages
-                const messagesContainer = document.getElementById('chatMessages');
-                messagesContainer.innerHTML = '';
-                
-                // Try to load existing messages
-                const response = await fetch(`/api/enhanced-chat/${currentChatId}`, {
-                    headers: {
-                        'X-CSRF-Token': '<%= csrfToken %>',
-                        credentials: 'include'
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Chat data loaded:', data);
-                    
-                    if (data.chat && data.chat.messages && data.chat.messages.length > 0) {
-                        // Display existing messages (both user and AI)
-                        data.chat.messages.forEach(msg => {
-                            const sender = msg.sender === 'human' ? 'user' : 'ai';
-                            addMessageToChat(sender, msg.content, false, {
-                                timestamp: msg.createdAt
-                            });
-                        });
-                    } else {
-                        // Show welcome message if no history
-                        addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
-                    }
-                } else {
-                    // Show welcome message if loading fails
-                    addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
-                }
-            } catch (error) {
-                console.error('Error loading chat history:', error);
-                // Show welcome message if error
-                addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
-            }
-        }
-
-        // Enhanced feedback functions
-async function upvoteResponse(responseId) {
-  await submitFeedback(responseId, 'positive', null);
-  showNotification('Thanks for the feedback! 👍', 'success');
-}
-
-async function downvoteResponse(responseId) {
-  showResponseActions(responseId); // Show modal for suggestions
-}
-
-async function submitFeedback(responseId, rating, suggestion, tonePreference) {
-  try {
-    await fetch(`/api/chat/${currentChatId}/feedback`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': '<%= csrfToken %>'
-      },
-      body: JSON.stringify({
-        responseId,
-        rating,
-        suggestion,
-        tonePreference
-      })
-    });
-  } catch (error) {
-    console.error('Error submitting feedback:', error);
-  }
-}
-
-function copyResponse(responseId) {
-  const responseElement = document.getElementById(responseId);
-  if (responseElement) {
-    const text = responseElement.textContent;
-    navigator.clipboard.writeText(text);
-    showNotification('Response copied to clipboard! 📋', 'success');
-  } else {
-    showNotification('Could not find response to copy', 'error');
-  }
-}
-
-function shareResponse(responseId) {
-  // Implement sharing functionality
-  showNotification('Share feature coming soon! 📤', 'info');
-}
-
-function adjustTone(responseId) {
-  showResponseActions(responseId);
-}
-
-// Get twin ID from server
-const currentTwinId = '<%= twinId %>';
-
-function getCurrentTwinId() {
-    return currentTwinId;
-}
-        // Add these new functions after line 575
-function setStyleMode(mode) {
-    console.log('Setting style mode:', mode);
-    // Update UI to show current mode
-    document.querySelectorAll('#casualBtn, #formalBtn, #toggleStyleBtn').forEach(btn => {
-        btn.classList.remove('bg-blue-600', 'text-white');
-        btn.classList.add('bg-gray-100', 'text-gray-700');
-    });
-    
-    const activeBtn = document.getElementById(mode + 'Btn') || document.getElementById('toggleStyleBtn');
-    if (activeBtn) {
-        activeBtn.classList.remove('bg-gray-100', 'text-gray-700');
-        activeBtn.classList.add('bg-blue-600', 'text-white');
-    }
-    
-    showNotification(`Style mode: ${mode}`, 'info');
-}
-
-function giveFeedback(type) {
-    console.log('Giving feedback:', type);
-    // Send feedback to backend
-    fetch(`/api/enhanced-chat/${currentChatId}/feedback`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': '<%= csrfToken %>'
-        },
-        body: JSON.stringify({ type: type, responseId: currentResponseId })
-    });
-    
-    showNotification(`Feedback: ${type}`, 'success');
-    closeResponseActions();
-}
-
-// Add missing function
-function setTonePreference(tone) {
-    console.log('Setting tone preference:', tone);
-    showNotification(`Tone preference: ${tone}`, 'info');
-}
-
-// Add missing function for modal feedback submission
-function submitFeedback() {
-    const rating = document.querySelector('input[name="rating"]:checked')?.value;
-    const suggestion = document.getElementById('suggestionInput').value;
-    const tonePreference = document.querySelector('input[name="tonePreference"]:checked')?.value;
-    
-    if (rating) {
-        submitFeedback(currentResponseId, rating, suggestion, tonePreference);
-        closeResponseActions();
-        showNotification('Feedback submitted!', 'success');
-    } else {
-        showNotification('Please select a rating', 'error');
-    }
-}
-
-        // Show notification
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
-                type === 'success' ? 'bg-green-500 text-white' : 
-                type === 'error' ? 'bg-red-500 text-white' : 
-                'bg-blue-500 text-white'
-            }`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
         }); // Close DOMContentLoaded
     </script>
 </body>
