@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getTwinEditData, updateTwinStyle, updateTwinPersona } from './twinEditController';
+import { previewStyleChanges, getStyleComparison } from './styleSandboxController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
 
@@ -9,8 +9,7 @@ const router = Router();
 router.use(requireJWTFromCookie);
 router.use(generateCSRFToken);
 
-router.get('/:id/edit-data', getTwinEditData);
-router.post('/:id/update-style', validateCSRF, updateTwinStyle);
-router.post('/:id/update-persona', validateCSRF, updateTwinPersona);
+router.post('/:twinId/preview-style', validateCSRF, previewStyleChanges);
+router.get('/:twinId/style-comparison', getStyleComparison);
 
 export default router;

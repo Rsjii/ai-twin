@@ -174,20 +174,56 @@ function displayMessages(messages) {
     }
     
     messagesList.innerHTML = messages.map(msg => `
-        <div class="flex ${msg.sender === 'human' ? 'justify-end' : 'justify-start'}">
-            <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                msg.sender === 'human' 
-                    ? 'bg-primary text-white' 
-                    : 'bg-gray-200 text-gray-800'
-            }">
-                <p>${msg.content}</p>
-                <p class="text-xs mt-1 opacity-75">
-                    ${new Date(msg.createdAt).toLocaleTimeString()}
-                    ${msg.sender === 'twin' ? ' • AI-generated' : ''}
-                </p>
-            </div>
+    <div class="flex ${msg.sender === 'human' ? 'justify-end' : 'justify-start'}">
+        <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+            msg.sender === 'human' 
+                ? 'bg-primary text-white' 
+                : 'bg-gray-200 text-gray-800'
+        }">
+            <p>${msg.content}</p>
+            <p class="text-xs mt-1 opacity-75">
+                ${new Date(msg.createdAt).toLocaleTimeString()}
+                ${msg.sender === 'twin' ? ' • AI-generated' : ''}
+            </p>
         </div>
-    `).join('');
+        ${msg.sender === 'twin' ? `
+            <!-- Feedback buttons for AI messages -->
+            <div class="message-feedback mt-2" data-message-id="${msg.id}">
+                <div class="flex space-x-2">
+                    <button class="feedback-btn up bg-green-100 text-green-700 px-3 py-1 rounded text-sm hover:bg-green-200" 
+                            onclick="submitFeedback('up', '${msg.id}')" title="Good response">
+                        👍 Good
+                    </button>
+                    <button class="feedback-btn down bg-red-100 text-red-700 px-3 py-1 rounded text-sm hover:bg-red-200" 
+                            onclick="submitFeedback('down', '${msg.id}')" title="Poor response">
+                        👎 Poor
+                    </button>
+                    <button class="edit-btn bg-blue-100 text-blue-700 px-3 py-1 rounded text-sm hover:bg-blue-200" 
+                            onclick="editResponse('${msg.id}')" title="Edit response">
+                        ✏️ Edit
+                    </button>
+                </div>
+                
+                <!-- Feedback form (hidden by default) -->
+                <div class="feedback-form mt-2" id="feedback-form-${msg.id}" style="display: none;">
+                    <textarea placeholder="How should this response be improved?" 
+                              id="correction-${msg.id}" 
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                    <div class="mt-2 flex space-x-2">
+                        <button onclick="submitFeedbackWithCorrection('${msg.id}')" 
+                                class="bg-green-500 text-white px-4 py-1 rounded text-sm hover:bg-green-600">
+                            Submit Correction
+                        </button>
+                        <button onclick="hideFeedbackForm('${msg.id}')" 
+                                class="bg-gray-500 text-white px-4 py-1 rounded text-sm hover:bg-gray-600">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        ` : ''}
+    </div>
+`).join('');
     
     // Scroll to bottom
     const chatContainer = document.getElementById('chatContainer');
@@ -198,20 +234,58 @@ function addMessageToChat(content, sender) {
     const messagesList = document.getElementById('messagesList');
     const messageDiv = document.createElement('div');
     messageDiv.className = `flex ${sender === 'human' ? 'justify-end' : 'justify-start'}`;
-    messageDiv.innerHTML = `
-        <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-            sender === 'human' 
-                ? 'bg-primary text-white' 
-                : 'bg-gray-200 text-gray-800'
-        }">
-            <p>${content}</p>
-            <p class="text-xs mt-1 opacity-75">
-                ${new Date().toLocaleTimeString()}
-                ${sender === 'twin' ? ' • AI-generated' : ''}
-            </p>
+    const messageDiv = document.createElement('div');
+messageDiv.className = `flex ${sender === 'human' ? 'justify-end' : 'justify-start'}`;
+messageDiv.innerHTML = `
+    <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+        sender === 'human' 
+            ? 'bg-primary text-white' 
+            : 'bg-gray-200 text-gray-800'
+    }">
+        <p>${content}</p>
+        <p class="text-xs mt-1 opacity-75">
+            ${new Date().toLocaleTimeString()}
+            ${sender === 'twin' ? ' • AI-generated' : ''}
+        </p>
+    </div>
+    ${sender === 'twin' ? `
+        <!-- Feedback buttons for AI messages -->
+        <div class="message-feedback mt-2" data-message-id="${Date.now()}">
+            <div class="flex space-x-2">
+                <button class="feedback-btn up bg-green-100 text-green-700 px-3 py-1 rounded text-sm hover:bg-green-200" 
+                        onclick="submitFeedback('up', '${Date.now()}')" title="Good response">
+                    👍 Good
+                </button>
+                <button class="feedback-btn down bg-red-100 text-red-700 px-3 py-1 rounded text-sm hover:bg-red-200" 
+                        onclick="submitFeedback('down', '${Date.now()}')" title="Poor response">
+                    👎 Poor
+                </button>
+                <button class="edit-btn bg-blue-100 text-blue-700 px-3 py-1 rounded text-sm hover:bg-blue-200" 
+                        onclick="editResponse('${Date.now()}')" title="Edit response">
+                    ✏️ Edit
+                </button>
+            </div>
+            
+            <!-- Feedback form (hidden by default) -->
+            <div class="feedback-form mt-2" id="feedback-form-${Date.now()}" style="display: none;">
+                <textarea placeholder="How should this response be improved?" 
+                          id="correction-${Date.now()}" 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                <div class="mt-2 flex space-x-2">
+                    <button onclick="submitFeedbackWithCorrection('${Date.now()}')" 
+                            class="bg-green-500 text-white px-4 py-1 rounded text-sm hover:bg-green-600">
+                        Submit Correction
+                    </button>
+                    <button onclick="hideFeedbackForm('${Date.now()}')" 
+                            class="bg-gray-500 text-white px-4 py-1 rounded text-sm hover:bg-gray-600">
+                        Cancel
+                    </button>
+                </div>
+            </div>
         </div>
-    `;
-    messagesList.appendChild(messageDiv);
+    ` : ''}
+`;    
+messagesList.appendChild(messageDiv);
     
     // Scroll to bottom
     const chatContainer = document.getElementById('chatContainer');
@@ -433,5 +507,99 @@ async function startNewChat() {
 document.addEventListener('DOMContentLoaded', () => {
     loadChatHistory();
 });
+
+// Feedback functions
+async function submitFeedback(rating, messageId) {
+    try {
+        const response = await fetch(`/api/chat/${chatId}/feedback`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            },
+            body: JSON.stringify({ rating, messageId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Visual feedback
+            const button = document.querySelector(`[data-message-id="${messageId}"] .feedback-btn.${rating}`);
+            button.style.backgroundColor = rating === 'up' ? '#10b981' : '#ef4444';
+            button.textContent = rating === 'up' ? '✓ Good' : '✗ Poor';
+            
+            showFlashMessage('Feedback submitted successfully!');
+        }
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+        showFlashMessage('Error submitting feedback', 'error');
+    }
+}
+
+function editResponse(messageId) {
+    const form = document.getElementById(`feedback-form-${messageId}`);
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+async function submitFeedbackWithCorrection(messageId) {
+    const correction = document.getElementById(`correction-${messageId}`).value;
+    
+    if (!correction.trim()) {
+        showFlashMessage('Please provide a correction', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/chat/${chatId}/feedback`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            },
+            body: JSON.stringify({ 
+                rating: 'down', 
+                messageId, 
+                correction 
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showFlashMessage('Correction submitted successfully!');
+            hideFeedbackForm(messageId);
+        }
+    } catch (error) {
+        console.error('Error submitting correction:', error);
+        showFlashMessage('Error submitting correction', 'error');
+    }
+}
+
+function hideFeedbackForm(messageId) {
+    document.getElementById(`feedback-form-${messageId}`).style.display = 'none';
+    document.getElementById(`correction-${messageId}`).value = '';
+}
+
+function showFlashMessage(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        background: ${type === 'success' ? '#10b981' : '#ef4444'};
+        color: white;
+        border-radius: 4px;
+        z-index: 1000;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
 </script>
 ` }) %>

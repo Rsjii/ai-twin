@@ -9,8 +9,17 @@ const feedbackSchema = z.object({
   correction: z.string().optional()
 });
 
+// Map new feedback to existing style_corrections knobs
+const knobMapping = {
+  'user_style': 'casual',        // Map to existing knob
+  'formality': 'formal',         // Map to existing knob  
+  'emoji': 'emoji_off',          // Map to existing knob
+  'humor': 'humor',              // Map to existing knob
+  'question_freq': 'question_freq' // Already exists
+};
+
 /**
- * Submit response feedback
+ * Submit response feedback - INTEGRATED with existing style_corrections
  */
 export const submitResponseFeedback = async (req: Request, res: Response) => {
   try {
@@ -30,14 +39,15 @@ export const submitResponseFeedback = async (req: Request, res: Response) => {
 
     const twinId = chatResult.rows[0].twinId;
 
-    // Store feedback as style correction
+    // Store feedback as style correction using EXISTING table
     const correctionId = `correction_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const delta = rating === 'up' ? 1 : -1;
     
+    // Use EXISTING style_corrections table with mapped knob
     await db.query(`
       INSERT INTO style_corrections (id, twin_id, knob, delta, source, ts)
       VALUES ($1, $2, $3, $4, 'user_feedback', NOW())
-    `, [correctionId, twinId, 'user_style', delta]);
+    `, [correctionId, twinId, knobMapping['user_style'], delta]);
 
     // Update AI run with rating if available
     await db.query(`
@@ -47,7 +57,7 @@ export const submitResponseFeedback = async (req: Request, res: Response) => {
       ORDER BY ts DESC LIMIT 1
     `, [rating === 'up' ? 85 : 25, rating, twinId]);
 
-    // If correction text provided, create style anchor
+    // If correction text provided, create style anchor using EXISTING table
     if (correction) {
       const anchorId = `anchor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       await db.query(`
@@ -69,7 +79,7 @@ export const submitResponseFeedback = async (req: Request, res: Response) => {
 };
 
 /**
- * Get feedback statistics for a twin
+ * Get feedback statistics - INTEGRATED with existing style_corrections
  */
 export const getFeedbackStats = async (req: Request, res: Response) => {
   try {
@@ -85,7 +95,7 @@ export const getFeedbackStats = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Twin not found or access denied' });
     }
 
-    // Get feedback statistics
+    // Get feedback statistics from EXISTING style_corrections table
     const statsResult = await db.query(`
       SELECT 
         COUNT(*) as total_feedback,

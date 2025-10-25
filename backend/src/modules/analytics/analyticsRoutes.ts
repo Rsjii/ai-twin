@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getMetricsSummary, getUserAnalytics, debugUserData, createSampleData } from './analyticsController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
+import { getTwinAnalytics } from './analyticsController';
 
 const router = Router();
 
@@ -13,5 +14,8 @@ router.post('/create-sample', requireJWTFromCookie, createSampleData);
 
 // Protected user analytics - using JWT authentication
 router.get('/user', requireJWTFromCookie, getUserAnalytics);
+
+//twin analytics
+router.get('/twin/:twinId/analytics', requireJWTFromCookie, getTwinAnalytics);
 
 export default router;

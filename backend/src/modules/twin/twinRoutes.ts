@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import { createTwin, getUserTwins, getTwinById } from './twinController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
-import { twinCreationRateLimit } from '../../middleware/rateLimit';
-import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
-import { sanitizeInput } from '../../middleware/validation';
+import { generateCSRFToken } from '../../middleware/csrf';
+import { getTwinEditData, updateTwinStyle, updateTwinPersona } from './twinEditController';
 
 const router = Router();
 
@@ -15,5 +14,10 @@ router.use(generateCSRFToken);
 router.post('/create', requireJWTFromCookie, createTwin);
 router.get('/', getUserTwins);
 router.get('/:id', getTwinById);
+
+// Twin edit endpoints
+router.get('/:id/edit-data', getTwinEditData);
+router.post('/:id/update-style', updateTwinStyle);
+router.post('/:id/update-persona', updateTwinPersona);
 
 export default router;

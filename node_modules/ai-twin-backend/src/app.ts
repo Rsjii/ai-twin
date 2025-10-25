@@ -10,7 +10,6 @@ import cookieParser from 'cookie-parser';
 import { config } from './config/env';
 import { logger } from './config/logger';
 import { db, userQueries, twinQueries } from './config/database';
-import { prisma } from './config/prisma';
 
 // Import routes
 import authRoutes from './modules/auth/authRoutes';
@@ -33,16 +32,19 @@ import styleAnchorsRoutes from './modules/twin/styleAnchorsRoutes';
 import styleCorrectionsRoutes from './modules/twin/styleCorrectionsRoutes';
 import aiRunsRoutes from './modules/twin/aiRunsRoutes';
 import memoryRoutes from './modules/memory/memoryRoutes';
-import twinEditRoutes from './modules/twin/twinEditRoutes';
-import feedbackRoutes from './modules/chat/feedbackRoutes';
+import styleSandboxRoutes from './modules/twin/styleSandboxRoutes';
+import {learningScheduler} from './services/learningScheduler';
+
+
+if(config.nodeEnv==='production'){
+  learningScheduler.start();
+}
 
 // Import JWT middleware
-import { authenticateJWT, optionalJWT } from './middleware/jwtAuth';
 import { extractJWTFromCookie, requireJWTFromCookie } from './middleware/jwtCookie';
 
 // Import middleware
 import { generateCSRFToken } from './middleware/csrf';
-import { sanitizeInput } from './middleware/validation';
 import { optionalAuth } from './middleware/auth';
 
 const app = express();
@@ -134,8 +136,7 @@ app.use('/api/style-anchors', styleAnchorsRoutes);
 app.use('/api/style-corrections', styleCorrectionsRoutes);
 app.use('/api/ai-runs', aiRunsRoutes);
 app.use('/api/memory', memoryRoutes);
-app.use('/api/twin-edit', twinEditRoutes);
-app.use('/api/chat-feedback', feedbackRoutes);
+app.use('/api/style-sandbox', styleSandboxRoutes);
 
 // Discover page route
 app.get('/discover', (req, res) => {
@@ -1423,6 +1424,33 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
             </div>
             
             ${hasTwins ? `
+            <!-- Twin Management Section -->
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Edit Twin Style</h3>
+                    <p class="text-gray-600 mb-4">Customize your twin's communication style</p>
+                    <a href="/twin/${userTwins[0].id}/edit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Edit Twin
+                    </a>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Style Sandbox</h3>
+                    <p class="text-gray-600 mb-4">Preview style changes before applying</p>
+                    <a href="/twin/${userTwins[0].id}/style-sandbox" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                        Style Sandbox
+                    </a>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Learning Progress</h3>
+                    <p class="text-gray-600 mb-4">View how your twin is learning</p>
+                    <a href="/analytics" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        View Analytics
+                    </a>
+                </div>
+            </div>
+            
             <div class="grid md:grid-cols-2 gap-6 mb-8">
                 <div class="bg-white rounded-lg shadow p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-2">Profile Link</h3>
@@ -1679,6 +1707,8 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
             }
         }
 
+        
+
         function editPublicProfile() {
             alert('Edit profile functionality coming soon!');
         }
@@ -1839,6 +1869,76 @@ app.get('/chat/continue', extractJWTFromCookie, async (req: any, res) => {
     console.error('Error details:', error.message);
     console.error('Stack trace:', error.stack);
     res.redirect('/dashboard');
+  }
+});
+
+// Twin Edit page route
+app.get('/twin/:id/edit', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    
+    // Verify twin ownership
+    const twinResult = await db.query(`
+      SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version"
+      FROM "Twin" 
+      WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).render('error', { 
+        message: 'Twin not found or access denied',
+        user: req.user 
+      });
+    }
+    
+    res.render('twin-edit', { 
+      title: 'Edit Twin - AI Twin',
+      user: req.user,
+      twinId: twinId,
+      csrfToken: res.locals['csrfToken']
+    });
+  } catch (error) {
+    console.error('Twin edit route error:', error);
+    res.status(500).render('error', { 
+      message: 'Internal server error',
+      user: req.user 
+    });
+  }
+});
+
+// Style Sandbox page route
+app.get('/twin/:id/style-sandbox', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    
+    // Verify twin ownership
+    const twinResult = await db.query(`
+      SELECT id, "styleVector", "createdAt"
+      FROM "Twin" 
+      WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).render('error', { 
+        message: 'Twin not found or access denied',
+        user: req.user 
+      });
+    }
+    
+    res.render('style-sandbox', { 
+      title: 'Style Sandbox - AI Twin',
+      user: req.user,
+      twinId: twinId,
+      csrfToken: res.locals['csrfToken']
+    });
+  } catch (error) {
+    console.error('Style sandbox route error:', error);
+    res.status(500).render('error', { 
+      message: 'Internal server error',
+      user: req.user 
+    });
   }
 });
 

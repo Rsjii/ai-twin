@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Style Sandbox - AI Twin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Style Sandbox</h1>
+            <p class="text-gray-600">Test how your twin responds with different style settings</p>
+        </div>
+
+        <!-- Test Message Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Test Message</h2>
+            <input type="text" id="test-message" placeholder="Type a test message..." 
+                   value="Hello! How are you doing today?"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <!-- Style Adjustments -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Style Adjustments</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <!-- Formality Level -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Formality Level</label>
+                    <input type="range" id="test-formality" min="0" max="1" step="0.1" value="0.5" 
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>Casual</span>
+                        <span id="formality-display">0.5</span>
+                        <span>Formal</span>
+                    </div>
+                </div>
+
+                <!-- Emoji Usage -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Emoji Usage</label>
+                    <input type="range" id="test-emoji" min="0" max="1" step="0.1" value="0.3" 
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>None</span>
+                        <span id="emoji-display">0.3</span>
+                        <span>Frequent</span>
+                    </div>
+                </div>
+
+                <!-- Humor Style -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Humor Style</label>
+                    <select id="test-humor" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="none">None</option>
+                        <option value="light" selected>Light</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="heavy">Heavy</option>
+                    </select>
+                </div>
+
+                <!-- Question Frequency -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Question Frequency</label>
+                    <input type="range" id="test-question" min="0" max="1" step="0.1" value="0.4" 
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>Rare</span>
+                        <span id="question-display">0.4</span>
+                        <span>Frequent</span>
+                    </div>
+                </div>
+
+                <!-- Response Length -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Response Length</label>
+                    <select id="test-length" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="brief">Brief</option>
+                        <option value="detailed" selected>Detailed</option>
+                        <option value="comprehensive">Comprehensive</option>
+                    </select>
+                </div>
+
+                <!-- Tone -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Tone</label>
+                    <select id="test-tone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="casual" selected>Casual</option>
+                        <option value="witty">Witty</option>
+                        <option value="serious">Serious</option>
+                        <option value="friendly">Friendly</option>
+                        <option value="professional">Professional</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-6 flex space-x-4">
+                <button onclick="previewStyle()" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600">
+                    Preview Response
+                </button>
+                <button onclick="resetStyle()" class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600">
+                    Reset to Current
+                </button>
+                <button onclick="loadCurrentStyle()" class="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
+                    Load Current Style
+                </button>
+            </div>
+        </div>
+
+        <!-- Preview Results -->
+        <div id="preview-results" class="bg-white rounded-lg shadow-md p-6" style="display: none;">
+            <h2 class="text-xl font-semibold mb-4">Response Comparison</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-medium mb-2">Current Style</h3>
+                    <div id="original-response" class="p-4 bg-gray-50 rounded-md mb-2"></div>
+                    <div id="original-style" class="text-sm text-gray-600"></div>
+                </div>
+                
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-medium mb-2">New Style</h3>
+                    <div id="new-response" class="p-4 bg-blue-50 rounded-md mb-2"></div>
+                    <div id="new-style" class="text-sm text-gray-600"></div>
+                </div>
+            </div>
+            
+            <div id="style-changes" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"></div>
+        </div>
+    </div>
+
+    <script>
+    let currentStyle = null;
+    const twinId = '<%= twinId %>';
+
+    // Load current style on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCurrentStyle();
+        setupRangeListeners();
+    });
+
+    function setupRangeListeners() {
+        document.getElementById('test-formality').addEventListener('input', function() {
+            document.getElementById('formality-display').textContent = this.value;
+        });
+        document.getElementById('test-emoji').addEventListener('input', function() {
+            document.getElementById('emoji-display').textContent = this.value;
+        });
+        document.getElementById('test-question').addEventListener('input', function() {
+            document.getElementById('question-display').textContent = this.value;
+        });
+    }
+
+    async function loadCurrentStyle() {
+        try {
+            const response = await fetch(`/api/style-sandbox/${twinId}/style-comparison`);
+            const data = await response.json();
+            
+            if (data.success) {
+                currentStyle = data.currentStyle;
+                populateCurrentStyle();
+            }
+        } catch (error) {
+            console.error('Error loading current style:', error);
+        }
+    }
+
+    function populateCurrentStyle() {
+        if (!currentStyle) return;
+        
+        document.getElementById('test-formality').value = currentStyle.formality_level || 0.5;
+        document.getElementById('test-emoji').value = currentStyle.emoji_usage || 0.3;
+        document.getElementById('test-humor').value = currentStyle.humor_style || 'light';
+        document.getElementById('test-question').value = currentStyle.question_frequency || 0.4;
+        document.getElementById('test-length').value = currentStyle.response_length_preference || 'detailed';
+        document.getElementById('test-tone').value = currentStyle.tone || 'casual';
+        
+        updateRangeDisplays();
+    }
+
+    function updateRangeDisplays() {
+        document.getElementById('formality-display').textContent = document.getElementById('test-formality').value;
+        document.getElementById('emoji-display').textContent = document.getElementById('test-emoji').value;
+        document.getElementById('question-display').textContent = document.getElementById('test-question').value;
+    }
+
+    async function previewStyle() {
+        const testMessage = document.getElementById('test-message').value;
+        
+        if (!testMessage.trim()) {
+            alert('Please enter a test message');
+            return;
+        }
+        
+        const styleChanges = getStyleChanges();
+        
+        try {
+            const response = await fetch(`/api/style-sandbox/${twinId}/preview-style`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                body: JSON.stringify({ styleChanges, testMessage })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                displayPreviewResults(data);
+            } else {
+                alert('Error generating preview: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error previewing style:', error);
+            alert('Error generating preview');
+        }
+    }
+
+    function displayPreviewResults(data) {
+        document.getElementById('original-response').textContent = data.originalResponse;
+        document.getElementById('new-response').textContent = data.newResponse;
+        
+        // Display style information
+        document.getElementById('original-style').innerHTML = formatStyleInfo(data.styleComparison.original);
+        document.getElementById('new-style').innerHTML = formatStyleInfo(data.styleComparison.updated);
+        
+        // Display changes
+        const changes = getChangesDescription(data.changes);
+        document.getElementById('style-changes').innerHTML = `<h4 class="font-medium mb-2">Changes Made:</h4><ul class="list-disc list-inside">${changes}</ul>`;
+        
+        document.getElementById('preview-results').style.display = 'block';
+    }
+
+    function formatStyleInfo(style) {
+        return `
+            <div class="text-xs">
+                <div><strong>Tone:</strong> ${style.tone || 'casual'}</div>
+                <div><strong>Formality:</strong> ${(style.formality_level || 0.5).toFixed(1)}</div>
+                <div><strong>Emoji:</strong> ${(style.emoji_usage || 0.3).toFixed(1)}</div>
+                <div><strong>Humor:</strong> ${style.humor_style || 'light'}</div>
+                <div><strong>Length:</strong> ${style.response_length_preference || 'detailed'}</div>
+            </div>
+        `;
+    }
+
+    function getChangesDescription(changes) {
+        const descriptions = [];
+        
+        if (changes.formality_level !== undefined) {
+            descriptions.push(`Formality: ${changes.formality_level}`);
+        }
+        if (changes.emoji_usage !== undefined) {
+            descriptions.push(`Emoji usage: ${changes.emoji_usage}`);
+        }
+        if (changes.humor_style !== undefined) {
+            descriptions.push(`Humor: ${changes.humor_style}`);
+        }
+        if (changes.question_frequency !== undefined) {
+            descriptions.push(`Question frequency: ${changes.question_frequency}`);
+        }
+        if (changes.response_length_preference !== undefined) {
+            descriptions.push(`Response length: ${changes.response_length_preference}`);
+        }
+        if (changes.tone !== undefined) {
+            descriptions.push(`Tone: ${changes.tone}`);
+        }
+        
+        return descriptions.map(desc => `<li>${desc}</li>`).join('');
+    }
+
+    function getStyleChanges() {
+        const changes = {};
+        
+        const formality = parseFloat(document.getElementById('test-formality').value);
+        const emoji = parseFloat(document.getElementById('test-emoji').value);
+        const humor = document.getElementById('test-humor').value;
+        const question = parseFloat(document.getElementById('test-question').value);
+        const length = document.getElementById('test-length').value;
+        const tone = document.getElementById('test-tone').value;
+        
+        // Only include changes from current style
+        if (currentStyle) {
+            if (formality !== (currentStyle.formality_level || 0.5)) {
+                changes.formality_level = formality;
+            }
+            if (emoji !== (currentStyle.emoji_usage || 0.3)) {
+                changes.emoji_usage = emoji;
+            }
+            if (humor !== (currentStyle.humor_style || 'light')) {
+                changes.humor_style = humor;
+            }
+            if (question !== (currentStyle.question_frequency || 0.4)) {
+                changes.question_frequency = question;
+            }
+            if (length !== (currentStyle.response_length_preference || 'detailed')) {
+                changes.response_length_preference = length;
+            }
+            if (tone !== (currentStyle.tone || 'casual')) {
+                changes.tone = tone;
+            }
+        }
+        
+        return changes;
+    }
+
+    function resetStyle() {
+        if (currentStyle) {
+            populateCurrentStyle();
+        }
+    }
+    </script>
+</body>
+</html>
