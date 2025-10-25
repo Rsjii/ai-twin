@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Management - AI Twin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <div class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center">
+                        <a href="/dashboard" class="text-gray-600 hover:text-gray-900">
+                            ← Back to Dashboard
+                        </a>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-900">Memory Management</h1>
+                    <button onclick="showIngestModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        Ingest Memory
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Memory Statistics -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Total Memories</h3>
+                    <p class="text-3xl font-bold text-blue-600" id="totalMemories">-</p>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Facts</h3>
+                    <p class="text-3xl font-bold text-green-600" id="factsCount">-</p>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Voice Patterns</h3>
+                    <p class="text-3xl font-bold text-purple-600" id="voiceCount">-</p>
+                </div>
+            </div>
+
+            <!-- Memory Lists -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Facts -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="text-lg font-medium text-gray-900">Facts</h2>
+                        <p class="text-sm text-gray-600">Personal information and preferences</p>
+                    </div>
+                    <div id="factsList" class="p-6">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    </div>
+                </div>
+
+                <!-- Voice Patterns -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="text-lg font-medium text-gray-900">Voice Patterns</h2>
+                        <p class="text-sm text-gray-600">Signature phrases and expressions</p>
+                    </div>
+                    <div id="voiceList" class="p-6">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ingest Modal -->
+    <div id="ingestModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">Ingest Memory</h3>
+                </div>
+                
+                <form id="ingestForm" class="p-6">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Memory Type
+                        </label>
+                        <select id="memoryBucket" name="bucket" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="facts">Facts (personal info, preferences)</option>
+                            <option value="voice">Voice Patterns (phrases, expressions)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Text to Analyze
+                        </label>
+                        <textarea 
+                            id="memoryText" 
+                            name="text"
+                            rows="6"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Paste your text samples here..."
+                            required
+                        ></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="hideIngestModal()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Extract Memories
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const twinId = '<%= twinId %>';
+        
+        // Load memory data
+        async function loadMemoryData() {
+            try {
+                // Load stats
+                const statsResponse = await fetch(`/api/memory/${twinId}/memory/stats`,{
+                    credentials: 'include'
+                });
+                const statsData = await statsResponse.json();
+                
+                if (statsData.success) {
+                    document.getElementById('totalMemories').textContent = statsData.total;
+                    
+                    // Update individual counts
+                    const factsCount = statsData.stats.find(s => s.bucket === 'facts')?.count || 0;
+                    const voiceCount = statsData.stats.find(s => s.bucket === 'voice')?.count || 0;
+                    
+                    document.getElementById('factsCount').textContent = factsCount;
+                    document.getElementById('voiceCount').textContent = voiceCount;
+                }
+                
+                // Load facts
+                const factsResponse = await fetch(`/api/memory/${twinId}/memory/retrieve?bucket=facts&limit=10`,{
+                    credentials: 'include'
+                });
+                const factsData = await factsResponse.json();
+                
+                if (factsData.success) {
+                    displayMemories('factsList', factsData.memories);
+                }
+                
+                // Load voice patterns
+                const voiceResponse = await fetch(`/api/memory/${twinId}/memory/retrieve?bucket=voice&limit=10`, {
+                    credentials: 'include'
+                });
+                const voiceData = await voiceResponse.json();
+                
+                if (voiceData.success) {
+                    displayMemories('voiceList', voiceData.memories);
+                }
+                
+            } catch (error) {
+                console.error('Error loading memory data:', error);
+            }
+        }
+        
+        function displayMemories(containerId, memories) {
+            const container = document.getElementById(containerId);
+            
+            if (memories.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center">No memories found</p>';
+                return;
+            }
+            
+            container.innerHTML = memories.map(memory => `
+                <div class="mb-3 p-3 bg-gray-50 rounded-lg">
+                    <p class="text-gray-900">${memory.text}</p>
+                    <p class="text-xs text-gray-500 mt-1">${new Date(memory.ts).toLocaleDateString()}</p>
+                </div>
+            `).join('');
+        }
+        
+        function showIngestModal() {
+            document.getElementById('ingestModal').classList.remove('hidden');
+        }
+        
+        function hideIngestModal() {
+            document.getElementById('ingestModal').classList.add('hidden');
+        }
+        
+        // Handle ingest form submission
+        document.getElementById('ingestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {
+                bucket: formData.get('bucket'),
+                text: formData.get('text')
+            };
+            
+            try {
+                const response = await fetch(`/api/memory/${twinId}/memory/ingest`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`Successfully extracted ${result.extracted.length} memories!`);
+                    hideIngestModal();
+                    loadMemoryData(); // Reload data
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error ingesting memory:', error);
+                alert('Error ingesting memory');
+            }
+        });
+        
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', loadMemoryData);
+    </script>
+</body>
+</html>

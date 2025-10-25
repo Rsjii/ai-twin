@@ -217,6 +217,7 @@ app.get('/chat-enhanced', requireJWTFromCookie, generateCSRFToken, async (req: a
       title: 'Enhanced Chat - AI Twin',
       user: req.user,
       chatId: chat.id,
+      twinId: latestTwin.id,
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {
@@ -1919,8 +1920,31 @@ app.post('/api/twin/:id/update-style', requireJWTFromCookie, async (req: any, re
   }
 });
 
-// API endpoint for style preview (style sandbox)
-app.post('/api/style-sandbox/:id/preview-style', requireJWTFromCookie, async (req: any, res) => {
+// API endpoint for loading style data
+app.get('/api/twin/:id/style-data', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    
+    const twinResult = await db.query(`
+      SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version"
+      FROM "Twin" 
+      WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    res.json({ success: true, twin: twinResult.rows[0] });
+  } catch (error) {
+    console.error('Style data API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// API endpoint for style preview (sandbox)
+app.post('/api/twin/:id/style-preview', requireJWTFromCookie, async (req: any, res) => {
   try {
     const { id: twinId } = req.params;
     const userId = req.user.id;
@@ -1935,7 +1959,7 @@ app.post('/api/style-sandbox/:id/preview-style', requireJWTFromCookie, async (re
       return res.status(404).json({ success: false, error: 'Twin not found' });
     }
     
-    // For now, return mock data (you can implement actual AI generation later)
+    // For now, return mock data (implement AI generation later)
     const originalResponse = "This is how your twin currently responds to: " + testMessage;
     const newResponse = "This is how your twin would respond with the new style settings to: " + testMessage;
     
@@ -1946,6 +1970,99 @@ app.post('/api/style-sandbox/:id/preview-style', requireJWTFromCookie, async (re
     });
   } catch (error) {
     console.error('Style preview API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// API endpoint for loading learning data
+app.get('/api/twin/:id/learning-data', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    
+    // Verify ownership
+    const twinResult = await db.query(`
+      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Mock learning data (implement real analytics later)
+    const learningData = {
+      totalInteractions: 42,
+      learningScore: 78,
+      styleAccuracy: 85,
+      events: [
+        {
+          description: "Learned to use more casual tone",
+          timestamp: new Date().toISOString()
+        },
+        {
+          description: "Improved emoji usage based on feedback",
+          timestamp: new Date(Date.now() - 3600000).toISOString()
+        }
+      ]
+    };
+    
+    res.json({ success: true, learning: learningData });
+  } catch (error) {
+    console.error('Learning data API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// API endpoint for learning settings
+app.post('/api/twin/:id/learning-settings', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    const { autoLearning, learningSensitivity } = req.body;
+    
+    // Verify ownership
+    const twinResult = await db.query(`
+      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Update learning settings (implement database storage later)
+    res.json({ success: true, message: 'Learning settings updated successfully' });
+  } catch (error) {
+    console.error('Learning settings API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// API endpoint for updating persona
+app.post('/api/twin/:id/update-persona', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    const personaUpdates = req.body;
+    
+    // Verify ownership
+    const twinResult = await db.query(`
+      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Update persona data
+    await db.query(`
+      UPDATE "Twin" 
+      SET "personaData" = $1, "last_updated" = NOW()
+      WHERE id = $2
+    `, [JSON.stringify(personaUpdates), twinId]);
+    
+    res.json({ success: true, message: 'Persona updated successfully' });
+  } catch (error) {
+    console.error('Update persona API error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });

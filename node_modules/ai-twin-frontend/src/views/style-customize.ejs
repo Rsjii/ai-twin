@@ -189,7 +189,7 @@
 
     function populateForm(twin) {
         // Populate style controls
-        document.getElementById('formality').value = twin.styleVector.formality_level || 0.5;
+        document.getElementById('formality').value = twin.styleVector.formality || 0.5;
         document.getElementById('emoji_usage').value = twin.styleVector.emoji_usage || 0.3;
         document.getElementById('humor_style').value = twin.styleVector.humor_style || 'light';
         document.getElementById('question_frequency').value = twin.styleVector.question_frequency || 0.4;
@@ -219,7 +219,7 @@
         const testMessage = "Hello! How are you doing today?";
         
         try {
-            const response = await fetch(`/api/style-sandbox/${twinId}/preview-style`, {
+            const response = await fetch(`/api/twin/${twinId}/style-preview`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -279,7 +279,7 @@
 
     function getStyleChanges() {
         return {
-            formality_level: parseFloat(document.getElementById('formality').value),
+            formality: parseFloat(document.getElementById('formality').value),
             emoji_usage: parseFloat(document.getElementById('emoji_usage').value),
             humor_style: document.getElementById('humor_style').value,
             question_frequency: parseFloat(document.getElementById('question_frequency').value),
