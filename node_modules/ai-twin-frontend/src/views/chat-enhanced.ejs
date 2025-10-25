@@ -195,13 +195,13 @@
         let currentResponseId = null;
         let responseMetadata = null;
 
-        // Global button functions - accessible from onclick attributes
-        async function upvoteResponse(responseId) {
-            await submitFeedback(responseId, 'positive', null);
-            showNotification('Thanks for the feedback! 👍', 'success');
-        }
+async function upvoteResponse(responseId) {
+    await submitFeedback(responseId, 'positive', null);
+    showNotification('Thanks for the feedback! 👍', 'success');
+    disableFeedbackButtons(responseId, 'positive');
+}
 
-        async function downvoteResponse(responseId) {
+async function downvoteResponse(responseId) {
     try {
         // Show review modal for bad responses
         const review = prompt('What could be improved in this response?');
@@ -209,6 +209,7 @@
         if (review && review.trim()) {
             await submitFeedback(responseId, 'negative', review);
             showNotification('Thanks for the feedback! 👎', 'success');
+            disableFeedbackButtons(responseId, 'negative');
         } else {
             showNotification('Feedback cancelled', 'info');
         }
@@ -217,8 +218,6 @@
         showNotification('Error submitting feedback', 'error');
     }
 }
-
-
 
         function copyResponse(responseId) {
             const responseElement = document.getElementById(responseId);
@@ -270,6 +269,30 @@
                 showNotification('Could not find response to share', 'error');
             }
         }
+
+        function disableFeedbackButtons(responseId, feedbackType) {
+    const feedbackSection = document.getElementById(`feedbackSection_${responseId}`);
+    if (feedbackSection) {
+        // Remove the buttons
+        feedbackSection.innerHTML = '';
+        
+        // Add feedback status display
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'flex items-center space-x-1 text-xs';
+        
+        if (feedbackType === 'positive') {
+            statusDiv.innerHTML = `
+                <span class="text-green-600 font-medium">👍 Feedback: Good</span>
+            `;
+        } else {
+            statusDiv.innerHTML = `
+                <span class="text-red-600 font-medium">👎 Feedback: Needs Improvement</span>
+            `;
+        }
+        
+        feedbackSection.appendChild(statusDiv);
+    }
+}
 
         async function regenerateResponse(responseId) {
     try {
@@ -529,12 +552,14 @@ function addResponseActionsButton(responseId) {
     <button id="copyBtn_${responseId}" class="text-gray-600 hover:text-gray-800">
         📋 Copy
     </button>
-    <button id="upvoteBtn_${responseId}" class="text-green-600 hover:text-green-800">
-        👍 Good
-    </button>
-    <button id="downvoteBtn_${responseId}" class="text-red-600 hover:text-red-800">
-        👎 Bad
-    </button>
+    <div id="feedbackSection_${responseId}" class="flex space-x-2">
+        <button id="upvoteBtn_${responseId}" class="text-green-600 hover:text-green-800">
+            👍 Good
+        </button>
+        <button id="downvoteBtn_${responseId}" class="text-red-600 hover:text-red-800">
+            👎 Bad
+        </button>
+    </div>
     <button id="regenerateBtn_${responseId}" class="text-blue-600 hover:text-blue-800">
         🔄 Regenerate
     </button>
@@ -543,16 +568,17 @@ function addResponseActionsButton(responseId) {
     </button>
 </div>`;
 
-currentResponseId = responseId;
-messageDiv.appendChild(actionsDiv);
+    currentResponseId = responseId;
+    messageDiv.appendChild(actionsDiv);
 
-// Add event listeners after creating the HTML
-document.getElementById(`copyBtn_${responseId}`).addEventListener('click', () => copyResponse(responseId));
-document.getElementById(`upvoteBtn_${responseId}`).addEventListener('click', () => upvoteResponse(responseId));
-document.getElementById(`downvoteBtn_${responseId}`).addEventListener('click', () => downvoteResponse(responseId));
-document.getElementById(`regenerateBtn_${responseId}`).addEventListener('click', () => regenerateResponse(responseId));
-document.getElementById(`shareBtn_${responseId}`).addEventListener('click', () => shareResponse(responseId));
+    // Add event listeners after creating the HTML
+    document.getElementById(`copyBtn_${responseId}`).addEventListener('click', () => copyResponse(responseId));
+    document.getElementById(`upvoteBtn_${responseId}`).addEventListener('click', () => upvoteResponse(responseId));
+    document.getElementById(`downvoteBtn_${responseId}`).addEventListener('click', () => downvoteResponse(responseId));
+    document.getElementById(`regenerateBtn_${responseId}`).addEventListener('click', () => regenerateResponse(responseId));
+    document.getElementById(`shareBtn_${responseId}`).addEventListener('click', () => shareResponse(responseId));
 }
+
 
 function showResponseActions(responseId) {
     const modal = document.getElementById('responseActionsModal');
@@ -651,6 +677,26 @@ function updateCriticScore(score) {
     }
 }
 
+async function loadFeedbackStatus(chatId) {
+    try {
+        const response = await fetch(`/api/enhanced-chat/${chatId}/feedback-status`, {
+            headers: {
+                'X-CSRF-Token': '<%= csrfToken %>',
+                credentials: 'include'
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            return data.feedback || {};
+        }
+        return {};
+    } catch (error) {
+        console.error('Error loading feedback status:', error);
+        return {};
+    }
+}
+
 async function loadChatHistory() {
     try {
         console.log('Loading chat history for chatId:', currentChatId);
@@ -658,6 +704,9 @@ async function loadChatHistory() {
         // Clear existing messages
         const messagesContainer = document.getElementById('chatMessages');
         messagesContainer.innerHTML = '';
+        
+        // Load feedback status first
+        const feedbackStatus = await loadFeedbackStatus(currentChatId);
         
         // Try to load existing messages
         const response = await fetch(`/api/enhanced-chat/${currentChatId}`, {
@@ -674,12 +723,45 @@ async function loadChatHistory() {
             if (data.chat && data.chat.messages && data.chat.messages.length > 0) {
                 // Display existing messages (both user and AI)
                 data.chat.messages.forEach(msg => {
-                    const sender = msg.sender === 'human' ? 'user' : 'ai';
-                    addMessageToChat(sender, msg.content, false, {
-                        timestamp: msg.createdAt
-                    });
-                });
-            } else {
+    const sender = msg.sender === 'human' ? 'user' : 'ai';
+    
+    // Use the original message ID from database instead of generating new one
+    const messageId = msg.id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create message with specific ID
+    const messageDiv = document.createElement('div');
+    messageDiv.id = messageId;
+    messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+        sender === 'user' 
+            ? 'bg-blue-600 text-white' 
+            : 'bg-white border border-gray-200'
+    }`;
+    
+    messageContent.innerHTML = `
+        <p class="text-sm">${msg.content}</p>
+        <p class="text-xs mt-1 opacity-75">
+            ${new Date(msg.createdAt).toLocaleTimeString()}
+        </p>
+    `;
+    
+    messageDiv.appendChild(messageContent);
+    document.getElementById('chatMessages').appendChild(messageDiv);
+    
+    // Add feedback buttons to AI messages (not user messages)
+    if (sender === 'ai') {
+        addResponseActionsButton(messageId);
+        
+        // Check if feedback already exists for this message
+        if (feedbackStatus[messageId]) {
+            const feedbackType = feedbackStatus[messageId].rating === 'positive' ? 'positive' : 'negative';
+            disableFeedbackButtons(messageId, feedbackType);
+        }
+    }
+});
+        } else {
                 // Show welcome message if no history
                 addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
             }
@@ -693,7 +775,9 @@ async function loadChatHistory() {
         addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
     }
 }
-        // Initialize chat
+
+
+// Initialize chat
         document.addEventListener('DOMContentLoaded', function() {
             // Get chat ID from EJS variable
             currentChatId = '<%= chatId %>';

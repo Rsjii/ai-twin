@@ -2157,6 +2157,36 @@ app.post('/api/enhanced-chat/:chatId/feedback', requireJWTFromCookie, async (req
   }
 });
 
+// Get feedback status for a chat
+app.get('/api/enhanced-chat/:chatId/feedback-status', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { chatId } = req.params;
+    const userId = req.user.id;
+    
+    // Get all feedback for this chat
+    const feedbackResult = await db.query(`
+      SELECT "responseId", "rating", "suggestion", "tonePreference"
+      FROM "ChatFeedback"
+      WHERE "chatId" = $1 AND "userId" = $2
+    `, [chatId, userId]);
+    
+    // Convert to object with responseId as key
+    const feedback = {};
+    feedbackResult.rows.forEach(row => {
+      feedback[row.responseId] = {
+        rating: row.rating,
+        suggestion: row.suggestion,
+        tonePreference: row.tonePreference
+      };
+    });
+    
+    res.json({ success: true, feedback });
+  } catch (error) {
+    console.error('Feedback status API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 // Adjust tone endpoint
 app.post('/api/enhanced-chat/:chatId/adjust-tone', requireJWTFromCookie, async (req: any, res) => {
   try {
