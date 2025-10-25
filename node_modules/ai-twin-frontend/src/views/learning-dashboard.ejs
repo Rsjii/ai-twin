@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Dashboard - AI Twin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Learning Dashboard</h1>
+            <p class="text-gray-600">Track how your AI twin is learning and improving over time</p>
+        </div>
+
+        <!-- Learning Progress Overview -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Learning Progress</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-blue-600 mb-2" id="totalInteractions">0</div>
+                    <div class="text-sm text-gray-600">Total Interactions</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-600 mb-2" id="learningScore">0%</div>
+                    <div class="text-sm text-gray-600">Learning Score</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-purple-600 mb-2" id="styleAccuracy">0%</div>
+                    <div class="text-sm text-gray-600">Style Accuracy</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning Analytics -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Style Learning Chart -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold mb-4">Style Learning Progress</h3>
+                <div id="styleChart" class="h-64 flex items-center justify-center text-gray-500">
+                    <p>Chart will be loaded here</p>
+                </div>
+            </div>
+
+            <!-- Recent Learning Events -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold mb-4">Recent Learning Events</h3>
+                <div id="learningEvents" class="space-y-3">
+                    <p class="text-gray-500">Loading learning events...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning Settings -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Learning Settings</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Auto-Learning Mode</label>
+                    <select id="autoLearning" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="enabled">Enabled</option>
+                        <option value="disabled">Disabled</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Learning Sensitivity</label>
+                    <select id="learningSensitivity" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between items-center">
+            <button onclick="resetLearning()" class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600">
+                Reset Learning
+            </button>
+            <div class="space-x-4">
+                <button onclick="exportLearningData()" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600">
+                    Export Data
+                </button>
+                <button onclick="saveLearningSettings()" class="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
+                    Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const twinId = '<%= twinId %>';
+
+    // Load learning data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadLearningData();
+    });
+
+    async function loadLearningData() {
+        try {
+            const response = await fetch(`/api/twin/${twinId}/learning-data`);
+            const data = await response.json();
+            
+            if (data.success) {
+                populateLearningData(data.learning);
+            }
+        } catch (error) {
+            console.error('Error loading learning data:', error);
+        }
+    }
+
+    function populateLearningData(learning) {
+        // Update overview cards
+        document.getElementById('totalInteractions').textContent = learning.totalInteractions || 0;
+        document.getElementById('learningScore').textContent = (learning.learningScore || 0) + '%';
+        document.getElementById('styleAccuracy').textContent = (learning.styleAccuracy || 0) + '%';
+        
+        // Load learning events
+        const eventsContainer = document.getElementById('learningEvents');
+        if (learning.events && learning.events.length > 0) {
+            eventsContainer.innerHTML = learning.events.map(event => `
+                <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <div class="flex-1">
+                        <p class="text-sm text-gray-900">${event.description}</p>
+                        <p class="text-xs text-gray-500">${new Date(event.timestamp).toLocaleString()}</p>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            eventsContainer.innerHTML = '<p class="text-gray-500">No learning events yet</p>';
+        }
+    }
+
+    async function saveLearningSettings() {
+        const settings = {
+            autoLearning: document.getElementById('autoLearning').value,
+            learningSensitivity: document.getElementById('learningSensitivity').value
+        };
+        
+        try {
+            await fetch(`/api/twin/${twinId}/learning-settings`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                body: JSON.stringify(settings)
+            });
+            
+            alert('Learning settings saved successfully!');
+        } catch (error) {
+            console.error('Error saving learning settings:', error);
+            alert('Error saving learning settings');
+        }
+    }
+
+    function resetLearning() {
+        if (confirm('Are you sure you want to reset all learning data? This cannot be undone.')) {
+            // TODO: Implement reset learning
+            alert('Reset learning functionality coming soon!');
+        }
+    }
+
+    function exportLearningData() {
+        // TODO: Implement export learning data
+        alert('Export learning data functionality coming soon!');
+    }
+    </script>
+</body>
+</html>

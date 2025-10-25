@@ -28,11 +28,7 @@ import inviteRoutes from './modules/invite/inviteRoutes';
 import analyticsRoutes from './modules/analytics/analyticsRoutes';
 import adminAnalyticsRoutes from './modules/analytics/adminAnalyticsRoutes';
 import onboardingRoutes from './modules/onboarding/onboardingRoutes';
-import styleAnchorsRoutes from './modules/twin/styleAnchorsRoutes';
-import styleCorrectionsRoutes from './modules/twin/styleCorrectionsRoutes';
-import aiRunsRoutes from './modules/twin/aiRunsRoutes';
 import memoryRoutes from './modules/memory/memoryRoutes';
-import styleSandboxRoutes from './modules/twin/styleSandboxRoutes';
 import {learningScheduler} from './services/learningScheduler';
 
 
@@ -132,11 +128,7 @@ app.use('/api/invite', inviteRoutes);
 app.use('/api/metrics', analyticsRoutes);
 app.use('/api/admin/analytics', adminAnalyticsRoutes);
 app.use('/api/onboarding', onboardingRoutes);
-app.use('/api/style-anchors', styleAnchorsRoutes);
-app.use('/api/style-corrections', styleCorrectionsRoutes);
-app.use('/api/ai-runs', aiRunsRoutes);
 app.use('/api/memory', memoryRoutes);
-app.use('/api/style-sandbox', styleSandboxRoutes);
 
 // Discover page route
 app.get('/discover', (req, res) => {
@@ -152,51 +144,6 @@ app.get('/onboarding', requireJWTFromCookie, generateCSRFToken, (req: any, res) 
   });
 });
 
-// Style Anchors page route
-app.get('/style-anchors', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
-  try {
-    console.log('🚀 STYLE ANCHORS ROUTE HIT!');
-    console.log('req.user:', req.user);
-    console.log('req.user.id:', req.user?.id);
-
-    if(!req.user || !req.user.id) {
-      console.log('❌ No user, redirecting to auth');
-      return res.redirect('/auth');
-    }
-    // Get user's latest twin
-    const twinResult = await db.query(`
-      SELECT id, "styleVector", "createdAt"
-      FROM "Twin" 
-      WHERE "userId" = $1 
-      ORDER BY "createdAt" DESC 
-      LIMIT 1
-    `, [req.user.id]);
-    
-    if (twinResult.rows.length === 0) {
-      return res.status(404).render('error', { 
-        message: 'No AI twin found. Please create one first.',
-        user: req.user 
-      });
-    }
-    
-    const twin = twinResult.rows[0];
-    console.log('✅ Twin found:', twin);
-    res.render('style-anchors', { 
-      title: 'Style Anchors - AI Twin',
-      user: req.user,
-      twin: twin,
-      twinId: twin.id,
-      csrfToken: res.locals['csrfToken']
-    });
-  } catch (error) {
-    console.error('Style anchors route error:', error);
-    res.status(500).render('error', { 
-      message: 'Internal server error',
-      user: req.user 
-    });
-  }
-});
-
 // Memory Management page route
 app.get('/memory-management', requireJWTFromCookie, generateCSRFToken, (req: any, res) => {
   res.render('memory-management', { 
@@ -207,96 +154,6 @@ app.get('/memory-management', requireJWTFromCookie, generateCSRFToken, (req: any
   });
 });
 
-// Style Corrections page route
-app.get('/style-corrections', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
-  try {
-    console.log('🚀 STYLE CORRECTIONS ROUTE HIT!');
-    console.log('req.user:', req.user);
-    console.log('req.user.id:', req.user?.id);
-
-    if(!req.user || !req.user.id) {
-      console.log('❌ No user, redirecting to auth');
-      return res.redirect('/auth');
-    }
-    // Get user's latest twin
-    const twinResult = await db.query(`
-      SELECT id, "styleVector", "createdAt"
-      FROM "Twin" 
-      WHERE "userId" = $1 
-      ORDER BY "createdAt" DESC 
-      LIMIT 1
-    `, [req.user.id]);
-    if (twinResult.rows.length === 0) {
-      console.log('❌ No twin found, redirecting to create twin');
-      return res.status(404).render('error', { 
-        message: 'No AI twin found. Please create one first.',
-        user: req.user 
-      });
-    }
-    
-    const twin = twinResult.rows[0];
-    console.log('✅ Twin found:', twin);
-    res.render('style-corrections', { 
-      title: 'Style Corrections - AI Twin',
-      user: req.user,
-      twin: twin,
-      twinId: twin.id,
-      csrfToken: res.locals['csrfToken']
-    });
-  } catch (error) {
-    console.error('Style corrections route error:', error);
-    res.status(500).render('error', { 
-      message: 'Internal server error',
-      user: req.user 
-    });
-  }
-});
-
-// AI Runs Analytics page route
-app.get('/ai-runs', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
-  try {
-    console.log('🚀 AI RUNS ROUTE HIT!');
-    console.log('req.user:', req.user);
-    console.log('req.user.id:', req.user?.id);
-
-    if(!req.user || !req.user.id) {
-      console.log('❌ No user, redirecting to auth');
-      return res.redirect('/auth');
-    }
-    // Get user's latest twin
-    const twinResult = await db.query(`
-      SELECT id, "styleVector", "createdAt"
-      FROM "Twin" 
-      WHERE "userId" = $1 
-      ORDER BY "createdAt" DESC 
-      LIMIT 1
-    `, [req.user.id]);
-    
-    if (twinResult.rows.length === 0) {
-      console.log('❌ No twin found, redirecting to create twin');
-      return res.status(404).render('error', { 
-        message: 'No AI twin found. Please create one first.',
-        user: req.user 
-      });
-    }
-    
-    const twin = twinResult.rows[0];
-    console.log('✅ Twin found:', twin);
-    res.render('ai-runs', { 
-      title: 'AI Runs Analytics - AI Twin',
-      user: req.user,
-      twin: twin,
-      twinId: twin.id,
-      csrfToken: res.locals['csrfToken']
-    });
-  } catch (error) {
-    console.error('AI runs route error:', error);
-    res.status(500).render('error', { 
-      message: 'Internal server error',
-      user: req.user 
-    });
-  }
-});
 // Enhanced Chat page route
 app.get('/chat-enhanced', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
   try {
@@ -1429,7 +1286,7 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
                 <div class="bg-white rounded-lg shadow p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-2">Edit Twin Style</h3>
                     <p class="text-gray-600 mb-4">Customize your twin's communication style</p>
-                    <a href="/twin/${userTwins[0].id}/edit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    <a href="/twin/${userTwins[0].id}/ai-edit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                         Edit Twin
                     </a>
                 </div>
@@ -1437,7 +1294,7 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
                 <div class="bg-white rounded-lg shadow p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-2">Style Sandbox</h3>
                     <p class="text-gray-600 mb-4">Preview style changes before applying</p>
-                    <a href="/twin/${userTwins[0].id}/style-sandbox" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                    <a href="/twin/${userTwins[0].id}/style-customize" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
                         Style Sandbox
                     </a>
                 </div>
@@ -1872,8 +1729,8 @@ app.get('/chat/continue', extractJWTFromCookie, async (req: any, res) => {
   }
 });
 
-// Twin Edit page route
-app.get('/twin/:id/edit', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
+// AI Edit page route
+app.get('/twin/:id/ai-edit', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
   try {
     const { id: twinId } = req.params;
     const userId = req.user.id;
@@ -1892,14 +1749,14 @@ app.get('/twin/:id/edit', requireJWTFromCookie, generateCSRFToken, async (req: a
       });
     }
     
-    res.render('twin-edit', { 
-      title: 'Edit Twin - AI Twin',
+    res.render('ai-edit', { 
+      title: 'AI Edit - AI Twin',
       user: req.user,
       twinId: twinId,
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {
-    console.error('Twin edit route error:', error);
+    console.error('AI edit route error:', error);
     res.status(500).render('error', { 
       message: 'Internal server error',
       user: req.user 
@@ -1907,15 +1764,15 @@ app.get('/twin/:id/edit', requireJWTFromCookie, generateCSRFToken, async (req: a
   }
 });
 
-// Style Sandbox page route
-app.get('/twin/:id/style-sandbox', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
+// Style Customize page route (replaces both twin-edit and style-sandbox)
+app.get('/twin/:id/style-customize', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
   try {
     const { id: twinId } = req.params;
     const userId = req.user.id;
     
     // Verify twin ownership
     const twinResult = await db.query(`
-      SELECT id, "styleVector", "createdAt"
+      SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version"
       FROM "Twin" 
       WHERE id = $1 AND "userId" = $2
     `, [twinId, userId]);
@@ -1927,18 +1784,169 @@ app.get('/twin/:id/style-sandbox', requireJWTFromCookie, generateCSRFToken, asyn
       });
     }
     
-    res.render('style-sandbox', { 
-      title: 'Style Sandbox - AI Twin',
+    res.render('style-customize', { 
+      title: 'Style Customize - AI Twin',
       user: req.user,
       twinId: twinId,
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {
-    console.error('Style sandbox route error:', error);
+    console.error('Style customize route error:', error);
     res.status(500).render('error', { 
       message: 'Internal server error',
       user: req.user 
     });
+  }
+});
+
+// Learning Dashboard page route
+app.get('/twin/:id/learning-dashboard', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    
+    // Verify twin ownership
+    const twinResult = await db.query(`
+      SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version"
+      FROM "Twin" 
+      WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).render('error', { 
+        message: 'Twin not found or access denied',
+        user: req.user 
+      });
+    }
+    
+    res.render('learning-dashboard', { 
+      title: 'Learning Dashboard - AI Twin',
+      user: req.user,
+      twinId: twinId,
+      csrfToken: res.locals['csrfToken']
+    });
+  } catch (error) {
+    console.error('Learning dashboard route error:', error);
+    res.status(500).render('error', { 
+      message: 'Internal server error',
+      user: req.user 
+    });
+  }
+});
+
+// Add these API endpoints after line 1943
+
+// API endpoint for loading twin edit data
+app.get('/api/twin/:id/edit-data', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    
+    const twinResult = await db.query(`
+      SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version"
+      FROM "Twin" 
+      WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    res.json({ success: true, twin: twinResult.rows[0] });
+  } catch (error) {
+    console.error('Edit data API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// API endpoint for updating AI (system prompt, persona, memory)
+app.post('/api/twin/:id/update-ai', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    const { systemPrompt, personaData } = req.body;
+    
+    // Verify ownership
+    const twinResult = await db.query(`
+      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Update twin data
+    await db.query(`
+      UPDATE "Twin" 
+      SET "systemPrompt" = $1, "personaData" = $2, "last_updated" = NOW()
+      WHERE id = $3
+    `, [systemPrompt, JSON.stringify(personaData), twinId]);
+    
+    res.json({ success: true, message: 'AI settings updated successfully' });
+  } catch (error) {
+    console.error('Update AI API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// API endpoint for updating style
+app.post('/api/twin/:id/update-style', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    const styleUpdates = req.body;
+    
+    // Verify ownership
+    const twinResult = await db.query(`
+      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Update style vector
+    await db.query(`
+      UPDATE "Twin" 
+      SET "styleVector" = $1, "last_updated" = NOW()
+      WHERE id = $2
+    `, [JSON.stringify(styleUpdates), twinId]);
+    
+    res.json({ success: true, message: 'Style updated successfully' });
+  } catch (error) {
+    console.error('Update style API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// API endpoint for style preview (style sandbox)
+app.post('/api/style-sandbox/:id/preview-style', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    const { styleChanges, testMessage } = req.body;
+    
+    // Verify ownership
+    const twinResult = await db.query(`
+      SELECT id, "styleVector" FROM "Twin" WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // For now, return mock data (you can implement actual AI generation later)
+    const originalResponse = "This is how your twin currently responds to: " + testMessage;
+    const newResponse = "This is how your twin would respond with the new style settings to: " + testMessage;
+    
+    res.json({ 
+      success: true, 
+      originalResponse, 
+      newResponse 
+    });
+  } catch (error) {
+    console.error('Style preview API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

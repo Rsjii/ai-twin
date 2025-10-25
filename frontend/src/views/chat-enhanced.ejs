@@ -201,13 +201,12 @@
             // Add event listeners for quick action buttons
             document.getElementById('loadStyleAnchorsBtn').addEventListener('click', function() {
                 console.log('Opening style anchors page...');
-                window.open('/style-anchors?twinId=' + getCurrentTwinId(), '_blank');
+                window.open('/twin/' + getCurrentTwinId() + '/style-customize', '_blank');
             });
 
             document.getElementById('loadStyleCorrectionsBtn').addEventListener('click', function() {
                 console.log('Opening style corrections page...');
-                window.open('/style-corrections?twinId=' + getCurrentTwinId(), '_blank');
-            });
+                window.open('/twin/' + getCurrentTwinId() + '/learning-dashboard', '_blank');            });
 
             document.getElementById('loadAIRunsBtn').addEventListener('click', function() {
                 console.log('Opening AI runs analytics page...');
@@ -574,6 +573,48 @@
             // You can get this from the chat data or pass it from the server
             return 'default'; // This should be replaced with actual twin ID
         }
+
+        // Add these new functions after line 575
+function setStyleMode(mode) {
+    console.log('Setting style mode:', mode);
+    // Update UI to show current mode
+    document.querySelectorAll('#casualBtn, #formalBtn, #toggleStyleBtn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-100', 'text-gray-700');
+    });
+    
+    const activeBtn = document.getElementById(mode + 'Btn') || document.getElementById('toggleStyleBtn');
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-100', 'text-gray-700');
+        activeBtn.classList.add('bg-blue-600', 'text-white');
+    }
+    
+    showNotification(`Style mode: ${mode}`, 'info');
+}
+
+function giveFeedback(type) {
+    console.log('Giving feedback:', type);
+    // Send feedback to backend
+    fetch(`/api/enhanced-chat/${currentChatId}/feedback`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': '<%= csrfToken %>'
+        },
+        body: JSON.stringify({ type: type, responseId: currentResponseId })
+    });
+    
+    showNotification(`Feedback: ${type}`, 'success');
+    closeResponseActions();
+}
+
+function copyResponse() {
+    if (currentResponse) {
+        navigator.clipboard.writeText(currentResponse);
+        showNotification('Response copied!', 'success');
+        closeResponseActions();
+    }
+}
 
         // Show notification
         function showNotification(message, type) {

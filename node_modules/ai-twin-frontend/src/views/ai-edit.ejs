@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Edit - AI Twin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script> window.csrfToken = '<%= csrfToken %>';</script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">AI Edit</h1>
+            <p class="text-gray-600">Edit your AI twin's personality, prompts, and memory like GPT custom instructions</p>
+        </div>
+
+        <!-- System Prompt Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">System Prompt</h2>
+            <textarea id="systemPrompt" placeholder="Enter your custom system prompt..." rows="6"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+
+        <!-- Memory Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Memory & Facts</h2>
+            <div id="memoryList" class="space-y-3 mb-4">
+                <!-- Memory items will be loaded here -->
+            </div>
+            <div class="flex space-x-4">
+                <input type="text" id="newMemory" placeholder="Add new memory..." 
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="addMemory()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                    Add Memory
+                </button>
+            </div>
+        </div>
+
+        <!-- Personality Traits -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Personality Traits</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                    <input type="text" id="fullName" placeholder="Your full name" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Bio</label>
+                    <textarea id="bio" placeholder="Tell us about yourself" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div class="space-y-2 md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Interests (comma-separated)</label>
+                    <input type="text" id="interests" placeholder="technology, music, travel" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between items-center">
+            <button onclick="previewChanges()" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600">
+                Preview Changes
+            </button>
+            <div class="space-x-4">
+                <button onclick="resetChanges()" class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600">
+                    Reset
+                </button>
+                <button onclick="saveChanges()" class="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    let currentTwinData = null;
+    const twinId = '<%= twinId %>';
+
+    // Load twin data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadTwinData();
+    });
+
+    async function loadTwinData() {
+        try {
+            const response = await fetch(`/api/twin/${twinId}/edit-data`);
+            const data = await response.json();
+            
+            if (data.success) {
+                currentTwinData = data.twin;
+                populateForm(data.twin);
+            }
+        } catch (error) {
+            console.error('Error loading twin data:', error);
+        }
+    }
+
+    function populateForm(twin) {
+        // Populate system prompt
+        document.getElementById('systemPrompt').value = twin.systemPrompt || '';
+        
+        // Populate persona data
+        if (twin.personaData?.basicInfo) {
+            document.getElementById('fullName').value = twin.personaData.basicInfo.fullName || '';
+            document.getElementById('bio').value = twin.personaData.basicInfo.bio || '';
+        }
+        if (twin.personaData?.interests) {
+            document.getElementById('interests').value = twin.personaData.interests.join(', ');
+        }
+        
+        // Load memories (if any)
+        loadMemories();
+    }
+
+    function loadMemories() {
+        // TODO: Load memories from backend
+        document.getElementById('memoryList').innerHTML = '<p class="text-gray-500">No memories yet</p>';
+    }
+
+    function addMemory() {
+        const memory = document.getElementById('newMemory').value.trim();
+        if (!memory) return;
+        
+        // TODO: Add memory to backend
+        console.log('Adding memory:', memory);
+        document.getElementById('newMemory').value = '';
+    }
+
+    async function saveChanges() {
+        const updates = {
+            systemPrompt: document.getElementById('systemPrompt').value,
+            personaData: {
+                basicInfo: {
+                    fullName: document.getElementById('fullName').value,
+                    bio: document.getElementById('bio').value
+                },
+                interests: document.getElementById('interests').value.split(',').map(i => i.trim()).filter(i => i)
+            }
+        };
+        
+        try {
+            await fetch(`/api/twin/${twinId}/update-ai`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                body: JSON.stringify(updates)
+            });
+            
+            alert('Changes saved successfully!');
+            loadTwinData();
+        } catch (error) {
+            console.error('Error saving changes:', error);
+            alert('Error saving changes');
+        }
+    }
+
+    function resetChanges() {
+        if (currentTwinData) {
+            populateForm(currentTwinData);
+        }
+    }
+
+    function previewChanges() {
+        // TODO: Implement preview functionality
+        alert('Preview functionality coming soon!');
+    }
+    </script>
+</body>
+</html>
