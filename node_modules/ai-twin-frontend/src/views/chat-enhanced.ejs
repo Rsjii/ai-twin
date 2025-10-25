@@ -112,24 +112,47 @@
     </div>
 
 <!-- REPLACE LINES 113-169 in chat-enhanced.ejs -->
-<!-- Simple Response Actions -->
+<!-- Enhanced Response Feedback Modal -->
 <div id="responseActionsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
     <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
             <div class="px-6 py-4 border-b">
                 <h3 class="text-lg font-medium">Response Feedback</h3>
             </div>
             
             <div class="p-6">
-                <!-- Simple Feedback -->
+                <!-- Rating Section -->
                 <div class="mb-6">
-                    <h4 class="text-sm font-medium text-gray-700 mb-3">How was this response?</h4>
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">Rate this response</h4>
                     <div class="flex space-x-4">
                         <button id="thumbsUpBtn" class="flex-1 px-4 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-center">
-                            👍 Good
+                            👍 Good Response
                         </button>
                         <button id="thumbsDownBtn" class="flex-1 px-4 py-3 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-center">
-                            👎 Needs Work
+                            👎 Needs Improvement
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Suggestion Input (shown when downvoted) -->
+                <div id="suggestionSection" class="mb-6 hidden">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">What could be better?</h4>
+                    <textarea id="suggestionInput" placeholder="Tell us how to improve this response..." 
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3"></textarea>
+                </div>
+                
+                <!-- Tone Adjustment -->
+                <div class="mb-6">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">Adjust tone for next response</h4>
+                    <div class="flex space-x-2">
+                        <button onclick="setTonePreference('more_casual')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                            More Casual
+                        </button>
+                        <button onclick="setTonePreference('more_formal')" class="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200">
+                            More Formal
+                        </button>
+                        <button onclick="setTonePreference('more_helpful')" class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">
+                            More Helpful
                         </button>
                     </div>
                 </div>
@@ -144,13 +167,22 @@
                         <button id="copyBtn" class="px-3 py-2 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200">
                             📋 Copy
                         </button>
+                        <button id="shareBtn" class="px-3 py-2 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200">
+                            📤 Share
+                        </button>
+                        <button id="saveBtn" class="px-3 py-2 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">
+                            💾 Save
+                        </button>
                     </div>
                 </div>
             </div>
             
-            <div class="px-6 py-4 border-t flex justify-end">
+            <div class="px-6 py-4 border-t flex justify-between">
                 <button id="closeModalBtn" class="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200">
                     Close
+                </button>
+                <button id="submitFeedbackBtn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Submit Feedback
                 </button>
             </div>
         </div>
@@ -159,6 +191,7 @@
     <script>
         let currentChatId = null;
         let currentResponse = null;
+        let currentResponseId = null;
         let responseMetadata = null;
 
         // Initialize chat
@@ -168,48 +201,33 @@
             console.log('Enhanced chat initialized with chatId:', currentChatId);
             loadChatHistory();
             
-            // Add event listeners for style settings
-            const strictStyleCheckbox = document.getElementById('strictStyle');
-            const intentClassificationCheckbox = document.getElementById('intentClassification');
+            // Add event listeners for quick action buttons
+            document.getElementById('styleCustomizeBtn').addEventListener('click', function() {
+                window.open('/twin/' + getCurrentTwinId() + '/style-customize', '_blank');
+            });
+
+            document.getElementById('learningBtn').addEventListener('click', function() {
+                window.open('/twin/' + getCurrentTwinId() + '/learning-dashboard', '_blank');
+            });
+
+            document.getElementById('analyticsBtn').addEventListener('click', function() {
+                window.open('/analytics', '_blank');
+            });
+
+            // Quick style buttons
+            document.getElementById('casualBtn').addEventListener('click', () => setStyleMode('casual'));
+            document.getElementById('formalBtn').addEventListener('click', () => setStyleMode('formal'));
+            document.getElementById('toggleStyleBtn').addEventListener('click', () => setStyleMode('auto'));
+
+            // Modal event listeners
+            document.getElementById('closeModalBtn').addEventListener('click', closeResponseActions);
+            document.getElementById('submitFeedbackBtn').addEventListener('click', submitFeedback);
             
-            if (strictStyleCheckbox) {
-                strictStyleCheckbox.addEventListener('change', function() {
-                    console.log('Strict style mode:', this.checked);
-                    // You can add logic here to save the setting
-                });
-            }
-            
-            if (intentClassificationCheckbox) {
-                intentClassificationCheckbox.addEventListener('change', function() {
-                    console.log('Intent classification:', this.checked);
-                    // You can add logic here to save the setting
-                });
-            }
-
-// REPLACE LINES 201-226 in chat-enhanced.ejs
-// Add event listeners for quick action buttons
-document.getElementById('styleCustomizeBtn').addEventListener('click', function() {
-    window.open('/twin/' + getCurrentTwinId() + '/style-customize', '_blank');
-});
-
-document.getElementById('learningBtn').addEventListener('click', function() {
-    window.open('/twin/' + getCurrentTwinId() + '/learning-dashboard', '_blank');
-});
-
-document.getElementById('analyticsBtn').addEventListener('click', function() {
-    window.open('/analytics', '_blank');
-});
-
-// Quick style buttons
-document.getElementById('casualBtn').addEventListener('click', () => setStyleMode('casual'));
-document.getElementById('formalBtn').addEventListener('click', () => setStyleMode('formal'));
-document.getElementById('toggleStyleBtn').addEventListener('click', () => setStyleMode('auto'));
-
-// Simple feedback
-document.getElementById('thumbsUpBtn').addEventListener('click', () => giveFeedback('positive'));
-document.getElementById('thumbsDownBtn').addEventListener('click', () => giveFeedback('negative'));
-document.getElementById('regenerateBtn').addEventListener('click', regenerateResponse);
-document.getElementById('copyBtn').addEventListener('click', copyResponse);        });
+            // Feedback buttons
+            document.getElementById('thumbsUpBtn').addEventListener('click', () => giveFeedback('positive'));
+            document.getElementById('thumbsDownBtn').addEventListener('click', () => giveFeedback('negative'));
+            document.getElementById('regenerateBtn').addEventListener('click', () => regenerateResponse(currentResponseId));
+            document.getElementById('copyBtn').addEventListener('click', () => copyResponse(currentResponseId));
 
 
         // Message form submission
@@ -289,6 +307,7 @@ document.getElementById('copyBtn').addEventListener('click', copyResponse);     
                         
                         // Store response metadata for actions
                         currentResponse = data.response;
+                        currentResponseId = responseId;
                         responseMetadata = {
                             intent: data.intent,
                             criticScore: data.criticScore,
@@ -386,17 +405,28 @@ document.getElementById('copyBtn').addEventListener('click', copyResponse);     
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'mt-2 flex space-x-2';
             actionsDiv.innerHTML = `
-                <button id="styleActionsBtn" class="text-xs text-blue-600 hover:text-blue-800">
-                    Style Actions
-                </button>
-                <button id="regenerateBtn" class="text-xs text-green-600 hover:text-green-800">
-                    Regenerate
-                </button>
-            `;
-            
-            // Add event listeners for the dynamically created buttons
-            actionsDiv.querySelector('#styleActionsBtn').addEventListener('click', () => showResponseActions(responseId));
-            actionsDiv.querySelector('#regenerateBtn').addEventListener('click', () => regenerateResponse(responseId));
+<div class="flex space-x-2 text-xs">
+    <button onclick="copyResponse('${responseId}')" class="text-gray-600 hover:text-gray-800">
+        📋 Copy
+    </button>
+    <button onclick="upvoteResponse('${responseId}')" class="text-green-600 hover:text-green-800">
+        👍 Good
+    </button>
+    <button onclick="downvoteResponse('${responseId}')" class="text-red-600 hover:text-red-800">
+        👎 Bad
+    </button>
+    <button onclick="regenerateResponse('${responseId}')" class="text-blue-600 hover:text-blue-800">
+        🔄 Regenerate
+    </button>
+    <button onclick="shareResponse('${responseId}')" class="text-purple-600 hover:text-purple-800">
+        📤 Share
+    </button>
+    <button onclick="adjustTone('${responseId}')" class="text-orange-600 hover:text-orange-800">
+        🎨 Adjust Tone
+    </button>
+</div>`;            
+            // Store current response ID for actions
+            currentResponseId = responseId;
             
             messageDiv.appendChild(actionsDiv);
         }
@@ -499,8 +529,38 @@ document.getElementById('copyBtn').addEventListener('click', copyResponse);     
 
         // Regenerate response
         async function regenerateResponse(responseId) {
-            // This would implement response regeneration
-            showNotification('Regeneration feature coming soon!', 'info');
+            try {
+                const response = await fetch(`/api/chat/${currentChatId}/regenerate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '<%= csrfToken %>'
+                    },
+                    body: JSON.stringify({
+                        responseId: responseId,
+                        tonePreference: 'default'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update the response in the chat
+                    const messageDiv = document.getElementById(responseId);
+                    if (messageDiv) {
+                        const contentDiv = messageDiv.querySelector('p');
+                        if (contentDiv) {
+                            contentDiv.textContent = data.newResponse;
+                        }
+                    }
+                    showNotification('Response regenerated!', 'success');
+                } else {
+                    showNotification('Failed to regenerate response', 'error');
+                }
+            } catch (error) {
+                console.error('Regenerate response error:', error);
+                showNotification('Error regenerating response', 'error');
+            }
         }
 
         // Update intent display
@@ -559,6 +619,55 @@ document.getElementById('copyBtn').addEventListener('click', copyResponse);     
             }
         }
 
+        // Enhanced feedback functions
+async function upvoteResponse(responseId) {
+  await submitFeedback(responseId, 'positive', null);
+  showNotification('Thanks for the feedback! 👍', 'success');
+}
+
+async function downvoteResponse(responseId) {
+  showResponseActions(responseId); // Show modal for suggestions
+}
+
+async function submitFeedback(responseId, rating, suggestion, tonePreference) {
+  try {
+    await fetch(`/api/chat/${currentChatId}/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': '<%= csrfToken %>'
+      },
+      body: JSON.stringify({
+        responseId,
+        rating,
+        suggestion,
+        tonePreference
+      })
+    });
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+  }
+}
+
+function copyResponse(responseId) {
+  const responseElement = document.getElementById(responseId);
+  if (responseElement) {
+    const text = responseElement.textContent;
+    navigator.clipboard.writeText(text);
+    showNotification('Response copied to clipboard! 📋', 'success');
+  } else {
+    showNotification('Could not find response to copy', 'error');
+  }
+}
+
+function shareResponse(responseId) {
+  // Implement sharing functionality
+  showNotification('Share feature coming soon! 📤', 'info');
+}
+
+function adjustTone(responseId) {
+  showResponseActions(responseId);
+}
 
 // Get twin ID from server
 const currentTwinId = '<%= twinId %>';
@@ -600,11 +709,24 @@ function giveFeedback(type) {
     closeResponseActions();
 }
 
-function copyResponse() {
-    if (currentResponse) {
-        navigator.clipboard.writeText(currentResponse);
-        showNotification('Response copied!', 'success');
+// Add missing function
+function setTonePreference(tone) {
+    console.log('Setting tone preference:', tone);
+    showNotification(`Tone preference: ${tone}`, 'info');
+}
+
+// Add missing function for modal feedback submission
+function submitFeedback() {
+    const rating = document.querySelector('input[name="rating"]:checked')?.value;
+    const suggestion = document.getElementById('suggestionInput').value;
+    const tonePreference = document.querySelector('input[name="tonePreference"]:checked')?.value;
+    
+    if (rating) {
+        submitFeedback(currentResponseId, rating, suggestion, tonePreference);
         closeResponseActions();
+        showNotification('Feedback submitted!', 'success');
+    } else {
+        showNotification('Please select a rating', 'error');
     }
 }
 
@@ -623,6 +745,7 @@ function copyResponse() {
                 notification.remove();
             }, 3000);
         }
+        }); // Close DOMContentLoaded
     </script>
 </body>
 </html>

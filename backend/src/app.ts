@@ -2067,6 +2067,108 @@ app.post('/api/twin/:id/update-persona', requireJWTFromCookie, async (req: any, 
   }
 });
 
+// Feedback API endpoints
+app.post('/api/chat/:chatId/feedback', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { chatId } = req.params;
+    const { responseId, rating, suggestion, tonePreference } = req.body;
+    const userId = req.user.id;
+    
+    // Store feedback in database
+    await db.query(`
+      INSERT INTO "ChatFeedback" ("chatId", "responseId", "userId", "rating", "suggestion", "tonePreference", "createdAt")
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    `, [chatId, responseId, userId, rating, suggestion, tonePreference]);
+    
+    // Update AI learning data
+    await updateAILearning(chatId, rating, suggestion, tonePreference);
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Feedback API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Regenerate response API
+app.post('/api/chat/:chatId/regenerate', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { chatId } = req.params;
+    const { responseId, tonePreference } = req.body;
+    const userId = req.user.id;
+    
+    // Generate new response with tone preference
+    const newResponse = await generateResponseWithTone(chatId, tonePreference);
+    
+    res.json({ success: true, newResponse });
+  } catch (error) {
+    console.error('Regenerate API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Helper function to update AI learning
+async function updateAILearning(chatId: string, rating: string, suggestion: string, tonePreference: string) {
+  try {
+    // Get the twin ID from the chat
+    const chatResult = await db.query(`
+      SELECT "twinId" FROM "Chat" WHERE id = $1
+    `, [chatId]);
+    
+    if (chatResult.rows.length === 0) return;
+    
+    const twinId = chatResult.rows[0].twinId;
+    
+    // Store learning data
+    await db.query(`
+      INSERT INTO "AILearning" ("twinId", "userId", "learningData", "lastUpdated")
+      VALUES ($1, $2, $3, NOW())
+      ON CONFLICT ("twinId") DO UPDATE SET
+        "learningData" = $3,
+        "lastUpdated" = NOW()
+    `, [twinId, chatId, JSON.stringify({
+      rating,
+      suggestion,
+      tonePreference,
+      timestamp: new Date().toISOString()
+    })]);
+  } catch (error) {
+    console.error('Update AI learning error:', error);
+  }
+}
+
+// Helper function to generate response with tone
+async function generateResponseWithTone(chatId: string, tonePreference: string) {
+  try {
+    // Get the last user message
+    const chatResult = await db.query(`
+      SELECT "lastUserMessage" FROM "Chat" WHERE id = $1
+    `, [chatId]);
+    
+    if (chatResult.rows.length === 0) {
+      return "I'm sorry, I couldn't find the previous message to regenerate.";
+    }
+    
+    const lastMessage = chatResult.rows[0].lastUserMessage;
+    
+    // Generate new response with tone preference
+    // This is a simplified version - you can integrate with your AI service
+    const toneInstructions = {
+      'more_casual': 'Respond in a more casual, friendly tone',
+      'more_formal': 'Respond in a more formal, professional tone',
+      'more_helpful': 'Respond in a more helpful, detailed manner'
+    };
+    
+    const instruction = toneInstructions[tonePreference] || 'Respond naturally';
+    
+    // For now, return a mock response (replace with actual AI generation)
+    return `[Regenerated with ${tonePreference} tone] ${lastMessage}`;
+  } catch (error) {
+    console.error('Generate response with tone error:', error);
+    return "I'm sorry, I couldn't regenerate the response.";
+  }
+}
+
 // Chat history page route
 app.get('/chat/history', requireJWTFromCookie, (req: any, res) => {
   res.render('chat-history', {
