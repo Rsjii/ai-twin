@@ -1,17 +1,17 @@
 <%- include('layout', { title: 'Chat - AI Twin', body: `
-<div class="px-4 py-6 sm:px-0">
+<div class="px-4 py-6 sm:px-0 mobile-p-4">
     <div class="max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-900">Chat with Your AI Twin</h1>
-            <a href="/dashboard" class="text-primary hover:text-secondary">← Back to Dashboard</a>
+        <div class="flex justify-between items-center mb-6 mobile-flex-col mobile-gap-2">
+            <h1 class="text-3xl font-bold text-gray-900 mobile-text-2xl mobile-text-center">Chat with Your AI Twin</h1>
+            <a href="/dashboard" class="text-primary hover:text-secondary mobile-text-sm touch-target">← Back to Dashboard</a>
         </div>
         
-        <div class="flex gap-6">
+        <div class="flex gap-6 mobile-flex-col mobile-gap-4">
             <!-- Chat History Sidebar -->
-            <div class="w-80 bg-white rounded-lg shadow-lg p-6">
+            <div class="w-80 bg-white rounded-lg shadow-lg p-6 mobile-w-full mobile-card mobile-p-4">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold text-gray-900">Previous Chats</h2>
-                    <button onclick="loadChatHistory()" class="text-primary hover:text-secondary">
+                    <h2 class="text-lg font-semibold text-gray-900 mobile-text-base">Previous Chats</h2>
+                    <button onclick="loadChatHistory()" class="text-primary hover:text-secondary touch-target">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                         </svg>

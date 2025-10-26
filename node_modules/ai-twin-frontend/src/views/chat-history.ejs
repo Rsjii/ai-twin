@@ -1,9 +1,9 @@
 <%- include('layout', { title: 'Chat History - AI Twin', body: `
-<div class="px-4 py-6 sm:px-0">
+<div class="px-4 py-6 sm:px-0 mobile-p-4">
     <div class="max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-900">Chat History</h1>
-            <a href="/dashboard" class="text-primary hover:text-secondary flex items-center">
+        <div class="flex justify-between items-center mb-6 mobile-flex-col mobile-gap-2">
+            <h1 class="text-3xl font-bold text-gray-900 mobile-text-2xl mobile-text-center">Chat History</h1>
+            <a href="/dashboard" class="text-primary hover:text-secondary flex items-center mobile-text-sm touch-target">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
@@ -11,13 +11,13 @@
             </a>
         </div>
         
-        <div class="grid lg:grid-cols-3 gap-6">
+        <div class="grid lg:grid-cols-3 gap-6 mobile-grid-cols-1 mobile-gap-4">
             <!-- Chat History Sidebar -->
             <div class="lg:col-span-1">
-                <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="bg-white rounded-lg shadow-lg p-6 mobile-card mobile-p-4">
                     <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-xl font-semibold text-gray-800">Previous Chats</h2>
-                        <span id="totalChats" class="text-sm text-gray-500">0 chats</span>
+                        <h2 class="text-xl font-semibold text-gray-800 mobile-text-lg">Previous Chats</h2>
+                        <span id="totalChats" class="text-sm text-gray-500 mobile-text-xs">0 chats</span>
                     </div>
                     
                     <div id="chatHistoryList" class="space-y-3 max-h-96 overflow-y-auto">

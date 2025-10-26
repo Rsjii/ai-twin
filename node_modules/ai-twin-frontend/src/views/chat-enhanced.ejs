@@ -2,15 +2,74 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Enhanced Chat - AI Twin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <div class="flex h-screen">
-        <!-- Sidebar -->
-        <div class="w-64 bg-white shadow-lg">
+        <!-- Mobile Header -->
+        <div class="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <a href="/dashboard" class="text-gray-600 hover:text-gray-900">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </a>
+                <h1 class="text-lg font-semibold text-gray-900">Enhanced Chat</h1>
+            </div>
+            <button id="mobile-chat-menu-btn" class="p-2 text-gray-600 hover:text-gray-900">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Mobile Chat Sidebar -->
+        <div id="mobile-chat-sidebar" class="fixed top-0 right-0 h-full w-80 bg-white shadow-xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out lg:hidden">
+            <div class="p-6">
+                <!-- Close Button -->
+                <button id="mobile-chat-close-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                
+                <!-- Chat History -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Chat History</h3>
+                    <div id="mobile-chat-history" class="space-y-2 max-h-64 overflow-y-auto">
+                        <!-- Chat history items will be populated here -->
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="space-y-3">
+                    <button id="mobile-new-chat-btn" class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                        <div class="flex items-center space-x-3">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                            <span class="text-gray-700">New Chat</span>
+                        </div>
+                    </button>
+                    
+                    <button id="mobile-settings-btn" class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                        <div class="flex items-center space-x-3">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <span class="text-gray-700">Settings</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop Sidebar -->
+        <div class="hidden lg:block w-64 bg-white shadow-lg">
             <div class="p-4 border-b">
                 <h2 class="text-lg font-semibold">AI Twin Chat</h2>
                 <p class="text-sm text-gray-600">Enhanced with style learning</p>
@@ -60,8 +119,8 @@
 
         <!-- Main Chat Area -->
         <div class="flex-1 flex flex-col">
-            <!-- Chat Header -->
-            <div class="bg-white border-b px-6 py-4">
+            <!-- Desktop Chat Header -->
+            <div class="hidden lg:block bg-white border-b px-6 py-4">
                 <div class="flex justify-between items-center">
                     <div>
                         <div class="flex items-center space-x-3">
@@ -84,12 +143,12 @@
             </div>
 
             <!-- Chat Messages -->
-            <div class="flex-1 overflow-y-auto p-6 space-y-4" id="chatMessages">
+            <div class="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4" id="chatMessages">
                 <!-- Messages will be loaded here -->
             </div>
 
             <!-- Message Input -->
-            <div class="bg-white border-t p-6">
+            <div class="bg-white border-t p-4 lg:p-6">
                 <form id="messageForm" class="space-y-4">
                     <div>
                         <label for="messageInput" class="block text-sm font-medium text-gray-700 mb-2">Your Message</label>
@@ -98,7 +157,7 @@
                             name="message"
                             rows="3"
                             placeholder="Type your message here..."
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mobile-form"
                             maxlength="300"
                             required
                         ></textarea>
@@ -106,12 +165,15 @@
                             <span id="charCount">0</span> / 300 characters
                         </div>
                     </div>
-                    <div class="flex space-x-4">
-                        <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                    <div class="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-4">
+                        <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold mobile-btn">
                             Send Message
                         </button>
-                        <button type="button" id="loadHistoryBtn" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors font-semibold">
+                        <button type="button" id="loadHistoryBtn" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors font-semibold mobile-btn">
                             Load History
+                        </button>
+                        <button type="button" id="mobile-history-btn" class="lg:hidden bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors font-semibold mobile-btn">
+                            Chat History
                         </button>
                     </div>
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -198,6 +260,54 @@
     </div>
 </div>
     <script>
+        // Mobile chat functionality
+        function openMobileChatSidebar() {
+            const sidebar = document.getElementById('mobile-chat-sidebar');
+            if (sidebar) {
+                sidebar.classList.remove('translate-x-full');
+                sidebar.classList.add('translate-x-0');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        
+        function closeMobileChatSidebar() {
+            const sidebar = document.getElementById('mobile-chat-sidebar');
+            if (sidebar) {
+                sidebar.classList.add('translate-x-full');
+                sidebar.classList.remove('translate-x-0');
+                document.body.style.overflow = '';
+            }
+        }
+        
+        // Touch gesture handling for chat
+        let chatTouchStartX = 0;
+        let chatTouchStartY = 0;
+        
+        function handleChatTouchStart(e) {
+            chatTouchStartX = e.touches[0].clientX;
+            chatTouchStartY = e.touches[0].clientY;
+        }
+        
+        function handleChatTouchEnd(e) {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const deltaX = touchEndX - chatTouchStartX;
+            const deltaY = touchEndY - chatTouchStartY;
+            
+            // Check if it's a horizontal swipe
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+                const sidebar = document.getElementById('mobile-chat-sidebar');
+                
+                if (deltaX < 0 && sidebar && sidebar.classList.contains('translate-x-0')) {
+                    // Swipe left to close sidebar
+                    closeMobileChatSidebar();
+                } else if (deltaX > 0 && sidebar && sidebar.classList.contains('translate-x-full')) {
+                    // Swipe right to open sidebar
+                    openMobileChatSidebar();
+                }
+            }
+        }
+
         // Global variables
         let currentChatId = null;
         let currentResponse = null;
@@ -978,11 +1088,44 @@ function formatTime(timestamp) {
     return Math.floor(diff / 86400000) + 'd ago';
 }
 
-// Initialize chat
+        // Initialize chat
         document.addEventListener('DOMContentLoaded', function() {
             // Get chat ID from EJS variable
             currentChatId = '<%= chatId %>';
             console.log('Enhanced chat initialized with chatId:', currentChatId);
+            
+            // Mobile event listeners
+            const mobileChatMenuBtn = document.getElementById('mobile-chat-menu-btn');
+            const mobileChatCloseBtn = document.getElementById('mobile-chat-close-btn');
+            const mobileHistoryBtn = document.getElementById('mobile-history-btn');
+            const mobileNewChatBtn = document.getElementById('mobile-new-chat-btn');
+            const mobileSettingsBtn = document.getElementById('mobile-settings-btn');
+            
+            if (mobileChatMenuBtn) {
+                mobileChatMenuBtn.addEventListener('click', openMobileChatSidebar);
+            }
+            
+            if (mobileChatCloseBtn) {
+                mobileChatCloseBtn.addEventListener('click', closeMobileChatSidebar);
+            }
+            
+            if (mobileHistoryBtn) {
+                mobileHistoryBtn.addEventListener('click', openMobileChatSidebar);
+            }
+            
+            if (mobileNewChatBtn) {
+                mobileNewChatBtn.addEventListener('click', createNewChat);
+            }
+            
+            if (mobileSettingsBtn) {
+                mobileSettingsBtn.addEventListener('click', function() {
+                    window.open('/twin/' + getCurrentTwinId() + '/style-customize', '_blank');
+                });
+            }
+            
+            // Touch gesture event listeners
+            document.addEventListener('touchstart', handleChatTouchStart, { passive: true });
+            document.addEventListener('touchend', handleChatTouchEnd, { passive: true });
             
             loadChatHistory();
             loadCurrentChatMessages();

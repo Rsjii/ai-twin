@@ -2,10 +2,420 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Learning Dashboard - AI Twin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <style>
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem !important;
+            }
+            
+            /* Mobile header adjustments */
+            h1 {
+                font-size: 1.5rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            /* Mobile breadcrumbs */
+            .breadcrumb {
+                font-size: 0.75rem !important;
+                overflow-x: auto !important;
+                white-space: nowrap !important;
+            }
+            
+            /* Mobile quick navigation */
+            .quick-nav-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 0.75rem !important;
+            }
+            
+            .quick-nav-item {
+                padding: 0.75rem !important;
+                text-align: center !important;
+            }
+            
+            .quick-nav-item .text-2xl {
+                font-size: 1.5rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            .quick-nav-item h4 {
+                font-size: 0.75rem !important;
+                margin-bottom: 0.25rem !important;
+            }
+            
+            .quick-nav-item p {
+                font-size: 0.625rem !important;
+            }
+            
+            /* Mobile learning progress */
+            .learning-progress-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            
+            .learning-progress-item {
+                text-align: center !important;
+                padding: 1rem !important;
+            }
+            
+            .learning-progress-item .text-3xl {
+                font-size: 2rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            /* Mobile analytics grid */
+            .analytics-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            
+            .analytics-chart {
+                height: 200px !important;
+            }
+            
+            /* Mobile sections */
+            .section {
+                padding: 1rem !important;
+                margin-bottom: 1rem !important;
+            }
+            
+            .section h2, .section h3 {
+                font-size: 1.125rem !important;
+                margin-bottom: 0.75rem !important;
+            }
+            
+            /* Mobile forms */
+            .form-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            
+            .form-input {
+                padding: 0.75rem !important;
+                font-size: 0.875rem !important;
+            }
+            
+            .form-label {
+                font-size: 0.875rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            /* Mobile buttons */
+            .btn {
+                padding: 0.75rem 1rem !important;
+                font-size: 0.875rem !important;
+                min-height: 44px !important;
+            }
+            
+            .btn-group {
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+            }
+            
+            .btn-group .btn {
+                width: 100% !important;
+            }
+            
+            /* Mobile lists */
+            .list-container {
+                max-height: 300px !important;
+                padding: 0.75rem !important;
+            }
+            
+            .list-item {
+                padding: 0.75rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            .list-item .text-sm {
+                font-size: 0.75rem !important;
+            }
+            
+            .list-item .text-xs {
+                font-size: 0.625rem !important;
+            }
+            
+            /* Mobile modals */
+            .modal {
+                padding: 1rem !important;
+            }
+            
+            .modal-content {
+                max-width: 95vw !important;
+                margin: 0.5rem !important;
+            }
+            
+            .modal-header {
+                padding: 1rem !important;
+            }
+            
+            .modal-body {
+                padding: 1rem !important;
+            }
+            
+            .modal-footer {
+                padding: 1rem !important;
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+            }
+            
+            .modal-footer .btn {
+                width: 100% !important;
+            }
+            
+            /* Mobile achievements grid */
+            .achievements-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 0.75rem !important;
+            }
+            
+            .achievement-item {
+                padding: 0.75rem !important;
+                text-align: center !important;
+            }
+            
+            .achievement-item .text-2xl {
+                font-size: 1.5rem !important;
+                margin-bottom: 0.25rem !important;
+            }
+            
+            .achievement-item .text-xs {
+                font-size: 0.625rem !important;
+            }
+            
+            /* Mobile performance metrics */
+            .performance-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 0.75rem !important;
+            }
+            
+            .performance-item {
+                padding: 0.75rem !important;
+                text-align: center !important;
+            }
+            
+            .performance-item .text-2xl {
+                font-size: 1.5rem !important;
+                margin-bottom: 0.25rem !important;
+            }
+            
+            .performance-item .text-sm {
+                font-size: 0.75rem !important;
+            }
+            
+            /* Mobile milestones */
+            .milestones-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            
+            .milestone-item {
+                padding: 0.75rem !important;
+                flex-direction: column !important;
+                text-align: center !important;
+            }
+            
+            .milestone-item .flex {
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+            }
+            
+            /* Mobile templates */
+            .templates-grid {
+                grid-template-columns: 1fr !important;
+                gap: 0.75rem !important;
+            }
+            
+            .template-item {
+                padding: 0.75rem !important;
+                text-align: center !important;
+            }
+            
+            .template-item .text-2xl {
+                font-size: 1.5rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            .template-item h4 {
+                font-size: 0.875rem !important;
+                margin-bottom: 0.25rem !important;
+            }
+            
+            .template-item p {
+                font-size: 0.75rem !important;
+            }
+            
+            /* Mobile action buttons */
+            .action-buttons {
+                flex-direction: column !important;
+                gap: 0.75rem !important;
+            }
+            
+            .action-buttons .btn {
+                width: 100% !important;
+            }
+            
+            /* Mobile scrollbars */
+            .scrollable {
+                scrollbar-width: thin !important;
+                scrollbar-color: #cbd5e0 #f7fafc !important;
+            }
+            
+            .scrollable::-webkit-scrollbar {
+                width: 4px !important;
+                height: 4px !important;
+            }
+            
+            .scrollable::-webkit-scrollbar-track {
+                background: #f7fafc !important;
+            }
+            
+            .scrollable::-webkit-scrollbar-thumb {
+                background: #cbd5e0 !important;
+                border-radius: 2px !important;
+            }
+            
+            .scrollable::-webkit-scrollbar-thumb:hover {
+                background: #a0aec0 !important;
+            }
+            
+            /* Mobile touch targets */
+            .touch-target {
+                min-height: 44px !important;
+                min-width: 44px !important;
+            }
+            
+            /* Mobile spacing */
+            .mobile-spacing {
+                margin-bottom: 1rem !important;
+            }
+            
+            .mobile-padding {
+                padding: 1rem !important;
+            }
+            
+            /* Mobile text sizes */
+            .mobile-text-sm {
+                font-size: 0.875rem !important;
+            }
+            
+            .mobile-text-xs {
+                font-size: 0.75rem !important;
+            }
+            
+            /* Mobile responsive utilities */
+            .mobile-hidden {
+                display: none !important;
+            }
+            
+            .mobile-block {
+                display: block !important;
+            }
+            
+            .mobile-flex {
+                display: flex !important;
+            }
+            
+            .mobile-grid {
+                display: grid !important;
+            }
+            
+            /* Mobile animations */
+            .mobile-fade-in {
+                animation: mobileFadeIn 0.3s ease-in-out !important;
+            }
+            
+            @keyframes mobileFadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            /* Mobile shadows */
+            .mobile-shadow {
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+            }
+            
+            .mobile-shadow-lg {
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+            }
+            
+            /* Mobile gradients */
+            .mobile-gradient {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            }
+            
+            /* Mobile glass effect */
+            .mobile-glass {
+                background: rgba(255, 255, 255, 0.9) !important;
+                backdrop-filter: blur(10px) !important;
+                border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            }
+        }
+        
+        /* Tablet styles */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container {
+                padding: 1.5rem !important;
+            }
+            
+            .quick-nav-grid {
+                grid-template-columns: repeat(4, 1fr) !important;
+            }
+            
+            .learning-progress-grid {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+            
+            .analytics-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            
+            .achievements-grid {
+                grid-template-columns: repeat(4, 1fr) !important;
+            }
+            
+            .performance-grid {
+                grid-template-columns: repeat(4, 1fr) !important;
+            }
+        }
+        
+        /* Desktop styles */
+        @media (min-width: 1025px) {
+            .container {
+                padding: 2rem !important;
+            }
+            
+            .quick-nav-grid {
+                grid-template-columns: repeat(4, 1fr) !important;
+            }
+            
+            .learning-progress-grid {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+            
+            .analytics-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            
+            .achievements-grid {
+                grid-template-columns: repeat(4, 1fr) !important;
+            }
+            
+            .performance-grid {
+                grid-template-columns: repeat(4, 1fr) !important;
+            }
+        }
+    </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-8">
@@ -17,7 +427,7 @@
 
         <!-- Navigation Breadcrumbs -->
 <div class="mb-6">
-    <nav class="flex" aria-label="Breadcrumb">
+    <nav class="flex breadcrumb" aria-label="Breadcrumb">
       <ol class="flex items-center space-x-2">
         <li>
           <a href="/dashboard" class="text-gray-500 hover:text-gray-700 transition-colors">
@@ -49,29 +459,29 @@
   <!-- Quick Navigation -->
   <div class="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Navigation</h3>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <a href="/twin/<%= twinId %>/ai-edit" class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 quick-nav-grid">
+      <a href="/twin/<%= twinId %>/ai-edit" class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200 quick-nav-item">
         <div class="text-center">
           <div class="text-2xl mb-2">🤖</div>
           <h4 class="text-sm font-medium text-gray-900">AI Edit</h4>
           <p class="text-xs text-gray-600">Edit system prompt & persona</p>
         </div>
       </a>
-      <a href="/twin/<%= twinId %>/style-customize" class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200">
+      <a href="/twin/<%= twinId %>/style-customize" class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200 quick-nav-item">
         <div class="text-center">
           <div class="text-2xl mb-2">🎨</div>
           <h4 class="text-sm font-medium text-gray-900">Style Customize</h4>
           <p class="text-xs text-gray-600">Customize communication style</p>
         </div>
       </a>
-      <a href="/memory-management?twinId=<%= twinId %>" class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200">
+      <a href="/memory-management?twinId=<%= twinId %>" class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200 quick-nav-item">
         <div class="text-center">
           <div class="text-2xl mb-2">🧠</div>
           <h4 class="text-sm font-medium text-gray-900">Memory Management</h4>
           <p class="text-xs text-gray-600">Manage twin memories</p>
         </div>
       </a>
-      <a href="/analytics" class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200">
+      <a href="/analytics" class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200 quick-nav-item">
         <div class="text-center">
           <div class="text-2xl mb-2">📊</div>
           <h4 class="text-sm font-medium text-gray-900">Analytics</h4>
@@ -82,18 +492,18 @@
   </div>
 
         <!-- Learning Progress Overview -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8 section">
             <h2 class="text-xl font-semibold mb-4">Learning Progress</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="text-center">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 learning-progress-grid">
+                <div class="text-center learning-progress-item">
                     <div class="text-3xl font-bold text-blue-600 mb-2" id="totalInteractions">0</div>
                     <div class="text-sm text-gray-600">Total Interactions</div>
                 </div>
-                <div class="text-center">
+                <div class="text-center learning-progress-item">
                     <div class="text-3xl font-bold text-green-600 mb-2" id="learningScore">0%</div>
                     <div class="text-sm text-gray-600">Learning Score</div>
                 </div>
-                <div class="text-center">
+                <div class="text-center learning-progress-item">
                     <div class="text-3xl font-bold text-purple-600 mb-2" id="styleAccuracy">0%</div>
                     <div class="text-sm text-gray-600">Style Accuracy</div>
                 </div>
@@ -101,60 +511,60 @@
         </div>
 
         <!-- Learning Analytics -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 analytics-grid">
             <!-- Style Learning Chart -->
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="bg-white rounded-lg shadow-md p-6 section">
                 <h3 class="text-lg font-semibold mb-4">Style Learning Progress</h3>
-                <div id="styleChart" class="h-64 flex items-center justify-center text-gray-500">
+                <div id="styleChart" class="h-64 flex items-center justify-center text-gray-500 analytics-chart">
                     <p>Chart will be loaded here</p>
                 </div>
             </div>
 
             <!-- Recent Learning Events -->
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="bg-white rounded-lg shadow-md p-6 section">
                 <h3 class="text-lg font-semibold mb-4">Recent Learning Events</h3>
-                <div id="learningEvents" class="space-y-3">
+                <div id="learningEvents" class="space-y-3 list-container scrollable">
                     <p class="text-gray-500">Loading learning events...</p>
                 </div>
             </div>
         </div>
 
         <!-- Chat History Section -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+<div class="bg-white rounded-lg shadow-md p-6 mb-8 section">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Previous Chats</h3>
     <div class="mb-4">
       <p class="text-sm text-gray-600">Select chats to convert messages into training examples</p>
     </div>
-    <div id="chatHistoryList" class="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4">
+    <div id="chatHistoryList" class="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4 list-container scrollable">
       <div class="text-center text-gray-500 py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
         <p>Loading chat history...</p>
       </div>
     </div>
-    <div class="mt-4 flex space-x-2">
-      <button id="loadMoreChats" class="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded hover:bg-gray-200 transition-colors">
+    <div class="mt-4 flex space-x-2 btn-group">
+      <button id="loadMoreChats" class="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded hover:bg-gray-200 transition-colors btn touch-target">
         Load More Chats
       </button>
-      <button id="refreshChats" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
+      <button id="refreshChats" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors btn touch-target">
         Refresh
       </button>
     </div>
   </div>
 
         <!-- Learning Settings -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8 section">
             <h2 class="text-xl font-semibold mb-4">Learning Settings</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 form-grid">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Auto-Learning Mode</label>
-                    <select id="autoLearning" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Auto-Learning Mode</label>
+                    <select id="autoLearning" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input">
                         <option value="enabled">Enabled</option>
                         <option value="disabled">Disabled</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Learning Sensitivity</label>
-                    <select id="learningSensitivity" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Learning Sensitivity</label>
+                    <select id="learningSensitivity" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input">
                         <option value="low">Low</option>
                         <option value="medium" selected>Medium</option>
                         <option value="high">High</option>
@@ -165,56 +575,56 @@
 
 
         <!-- Memory Management Section -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+<div class="bg-white rounded-lg shadow-md p-6 mb-8 section">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Twin Memory</h3>
     <div class="mb-4 flex justify-between items-center">
       <p class="text-sm text-gray-600">Manage your twin's knowledge base</p>
       <div class="flex space-x-2">
-        <select id="memoryBucketFilter" class="text-sm border border-gray-300 rounded px-2 py-1">
+        <select id="memoryBucketFilter" class="text-sm border border-gray-300 rounded px-2 py-1 form-input">
           <option value="all">All Memories</option>
           <option value="facts">Facts</option>
           <option value="voice">Voice Patterns</option>
         </select>
       </div>
     </div>
-    <div id="memoryList" class="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4">
+    <div id="memoryList" class="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4 list-container scrollable">
       <div class="text-center text-gray-500 py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
         <p>Loading memories...</p>
       </div>
     </div>
-    <div class="mt-4 flex space-x-2">
-      <button id="addMemoryBtn" class="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors">
+    <div class="mt-4 flex space-x-2 btn-group">
+      <button id="addMemoryBtn" class="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors btn touch-target">
         Add Memory
       </button>
-      <button id="refreshMemories" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors">
+      <button id="refreshMemories" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors btn touch-target">
         Refresh
       </button>
     </div>
   </div>
 
         <!-- Action Buttons -->
-        <div class="flex justify-between items-center">
-            <button onclick="resetLearning()" class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600">
+        <div class="flex justify-between items-center action-buttons">
+            <button onclick="resetLearning()" class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 btn touch-target">
                 Reset Learning
             </button>
-            <div class="space-x-4">
-                <button onclick="exportLearningData()" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600">
+            <div class="space-x-4 btn-group">
+                <button onclick="exportLearningData()" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 btn touch-target">
                     Export Data
                 </button>
-                <button onclick="saveLearningSettings()" class="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
+                <button onclick="saveLearningSettings()" class="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 btn touch-target">
                     Save Settings
                 </button>
             </div>
         </div>
 
         <!-- Style Anchor Management -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+<div class="bg-white rounded-lg shadow-md p-6 mb-8 section">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Style Anchors</h3>
     <div class="mb-4 flex justify-between items-center">
       <p class="text-sm text-gray-600">Training examples that shape your twin's communication style</p>
       <div class="flex space-x-2">
-        <select id="anchorTypeFilter" class="text-sm border border-gray-300 rounded px-2 py-1">
+        <select id="anchorTypeFilter" class="text-sm border border-gray-300 rounded px-2 py-1 form-input">
           <option value="all">All Types</option>
           <option value="manual">Manual</option>
           <option value="chat_conversion">From Chats</option>
@@ -222,50 +632,50 @@
         </select>
       </div>
     </div>
-    <div id="styleAnchorsList" class="space-y-3 max-h-96 overflow-y-auto border rounded-lg p-4">
+    <div id="styleAnchorsList" class="space-y-3 max-h-96 overflow-y-auto border rounded-lg p-4 list-container scrollable">
       <div class="text-center text-gray-500 py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
         <p>Loading style anchors...</p>
       </div>
     </div>
-    <div class="mt-4 flex space-x-2">
-      <button id="addAnchorBtn" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors">
+    <div class="mt-4 flex space-x-2 btn-group">
+      <button id="addAnchorBtn" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors btn touch-target">
         Add Style Anchor
       </button>
-      <button id="refreshAnchors" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors">
+      <button id="refreshAnchors" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors btn touch-target">
         Refresh
       </button>
     </div>
   </div>
 
   <!-- Manual Training Interface -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+<div class="bg-white rounded-lg shadow-md p-6 mb-8 section">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Manual Training</h3>
     <div class="mb-4">
       <p class="text-sm text-gray-600">Add custom training examples to improve your twin's responses</p>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 form-grid">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">User Utterance</label>
-        <textarea id="userUtterance" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="What the user might say..."></textarea>
+        <label class="block text-sm font-medium text-gray-700 mb-2 form-label">User Utterance</label>
+        <textarea id="userUtterance" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input" placeholder="What the user might say..."></textarea>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Ideal Reply</label>
-        <textarea id="idealReply" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="How your twin should respond..."></textarea>
+        <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Ideal Reply</label>
+        <textarea id="idealReply" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input" placeholder="How your twin should respond..."></textarea>
       </div>
     </div>
-    <div class="mt-4 flex space-x-2">
-      <button id="addTrainingExample" class="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors">
+    <div class="mt-4 flex space-x-2 btn-group">
+      <button id="addTrainingExample" class="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors btn touch-target">
         Add Training Example
       </button>
-      <button id="clearTrainingForm" class="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors">
+      <button id="clearTrainingForm" class="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors btn touch-target">
         Clear
       </button>
     </div>
   </div>
 
   <!-- Chat Message Selection Interface -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+<div class="bg-white rounded-lg shadow-md p-6 mb-8 section">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Select Chat Messages for Training</h3>
     <div class="mb-4">
       <p class="text-sm text-gray-600">Choose specific messages from your chats to create training examples</p>
@@ -273,25 +683,25 @@
     
     <!-- Chat Selection -->
     <div class="mb-4">
-      <label class="block text-sm font-medium text-gray-700 mb-2">Select Chat</label>
-      <select id="chatSelection" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Select Chat</label>
+      <select id="chatSelection" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input">
         <option value="">Choose a chat...</option>
       </select>
     </div>
     
     <!-- Message Selection -->
     <div id="messageSelection" class="hidden">
-      <label class="block text-sm font-medium text-gray-700 mb-2">Select Messages</label>
-      <div id="messageList" class="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Select Messages</label>
+      <div id="messageList" class="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-4 list-container scrollable">
         <div class="text-center text-gray-500 py-8">
           <p>Select a chat to view messages</p>
         </div>
       </div>
-      <div class="mt-4 flex space-x-2">
-        <button id="selectAllMessages" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
+      <div class="mt-4 flex space-x-2 btn-group">
+        <button id="selectAllMessages" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors btn touch-target">
           Select All
         </button>
-        <button id="clearSelection" class="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors">
+        <button id="clearSelection" class="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors btn touch-target">
           Clear Selection
         </button>
       </div>
@@ -300,11 +710,11 @@
     <!-- Bulk Training Actions -->
     <div id="bulkTrainingActions" class="hidden mt-4 p-4 bg-gray-50 rounded-lg">
       <h4 class="text-sm font-medium text-gray-700 mb-2">Bulk Training Actions</h4>
-      <div class="flex space-x-2">
-        <button id="convertSelectedToTraining" class="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors">
+      <div class="flex space-x-2 btn-group">
+        <button id="convertSelectedToTraining" class="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors btn touch-target">
           Convert Selected to Training
         </button>
-        <button id="previewTrainingExamples" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors">
+        <button id="previewTrainingExamples" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors btn touch-target">
           Preview Examples
         </button>
       </div>
@@ -312,30 +722,30 @@
   </div>
 
         <!-- Memory Management Modal -->
-<div id="memoryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+<div id="memoryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 modal">
     <div class="flex items-center justify-center min-h-screen p-4">
-      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div class="px-6 py-4 border-b border-gray-200">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full modal-content">
+        <div class="px-6 py-4 border-b border-gray-200 modal-header">
           <h3 class="text-lg font-semibold text-gray-900" id="memoryModalTitle">Add Memory</h3>
         </div>
-        <div class="px-6 py-4">
+        <div class="px-6 py-4 modal-body">
           <form id="memoryForm">
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Memory Type</label>
-              <select id="memoryType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Memory Type</label>
+              <select id="memoryType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input">
                 <option value="facts">Facts</option>
                 <option value="voice">Voice Patterns</option>
               </select>
             </div>
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Memory Content</label>
-              <textarea id="memoryContent" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter memory content..."></textarea>
+              <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Memory Content</label>
+              <textarea id="memoryContent" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input" placeholder="Enter memory content..."></textarea>
             </div>
-            <div class="flex space-x-2">
-              <button type="submit" class="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors">
+            <div class="flex space-x-2 modal-footer">
+              <button type="submit" class="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors btn touch-target">
                 Save Memory
               </button>
-              <button type="button" id="closeMemoryModal" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors">
+              <button type="button" id="closeMemoryModal" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors btn touch-target">
                 Cancel
               </button>
             </div>
@@ -346,34 +756,34 @@
   </div>
   
   <!-- Style Anchor Management Modal -->
-  <div id="anchorModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+  <div id="anchorModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 modal">
     <div class="flex items-center justify-center min-h-screen p-4">
-      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div class="px-6 py-4 border-b border-gray-200">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full modal-content">
+        <div class="px-6 py-4 border-b border-gray-200 modal-header">
           <h3 class="text-lg font-semibold text-gray-900" id="anchorModalTitle">Add Style Anchor</h3>
         </div>
-        <div class="px-6 py-4">
+        <div class="px-6 py-4 modal-body">
           <form id="anchorForm">
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2">User Utterance</label>
-              <textarea id="anchorUserUtterance" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="What the user might say..."></textarea>
+              <label class="block text-sm font-medium text-gray-700 mb-2 form-label">User Utterance</label>
+              <textarea id="anchorUserUtterance" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input" placeholder="What the user might say..."></textarea>
             </div>
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Ideal Reply</label>
-              <textarea id="anchorIdealReply" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="How your twin should respond..."></textarea>
+              <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Ideal Reply</label>
+              <textarea id="anchorIdealReply" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input" placeholder="How your twin should respond..."></textarea>
             </div>
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Training Type</label>
-              <select id="anchorTrainingType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Training Type</label>
+              <select id="anchorTrainingType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input">
                 <option value="manual">Manual</option>
                 <option value="chat_conversion">From Chat</option>
               </select>
             </div>
-            <div class="flex space-x-2">
-              <button type="submit" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors">
+            <div class="flex space-x-2 modal-footer">
+              <button type="submit" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors btn touch-target">
                 Save Anchor
               </button>
-              <button type="button" id="closeAnchorModal" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors">
+              <button type="button" id="closeAnchorModal" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors btn touch-target">
                 Cancel
               </button>
             </div>
@@ -384,7 +794,7 @@
   </div>
 
   <!-- Training Validation & Feedback -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+<div class="bg-white rounded-lg shadow-md p-6 mb-8 section">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Training Validation & Feedback</h3>
     
     <!-- Training Effectiveness Score -->
@@ -415,23 +825,23 @@
     <!-- Training Achievements -->
     <div class="mb-6">
       <h4 class="text-sm font-medium text-gray-700 mb-2">Training Achievements</h4>
-      <div id="trainingAchievements" class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div class="p-3 bg-green-50 border border-green-200 rounded-lg text-center">
+      <div id="trainingAchievements" class="grid grid-cols-2 md:grid-cols-4 gap-3 achievements-grid">
+        <div class="p-3 bg-green-50 border border-green-200 rounded-lg text-center achievement-item">
           <div class="text-2xl mb-1">🎯</div>
           <p class="text-xs text-green-800">Style Master</p>
           <p class="text-xs text-green-600">10+ anchors</p>
         </div>
-        <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+        <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center achievement-item">
           <div class="text-2xl mb-1">🧠</div>
           <p class="text-xs text-blue-800">Memory Builder</p>
           <p class="text-xs text-blue-600">50+ memories</p>
         </div>
-        <div class="p-3 bg-purple-50 border border-purple-200 rounded-lg text-center">
+        <div class="p-3 bg-purple-50 border border-purple-200 rounded-lg text-center achievement-item">
           <div class="text-2xl mb-1">⚡</div>
           <p class="text-xs text-purple-800">Quick Learner</p>
           <p class="text-xs text-purple-600">5+ examples</p>
         </div>
-        <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg text-center">
+        <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg text-center achievement-item">
           <div class="text-2xl mb-1">🔒</div>
           <p class="text-xs text-gray-800">Locked</p>
           <p class="text-xs text-gray-600">Keep training!</p>
@@ -475,29 +885,29 @@
   </div>
 
   <!-- Training Templates Section -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+<div class="bg-white rounded-lg shadow-md p-6 mb-8 section">
   <h3 class="text-lg font-semibold text-gray-900 mb-4">Training Templates</h3>
   <div class="mb-4">
     <p class="text-sm text-gray-600">Use pre-built templates to quickly create training examples</p>
   </div>
   
   <!-- Template Categories -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors" onclick="loadTemplate('casual')">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 templates-grid">
+    <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors template-item" onclick="loadTemplate('casual')">
       <div class="text-center">
         <div class="text-2xl mb-2">😊</div>
         <h4 class="text-sm font-medium text-gray-900">Casual Conversation</h4>
         <p class="text-xs text-gray-600">Friendly, relaxed responses</p>
       </div>
     </div>
-    <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors" onclick="loadTemplate('professional')">
+    <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors template-item" onclick="loadTemplate('professional')">
       <div class="text-center">
         <div class="text-2xl mb-2">💼</div>
         <h4 class="text-sm font-medium text-gray-900">Professional</h4>
         <p class="text-xs text-gray-600">Formal, business-like responses</p>
       </div>
     </div>
-    <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors" onclick="loadTemplate('supportive')">
+    <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors template-item" onclick="loadTemplate('supportive')">
       <div class="text-center">
         <div class="text-2xl mb-2">🤗</div>
         <h4 class="text-sm font-medium text-gray-900">Supportive</h4>
@@ -519,11 +929,11 @@
         <p id="templateIdealReply" class="text-sm text-gray-900"></p>
       </div>
     </div>
-    <div class="mt-4 flex space-x-2">
-      <button id="useTemplate" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
+    <div class="mt-4 flex space-x-2 btn-group">
+      <button id="useTemplate" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors btn touch-target">
         Use This Template
       </button>
-      <button id="closeTemplate" class="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors">
+      <button id="closeTemplate" class="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors btn touch-target">
         Close
       </button>
     </div>
@@ -531,18 +941,18 @@
 </div>
 
   <!-- Learning Milestones Section -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+<div class="bg-white rounded-lg shadow-md p-6 mb-8 section">
   <h3 class="text-lg font-semibold text-gray-900 mb-4">Learning Milestones</h3>
   <div class="mb-4">
     <p class="text-sm text-gray-600">Track your twin's learning progress and achievements</p>
   </div>
   
   <!-- Milestone Progress -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 milestones-grid">
     <div>
       <h4 class="text-sm font-medium text-gray-700 mb-3">Current Milestones</h4>
       <div id="currentMilestones" class="space-y-3">
-        <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+        <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg milestone-item">
           <div class="flex items-center space-x-3">
             <div class="text-2xl">🎯</div>
             <div>
@@ -557,7 +967,7 @@
             </div>
           </div>
         </div>
-        <div class="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg milestone-item">
           <div class="flex items-center space-x-3">
             <div class="text-2xl">🧠</div>
             <div>
@@ -578,7 +988,7 @@
     <div>
       <h4 class="text-sm font-medium text-gray-700 mb-3">Upcoming Milestones</h4>
       <div id="upcomingMilestones" class="space-y-3">
-        <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+        <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg milestone-item">
           <div class="flex items-center space-x-3">
             <div class="text-2xl">⚡</div>
             <div>
@@ -593,7 +1003,7 @@
             </div>
           </div>
         </div>
-        <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+        <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg milestone-item">
           <div class="flex items-center space-x-3">
             <div class="text-2xl">🔒</div>
             <div>
@@ -615,48 +1025,48 @@
   <!-- Learning Goals -->
   <div class="border-t pt-6">
     <h4 class="text-sm font-medium text-gray-700 mb-3">Set Learning Goals</h4>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 form-grid">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Goal Type</label>
-        <select id="goalType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Goal Type</label>
+        <select id="goalType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input">
           <option value="style_anchors">Style Anchors</option>
           <option value="memories">Memories</option>
           <option value="training_examples">Training Examples</option>
         </select>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Target Count</label>
-        <input type="number" id="goalTarget" min="1" max="100" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter target number">
+        <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Target Count</label>
+        <input type="number" id="goalTarget" min="1" max="100" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input" placeholder="Enter target number">
       </div>
     </div>
-    <button id="setGoal" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors">
+    <button id="setGoal" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors btn touch-target">
       Set Goal
     </button>
   </div>
 </div>
 
   <!-- Performance Optimization Section -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+<div class="bg-white rounded-lg shadow-md p-6 mb-8 section">
   <h3 class="text-lg font-semibold text-gray-900 mb-4">Performance & Analytics</h3>
   <div class="mb-4">
     <p class="text-sm text-gray-600">Monitor your twin's performance and optimize learning</p>
   </div>
   
   <!-- Performance Metrics -->
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-    <div class="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 performance-grid">
+    <div class="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg performance-item">
       <div class="text-2xl font-bold text-blue-600 mb-1" id="responseTime">0ms</div>
       <div class="text-sm text-blue-800">Avg Response Time</div>
     </div>
-    <div class="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
+    <div class="text-center p-4 bg-green-50 border border-green-200 rounded-lg performance-item">
       <div class="text-2xl font-bold text-green-600 mb-1" id="accuracyScore">0%</div>
       <div class="text-sm text-green-800">Accuracy Score</div>
     </div>
-    <div class="text-center p-4 bg-purple-50 border border-purple-200 rounded-lg">
+    <div class="text-center p-4 bg-purple-50 border border-purple-200 rounded-lg performance-item">
       <div class="text-2xl font-bold text-purple-600 mb-1" id="learningRate">0%</div>
       <div class="text-sm text-purple-800">Learning Rate</div>
     </div>
-    <div class="text-center p-4 bg-orange-50 border border-orange-200 rounded-lg">
+    <div class="text-center p-4 bg-orange-50 border border-orange-200 rounded-lg performance-item">
       <div class="text-2xl font-bold text-orange-600 mb-1" id="userSatisfaction">0%</div>
       <div class="text-sm text-orange-800">User Satisfaction</div>
     </div>
@@ -690,20 +1100,20 @@
   <!-- Performance Actions -->
   <div class="border-t pt-6 mt-6">
     <h4 class="text-sm font-medium text-gray-700 mb-3">Performance Actions</h4>
-    <div class="flex flex-wrap gap-2">
-      <button id="optimizeMemories" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
+    <div class="flex flex-wrap gap-2 action-buttons">
+      <button id="optimizeMemories" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors btn touch-target">
         Optimize Memories
       </button>
-      <button id="analyzePerformance" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors">
+      <button id="analyzePerformance" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors btn touch-target">
         Analyze Performance
       </button>
-      <button id="exportAnalytics" class="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors">
+      <button id="exportAnalytics" class="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors btn touch-target">
         Export Analytics
       </button>
-      <button id="resetPerformance" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors">
+      <button id="resetPerformance" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors btn touch-target">
         Reset Metrics
       </button>
-      <button id="regeneratePrompt" class="bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 transition-colors">
+      <button id="regeneratePrompt" class="bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 transition-colors btn touch-target">
         🔄 Regenerate System Prompt
       </button>
     </div>
