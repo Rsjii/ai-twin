@@ -509,7 +509,10 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
     ]);
     
     const message = messageResult.rows[0];
-    
+
+// Update chat metadata
+await updateChatMetadata(chat.id, content, 'twin');
+
     // Log message approved event using raw SQL
     await db.query(`
       INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
@@ -748,6 +751,9 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       aiResponse = "I'm having trouble thinking right now. Could you try again?";
     }
 
+// Update chat metadata
+await updateChatMetadata(chat.id, message.trim(), 'human');
+
     // Save AI response using raw SQL
     let aiMessage;
     try {
@@ -826,6 +832,79 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+/**
+ * Update chat metadata when new message is added
+ */
+export const updateChatMetadata = async (chatId: string, message: string, sender: string) => {
+  try {
+    console.log('Updating chat metadata:', { chatId, message: message.substring(0, 50), sender });
+    
+    // Update last message and timestamp
+    const updateResult = await db.query(`
+      UPDATE "Chat" SET "lastMessage" = $1, "updatedAt" = NOW() WHERE id = $2
+    `, [message, chatId]);
+    
+    console.log('Last message updated:', updateResult.rowCount);
+
+    // Update message count
+    const countResult = await db.query(`
+      UPDATE "Chat" SET "messageCount" = (
+        SELECT COUNT(*) FROM "Message" 
+        WHERE "chatId" = $1
+        AND sender = 'human'
+      ) *2 WHERE id = $1
+    `, [chatId]);
+    
+    console.log('Message count updated:', countResult.rowCount);
+
+    // Generate title if this is the first message
+    const chatResult = await db.query(`
+      SELECT "title", "messageCount" FROM "Chat" WHERE id = $1
+    `, [chatId]);
+
+    if (chatResult.rows.length > 0) {
+      const chat = chatResult.rows[0];
+      
+      // If title is default and this is the first user message, generate title
+      if ((!chat.title || chat.title === 'New Chat') && sender === 'human' && chat.messageCount === 1) {
+        try {
+          const { OpenAI } = await import('openai');
+          const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY
+          });
+
+          const completion = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [{
+              role: 'system',
+              content: `Generate a short, descriptive title (max 30 characters) for a chat that starts with: "${message}"`
+            }],
+            max_tokens: 20,
+            temperature: 0.3
+          });
+
+          const title = completion.choices[0]?.message?.content?.trim() || 'New Chat';
+          const finalTitle = title.length > 30 ? title.substring(0, 30) + '...' : title;
+
+          await db.query(`
+            UPDATE "Chat" SET "title" = $1 WHERE id = $2
+          `, [finalTitle, chatId]);
+          
+          console.log('Chat title generated:', finalTitle);
+        } catch (error) {
+          logger.error('Failed to generate chat title:', error);
+        }
+      }
+    }
+
+    console.log('Chat metadata updated successfully for chat:', chatId);
+  } catch (error) {
+    logger.error('Error updating chat metadata:', error);
+    throw error; // Re-throw to see the actual error
+  }
+};
+
 
 // Helper function to update style vector after chat
 async function updateStyleVectorAfterChat(twinId: string, userId: string) {

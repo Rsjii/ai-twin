@@ -348,3 +348,106 @@ export interface SessionData {
   userHandle?: string;
   csrfToken?: string;
 }
+
+// Style Learning System Interfaces
+
+export interface StyleAnchor {
+  id: string;
+  twin_id: string;
+  user_utterance: string;
+  ideal_reply: string;
+  tags: string[];
+  created_at: Date;
+}
+
+export interface MemChunk {
+  id: string;
+  twin_id: string;
+  bucket: 'facts' | 'voice';
+  text: string;
+  embedding?: number[];
+  ts: Date;
+}
+
+export interface StyleCorrection {
+  id: string;
+  twin_id: string;
+  knob: string; // shorter|casual|emoji_off|punchline
+  delta: number; // +1|-1
+  source?: string;
+  ts: Date;
+}
+
+export interface AIRun {
+  id: string;
+  twin_id: string;
+  mode: 'human' | 'ai2ai';
+  tokens_in: number;
+  tokens_out: number;
+  critic_score?: number;
+  regen: boolean;
+  latency_ms: number;
+  ts: Date;
+}
+
+export interface QualityMetrics {
+  avg_critic_score: number;
+  total_runs: number;
+  high_quality_runs: number;
+  avg_latency: number;
+  avg_tokens_in: number;
+  avg_tokens_out: number;
+}
+
+export interface AggregatedCorrections {
+  knob: string;
+  total_delta: number;
+  correction_count: number;
+}
+
+// Request/Response interfaces for API endpoints
+export interface CreateStyleAnchorRequest {
+  user_utterance: string;
+  ideal_reply: string;
+  tags?: string[];
+}
+
+export interface UpdateStyleAnchorRequest {
+  user_utterance: string;
+  ideal_reply: string;
+  tags: string[];
+}
+
+export interface CreateMemChunkRequest {
+  bucket: 'facts' | 'voice';
+  text: string;
+  embedding?: number[];
+}
+
+export interface CreateStyleCorrectionRequest {
+  knob: string;
+  delta: number;
+  source?: string;
+}
+
+export interface CreateAIRunRequest {
+  mode: 'human' | 'ai2ai';
+  tokens_in: number;
+  tokens_out: number;
+  critic_score?: number;
+  regen?: boolean;
+  latency_ms: number;
+}
+
+// Auto-suggest interfaces
+export interface AutoSuggestAnchor {
+  user_utterance: string;
+  ideal_reply: string;
+  tags: string[];
+  confidence: number;
+}
+
+export interface AutoSuggestResponse {
+  anchors: AutoSuggestAnchor[];
+  total_found: number;
+}

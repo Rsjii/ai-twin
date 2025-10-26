@@ -11,6 +11,7 @@ import { logger } from '../../config/logger';
 import { TwinService } from '../twin/twinService';
 import { classifyIntent, shapeByIntent } from '../../utils/intentClassification';
 import { runStyleCritic, checkBanlist, rewriteBanlist } from '../../utils/styleCritic';
+import { updateChatMetadata } from './chatController';
 
 const twinService = new TwinService();
 
@@ -117,6 +118,14 @@ export const generateEnhancedReply = async (req: any, res: Response) => {
     } catch (error) {
       console.warn('⚠️ Failed to save AI response:', error);
     }
+
+        // 8. Update chat metadata
+        try {
+          await updateChatMetadata(chatId, message, 'human');
+          console.log('✅ Chat metadata updated');
+        } catch (error) {
+          console.warn('⚠️ Failed to update chat metadata:', error);
+        }
 
     // 7. Log AI run (optional)
     try {

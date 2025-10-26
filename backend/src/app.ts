@@ -30,6 +30,7 @@ import adminAnalyticsRoutes from './modules/analytics/adminAnalyticsRoutes';
 import onboardingRoutes from './modules/onboarding/onboardingRoutes';
 import memoryRoutes from './modules/memory/memoryRoutes';
 import {learningScheduler} from './services/learningScheduler';
+import { getChatHistory, createNewChat, updateChatTitle, getChatSummary, generateChatTitle } from './modules/chat/chatManagementController';
 
 
 if(config.nodeEnv==='production'){
@@ -97,6 +98,13 @@ if (config.nodeEnv === 'development') {
 } else {
   app.use(morgan('combined'));
 }
+
+// Chat management routes
+app.get('/api/chats', requireJWTFromCookie, getChatHistory);
+app.post('/api/chats/new', requireJWTFromCookie, createNewChat);
+app.put('/api/chats/:id/title', requireJWTFromCookie, updateChatTitle);
+app.get('/api/chats/:id/summary', requireJWTFromCookie, getChatSummary);
+app.post('/api/chats/:id/generate-title', requireJWTFromCookie, generateChatTitle);
 
 // View engine setup
 app.set('view engine', 'ejs');
