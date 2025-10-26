@@ -703,6 +703,9 @@
       <button id="resetPerformance" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors">
         Reset Metrics
       </button>
+      <button id="regeneratePrompt" class="bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 transition-colors">
+        🔄 Regenerate System Prompt
+      </button>
     </div>
   </div>
 </div>
@@ -1915,6 +1918,32 @@ async function resetPerformanceMetrics() {
     }
   }
 }
+
+// Regenerate system prompt
+async function regenerateSystemPrompt() {
+  try {
+    const response = await fetch(`/api/twin/${twinId}/regenerate-prompt`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      }
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      showSuccessNotification('System prompt regenerated successfully!');
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Error regenerating system prompt:', error);
+    alert('Error regenerating system prompt');
+  }
+}
+
+// Add event listener for regenerate prompt button
+document.getElementById('regeneratePrompt').addEventListener('click', regenerateSystemPrompt);
 
 // Initialize Phase 2F functionality
 document.addEventListener('DOMContentLoaded', function() {

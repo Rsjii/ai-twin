@@ -30,6 +30,7 @@ import adminAnalyticsRoutes from './modules/analytics/adminAnalyticsRoutes';
 import onboardingRoutes from './modules/onboarding/onboardingRoutes';
 import memoryRoutes from './modules/memory/memoryRoutes';
 import {learningScheduler} from './services/learningScheduler';
+import { systemPromptUpdater} from './services/systemPromptUpdater';
 import { getChatHistory, createNewChat, updateChatTitle, getChatSummary, generateChatTitle } from './modules/chat/chatManagementController';
 // Import style anchor controller
 import { 
@@ -1939,6 +1940,35 @@ app.post('/api/twin/:id/update-ai', requireJWTFromCookie, async (req: any, res) 
   }
 });
 
+// API endpoint for regenerating system prompt
+app.post('/api/twin/:id/regenerate-prompt', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    
+    // Verify ownership
+    const twinResult = await db.query(`
+      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Update system prompt
+    const success = await systemPromptUpdater.updateTwinSystemPrompt(twinId);
+    
+    if (success) {
+      res.json({ success: true, message: 'System prompt regenerated successfully' });
+    } else {
+      res.status(500).json({ success: false, error: 'Failed to regenerate system prompt' });
+    }
+  } catch (error) {
+    console.error('Regenerate prompt API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 // API endpoint for updating style
 app.post('/api/twin/:id/update-style', requireJWTFromCookie, async (req: any, res) => {
   try {
@@ -2066,10 +2096,10 @@ try {
   const eventsResult = await db.query(`
     SELECT 
       'Style correction applied' as description,
-      "createdAt" as timestamp
+      ts as timestamp
     FROM "style_corrections" 
-    WHERE "twinId" = $1
-    ORDER BY "createdAt" DESC
+    WHERE "twin_id" = $1
+    ORDER BY ts DESC
     LIMIT 5
   `, [twinId]);
 

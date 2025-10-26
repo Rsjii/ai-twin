@@ -1,5 +1,7 @@
 import { backgroundLearningService } from './backgroundLearning';
 import { logger } from '../config/logger';
+import cron from 'node-cron';
+import { systemPromptUpdater } from './systemPromptUpdater';
 
 export class LearningScheduler {
   private intervalId: NodeJS.Timeout | null = null;
@@ -8,7 +10,7 @@ export class LearningScheduler {
    * Start the background learning scheduler
    */
   start(): void {
-    // Run every 6 hours
+    // Run background learning every 6 hours
     this.intervalId = setInterval(async () => {
       try {
         logger.info('Running scheduled background learning');
@@ -18,9 +20,18 @@ export class LearningScheduler {
       }
     }, 6 * 60 * 60 * 1000); // 6 hours
 
+    // Run system prompt updates every Sunday at 2 AM
+    cron.schedule('0 2 * * 0', async () => {
+      try {
+        logger.info('Running weekly system prompt updates');
+        await systemPromptUpdater.updateAllTwins();
+      } catch (error) {
+        logger.error('Weekly system prompt update error:', error);
+      }
+    });
+
     logger.info('Background learning scheduler started');
   }
-
   /**
    * Stop the background learning scheduler
    */

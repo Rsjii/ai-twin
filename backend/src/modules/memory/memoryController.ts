@@ -63,13 +63,26 @@ export const retrieveMemories = async (req: any, res: Response) => {
       return res.status(404).json({ success: false, error: 'Twin not found' });
     }
     
-    // Get memories
-    const memories = await memChunksQueries.findByTwinIdAndBucket(
-      twinId, 
-      bucket as 'facts' | 'voice', 
-      parseInt(limit as string), 
-      parseInt(offset as string)
-    );
+    // Get memories - FIXED: handle "all" bucket
+    let memories;
+    if (bucket === 'all') {
+      // Get memories from both buckets
+      const factsMemories = await memChunksQueries.findByTwinIdAndBucket(
+        twinId, 'facts', parseInt(limit as string), parseInt(offset as string)
+      );
+      const voiceMemories = await memChunksQueries.findByTwinIdAndBucket(
+        twinId, 'voice', parseInt(limit as string), parseInt(offset as string)
+      );
+      memories = [...factsMemories, ...voiceMemories];
+    } else {
+      memories = await memChunksQueries.findByTwinIdAndBucket(
+        twinId, 
+        bucket as 'facts' | 'voice', 
+        parseInt(limit as string), 
+        parseInt(offset as string)
+      );
+    }    
+
     
     res.json({ success: true, memories });
   } catch (error) {
