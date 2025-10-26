@@ -26,6 +26,9 @@ export const startPublicChat = async (req: Request, res: Response) => {
   try {
     const { twinId, visitorId } = startPublicChatSchema.parse(req.body);
 
+    // Generate visitor ID if not provided
+    const finalVisitorId = visitorId || `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     // Check if twin exists and is public
     const twinResult = await db.query(`
       SELECT id, "isPublic", "styleVector", "sampleReply"
@@ -40,16 +43,16 @@ export const startPublicChat = async (req: Request, res: Response) => {
     const twin = twinResult.rows[0];
 
     // Check for existing public chat or create new one
-    let publicChat = await publicChatQueries.findByTwinAndVisitor(twinId, visitorId);
+    let publicChat = await publicChatQueries.findByTwinAndVisitor(twinId, finalVisitorId);
 
     if (!publicChat) {
       // Create new public chat
-      publicChat = await publicChatQueries.create(twinId, visitorId);
+      publicChat = await publicChatQueries.create(twinId, finalVisitorId);
     }
 
     // Log event
-    if (visitorId) {
-      await EventLogger.logUserEvent(visitorId, 'public_chat_started', {
+    if (finalVisitorId && !finalVisitorId.startsWith('visitor_')) {
+      await EventLogger.logUserEvent(finalVisitorId, 'public_chat_started', {
         twinId,
         chatId: publicChat.id
       });

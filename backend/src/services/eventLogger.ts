@@ -1,4 +1,3 @@
-import { prisma } from '../config/prisma';
 import { logger } from '../config/logger';
 
 export interface EventLogData {
@@ -20,13 +19,17 @@ export class EventLogger {
    */
   static async log(userId: string | null, type: string, meta?: any): Promise<void> {
     try {
-      await prisma.event.create({
-        data: {
-          userId: userId || null,
-          type,
-          meta: meta || {},
-        },
-      });
+      const { db } = await import('../config/database');
+      
+      await db.query(`
+        INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
+        VALUES ($1, $2, $3, $4, NOW())
+      `, [
+        `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        userId || null,
+        type,
+        JSON.stringify(meta || {})
+      ]);
       
       // Log to console in development
       if (process.env['NODE_ENV'] === 'development') {
@@ -55,29 +58,41 @@ export class EventLogger {
   /**
    * Get events for a specific user
    */
-  static async getUserEvents(userId: string, limit: number = 50): Promise<any[]> {
-    try {
-      return await prisma.event.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-      });
-    } catch (error) {
-      logger.error('Failed to get user events:', error);
-      return [];
-    }
+static async getUserEvents(userId: string, limit: number = 50): Promise<any[]> {
+  try {
+    const { db } = await import('../config/database');
+    
+    const result = await db.query(`
+      SELECT id, "userId", type, meta, "createdAt"
+      FROM "Event"
+      WHERE "userId" = $1
+      ORDER BY "createdAt" DESC
+      LIMIT $2
+    `, [userId, limit]);
+    
+    return result.rows;
+  } catch (error) {
+    logger.error('Failed to get user events:', error);
+    return [];
   }
+}
 
   /**
    * Get events by type
    */
   static async getEventsByType(type: string, limit: number = 100): Promise<any[]> {
     try {
-      return await prisma.event.findMany({
-        where: { type },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-      });
+      const { db } = await import('../config/database');
+      
+      const result = await db.query(`
+        SELECT id, "userId", type, meta, "createdAt"
+        FROM "Event"
+        WHERE type = $1
+        ORDER BY "createdAt" DESC
+        LIMIT $2
+      `, [type, limit]);
+      
+      return result.rows;
     } catch (error) {
       logger.error('Failed to get events by type:', error);
       return [];
