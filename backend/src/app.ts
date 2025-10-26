@@ -26,6 +26,7 @@ import moderationRoutes from './modules/moderation/moderationRoutes';
 import profileRoutes from './modules/profile/profileRoutes';
 import inviteRoutes from './modules/invite/inviteRoutes';
 import analyticsRoutes from './modules/analytics/analyticsRoutes';
+import { getTwinPerformance } from './modules/analytics/analyticsController';
 import adminAnalyticsRoutes from './modules/analytics/adminAnalyticsRoutes';
 import onboardingRoutes from './modules/onboarding/onboardingRoutes';
 import memoryRoutes from './modules/memory/memoryRoutes';
@@ -587,6 +588,8 @@ app.get('/analytics', requireJWTFromCookie, generateCSRFToken, async (req: any, 
     `
   });
 });
+
+app.get('/api/analytics/twin/:twinId/performance', requireJWTFromCookie, getTwinPerformance);
 
 // Public twin profile route (twinverse.ai/@handle)
 app.get('/@:handle', async (req: any, res) => {

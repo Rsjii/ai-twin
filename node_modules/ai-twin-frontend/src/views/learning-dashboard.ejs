@@ -638,6 +638,30 @@
         <p>Loading style anchors...</p>
       </div>
     </div>
+    <!-- ADD at line 640 in learning-dashboard.ejs -->
+<div class="bg-white rounded-lg shadow p-6">
+  <h3 class="text-lg font-semibold mb-4">Learning Progress</h3>
+  <div class="space-y-4">
+      <div>
+          <div class="flex justify-between text-sm">
+              <span>Memory Count</span>
+              <span id="memoryProgress">0</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2">
+              <div id="memoryProgressBar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+          </div>
+      </div>
+      <div>
+          <div class="flex justify-between text-sm">
+              <span>Style Anchors</span>
+              <span id="anchorProgress">0</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2">
+              <div id="anchorProgressBar" class="bg-green-600 h-2 rounded-full" style="width: 0%"></div>
+          </div>
+      </div>
+  </div>
+</div>
     <div class="mt-4 flex space-x-2 btn-group">
       <button id="addAnchorBtn" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors btn touch-target">
         Add Style Anchor

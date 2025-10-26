@@ -61,6 +61,28 @@ export const getMetricsSummary = async (_req: Request, res: Response) => {
   }
 };
 
+// ADD at line 63 in analyticsController.ts
+export const getTwinPerformance = async (req: Request, res: Response) => {
+  try {
+    const { twinId } = req.params;
+    
+    const metrics = await db.query(`
+      SELECT 
+        COUNT(c.id) as totalChats,
+        COUNT(m.id) as totalMessages,
+        AVG(CASE WHEN m.sender = 'twin' THEN 1 ELSE 0 END) as responseRate
+      FROM "Chat" c
+      LEFT JOIN "Message" m ON c.id = m."chatId"
+      WHERE c."twinId" = $1
+    `, [twinId]);
+    
+    res.json({ success: true, metrics: metrics.rows[0] });
+  } catch (error) {
+    logger.error('Twin performance error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const debugUserData = async (req: Request, res: Response) => {
   try {
     console.log('=== DEBUG USER DATA ===');
