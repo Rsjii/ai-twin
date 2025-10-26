@@ -1,22 +1,23 @@
 import { Router } from 'express';
 import { extractJWTFromCookie } from '../../middleware/jwtCookie';
+import { 
+  getMemoryStats, 
+  retrieveMemories, 
+  ingestMemories, 
+  updateMemory, 
+  deleteMemory 
+} from './memoryController';
 
 const router = Router();
 
 // All routes require authentication
 router.use(extractJWTFromCookie);
 
-// Temporary placeholder routes
-router.post('/:id/memory/ingest', (req, res) => {
-  res.json({ message: 'Memory ingest endpoint - coming soon' });
-});
-
-router.get('/:id/memory/retrieve', (req, res) => {
-  res.json({ message: 'Memory retrieve endpoint - coming soon' });
-});
-
-router.get('/:id/memory/stats', (req, res) => {
-  res.json({ message: 'Memory stats endpoint - coming soon' });
-});
+// Memory management routes
+router.get('/:id/memory/stats', getMemoryStats);
+router.get('/:id/memory/retrieve', retrieveMemories);
+router.post('/:id/memory/ingest', ingestMemories);
+router.put('/:id/memory/:memId', updateMemory);
+router.delete('/:id/memory/:memId', deleteMemory);
 
 export default router;

@@ -15,6 +15,72 @@
             <p class="text-gray-600">Track how your AI twin is learning and improving over time</p>
         </div>
 
+        <!-- Navigation Breadcrumbs -->
+<div class="mb-6">
+    <nav class="flex" aria-label="Breadcrumb">
+      <ol class="flex items-center space-x-2">
+        <li>
+          <a href="/dashboard" class="text-gray-500 hover:text-gray-700 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+            </svg>
+          </a>
+        </li>
+        <li>
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </li>
+        <li>
+          <a href="/my-twins" class="text-gray-500 hover:text-gray-700 transition-colors">My Twins</a>
+        </li>
+        <li>
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </li>
+        <li>
+          <span class="text-gray-900 font-medium">Learning Dashboard</span>
+        </li>
+      </ol>
+    </nav>
+  </div>
+  
+  <!-- Quick Navigation -->
+  <div class="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Navigation</h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <a href="/twin/<%= twinId %>/ai-edit" class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200">
+        <div class="text-center">
+          <div class="text-2xl mb-2">🤖</div>
+          <h4 class="text-sm font-medium text-gray-900">AI Edit</h4>
+          <p class="text-xs text-gray-600">Edit system prompt & persona</p>
+        </div>
+      </a>
+      <a href="/twin/<%= twinId %>/style-customize" class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200">
+        <div class="text-center">
+          <div class="text-2xl mb-2">🎨</div>
+          <h4 class="text-sm font-medium text-gray-900">Style Customize</h4>
+          <p class="text-xs text-gray-600">Customize communication style</p>
+        </div>
+      </a>
+      <a href="/memory-management?twinId=<%= twinId %>" class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200">
+        <div class="text-center">
+          <div class="text-2xl mb-2">🧠</div>
+          <h4 class="text-sm font-medium text-gray-900">Memory Management</h4>
+          <p class="text-xs text-gray-600">Manage twin memories</p>
+        </div>
+      </a>
+      <a href="/analytics" class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200">
+        <div class="text-center">
+          <div class="text-2xl mb-2">📊</div>
+          <h4 class="text-sm font-medium text-gray-900">Analytics</h4>
+          <p class="text-xs text-gray-600">View performance metrics</p>
+        </div>
+      </a>
+    </div>
+  </div>
+
         <!-- Learning Progress Overview -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 class="text-xl font-semibold mb-4">Learning Progress</h2>
@@ -53,6 +119,28 @@
             </div>
         </div>
 
+        <!-- Chat History Section -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Previous Chats</h3>
+    <div class="mb-4">
+      <p class="text-sm text-gray-600">Select chats to convert messages into training examples</p>
+    </div>
+    <div id="chatHistoryList" class="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4">
+      <div class="text-center text-gray-500 py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+        <p>Loading chat history...</p>
+      </div>
+    </div>
+    <div class="mt-4 flex space-x-2">
+      <button id="loadMoreChats" class="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded hover:bg-gray-200 transition-colors">
+        Load More Chats
+      </button>
+      <button id="refreshChats" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
+        Refresh
+      </button>
+    </div>
+  </div>
+
         <!-- Learning Settings -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 class="text-xl font-semibold mb-4">Learning Settings</h2>
@@ -75,6 +163,36 @@
             </div>
         </div>
 
+
+        <!-- Memory Management Section -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Twin Memory</h3>
+    <div class="mb-4 flex justify-between items-center">
+      <p class="text-sm text-gray-600">Manage your twin's knowledge base</p>
+      <div class="flex space-x-2">
+        <select id="memoryBucketFilter" class="text-sm border border-gray-300 rounded px-2 py-1">
+          <option value="all">All Memories</option>
+          <option value="facts">Facts</option>
+          <option value="voice">Voice Patterns</option>
+        </select>
+      </div>
+    </div>
+    <div id="memoryList" class="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4">
+      <div class="text-center text-gray-500 py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
+        <p>Loading memories...</p>
+      </div>
+    </div>
+    <div class="mt-4 flex space-x-2">
+      <button id="addMemoryBtn" class="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors">
+        Add Memory
+      </button>
+      <button id="refreshMemories" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors">
+        Refresh
+      </button>
+    </div>
+  </div>
+
         <!-- Action Buttons -->
         <div class="flex justify-between items-center">
             <button onclick="resetLearning()" class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600">
@@ -89,86 +207,1739 @@
                 </button>
             </div>
         </div>
+
+        <!-- Style Anchor Management -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Style Anchors</h3>
+    <div class="mb-4 flex justify-between items-center">
+      <p class="text-sm text-gray-600">Training examples that shape your twin's communication style</p>
+      <div class="flex space-x-2">
+        <select id="anchorTypeFilter" class="text-sm border border-gray-300 rounded px-2 py-1">
+          <option value="all">All Types</option>
+          <option value="manual">Manual</option>
+          <option value="chat_conversion">From Chats</option>
+          <option value="auto">Auto-Generated</option>
+        </select>
+      </div>
+    </div>
+    <div id="styleAnchorsList" class="space-y-3 max-h-96 overflow-y-auto border rounded-lg p-4">
+      <div class="text-center text-gray-500 py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
+        <p>Loading style anchors...</p>
+      </div>
+    </div>
+    <div class="mt-4 flex space-x-2">
+      <button id="addAnchorBtn" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors">
+        Add Style Anchor
+      </button>
+      <button id="refreshAnchors" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors">
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Manual Training Interface -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Manual Training</h3>
+    <div class="mb-4">
+      <p class="text-sm text-gray-600">Add custom training examples to improve your twin's responses</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">User Utterance</label>
+        <textarea id="userUtterance" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="What the user might say..."></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Ideal Reply</label>
+        <textarea id="idealReply" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="How your twin should respond..."></textarea>
+      </div>
+    </div>
+    <div class="mt-4 flex space-x-2">
+      <button id="addTrainingExample" class="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors">
+        Add Training Example
+      </button>
+      <button id="clearTrainingForm" class="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors">
+        Clear
+      </button>
+    </div>
+  </div>
+
+  <!-- Chat Message Selection Interface -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Select Chat Messages for Training</h3>
+    <div class="mb-4">
+      <p class="text-sm text-gray-600">Choose specific messages from your chats to create training examples</p>
+    </div>
+    
+    <!-- Chat Selection -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Select Chat</label>
+      <select id="chatSelection" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Choose a chat...</option>
+      </select>
+    </div>
+    
+    <!-- Message Selection -->
+    <div id="messageSelection" class="hidden">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Select Messages</label>
+      <div id="messageList" class="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-4">
+        <div class="text-center text-gray-500 py-8">
+          <p>Select a chat to view messages</p>
+        </div>
+      </div>
+      <div class="mt-4 flex space-x-2">
+        <button id="selectAllMessages" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
+          Select All
+        </button>
+        <button id="clearSelection" class="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors">
+          Clear Selection
+        </button>
+      </div>
+    </div>
+    
+    <!-- Bulk Training Actions -->
+    <div id="bulkTrainingActions" class="hidden mt-4 p-4 bg-gray-50 rounded-lg">
+      <h4 class="text-sm font-medium text-gray-700 mb-2">Bulk Training Actions</h4>
+      <div class="flex space-x-2">
+        <button id="convertSelectedToTraining" class="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors">
+          Convert Selected to Training
+        </button>
+        <button id="previewTrainingExamples" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors">
+          Preview Examples
+        </button>
+      </div>
+    </div>
+  </div>
+
+        <!-- Memory Management Modal -->
+<div id="memoryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-900" id="memoryModalTitle">Add Memory</h3>
+        </div>
+        <div class="px-6 py-4">
+          <form id="memoryForm">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Memory Type</label>
+              <select id="memoryType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="facts">Facts</option>
+                <option value="voice">Voice Patterns</option>
+              </select>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Memory Content</label>
+              <textarea id="memoryContent" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter memory content..."></textarea>
+            </div>
+            <div class="flex space-x-2">
+              <button type="submit" class="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors">
+                Save Memory
+              </button>
+              <button type="button" id="closeMemoryModal" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Style Anchor Management Modal -->
+  <div id="anchorModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-900" id="anchorModalTitle">Add Style Anchor</h3>
+        </div>
+        <div class="px-6 py-4">
+          <form id="anchorForm">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">User Utterance</label>
+              <textarea id="anchorUserUtterance" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="What the user might say..."></textarea>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Ideal Reply</label>
+              <textarea id="anchorIdealReply" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="How your twin should respond..."></textarea>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Training Type</label>
+              <select id="anchorTrainingType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="manual">Manual</option>
+                <option value="chat_conversion">From Chat</option>
+              </select>
+            </div>
+            <div class="flex space-x-2">
+              <button type="submit" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors">
+                Save Anchor
+              </button>
+              <button type="button" id="closeAnchorModal" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Training Validation & Feedback -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Training Validation & Feedback</h3>
+    
+    <!-- Training Effectiveness Score -->
+    <div class="mb-6">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sm font-medium text-gray-700">Training Effectiveness Score</span>
+        <span id="effectivenessScore" class="text-lg font-bold text-green-600">0%</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2">
+        <div id="effectivenessBar" class="bg-green-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+      <p class="text-xs text-gray-500 mt-1">Based on recent training examples and feedback</p>
+    </div>
+    
+    <!-- Training Recommendations -->
+    <div class="mb-6">
+      <h4 class="text-sm font-medium text-gray-700 mb-2">Training Recommendations</h4>
+      <div id="trainingRecommendations" class="space-y-2">
+        <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p class="text-sm text-blue-800">💡 Add more examples for casual conversation style</p>
+        </div>
+        <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p class="text-sm text-yellow-800">⚠️ Consider adding examples for emoji usage patterns</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Training Achievements -->
+    <div class="mb-6">
+      <h4 class="text-sm font-medium text-gray-700 mb-2">Training Achievements</h4>
+      <div id="trainingAchievements" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="p-3 bg-green-50 border border-green-200 rounded-lg text-center">
+          <div class="text-2xl mb-1">🎯</div>
+          <p class="text-xs text-green-800">Style Master</p>
+          <p class="text-xs text-green-600">10+ anchors</p>
+        </div>
+        <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+          <div class="text-2xl mb-1">🧠</div>
+          <p class="text-xs text-blue-800">Memory Builder</p>
+          <p class="text-xs text-blue-600">50+ memories</p>
+        </div>
+        <div class="p-3 bg-purple-50 border border-purple-200 rounded-lg text-center">
+          <div class="text-2xl mb-1">⚡</div>
+          <p class="text-xs text-purple-800">Quick Learner</p>
+          <p class="text-xs text-purple-600">5+ examples</p>
+        </div>
+        <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg text-center">
+          <div class="text-2xl mb-1">🔒</div>
+          <p class="text-xs text-gray-800">Locked</p>
+          <p class="text-xs text-gray-600">Keep training!</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Training Progress Goals -->
+    <div>
+      <h4 class="text-sm font-medium text-gray-700 mb-2">Training Goals</h4>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-700">Add 5 more style anchors</span>
+          <div class="flex items-center space-x-2">
+            <div class="w-24 bg-gray-200 rounded-full h-2">
+              <div class="bg-blue-600 h-2 rounded-full" style="width: 60%"></div>
+            </div>
+            <span class="text-xs text-gray-600">3/5</span>
+          </div>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-700">Create 10 memory chunks</span>
+          <div class="flex items-center space-x-2">
+            <div class="w-24 bg-gray-200 rounded-full h-2">
+              <div class="bg-green-600 h-2 rounded-full" style="width: 80%"></div>
+            </div>
+            <span class="text-xs text-gray-600">8/10</span>
+          </div>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-700">Convert 3 chats to training</span>
+          <div class="flex items-center space-x-2">
+            <div class="w-24 bg-gray-200 rounded-full h-2">
+              <div class="bg-purple-600 h-2 rounded-full" style="width: 100%"></div>
+            </div>
+            <span class="text-xs text-gray-600">3/3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Training Templates Section -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+  <h3 class="text-lg font-semibold text-gray-900 mb-4">Training Templates</h3>
+  <div class="mb-4">
+    <p class="text-sm text-gray-600">Use pre-built templates to quickly create training examples</p>
+  </div>
+  
+  <!-- Template Categories -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors" onclick="loadTemplate('casual')">
+      <div class="text-center">
+        <div class="text-2xl mb-2">😊</div>
+        <h4 class="text-sm font-medium text-gray-900">Casual Conversation</h4>
+        <p class="text-xs text-gray-600">Friendly, relaxed responses</p>
+      </div>
+    </div>
+    <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors" onclick="loadTemplate('professional')">
+      <div class="text-center">
+        <div class="text-2xl mb-2">💼</div>
+        <h4 class="text-sm font-medium text-gray-900">Professional</h4>
+        <p class="text-xs text-gray-600">Formal, business-like responses</p>
+      </div>
+    </div>
+    <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors" onclick="loadTemplate('supportive')">
+      <div class="text-center">
+        <div class="text-2xl mb-2">🤗</div>
+        <h4 class="text-sm font-medium text-gray-900">Supportive</h4>
+        <p class="text-xs text-gray-600">Encouraging, empathetic responses</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Template Preview -->
+  <div id="templatePreview" class="hidden border rounded-lg p-4 bg-gray-50">
+    <h4 class="text-sm font-medium text-gray-700 mb-2">Template Preview</h4>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <p class="text-xs font-medium text-gray-600 mb-1">User Utterance:</p>
+        <p id="templateUserUtterance" class="text-sm text-gray-900"></p>
+      </div>
+      <div>
+        <p class="text-xs font-medium text-gray-600 mb-1">Ideal Reply:</p>
+        <p id="templateIdealReply" class="text-sm text-gray-900"></p>
+      </div>
+    </div>
+    <div class="mt-4 flex space-x-2">
+      <button id="useTemplate" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
+        Use This Template
+      </button>
+      <button id="closeTemplate" class="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+  <!-- Learning Milestones Section -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+  <h3 class="text-lg font-semibold text-gray-900 mb-4">Learning Milestones</h3>
+  <div class="mb-4">
+    <p class="text-sm text-gray-600">Track your twin's learning progress and achievements</p>
+  </div>
+  
+  <!-- Milestone Progress -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <div>
+      <h4 class="text-sm font-medium text-gray-700 mb-3">Current Milestones</h4>
+      <div id="currentMilestones" class="space-y-3">
+        <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div class="flex items-center space-x-3">
+            <div class="text-2xl">🎯</div>
+            <div>
+              <p class="text-sm font-medium text-green-800">Style Master</p>
+              <p class="text-xs text-green-600">10+ style anchors</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-bold text-green-800">100%</p>
+            <div class="w-16 bg-green-200 rounded-full h-2">
+              <div class="bg-green-600 h-2 rounded-full" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div class="flex items-center space-x-3">
+            <div class="text-2xl">🧠</div>
+            <div>
+              <p class="text-sm font-medium text-blue-800">Memory Builder</p>
+              <p class="text-xs text-blue-600">50+ memories</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-bold text-blue-800">80%</p>
+            <div class="w-16 bg-blue-200 rounded-full h-2">
+              <div class="bg-blue-600 h-2 rounded-full" style="width: 80%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div>
+      <h4 class="text-sm font-medium text-gray-700 mb-3">Upcoming Milestones</h4>
+      <div id="upcomingMilestones" class="space-y-3">
+        <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+          <div class="flex items-center space-x-3">
+            <div class="text-2xl">⚡</div>
+            <div>
+              <p class="text-sm font-medium text-gray-800">Quick Learner</p>
+              <p class="text-xs text-gray-600">5+ training examples</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-bold text-gray-800">60%</p>
+            <div class="w-16 bg-gray-200 rounded-full h-2">
+              <div class="bg-gray-600 h-2 rounded-full" style="width: 60%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+          <div class="flex items-center space-x-3">
+            <div class="text-2xl">🔒</div>
+            <div>
+              <p class="text-sm font-medium text-gray-800">Expert Trainer</p>
+              <p class="text-xs text-gray-600">25+ style anchors</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-bold text-gray-800">40%</p>
+            <div class="w-16 bg-gray-200 rounded-full h-2">
+              <div class="bg-gray-600 h-2 rounded-full" style="width: 40%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Learning Goals -->
+  <div class="border-t pt-6">
+    <h4 class="text-sm font-medium text-gray-700 mb-3">Set Learning Goals</h4>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Goal Type</label>
+        <select id="goalType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="style_anchors">Style Anchors</option>
+          <option value="memories">Memories</option>
+          <option value="training_examples">Training Examples</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Target Count</label>
+        <input type="number" id="goalTarget" min="1" max="100" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter target number">
+      </div>
+    </div>
+    <button id="setGoal" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors">
+      Set Goal
+    </button>
+  </div>
+</div>
+
+  <!-- Performance Optimization Section -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+  <h3 class="text-lg font-semibold text-gray-900 mb-4">Performance & Analytics</h3>
+  <div class="mb-4">
+    <p class="text-sm text-gray-600">Monitor your twin's performance and optimize learning</p>
+  </div>
+  
+  <!-- Performance Metrics -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div class="text-2xl font-bold text-blue-600 mb-1" id="responseTime">0ms</div>
+      <div class="text-sm text-blue-800">Avg Response Time</div>
+    </div>
+    <div class="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
+      <div class="text-2xl font-bold text-green-600 mb-1" id="accuracyScore">0%</div>
+      <div class="text-sm text-green-800">Accuracy Score</div>
+    </div>
+    <div class="text-center p-4 bg-purple-50 border border-purple-200 rounded-lg">
+      <div class="text-2xl font-bold text-purple-600 mb-1" id="learningRate">0%</div>
+      <div class="text-sm text-purple-800">Learning Rate</div>
+    </div>
+    <div class="text-center p-4 bg-orange-50 border border-orange-200 rounded-lg">
+      <div class="text-2xl font-bold text-orange-600 mb-1" id="userSatisfaction">0%</div>
+      <div class="text-sm text-orange-800">User Satisfaction</div>
+    </div>
+  </div>
+  
+  <!-- Optimization Recommendations -->
+  <div class="border-t pt-6">
+    <h4 class="text-sm font-medium text-gray-700 mb-3">Optimization Recommendations</h4>
+    <div id="optimizationRecommendations" class="space-y-3">
+      <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div class="flex items-start space-x-3">
+          <div class="text-yellow-600 mt-1">⚠️</div>
+          <div>
+            <p class="text-sm font-medium text-yellow-800">Memory Optimization</p>
+            <p class="text-xs text-yellow-700">Consider consolidating similar memories to improve response speed</p>
+          </div>
+        </div>
+      </div>
+      <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-start space-x-3">
+          <div class="text-blue-600 mt-1">💡</div>
+          <div>
+            <p class="text-sm font-medium text-blue-800">Style Enhancement</p>
+            <p class="text-xs text-blue-700">Add more style anchors for better consistency</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Performance Actions -->
+  <div class="border-t pt-6 mt-6">
+    <h4 class="text-sm font-medium text-gray-700 mb-3">Performance Actions</h4>
+    <div class="flex flex-wrap gap-2">
+      <button id="optimizeMemories" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
+        Optimize Memories
+      </button>
+      <button id="analyzePerformance" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors">
+        Analyze Performance
+      </button>
+      <button id="exportAnalytics" class="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors">
+        Export Analytics
+      </button>
+      <button id="resetPerformance" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors">
+        Reset Metrics
+      </button>
+    </div>
+  </div>
+</div>
+
+
     </div>
 
     <script>
-    const twinId = '<%= twinId %>';
-
-    // Load learning data on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        loadLearningData();
-    });
-
-    async function loadLearningData() {
-        try {
-            const response = await fetch(`/api/twin/${twinId}/learning-data`);
-            const data = await response.json();
-            
-            if (data.success) {
-                populateLearningData(data.learning);
+        const twinId = '<%= twinId %>';
+        const csrfToken = '<%= csrfToken %>';
+        
+        let currentChatOffset = 0;
+        let currentMemoryOffset = 0;
+        let currentAnchorOffset = 0;
+        const pageSize = 10;
+    
+        // Load learning data
+        async function loadLearningData() {
+            try {
+                const response = await fetch(`/api/twin/${twinId}/learning-data`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateLearningProgress(data.learning);
+                }
+            } catch (error) {
+                console.error('Error loading learning data:', error);
             }
-        } catch (error) {
-            console.error('Error loading learning data:', error);
         }
-    }
-
-    function populateLearningData(learning) {
-        // Update overview cards
-        document.getElementById('totalInteractions').textContent = learning.totalInteractions || 0;
-        document.getElementById('learningScore').textContent = (learning.learningScore || 0) + '%';
-        document.getElementById('styleAccuracy').textContent = (learning.styleAccuracy || 0) + '%';
-        
-        // Load learning events
-        const eventsContainer = document.getElementById('learningEvents');
-        if (learning.events && learning.events.length > 0) {
-            eventsContainer.innerHTML = learning.events.map(event => `
-                <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <div class="flex-1">
-                        <p class="text-sm text-gray-900">${event.description}</p>
-                        <p class="text-xs text-gray-500">${new Date(event.timestamp).toLocaleString()}</p>
-                    </div>
-                </div>
-            `).join('');
-        } else {
-            eventsContainer.innerHTML = '<p class="text-gray-500">No learning events yet</p>';
-        }
-    }
-
-    async function saveLearningSettings() {
-        const settings = {
-            autoLearning: document.getElementById('autoLearning').value,
-            learningSensitivity: document.getElementById('learningSensitivity').value
-        };
-        
-        try {
-            await fetch(`/api/twin/${twinId}/learning-settings`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': window.csrfToken
-                },
-                body: JSON.stringify(settings)
-            });
+    
+        // Update learning progress display
+        function updateLearningProgress(learning) {
+            document.getElementById('totalInteractions').textContent = learning.totalInteractions || 0;
+            document.getElementById('learningScore').textContent = (learning.learningScore || 0) + '%';
+            document.getElementById('styleAccuracy').textContent = (learning.styleAccuracy || 0) + '%';
             
-            alert('Learning settings saved successfully!');
-        } catch (error) {
-            console.error('Error saving learning settings:', error);
-            alert('Error saving learning settings');
+            const eventsContainer = document.getElementById('learningEvents');
+            if (learning.events && learning.events.length > 0) {
+                eventsContainer.innerHTML = learning.events.map(event => `
+                    <div class="flex items-center space-x-3 p-2 bg-gray-50 rounded">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div class="flex-1">
+                            <p class="text-sm text-gray-900">${event.description}</p>
+                            <p class="text-xs text-gray-500">${new Date(event.timestamp).toLocaleString()}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                eventsContainer.innerHTML = '<p class="text-gray-500 text-sm">No recent learning events</p>';
+            }
         }
-    }
-
-    function resetLearning() {
-        if (confirm('Are you sure you want to reset all learning data? This cannot be undone.')) {
-            // TODO: Implement reset learning
-            alert('Reset learning functionality coming soon!');
+    
+        // Load chat history
+        async function loadChatHistory() {
+            try {
+                const response = await fetch(`/api/twin/${twinId}/chat-history?limit=${pageSize}&offset=${currentChatOffset}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayChatHistory(data.chats);
+                }
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+            }
         }
-    }
+    
+        // Display chat history
+        function displayChatHistory(chats) {
+            const container = document.getElementById('chatHistoryList');
+            
+            if (chats.length === 0 && currentChatOffset === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No chats found</p>';
+                return;
+            }
+            
+            if (currentChatOffset === 0) {
+                container.innerHTML = '';
+            }
+            
+            chats.forEach(chat => {
+                const chatElement = document.createElement('div');
+                chatElement.className = 'border rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition-colors';
+                chatElement.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900">Chat ${chat.id.slice(-6)}</p>
+                            <p class="text-xs text-gray-500">${chat.messageCount} messages</p>
+                            <p class="text-xs text-gray-400">${new Date(chat.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="convertChatToTraining('${chat.id}')">
+                            Convert to Training
+                        </button>
+                    </div>
+                `;
+                container.appendChild(chatElement);
+            });
+        }
+    
+        // Load memories
+        async function loadMemories() {
+            try {
+                const bucket = document.getElementById('memoryBucketFilter').value;
+                const response = await fetch(`/api/memory/${twinId}/memory/retrieve?bucket=${bucket}&limit=${pageSize}&offset=${currentMemoryOffset}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayMemories(data.memories);
+                }
+            } catch (error) {
+                console.error('Error loading memories:', error);
+            }
+        }
+    
+        // Display memories
+        function displayMemories(memories) {
+            const container = document.getElementById('memoryList');
+            
+            if (memories.length === 0 && currentMemoryOffset === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No memories found</p>';
+                return;
+            }
+            
+            if (currentMemoryOffset === 0) {
+                container.innerHTML = '';
+            }
+            
+            memories.forEach(memory => {
+                const memoryElement = document.createElement('div');
+                memoryElement.className = 'border rounded-lg p-3 hover:bg-gray-50 transition-colors';
+                memoryElement.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2 mb-2">
+                                <span class="px-2 py-1 text-xs rounded-full ${memory.bucket === 'facts' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">${memory.bucket}</span>
+                            </div>
+                            <p class="text-sm text-gray-900">${memory.text}</p>
+                            <p class="text-xs text-gray-500 mt-1">${new Date(memory.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <div class="flex space-x-1">
+                            <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editMemory('${memory.id}')">Edit</button>
+                            <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteMemory('${memory.id}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(memoryElement);
+            });
+        }
+    
+        // Load style anchors
+        async function loadStyleAnchors() {
+            try {
+                const response = await fetch(`/api/twin/${twinId}/anchors`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayStyleAnchors(data.anchors);
+                }
+            } catch (error) {
+                console.error('Error loading style anchors:', error);
+            }
+        }
+    
+        // Display style anchors
+        function displayStyleAnchors(anchors) {
+            const container = document.getElementById('styleAnchorsList');
+            
+            if (anchors.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No style anchors found</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            anchors.forEach(anchor => {
+                const anchorElement = document.createElement('div');
+                anchorElement.className = 'border rounded-lg p-4 hover:bg-gray-50 transition-colors';
+                anchorElement.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2 py-1 text-xs rounded-full ${anchor.trainingType === 'manual' ? 'bg-purple-100 text-purple-800' : anchor.trainingType === 'chat_conversion' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">${anchor.trainingType}</span>
+                        </div>
+                        <div class="flex space-x-1">
+                            <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editAnchor('${anchor.id}')">Edit</button>
+                            <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteAnchor('${anchor.id}')">Delete</button>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div>
+                            <p class="text-xs font-medium text-gray-600">User Utterance:</p>
+                            <p class="text-sm text-gray-900">${anchor.userUtterance}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-600">Ideal Reply:</p>
+                            <p class="text-sm text-gray-900">${anchor.idealReply}</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">${new Date(anchor.createdAt).toLocaleDateString()}</p>
+                `;
+                container.appendChild(anchorElement);
+            });
+        }
+    
+        // Convert chat to training
+        async function convertChatToTraining(chatId) {
+            try {
+                const response = await fetch(`/api/twin/${twinId}/convert-to-training`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({
+                        chatId: chatId,
+                        idealReply: 'Converted from chat message'
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Chat converted to training example successfully!');
+                    loadStyleAnchors();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error converting chat:', error);
+                alert('Error converting chat to training example');
+            }
+        }
+    
+        // Add training example
+        async function addTrainingExample() {
+            const userUtterance = document.getElementById('userUtterance').value.trim();
+            const idealReply = document.getElementById('idealReply').value.trim();
+            
+            if (!userUtterance || !idealReply) {
+                alert('Please fill in both fields');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/twin/${twinId}/manual-training`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({
+                        userMessage: userUtterance,
+                        idealReply: idealReply,
+                        trainingType: 'manual'
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Training example added successfully!');
+                    document.getElementById('userUtterance').value = '';
+                    document.getElementById('idealReply').value = '';
+                    loadStyleAnchors();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error adding training example:', error);
+                alert('Error adding training example');
+            }
+        }
+    
+        // Add memory
+        async function addMemory() {
+            const type = document.getElementById('memoryType').value;
+            const content = document.getElementById('memoryContent').value.trim();
+            
+            if (!content) {
+                alert('Please enter memory content');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/memory/${twinId}/memory/ingest`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({
+                        memories: [{
+                            bucket: type,
+                            text: content
+                        }]
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Memory added successfully!');
+                    document.getElementById('memoryContent').value = '';
+                    closeMemoryModal();
+                    loadMemories();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error adding memory:', error);
+                alert('Error adding memory');
+            }
+        }
+    
+        // Modal functions
+        function openMemoryModal() {
+            document.getElementById('memoryModal').classList.remove('hidden');
+            document.getElementById('memoryModalTitle').textContent = 'Add Memory';
+            document.getElementById('memoryForm').reset();
+        }
+    
+        function closeMemoryModal() {
+            document.getElementById('memoryModal').classList.add('hidden');
+        }
+    
+        function openAnchorModal() {
+            document.getElementById('anchorModal').classList.remove('hidden');
+            document.getElementById('anchorModalTitle').textContent = 'Add Style Anchor';
+            document.getElementById('anchorForm').reset();
+        }
+    
+        function closeAnchorModal() {
+            document.getElementById('anchorModal').classList.add('hidden');
+        }
+    
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLearningData();
+            loadChatHistory();
+            loadMemories();
+            loadStyleAnchors();
+    
+            // Chat history events
+            document.getElementById('loadMoreChats').addEventListener('click', function() {
+                currentChatOffset += pageSize;
+                loadChatHistory();
+            });
+    
+            document.getElementById('refreshChats').addEventListener('click', function() {
+                currentChatOffset = 0;
+                loadChatHistory();
+            });
+    
+            // Memory events
+            document.getElementById('addMemoryBtn').addEventListener('click', openMemoryModal);
+            document.getElementById('closeMemoryModal').addEventListener('click', closeMemoryModal);
+            document.getElementById('memoryForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                addMemory();
+            });
+    
+            document.getElementById('refreshMemories').addEventListener('click', function() {
+                currentMemoryOffset = 0;
+                loadMemories();
+            });
+    
+            document.getElementById('memoryBucketFilter').addEventListener('change', function() {
+                currentMemoryOffset = 0;
+                loadMemories();
+            });
+    
+            // Style anchor events
+            document.getElementById('addAnchorBtn').addEventListener('click', openAnchorModal);
+            document.getElementById('closeAnchorModal').addEventListener('click', closeAnchorModal);
+            document.getElementById('anchorForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                addAnchor();
+            });
+    
+            document.getElementById('refreshAnchors').addEventListener('click', function() {
+                loadStyleAnchors();
+            });
+    
+            // Manual training events
+            document.getElementById('addTrainingExample').addEventListener('click', addTrainingExample);
+            document.getElementById('clearTrainingForm').addEventListener('click', function() {
+                document.getElementById('userUtterance').value = '';
+                document.getElementById('idealReply').value = '';
+            });
+        });
+    
+        // Global functions for inline actions
+        window.convertChatToTraining = convertChatToTraining;
+        window.editMemory = function(memoryId) {
+            alert('Memory editing coming soon!');
+        };
+        window.deleteMemory = function(memoryId) {
+            if (confirm('Are you sure you want to delete this memory?')) {
+                alert('Memory deletion coming soon!');
+            }
+        };
+        window.editAnchor = function(anchorId) {
+            alert('Anchor editing coming soon!');
+        };
+        window.deleteAnchor = function(anchorId) {
+            if (confirm('Are you sure you want to delete this style anchor?')) {
+                alert('Anchor deletion coming soon!');
+            }
+        };
 
-    function exportLearningData() {
-        // TODO: Implement export learning data
-        alert('Export learning data functionality coming soon!');
+    // Chat message selection functionality
+let selectedMessages = [];
+let selectedChatId = null;
+
+// Load available chats for selection
+async function loadChatSelection() {
+  try {
+    const response = await fetch(`/api/twin/${twinId}/chat-history?limit=50`);
+    const data = await response.json();
+    
+    if (data.success) {
+      const chatSelect = document.getElementById('chatSelection');
+      chatSelect.innerHTML = '<option value="">Choose a chat...</option>';
+      
+      data.chats.forEach(chat => {
+        const option = document.createElement('option');
+        option.value = chat.id;
+        option.textContent = `Chat ${chat.id.slice(-6)} (${chat.messageCount} messages)`;
+        chatSelect.appendChild(option);
+      });
     }
+  } catch (error) {
+    console.error('Error loading chat selection:', error);
+  }
+}
+
+// Load messages for selected chat
+async function loadChatMessages(chatId) {
+  try {
+    const response = await fetch(`/api/twin/${twinId}/chat/${chatId}/messages`);
+    const data = await response.json();
+    
+    if (data.success) {
+      displayChatMessages(data.messages);
+      document.getElementById('messageSelection').classList.remove('hidden');
+    }
+  } catch (error) {
+    console.error('Error loading chat messages:', error);
+  }
+}
+
+// Display chat messages
+function displayChatMessages(messages) {
+  const container = document.getElementById('messageList');
+  container.innerHTML = '';
+  
+  messages.forEach(message => {
+    const messageElement = document.createElement('div');
+    messageElement.className = 'border rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition-colors';
+    messageElement.dataset.messageId = message.id;
+    messageElement.innerHTML = `
+      <div class="flex justify-between items-start">
+        <div class="flex-1">
+          <div class="flex items-center space-x-2 mb-1">
+            <span class="px-2 py-1 text-xs rounded-full ${message.sender === 'user' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">${message.sender}</span>
+            <span class="text-xs text-gray-500">${new Date(message.createdAt).toLocaleString()}</span>
+          </div>
+          <p class="text-sm text-gray-900">${message.content}</p>
+        </div>
+        <input type="checkbox" class="message-checkbox" data-message-id="${message.id}">
+      </div>
+    `;
+    
+    // Add click handler
+    messageElement.addEventListener('click', function(e) {
+      if (e.target.type !== 'checkbox') {
+        const checkbox = messageElement.querySelector('.message-checkbox');
+        checkbox.checked = !checkbox.checked;
+        toggleMessageSelection(message.id, checkbox.checked);
+      }
+    });
+    
+    container.appendChild(messageElement);
+  });
+}
+
+// Toggle message selection
+function toggleMessageSelection(messageId, isSelected) {
+  if (isSelected) {
+    if (!selectedMessages.includes(messageId)) {
+      selectedMessages.push(messageId);
+    }
+  } else {
+    selectedMessages = selectedMessages.filter(id => id !== messageId);
+  }
+  
+  updateBulkTrainingActions();
+}
+
+// Update bulk training actions visibility
+function updateBulkTrainingActions() {
+  const bulkActions = document.getElementById('bulkTrainingActions');
+  if (selectedMessages.length > 0) {
+    bulkActions.classList.remove('hidden');
+  } else {
+    bulkActions.classList.add('hidden');
+  }
+}
+
+// Convert selected messages to training examples
+async function convertSelectedToTraining() {
+  if (selectedMessages.length === 0) {
+    alert('Please select at least one message');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/twin/${twinId}/convert-messages-to-training`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({
+        messageIds: selectedMessages,
+        trainingType: 'chat_conversion'
+      })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      alert(`Successfully converted ${selectedMessages.length} messages to training examples!`);
+      selectedMessages = [];
+      updateBulkTrainingActions();
+      loadStyleAnchors();
+      loadTrainingEffectiveness();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Error converting messages:', error);
+    alert('Error converting messages to training examples');
+  }
+}
+
+// Load training effectiveness score
+async function loadTrainingEffectiveness() {
+  try {
+    const response = await fetch(`/api/twin/${twinId}/training/effectiveness`);
+    const data = await response.json();
+    
+    if (data.success) {
+      updateEffectivenessDisplay(data.effectiveness);
+      updateTrainingRecommendations(data.recommendations);
+      updateTrainingAchievements(data.achievements);
+      updateTrainingGoals(data.goals);
+    }
+  } catch (error) {
+    console.error('Error loading training effectiveness:', error);
+  }
+}
+
+// Update effectiveness display
+function updateEffectivenessDisplay(effectiveness) {
+  const scoreElement = document.getElementById('effectivenessScore');
+  const barElement = document.getElementById('effectivenessBar');
+  
+  scoreElement.textContent = effectiveness.score + '%';
+  barElement.style.width = effectiveness.score + '%';
+  
+  // Update color based on score
+  if (effectiveness.score >= 80) {
+    barElement.className = 'bg-green-600 h-2 rounded-full transition-all duration-300';
+    scoreElement.className = 'text-lg font-bold text-green-600';
+  } else if (effectiveness.score >= 60) {
+    barElement.className = 'bg-yellow-600 h-2 rounded-full transition-all duration-300';
+    scoreElement.className = 'text-lg font-bold text-yellow-600';
+  } else {
+    barElement.className = 'bg-red-600 h-2 rounded-full transition-all duration-300';
+    scoreElement.className = 'text-lg font-bold text-red-600';
+  }
+}
+
+// Update training recommendations
+function updateTrainingRecommendations(recommendations) {
+  const container = document.getElementById('trainingRecommendations');
+  container.innerHTML = '';
+  
+  recommendations.forEach(rec => {
+    const recElement = document.createElement('div');
+    recElement.className = `p-3 ${rec.type === 'tip' ? 'bg-blue-50 border border-blue-200' : 'bg-yellow-50 border border-yellow-200'} rounded-lg`;
+    recElement.innerHTML = `<p class="text-sm ${rec.type === 'tip' ? 'text-blue-800' : 'text-yellow-800'}">${rec.icon} ${rec.message}</p>`;
+    container.appendChild(recElement);
+  });
+}
+
+// Update training achievements
+function updateTrainingAchievements(achievements) {
+  const container = document.getElementById('trainingAchievements');
+  container.innerHTML = '';
+  
+  achievements.forEach(achievement => {
+    const achievementElement = document.createElement('div');
+    achievementElement.className = `p-3 ${achievement.unlocked ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'} rounded-lg text-center`;
+    achievementElement.innerHTML = `
+      <div class="text-2xl mb-1">${achievement.icon}</div>
+      <p class="text-xs ${achievement.unlocked ? 'text-green-800' : 'text-gray-800'}">${achievement.name}</p>
+      <p class="text-xs ${achievement.unlocked ? 'text-green-600' : 'text-gray-600'}">${achievement.description}</p>
+    `;
+    container.appendChild(achievementElement);
+  });
+}
+
+// Update training goals
+function updateTrainingGoals(goals) {
+  const container = document.querySelector('#trainingValidation .space-y-3');
+  container.innerHTML = '';
+  
+  goals.forEach(goal => {
+    const goalElement = document.createElement('div');
+    goalElement.className = 'flex justify-between items-center';
+    goalElement.innerHTML = `
+      <span class="text-sm text-gray-700">${goal.name}</span>
+      <div class="flex items-center space-x-2">
+        <div class="w-24 bg-gray-200 rounded-full h-2">
+          <div class="${goal.color} h-2 rounded-full" style="width: ${goal.progress}%"></div>
+        </div>
+        <span class="text-xs text-gray-600">${goal.current}/${goal.target}</span>
+      </div>
+    `;
+    container.appendChild(goalElement);
+  });
+}
+
+// Event listeners for Phase 2D
+document.addEventListener('DOMContentLoaded', function() {
+  // Load chat selection
+  loadChatSelection();
+  
+  // Chat selection change
+  document.getElementById('chatSelection').addEventListener('change', function(e) {
+    selectedChatId = e.target.value;
+    if (selectedChatId) {
+      loadChatMessages(selectedChatId);
+    } else {
+      document.getElementById('messageSelection').classList.add('hidden');
+      document.getElementById('bulkTrainingActions').classList.add('hidden');
+    }
+  });
+  
+  // Select all messages
+  document.getElementById('selectAllMessages').addEventListener('click', function() {
+    const checkboxes = document.querySelectorAll('.message-checkbox');
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = true;
+      toggleMessageSelection(checkbox.dataset.messageId, true);
+    });
+  });
+  
+  // Clear selection
+  document.getElementById('clearSelection').addEventListener('click', function() {
+    const checkboxes = document.querySelectorAll('.message-checkbox');
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = false;
+    });
+    selectedMessages = [];
+    updateBulkTrainingActions();
+  });
+  
+  // Convert selected to training
+  document.getElementById('convertSelectedToTraining').addEventListener('click', convertSelectedToTraining);
+  
+  // Preview training examples
+  document.getElementById('previewTrainingExamples').addEventListener('click', function() {
+    if (selectedMessages.length === 0) {
+      alert('Please select at least one message');
+      return;
+    }
+    alert(`Preview: ${selectedMessages.length} messages selected for training conversion`);
+  });
+  
+  // Load training effectiveness
+  loadTrainingEffectiveness();
+});
+
+// Data synchronization functionality
+let dataSyncInterval = null;
+let lastSyncTime = null;
+
+// Initialize data synchronization
+function initializeDataSync() {
+  // Sync data every 30 seconds
+  dataSyncInterval = setInterval(syncAllData, 30000);
+  
+  // Sync on page visibility change
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      syncAllData();
+    }
+  });
+  
+  // Sync on window focus
+  window.addEventListener('focus', syncAllData);
+}
+
+// Sync all dashboard data
+async function syncAllData() {
+  try {
+    console.log('🔄 Syncing all dashboard data...');
+    
+    // Sync learning data
+    await loadLearningData();
+    
+    // Sync chat history
+    await loadChatHistory();
+    
+    // Sync memories
+    await loadMemories();
+    
+    // Sync style anchors
+    await loadStyleAnchors();
+    
+    // Sync training effectiveness
+    await loadTrainingEffectiveness();
+    
+    lastSyncTime = new Date();
+    console.log('✅ Data sync completed at:', lastSyncTime);
+    
+    // Update sync indicator
+    updateSyncIndicator(true);
+  } catch (error) {
+    console.error('❌ Data sync error:', error);
+    updateSyncIndicator(false);
+  }
+}
+
+// Update sync indicator
+function updateSyncIndicator(success) {
+  const indicator = document.getElementById('syncIndicator');
+  if (indicator) {
+    if (success) {
+      indicator.className = 'w-3 h-3 bg-green-500 rounded-full animate-pulse';
+      indicator.title = `Last sync: ${lastSyncTime ? lastSyncTime.toLocaleTimeString() : 'Never'}`;
+    } else {
+      indicator.className = 'w-3 h-3 bg-red-500 rounded-full';
+      indicator.title = 'Sync failed - Click to retry';
+    }
+  }
+}
+
+// Manual sync trigger
+function triggerManualSync() {
+  syncAllData();
+}
+
+// Add sync indicator to header
+function addSyncIndicator() {
+  const header = document.querySelector('h1');
+  if (header && !document.getElementById('syncIndicator')) {
+    const syncContainer = document.createElement('div');
+    syncContainer.className = 'flex items-center space-x-2 mt-2';
+    syncContainer.innerHTML = `
+      <div id="syncIndicator" class="w-3 h-3 bg-gray-400 rounded-full" title="Sync status"></div>
+      <span class="text-sm text-gray-600">Auto-sync enabled</span>
+      <button onclick="triggerManualSync()" class="text-xs text-blue-600 hover:text-blue-800 underline">
+        Sync Now
+      </button>
+    `;
+    header.parentNode.appendChild(syncContainer);
+  }
+}
+
+// Enhanced error handling with retry
+function handleApiError(error, retryFunction, maxRetries = 3) {
+  console.error('API Error:', error);
+  
+  if (maxRetries > 0) {
+    console.log(`Retrying in 2 seconds... (${maxRetries} attempts left)`);
+    setTimeout(() => {
+      retryFunction();
+    }, 2000);
+  } else {
+    console.error('Max retries exceeded');
+    showErrorNotification('Failed to load data. Please refresh the page.');
+  }
+}
+
+// Show error notification
+function showErrorNotification(message) {
+  const notification = document.createElement('div');
+  notification.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg z-50';
+  notification.innerHTML = `
+    <div class="flex items-center">
+      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <span>${message}</span>
+      <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-red-500 hover:text-red-700">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+  `;
+  document.body.appendChild(notification);
+  
+  // Auto-remove after 5 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.remove();
+    }
+  }, 5000);
+}
+
+// Show success notification
+function showSuccessNotification(message) {
+  const notification = document.createElement('div');
+  notification.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow-lg z-50';
+  notification.innerHTML = `
+    <div class="flex items-center">
+      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+      <span>${message}</span>
+      <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-green-500 hover:text-green-700">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+  `;
+  document.body.appendChild(notification);
+  
+  // Auto-remove after 3 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.remove();
+    }
+  }, 3000);
+}
+
+// Initialize Phase 2E functionality
+document.addEventListener('DOMContentLoaded', function() {
+  // Add sync indicator
+  addSyncIndicator();
+  
+  // Initialize data synchronization
+  initializeDataSync();
+  
+  // Add loading states to all data loading functions
+  addLoadingStates();
+});
+
+// Add loading states to existing functions
+function addLoadingStates() {
+  // Override existing functions to add loading states
+  const originalLoadLearningData = loadLearningData;
+  loadLearningData = async function() {
+    showLoadingState('learningProgress');
+    try {
+      await originalLoadLearningData();
+    } catch (error) {
+      handleApiError(error, loadLearningData);
+    } finally {
+      hideLoadingState('learningProgress');
+    }
+  };
+  
+  const originalLoadChatHistory = loadChatHistory;
+  loadChatHistory = async function() {
+    showLoadingState('chatHistory');
+    try {
+      await originalLoadChatHistory();
+    } catch (error) {
+      handleApiError(error, loadChatHistory);
+    } finally {
+      hideLoadingState('chatHistory');
+    }
+  };
+  
+  const originalLoadMemories = loadMemories;
+  loadMemories = async function() {
+    showLoadingState('memoryList');
+    try {
+      await originalLoadMemories();
+    } catch (error) {
+      handleApiError(error, loadMemories);
+    } finally {
+      hideLoadingState('memoryList');
+    }
+  };
+  
+  const originalLoadStyleAnchors = loadStyleAnchors;
+  loadStyleAnchors = async function() {
+    showLoadingState('styleAnchorsList');
+    try {
+      await originalLoadStyleAnchors();
+    } catch (error) {
+      handleApiError(error, loadStyleAnchors);
+    } finally {
+      hideLoadingState('styleAnchorsList');
+    }
+  };
+}
+
+// Show loading state
+function showLoadingState(elementId) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.classList.add('opacity-50', 'pointer-events-none');
+  }
+}
+
+// Hide loading state
+function hideLoadingState(elementId) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.classList.remove('opacity-50', 'pointer-events-none');
+  }
+}
+
+// Phase 2F: Advanced Features JavaScript
+
+// Training Templates
+const trainingTemplates = {
+  casual: {
+    userUtterance: "Hey, how are you doing today?",
+    idealReply: "Hey! I'm doing great, thanks for asking! 😊 How about you? What's been going on?"
+  },
+  professional: {
+    userUtterance: "Can you help me with this project?",
+    idealReply: "I'd be happy to assist you with your project. Could you provide more details about what specific help you need?"
+  },
+  supportive: {
+    userUtterance: "I'm feeling stressed about work",
+    idealReply: "I understand that work stress can be really overwhelming. You're doing your best, and it's okay to take breaks when you need them. What's been the most challenging part lately?"
+  }
+};
+
+// Load training template
+function loadTemplate(templateType) {
+  const template = trainingTemplates[templateType];
+  if (template) {
+    document.getElementById('templateUserUtterance').textContent = template.userUtterance;
+    document.getElementById('templateIdealReply').textContent = template.idealReply;
+    document.getElementById('templatePreview').classList.remove('hidden');
+  }
+}
+
+// Use template
+function useTemplate() {
+  const userUtterance = document.getElementById('templateUserUtterance').textContent;
+  const idealReply = document.getElementById('templateIdealReply').textContent;
+  
+  document.getElementById('userUtterance').value = userUtterance;
+  document.getElementById('idealReply').value = idealReply;
+  
+  document.getElementById('templatePreview').classList.add('hidden');
+  showSuccessNotification('Template applied successfully!');
+}
+
+// Close template
+function closeTemplate() {
+  document.getElementById('templatePreview').classList.add('hidden');
+}
+
+// Learning Milestones
+let learningGoals = [];
+
+// Load learning milestones
+async function loadLearningMilestones() {
+  try {
+    const response = await fetch(`/api/twin/${twinId}/milestones`);
+    const data = await response.json();
+    
+    if (data.success) {
+      updateMilestonesDisplay(data.milestones);
+      updateGoalsDisplay(data.goals);
+    }
+  } catch (error) {
+    console.error('Error loading milestones:', error);
+  }
+}
+
+// Update milestones display
+function updateMilestonesDisplay(milestones) {
+  const currentContainer = document.getElementById('currentMilestones');
+  const upcomingContainer = document.getElementById('upcomingMilestones');
+  
+  currentContainer.innerHTML = '';
+  upcomingContainer.innerHTML = '';
+  
+  milestones.forEach(milestone => {
+    const milestoneElement = document.createElement('div');
+    milestoneElement.className = `flex items-center justify-between p-3 ${milestone.completed ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'} rounded-lg`;
+    
+    milestoneElement.innerHTML = `
+      <div class="flex items-center space-x-3">
+        <div class="text-2xl">${milestone.icon}</div>
+        <div>
+          <p class="text-sm font-medium ${milestone.completed ? 'text-green-800' : 'text-gray-800'}">${milestone.name}</p>
+          <p class="text-xs ${milestone.completed ? 'text-green-600' : 'text-gray-600'}">${milestone.description}</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <p class="text-sm font-bold ${milestone.completed ? 'text-green-800' : 'text-gray-800'}">${milestone.progress}%</p>
+        <div class="w-16 ${milestone.completed ? 'bg-green-200' : 'bg-gray-200'} rounded-full h-2">
+          <div class="${milestone.completed ? 'bg-green-600' : 'bg-gray-600'} h-2 rounded-full" style="width: ${milestone.progress}%"></div>
+        </div>
+      </div>
+    `;
+    
+    if (milestone.completed) {
+      currentContainer.appendChild(milestoneElement);
+    } else {
+      upcomingContainer.appendChild(milestoneElement);
+    }
+  });
+}
+
+// Update goals display
+function updateGoalsDisplay(goals) {
+  learningGoals = goals;
+}
+
+// Set learning goal
+async function setLearningGoal() {
+  const goalType = document.getElementById('goalType').value;
+  const target = parseInt(document.getElementById('goalTarget').value);
+  
+  if (!target || target < 1) {
+    alert('Please enter a valid target number');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/twin/${twinId}/goals`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({
+        type: goalType,
+        target: target
+      })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      showSuccessNotification('Learning goal set successfully!');
+      document.getElementById('goalTarget').value = '';
+      loadLearningMilestones();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Error setting goal:', error);
+    alert('Error setting learning goal');
+  }
+}
+
+// Performance Optimization
+let performanceMetrics = {
+  responseTime: 0,
+  accuracyScore: 0,
+  learningRate: 0,
+  userSatisfaction: 0
+};
+
+// Load performance metrics
+async function loadPerformanceMetrics() {
+  try {
+    const response = await fetch(`/api/twin/${twinId}/performance`);
+    const data = await response.json();
+    
+    if (data.success) {
+      performanceMetrics = data.metrics;
+      updatePerformanceDisplay();
+      updateOptimizationRecommendations(data.recommendations);
+    }
+  } catch (error) {
+    console.error('Error loading performance metrics:', error);
+  }
+}
+
+// Update performance display
+function updatePerformanceDisplay() {
+  document.getElementById('responseTime').textContent = performanceMetrics.responseTime + 'ms';
+  document.getElementById('accuracyScore').textContent = performanceMetrics.accuracyScore + '%';
+  document.getElementById('learningRate').textContent = performanceMetrics.learningRate + '%';
+  document.getElementById('userSatisfaction').textContent = performanceMetrics.userSatisfaction + '%';
+}
+
+// Update optimization recommendations
+function updateOptimizationRecommendations(recommendations) {
+  const container = document.getElementById('optimizationRecommendations');
+  container.innerHTML = '';
+  
+  recommendations.forEach(rec => {
+    const recElement = document.createElement('div');
+    recElement.className = `p-3 ${rec.type === 'warning' ? 'bg-yellow-50 border border-yellow-200' : 'bg-blue-50 border border-blue-200'} rounded-lg`;
+    recElement.innerHTML = `
+      <div class="flex items-start space-x-3">
+        <div class="${rec.type === 'warning' ? 'text-yellow-600' : 'text-blue-600'} mt-1">${rec.icon}</div>
+        <div>
+          <p class="text-sm font-medium ${rec.type === 'warning' ? 'text-yellow-800' : 'text-blue-800'}">${rec.title}</p>
+          <p class="text-xs ${rec.type === 'warning' ? 'text-yellow-700' : 'text-blue-700'}">${rec.description}</p>
+        </div>
+      </div>
+    `;
+    container.appendChild(recElement);
+  });
+}
+
+// Optimize memories
+async function optimizeMemories() {
+  try {
+    const response = await fetch(`/api/twin/${twinId}/optimize/memories`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      }
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      showSuccessNotification(`Optimized ${data.optimized} memories successfully!`);
+      loadMemories();
+      loadPerformanceMetrics();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Error optimizing memories:', error);
+    alert('Error optimizing memories');
+  }
+}
+
+// Analyze performance
+async function analyzePerformance() {
+  try {
+    const response = await fetch(`/api/twin/${twinId}/analyze/performance`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      }
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      showSuccessNotification('Performance analysis completed!');
+      loadPerformanceMetrics();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Error analyzing performance:', error);
+    alert('Error analyzing performance');
+  }
+}
+
+// Export analytics
+async function exportAnalytics() {
+  try {
+    const response = await fetch(`/api/twin/${twinId}/export/analytics`);
+    const data = await response.json();
+    
+    if (data.success) {
+      // Create download link
+      const blob = new Blob([JSON.stringify(data.analytics, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `twin-${twinId}-analytics.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      showSuccessNotification('Analytics exported successfully!');
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Error exporting analytics:', error);
+    alert('Error exporting analytics');
+  }
+}
+
+// Reset performance metrics
+async function resetPerformanceMetrics() {
+  if (confirm('Are you sure you want to reset all performance metrics? This action cannot be undone.')) {
+    try {
+      const response = await fetch(`/api/twin/${twinId}/reset/performance`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        }
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        showSuccessNotification('Performance metrics reset successfully!');
+        loadPerformanceMetrics();
+      } else {
+        alert('Error: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error resetting performance:', error);
+      alert('Error resetting performance metrics');
+    }
+  }
+}
+
+// Initialize Phase 2F functionality
+document.addEventListener('DOMContentLoaded', function() {
+  // Load advanced features
+  loadLearningMilestones();
+  loadPerformanceMetrics();
+  
+  // Template events
+  document.getElementById('useTemplate').addEventListener('click', useTemplate);
+  document.getElementById('closeTemplate').addEventListener('click', closeTemplate);
+  
+  // Goal setting events
+  document.getElementById('setGoal').addEventListener('click', setLearningGoal);
+  
+  // Performance events
+  document.getElementById('optimizeMemories').addEventListener('click', optimizeMemories);
+  document.getElementById('analyzePerformance').addEventListener('click', analyzePerformance);
+  document.getElementById('exportAnalytics').addEventListener('click', exportAnalytics);
+  document.getElementById('resetPerformance').addEventListener('click', resetPerformanceMetrics);
+});
+
+// Global functions for template loading
+window.loadTemplate = loadTemplate;
+
+
     </script>
 </body>
 </html>

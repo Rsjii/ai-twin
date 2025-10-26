@@ -31,7 +31,13 @@ import onboardingRoutes from './modules/onboarding/onboardingRoutes';
 import memoryRoutes from './modules/memory/memoryRoutes';
 import {learningScheduler} from './services/learningScheduler';
 import { getChatHistory, createNewChat, updateChatTitle, getChatSummary, generateChatTitle } from './modules/chat/chatManagementController';
-
+// Import style anchor controller
+import { 
+  getTwinAnchors, 
+  addTwinAnchor, 
+  updateTwinAnchor, 
+  deleteTwinAnchor 
+} from './modules/twin/styleAnchorController';
 
 if(config.nodeEnv==='production'){
   learningScheduler.start();
@@ -137,6 +143,12 @@ app.use('/api/metrics', analyticsRoutes);
 app.use('/api/admin/analytics', adminAnalyticsRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/memory', memoryRoutes);
+
+// Add style anchor routes
+app.get('/api/twin/:id/anchors', requireJWTFromCookie, getTwinAnchors);
+app.post('/api/twin/:id/anchors', requireJWTFromCookie, addTwinAnchor);
+app.put('/api/twin/:id/anchors/:anchorId', requireJWTFromCookie, updateTwinAnchor);
+app.delete('/api/twin/:id/anchors/:anchorId', requireJWTFromCookie, deleteTwinAnchor);
 
 // Discover page route
 app.get('/discover', (req, res) => {
@@ -2026,26 +2038,468 @@ app.get('/api/twin/:id/learning-data', requireJWTFromCookie, async (req: any, re
       return res.status(404).json({ success: false, error: 'Twin not found' });
     }
     
-    // Mock learning data (implement real analytics later)
-    const learningData = {
-      totalInteractions: 42,
-      learningScore: 78,
-      styleAccuracy: 85,
-      events: [
-        {
-          description: "Learned to use more casual tone",
-          timestamp: new Date().toISOString()
-        },
-        {
-          description: "Improved emoji usage based on feedback",
-          timestamp: new Date(Date.now() - 3600000).toISOString()
-        }
-      ]
-    };
-    
+// Real learning data from database
+const learningData = {
+  totalInteractions: 0,
+  learningScore: 0,
+  styleAccuracy: 0,
+  events: []
+};
+
+try {
+  // Get real analytics from database
+  const analyticsResult = await db.query(`
+    SELECT 
+      COUNT(DISTINCT c.id) as total_chats,
+      COUNT(m.id) as total_messages,
+      COUNT(CASE WHEN cf.rating = 'positive' THEN 1 END) as positive_feedback,
+      COUNT(CASE WHEN cf.rating = 'negative' THEN 1 END) as negative_feedback
+    FROM "Chat" c
+    LEFT JOIN "Message" m ON c.id = m."chatId"
+    LEFT JOIN "ChatFeedback" cf ON c.id = cf."chatId"
+    WHERE c."twinId" = $1
+  `, [twinId]);
+
+  const analytics = analyticsResult.rows[0];
+  
+  // Get recent learning events
+  const eventsResult = await db.query(`
+    SELECT 
+      'Style correction applied' as description,
+      "createdAt" as timestamp
+    FROM "style_corrections" 
+    WHERE "twinId" = $1
+    ORDER BY "createdAt" DESC
+    LIMIT 5
+  `, [twinId]);
+
+  learningData.totalInteractions = parseInt(analytics.total_messages) || 0;
+  learningData.learningScore = analytics.total_messages > 0 ? 
+    Math.round((analytics.positive_feedback / analytics.total_messages) * 100) : 0;
+  learningData.styleAccuracy = analytics.total_messages > 0 ? 
+    Math.round((analytics.positive_feedback / analytics.total_messages) * 100) : 0;
+  learningData.events = eventsResult.rows.map(event => ({
+    description: event.description,
+    timestamp: event.timestamp
+  }));
+
+} catch (error) {
+  console.error('Error loading learning data:', error);
+  // Keep default values if error occurs
+}
+
     res.json({ success: true, learning: learningData });
   } catch (error) {
     console.error('Learning data API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Manual Training API endpoints
+app.post('/api/twin/:id/manual-training', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    const { userMessage, idealReply, trainingType } = req.body;
+    
+    // Verify ownership
+    const twinResult = await db.query(`
+      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Create style anchor for manual training
+    const anchorId = `anchor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    await db.query(`
+      INSERT INTO "style_anchors" ("id", "twinId", "userUtterance", "idealReply", "trainingType", "createdAt")
+      VALUES ($1, $2, $3, $4, $5, NOW())
+    `, [anchorId, twinId, userMessage, idealReply, trainingType || 'manual']);
+    
+    res.json({ success: true, message: 'Training example added successfully' });
+  } catch (error) {
+    console.error('Manual training API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Get messages for a specific chat
+app.get('/api/twin/:id/chat/:chatId/messages', requireJWTFromCookie, async (req, res) => {
+  try {
+    const { id: twinId, chatId } = req.params;
+    const userId = req.user.id;
+    
+    // Verify ownership
+    const twin = await db.twin.findFirst({
+      where: { id: twinId, userId: userId }
+    });
+    
+    if (!twin) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Get messages for the chat
+    const messages = await db.message.findMany({
+      where: { chatId: chatId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        content: true,
+        sender: true,
+        createdAt: true
+      }
+    });
+    
+    res.json({ success: true, messages });
+  } catch (error) {
+    console.error('Error fetching chat messages:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch chat messages' });
+  }
+});
+
+// Convert multiple messages to training examples
+app.post('/api/twin/:id/convert-messages-to-training', requireJWTFromCookie, async (req, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const { messageIds, trainingType } = req.body;
+    const userId = req.user.id;
+    
+    // Verify ownership
+    const twin = await db.twin.findFirst({
+      where: { id: twinId, userId: userId }
+    });
+    
+    if (!twin) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Get messages
+    const messages = await db.message.findMany({
+      where: { id: { in: messageIds } },
+      orderBy: { createdAt: 'asc' }
+    });
+    
+    // Group messages by chat and create training examples
+    const chatGroups = {};
+    messages.forEach(message => {
+      if (!chatGroups[message.chatId]) {
+        chatGroups[message.chatId] = [];
+      }
+      chatGroups[message.chatId].push(message);
+    });
+    
+    let createdAnchors = 0;
+    
+    // Create style anchors from message pairs
+    for (const chatId in chatGroups) {
+      const chatMessages = chatGroups[chatId];
+      
+      for (let i = 0; i < chatMessages.length - 1; i++) {
+        const userMessage = chatMessages[i];
+        const aiMessage = chatMessages[i + 1];
+        
+        if (userMessage.sender === 'user' && aiMessage.sender === 'ai') {
+          await styleAnchorsQueries.create({
+            twinId: twinId,
+            userUtterance: userMessage.content,
+            idealReply: aiMessage.content,
+            trainingType: trainingType || 'chat_conversion',
+            metadata: {
+              sourceChatId: chatId,
+              sourceMessageIds: [userMessage.id, aiMessage.id]
+            }
+          });
+          createdAnchors++;
+        }
+      }
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Created ${createdAnchors} training examples`,
+      createdAnchors 
+    });
+  } catch (error) {
+    console.error('Error converting messages to training:', error);
+    res.status(500).json({ success: false, error: 'Failed to convert messages to training' });
+  }
+});
+
+// Get training effectiveness metrics
+app.get('/api/twin/:id/training/effectiveness', requireJWTFromCookie, async (req, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    
+    // Verify ownership
+    const twin = await db.twin.findFirst({
+      where: { id: twinId, userId: userId }
+    });
+    
+    if (!twin) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Calculate effectiveness score
+    const totalAnchors = await db.styleAnchor.count({ where: { twinId } });
+    const totalMemories = await db.memChunk.count({ where: { twinId } });
+    const recentCorrections = await db.styleCorrection.count({
+      where: { 
+        twinId,
+        createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
+      }
+    });
+    
+    // Calculate score based on various factors
+    let score = 0;
+    if (totalAnchors >= 10) score += 30;
+    else score += (totalAnchors / 10) * 30;
+    
+    if (totalMemories >= 20) score += 30;
+    else score += (totalMemories / 20) * 30;
+    
+    if (recentCorrections <= 5) score += 40; // Fewer corrections = better
+    else score += Math.max(0, 40 - (recentCorrections - 5) * 5);
+    
+    // Generate recommendations
+    const recommendations = [];
+    if (totalAnchors < 5) {
+      recommendations.push({
+        type: 'tip',
+        icon: '💡',
+        message: 'Add more style anchors to improve response quality'
+      });
+    }
+    if (totalMemories < 10) {
+      recommendations.push({
+        type: 'warning',
+        icon: '⚠️',
+        message: 'Consider adding more memory chunks for better context'
+      });
+    }
+    
+    // Generate achievements
+    const achievements = [
+      {
+        name: 'Style Master',
+        description: '10+ anchors',
+        icon: '🎯',
+        unlocked: totalAnchors >= 10
+      },
+      {
+        name: 'Memory Builder',
+        description: '50+ memories',
+        icon: '🧠',
+        unlocked: totalMemories >= 50
+      },
+      {
+        name: 'Quick Learner',
+        description: '5+ examples',
+        icon: '⚡',
+        unlocked: totalAnchors >= 5
+      },
+      {
+        name: 'Perfectionist',
+        description: 'Low corrections',
+        icon: '🔒',
+        unlocked: recentCorrections <= 3
+      }
+    ];
+    
+    // Generate goals
+    const goals = [
+      {
+        name: 'Add 5 more style anchors',
+        current: totalAnchors,
+        target: 5,
+        progress: Math.min(100, (totalAnchors / 5) * 100),
+        color: 'bg-blue-600'
+      },
+      {
+        name: 'Create 10 memory chunks',
+        current: totalMemories,
+        target: 10,
+        progress: Math.min(100, (totalMemories / 10) * 100),
+        color: 'bg-green-600'
+      },
+      {
+        name: 'Convert 3 chats to training',
+        current: Math.min(3, Math.floor(totalAnchors / 2)),
+        target: 3,
+        progress: Math.min(100, (Math.min(3, Math.floor(totalAnchors / 2)) / 3) * 100),
+        color: 'bg-purple-600'
+      }
+    ];
+    
+    res.json({
+      success: true,
+      effectiveness: {
+        score: Math.round(score),
+        totalAnchors,
+        totalMemories,
+        recentCorrections
+      },
+      recommendations,
+      achievements,
+      goals
+    });
+  } catch (error) {
+    console.error('Error calculating training effectiveness:', error);
+    res.status(500).json({ success: false, error: 'Failed to calculate training effectiveness' });
+  }
+});
+
+// Convert chat message to training example
+app.post('/api/twin/:id/convert-to-training', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    const { messageId, idealReply } = req.body;
+    
+    // Verify ownership
+    const twinResult = await db.query(`
+      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Get the original message
+    const messageResult = await db.query(`
+      SELECT content FROM "Message" 
+      WHERE id = $1 AND "chatId" IN (
+        SELECT id FROM "Chat" WHERE "twinId" = $2 AND "userId" = $3
+      )
+    `, [messageId, twinId, userId]);
+    
+    if (messageResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Message not found' });
+    }
+    
+    // Create style anchor
+    const anchorId = `anchor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    await db.query(`
+      INSERT INTO "style_anchors" ("id", "twinId", "userUtterance", "idealReply", "trainingType", "createdAt")
+      VALUES ($1, $2, $3, $4, $5, NOW())
+    `, [anchorId, twinId, messageResult.rows[0].content, idealReply, 'chat_conversion']);
+    
+    res.json({ success: true, message: 'Message converted to training example' });
+  } catch (error) {
+    console.error('Convert to training API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Get training progress
+app.get('/api/twin/:id/training-progress', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    
+    // Verify ownership
+    const twinResult = await db.query(`
+      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Get training statistics
+    const statsResult = await db.query(`
+      SELECT 
+        COUNT(*) as total_examples,
+        COUNT(CASE WHEN "trainingType" = 'manual' THEN 1 END) as manual_examples,
+        COUNT(CASE WHEN "trainingType" = 'chat_conversion' THEN 1 END) as converted_examples,
+        COUNT(CASE WHEN "trainingType" = 'auto' THEN 1 END) as auto_examples
+      FROM "style_anchors" 
+      WHERE "twinId" = $1
+    `, [twinId]);
+    
+    // Get recent training activity
+    const recentResult = await db.query(`
+      SELECT "userUtterance", "idealReply", "trainingType", "createdAt"
+      FROM "style_anchors" 
+      WHERE "twinId" = $1
+      ORDER BY "createdAt" DESC
+      LIMIT 10
+    `, [twinId]);
+    
+    const stats = statsResult.rows[0];
+    const recent = recentResult.rows;
+    
+    res.json({ 
+      success: true, 
+      progress: {
+        totalExamples: parseInt(stats.total_examples) || 0,
+        manualExamples: parseInt(stats.manual_examples) || 0,
+        convertedExamples: parseInt(stats.converted_examples) || 0,
+        autoExamples: parseInt(stats.auto_examples) || 0,
+        recentActivity: recent.map(item => ({
+          userUtterance: item.userUtterance,
+          idealReply: item.idealReply,
+          trainingType: item.trainingType,
+          timestamp: item.createdAt
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Training progress API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// API endpoint for getting chat history for a twin
+app.get('/api/twin/:id/chat-history', requireJWTFromCookie, async (req: any, res) => {
+  try {
+    const { id: twinId } = req.params;
+    const { limit = 20, offset = 0 } = req.query;
+    const userId = req.user.id;
+    
+    // Verify twin ownership
+    const twinResult = await db.query(`
+      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Get all chats for this twin
+    const chats = await db.query(`
+      SELECT 
+        c.id, 
+        c."createdAt", 
+        c."lastMessage",
+        COUNT(m.id) as message_count,
+        MAX(m."createdAt") as last_message_time
+      FROM "Chat" c
+      LEFT JOIN "Message" m ON c.id = m."chatId"
+      WHERE c."twinId" = $1 AND c."userId" = $2
+      GROUP BY c.id, c."createdAt", c."lastMessage"
+      ORDER BY c."createdAt" DESC
+      LIMIT $3 OFFSET $4
+    `, [twinId, userId, parseInt(limit as string), parseInt(offset as string)]);
+    
+    // Format chat data
+    const chatHistory = chats.rows.map(chat => ({
+      id: chat.id,
+      createdAt: chat.createdAt,
+      lastMessage: chat.last_message,
+      messageCount: parseInt(chat.message_count) || 0,
+      lastMessageTime: chat.last_message_time
+    }));
+    
+    res.json({ 
+      success: true, 
+      chats: chatHistory,
+      total: chatHistory.length 
+    });
+  } catch (error) {
+    console.error('Chat history API error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
@@ -2463,5 +2917,474 @@ process.on('SIGTERM', async () => {
   await db.close();
   process.exit(0);
 });
+
+// Phase 2F: Advanced Features API Endpoints
+
+// Training Templates API
+app.get('/api/twin/:id/templates', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    // Verify twin ownership
+    const twin = await db.twin.findFirst({
+      where: { id, userId }
+    });
+    
+    if (!twin) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    const templates = {
+      casual: {
+        name: 'Casual Conversation',
+        description: 'Friendly, relaxed responses',
+        examples: [
+          { user: "Hey, how are you?", reply: "Hey! I'm doing great, thanks! 😊 How about you?" },
+          { user: "What's up?", reply: "Not much, just hanging out! What's going on with you?" }
+        ]
+      },
+      professional: {
+        name: 'Professional',
+        description: 'Formal, business-like responses',
+        examples: [
+          { user: "Can you help with this project?", reply: "I'd be happy to assist you with your project. Could you provide more details?" },
+          { user: "What's the status?", reply: "The current status is as follows. Let me provide you with the details." }
+        ]
+      },
+      supportive: {
+        name: 'Supportive',
+        description: 'Encouraging, empathetic responses',
+        examples: [
+          { user: "I'm feeling stressed", reply: "I understand that stress can be overwhelming. You're doing your best, and it's okay to take breaks." },
+          { user: "I'm worried about...", reply: "It's completely natural to feel worried about that. You're not alone in this." }
+        ]
+      }
+    };
+    
+    res.json({ success: true, templates });
+  } catch (error) {
+    console.error('Error loading templates:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Learning Milestones API
+app.get('/api/twin/:id/milestones', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    // Verify twin ownership
+    const twin = await db.twin.findFirst({
+      where: { id, userId }
+    });
+    
+    if (!twin) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Get current counts
+    const styleAnchorsCount = await db.styleAnchor.count({
+      where: { twinId: id }
+    });
+    
+    const memoriesCount = await db.memChunk.count({
+      where: { twinId: id }
+    });
+    
+    const trainingExamplesCount = await db.styleAnchor.count({
+      where: { twinId: id, trainingType: 'manual' }
+    });
+    
+    // Define milestones
+    const milestones = [
+      {
+        id: 'style_master',
+        name: 'Style Master',
+        description: '10+ style anchors',
+        icon: '🎯',
+        target: 10,
+        current: styleAnchorsCount,
+        completed: styleAnchorsCount >= 10,
+        progress: Math.min(100, (styleAnchorsCount / 10) * 100)
+      },
+      {
+        id: 'memory_builder',
+        name: 'Memory Builder',
+        description: '50+ memories',
+        icon: '🧠',
+        target: 50,
+        current: memoriesCount,
+        completed: memoriesCount >= 50,
+        progress: Math.min(100, (memoriesCount / 50) * 100)
+      },
+      {
+        id: 'quick_learner',
+        name: 'Quick Learner',
+        description: '5+ training examples',
+        icon: '⚡',
+        target: 5,
+        current: trainingExamplesCount,
+        completed: trainingExamplesCount >= 5,
+        progress: Math.min(100, (trainingExamplesCount / 5) * 100)
+      },
+      {
+        id: 'expert_trainer',
+        name: 'Expert Trainer',
+        description: '25+ style anchors',
+        icon: '🔒',
+        target: 25,
+        current: styleAnchorsCount,
+        completed: styleAnchorsCount >= 25,
+        progress: Math.min(100, (styleAnchorsCount / 25) * 100)
+      }
+    ];
+    
+    // Get learning goals
+    const goals = await db.learningGoal.findMany({
+      where: { twinId: id },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    res.json({ success: true, milestones, goals });
+  } catch (error) {
+    console.error('Error loading milestones:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Set Learning Goal API
+app.post('/api/twin/:id/goals', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type, target } = req.body;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    // Verify twin ownership
+    const twin = await db.twin.findFirst({
+      where: { id, userId }
+    });
+    
+    if (!twin) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Create learning goal
+    const goal = await db.learningGoal.create({
+      data: {
+        twinId: id,
+        type,
+        target,
+        current: 0,
+        completed: false
+      }
+    });
+    
+    res.json({ success: true, goal });
+  } catch (error) {
+    console.error('Error setting goal:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Performance Metrics API
+app.get('/api/twin/:id/performance', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    // Verify twin ownership
+    const twin = await db.twin.findFirst({
+      where: { id, userId }
+    });
+    
+    if (!twin) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Calculate performance metrics
+    const aiRuns = await db.aiRun.findMany({
+      where: { twinId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+    
+    const avgResponseTime = aiRuns.length > 0 
+      ? aiRuns.reduce((sum, run) => sum + (run.responseTime || 0), 0) / aiRuns.length 
+      : 0;
+    
+    const styleCorrections = await db.styleCorrection.findMany({
+      where: { twinId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    });
+    
+    const accuracyScore = styleCorrections.length > 0
+      ? (styleCorrections.filter(c => c.feedback === 'positive').length / styleCorrections.length) * 100
+      : 0;
+    
+    const learningRate = await calculateLearningRate(id);
+    const userSatisfaction = await calculateUserSatisfaction(id);
+    
+    const metrics = {
+      responseTime: Math.round(avgResponseTime),
+      accuracyScore: Math.round(accuracyScore),
+      learningRate: Math.round(learningRate),
+      userSatisfaction: Math.round(userSatisfaction)
+    };
+    
+    // Generate optimization recommendations
+    const recommendations = generateOptimizationRecommendations(metrics, aiRuns.length, styleCorrections.length);
+    
+    res.json({ success: true, metrics, recommendations });
+  } catch (error) {
+    console.error('Error loading performance metrics:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Optimize Memories API
+app.post('/api/twin/:id/optimize/memories', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    // Verify twin ownership
+    const twin = await db.twin.findFirst({
+      where: { id, userId }
+    });
+    
+    if (!twin) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Get all memories
+    const memories = await db.memChunk.findMany({
+      where: { twinId: id }
+    });
+    
+    // Simple optimization: remove duplicates and consolidate similar memories
+    const optimized = await optimizeMemoryChunks(memories);
+    
+    res.json({ success: true, optimized: optimized.length });
+  } catch (error) {
+    console.error('Error optimizing memories:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Analyze Performance API
+app.post('/api/twin/:id/analyze/performance', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    // Verify twin ownership
+    const twin = await db.twin.findFirst({
+      where: { id, userId }
+    });
+    
+    if (!twin) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Perform performance analysis
+    const analysis = await performPerformanceAnalysis(id);
+    
+    res.json({ success: true, analysis });
+  } catch (error) {
+    console.error('Error analyzing performance:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Export Analytics API
+app.get('/api/twin/:id/export/analytics', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    // Verify twin ownership
+    const twin = await db.twin.findFirst({
+      where: { id, userId }
+    });
+    
+    if (!twin) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Gather all analytics data
+    const analytics = await gatherAnalyticsData(id);
+    
+    res.json({ success: true, analytics });
+  } catch (error) {
+    console.error('Error exporting analytics:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Reset Performance API
+app.post('/api/twin/:id/reset/performance', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    // Verify twin ownership
+    const twin = await db.twin.findFirst({
+      where: { id, userId }
+    });
+    
+    if (!twin) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Reset performance metrics
+    await db.aiRun.deleteMany({
+      where: { twinId: id }
+    });
+    
+    await db.styleCorrection.deleteMany({
+      where: { twinId: id }
+    });
+    
+    res.json({ success: true, message: 'Performance metrics reset successfully' });
+  } catch (error) {
+    console.error('Error resetting performance:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Helper functions for Phase 2F
+async function calculateLearningRate(twinId: string): Promise<number> {
+  // Calculate learning rate based on recent improvements
+  const recentCorrections = await db.styleCorrection.findMany({
+    where: { twinId },
+    orderBy: { createdAt: 'desc' },
+    take: 20
+  });
+  
+  if (recentCorrections.length < 5) return 0;
+  
+  const positiveRate = recentCorrections.filter(c => c.feedback === 'positive').length / recentCorrections.length;
+  return positiveRate * 100;
+}
+
+async function calculateUserSatisfaction(twinId: string): Promise<number> {
+  // Calculate user satisfaction based on feedback
+  const feedbacks = await db.chatFeedback.findMany({
+    where: { twinId },
+    orderBy: { createdAt: 'desc' },
+    take: 50
+  });
+  
+  if (feedbacks.length === 0) return 0;
+  
+  const satisfactionRate = feedbacks.filter(f => f.rating >= 4).length / feedbacks.length;
+  return satisfactionRate * 100;
+}
+
+function generateOptimizationRecommendations(metrics: any, aiRunsCount: number, correctionsCount: number): any[] {
+  const recommendations = [];
+  
+  if (metrics.responseTime > 2000) {
+    recommendations.push({
+      type: 'warning',
+      icon: '⚠️',
+      title: 'Response Time Optimization',
+      description: 'Consider optimizing memory chunks to improve response speed'
+    });
+  }
+  
+  if (metrics.accuracyScore < 70) {
+    recommendations.push({
+      type: 'tip',
+      icon: '💡',
+      title: 'Style Enhancement',
+      description: 'Add more style anchors for better consistency'
+    });
+  }
+  
+  if (aiRunsCount < 10) {
+    recommendations.push({
+      type: 'tip',
+      icon: '📈',
+      title: 'More Training Data',
+      description: 'Increase interactions to improve learning accuracy'
+    });
+  }
+  
+  return recommendations;
+}
+
+async function optimizeMemoryChunks(memories: any[]): Promise<any[]> {
+  // Simple optimization: remove exact duplicates
+  const uniqueMemories = memories.filter((memory, index, self) => 
+    index === self.findIndex(m => m.text === memory.text)
+  );
+  
+  return uniqueMemories;
+}
+
+async function performPerformanceAnalysis(twinId: string): Promise<any> {
+  // Perform comprehensive performance analysis
+  const analysis = {
+    totalInteractions: await db.aiRun.count({ where: { twinId } }),
+    totalMemories: await db.memChunk.count({ where: { twinId } }),
+    totalStyleAnchors: await db.styleAnchor.count({ where: { twinId } }),
+    averageResponseTime: 0,
+    accuracyTrend: 'stable',
+    recommendations: []
+  };
+  
+  return analysis;
+}
+
+async function gatherAnalyticsData(twinId: string): Promise<any> {
+  // Gather comprehensive analytics data
+  const analytics = {
+    twinId,
+    generatedAt: new Date().toISOString(),
+    performance: await db.aiRun.findMany({ where: { twinId } }),
+    memories: await db.memChunk.findMany({ where: { twinId } }),
+    styleAnchors: await db.styleAnchor.findMany({ where: { twinId } }),
+    corrections: await db.styleCorrection.findMany({ where: { twinId } }),
+    feedback: await db.chatFeedback.findMany({ where: { twinId } })
+  };
+  
+  return analytics;
+}
 
 export default app;

@@ -656,7 +656,25 @@ export const memChunksQueries = {
   delete: async (chunkId: string) => {
     const result = await db.query('DELETE FROM "mem_chunks" WHERE id = $1 RETURNING *', [chunkId]);
     return result.rows[0];
-  }
+  },
+
+  // Add this function inside memChunksQueries object (around line 659)
+update: async (chunkId: string, text: string) => {
+  const result = await db.query(
+    'UPDATE "mem_chunks" SET text = $1 WHERE id = $2 RETURNING *',
+    [text, chunkId]
+  );
+  return result.rows[0];
+},
+
+  // Add this function to memChunksQueries object
+findByTwinIdAndBucket: async (twinId: string, bucket: 'facts' | 'voice', limit = 10, offset = 0) => {
+  const result = await db.query(
+    'SELECT * FROM "mem_chunks" WHERE twin_id = $1 AND bucket = $2 ORDER BY ts DESC LIMIT $3 OFFSET $4',
+    [twinId, bucket, limit, offset]
+  );
+  return result.rows;
+},
 };
 
 // Style Corrections Queries
