@@ -114,14 +114,14 @@ export const sendPublicMessage = async (req: Request, res: Response) => {
     // Save visitor message using raw SQL
     const visitorMessageId = `pub_msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     await db.query(`
-      INSERT INTO "Message" ("id", "chatId", "sender", "content", "approved", "createdAt")
+      INSERT INTO "PublicMessage" ("id", "chatId", "sender", "content", "approved", "createdAt")
       VALUES ($1, $2, $3, $4, $5, NOW())
     `, [visitorMessageId, chatId, 'human', message.trim(), true]);
 
     // Get recent chat context (last 10 messages)
     const recentMessagesResult = await db.query(`
       SELECT content, sender, "createdAt"
-      FROM "Message"
+      FROM "PublicMessage"
       WHERE "chatId" = $1
       ORDER BY "createdAt" DESC
       LIMIT 10
@@ -137,17 +137,21 @@ export const sendPublicMessage = async (req: Request, res: Response) => {
         sender: msg.sender,
         timestamp: msg.createdAt
       })),
-      currentMessages: [message.trim()]
+      currentMessages: [message.trim()],
+      twinId: chat.twinId // Add twinId for memory retrieval
     };
 
     // Generate AI response using TwinService
     let aiResponse;
     try {
+      logger.info('Generating AI response for public chat:', { chatId, twinId: chat.twinId });
       aiResponse = await twinService.generateDraftWithContext(context);
       
       if (!aiResponse || aiResponse.trim().length === 0) {
         throw new Error('Empty response from AI');
       }
+      
+      logger.info('AI response generated successfully:', { responseLength: aiResponse.length });
     } catch (error) {
       logger.error('AI response generation failed:', error);
       aiResponse = "I'm having trouble thinking right now. Could you try again?";
@@ -156,7 +160,7 @@ export const sendPublicMessage = async (req: Request, res: Response) => {
     // Save AI response using raw SQL
     const aiMessageId = `pub_msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     await db.query(`
-      INSERT INTO "Message" ("id", "chatId", "sender", "content", "approved", "createdAt")
+      INSERT INTO "PublicMessage" ("id", "chatId", "sender", "content", "approved", "createdAt")
       VALUES ($1, $2, $3, $4, $5, NOW())
     `, [aiMessageId, chatId, 'twin', aiResponse, true]);
 

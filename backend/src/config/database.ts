@@ -122,6 +122,17 @@ CREATE TABLE IF NOT EXISTS "PublicChat" (
     CONSTRAINT "PublicChat_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PublicMessage" (
+    "id" TEXT NOT NULL,
+    "chatId" TEXT NOT NULL,
+    "sender" "MessageSender" NOT NULL,
+    "content" TEXT NOT NULL,
+    "approved" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PublicMessage_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX IF NOT EXISTS "User_handle_key" ON "User"("handle");
@@ -224,6 +235,9 @@ ALTER TABLE "TwinFollow" ADD CONSTRAINT "TwinFollow_userId_fkey" FOREIGN KEY ("u
 
 ALTER TABLE "PublicChat" DROP CONSTRAINT IF EXISTS "PublicChat_twinId_fkey";
 ALTER TABLE "PublicChat" ADD CONSTRAINT "PublicChat_twinId_fkey" FOREIGN KEY ("twinId") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "PublicMessage" DROP CONSTRAINT IF EXISTS "PublicMessage_chatId_fkey";
+ALTER TABLE "PublicMessage" ADD CONSTRAINT "PublicMessage_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES "PublicChat"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 `;
 
 export async function initializeDatabase() {
@@ -563,6 +577,42 @@ export const publicChatQueries = {
     const result = await db.query(
       'SELECT * FROM "PublicChat" WHERE "twinId" = $1 AND ("visitorId" = $2 OR ("visitorId" IS NULL AND $2 IS NULL)) ORDER BY "createdAt" DESC LIMIT 1',
       [twinId, visitorId || null]
+    );
+    return result.rows[0];
+  }
+};
+
+// Add PublicMessage queries after the existing publicChatQueries
+export const publicMessageQueries = {
+  create: async (chatId: string, sender: 'human' | 'twin', content: string) => {
+    const id = generateId();
+    const result = await db.query(
+      'INSERT INTO "PublicMessage" (id, "chatId", sender, content, approved) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [id, chatId, sender, content, true]
+    );
+    return result.rows[0];
+  },
+
+  findByChatId: async (chatId: string, limit: number = 50) => {
+    const result = await db.query(
+      'SELECT * FROM "PublicMessage" WHERE "chatId" = $1 ORDER BY "createdAt" ASC LIMIT $2',
+      [chatId, limit]
+    );
+    return result.rows;
+  },
+
+  getRecentMessages: async (chatId: string, limit: number = 10) => {
+    const result = await db.query(
+      'SELECT content, sender, "createdAt" FROM "PublicMessage" WHERE "chatId" = $1 ORDER BY "createdAt" DESC LIMIT $2',
+      [chatId, limit]
+    );
+    return result.rows.reverse();
+  },
+
+  updateMessageCount: async (chatId: string) => {
+    const result = await db.query(
+      'UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "lastActivity" = NOW() WHERE id = $1 RETURNING *',
+      [chatId]
     );
     return result.rows[0];
   }

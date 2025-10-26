@@ -139,42 +139,40 @@
         </div>
 
         <!-- Chat Modal (Hidden by default) -->
-        <div id="chatModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
-            <div class="flex items-center justify-center min-h-screen p-4">
-                <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-                    <div class="p-6 border-b flex items-center justify-between">
-                        <h3 class="text-xl font-semibold">Chat with @<%= twin.publicHandle %></h3>
-                        <button id="closeChatBtn" class="text-gray-400 hover:text-gray-600">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
-                    
-                    <!-- Chat Messages Area -->
-                    <div id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-4 min-h-[400px] max-h-[500px]">
-                        <div class="text-center py-8">
-                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                            <p class="text-gray-600">Starting chat...</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Chat Input -->
-                    <div class="p-6 border-t bg-gray-50">
+        <div id="chatModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[9999] flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
+                <div class="p-6 border-b flex items-center justify-between bg-white flex-shrink-0">
+                    <h3 class="text-xl font-semibold text-gray-900">Chat with @<%= twin.publicHandle %></h3>
+                    <button id="closeChatBtn" class="text-gray-400 hover:text-gray-600 p-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Chat Messages Area -->
+                <div id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-4 min-h-[250px] max-h-[350px] bg-gray-50">
+                    <!-- Messages will be loaded here -->
+                </div>
+                
+                <!-- Chat Input -->
+                <div class="p-6 border-t bg-white flex-shrink-0">
+                    <form id="chatForm" class="space-y-4">
                         <div class="flex space-x-4">
                             <input 
                                 type="text" 
                                 id="messageInput" 
                                 placeholder="Type your message..." 
-                                class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 maxlength="1000"
+                                required
                             >
-                            <button id="sendMessageBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            <button type="submit" id="sendMessageBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
                                 Send
                             </button>
                         </div>
-                        <p class="text-xs text-gray-500 mt-2">You can chat with this AI twin without logging in!</p>
-                    </div>
+                        <p class="text-xs text-gray-500">You can chat with this AI twin without logging in!</p>
+                    </form>
                 </div>
             </div>
         </div>
@@ -218,17 +216,14 @@
                 
                 if (data.success) {
                     currentChatId = data.chatId;
-                    document.getElementById('chatMessages').innerHTML = `
-                        <div class="text-center py-4">
-                            <p class="text-gray-600">Chat started! You can now talk to @<%= twin.publicHandle %>.</p>
-                        </div>
-                    `;
-                    isChatting = true;
+                    // Clear the loading message and show empty chat
+                    document.getElementById('chatMessages').innerHTML = '';
+                    isChatting = false;
                 } else {
                     throw new Error(data.error || 'Failed to start chat');
                 }
             } catch (error) {
-                console.error('Error starting chat:', error);
+                console.error('Error starting chat:', error); // Fix: Add missing error logging
                 document.getElementById('chatMessages').innerHTML = `
                     <div class="text-center py-4">
                         <p class="text-red-600">Failed to start chat. Please try again.</p>
@@ -262,7 +257,7 @@
             
             try {
                 const response = await fetch(`/api/public-chat/${currentChatId}/message`, {
-                    method: 'POST',
+                    method: 'POST', // Fix: Add missing HTTP method
                     headers: {
                         'Content-Type': 'application/json',
                     },
@@ -295,17 +290,19 @@
             const messageDiv = document.createElement('div');
             
             if (sender === 'human') {
-                messageDiv.className = 'flex justify-end';
+                messageDiv.className = 'flex justify-end mb-4';
                 messageDiv.innerHTML = `
-                    <div class="bg-blue-600 text-white px-4 py-2 rounded-lg max-w-xs">
-                        ${content}
+                    <div class="bg-blue-600 text-white px-4 py-3 rounded-lg max-w-xs lg:max-w-md shadow-sm">
+                        <p class="text-sm">${content}</p>
+                        <p class="text-xs opacity-75 mt-1">${new Date().toLocaleTimeString()}</p>
                     </div>
                 `;
             } else {
-                messageDiv.className = 'flex justify-start';
+                messageDiv.className = 'flex justify-start mb-4';
                 messageDiv.innerHTML = `
-                    <div class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg max-w-xs">
-                        ${content}
+                    <div class="bg-white border border-gray-200 px-4 py-3 rounded-lg max-w-xs lg:max-w-md shadow-sm">
+                        <p class="text-sm text-gray-800">${content}</p>
+                        <p class="text-xs text-gray-500 mt-1">${new Date().toLocaleTimeString()}</p>
                     </div>
                 `;
             }
@@ -313,6 +310,12 @@
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
+
+        // Add form submission handler
+        document.getElementById('chatForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            sendMessage();
+        });
 
         // Like and Follow buttons functionality
         document.getElementById('likeBtn').addEventListener('click', function() {
