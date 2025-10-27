@@ -222,7 +222,7 @@ export const getPublicChatHistory = async (req: Request, res: Response) => {
     // Get chat messages
     const messagesResult = await db.query(`
       SELECT id, content, sender, "createdAt"
-      FROM "Message"
+      FROM "PublicMessage"
       WHERE "chatId" = $1
       ORDER BY "createdAt" ASC
     `, [chatId]);
@@ -272,7 +272,7 @@ export const getPublicChatByTwin = async (req: Request, res: Response) => {
       // Get chat history
       const messagesResult = await db.query(`
         SELECT id, content, sender, "createdAt"
-        FROM "Message"
+        FROM "PublicMessage"
         WHERE "chatId" = $1
         ORDER BY "createdAt" ASC
       `, [existingChat.id]);
@@ -335,7 +335,7 @@ export const getPublicChatsByTwin = async (req: Request, res: Response) => {
       FROM "PublicChat" pc
       LEFT JOIN LATERAL (
         SELECT content, "createdAt"
-        FROM "Message" 
+        FROM "PublicMessage" 
         WHERE "chatId" = pc.id 
         ORDER BY "createdAt" DESC 
         LIMIT 1

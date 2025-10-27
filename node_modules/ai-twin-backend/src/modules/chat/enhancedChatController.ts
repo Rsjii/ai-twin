@@ -121,7 +121,9 @@ export const generateEnhancedReply = async (req: any, res: Response) => {
 
         // 8. Update chat metadata
         try {
-          await updateChatMetadata(chatId, message, 'human');
+          await db.query(`
+            UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = NOW() WHERE id = $2
+          `, [response, chatId]);
           console.log('✅ Chat metadata updated');
         } catch (error) {
           console.warn('⚠️ Failed to update chat metadata:', error);

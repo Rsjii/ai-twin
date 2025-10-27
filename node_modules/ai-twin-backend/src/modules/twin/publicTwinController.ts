@@ -300,3 +300,27 @@ export const getMyTwinProfile = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// Get public chat page
+export const getPublicChatPage = async (req: Request, res: Response) => {
+  try {
+    const { twinId } = req.params;
+    
+    // Get twin details
+    const twinResult = await db.query(`
+      SELECT id, "publicHandle", "sampleReply", "isPublic"
+      FROM "Twin"
+      WHERE id = $1 AND "isPublic" = true
+    `, [twinId]);
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).send('Public twin not found');
+    }
+    
+    const twin = twinResult.rows[0];
+    res.render('public-chat', { twin });
+  } catch (error) {
+    console.error('Public chat page error:', error);
+    res.status(500).send('Internal server error');
+  }
+};

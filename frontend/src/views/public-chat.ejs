@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with <%= twin.publicHandle %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- Chat Sidebar -->
+        <div class="w-64 bg-white shadow-lg">
+            <div class="p-4 border-b">
+                <h2 class="text-lg font-semibold">Chat with <%= twin.publicHandle %></h2>
+                <button id="newPublicChatBtn" class="w-full mt-2 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
+                    + New Chat
+                </button>
+            </div>
+            
+            <!-- Chat History List -->
+            <div id="publicChatHistoryList" class="p-4 space-y-2 max-h-96 overflow-y-auto">
+                <!-- Chat items will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- Main Chat Area -->
+        <div class="flex-1 flex flex-col">
+            <!-- Chat Header -->
+            <div class="bg-white p-4 border-b">
+                <h1 class="text-xl font-semibold">Chat with @<%= twin.publicHandle %></h1>
+                <p class="text-sm text-gray-600">You can chat with this AI twin without logging in!</p>
+            </div>
+            
+            <!-- Chat Messages -->
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                <!-- Messages will be loaded here -->
+            </div>
+            
+            <!-- Chat Input -->
+            <div class="bg-white p-4 border-t">
+                <form id="chatForm" class="flex space-x-4">
+                    <input 
+                        type="text" 
+                        id="messageInput" 
+                        placeholder="Type your message..." 
+                        class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        maxlength="1000"
+                        required
+                    >
+                    <button type="submit" id="sendMessageBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                        Send
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentChatId = null;
+        let currentTwinId = '<%= twin.id %>';
+        let visitorId = null;
+        let isChatting = false;
+
+        // Initialize visitor ID
+        function initializeVisitorId() {
+            visitorId = localStorage.getItem('visitorId');
+            if (!visitorId) {
+                visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                localStorage.setItem('visitorId', visitorId);
+            }
+        }
+
+        // Load all chats for this twin
+        async function loadPublicChatHistory() {
+            try {
+                const response = await fetch(`/api/public-chat/twin/${currentTwinId}/chats?visitorId=${visitorId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayPublicChatHistory(data.chats);
+                }
+            } catch (error) {
+                console.error('Error loading public chat history:', error);
+            }
+        }
+
+        // Display chat history
+        function displayPublicChatHistory(chats) {
+            const container = document.getElementById('publicChatHistoryList');
+            
+            if (chats.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">No chats yet</p>';
+                return;
+            }
+
+            container.innerHTML = chats.map(chat => `
+                <div class="chat-item p-3 border-b cursor-pointer hover:bg-gray-50 rounded-lg ${chat.id === currentChatId ? 'bg-blue-50 border-blue-200' : ''}" data-chat-id="${chat.id}">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h4 class="font-medium text-sm ${chat.id === currentChatId ? 'text-blue-700' : ''}">Chat #${chat.id.slice(-6)}</h4>
+                            <p class="text-xs text-gray-500 truncate">${chat.lastMessage ? chat.lastMessage.content : 'No messages yet'}</p>
+                        </div>
+                        <div class="text-xs text-gray-400">${formatTime(chat.createdAt)}</div>
+                    </div>
+                    <div class="flex items-center mt-1">
+                        <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">${chat.messageCount || 0} messages</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Add click listeners
+            container.querySelectorAll('.chat-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const chatId = this.dataset.chatId;
+                    if (chatId !== currentChatId) {
+                        switchToPublicChat(chatId);
+                    }
+                });
+            });
+        }
+
+        // Switch to different chat
+        async function switchToPublicChat(chatId) {
+            try {
+                currentChatId = chatId;
+                
+                // Load chat messages
+                const response = await fetch(`/api/public-chat/${chatId}/history`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayMessages(data.messages);
+                    await loadPublicChatHistory(); // Refresh sidebar
+                }
+            } catch (error) {
+                console.error('Error switching to chat:', error);
+            }
+        }
+
+        // Create new public chat
+        async function createNewPublicChat() {
+            try {
+                const response = await fetch('/api/public-chat/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        twinId: currentTwinId,
+                        visitorId: visitorId
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentChatId = data.chatId;
+                    document.getElementById('chatMessages').innerHTML = '';
+                    await loadPublicChatHistory();
+                }
+            } catch (error) {
+                console.error('Error creating new chat:', error);
+            }
+        }
+
+        // Start public chat (load existing or create new)
+        async function startPublicChat() {
+            try {
+                // First load existing chats
+                await loadPublicChatHistory();
+                
+                // If no existing chat, create new one
+                if (!currentChatId) {
+                    await createNewPublicChat();
+                }
+            } catch (error) {
+                console.error('Error starting chat:', error);
+            }
+        }
+
+        // Display messages in chat
+        function displayMessages(messages) {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = '';
+            
+            messages.forEach(msg => {
+                addMessageToChat(msg.content, msg.sender);
+            });
+        }
+
+        // Add message to chat
+        function addMessageToChat(content, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${sender === 'human' ? 'justify-end' : 'justify-start'}`;
+            
+            messageDiv.innerHTML = `
+                <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    sender === 'human' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-white text-gray-800 border'
+                }">
+                    <p class="text-sm">${content}</p>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Send message
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message || !currentChatId || isChatting) return;
+            
+            isChatting = true;
+            const sendBtn = document.getElementById('sendMessageBtn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            
+            // Add user message to chat
+            addMessageToChat(message, 'human');
+            messageInput.value = '';
+            
+            try {
+                const response = await fetch(`/api/public-chat/${currentChatId}/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+                
+                if (data.success && data.messages) {
+                   // Find the AI message (sender: 'twin')
+                   const aiMessage = data.messages.find(m => m.sender === 'twin');
+                   if (aiMessage) {
+                        addMessageToChat(aiMessage.content, 'ai');
+                    }
+                   await loadPublicChatHistory(); // Refresh sidebar
+            } else {
+                   addMessageToChat('Sorry, I encountered an error. Please try again.', 'ai');
+            }
+            } catch (error) {
+                console.error('Send message error:', error);
+                addMessageToChat('Sorry, I encountered an error. Please try again.', 'ai');
+            } finally {
+                isChatting = false;
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send';
+            }
+        }
+
+        // Format time helper
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+            return Math.floor(diff / 86400000) + 'd ago';
+        }
+
+        // Event listeners
+        document.getElementById('newPublicChatBtn').addEventListener('click', createNewPublicChat);
+        document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeVisitorId();
+            startPublicChat();
+        });
+    </script>
+</body>
+</html>

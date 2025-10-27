@@ -176,31 +176,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- ADD after line 179 (after the closing </div> of chat modal): -->
-
-<!-- Chat Sidebar -->
-<div id="chatSidebar" class="hidden lg:block w-64 bg-white shadow-lg fixed left-0 top-0 h-full z-40">
-    <div class="p-4 border-b">
-        <h2 class="text-lg font-semibold">Chat with <%= twin.publicHandle %></h2>
-        <button id="newPublicChatBtn" class="w-full mt-2 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
-            + New Chat
-        </button>
-    </div>
-    
-    <!-- Chat History List -->
-    <div id="publicChatHistoryList" class="p-4 space-y-2 max-h-96 overflow-y-auto">
-        <!-- Chat items will be loaded here -->
-    </div>
-</div>
-
-<!-- Mobile Toggle Button -->
-<button id="toggleChatSidebar" class="lg:hidden fixed top-4 left-4 bg-blue-600 text-white p-2 rounded z-50">
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-    </svg>
-</button>
-
     </div>
 
     <script>
@@ -211,18 +186,7 @@
 
         // Chat modal functionality
         document.getElementById('chatNowBtn').addEventListener('click', function() {
-    document.getElementById('chatModal').classList.remove('hidden');
-    startPublicChat();
-});
-
-        document.getElementById('newPublicChatBtn').addEventListener('click', createNewPublicChat);
-        document.getElementById('toggleChatSidebar').addEventListener('click', function() {
-        document.getElementById('chatSidebar').classList.toggle('hidden');
-    });
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeVisitorId();
+        window.location.href = `/api/public-twin/chat/<%= twin.id %>`;
     });
 
         document.getElementById('closeChatBtn').addEventListener('click', function() {
@@ -342,16 +306,7 @@ async function createNewPublicChat() {
 // Updated startPublicChat function
 async function startPublicChat() {
     try {
-        // First load existing chats
-        await loadPublicChatHistory();
-        
-        // If no existing chat, create new one
-        if (!currentChatId) {
-            await createNewPublicChat();
-        }
-        
-        // Show chat modal
-        document.getElementById('chatModal').classList.remove('hidden');
+        window.location.href = `/public-chat/<%= twin.id %>`;
     } catch (error) {
         console.error('Error starting chat:', error);
     }

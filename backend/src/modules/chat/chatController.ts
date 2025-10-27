@@ -510,9 +510,6 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
     
     const message = messageResult.rows[0];
 
-// Update chat metadata
-await updateChatMetadata(chat.id, content, 'twin');
-
     // Log message approved event using raw SQL
     await db.query(`
       INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
@@ -751,9 +748,6 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       aiResponse = "I'm having trouble thinking right now. Could you try again?";
     }
 
-// Update chat metadata
-await updateChatMetadata(chat.id, message.trim(), 'human');
-
     // Save AI response using raw SQL
     let aiMessage;
     try {
@@ -775,6 +769,10 @@ await updateChatMetadata(chat.id, message.trim(), 'human');
       logger.error('Failed to save AI message:', error);
       return res.status(500).json({ error: 'Failed to save AI response' });
     }
+
+    await db.query(`
+      UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = NOW() WHERE id = $2
+    `, [aiResponse, chat.id]);
 
     // Log chat message event using raw SQL
     try {
@@ -852,8 +850,7 @@ export const updateChatMetadata = async (chatId: string, message: string, sender
       UPDATE "Chat" SET "messageCount" = (
         SELECT COUNT(*) FROM "Message" 
         WHERE "chatId" = $1
-        AND sender = 'human'
-      ) *2 WHERE id = $1
+      )  WHERE id = $1
     `, [chatId]);
     
     console.log('Message count updated:', countResult.rowCount);
