@@ -11,11 +11,6 @@
             <div class="w-80 bg-white rounded-lg shadow-lg p-6 mobile-w-full mobile-card mobile-p-4">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-lg font-semibold text-gray-900 mobile-text-base">Previous Chats</h2>
-                    <button onclick="loadChatHistory()" class="text-primary hover:text-secondary touch-target">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                    </button>
                 </div>
                 
                 <div id="chatHistoryList" class="space-y-3 max-h-96 overflow-y-auto">
@@ -384,27 +379,6 @@ function hideDraftSection() {
     currentDraft = null;
 }
 
-// Chat History Functions
-async function loadChatHistory() {
-    try {
-        const response = await fetch('/api/chat/history', {
-            headers: {
-                'X-CSRF-Token': window.csrfToken
-            }
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            displayChatHistory(result.chats);
-        } else {
-            console.error('Failed to load chat history:', result.error);
-        }
-    } catch (error) {
-        console.error('Load chat history error:', error);
-    }
-}
-
 function displayChatHistory(chats) {
     const chatHistoryList = document.getElementById('chatHistoryList');
     
@@ -502,11 +476,6 @@ async function startNewChat() {
         showFlashMessage('Network error. Please try again.', 'error');
     }
 }
-
-// Load chat history on page load
-document.addEventListener('DOMContentLoaded', () => {
-    loadChatHistory();
-});
 
 // Feedback functions
 async function submitFeedback(rating, messageId) {
