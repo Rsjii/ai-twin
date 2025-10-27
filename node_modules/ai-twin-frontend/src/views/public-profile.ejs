@@ -184,10 +184,10 @@
         let visitorId = null;
         let isChatting = false;
 
-        // Chat modal functionality
-        document.getElementById('chatNowBtn').addEventListener('click', function() {
-        window.location.href = `/api/public-twin/chat/<%= twin.id %>`;
-    });
+// Chat modal functionality
+document.getElementById('chatNowBtn').addEventListener('click', function() {
+    window.location.href = '<% if (twin.isOwner) { %>/chat-enhanced?twinId=<%= twin.id %><% } else { %>/api/public-twin/chat/<%= twin.id %><% } %>';
+});
 
         document.getElementById('closeChatBtn').addEventListener('click', function() {
             document.getElementById('chatModal').classList.add('hidden');

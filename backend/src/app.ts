@@ -591,14 +591,13 @@ app.get('/analytics', requireJWTFromCookie, generateCSRFToken, async (req: any, 
 
 app.get('/api/analytics/twin/:twinId/performance', requireJWTFromCookie, getTwinPerformance);
 
-// Public twin profile route (twinverse.ai/@handle)
-app.get('/@:handle', async (req: any, res) => {
+app.get('/@:handle', extractJWTFromCookie, async (req: any, res) => {
   try {
     const { handle } = req.params;
     
     // Get public twin profile
     const publicTwin = await db.query(`
-      SELECT t.*, u.handle as userHandle, u.name as userName
+      SELECT t.*, u.id as userId, u.handle as userHandle, u.name as userName
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
       WHERE t."publicHandle" = $1 AND t."isPublic" = true
@@ -612,6 +611,9 @@ app.get('/@:handle', async (req: any, res) => {
     }
 
     const twin = publicTwin.rows[0];
+    
+    // Check if viewer is the owner
+    const isOwner = req.user && req.user.id === twin.userId;
     
     // Render public profile page
     res.render('public-profile', {
@@ -628,8 +630,13 @@ app.get('/@:handle', async (req: any, res) => {
         sampleReply: twin.sampleReply,
         createdAt: twin.createdAt,
         userHandle: twin.userHandle,
-        userName: twin.userName
-      }
+        userName: twin.userName,
+        isOwner: isOwner // ADD THIS
+      },
+      viewer: req.user ? {
+        id: req.user.id,
+        handle: req.user.handle
+      } : null // ADD THIS
     });
 
   } catch (error) {
@@ -640,6 +647,7 @@ app.get('/@:handle', async (req: any, res) => {
     });
   }
 });
+
 
 // Test route
 app.get('/test', (req, res) => {

@@ -147,36 +147,27 @@
                 <!-- Messages will be loaded here -->
             </div>
 
-            <!-- Message Input -->
-            <div class="bg-white border-t p-4 lg:p-6">
-                <form id="messageForm" class="space-y-4">
-                    <div>
-                        <label for="messageInput" class="block text-sm font-medium text-gray-700 mb-2">Your Message</label>
-                        <textarea 
-                            id="messageInput" 
-                            name="message"
-                            rows="3"
-                            placeholder="Type your message here..."
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mobile-form"
-                            maxlength="300"
-                            required
-                        ></textarea>
-                        <div class="mt-2 text-sm text-gray-500 text-right">
-                            <span id="charCount">0</span> / 300 characters
-                        </div>
-                    </div>
-                    <div class="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-4">
-                        <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold mobile-btn">
-                            Send Message
-                        </button>
-                        <button type="button" id="mobile-history-btn" class="lg:hidden bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors font-semibold mobile-btn">
-                            Chat History
-                        </button>
-                    </div>
-                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                </form>
-            </div>
-        </div>
+<!-- Chat Input -->
+<div class="bg-white p-4 border-t">
+    <form id="messageForm" class="flex space-x-4">
+        <textarea 
+            id="messageInput" 
+            name="message"
+            placeholder="Type your message here..."
+            class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mobile-form"
+            rows="2"
+            maxlength="300"
+            required
+        ></textarea>
+        <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+            Send
+        </button>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    </form>
+    <div class="mt-2 text-sm text-gray-500 text-right">
+        <span id="charCount">0</span> / 300 characters
+    </div>
+</div>        </div>
     </div>
 
 <!-- REPLACE LINES 113-169 in chat-enhanced.ejs -->
