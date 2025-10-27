@@ -3,7 +3,9 @@ import {
   startPublicChat, 
   sendPublicMessage, 
   getPublicChatHistory,
-  getPublicChatByTwin 
+  getPublicChatByTwin,
+  getPublicChatsByTwin,
+  createNewPublicChat
 } from './publicChatController';
 import { optionalJWT } from '../../middleware/jwtAuth';
 
@@ -14,5 +16,8 @@ router.post('/start', startPublicChat);
 router.post('/:chatId/message', sendPublicMessage);
 router.get('/:chatId/history', getPublicChatHistory);
 router.get('/twin/:twinId', getPublicChatByTwin);
+
+router.get('/twin/:twinId/chats', getPublicChatsByTwin); // Get all chats
+router.post('/create', createNewPublicChat); // Create new chat
 
 export default router;

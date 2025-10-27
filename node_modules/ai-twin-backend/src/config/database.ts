@@ -573,13 +573,23 @@ export const publicChatQueries = {
     return result.rows[0];
   },
 
-  findByTwinAndVisitor: async (twinId: string, visitorId?: string) => {
-    const result = await db.query(
-      'SELECT * FROM "PublicChat" WHERE "twinId" = $1 AND ("visitorId" = $2 OR ("visitorId" IS NULL AND $2 IS NULL)) ORDER BY "createdAt" DESC LIMIT 1',
-      [twinId, visitorId || null]
-    );
-    return result.rows[0];
-  }
+// REPLACE lines 576-582 with:
+findByTwinAndVisitor: async (twinId: string, visitorId?: string) => {
+  const result = await db.query(
+    'SELECT * FROM "PublicChat" WHERE "twinId" = $1 AND ("visitorId" = $2 OR ("visitorId" IS NULL AND $2 IS NULL)) ORDER BY "createdAt" DESC',
+    [twinId, visitorId || null]
+  );
+  return result.rows; // Return all chats, not just one
+},
+
+// ADD after line 582 (before the closing }):
+findAllByTwinAndVisitor: async (twinId: string, visitorId?: string) => {
+  const result = await db.query(
+    'SELECT * FROM "PublicChat" WHERE "twinId" = $1 AND ("visitorId" = $2 OR ("visitorId" IS NULL AND $2 IS NULL)) ORDER BY "createdAt" DESC',
+    [twinId, visitorId || null]
+  );
+  return result.rows;
+}
 };
 
 // Add PublicMessage queries after the existing publicChatQueries

@@ -306,3 +306,103 @@ export const getPublicChatByTwin = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// ADD after line 308 (after the closing } of getPublicChatByTwin):
+
+// Get all public chats for a visitor with a specific twin
+export const getPublicChatsByTwin = async (req: Request, res: Response) => {
+  try {
+    const { twinId } = req.params;
+    const { visitorId } = req.query;
+
+    // Check if twin exists and is public
+    const twinResult = await db.query(`
+      SELECT id, "isPublic", "publicHandle", "sampleReply"
+      FROM "Twin"
+      WHERE id = $1 AND "isPublic" = true
+    `, [twinId]);
+
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Public twin not found' });
+    }
+
+    const twin = twinResult.rows[0];
+
+    // Get all chats for this visitor with this twin
+    const chatsResult = await db.query(`
+      SELECT pc.id, pc."messageCount", pc."createdAt", pc."lastActivity",
+             m.content as last_message, m."createdAt" as last_message_time
+      FROM "PublicChat" pc
+      LEFT JOIN LATERAL (
+        SELECT content, "createdAt"
+        FROM "Message" 
+        WHERE "chatId" = pc.id 
+        ORDER BY "createdAt" DESC 
+        LIMIT 1
+      ) m ON true
+      WHERE pc."twinId" = $1 AND (pc."visitorId" = $2 OR (pc."visitorId" IS NULL AND $2 IS NULL))
+      ORDER BY pc."createdAt" DESC
+    `, [twinId, visitorId as string]);
+
+    const chats = chatsResult.rows.map(chat => ({
+      id: chat.id,
+      messageCount: chat.messageCount || 0,
+      createdAt: chat.createdAt,
+      lastActivity: chat.lastActivity,
+      lastMessage: chat.last_message ? {
+        content: chat.last_message,
+        createdAt: chat.last_message_time
+      } : null
+    }));
+
+    res.json({
+      success: true,
+      twin: {
+        id: twin.id,
+        publicHandle: twin.publicHandle,
+        sampleReply: twin.sampleReply
+      },
+      chats
+    });
+
+  } catch (error) {
+    logger.error('Get public chats by twin error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Create new public chat
+export const createNewPublicChat = async (req: Request, res: Response) => {
+  try {
+    const { twinId, visitorId } = req.body;
+
+    // Check if twin exists and is public
+    const twinResult = await db.query(`
+      SELECT id, "isPublic", "styleVector", "sampleReply"
+      FROM "Twin"
+      WHERE id = $1 AND "isPublic" = true
+    `, [twinId]);
+
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Public twin not found' });
+    }
+
+    const twin = twinResult.rows[0];
+
+    // Create new public chat
+    const publicChat = await publicChatQueries.create(twinId, visitorId);
+
+    res.json({
+      success: true,
+      chatId: publicChat.id,
+      twin: {
+        id: twin.id,
+        sampleReply: twin.sampleReply
+      }
+    });
+
+  } catch (error) {
+    logger.error('Create new public chat error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
