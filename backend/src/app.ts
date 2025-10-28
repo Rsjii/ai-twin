@@ -1295,81 +1295,26 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
                 </div>
             </div>
             
+
             <!-- Public Twin Management Section -->
             <div class="mb-8">
-                <div class="bg-gradient-to-r from-green-500 to-blue-500 rounded-lg shadow-lg p-6 text-white">
+                <div class="bg-white rounded-lg shadow p-6">
                     <div class="flex items-center mb-4">
-                        <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-xl font-bold text-white">🌐 Public Twin Profile</h3>
-                            <p class="text-white/90">Make your AI twin public and share it with the world!</p>
+                            <h3 class="text-xl font-bold text-gray-800">🌐 Public Twin Profile</h3>
+                            <p class="text-gray-600">Make your AI twin public and share it with the world!</p>
                         </div>
                     </div>
                     <div id="publicTwinStatus" class="mb-4">
                         <!-- Status will be loaded here -->
                     </div>
-                    <div class="flex space-x-4">
-                        <button onclick="loadPublicTwinStatus()" class="flex-1 bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-lg hover:bg-white/30 transition-all duration-300 font-semibold border border-white/30">
-                            <span class="flex items-center justify-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                </svg>
-                                Manage Public Profile
-                            </span>
-                        </button>
-                        <a href="/discover" class="flex-1 bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-lg hover:bg-white/30 transition-all duration-300 font-semibold inline-flex items-center justify-center border border-white/30">
-                            <span class="flex items-center justify-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
-                                Discover Twins
-                            </span>
-                        </a>
-                        <a href="/analytics" class="flex-1 bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-lg hover:bg-white/30 transition-all duration-300 font-semibold inline-flex items-center justify-center border border-white/30">
-                            <span class="flex items-center justify-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                                </svg>
-                                Analytics
-                            </span>
-                        </a>
-                    </div>
                 </div>
             </div>
-            
-            ${hasTwins ? `
-            <!-- Twin Management Section -->
-            <div class="grid md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Edit Twin Style</h3>
-                    <p class="text-gray-600 mb-4">Customize your twin's communication style</p>
-                    <a href="/twin/${userTwins[0].id}/ai-edit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                        Edit Twin
-                    </a>
-                </div>
-                
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Style Sandbox</h3>
-                    <p class="text-gray-600 mb-4">Preview style changes before applying</p>
-                    <a href="/twin/${userTwins[0].id}/style-customize" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
-                        Style Sandbox
-                    </a>
-                </div>
-                
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Learning Progress</h3>
-                    <p class="text-gray-600 mb-4">View how your twin is learning</p>
-                    <a href="/analytics" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                        View Analytics
-                    </a>
-                </div>
-            </div>
-            ` : ''}
 
             <!-- INVITE FRIENDS SECTION - Always Visible -->
             <div class="grid md:grid-cols-1 gap-6 mb-8">
@@ -1461,41 +1406,42 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
             }
         }
         
-        async function createInvite() {
-            console.log('🚀 createInvite() called!');
-            console.log('🔑 CSRF Token:', window.csrfToken);
-            
-            try {
-                console.log('📡 Fetching /api/invite/my-code...');
-                const response = await fetch('/api/invite/my-code', {
-                    method: 'GET',
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': '${res.locals['csrfToken']}'
-                    }
-                });
-                
-                console.log('📥 Response status:', response.status);
-                const result = await response.json();
-                console.log('📦 Response data:', result);
-                
-                if (response.ok) {
-                    const fullUrl = window.location.origin + result.referralUrl;
-                    console.log('✅ Full referral URL:', fullUrl);
-                    await navigator.clipboard.writeText(fullUrl);
-                    alert('Referral link copied! Share it with friends.');
-                    console.log('📋 Link copied to clipboard!');
-                } else {
-                    console.error('❌ API error:', result);
-                    alert(result.error || 'Failed to get referral link');
-                }
-            } catch (error) {
-                console.error('💥 Get referral code error:', error);
-                alert('Network error. Please try again.');
+async function createInvite() {
+    console.log('🚀 createInvite() called!');
+    console.log('🔑 CSRF Token:', window.csrfToken);
+    
+    try {
+        console.log('📡 Fetching /api/invite/my-code...');
+        const response = await fetch('/api/invite/my-code', {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '${res.locals['csrfToken']}'
             }
-        }        
-        // Public Twin Management Functions
+        });
+        
+        console.log('📥 Response status:', response.status);
+        const result = await response.json();
+        console.log('📦 Response data:', result);
+        
+        if (response.ok) {
+            // Copy just the referral code, not the full URL
+            const referralCode = result.referralCode;
+            console.log('✅ Referral code:', referralCode);
+            await navigator.clipboard.writeText(referralCode);
+            console.log('📋 Referral code copied to clipboard!');
+            alert('Referral code copied to clipboard!');
+        } else {
+            console.error('❌ API error:', result);
+            alert(result.error || 'Failed to get referral code');
+        }
+    } catch (error) {
+        console.error('💥 Get referral code error:', error);
+        alert('Network error. Please try again.');
+    }
+}
+            // Public Twin Management Functions
         async function loadPublicTwinStatus() {
             try {
                 console.log('🔍 Loading public twin status...');
@@ -1524,76 +1470,85 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
             }
         }
 
-        function displayPublicTwinStatus(twin) {
-            console.log('🎨 Displaying public twin status for:', twin);
-            const statusContainer = document.getElementById('publicTwinStatus');
-            console.log('Status container found:', statusContainer);
-            
-            if (twin && twin.isPublic) {
-                console.log('✅ Twin is public, showing public status');
-                statusContainer.innerHTML = \`
-                    <div class="bg-white/20 backdrop-blur-sm rounded-lg p-4 border border-white/30">
-                        <div class="flex items-center mb-3">
-                            <div class="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center mr-3">
-                                <svg class="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <h4 class="text-lg font-semibold text-white">Your twin is public!</h4>
-                                <p class="text-white/80">@\${twin.publicHandle}</p>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-3 gap-4 text-center mb-4">
-                            <div>
-                                <div class="text-2xl font-bold text-white">\${twin.likeCount || 0}</div>
-                                <div class="text-sm text-white/80">Likes</div>
-                            </div>
-                            <div>
-                                <div class="text-2xl font-bold text-white">\${twin.followCount || 0}</div>
-                                <div class="text-sm text-white/80">Followers</div>
-                            </div>
-                            <div>
-                                <div class="text-2xl font-bold text-white">\${twin.chatCount || 0}</div>
-                                <div class="text-sm text-white/80">Chats</div>
-                            </div>
-                        </div>
-                        <div class="flex space-x-3">
-                            <a href="/@\${twin.publicHandle}"  class="flex-1 bg-white/20 text-white py-2 px-4 rounded-lg hover:bg-white/30 transition-colors text-center">
-                                View Public Profile
-                            </a>
-                            <button onclick="sharePublicTwin('\${twin.publicHandle}')" class="flex-1 bg-white/20 text-white py-2 px-4 rounded-lg hover:bg-white/30 transition-colors">
-                                Share
-                            </button>
-                            <button onclick="editPublicProfile()" class="flex-1 bg-white/20 text-white py-2 px-4 rounded-lg hover:bg-white/30 transition-colors">
-                                Edit
-                            </button>
-                        </div>
+function displayPublicTwinStatus(twin) {
+    console.log('🎨 Displaying public twin status for:', twin);
+    const statusContainer = document.getElementById('publicTwinStatus');
+    console.log('Status container found:', statusContainer);
+    
+    if (twin && twin.isPublic) {
+        console.log('✅ Twin is public, showing public status');
+        statusContainer.innerHTML = \`
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div class="flex items-center mb-3">
+                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
                     </div>
-                \`;
-            } else {
-                console.log('❌ Twin is private, showing private status');
-                statusContainer.innerHTML = \`
-                    <div class="bg-white/20 backdrop-blur-sm rounded-lg p-4 border border-white/30">
-                        <div class="flex items-center mb-3">
-                            <div class="w-8 h-8 bg-gray-500/20 rounded-full flex items-center justify-center mr-3">
-                                <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <h4 class="text-lg font-semibold text-white">Your twin is private</h4>
-                                <p class="text-white/80">Make it public to let others discover and chat with it</p>
-                            </div>
-                        </div>
-                        <button id="makeTwinPublicBtn" class="w-full bg-white/20 text-white py-3 px-6 rounded-lg hover:bg-white/30 transition-colors font-semibold">
-                            Make Twin Public
-                        </button>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-800">Your twin is public!</h4>
+                        <p class="text-gray-600">@\${twin.publicHandle}</p>
                     </div>
-                \`;
-            }
-        }
-
+                </div>
+                <div class="grid grid-cols-3 gap-4 text-center mb-4">
+                    <div>
+                        <div class="text-2xl font-bold text-gray-900">\${twin.likeCount || 0}</div>
+                        <div class="text-sm text-gray-600">Likes</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-gray-900">\${twin.followCount || 0}</div>
+                        <div class="text-sm text-gray-600">Followers</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-gray-900">\${twin.chatCount || 0}</div>
+                        <div class="text-sm text-gray-600">Chats</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <a href="/@\${twin.publicHandle}" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center">
+                        View Public Profile
+                    </a>
+                    <button id="sharePublicTwinBtn" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                        Share Public Profile
+                    </button>
+                    <a href="/discover" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center">
+                        Discover Twins
+                    </a>
+                    <a href="/twin/\${twin.id}/ai-edit" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center">
+                        Edit Twin Style
+                    </a>
+                    <a href="/twin/\${twin.id}/style-customize" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center">
+                        Style Sandbox
+                    </a>
+                    <a href="/analytics" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center">
+                        Learning Progress
+                    </a>
+                </div>
+            </div>
+        \`;
+    } else {
+        console.log('❌ Twin is private, showing private status');
+        statusContainer.innerHTML = \`
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div class="flex items-center mb-3">
+                    <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-800">Your twin is private</h4>
+                        <p class="text-gray-600">Make it public to let others discover and chat with it</p>
+                    </div>
+                </div>
+                <button id="makeTwinPublicBtn" class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                    Make Twin Public
+                </button>
+            </div>
+        \`;
+    }
+}
+    
         async function makeTwinPublic() {
             try {
                 console.log('🚀 Making twin public...');
@@ -1694,6 +1649,28 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
                 console.log('❌ Copy Referral button not found');
             }
         }, 2000);
+
+        // Add event listener for share public twin button
+setTimeout(() => {
+    const sharePublicTwinBtn = document.getElementById('sharePublicTwinBtn');
+    if (sharePublicTwinBtn) {
+        console.log('✅ Share Public Twin button found, adding event listener');
+        sharePublicTwinBtn.addEventListener('click', function() {
+            console.log('🔥 Share Public Twin button clicked!');
+            // Get the public handle from the current twin data
+            const statusContainer = document.getElementById('publicTwinStatus');
+            const handleElement = statusContainer?.querySelector('p.text-white\\/80');
+            if (handleElement) {
+                const handle = handleElement.textContent?.replace('@', '');
+                if (handle) {
+                    sharePublicTwin(handle);
+                }
+            }
+        });
+    } else {
+        console.log('❌ Share Public Twin button not found');
+    }
+}, 2000);
     </script>
     `
   });
