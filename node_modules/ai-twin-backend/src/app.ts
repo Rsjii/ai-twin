@@ -1369,25 +1369,18 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
                     </a>
                 </div>
             </div>
-            
-            <div class="grid md:grid-cols-2 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Profile Link</h3>
-                    <p class="text-gray-600 mb-4">Generate shareable profile</p>
-                    <button onclick="generateProfileLink()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
-                        Generate Link
-                    </button>
-                </div>
-                
+            ` : ''}
+
+            <!-- INVITE FRIENDS SECTION - Always Visible -->
+            <div class="grid md:grid-cols-1 gap-6 mb-8">
                 <div class="bg-white rounded-lg shadow p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-2">Invite Friends</h3>
-                    <p class="text-gray-600 mb-4">Create referral link</p>
-                    <button onclick="createInvite()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
-                        Create Invite
-                    </button>
-                </div>
+                    <p class="text-gray-600 mb-4">Share your referral link and invite friends to join</p>
+                    <button id="copyReferralBtn" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                    Copy Referral Link
+                    </button>           
+             </div>
             </div>
-            ` : ''}
 
             <!-- Recent Chats Section -->
             <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
@@ -1400,7 +1393,11 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
     </div>
     
     <script>
-        async function startNewChat() {
+        // Set CSRF token from server
+        window.csrfToken = '${res.locals['csrfToken']}';
+        console.log('✅ CSRF Token set:', window.csrfToken);
+        
+        async function startNewChat() {        
             try {
                 // Simply redirect to chat continue route
                 window.location.href = '/chat/continue';
@@ -1465,34 +1462,51 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
         }
         
         async function createInvite() {
+            console.log('🚀 createInvite() called!');
+            console.log('🔑 CSRF Token:', window.csrfToken);
+            
             try {
-                const response = await fetch('/api/invite/create', {
-                    method: 'POST',
+                console.log('📡 Fetching /api/invite/my-code...');
+                const response = await fetch('/api/invite/my-code', {
+                    method: 'GET',
+                    credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': '${res.locals['csrfToken']}'
                     }
                 });
                 
+                console.log('📥 Response status:', response.status);
                 const result = await response.json();
+                console.log('📦 Response data:', result);
                 
                 if (response.ok) {
-                    navigator.clipboard.writeText(window.location.origin + result.inviteUrl);
-                    alert('Invite link copied to clipboard!');
+                    const fullUrl = window.location.origin + result.referralUrl;
+                    console.log('✅ Full referral URL:', fullUrl);
+                    await navigator.clipboard.writeText(fullUrl);
+                    alert('Referral link copied! Share it with friends.');
+                    console.log('📋 Link copied to clipboard!');
                 } else {
-                    alert(result.error || 'Failed to create invite');
+                    console.error('❌ API error:', result);
+                    alert(result.error || 'Failed to get referral link');
                 }
             } catch (error) {
-                console.error('Create invite error:', error);
+                console.error('💥 Get referral code error:', error);
                 alert('Network error. Please try again.');
             }
-        }
-        
+        }        
         // Public Twin Management Functions
         async function loadPublicTwinStatus() {
             try {
                 console.log('🔍 Loading public twin status...');
-                const response = await fetch('/api/public-twin/my-profile');
+                const response = await fetch('/api/public-twin/my-profile', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '${res.locals['csrfToken']}'
+                    }
+                  });
                 console.log('Response status:', response.status);
                 const data = await response.json();
                 console.log('Response data:', data);
@@ -1664,6 +1678,20 @@ app.get('/dashboard', extractJWTFromCookie, generateCSRFToken, async (req: any, 
                 });
             } else {
                 console.log('❌ Make Twin Public button not found');
+            }
+        }, 2000);
+        
+        // Add event listener for copy referral button
+        setTimeout(() => {
+            const copyReferralBtn = document.getElementById('copyReferralBtn');
+            if (copyReferralBtn) {
+                console.log('✅ Copy Referral button found, adding event listener');
+                copyReferralBtn.addEventListener('click', function() {
+                    console.log('🔥 Copy Referral button clicked!');
+                    createInvite();
+                });
+            } else {
+                console.log('❌ Copy Referral button not found');
             }
         }, 2000);
     </script>

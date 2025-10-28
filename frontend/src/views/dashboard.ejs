@@ -212,26 +212,8 @@
                 </div>
             </div>
             
-        <% if (hasTwins) { %>
+        <!-- INVITE FRIENDS SECTION - Always Visible -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div class="glass-effect rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-4 lg:p-8 group animate-slide-up">
-                <div class="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl flex items-center justify-center mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-200">
-                    <svg class="w-6 h-6 lg:w-7 lg:h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                    </svg>
-                </div>
-                <h3 class="text-lg lg:text-xl font-bold text-gray-900 mb-3">Profile Link</h3>
-                <p class="text-gray-600 mb-4 lg:mb-6 text-sm lg:text-base">Generate a shareable profile link for your AI twin</p>
-                <button onclick="generateProfileLink()" class="w-full bg-gradient-to-r from-primary to-accent text-white px-4 lg:px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold group/btn mobile-btn">
-                    <span class="flex items-center justify-center">
-                        <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                        </svg>
-                    Generate Link
-                    </span>
-                </button>
-            </div>
-            
             <div class="glass-effect rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-4 lg:p-8 group animate-slide-up">
                 <div class="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl flex items-center justify-center mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-200">
                     <svg class="w-6 h-6 lg:w-7 lg:h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,18 +221,17 @@
                     </svg>
                 </div>
                 <h3 class="text-lg lg:text-xl font-bold text-gray-900 mb-3">Invite Friends</h3>
-                <p class="text-gray-600 mb-4 lg:mb-6 text-sm lg:text-base">Create a referral link to invite friends to the platform</p>
+                <p class="text-gray-600 mb-4 lg:mb-6 text-sm lg:text-base">Share your referral link and invite friends to join the platform</p>
                 <button onclick="createInvite()" class="w-full bg-gradient-to-r from-primary to-accent text-white px-4 lg:px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold group/btn mobile-btn">
                     <span class="flex items-center justify-center">
                         <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
                         </svg>
-                    Create Invite
+                    Copy Referral Link
                     </span>
                 </button>
             </div>
         </div>
-        <% } %>
 
         <!-- Recent Chats Section -->
         <div class="mt-8 glass-effect rounded-2xl shadow-2xl p-4 lg:p-8 animate-fade-in">
@@ -575,54 +556,54 @@ function addChatFormListeners() {
 
 // Load twins and chats on page load
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🎯 Dashboard loaded!');
+    console.log('🔍 Checking for Invite Friends button...');
+    
+    // Check if createInvite function exists
+    if (typeof createInvite === 'function') {
+        console.log('✅ createInvite function is defined');
+    } else {
+        console.error('❌ createInvite function is NOT defined!');
+    }
+    
+    // Check if button exists
+    const buttons = document.querySelectorAll('button');
+    console.log(`📊 Total buttons on page: ${buttons.length}`);
+    
     // Load public twin status on page load
     loadPublicTwinStatus();
 });
 
-async function generateProfileLink() {
-    try {
-        const response = await fetch('/api/profile/link', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': window.csrfToken
-            }
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            navigator.clipboard.writeText(window.location.origin + result.profileUrl);
-            showFlashMessage('Profile link copied to clipboard!', 'success');
-        } else {
-            showFlashMessage(result.error || 'Failed to generate profile link', 'error');
-        }
-    } catch (error) {
-        console.error('Generate profile link error:', error);
-        showFlashMessage('Network error. Please try again.', 'error');
-    }
-}
-
 async function createInvite() {
+    console.log('🚀 createInvite() called!');
+    console.log('🔑 CSRF Token:', window.csrfToken);
+    
     try {
-        const response = await fetch('/api/invite/create', {
-            method: 'POST',
+        console.log('📡 Fetching /api/invite/my-code...');
+        const response = await fetch('/api/invite/my-code', {
+            method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': window.csrfToken
             }
         });
         
+        console.log('📥 Response status:', response.status);
         const result = await response.json();
+        console.log('📦 Response data:', result);
         
         if (response.ok) {
-            navigator.clipboard.writeText(window.location.origin + result.inviteUrl);
-            showFlashMessage('Invite link copied to clipboard!', 'success');
+            const fullUrl = window.location.origin + result.referralUrl;
+            console.log('✅ Full referral URL:', fullUrl);
+            await navigator.clipboard.writeText(fullUrl);
+            showFlashMessage('Referral link copied! Share it with friends.', 'success');
+            console.log('📋 Link copied to clipboard!');
         } else {
-            showFlashMessage(result.error || 'Failed to create invite', 'error');
+            console.error('❌ API error:', result);
+            showFlashMessage(result.error || 'Failed to get referral link', 'error');
         }
     } catch (error) {
-        console.error('Create invite error:', error);
+        console.error('💥 Get referral code error:', error);
         showFlashMessage('Network error. Please try again.', 'error');
     }
 }

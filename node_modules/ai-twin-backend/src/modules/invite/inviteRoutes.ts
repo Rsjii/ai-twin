@@ -1,19 +1,19 @@
 import { Router } from 'express';
-import { createInvite, acceptInvite, processInviteAcceptance } from './inviteController';
-import { requireAuth, optionalAuth } from '../../middleware/auth';
-import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
-import { sanitizeInput } from '../../middleware/validation';
+import { getMyReferralCode, getMyReferrals } from './inviteController';
+import { requireJWTFromCookie } from '../../middleware/jwtCookie';
+import { generateCSRFToken } from '../../middleware/csrf';
 
 const router = Router();
 
-// Public invite acceptance route
-router.get('/accept', acceptInvite);
+// Get my referral code
+router.get('/my-code', (req, res, next) => {
+  console.log('🟢 Route /api/invite/my-code hit');
+  console.log('📝 Method:', req.method);
+  console.log('🔑 Headers:', req.headers);
+  next();
+}, generateCSRFToken, requireJWTFromCookie, getMyReferralCode);
 
-// Protected routes
-router.use(requireAuth);
-router.use(generateCSRFToken);
-
-router.post('/create', validateCSRF, createInvite);
-router.post('/process', sanitizeInput, validateCSRF, processInviteAcceptance);
+// Get my referrals
+router.get('/my-referrals', generateCSRFToken, requireJWTFromCookie, getMyReferrals);
 
 export default router;

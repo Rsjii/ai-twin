@@ -509,3 +509,51 @@ async function getChatStats(twinId: string) {
   
   return result.rows[0];
 }
+
+export const getReferralStats = async (req: any, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Get total referrals count
+    const totalResult = await db.query(
+      'SELECT COUNT(*) as count FROM "Invite" WHERE "inviterId" = $1 AND "acceptedBy" IS NOT NULL',
+      [req.user.id]
+    );
+    const totalReferrals = parseInt(totalResult.rows[0].count);
+    
+    // Get recent referrals with user details
+    const referralsResult = await db.query(
+      `SELECT 
+         i.*, 
+         u.id as user_id, u.email, u.name, u.handle, u."createdAt" as user_created
+       FROM "Invite" i
+       JOIN "User" u ON i."acceptedBy" = u.id
+       WHERE i."inviterId" = $1 AND i."acceptedBy" IS NOT NULL
+       ORDER BY i."createdAt" DESC
+       LIMIT 10`,
+      [req.user.id]
+    );
+    
+    res.json({
+      success: true,
+      stats: {
+        totalReferrals,
+        recentReferrals: referralsResult.rows.map(r => ({
+          referredUser: {
+            id: r.user_id,
+            email: r.email,
+            name: r.name,
+            handle: r.handle,
+            createdAt: r.user_created
+          },
+          joinedAt: r.createdAt
+        }))
+      }
+    });
+  } catch (error) {
+    logger.error('Get referral stats error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

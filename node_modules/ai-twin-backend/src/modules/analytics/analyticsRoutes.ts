@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getMetricsSummary, getUserAnalytics, debugUserData, createSampleData } from './analyticsController';
+import { getMetricsSummary, getUserAnalytics, debugUserData, createSampleData, getReferralStats } from './analyticsController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import { getTwinAnalytics } from './analyticsController';
 
@@ -17,5 +17,7 @@ router.get('/user', requireJWTFromCookie, getUserAnalytics);
 
 //twin analytics
 router.get('/twin/:twinId/analytics', requireJWTFromCookie, getTwinAnalytics);
+
+router.get('/referrals', requireJWTFromCookie, getReferralStats);
 
 export default router;

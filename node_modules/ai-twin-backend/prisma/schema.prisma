@@ -23,6 +23,7 @@ model User {
   active                Boolean  @default(false)
   personaData           Json?    // Enhanced onboarding data
   onboardingCompleted   Boolean  @default(false)
+  referralCode          String   @unique
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   twins                 Twin[]

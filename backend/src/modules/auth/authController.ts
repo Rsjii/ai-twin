@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { db, userQueries, otpQueries } from '../../config/database';
-import { EmailService, generateOTP, hashOTP, verifyOTP, hashPassword, verifyPassword } from './authService';
+import { EmailService, generateOTP, hashOTP, verifyOTP, hashPassword, verifyPassword , generateInviteCode} from './authService';
 import { logger } from '../../config/logger';
 import { config } from '../../config/env';
 import { z } from 'zod';
@@ -12,6 +12,7 @@ const emailService = new EmailService();
 const signupSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  referralCode: z.string().optional(),
 });
 
 const signupVerifySchema = z.object({
@@ -41,38 +42,71 @@ const resetPasswordSchema = z.object({
 
 export const signup = async (req: Request, res: Response) => {
   try {
-    const { email, password } = signupSchema.parse(req.body);
+    const { email, password, referralCode } = signupSchema.parse(req.body);
     
     // Check if user already exists
     const existingUser = await userQueries.findByEmail(email.toLowerCase());
     if (existingUser) {
-      return res.status(400).json({ error: 'User already exists. Please login instead.' });
+      return res.status(400).json({ error: 'User already exists' });
     }
     
     // Hash password
     const passwordHash = await hashPassword(password);
     
-    // Create user with password (inactive)
-    const user = await userQueries.create(email.toLowerCase(), undefined, passwordHash);
+    // Generate unique referral code for NEW user
+    const userReferralCode = generateInviteCode();
     
-    // Generate OTP for account activation
+    // Check if referral code is valid (find referrer)
+    let referrerId = null;
+    if (referralCode) {
+      const referrer = await userQueries.findByReferralCode(referralCode);
+      if (referrer) {
+        referrerId = referrer.id;
+      }
+    }
+    
+    // Create user with their own referral code
+    const user = await userQueries.create(
+      email.toLowerCase(), 
+      undefined, 
+      passwordHash, 
+      userReferralCode
+    );
+    
+// If they were referred, link them
+if (referrerId) {
+  const { db, generateId } = await import('../../config/database');
+  
+  // Create invite record linking them
+  const inviteId = generateId();
+  await db.query(
+    'INSERT INTO "Invite" (id, code, "inviterId", "acceptedBy") VALUES ($1, $2, $3, $4)',
+    [inviteId, referralCode, referrerId, user.id]
+  );
+  
+  // Log event
+  const eventId = generateId();
+  await db.query(
+    'INSERT INTO "Event" (id, "userId", type, meta) VALUES ($1, $2, $3, $4)',
+    [eventId, referrerId, 'invite_accepted', JSON.stringify({ referredUserId: user.id })]
+  );
+}    
+    
+  // Generate OTP
     const otp = generateOTP(config.otp.codeLength);
     const hashedOTP = await hashOTP(otp);
     const expiresAt = new Date(Date.now() + config.otp.expiryMinutes * 60 * 1000);
     
-    // Store OTP
     await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt);
-    
-    // Send OTP via email
     const emailSent = await emailService.sendOTP(email, otp);
     
     if (!emailSent) {
-      return res.status(500).json({ error: 'Failed to send OTP email' });
+      return res.status(500).json({ error: 'Failed to send OTP' });
     }
     
     res.json({ 
-      message: 'OTP sent for account activation', 
-      otp: otp, // Include the actual OTP for development
+      message: 'OTP sent',
+      otp: otp,
       redirect: '/signup/verify?email=' + encodeURIComponent(email)
     });
   } catch (error) {

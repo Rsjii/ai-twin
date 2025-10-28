@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS "User" (
     "phone" TEXT,
     "bio" TEXT,
     "active" BOOLEAN NOT NULL DEFAULT false,
+    "referralCode" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -197,6 +198,14 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'chatCount') THEN
         ALTER TABLE "Twin" ADD COLUMN "chatCount" INTEGER DEFAULT 0;
     END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'referralCode') THEN
+        ALTER TABLE "User" ADD COLUMN "referralCode" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename = 'User' AND indexname = 'User_referralCode_idx') THEN
+        CREATE UNIQUE INDEX "User_referralCode_idx" ON "User"("referralCode");
+    END IF;
 END $$;
 
 -- AddForeignKey
@@ -258,11 +267,12 @@ export function generateId(): string {
 
 // Database utility functions
 export const userQueries = {
-  create: async (email: string, handle?: string, passwordHash?: string) => {
+  create: async (email: string, handle?: string, passwordHash?: string, referralCode?: string) => {
     const id = generateId();
+    const now = new Date();
     const result = await db.query(
-      'INSERT INTO "User" (id, email, handle, "passwordHash") VALUES ($1, $2, $3, $4) RETURNING *',
-      [id, email, handle, passwordHash]
+      'INSERT INTO "User" (id, email, handle, "passwordHash", "referralCode", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [id, email, handle, passwordHash, referralCode, now, now]
     );
     return result.rows[0];
   },
@@ -274,6 +284,11 @@ export const userQueries = {
 
   findById: async (id: string) => {
     const result = await db.query('SELECT * FROM "User" WHERE id = $1', [id]);
+    return result.rows[0];
+  },
+
+  findByReferralCode: async (referralCode: string) => {
+    const result = await db.query('SELECT * FROM "User" WHERE "referralCode" = $1', [referralCode]);
     return result.rows[0];
   },
 
@@ -573,7 +588,6 @@ export const publicChatQueries = {
     return result.rows[0];
   },
 
-// REPLACE lines 576-582 with:
 findByTwinAndVisitor: async (twinId: string, visitorId?: string) => {
   const result = await db.query(
     'SELECT * FROM "PublicChat" WHERE "twinId" = $1 AND ("visitorId" = $2 OR ("visitorId" IS NULL AND $2 IS NULL)) ORDER BY "createdAt" DESC',
