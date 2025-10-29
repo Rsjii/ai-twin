@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 // Validation schemas
 const makePublicSchema = z.object({
+  twinId: z.string().min(1, 'Twin ID is required'),
   publicHandle: z.string()
     .min(3, 'Handle must be at least 3 characters')
     .max(30, 'Handle must be less than 30 characters')
@@ -31,15 +32,15 @@ export const makeTwinPublic = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const { publicHandle, bio, profileImage } = makePublicSchema.parse(req.body);
+    const { twinId, publicHandle, bio, profileImage } = makePublicSchema.parse(req.body);
 
     // Get user's twin
     const twinResult = await db.query(`
       SELECT id, "isPublic", "publicHandle"
       FROM "Twin"
-      WHERE "userId" = $1
+      WHERE "userId" = $1 and id = $2
       LIMIT 1
-    `, [req.user.id]);
+    `, [req.user.id, twinId]);
 
     if (twinResult.rows.length === 0) {
       return res.status(404).json({ error: 'No twin found. Create a twin first.' });

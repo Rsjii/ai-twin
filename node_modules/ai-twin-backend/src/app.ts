@@ -1678,7 +1678,7 @@ setTimeout(() => {
 
 // My Twins page route
 // My Twins page route
-app.get('/my-twins', requireJWTFromCookie, async (req: any, res) => {
+app.get('/my-twins', requireJWTFromCookie, generateCSRFToken, async (req: any, res) => {
   try {
     console.log('=== MY TWINS ENDPOINT ===');
     console.log('req.user:', req.user);
@@ -1702,7 +1702,8 @@ app.get('/my-twins', requireJWTFromCookie, async (req: any, res) => {
     res.render('my-twins', { 
       title: 'My AI Twins',
       user: req.user,
-      twins: twins.rows
+      twins: twins.rows,
+      csrfToken: res.locals['csrfToken']
     });
   } catch (error) {
     console.error('Error fetching twins:', error);

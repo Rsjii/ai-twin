@@ -413,6 +413,27 @@
         </span>
     </a>
 </div>
+
+<!-- Public Twin Management -->
+<div class="mt-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200">
+    <h4 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+        <svg class="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+        </svg>
+        Public Profile Management
+    </h4>
+    <div id="publicTwinStatus_<%= twin.id %>" class="mb-3">
+        <!-- Status will be loaded here -->
+    </div>
+    <div class="flex space-x-2">
+        <button id="makeTwinPublicBtn_<%= twin.id %>" class="flex-1 bg-gradient-to-r from-green-500 to-blue-500 text-white py-2 px-3 rounded-lg hover:from-green-600 hover:to-blue-600 transition-all duration-300 text-xs font-semibold">
+            Make Public
+        </button>
+        <button id="loadTwinStatusBtn_<%= twin.id %>" class="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 px-3 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-300 text-xs font-semibold">
+            Check Status
+        </button>
+    </div>
+</div>
                     </div>
                 <% }); %>
             </div>
@@ -449,6 +470,210 @@ async function deleteTwin(twinId) {
             alert('Error deleting twin');
         }
     }
+
+// CSRF token for AJAX requests
+window.csrfToken = '<%= csrfToken || "" %>';
+
+// Notification system
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 p-4 rounded-xl shadow-2xl z-50 transform transition-all duration-300 ${
+        type === 'success' 
+            ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
+            : 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
+    }`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center space-x-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                ${type === 'success' 
+                    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>'
+                    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>'
+                }
+            </svg>
+            <span class="font-semibold">${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
+    }, 5000);
+}
+
+// Twin Management Functions
+async function makeTwinPublic(twinId) {
+    console.log('🚀 makeTwinPublic called for twin:', twinId);
+    console.log('🔑 CSRF Token:', window.csrfToken);
+    
+    try {
+        const requestData = {
+            twinId: twinId,
+            bio: 'Check out my AI twin!',
+            publicHandle: generateHandle()
+        };
+        console.log('📤 Sending request data:', requestData);
+        
+        const response = await fetch('/api/public-twin/make-public', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken || 'test-token'
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        console.log('📡 Response status:', response.status);
+        const result = await response.json();
+        console.log('📦 Make twin public response:', result);
+        
+        if (response.ok && result.success) {
+            showNotification('Twin made public successfully!', 'success');
+            loadTwinStatus(twinId);
+        } else {
+            showNotification(result.error || 'Failed to make twin public', 'error');
+        }
+    } catch (error) {
+        console.error('Make twin public error:', error);
+        showNotification('Network error. Please try again.', 'error');
+    }
+}
+
+async function loadTwinStatus(twinId) {
+    console.log('🔄 Loading twin status for:', twinId);
+    try {
+        const response = await fetch('/api/public-twin/my-profile');
+        console.log('📡 Response status:', response.status);
+        const data = await response.json();
+        console.log('📦 Twin status response:', data);
+        console.log('🔍 Twin data:', data.twin);
+        console.log('🔍 Is public?', data.twin?.isPublic);
+        
+        const statusContainer = document.getElementById(`publicTwinStatus_${twinId}`);
+        if (!statusContainer) return;
+        
+        if (response.ok && data.success && data.twin && data.twin.isPublic) {
+            // Twin is public
+            statusContainer.innerHTML = `
+                <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div class="flex items-center mb-2">
+                        <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-2">
+                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h5 class="text-sm font-semibold text-green-800">Public!</h5>
+                            <p class="text-xs text-green-600">@${data.twin.publicHandle}</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <a href="/@${data.twin.publicHandle}" target="_blank" class="flex-1 bg-green-600 text-white py-1 px-2 rounded text-xs text-center hover:bg-green-700 transition-colors">
+                            View
+                        </a>
+                        <button onclick="shareTwin('${data.twin.publicHandle}')" class="flex-1 bg-blue-600 text-white py-1 px-2 rounded text-xs hover:bg-blue-700 transition-colors">
+                            Share
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Twin is private
+            statusContainer.innerHTML = `
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <div class="flex items-center">
+                        <div class="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center mr-2">
+                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h5 class="text-sm font-semibold text-gray-800">Private</h5>
+                            <p class="text-xs text-gray-600">Make it public to share</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Load twin status error:', error);
+        const statusContainer = document.getElementById(`publicTwinStatus_${twinId}`);
+        if (statusContainer) {
+            statusContainer.innerHTML = `
+                <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div class="text-center">
+                        <h5 class="text-sm font-semibold text-red-800">Error</h5>
+                        <p class="text-xs text-red-600">Try again</p>
+                    </div>
+                </div>
+            `;
+        }
+    }
+}
+
+async function shareTwin(handle) {
+    console.log('🚀 shareTwin called with handle:', handle);
+    const url = `${window.location.origin}/@${handle}`;
+    console.log('🔗 Generated URL:', url);
+    
+    try {
+        console.log('📋 Attempting to copy to clipboard...');
+        await navigator.clipboard.writeText(url);
+        console.log('✅ Successfully copied to clipboard');
+        showNotification('Public profile link copied to clipboard!', 'success');
+    } catch (error) {
+        console.error('❌ Copy to clipboard error:', error);
+        showNotification('Failed to copy link. Please copy manually: ' + url, 'error');
+    }
+}
+
+function generateHandle() {
+    const adjectives = ['cool', 'smart', 'awesome', 'brilliant', 'amazing', 'fantastic', 'incredible', 'wonderful'];
+    const nouns = ['twin', 'ai', 'bot', 'assistant', 'helper', 'companion', 'friend', 'buddy'];
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const num = Math.floor(Math.random() * 1000);
+    return `${adj}${noun}${num}`;
+}
+
+// Load twin statuses on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('My Twins page loaded, checking for twins...');
+    
+    // Load status for each twin
+    <% if (twins.length > 0) { %>
+        <% twins.forEach(twin => { %>
+            loadTwinStatus('<%= twin.id %>');
+            
+            // Add event listeners for each twin's buttons
+            const makePublicBtn = document.getElementById('makeTwinPublicBtn_<%= twin.id %>');
+            if (makePublicBtn) {
+                makePublicBtn.addEventListener('click', function() {
+                    makeTwinPublic('<%= twin.id %>');
+                });
+            }
+            
+            const checkStatusBtn = document.getElementById('loadTwinStatusBtn_<%= twin.id %>');
+            if (checkStatusBtn) {
+                checkStatusBtn.addEventListener('click', function() {
+                    loadTwinStatus('<%= twin.id %>');
+                });
+            }
+        <% }); %>
+    <% } %>
+});
 </script>
 </body>
 </html>

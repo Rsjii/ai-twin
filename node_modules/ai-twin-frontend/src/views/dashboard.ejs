@@ -26,22 +26,33 @@
                 <div id="publicTwinStatus" class="mb-4 lg:mb-6">
                     <!-- Status will be loaded here -->
                 </div>
-                <div class="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-4">
-                    <button onclick="loadPublicTwinStatus()" class="flex-1 bg-white/20 backdrop-blur-sm text-white py-3 px-4 lg:px-6 rounded-xl hover:bg-white/30 transition-all duration-300 font-semibold group/btn border border-white/30 mobile-btn">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+                    <button onclick="loadPublicTwinStatus()" class="bg-white/20 backdrop-blur-sm text-white py-3 px-4 lg:px-6 rounded-xl hover:bg-white/30 transition-all duration-300 font-semibold group/btn border border-white/30 mobile-btn">
                         <span class="flex items-center justify-center">
                             <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                             </svg>
-                            Manage Public Profile
+                            <span class="hidden lg:inline">Manage Public Profile</span>
+                            <span class="lg:hidden">Manage</span>
                         </span>
                     </button>
-                    <a href="/discover" class="flex-1 bg-white/20 backdrop-blur-sm text-white py-3 px-4 lg:px-6 rounded-xl hover:bg-white/30 transition-all duration-300 font-semibold group/btn inline-flex items-center justify-center border border-white/30 mobile-btn">
+                    <button onclick="testShareButton()" class="bg-red-500/20 backdrop-blur-sm text-white py-3 px-4 lg:px-6 rounded-xl hover:bg-red-500/30 transition-all duration-300 font-semibold group/btn border border-red-500/30 mobile-btn">
+                        <span class="flex items-center justify-center">
+                            <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                            <span class="hidden lg:inline">Test Share Button</span>
+                            <span class="lg:hidden">Test</span>
+                        </span>
+                    </button>
+                    <a href="/discover" class="bg-white/20 backdrop-blur-sm text-white py-3 px-4 lg:px-6 rounded-xl hover:bg-white/30 transition-all duration-300 font-semibold group/btn inline-flex items-center justify-center border border-white/30 mobile-btn">
                         <span class="flex items-center justify-center">
                             <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
-                            Discover Twins
+                            <span class="hidden lg:inline">Discover Twins</span>
+                            <span class="lg:hidden">Discover</span>
                         </span>
                     </a>
                 </div>
@@ -222,7 +233,7 @@
                 </div>
                 <h3 class="text-lg lg:text-xl font-bold text-gray-900 mb-3">Invite Friends</h3>
                 <p class="text-gray-600 mb-4 lg:mb-6 text-sm lg:text-base">Share your referral link and invite friends to join the platform</p>
-                <button onclick="createInvite()" class="w-full bg-gradient-to-r from-primary to-accent text-white px-4 lg:px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold group/btn mobile-btn">
+                <button id="createInviteBtn" class="w-full bg-gradient-to-r from-primary to-accent text-white px-4 lg:px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold group/btn mobile-btn">
                     <span class="flex items-center justify-center">
                         <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
@@ -572,6 +583,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load public twin status on page load
     loadPublicTwinStatus();
+    
+    // Add event listener for invite button
+    const inviteBtn = document.getElementById('createInviteBtn');
+    if (inviteBtn) {
+        inviteBtn.addEventListener('click', createInvite);
+        console.log('✅ Invite button event listener added');
+    }
 });
 
 async function createInvite() {
@@ -610,25 +628,33 @@ async function createInvite() {
 
 // Public Twin Management Functions
 async function loadPublicTwinStatus() {
+    console.log('🔄 Loading public twin status...');
     try {
         const response = await fetch('/api/public-twin/my-profile');
+        console.log('📡 Response status:', response.status);
         const data = await response.json();
+        console.log('📦 Response data:', data);
         
         if (response.ok && data.success) {
+            console.log('✅ Successfully loaded public twin data');
             displayPublicTwinStatus(data.twin);
         } else {
+            console.log('❌ Failed to load public twin data, showing private state');
             displayPublicTwinStatus(null);
         }
     } catch (error) {
-        console.error('Load public twin status error:', error);
+        console.error('❌ Load public twin status error:', error);
         displayPublicTwinStatus(null);
     }
 }
 
 function displayPublicTwinStatus(twin) {
+    console.log('📊 displayPublicTwinStatus called with:', twin);
     const statusContainer = document.getElementById('publicTwinStatus');
+    console.log('📦 Status container found:', statusContainer);
     
     if (twin && twin.isPublic) {
+        console.log('✅ Twin is public, creating public twin UI...');
         statusContainer.innerHTML = `
             <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div class="flex items-center mb-3">
@@ -660,15 +686,24 @@ function displayPublicTwinStatus(twin) {
                     <a href="/@${twin.publicHandle}" target="_blank" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-center">
                         View Public Profile
                     </a>
-                    <button onclick="sharePublicTwin('${twin.publicHandle}')" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                    <button id="sharePublicTwinBtn" data-handle="${twin.publicHandle}" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
                         Share
                     </button>
-                    <button onclick="editPublicProfile()" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors">
+                    <button id="editPublicProfileBtn" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors">
                         Edit
+                    </button>
+                    <button id="makeTwinPublicBtn" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
+                        Make Public
                     </button>
                 </div>
             </div>
         `;
+        
+        // Add event listeners after creating the buttons
+        setTimeout(() => {
+            console.log('⏰ setTimeout triggered - adding event listeners...');
+            addPublicTwinEventListeners();
+        }, 100);
     } else {
         statusContainer.innerHTML = `
             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
@@ -683,13 +718,71 @@ function displayPublicTwinStatus(twin) {
                         <p class="text-gray-600">Make it public to let others discover and chat with it</p>
                     </div>
                 </div>
-                <button onclick="makeTwinPublic()" class="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                <button id="makeTwinPublicBtn" class="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-semibold">
                     Make Twin Public
                 </button>
             </div>
+            
         `;
+        
+        // Add event listener for make twin public button
+        setTimeout(() => {
+            const makePublicBtn = document.getElementById('makeTwinPublicBtn');
+            if (makePublicBtn) {
+                makePublicBtn.addEventListener('click', makeTwinPublic);
+            }
+        }, 100);
     }
 }
+
+// Add this new function to handle event listeners
+function addPublicTwinEventListeners() {
+    console.log('🔧 Adding public twin event listeners...');
+    
+    // Share button
+    const shareBtn = document.getElementById('sharePublicTwinBtn');
+    if (shareBtn) {
+        console.log('✅ Share button found, adding event listener');
+        shareBtn.addEventListener('click', function() {
+            const handle = this.getAttribute('data-handle');
+            console.log('🔥 Share button clicked! Handle:', handle);
+            console.log('🔥 Calling sharePublicTwin function...');
+            if (handle) {
+                sharePublicTwin(handle);
+            } else {
+                console.error('❌ No handle found for share button');
+            }
+        });
+        console.log('✅ Share button event listener added successfully');
+    } else {
+        console.log('❌ Share button not found');
+        // Let's check what buttons actually exist
+        const allButtons = document.querySelectorAll('button');
+        console.log('📊 All buttons on page:', allButtons.length);
+        allButtons.forEach((btn, index) => {
+            console.log(`Button ${index}:`, btn.id, btn.className, btn.textContent);
+        });
+    }
+    
+    // Edit button
+    const editBtn = document.getElementById('editPublicProfileBtn');
+    if (editBtn) {
+        console.log('✅ Edit button found, adding event listener');
+        editBtn.addEventListener('click', editPublicProfile);
+    } else {
+        console.log('❌ Edit button not found');
+    }
+    
+    // Make Twin Public button (in public section)
+    const makePublicBtn = document.getElementById('makeTwinPublicBtn');
+    if (makePublicBtn) {
+        console.log('✅ Make Twin Public button found, adding event listener');
+        makePublicBtn.addEventListener('click', makeTwinPublic);
+    } else {
+        console.log('❌ Make Twin Public button not found');
+    }
+}
+
 
 async function makeTwinPublic() {
     try {
@@ -720,12 +813,17 @@ async function makeTwinPublic() {
 }
 
 async function sharePublicTwin(handle) {
+    console.log('🚀 sharePublicTwin function called with handle:', handle);
     const url = `${window.location.origin}/@${handle}`;
+    console.log('🔗 Generated URL:', url);
+    
     try {
+        console.log('📋 Attempting to copy to clipboard...');
         await navigator.clipboard.writeText(url);
+        console.log('✅ Successfully copied to clipboard');
         showFlashMessage('Public profile link copied to clipboard!', 'success');
     } catch (error) {
-        console.error('Copy to clipboard error:', error);
+        console.error('❌ Copy to clipboard error:', error);
         showFlashMessage('Failed to copy link. Please copy manually: ' + url, 'error');
     }
 }
@@ -742,6 +840,54 @@ function generateHandle() {
     const noun = nouns[Math.floor(Math.random() * nouns.length)];
     const num = Math.floor(Math.random() * 1000);
     return `${adj}${noun}${num}`;
+}
+
+// Test function to debug share button
+function testShareButton() {
+    console.log('🧪 Test Share Button clicked!');
+    console.log('🧪 Testing sharePublicTwin function...');
+    
+    // Test with a dummy handle
+    const testHandle = 'testhandle123';
+    console.log('🧪 Calling sharePublicTwin with test handle:', testHandle);
+    
+    try {
+        sharePublicTwin(testHandle);
+        console.log('🧪 sharePublicTwin function called successfully');
+    } catch (error) {
+        console.error('🧪 Error calling sharePublicTwin:', error);
+    }
+    
+    // Also test if showFlashMessage works
+    console.log('🧪 Testing showFlashMessage...');
+    try {
+        showFlashMessage('Test message from test button!', 'success');
+        console.log('🧪 showFlashMessage called successfully');
+    } catch (error) {
+        console.error('🧪 Error calling showFlashMessage:', error);
+    }
+    
+    // Test the API endpoint
+    console.log('🧪 Testing API endpoint...');
+    fetch('/api/public-twin/my-profile')
+        .then(response => {
+            console.log('🧪 API Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('🧪 API Response data:', data);
+            if (data.success && data.twin && data.twin.isPublic) {
+                console.log('🧪 User has a public twin!');
+                showFlashMessage('You have a public twin! Share button should work.', 'success');
+            } else {
+                console.log('🧪 User does not have a public twin');
+                showFlashMessage('You need to make your twin public first!', 'info');
+            }
+        })
+        .catch(error => {
+            console.error('🧪 API Error:', error);
+            showFlashMessage('API Error: ' + error.message, 'error');
+        });
 }
 </script>
 ` }) %>
