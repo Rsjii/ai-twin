@@ -110,13 +110,19 @@ export const makeTwinPrivate = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Get user's twin
+    const { twinId } = req.body;
+
+    if (!twinId) {
+      return res.status(400).json({ error: 'Twin ID is required' });
+    }
+
+    // Get user's specific twin
     const twinResult = await db.query(`
       SELECT id, "isPublic"
       FROM "Twin"
-      WHERE "userId" = $1
+      WHERE "userId" = $1 and id = $2
       LIMIT 1
-    `, [req.user.id]);
+    `, [req.user.id, twinId]);
 
     if (twinResult.rows.length === 0) {
       return res.status(404).json({ error: 'No twin found' });

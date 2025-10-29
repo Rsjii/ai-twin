@@ -551,6 +551,40 @@ async function makeTwinPublic(twinId) {
     }
 }
 
+async function makeTwinPrivate(twinId) {
+    console.log('🚀 makeTwinPrivate called for twin:', twinId);
+    
+    try {
+        const requestData = {
+            twinId: twinId
+        };
+        console.log('📤 Sending request data:', requestData);
+        
+        const response = await fetch('/api/public-twin/make-private', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken || 'test-token'
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        console.log('📡 Response status:', response.status);
+        const result = await response.json();
+        console.log('📦 Make twin private response:', result);
+        
+        if (response.ok && result.success) {
+            showNotification('Twin made private successfully!', 'success');
+            loadTwinStatus(twinId);
+        } else {
+            showNotification(result.error || 'Failed to make twin private', 'error');
+        }
+    } catch (error) {
+        console.error('Make twin private error:', error);
+        showNotification('Network error. Please try again.', 'error');
+    }
+}
+
 async function loadTwinStatus(twinId) {
     console.log('🔄 Loading twin status for:', twinId);
     try {
@@ -565,7 +599,7 @@ async function loadTwinStatus(twinId) {
         if (!statusContainer) return;
         
         if (response.ok && data.success && data.twin && data.twin.isPublic) {
-            // Twin is public
+            // Twin is public - show public status with Make Private button
             statusContainer.innerHTML = `
                 <div class="bg-green-50 border border-green-200 rounded-lg p-3">
                     <div class="flex items-center mb-2">
@@ -589,8 +623,16 @@ async function loadTwinStatus(twinId) {
                     </div>
                 </div>
             `;
+            
+            // Update the buttons to show Make Private instead of Make Public
+            const makePublicBtn = document.getElementById(`makeTwinPublicBtn_${twinId}`);
+            if (makePublicBtn) {
+                makePublicBtn.textContent = 'Make Private';
+                makePublicBtn.className = 'flex-1 bg-gradient-to-r from-red-500 to-orange-500 text-white py-2 px-3 rounded-lg hover:from-red-600 hover:to-orange-600 transition-all duration-300 text-xs font-semibold';
+                makePublicBtn.onclick = function() { makeTwinPrivate(twinId); };
+            }
         } else {
-            // Twin is private
+            // Twin is private - show private status
             statusContainer.innerHTML = `
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
                     <div class="flex items-center">
@@ -606,6 +648,14 @@ async function loadTwinStatus(twinId) {
                     </div>
                 </div>
             `;
+            
+            // Update the buttons to show Make Public
+            const makePublicBtn = document.getElementById(`makeTwinPublicBtn_${twinId}`);
+            if (makePublicBtn) {
+                makePublicBtn.textContent = 'Make Public';
+                makePublicBtn.className = 'flex-1 bg-gradient-to-r from-green-500 to-blue-500 text-white py-2 px-3 rounded-lg hover:from-green-600 hover:to-blue-600 transition-all duration-300 text-xs font-semibold';
+                makePublicBtn.onclick = function() { makeTwinPublic(twinId); };
+            }
         }
     } catch (error) {
         console.error('Load twin status error:', error);
