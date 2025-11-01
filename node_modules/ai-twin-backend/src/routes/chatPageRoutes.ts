@@ -5,16 +5,22 @@ import * as chatPageController from '../controllers/chatPageController';
 
 const router = Router();
 
-// Chat Continue - redirect to chat with latest twin
-router.get('/chat/continue', extractJWTFromCookie, chatPageController.getChatContinue);
+// Redirect old chat/continue to enhanced-chat
+router.get('/chat/continue', extractJWTFromCookie, (req: any, res: Response) => {
+  res.redirect('/chat-enhanced');
+});
 
-// Chat page - Individual chat view
-router.get('/chat/:id', extractJWTFromCookie, chatPageController.getChat);
+// Redirect old chat/:id to enhanced-chat with chatId query param
+router.get('/chat/:id', extractJWTFromCookie, (req: any, res: Response) => {
+  res.redirect(`/chat-enhanced?chatId=${req.params.id}`);
+});
 
-// Chat History page
-router.get('/chat/history', requireJWTFromCookie, generateCSRFToken, chatPageController.getChatHistory);
+// Redirect chat history to enhanced-chat
+router.get('/chat/history', requireJWTFromCookie, generateCSRFToken, (req: any, res: Response) => {
+  res.redirect('/chat-enhanced');
+});
 
-// Enhanced Chat page
+// Enhanced Chat page - KEEP THIS
 router.get('/chat-enhanced', requireJWTFromCookie, generateCSRFToken, chatPageController.getChatEnhanced);
 
 export default router;

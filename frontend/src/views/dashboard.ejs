@@ -784,13 +784,9 @@
                     <h3 class="text-lg font-semibold text-gray-800 mb-2">Chat with Your AI Twin</h3>
                     <p class="text-gray-600 mb-4">Start a conversation with your AI twin</p>
                     <div class="space-y-3">
-                        <a href="/chat/continue" class="block bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors text-center">
-                            Start Regular Chat
-                        </a>
-                        <a href="/chat-enhanced" class="block bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors text-center relative">
+                        <a href="/chat-enhanced" class="block bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors text-center">
                             <span class="inline-flex items-center">
-                                🚀 Enhanced Chat (Beta)
-                                <span class="ml-2 text-xs bg-white/20 px-2 py-1 rounded-full">NEW</span>
+                                🚀 Start Enhanced Chat
                             </span>
                         </a>
                     </div>
@@ -873,8 +869,8 @@
     
     async function startNewChat() {        
         try {
-            // Simply redirect to chat continue route
-            window.location.href = '/chat/continue';
+            // Redirect to enhanced chat
+            window.location.href = '/chat-enhanced';
         } catch (error) {
             console.error('Start chat error:', error);
             alert('Network error. Please try again.');
