@@ -1,597 +1,940 @@
-<%- include('layout', { title: 'Dashboard - AI Twin', body: `
-<div class="px-4 py-6 sm:px-0">
-    <div class="max-w-6xl mx-auto">
-        <!-- Mobile Header -->
-        <div class="lg:hidden mb-6">
-            <h1 class="text-2xl font-bold gradient-text mb-2">Welcome back, <%= user.handle || user.email %>!</h1>
-            <p class="text-gray-600 text-sm">Your AI Twin dashboard</p>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#4f46e5',
+                        accent: '#8b5cf6',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'bounce-gentle': 'bounceGentle 2s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        bounceGentle: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-5px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
         
-        <!-- Desktop Header -->
-        <div class="hidden lg:block mb-8">
-            <h1 class="text-4xl font-bold gradient-text mb-4">Welcome back, <%= user.handle || user.email %>!</h1>
-            <p class="text-gray-600 text-lg">Your AI Twin dashboard - manage your digital twins and conversations</p>
-        </div>
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            /* Touch targets */
+            button, a, input, select, textarea {
+                min-height: 44px;
+                min-width: 44px;
+            }
             
-        <!-- Public Twin Management Section - ALWAYS VISIBLE -->
-        <div class="mb-8">
-            <div class="glass-effect rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-4 lg:p-8 group animate-fade-in" style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); color: white;">
-                <div class="w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-200">
-                    <svg class="w-6 h-6 lg:w-8 lg:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+            /* Mobile-friendly spacing */
+            .mobile-p-4 { padding: 1rem; }
+            .mobile-p-6 { padding: 1.5rem; }
+            .mobile-p-8 { padding: 2rem; }
+            .mobile-m-4 { margin: 1rem; }
+            .mobile-m-6 { margin: 1.5rem; }
+            .mobile-m-8 { margin: 2rem; }
+            
+            /* Mobile text sizes */
+            .mobile-text-xs { font-size: 0.75rem; }
+            .mobile-text-sm { font-size: 0.875rem; }
+            .mobile-text-base { font-size: 1rem; }
+            .mobile-text-lg { font-size: 1.125rem; }
+            .mobile-text-xl { font-size: 1.25rem; }
+            .mobile-text-2xl { font-size: 1.5rem; }
+            
+            /* Mobile modals */
+            .mobile-modal {
+                margin: 1rem;
+                max-height: calc(100vh - 2rem);
+                overflow-y: auto;
+            }
+            
+            /* Mobile forms */
+            .mobile-form input, .mobile-form textarea, .mobile-form select {
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 12px;
+                border-radius: 8px;
+            }
+            
+            /* Mobile buttons */
+            .mobile-btn {
+                padding: 12px 24px;
+                font-size: 16px;
+                border-radius: 8px;
+                min-height: 44px;
+            }
+            
+            /* Mobile cards */
+            .mobile-card {
+                margin: 0.5rem;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            
+            /* Mobile navigation */
+            .mobile-nav {
+                padding: 1rem;
+                background: white;
+                border-bottom: 1px solid #e5e7eb;
+            }
+            
+            /* Mobile sidebar */
+            .mobile-sidebar {
+                width: 280px;
+                max-width: 85vw;
+            }
+            
+            /* Mobile chat */
+            .mobile-chat-container {
+                height: calc(100vh - 60px);
+                padding: 0.5rem;
+            }
+            
+            /* Mobile tables */
+            .mobile-table {
+                font-size: 14px;
+                overflow-x: auto;
+            }
+            
+            /* Mobile scrollbars */
+            .mobile-scrollbar::-webkit-scrollbar {
+                width: 4px;
+            }
+            
+            .mobile-scrollbar::-webkit-scrollbar-track {
+                background: #f1f1f1;
+            }
+            
+            .mobile-scrollbar::-webkit-scrollbar-thumb {
+                background: #c1c1c1;
+                border-radius: 2px;
+            }
+            
+            /* Mobile animations */
+            .mobile-fade-in {
+                animation: mobileFadeIn 0.3s ease-in-out;
+            }
+            
+            @keyframes mobileFadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            /* Mobile shadows */
+            .mobile-shadow {
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            
+            /* Mobile gradients */
+            .mobile-gradient {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            
+            /* Mobile glass effect */
+            .mobile-glass {
+                background: rgba(255, 255, 255, 0.9);
+                backdrop-filter: blur(10px);
+            }
+            
+            /* Responsive utilities */
+            .mobile-hidden { display: none !important; }
+            .mobile-block { display: block !important; }
+            .mobile-flex { display: flex !important; }
+            .mobile-grid { display: grid !important; }
+            
+            /* Mobile spacing utilities */
+            .mobile-space-y-2 > * + * { margin-top: 0.5rem; }
+            .mobile-space-y-4 > * + * { margin-top: 1rem; }
+            .mobile-space-y-6 > * + * { margin-top: 1.5rem; }
+            
+            /* Mobile padding utilities */
+            .mobile-px-4 { padding-left: 1rem; padding-right: 1rem; }
+            .mobile-px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+            .mobile-py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+            .mobile-py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+            
+            /* Mobile margin utilities */
+            .mobile-mx-4 { margin-left: 1rem; margin-right: 1rem; }
+            .mobile-mx-6 { margin-left: 1.5rem; margin-right: 1.5rem; }
+            .mobile-my-4 { margin-top: 1rem; margin-bottom: 1rem; }
+            .mobile-my-6 { margin-top: 1.5rem; margin-bottom: 1.5rem; }
+            
+            /* Mobile gap utilities */
+            .mobile-gap-2 { gap: 0.5rem; }
+            .mobile-gap-4 { gap: 1rem; }
+            .mobile-gap-6 { gap: 1.5rem; }
+            
+            /* Mobile grid utilities */
+            .mobile-grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+            .mobile-grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            
+            /* Mobile flex utilities */
+            .mobile-flex-col { flex-direction: column; }
+            .mobile-flex-row { flex-direction: row; }
+            .mobile-flex-wrap { flex-wrap: wrap; }
+            .mobile-flex-nowrap { flex-wrap: nowrap; }
+            
+            /* Mobile justify utilities */
+            .mobile-justify-center { justify-content: center; }
+            .mobile-justify-between { justify-content: space-between; }
+            .mobile-justify-start { justify-content: flex-start; }
+            .mobile-justify-end { justify-content: flex-end; }
+            
+            /* Mobile align utilities */
+            .mobile-items-center { align-items: center; }
+            .mobile-items-start { align-items: flex-start; }
+            .mobile-items-end { align-items: flex-end; }
+            
+            /* Mobile text utilities */
+            .mobile-text-center { text-align: center; }
+            .mobile-text-left { text-align: left; }
+            .mobile-text-right { text-align: right; }
+            
+            /* Mobile font utilities */
+            .mobile-font-normal { font-weight: 400; }
+            .mobile-font-medium { font-weight: 500; }
+            .mobile-font-semibold { font-weight: 600; }
+            .mobile-font-bold { font-weight: 700; }
+            
+            /* Mobile line height utilities */
+            .mobile-leading-tight { line-height: 1.25; }
+            .mobile-leading-normal { line-height: 1.5; }
+            .mobile-leading-relaxed { line-height: 1.625; }
+            
+            /* Mobile letter spacing utilities */
+            .mobile-tracking-tight { letter-spacing: -0.025em; }
+            .mobile-tracking-normal { letter-spacing: 0em; }
+            .mobile-tracking-wide { letter-spacing: 0.025em; }
+            
+            /* Mobile word spacing utilities */
+            .mobile-word-spacing-tight { word-spacing: -0.025em; }
+            .mobile-word-spacing-normal { word-spacing: 0em; }
+            .mobile-word-spacing-wide { word-spacing: 0.025em; }
+            
+            /* Mobile text decoration utilities */
+            .mobile-underline { text-decoration: underline; }
+            .mobile-no-underline { text-decoration: none; }
+            
+            /* Mobile text transform utilities */
+            .mobile-uppercase { text-transform: uppercase; }
+            .mobile-lowercase { text-transform: lowercase; }
+            .mobile-capitalize { text-transform: capitalize; }
+            
+            /* Mobile text overflow utilities */
+            .mobile-truncate {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            
+            /* Mobile white space utilities */
+            .mobile-whitespace-normal { white-space: normal; }
+            .mobile-whitespace-nowrap { white-space: nowrap; }
+            .mobile-whitespace-pre { white-space: pre; }
+            .mobile-whitespace-pre-line { white-space: pre-line; }
+            .mobile-whitespace-pre-wrap { white-space: pre-wrap; }
+            
+            /* Mobile word break utilities */
+            .mobile-break-normal { word-break: normal; }
+            .mobile-break-words { word-break: break-word; }
+            .mobile-break-all { word-break: break-all; }
+            
+            /* Mobile overflow utilities */
+            .mobile-overflow-hidden { overflow: hidden; }
+            .mobile-overflow-auto { overflow: auto; }
+            .mobile-overflow-scroll { overflow: scroll; }
+            .mobile-overflow-visible { overflow: visible; }
+            
+            /* Mobile position utilities */
+            .mobile-relative { position: relative; }
+            .mobile-absolute { position: absolute; }
+            .mobile-fixed { position: fixed; }
+            .mobile-sticky { position: sticky; }
+            
+            /* Mobile z-index utilities */
+            .mobile-z-10 { z-index: 10; }
+            .mobile-z-20 { z-index: 20; }
+            .mobile-z-30 { z-index: 30; }
+            .mobile-z-40 { z-index: 40; }
+            .mobile-z-50 { z-index: 50; }
+            
+            /* Mobile display utilities */
+            .mobile-hidden { display: none; }
+            .mobile-block { display: block; }
+            .mobile-inline { display: inline; }
+            .mobile-inline-block { display: inline-block; }
+            .mobile-flex { display: flex; }
+            .mobile-inline-flex { display: inline-flex; }
+            .mobile-grid { display: grid; }
+            .mobile-inline-grid { display: inline-grid; }
+            .mobile-table { display: table; }
+            .mobile-table-cell { display: table-cell; }
+            .mobile-table-row { display: table-row; }
+            .mobile-flow-root { display: flow-root; }
+            .mobile-contents { display: contents; }
+            .mobile-list-item { display: list-item; }
+            
+            /* Mobile flex direction utilities */
+            .mobile-flex-row { flex-direction: row; }
+            .mobile-flex-row-reverse { flex-direction: row-reverse; }
+            .mobile-flex-col { flex-direction: column; }
+            .mobile-flex-col-reverse { flex-direction: column-reverse; }
+            
+            /* Mobile flex wrap utilities */
+            .mobile-flex-wrap { flex-wrap: wrap; }
+            .mobile-flex-wrap-reverse { flex-wrap: wrap-reverse; }
+            .mobile-flex-nowrap { flex-wrap: nowrap; }
+            
+            /* Mobile flex utilities */
+            .mobile-flex-1 { flex: 1 1 0%; }
+            .mobile-flex-auto { flex: 1 1 auto; }
+            .mobile-flex-initial { flex: 0 1 auto; }
+            .mobile-flex-none { flex: none; }
+            
+            /* Mobile flex grow utilities */
+            .mobile-flex-grow-0 { flex-grow: 0; }
+            .mobile-flex-grow { flex-grow: 1; }
+            
+            /* Mobile flex shrink utilities */
+            .mobile-flex-shrink-0 { flex-shrink: 0; }
+            .mobile-flex-shrink { flex-shrink: 1; }
+            
+            /* Mobile justify content utilities */
+            .mobile-justify-start { justify-content: flex-start; }
+            .mobile-justify-end { justify-content: flex-end; }
+            .mobile-justify-center { justify-content: center; }
+            .mobile-justify-between { justify-content: space-between; }
+            .mobile-justify-around { justify-content: space-around; }
+            .mobile-justify-evenly { justify-content: space-evenly; }
+            
+            /* Mobile align items utilities */
+            .mobile-items-start { align-items: flex-start; }
+            .mobile-items-end { align-items: flex-end; }
+            .mobile-items-center { align-items: center; }
+            .mobile-items-baseline { align-items: baseline; }
+            .mobile-items-stretch { align-items: stretch; }
+            
+            /* Mobile align content utilities */
+            .mobile-content-start { align-content: flex-start; }
+            .mobile-content-end { align-content: flex-end; }
+            .mobile-content-center { align-content: center; }
+            .mobile-content-between { align-content: space-between; }
+            .mobile-content-around { align-content: space-around; }
+            .mobile-content-evenly { align-content: space-evenly; }
+            
+            /* Mobile align self utilities */
+            .mobile-self-auto { align-self: auto; }
+            .mobile-self-start { align-self: flex-start; }
+            .mobile-self-end { align-self: flex-end; }
+            .mobile-self-center { align-self: center; }
+            .mobile-self-stretch { align-self: stretch; }
+            .mobile-self-baseline { align-self: baseline; }
+            
+            /* Mobile order utilities */
+            .mobile-order-1 { order: 1; }
+            .mobile-order-2 { order: 2; }
+            .mobile-order-3 { order: 3; }
+            .mobile-order-4 { order: 4; }
+            .mobile-order-5 { order: 5; }
+            .mobile-order-6 { order: 6; }
+            .mobile-order-7 { order: 7; }
+            .mobile-order-8 { order: 8; }
+            .mobile-order-9 { order: 9; }
+            .mobile-order-10 { order: 10; }
+            .mobile-order-11 { order: 11; }
+            .mobile-order-12 { order: 12; }
+            .mobile-order-first { order: -9999; }
+            .mobile-order-last { order: 9999; }
+            .mobile-order-none { order: 0; }
+            
+            /* Mobile grid template columns utilities */
+            .mobile-grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+            .mobile-grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .mobile-grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .mobile-grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .mobile-grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+            .mobile-grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+            .mobile-grid-cols-none { grid-template-columns: none; }
+            
+            /* Mobile grid column span utilities */
+            .mobile-col-auto { grid-column: auto; }
+            .mobile-col-span-1 { grid-column: span 1 / span 1; }
+            .mobile-col-span-2 { grid-column: span 2 / span 2; }
+            .mobile-col-span-3 { grid-column: span 3 / span 3; }
+            .mobile-col-span-4 { grid-column: span 4 / span 4; }
+            .mobile-col-span-5 { grid-column: span 5 / span 5; }
+            .mobile-col-span-6 { grid-column: span 6 / span 6; }
+            .mobile-col-span-full { grid-column: 1 / -1; }
+            
+            /* Mobile grid template rows utilities */
+            .mobile-grid-rows-1 { grid-template-rows: repeat(1, minmax(0, 1fr)); }
+            .mobile-grid-rows-2 { grid-template-rows: repeat(2, minmax(0, 1fr)); }
+            .mobile-grid-rows-3 { grid-template-rows: repeat(3, minmax(0, 1fr)); }
+            .mobile-grid-rows-4 { grid-template-rows: repeat(4, minmax(0, 1fr)); }
+            .mobile-grid-rows-5 { grid-template-rows: repeat(5, minmax(0, 1fr)); }
+            .mobile-grid-rows-6 { grid-template-rows: repeat(6, minmax(0, 1fr)); }
+            .mobile-grid-rows-none { grid-template-rows: none; }
+            
+            /* Mobile grid row span utilities */
+            .mobile-row-auto { grid-row: auto; }
+            .mobile-row-span-1 { grid-row: span 1 / span 1; }
+            .mobile-row-span-2 { grid-row: span 2 / span 2; }
+            .mobile-row-span-3 { grid-row: span 3 / span 3; }
+            .mobile-row-span-4 { grid-row: span 4 / span 4; }
+            .mobile-row-span-5 { grid-row: span 5 / span 5; }
+            .mobile-row-span-6 { grid-row: span 6 / span 6; }
+            .mobile-row-span-full { grid-row: 1 / -1; }
+            
+            /* Mobile grid auto flow utilities */
+            .mobile-grid-flow-row { grid-auto-flow: row; }
+            .mobile-grid-flow-col { grid-auto-flow: column; }
+            .mobile-grid-flow-dense { grid-auto-flow: dense; }
+            .mobile-grid-flow-row-dense { grid-auto-flow: row dense; }
+            .mobile-grid-flow-col-dense { grid-auto-flow: column dense; }
+            
+            /* Mobile grid auto columns utilities */
+            .mobile-auto-cols-auto { grid-auto-columns: auto; }
+            .mobile-auto-cols-min { grid-auto-columns: min-content; }
+            .mobile-auto-cols-max { grid-auto-columns: max-content; }
+            .mobile-auto-cols-fr { grid-auto-columns: minmax(0, 1fr); }
+            
+            /* Mobile grid auto rows utilities */
+            .mobile-auto-rows-auto { grid-auto-rows: auto; }
+            .mobile-auto-rows-min { grid-auto-rows: min-content; }
+            .mobile-auto-rows-max { grid-auto-rows: max-content; }
+            .mobile-auto-rows-fr { grid-auto-rows: minmax(0, 1fr); }
+            
+            /* Mobile gap utilities */
+            .mobile-gap-0 { gap: 0px; }
+            .mobile-gap-1 { gap: 0.25rem; }
+            .mobile-gap-2 { gap: 0.5rem; }
+            .mobile-gap-3 { gap: 0.75rem; }
+            .mobile-gap-4 { gap: 1rem; }
+            .mobile-gap-5 { gap: 1.25rem; }
+            .mobile-gap-6 { gap: 1.5rem; }
+            .mobile-gap-7 { gap: 1.75rem; }
+            .mobile-gap-8 { gap: 2rem; }
+            .mobile-gap-9 { gap: 2.25rem; }
+            .mobile-gap-10 { gap: 2.5rem; }
+            .mobile-gap-11 { gap: 2.75rem; }
+            .mobile-gap-12 { gap: 3rem; }
+            .mobile-gap-14 { gap: 3.5rem; }
+            .mobile-gap-16 { gap: 4rem; }
+            .mobile-gap-20 { gap: 5rem; }
+            .mobile-gap-24 { gap: 6rem; }
+            .mobile-gap-28 { gap: 7rem; }
+            .mobile-gap-32 { gap: 8rem; }
+            .mobile-gap-36 { gap: 9rem; }
+            .mobile-gap-40 { gap: 10rem; }
+            .mobile-gap-44 { gap: 11rem; }
+            .mobile-gap-48 { gap: 12rem; }
+            .mobile-gap-52 { gap: 13rem; }
+            .mobile-gap-56 { gap: 14rem; }
+            .mobile-gap-60 { gap: 15rem; }
+            .mobile-gap-64 { gap: 16rem; }
+            .mobile-gap-72 { gap: 18rem; }
+            .mobile-gap-80 { gap: 20rem; }
+            .mobile-gap-96 { gap: 24rem; }
+            .mobile-gap-px { gap: 1px; }
+            .mobile-gap-0\.5 { gap: 0.125rem; }
+            .mobile-gap-1\.5 { gap: 0.375rem; }
+            .mobile-gap-2\.5 { gap: 0.625rem; }
+            .mobile-gap-3\.5 { gap: 0.875rem; }
+            
+            /* Mobile column gap utilities */
+            .mobile-gap-x-0 { column-gap: 0px; }
+            .mobile-gap-x-1 { column-gap: 0.25rem; }
+            .mobile-gap-x-2 { column-gap: 0.5rem; }
+            .mobile-gap-x-3 { column-gap: 0.75rem; }
+            .mobile-gap-x-4 { column-gap: 1rem; }
+            .mobile-gap-x-5 { column-gap: 1.25rem; }
+            .mobile-gap-x-6 { column-gap: 1.5rem; }
+            .mobile-gap-x-7 { column-gap: 1.75rem; }
+            .mobile-gap-x-8 { column-gap: 2rem; }
+            .mobile-gap-x-9 { column-gap: 2.25rem; }
+            .mobile-gap-x-10 { column-gap: 2.5rem; }
+            .mobile-gap-x-11 { column-gap: 2.75rem; }
+            .mobile-gap-x-12 { column-gap: 3rem; }
+            .mobile-gap-x-14 { column-gap: 3.5rem; }
+            .mobile-gap-x-16 { column-gap: 4rem; }
+            .mobile-gap-x-20 { column-gap: 5rem; }
+            .mobile-gap-x-24 { column-gap: 6rem; }
+            .mobile-gap-x-28 { column-gap: 7rem; }
+            .mobile-gap-x-32 { column-gap: 8rem; }
+            .mobile-gap-x-36 { column-gap: 9rem; }
+            .mobile-gap-x-40 { column-gap: 10rem; }
+            .mobile-gap-x-44 { column-gap: 11rem; }
+            .mobile-gap-x-48 { column-gap: 12rem; }
+            .mobile-gap-x-52 { column-gap: 13rem; }
+            .mobile-gap-x-56 { column-gap: 14rem; }
+            .mobile-gap-x-60 { column-gap: 15rem; }
+            .mobile-gap-x-64 { column-gap: 16rem; }
+            .mobile-gap-x-72 { column-gap: 18rem; }
+            .mobile-gap-x-80 { column-gap: 20rem; }
+            .mobile-gap-x-96 { column-gap: 24rem; }
+            .mobile-gap-x-px { column-gap: 1px; }
+            .mobile-gap-x-0\.5 { column-gap: 0.125rem; }
+            .mobile-gap-x-1\.5 { column-gap: 0.375rem; }
+            .mobile-gap-x-2\.5 { column-gap: 0.625rem; }
+            .mobile-gap-x-3\.5 { column-gap: 0.875rem; }
+            
+            /* Mobile row gap utilities */
+            .mobile-gap-y-0 { row-gap: 0px; }
+            .mobile-gap-y-1 { row-gap: 0.25rem; }
+            .mobile-gap-y-2 { row-gap: 0.5rem; }
+            .mobile-gap-y-3 { row-gap: 0.75rem; }
+            .mobile-gap-y-4 { row-gap: 1rem; }
+            .mobile-gap-y-5 { row-gap: 1.25rem; }
+            .mobile-gap-y-6 { row-gap: 1.5rem; }
+            .mobile-gap-y-7 { row-gap: 1.75rem; }
+            .mobile-gap-y-8 { row-gap: 2rem; }
+            .mobile-gap-y-9 { row-gap: 2.25rem; }
+            .mobile-gap-y-10 { row-gap: 2.5rem; }
+            .mobile-gap-y-11 { row-gap: 2.75rem; }
+            .mobile-gap-y-12 { row-gap: 3rem; }
+            .mobile-gap-y-14 { row-gap: 3.5rem; }
+            .mobile-gap-y-16 { row-gap: 4rem; }
+            .mobile-gap-y-20 { row-gap: 5rem; }
+            .mobile-gap-y-24 { row-gap: 6rem; }
+            .mobile-gap-y-28 { row-gap: 7rem; }
+            .mobile-gap-y-32 { row-gap: 8rem; }
+            .mobile-gap-y-36 { row-gap: 9rem; }
+            .mobile-gap-y-40 { row-gap: 10rem; }
+            .mobile-gap-y-44 { row-gap: 11rem; }
+            .mobile-gap-y-48 { row-gap: 12rem; }
+            .mobile-gap-y-52 { row-gap: 13rem; }
+            .mobile-gap-y-56 { row-gap: 14rem; }
+            .mobile-gap-y-60 { row-gap: 15rem; }
+            .mobile-gap-y-64 { row-gap: 16rem; }
+            .mobile-gap-y-72 { row-gap: 18rem; }
+            .mobile-gap-y-80 { row-gap: 20rem; }
+            .mobile-gap-y-96 { row-gap: 24rem; }
+            .mobile-gap-y-px { row-gap: 1px; }
+            .mobile-gap-y-0\.5 { row-gap: 0.125rem; }
+            .mobile-gap-y-1\.5 { row-gap: 0.375rem; }
+            .mobile-gap-y-2\.5 { row-gap: 0.625rem; }
+            .mobile-gap-y-3\.5 { row-gap: 0.875rem; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen font-inter">
+    <!-- Mobile Menu Button -->
+    <button id="mobile-menu-btn" class="fixed top-4 left-4 z-50 lg:hidden bg-white shadow-lg rounded-lg p-2 border border-gray-200">
+        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+    </button>
+
+    <!-- Mobile Overlay -->
+    <div id="mobile-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+
+    <!-- Mobile Sidebar -->
+    <div id="mobile-sidebar" class="fixed top-0 left-0 h-full w-80 bg-white shadow-xl z-50 transform -translate-x-full transition-transform duration-300 ease-in-out lg:hidden">
+        <div class="p-6">
+            <!-- Close Button -->
+            <button id="mobile-close-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            
+            <!-- Logo -->
+            <div class="mb-8">
+                <a href="/" class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">AI</span>
+                    </div>
+                    <span class="text-xl font-bold text-gray-900">TwinForge</span>
+                </a>
+            </div>
+            
+            <!-- Navigation Links -->
+            <nav class="space-y-2">
+                <a href="/dashboard" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z"></path>
                     </svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/my-twins" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                    </svg>
+                    <span>My Twins</span>
+                </a>
+                <a href="/learning-dashboard" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    <span>Learning</span>
+                </a>
+            </nav>
+            
+            <!-- User Info -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span class="text-white font-medium text-sm">U</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">User</p>
+                        <p class="text-xs text-gray-500">user@example.com</p>
+                    </div>
                 </div>
-                <h3 class="text-xl lg:text-2xl font-bold text-white mb-3">🌐 Public Twin Profile</h3>
-                <p class="text-white/90 mb-4 lg:mb-6 text-sm lg:text-lg">Make your AI twin public and share it with the world. Let others discover and chat with your twin!</p>
-                <div id="publicTwinStatus" class="mb-4 lg:mb-6">
-                    <!-- Status will be loaded here -->
+                <button class="mt-4 w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                    Sign Out
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Navigation -->
+    <nav class="glass-effect sticky top-0 z-50 border-b border-white/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <% if (typeof user !== 'undefined' && user) { %>
+                        <a href="/dashboard" class="flex items-center space-x-3 group">
+                            <div class="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                            </div>
+                            <span class="text-2xl font-bold gradient-text">AI Twin</span>
+                        </a>
+                    <% } else { %>
+                        <a href="/" class="flex items-center space-x-3 group">
+                            <div class="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                            </div>
+                            <span class="text-2xl font-bold gradient-text">AI Twin</span>
+                        </a>
+                    <% } %>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
-                    <button onclick="loadPublicTwinStatus()" class="bg-white/20 backdrop-blur-sm text-white py-3 px-4 lg:px-6 rounded-xl hover:bg-white/30 transition-all duration-300 font-semibold group/btn border border-white/30 mobile-btn">
-                        <span class="flex items-center justify-center">
-                            <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                            </svg>
-                            <span class="hidden lg:inline">Manage Public Profile</span>
-                            <span class="lg:hidden">Manage</span>
-                        </span>
-                    </button>
-                    <button onclick="testShareButton()" class="bg-red-500/20 backdrop-blur-sm text-white py-3 px-4 lg:px-6 rounded-xl hover:bg-red-500/30 transition-all duration-300 font-semibold group/btn border border-red-500/30 mobile-btn">
-                        <span class="flex items-center justify-center">
-                            <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                            </svg>
-                            <span class="hidden lg:inline">Test Share Button</span>
-                            <span class="lg:hidden">Test</span>
-                        </span>
-                    </button>
-                    <a href="/discover" class="bg-white/20 backdrop-blur-sm text-white py-3 px-4 lg:px-6 rounded-xl hover:bg-white/30 transition-all duration-300 font-semibold group/btn inline-flex items-center justify-center border border-white/30 mobile-btn">
-                        <span class="flex items-center justify-center">
-                            <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                            <span class="hidden lg:inline">Discover Twins</span>
-                            <span class="lg:hidden">Discover</span>
-                        </span>
-                    </a>
+
+                <!-- User Menu -->
+                <div class="flex items-center space-x-4">
+                    <% if (typeof user !== 'undefined' && user) { %>
+                        <!-- Modern User Dropdown -->
+                        <div class="relative" id="userDropdown" data-open="false">
+                            <button id="dropdownButton" class="flex items-center space-x-3 px-4 py-2 rounded-xl bg-white/80 hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl border border-white/20 group">
+                                <% if (user.profileImage) { %>
+                                    <img src="<%= user.profileImage %>" alt="Profile" class="w-10 h-10 rounded-full object-cover shadow-lg">
+                                <% } else { %>
+                                    <div class="w-10 h-10 bg-gradient-to-r from-primary via-accent to-purple-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+                                        <%= (user.handle || user.email).charAt(0).toUpperCase() %>
+                                    </div>
+                                <% } %>
+                                <div class="hidden sm:block text-left">
+                                    <div class="text-sm font-semibold text-gray-900"><%= user.handle || user.email %></div>
+                                    <div class="text-xs text-gray-500"><%= user.email %></div>
+                                </div>
+                                <div id="arrowButton" class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200 cursor-pointer">
+                                    <svg id="arrowIcon" class="w-4 h-4 text-primary transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                            </button>
+                            
+                            <!-- Dropdown Menu -->
+                            <div id="dropdownMenu" class="absolute right-0 mt-3 w-72 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 py-3 z-50 hidden transition-all duration-200 opacity-0 scale-95">
+                                
+                                <!-- User Info Header -->
+                                <div class="px-6 py-4 border-b border-gray-100/50">
+                                    <div class="flex items-center space-x-4">
+                                        <% if (user.profileImage) { %>
+                                            <img src="<%= user.profileImage %>" alt="Profile" class="w-14 h-14 rounded-2xl object-cover shadow-lg">
+                                        <% } else { %>
+                                            <div class="w-14 h-14 bg-gradient-to-r from-primary via-accent to-purple-500 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                                                <%= (user.handle || user.email).charAt(0).toUpperCase() %>
+                                            </div>
+                                        <% } %>
+                                        <div class="flex-1">
+                                            <div class="font-semibold text-gray-900 text-lg"><%= user.handle || user.email %></div>
+                                            <div class="text-sm text-gray-500"><%= user.email %></div>
+                                            <div class="text-xs text-gray-400 mt-1">Premium Member</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Navigation Items -->
+                                <div class="py-2">
+                                    <a href="/dashboard" class="flex items-center px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:text-primary transition-all duration-200 group">
+                                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
+                                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="font-medium">Dashboard</span>
+                                    </a>
+                                    
+                                    <a href="/discover" class="flex items-center px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:text-primary transition-all duration-200 group">
+                                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
+                                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="font-medium">Discover Twins</span>
+                                    </a>
+                                    
+                                    <a href="/profile" class="flex items-center px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:text-primary transition-all duration-200 group">
+                                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
+                                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="font-medium">Profile Settings</span>
+                                    </a>
+                                    
+                                    <a href="/change-password" class="flex items-center px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:text-primary transition-all duration-200 group">
+                                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
+                                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="font-medium">Change Password</span>
+                                    </a>
+                                    
+                                    <!-- Divider -->
+                                    <div class="border-t border-gray-100/50 my-3"></div>
+                                    
+                                    <!-- Logout Button -->
+                                    <button onclick="logout()" class="flex items-center w-full px-6 py-3 text-sm text-danger hover:bg-gradient-to-r hover:from-danger/10 hover:to-red-500/10 hover:text-danger transition-all duration-200 group">
+                                        <div class="w-8 h-8 bg-gradient-to-r from-danger/20 to-red-500/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-danger/30 group-hover:to-red-500/30 transition-all duration-200">
+                                            <svg class="w-4 h-4 text-danger" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="font-medium">Logout</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    <% } else { %>
+                        <a href="/discover" class="px-6 py-3 text-gray-700 hover:text-primary transition-colors font-medium mr-4">
+                            Discover Twins
+                        </a>
+                        <a href="/auth" class="px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all duration-300 font-medium">
+                            Login / Signup
+                        </a>
+                    <% } %>
                 </div>
             </div>
         </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-8">
+    </nav>   
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
+        <div class="animate-fade-in">
+    <div class="px-4 py-6 sm:px-0">    
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Welcome, <%= user?.handle || user?.email || 'User' %>!</h1>
+        
+        <div class="grid md:grid-cols-2 gap-8 mb-8">
             <% if (hasTwins) { %>
-                <!-- Chat with Twin Button -->
-                <div class="glass-effect rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-4 lg:p-8 group animate-fade-in">
-                    <div class="w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-200">
-                        <svg class="w-6 h-6 lg:w-8 lg:h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                        </svg>
+                <!-- Chat with Twin Buttons -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Chat with Your AI Twin</h3>
+                    <p class="text-gray-600 mb-4">Start a conversation with your AI twin</p>
+                    <div class="space-y-3">
+                        <a href="/chat/continue" class="block bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors text-center">
+                            Start Regular Chat
+                        </a>
+                        <a href="/chat-enhanced" class="block bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors text-center relative">
+                            <span class="inline-flex items-center">
+                                🚀 Enhanced Chat (Beta)
+                                <span class="ml-2 text-xs bg-white/20 px-2 py-1 rounded-full">NEW</span>
+                            </span>
+                        </a>
                     </div>
-                    <h3 class="text-xl lg:text-2xl font-bold text-gray-900 mb-3">Chat with Your AI Twin</h3>
-                    <p class="text-gray-600 mb-4 lg:mb-6 text-sm lg:text-lg">Start a conversation with your AI twin and experience personalized interactions</p>
-                    <button onclick="startNewChat(event)" class="w-full bg-gradient-to-r from-primary to-accent text-white px-4 lg:px-6 py-3 lg:py-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold group/btn mobile-btn">
-                        <span class="flex items-center justify-center">
-                            <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                            </svg>
-                    Start Chat
-                        </span>
-                    </button>
                 </div>
             <% } else { %>
                 <!-- Create Twin Button -->
-                <div class="glass-effect rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-4 lg:p-8 group animate-fade-in">
-                    <div class="w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-200">
-                        <svg class="w-6 h-6 lg:w-8 lg:h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl lg:text-2xl font-bold text-gray-900 mb-3">Create New AI Twin</h3>
-                    <p class="text-gray-600 mb-4 lg:mb-6 text-sm lg:text-lg">Upload text samples to create your personalized AI twin</p>
-                    <div class="space-y-3">
-                        <a href="/onboarding" class="w-full bg-gradient-to-r from-primary to-accent text-white px-4 lg:px-6 py-3 lg:py-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold group/btn inline-flex items-center justify-center mobile-btn">
-                            <span class="flex items-center justify-center">
-                                <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                </svg>
-                                Enhanced Twin Creation
-                            </span>
-                        </a>
-                        <a href="/onboarding" class="w-full bg-gray-200 text-gray-700 px-4 lg:px-6 py-2 lg:py-3 rounded-xl hover:bg-gray-300 transition-all duration-300 font-semibold group/btn inline-flex items-center justify-center text-sm mobile-btn">
-                            <span class="flex items-center justify-center">
-                                <svg class="w-3 h-3 lg:w-4 lg:h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                </svg>
-                                Quick Create (Basic)
-                            </span>
-                        </a>
-                    </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Create New AI Twin</h3>
+                    <p class="text-gray-600 mb-4">Upload text samples to create your AI twin</p>
+                    <a href="/twin/create" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                        Create Twin
+                    </a>
                 </div>
             <% } %>
             
             <!-- My Twins Section -->
-            <div class="glass-effect rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-4 lg:p-8 group animate-fade-in">
-                <div class="w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-200">
-                    <svg class="w-6 h-6 lg:w-8 lg:h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                    </svg>
-                </div>
-                <h3 class="text-xl lg:text-2xl font-bold text-gray-900 mb-3">My AI Twins</h3>
-                <p class="text-gray-600 mb-4 lg:mb-6 text-sm lg:text-lg">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">My AI Twins</h3>
+                <p class="text-gray-600 mb-4">
                     <% if (hasTwins) { %>
-                        You have <%= twins.length %> AI twin<%= twins.length > 1 ? 's' : '' %> created. Manage and interact with them.
+                        You have <%= twins.length %> AI twin<%= twins.length > 1 ? 's' : '' %> created.
                     <% } else { %>
-                        You haven't created any AI twins yet. Create your first digital twin to get started.
+                        You haven't created any AI twins yet.
                     <% } %>
                 </p>
-                <button onclick="loadTwins()" class="w-full bg-gradient-to-r from-primary to-accent text-white py-3 lg:py-4 px-4 lg:px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold group/btn mobile-btn">
-                    <span class="flex items-center justify-center">
-                        <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                <a href="/my-twins" class="inline-block bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors font-semibold">
+                    View My Twins
+                </a>
+                <div id="twinsList" class="mt-4 space-y-3"></div>
+            </div>
+        </div>
+        
+
+        <!-- Public Twin Management Section -->
+        <div class="mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
                         </svg>
-                        View My Twins
-                    </span>
-                </button>
-                <div id="twinsList" class="mt-4 lg:mt-6 space-y-3 lg:space-y-4"></div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">🌐 Public Twin Profile</h3>
+                        <p class="text-gray-600">Make your AI twin public and share it with the world!</p>
+                    </div>
+                </div>
+                <div id="publicTwinStatus" class="mb-4">
+                    <!-- Status will be loaded here -->
+                </div>
             </div>
         </div>
 
-        <!-- Admin Analytics Section (Only for admin users) -->
-        <% if (user.email === 'i@gmail.com' || user.email === 'admin@aitwin.com') { %>
-        <div class="mb-8">
-            <div class="glass-effect rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-4 lg:p-8 group animate-fade-in" style="background: linear-gradient(135deg, #dc2626 0%, #7c2d12 100%); color: white;">
-                <div class="w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-2xl flex items-center justify-center mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-200">
-                    <svg class="w-6 h-6 lg:w-8 lg:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                    </svg>
-                </div>
-                <h3 class="text-xl lg:text-2xl font-bold text-white mb-3">🔒 Admin Analytics</h3>
-                <p class="text-white/90 mb-4 lg:mb-6 text-sm lg:text-lg">Comprehensive analytics and monitoring for the AI Twin platform. View detailed metrics, user activity, and system health.</p>
-                <div class="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-4">
-                    <a href="/admin/analytics" class="flex-1 bg-white/20 backdrop-blur-sm text-white py-3 px-4 lg:px-6 rounded-xl hover:bg-white/30 transition-all duration-300 font-semibold group/btn inline-flex items-center justify-center border border-white/30 mobile-btn">
-                        <span class="flex items-center justify-center">
-                            <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                            Admin Dashboard
-                        </span>
-                    </a>
-                    <a href="/analytics" class="flex-1 bg-white/20 backdrop-blur-sm text-white py-3 px-4 lg:px-6 rounded-xl hover:bg-white/30 transition-all duration-300 font-semibold group/btn inline-flex items-center justify-center border border-white/30 mobile-btn">
-                        <span class="flex items-center justify-center">
-                            <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
-                            User Analytics
-                        </span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <% } %>
-            
-            <!-- Chat Section (Hidden by default) -->
-            <div id="chatSection" class="hidden mt-8">
-                <div class="glass-effect rounded-2xl shadow-xl p-8">
-                    <!-- Twin Info at Top -->
-                    <div id="twinInfo" class="bg-white rounded-xl p-6 mb-6">
-                        <div class="text-center">
-                            <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                </svg>
-                            </div>
-                            <h2 class="text-2xl font-bold text-gray-800 mb-2">AI Twin #<span id="twinId">Loading...</span></h2>
-                            <p class="text-gray-600 mb-4">Created: <span id="twinCreated">Loading...</span></p>
-                            <div class="bg-blue-50 rounded-lg p-4">
-                                <p class="text-blue-800 font-medium">Your AI twin is ready to chat with you!</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Chat Form at Bottom -->
-                    <div class="bg-white rounded-xl p-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Start Chatting</h3>
-                        <form id="chatForm" class="space-y-4">
-                            <div>
-                                <label for="messageInput" class="block text-sm font-medium text-gray-700 mb-2">Your Message</label>
-                                <textarea 
-                                    id="messageInput" 
-                                    name="message"
-                                    rows="3"
-                                    placeholder="Type your message here..."
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    maxlength="300"
-                                    required
-                                ></textarea>
-                                <div class="mt-2 text-sm text-gray-500 text-right">
-                                    <span id="charCount">0</span> / 300 characters
-                                </div>
-                            </div>
-                            <div class="flex space-x-4">
-                                <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
-                                    Send Message
-                                </button>
-                                <button type="button" onclick="hideChatSection()" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors font-semibold">
-                                    Cancel
-                                </button>
-                            </div>
-                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                        </form>
-                    </div>
-                </div>
-            </div>
-            
         <!-- INVITE FRIENDS SECTION - Always Visible -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div class="glass-effect rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-4 lg:p-8 group animate-slide-up">
-                <div class="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl flex items-center justify-center mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-200">
-                    <svg class="w-6 h-6 lg:w-7 lg:h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-                    </svg>
-                </div>
-                <h3 class="text-lg lg:text-xl font-bold text-gray-900 mb-3">Invite Friends</h3>
-                <p class="text-gray-600 mb-4 lg:mb-6 text-sm lg:text-base">Share your referral link and invite friends to join the platform</p>
-                <button id="createInviteBtn" class="w-full bg-gradient-to-r from-primary to-accent text-white px-4 lg:px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold group/btn mobile-btn">
-                    <span class="flex items-center justify-center">
-                        <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-                        </svg>
-                    Copy Referral Link
-                    </span>
-                </button>
-            </div>
+        <div class="grid md:grid-cols-1 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Invite Friends</h3>
+                <p class="text-gray-600 mb-4">Share your referral link and invite friends to join</p>
+                <button id="copyReferralBtn" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                Copy Referral Link
+                </button>           
+         </div>
         </div>
 
         <!-- Recent Chats Section -->
-        <div class="mt-8 glass-effect rounded-2xl shadow-2xl p-4 lg:p-8 animate-fade-in">
-            <div class="flex items-center mb-4 lg:mb-6">
-                <div class="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl flex items-center justify-center mr-3 lg:mr-4">
-                    <svg class="w-5 h-5 lg:w-6 lg:h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                    </svg>
-                </div>
-                <h2 class="text-xl lg:text-2xl font-bold text-gray-900">Recent Chats</h2>
+        <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Recent Chats</h2>
+            <div id="chatsList" class="space-y-3">
+                <p class="text-gray-500">Loading chats...</p>
             </div>
-            <div id="chatsList" class="space-y-3 lg:space-y-4">
-                <div class="flex items-center justify-center py-6 lg:py-8">
-                    <div class="text-center">
-                        <div class="w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
-                            <svg class="w-6 h-6 lg:w-8 lg:h-8 text-primary animate-bounce-gentle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                            </svg>
-            </div>
-                        <p class="text-gray-500 text-sm lg:text-lg">Loading chats...</p>
-                </div>
-            </div>
-        </div>
         </div>
     </div>
 </div>
+</main>
 
 <script>
-    console.log('=== DASHBOARD SCRIPT LOADED ===');
-    console.log('window.csrfToken:', window.csrfToken);
-    console.log('=== DASHBOARD SCRIPT LOADED ===');
-// Load twins and chats on page load
-/*document.addEventListener('DOMContentLoaded', () => {
-    loadTwins();
-    loadChats();
-});*/
-
-async function loadTwins() {
-    try {
-        console.log('=== LOAD TWINS CALLED ===');
-        const response = await fetch('/api/twin', {
-            method: 'GET',
-            credentials: 'include',  // Important for JWT cookies
-            headers: {
-                'X-CSRF-Token': window.csrfToken
+    // Set CSRF token from server
+    window.csrfToken = '<%= csrfToken %>';
+    console.log('✅ CSRF Token set:', window.csrfToken);
+    
+    async function startNewChat() {        
+        try {
+            // Simply redirect to chat continue route
+            window.location.href = '/chat/continue';
+        } catch (error) {
+            console.error('Start chat error:', error);
+            alert('Network error. Please try again.');
+        }
+    }
+    
+    async function loadTwins() {
+        try {
+            const response = await fetch('/api/twin', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'X-CSRF-Token': '<%= csrfToken %>'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                const twinsList = document.getElementById('twinsList');
+                if (result.twins.length === 0) {
+                    twinsList.innerHTML = '<p class="text-gray-500">No twins created yet.</p>';
+                } else {
+                    twinsList.innerHTML = result.twins.map(twin => 
+                        '<div class="border rounded-lg p-3">' +
+                        '<p class="font-medium">Twin #' + twin.id.slice(-6) + '</p>' +
+                        '<p class="text-sm text-gray-600">Created: ' + new Date(twin.createdAt).toLocaleDateString() + '</p>' +
+                        '</div>'
+                    ).join('');
+                }
             }
-        });
-
-        console.log('=== LOAD TWINS RESPONSE ===');
-        console.log('response:', response);
-        const result = await response.json();
-
-        console.log('result:', result);
-        
-        if (response.ok) {
-            const twinsList = document.getElementById('twinsList');
-            if (result.twins.length === 0) {
-                twinsList.innerHTML = `
-                    <div class="text-center py-6">
-                        <div class="w-12 h-12 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                            </svg>
-                        </div>
-                        <p class="text-gray-500 text-lg">No twins created yet.</p>
-                    </div>
-                `;
+        } catch (error) {
+            console.error('Load twins error:', error);
+        }
+    }
+    
+    async function generateProfileLink() {
+        try {
+            const response = await fetch('/api/profile/link', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': '<%= csrfToken %>'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                navigator.clipboard.writeText(window.location.origin + result.profileUrl);
+                alert('Profile link copied to clipboard!');
             } else {
-                console.log('result.twins:', result.twins);
-                twinsList.innerHTML = result.twins.map(twin => `
-                    <div class="bg-white/80 backdrop-blur-xl rounded-xl p-4 border border-white/20 hover:shadow-lg transition-all duration-300 group">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
-                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="font-semibold text-gray-900">AI Twin #${twin.id.slice(-6)}</p>
-                                    <p class="text-sm text-gray-600 flex items-center">
-                                        <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        Created: ${new Date(twin.createdAt).toLocaleDateString()}
-                                    </p>
-                                </div>
-                            </div>
-                            <a href="/chat/${twin.id}" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 text-sm font-semibold group/btn">
-                                <span class="flex items-center">
-                                    <svg class="w-4 h-4 mr-1 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                                    </svg>
-                                    Chat
-                                </span>
-                            </a>
-                        </div>
-                    </div>
-                `).join('');
+                alert(result.error || 'Failed to generate profile link');
             }
+        } catch (error) {
+            console.error('Generate profile link error:', error);
+            alert('Network error. Please try again.');
         }
-    } catch (error) {
-        console.error('Load twins error:', error);
-    }
-}
-
-async function loadChats() {
-    try {
-        const response = await fetch('/api/chat', {
-            method: 'GET',
-            credentials: 'include',  // Important for JWT cookies
-            headers: {
-                'X-CSRF-Token': window.csrfToken
-            }
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            const chatsList = document.getElementById('chatsList');
-            if (result.chats.length === 0) {
-                chatsList.innerHTML = `
-                    <div class="text-center py-8">
-                        <div class="w-16 h-16 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                            </svg>
-                        </div>
-                        <p class="text-gray-500 text-lg">No chats yet.</p>
-                        <p class="text-gray-400 text-sm mt-2">Start a conversation with your AI twin to see chats here.</p>
-                    </div>
-                `;
-            } else {
-                chatsList.innerHTML = result.chats.map(chat => `
-                    <div class="bg-white/80 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:shadow-lg transition-all duration-300 group">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-4">
-                                <div class="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
-                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="font-semibold text-gray-900 text-lg">Chat #${chat.id.slice(-6)}</p>
-                                    <p class="text-sm text-gray-600 flex items-center">
-                                        <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        Created: ${new Date(chat.createdAt).toLocaleDateString()}
-                                    </p>
-                                </div>
-                            </div>
-                            <a href="/chat/${chat.id}" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold group/btn">
-                                <span class="flex items-center">
-                                    <svg class="w-5 h-5 mr-2 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                    </svg>
-                                    Open Chat
-                                </span>
-                            </a>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        }
-    } catch (error) {
-        console.error('Load chats error:', error);
-    }
-}
-
-async function startNewChat(event) {
-    try {
-        // Prevent default form submission
-        if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        
-        console.log('=== START NEW CHAT CALLED ===');
-        
-        // First fetch user's twin data
-        const response = await fetch('/api/twin', {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'X-CSRF-Token': window.csrfToken
-            }
-        });
-        
-        console.log('=== START CHAT TWIN RESPONSE ===');
-        console.log('response:', response);
-        const result = await response.json();
-        console.log('result:', result);
-        
-        if (response.ok && result.twins.length > 0) {
-            // Get the latest twin
-            const latestTwin = result.twins[0];
-            console.log('Latest twin:', latestTwin);
-            
-            // Create chat section HTML like loadTwins does
-            const chatSection = document.getElementById('chatSection');
-            chatSection.innerHTML = `
-                <div class="glass-effect rounded-2xl shadow-xl p-8">
-                    <!-- Twin Info at Top -->
-                    <div class="bg-white rounded-xl p-6 mb-6">
-                        <div class="text-center">
-                            <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                </svg>
-                            </div>
-                            <h2 class="text-2xl font-bold text-gray-800 mb-2">AI Twin #${latestTwin.id.slice(-6)}</h2>
-                            <p class="text-gray-600 mb-4">Created: ${new Date(latestTwin.createdAt).toLocaleDateString()}</p>
-                            <div class="bg-blue-50 rounded-lg p-4">
-                                <p class="text-blue-800 font-medium">Your AI twin is ready to chat with you!</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Chat Form at Bottom -->
-                    <div class="bg-white rounded-xl p-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Start Chatting</h3>
-                        <form id="chatForm" class="space-y-4">
-                            <div>
-                                <label for="messageInput" class="block text-sm font-medium text-gray-700 mb-2">Your Message</label>
-                                <textarea 
-                                    id="messageInput" 
-                                    name="message"
-                                    rows="3"
-                                    placeholder="Type your message here..."
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    maxlength="300"
-                                    required
-                                ></textarea>
-                                <div class="mt-2 text-sm text-gray-500 text-right">
-                                    <span id="charCount">0</span> / 300 characters
-                                </div>
-                            </div>
-                            <div class="flex space-x-4">
-                                <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
-                                    Send Message
-                                </button>
-                                <button type="button" onclick="hideChatSection()" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors font-semibold">
-                                    Cancel
-                                </button>
-                            </div>
-                            <input type="hidden" name="_csrf" value="${window.csrfToken}">
-                        </form>
-                    </div>
-                </div>
-            `;
-            
-            // Show chat section
-            chatSection.classList.remove('hidden');
-            
-            // Add event listeners to new form
-            addChatFormListeners();
-            
-            // Scroll to chat section
-            chatSection.scrollIntoView({ behavior: 'smooth' });
-        } else {
-            showFlashMessage('No AI twins found. Please create a twin first.', 'error');
-        }
-    } catch (error) {
-        console.error('Start chat error:', error);
-        showFlashMessage('Network error. Please try again.', 'error');
     }
     
-    return false; // Prevent any form submission
-}
-
-function hideChatSection() {
-    document.getElementById('chatSection').classList.add('hidden');
-}
-
-function addChatFormListeners() {
-    // Character counter
-    const messageInput = document.getElementById('messageInput');
-    if (messageInput) {
-        messageInput.addEventListener('input', (e) => {
-            const count = e.target.value.length;
-            document.getElementById('charCount').textContent = count;
-        });
-    }
-    
-    // Chat form submission
-    const chatForm = document.getElementById('chatForm');
-    if (chatForm) {
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const message = document.getElementById('messageInput').value.trim();
-            if (!message) return;
-            
-            // Show loading
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Sending...';
-            submitBtn.disabled = true;
-            
-            try {
-                // Here you can add logic to send the message
-                console.log('Sending message:', message);
-                
-                // For now, just show success
-                showFlashMessage('Message sent successfully!', 'success');
-                
-                // Clear form
-                document.getElementById('messageInput').value = '';
-                document.getElementById('charCount').textContent = '0';
-                
-            } catch (error) {
-                console.error('Send message error:', error);
-                showFlashMessage('Failed to send message. Please try again.', 'error');
-            } finally {
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
-            }
-        });
-    }
-}
-
-// Load twins and chats on page load
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🎯 Dashboard loaded!');
-    console.log('🔍 Checking for Invite Friends button...');
-    
-    // Check if createInvite function exists
-    if (typeof createInvite === 'function') {
-        console.log('✅ createInvite function is defined');
-    } else {
-        console.error('❌ createInvite function is NOT defined!');
-    }
-    
-    // Check if button exists
-    const buttons = document.querySelectorAll('button');
-    console.log(`📊 Total buttons on page: ${buttons.length}`);
-    
-    // Load public twin status on page load
-    loadPublicTwinStatus();
-    
-    // Add event listener for invite button
-    const inviteBtn = document.getElementById('createInviteBtn');
-    if (inviteBtn) {
-        inviteBtn.addEventListener('click', createInvite);
-        console.log('✅ Invite button event listener added');
-    }
-});
-
 async function createInvite() {
     console.log('🚀 createInvite() called!');
     console.log('🔑 CSRF Token:', window.csrfToken);
@@ -600,9 +943,10 @@ async function createInvite() {
         console.log('📡 Fetching /api/invite/my-code...');
         const response = await fetch('/api/invite/my-code', {
             method: 'GET',
+            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': window.csrfToken
+                'X-CSRF-Token': '<%= csrfToken %>'
             }
         });
         
@@ -611,283 +955,630 @@ async function createInvite() {
         console.log('📦 Response data:', result);
         
         if (response.ok) {
-            const fullUrl = window.location.origin + result.referralUrl;
-            console.log('✅ Full referral URL:', fullUrl);
-            await navigator.clipboard.writeText(fullUrl);
-            showFlashMessage('Referral link copied! Share it with friends.', 'success');
-            console.log('📋 Link copied to clipboard!');
+            // Copy just the referral code, not the full URL
+            const referralCode = result.referralCode;
+            console.log('✅ Referral code:', referralCode);
+            await navigator.clipboard.writeText(referralCode);
+            console.log('📋 Referral code copied to clipboard!');
+            alert('Referral code copied to clipboard!');
         } else {
             console.error('❌ API error:', result);
-            showFlashMessage(result.error || 'Failed to get referral link', 'error');
+            alert(result.error || 'Failed to get referral code');
         }
     } catch (error) {
         console.error('💥 Get referral code error:', error);
-        showFlashMessage('Network error. Please try again.', 'error');
+        alert('Network error. Please try again.');
     }
 }
-
-// Public Twin Management Functions
-async function loadPublicTwinStatus() {
-    console.log('🔄 Loading public twin status...');
-    try {
-        const response = await fetch('/api/public-twin/my-profile');
-        console.log('📡 Response status:', response.status);
-        const data = await response.json();
-        console.log('📦 Response data:', data);
-        
-        if (response.ok && data.success) {
-            console.log('✅ Successfully loaded public twin data');
-            displayPublicTwinStatus(data.twin);
-        } else {
-            console.log('❌ Failed to load public twin data, showing private state');
+        // Public Twin Management Functions
+    async function loadPublicTwinStatus() {
+        try {
+            console.log('🔍 Loading public twin status...');
+            const response = await fetch('/api/public-twin/my-profile', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': '<%= csrfToken %>'
+                }
+              });
+            console.log('Response status:', response.status);
+            const data = await response.json();
+            console.log('Response data:', data);
+            
+            if (response.ok && data.success) {
+                console.log('✅ Twin found, displaying status');
+                displayPublicTwinStatus(data.twin);
+            } else {
+                console.log('❌ No twin found or error, showing private status');
+                displayPublicTwinStatus(null);
+            }
+        } catch (error) {
+            console.error('❌ Load public twin status error:', error);
             displayPublicTwinStatus(null);
         }
-    } catch (error) {
-        console.error('❌ Load public twin status error:', error);
-        displayPublicTwinStatus(null);
     }
-}
 
 function displayPublicTwinStatus(twin) {
-    console.log('📊 displayPublicTwinStatus called with:', twin);
+    console.log('🎨 Displaying public twin status for:', twin);
     const statusContainer = document.getElementById('publicTwinStatus');
-    console.log('📦 Status container found:', statusContainer);
+    console.log('Status container found:', statusContainer);
     
     if (twin && twin.isPublic) {
-        console.log('✅ Twin is public, creating public twin UI...');
-        statusContainer.innerHTML = `
-            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div class="flex items-center mb-3">
-                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                    </div>
-                    <div>
-                        <h4 class="text-lg font-semibold text-green-800">Your twin is public!</h4>
-                        <p class="text-green-600">@${twin.publicHandle}</p>
-                    </div>
-                </div>
-                <div class="grid grid-cols-3 gap-4 text-center mb-4">
-                    <div>
-                        <div class="text-2xl font-bold text-green-700">${twin.likeCount || 0}</div>
-                        <div class="text-sm text-green-600">Likes</div>
-                    </div>
-                    <div>
-                        <div class="text-2xl font-bold text-green-700">${twin.followCount || 0}</div>
-                        <div class="text-sm text-green-600">Followers</div>
-                    </div>
-                    <div>
-                        <div class="text-2xl font-bold text-green-700">${twin.chatCount || 0}</div>
-                        <div class="text-sm text-green-600">Chats</div>
-                    </div>
-                </div>
-                <div class="flex space-x-3">
-                    <a href="/@${twin.publicHandle}" target="_blank" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-center">
-                        View Public Profile
-                    </a>
-                    <button id="sharePublicTwinBtn" data-handle="${twin.publicHandle}" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
-                        Share
-                    </button>
-                    <button id="editPublicProfileBtn" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors">
-                        Edit
-                    </button>
-                    <button id="makeTwinPublicBtn" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
-                        Make Public
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        // Add event listeners after creating the buttons
-        setTimeout(() => {
-            console.log('⏰ setTimeout triggered - adding event listeners...');
-            addPublicTwinEventListeners();
-        }, 100);
+        console.log('✅ Twin is public, showing public status');
+        statusContainer.innerHTML = 
+            '<div class="bg-gray-50 rounded-lg p-4 border border-gray-200">' +
+            '<div class="flex items-center mb-3">' +
+            '<div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">' +
+            '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>' +
+            '</svg>' +
+            '</div>' +
+            '<div>' +
+            '<h4 class="text-lg font-semibold text-gray-800">Your twin is public!</h4>' +
+            '<p class="text-gray-600">@' + twin.publicHandle + '</p>' +
+            '</div>' +
+            '</div>' +
+            '<div class="grid grid-cols-3 gap-4 text-center mb-4">' +
+            '<div>' +
+            '<div class="text-2xl font-bold text-gray-900">' + (twin.likeCount || 0) + '</div>' +
+            '<div class="text-sm text-gray-600">Likes</div>' +
+            '</div>' +
+            '<div>' +
+            '<div class="text-2xl font-bold text-gray-900">' + (twin.followCount || 0) + '</div>' +
+            '<div class="text-sm text-gray-600">Followers</div>' +
+            '</div>' +
+            '<div>' +
+            '<div class="text-2xl font-bold text-gray-900">' + (twin.chatCount || 0) + '</div>' +
+            '<div class="text-sm text-gray-600">Chats</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="grid grid-cols-2 gap-3">' +
+            '<a href="/@' + twin.publicHandle + '" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center">' +
+            'View Public Profile' +
+            '</a>' +
+            '<button id="sharePublicTwinBtn" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">' +
+            'Share Public Profile' +
+            '</button>' +
+            '<a href="/discover" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center">' +
+            'Discover Twins' +
+            '</a>' +
+            '<a href="/twin/' + twin.id + '/ai-edit" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center">' +
+            'Edit Twin Style' +
+            '</a>' +
+            '<a href="/twin/' + twin.id + '/style-customize" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center">' +
+            'Style Sandbox' +
+            '</a>' +
+            '<a href="/analytics" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center">' +
+            'Learning Progress' +
+            '</a>' +
+            '</div>' +
+            '</div>';
     } else {
-        statusContainer.innerHTML = `
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div class="flex items-center mb-3">
-                    <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3">
-                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
-                        </svg>
+        console.log('❌ Twin is private, showing private status');
+        statusContainer.innerHTML = 
+            '<div class="bg-gray-50 rounded-lg p-4 border border-gray-200">' +
+            '<div class="flex items-center mb-3">' +
+            '<div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3">' +
+            '<svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>' +
+            '</svg>' +
+            '</div>' +
+            '<div>' +
+            '<h4 class="text-lg font-semibold text-gray-800">Your twin is private</h4>' +
+            '<p class="text-gray-600">Make it public to let others discover and chat with it</p>' +
+            '</div>' +
+            '</div>' +
+            '<button id="makeTwinPublicBtn" class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-semibold">' +
+            'Make Twin Public' +
+            '</button>' +
+            '</div>';
+    }
+}
+
+    async function makeTwinPublic() {
+        try {
+            console.log('🚀 Making twin public...');
+            
+            const handle = generateHandle();
+            console.log('Generated handle:', handle);
+            
+            const response = await fetch('/api/public-twin/make-public', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': '<%= csrfToken %>'
+                },
+                body: JSON.stringify({
+                    bio: 'Check out my AI twin!',
+                    publicHandle: handle
+                })
+            });
+            
+            console.log('Response status:', response.status);
+            const result = await response.json();
+            console.log('Response data:', result);
+            
+            if (response.ok && result.success) {
+                alert('Twin made public successfully!');
+                loadPublicTwinStatus();
+            } else {
+                alert(result.error || 'Failed to make twin public');
+            }
+        } catch (error) {
+            console.error('Make twin public error:', error);
+            alert('Network error. Please try again.');
+        }
+    }
+
+    async function sharePublicTwin(handle) {
+        const url = window.location.origin + '/@' + handle;
+        try {
+            await navigator.clipboard.writeText(url);
+            alert('Public profile link copied to clipboard!');
+        } catch (error) {
+            console.error('Copy to clipboard error:', error);
+            alert('Failed to copy link. Please copy manually: ' + url);
+        }
+    }
+
+    
+
+    function editPublicProfile() {
+        alert('Edit profile functionality coming soon!');
+    }
+
+    function generateHandle() {
+        const adjectives = ['cool', 'smart', 'awesome', 'brilliant', 'amazing', 'fantastic', 'incredible', 'wonderful'];
+        const nouns = ['twin', 'ai', 'bot', 'assistant', 'helper', 'companion', 'friend', 'buddy'];
+        const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const noun = nouns[Math.floor(Math.random() * nouns.length)];
+        const num = Math.floor(Math.random() * 1000);
+        return adj + noun + num;
+    }
+    
+    // Load public twin status on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('🚀 DOM loaded, loading public twin status...');
+        loadPublicTwinStatus();
+    });
+    
+    // Also call immediately in case DOM is already loaded
+    console.log('🚀 Script loaded, calling loadPublicTwinStatus immediately...');
+    setTimeout(() => {
+        loadPublicTwinStatus();
+    }, 1000);
+    
+    // Add event listener for make twin public button
+    setTimeout(() => {
+        const makePublicBtn = document.getElementById('makeTwinPublicBtn');
+        if (makePublicBtn) {
+            console.log('✅ Make Twin Public button found, adding event listener');
+            makePublicBtn.addEventListener('click', function() {
+                console.log('🔥 Make Twin Public button clicked!');
+                makeTwinPublic();
+            });
+        } else {
+            console.log('❌ Make Twin Public button not found');
+        }
+    }, 2000);
+    
+    // Add event listener for copy referral button
+    setTimeout(() => {
+        const copyReferralBtn = document.getElementById('copyReferralBtn');
+        if (copyReferralBtn) {
+            console.log('✅ Copy Referral button found, adding event listener');
+            copyReferralBtn.addEventListener('click', function() {
+                console.log('🔥 Copy Referral button clicked!');
+                createInvite();
+            });
+        } else {
+            console.log('❌ Copy Referral button not found');
+        }
+    }, 2000);
+
+    // Add event listener for share public twin button
+setTimeout(() => {
+    const sharePublicTwinBtn = document.getElementById('sharePublicTwinBtn');
+    if (sharePublicTwinBtn) {
+        console.log('✅ Share Public Twin button found, adding event listener');
+        sharePublicTwinBtn.addEventListener('click', function() {
+            console.log('🔥 Share Public Twin button clicked!');
+            // Get the public handle from the current twin data
+            const statusContainer = document.getElementById('publicTwinStatus');
+            const handleElement = statusContainer?.querySelector('p.text-white\\/80');
+            if (handleElement) {
+                const handle = handleElement.textContent?.replace('@', '');
+                if (handle) {
+                    sharePublicTwin(handle);
+                }
+            }
+        });
+    } else {
+        console.log('❌ Share Public Twin button not found');
+    }
+}, 2000);
+</script>
+    <!-- Modern Footer -->
+    <footer class="mt-20 bg-white/80 backdrop-blur-xl border-t border-white/20">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Brand -->
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center shadow-lg">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                        </div>
+                        <span class="text-2xl font-bold gradient-text">AI Twin</span>
                     </div>
-                    <div>
-                        <h4 class="text-lg font-semibold text-gray-800">Your twin is private</h4>
-                        <p class="text-gray-600">Make it public to let others discover and chat with it</p>
+                    <p class="text-gray-600 mb-4 max-w-md">
+                        Create your digital twin with AI technology. Experience the future of personalized AI assistants.
+                    </p>
+                    <div class="flex space-x-4">
+                        <div class="w-10 h-10 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center hover:from-primary/30 hover:to-accent/30 transition-all duration-200 cursor-pointer">
+                            <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                            </svg>
+                        </div>
+                        <div class="w-10 h-10 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center hover:from-primary/30 hover:to-accent/30 transition-all duration-200 cursor-pointer">
+                            <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z"/>
+                            </svg>
+                        </div>
+                        <div class="w-10 h-10 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center hover:from-primary/30 hover:to-accent/30 transition-all duration-200 cursor-pointer">
+                            <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
-                <button id="makeTwinPublicBtn" class="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-semibold">
-                    Make Twin Public
-                </button>
+                
+                <!-- Quick Links -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Links</h3>
+                    <ul class="space-y-3">
+                        <li><a href="/dashboard" class="text-gray-600 hover:text-primary transition-colors duration-200">Dashboard</a></li>
+                        <li><a href="/profile" class="text-gray-600 hover:text-primary transition-colors duration-200">Profile</a></li>
+                        <li><a href="/onboarding" class="text-gray-600 hover:text-primary transition-colors duration-200">Create Twin</a></li>
+                        <li><a href="/auth" class="text-gray-600 hover:text-primary transition-colors duration-200">Login</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Support -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Support</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors duration-200">Help Center</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors duration-200">Contact Us</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors duration-200">Privacy Policy</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors duration-200">Terms of Service</a></li>
+                    </ul>
+                </div>
             </div>
             
-        `;
+            <div class="border-t border-gray-200/50 mt-12 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-gray-500 text-sm">&copy; 2024 AI Twin. All rights reserved.</p>
+                    <div class="flex items-center space-x-2 mt-4 md:mt-0">
+                        <span class="text-xs text-gray-400">AI-generated content</span>
+                        <div class="w-2 h-2 bg-gradient-to-r from-primary to-accent rounded-full animate-bounce-gentle"></div>
+                        <span class="text-xs text-gray-400">Private Alpha</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // CSRF token for AJAX requests
+        window.csrfToken = '<%= csrfToken %>';
         
-        // Add event listener for make twin public button
-        setTimeout(() => {
-            const makePublicBtn = document.getElementById('makeTwinPublicBtn');
-            if (makePublicBtn) {
-                makePublicBtn.addEventListener('click', makeTwinPublic);
+        // Mobile menu functionality
+        function openMobileMenu() {
+            const sidebar = document.getElementById('mobile-sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            
+            if (sidebar && overlay) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebar.classList.add('translate-x-0');
+                overlay.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
             }
-        }, 100);
-    }
-}
-
-// Add this new function to handle event listeners
-function addPublicTwinEventListeners() {
-    console.log('🔧 Adding public twin event listeners...');
-    
-    // Share button
-    const shareBtn = document.getElementById('sharePublicTwinBtn');
-    if (shareBtn) {
-        console.log('✅ Share button found, adding event listener');
-        shareBtn.addEventListener('click', function() {
-            const handle = this.getAttribute('data-handle');
-            console.log('🔥 Share button clicked! Handle:', handle);
-            console.log('🔥 Calling sharePublicTwin function...');
-            if (handle) {
-                sharePublicTwin(handle);
-            } else {
-                console.error('❌ No handle found for share button');
-            }
-        });
-        console.log('✅ Share button event listener added successfully');
-    } else {
-        console.log('❌ Share button not found');
-        // Let's check what buttons actually exist
-        const allButtons = document.querySelectorAll('button');
-        console.log('📊 All buttons on page:', allButtons.length);
-        allButtons.forEach((btn, index) => {
-            console.log(`Button ${index}:`, btn.id, btn.className, btn.textContent);
-        });
-    }
-    
-    // Edit button
-    const editBtn = document.getElementById('editPublicProfileBtn');
-    if (editBtn) {
-        console.log('✅ Edit button found, adding event listener');
-        editBtn.addEventListener('click', editPublicProfile);
-    } else {
-        console.log('❌ Edit button not found');
-    }
-    
-    // Make Twin Public button (in public section)
-    const makePublicBtn = document.getElementById('makeTwinPublicBtn');
-    if (makePublicBtn) {
-        console.log('✅ Make Twin Public button found, adding event listener');
-        makePublicBtn.addEventListener('click', makeTwinPublic);
-    } else {
-        console.log('❌ Make Twin Public button not found');
-    }
-}
-
-
-async function makeTwinPublic() {
-    try {
-        const response = await fetch('/api/public-twin/make-public', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': window.csrfToken
-            },
-            body: JSON.stringify({
-                bio: 'Check out my AI twin!',
-                publicHandle: generateHandle()
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-            showFlashMessage('Twin made public successfully!', 'success');
-            loadPublicTwinStatus();
-        } else {
-            showFlashMessage(result.error || 'Failed to make twin public', 'error');
         }
-    } catch (error) {
-        console.error('Make twin public error:', error);
-        showFlashMessage('Network error. Please try again.', 'error');
-    }
-}
-
-async function sharePublicTwin(handle) {
-    console.log('🚀 sharePublicTwin function called with handle:', handle);
-    const url = `${window.location.origin}/@${handle}`;
-    console.log('🔗 Generated URL:', url);
-    
-    try {
-        console.log('📋 Attempting to copy to clipboard...');
-        await navigator.clipboard.writeText(url);
-        console.log('✅ Successfully copied to clipboard');
-        showFlashMessage('Public profile link copied to clipboard!', 'success');
-    } catch (error) {
-        console.error('❌ Copy to clipboard error:', error);
-        showFlashMessage('Failed to copy link. Please copy manually: ' + url, 'error');
-    }
-}
-
-function editPublicProfile() {
-    // This would open a modal or redirect to edit page
-    showFlashMessage('Edit profile functionality coming soon!', 'info');
-}
-
-function generateHandle() {
-    const adjectives = ['cool', 'smart', 'awesome', 'brilliant', 'amazing', 'fantastic', 'incredible', 'wonderful'];
-    const nouns = ['twin', 'ai', 'bot', 'assistant', 'helper', 'companion', 'friend', 'buddy'];
-    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const noun = nouns[Math.floor(Math.random() * nouns.length)];
-    const num = Math.floor(Math.random() * 1000);
-    return `${adj}${noun}${num}`;
-}
-
-// Test function to debug share button
-function testShareButton() {
-    console.log('🧪 Test Share Button clicked!');
-    console.log('🧪 Testing sharePublicTwin function...');
-    
-    // Test with a dummy handle
-    const testHandle = 'testhandle123';
-    console.log('🧪 Calling sharePublicTwin with test handle:', testHandle);
-    
-    try {
-        sharePublicTwin(testHandle);
-        console.log('🧪 sharePublicTwin function called successfully');
-    } catch (error) {
-        console.error('🧪 Error calling sharePublicTwin:', error);
-    }
-    
-    // Also test if showFlashMessage works
-    console.log('🧪 Testing showFlashMessage...');
-    try {
-        showFlashMessage('Test message from test button!', 'success');
-        console.log('🧪 showFlashMessage called successfully');
-    } catch (error) {
-        console.error('🧪 Error calling showFlashMessage:', error);
-    }
-    
-    // Test the API endpoint
-    console.log('🧪 Testing API endpoint...');
-    fetch('/api/public-twin/my-profile')
-        .then(response => {
-            console.log('🧪 API Response status:', response.status);
-            return response.json();
-        })
-        .then(data => {
-            console.log('🧪 API Response data:', data);
-            if (data.success && data.twin && data.twin.isPublic) {
-                console.log('🧪 User has a public twin!');
-                showFlashMessage('You have a public twin! Share button should work.', 'success');
-            } else {
-                console.log('🧪 User does not have a public twin');
-                showFlashMessage('You need to make your twin public first!', 'info');
+        
+        function closeMobileMenu() {
+            const sidebar = document.getElementById('mobile-sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            
+            if (sidebar && overlay) {
+                sidebar.classList.add('-translate-x-full');
+                sidebar.classList.remove('translate-x-0');
+                overlay.classList.add('hidden');
+                document.body.style.overflow = '';
             }
-        })
-        .catch(error => {
-            console.error('🧪 API Error:', error);
-            showFlashMessage('API Error: ' + error.message, 'error');
+        }
+        
+        // Touch gesture handling
+        let touchStartX = 0;
+        let touchStartY = 0;
+        
+        function handleTouchStart(e) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }
+        
+        function handleTouchEnd(e) {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+            
+            // Check if it's a horizontal swipe
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+                const sidebar = document.getElementById('mobile-sidebar');
+                const overlay = document.getElementById('mobile-overlay');
+                
+                if (deltaX > 0 && sidebar && overlay && overlay.classList.contains('hidden')) {
+                    // Swipe right to open menu
+                    openMobileMenu();
+                } else if (deltaX < 0 && sidebar && overlay && !overlay.classList.contains('hidden')) {
+                    // Swipe left to close menu
+                    closeMobileMenu();
+                }
+            }
+        }
+        
+        // OTP Display Script for Development
+        function displayOTPOnScreen(otp) {
+            const otpDisplay = document.createElement('div');
+            otpDisplay.id = 'otp-display';
+            otpDisplay.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                font-size: 18px;
+                font-weight: bold;
+                z-index: 9999;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                border: 2px solid #45a049;
+            `;
+            otpDisplay.innerHTML = `
+                <div style="font-size: 14px; margin-bottom: 5px;">🔐 OTP Code:</div>
+                <div style="font-size: 24px; letter-spacing: 3px;">${otp}</div>
+                <div style="font-size: 12px; margin-top: 5px; opacity: 0.8;">Development Mode</div>
+            `;
+            
+            const existing = document.getElementById('otp-display');
+            if (existing) existing.remove();
+            
+            document.body.appendChild(otpDisplay);
+            
+            setTimeout(() => {
+                if (otpDisplay.parentNode) otpDisplay.remove();
+            }, 30000);
+        }
+        
+        // Logout function
+        async function logout() {
+            console.log('Logout button clicked!');
+            
+            // Get the logout button element
+            const logoutBtn = document.querySelector('button[onclick="logout()"]');
+            if (!logoutBtn) {
+                console.error('Logout button not found!');
+                return;
+            }
+            
+            // Show loading state
+            const originalText = logoutBtn.textContent;
+            logoutBtn.textContent = 'Logging out...';
+            logoutBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken
+                    }
+                });
+                
+                console.log('Logout response:', response.status);
+                
+                if (response.ok) {
+                    console.log('Logout successful, clearing all data...');
+                    
+                    // Clear localStorage
+                    localStorage.removeItem('jwtToken');
+                    localStorage.removeItem('user');
+                    
+                    // Clear sessionStorage
+                    sessionStorage.clear();
+                    
+                    // Clear all cookies
+                    document.cookie.split(";").forEach(function(c) { 
+                        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                    });
+                    
+                    // Force redirect with cache busting
+                    const timestamp = new Date().getTime();
+                    window.location.replace('/auth?logout=' + timestamp);
+                    
+                } else {
+                    console.log('Logout failed:', response.status);
+                    const errorData = await response.text();
+                    console.log('Error response:', errorData);
+                    showFlashMessage('Logout failed. Please try again.', 'error');
+                    
+                    // Restore button state
+                    logoutBtn.textContent = originalText;
+                    logoutBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                showFlashMessage('Network error. Please try again.', 'error');
+                
+                // Restore button state
+                logoutBtn.textContent = originalText;
+                logoutBtn.disabled = false;
+            }
+        }
+
+        // Dropdown functionality
+        function toggleDropdown() {
+            console.log('Dropdown toggle clicked!');
+            
+            const dropdown = document.getElementById('userDropdown');
+            const menu = document.getElementById('dropdownMenu');
+            const arrowIcon = document.getElementById('arrowIcon');
+            const isOpen = dropdown.getAttribute('data-open') === 'true';
+            
+            console.log('Current state:', isOpen ? 'open' : 'closed');
+            
+            if (isOpen) {
+                // Close dropdown
+                menu.classList.add('hidden', 'opacity-0', 'scale-95');
+                menu.classList.remove('opacity-100', 'scale-100');
+                arrowIcon.classList.remove('rotate-180');
+                dropdown.setAttribute('data-open', 'false');
+                console.log('Dropdown closed');
+            } else {
+                // Open dropdown
+                menu.classList.remove('hidden', 'opacity-0', 'scale-95');
+                menu.classList.add('opacity-100', 'scale-100');
+                arrowIcon.classList.add('rotate-180');
+                dropdown.setAttribute('data-open', 'true');
+                console.log('Dropdown opened');
+            }
+        }
+
+        function closeDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            const menu = document.getElementById('dropdownMenu');
+            const arrowIcon = document.getElementById('arrowIcon');
+            
+            menu.classList.add('hidden', 'opacity-0', 'scale-95');
+            menu.classList.remove('opacity-100', 'scale-100');
+            arrowIcon.classList.remove('rotate-180');
+            dropdown.setAttribute('data-open', 'false');
+        }
+
+        // Flash message handling
+        function showFlashMessage(message, type = 'success') {
+            const flashDiv = document.createElement('div');
+            flashDiv.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            flashDiv.textContent = message;
+            document.body.appendChild(flashDiv);
+            
+            setTimeout(() => {
+                flashDiv.remove();
+            }, 5000);
+        }
+
+        // Global error handler
+        window.addEventListener('error', (event) => {
+            console.error('Global error:', event.error);
         });
-}
-</script>
-` }) %>
+        
+        // Add event listeners for dropdown and logout button
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Setting up dropdown and logout event listeners');
+            
+            // Mobile menu event listeners
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileCloseBtn = document.getElementById('mobile-close-btn');
+            const mobileOverlay = document.getElementById('mobile-overlay');
+            
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', openMobileMenu);
+            }
+            
+            if (mobileCloseBtn) {
+                mobileCloseBtn.addEventListener('click', closeMobileMenu);
+            }
+            
+            if (mobileOverlay) {
+                mobileOverlay.addEventListener('click', closeMobileMenu);
+            }
+            
+            // Touch gesture event listeners
+            document.addEventListener('touchstart', handleTouchStart, { passive: true });
+            document.addEventListener('touchend', handleTouchEnd, { passive: true });
+            
+            // Setup dropdown functionality
+            const dropdownButton = document.getElementById('dropdownButton');
+            const arrowButton = document.getElementById('arrowButton');
+            const dropdown = document.getElementById('userDropdown');
+            
+            if (dropdownButton && arrowButton && dropdown) {
+                console.log('Dropdown elements found, setting up listeners');
+                
+                // Click on main button
+                dropdownButton.addEventListener('click', function(e) {
+                    console.log('Main dropdown button clicked');
+                    e.preventDefault();
+                    toggleDropdown();
+                });
+                
+                // Click on arrow button specifically
+                arrowButton.addEventListener('click', function(e) {
+                    console.log('Arrow button clicked');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleDropdown();
+                });
+                
+                // Hover to open
+                dropdown.addEventListener('mouseenter', function() {
+                    console.log('Mouse entered dropdown area');
+                    const isOpen = dropdown.getAttribute('data-open') === 'true';
+                    if (!isOpen) {
+                        toggleDropdown();
+                    }
+                });
+                
+                // Mouse leave to close
+                dropdown.addEventListener('mouseleave', function() {
+                    console.log('Mouse left dropdown area');
+                    closeDropdown();
+                });
+                
+                // Click outside to close
+                document.addEventListener('click', function(e) {
+                    if (!dropdown.contains(e.target)) {
+                        closeDropdown();
+                    }
+                });
+                
+            } else {
+                console.error('Dropdown elements not found:', {
+                    dropdownButton: !!dropdownButton,
+                    arrowButton: !!arrowButton,
+                    dropdown: !!dropdown
+                });
+            }
+            
+            // Setup logout button
+            const logoutBtn = document.querySelector('button[onclick="logout()"]');
+            if (logoutBtn) {
+                console.log('Logout button found, adding click listener');
+                logoutBtn.addEventListener('click', function(e) {
+                    console.log('Logout button clicked via event listener');
+                    e.preventDefault();
+                    logout();
+                });
+            } else {
+                console.error('Logout button not found on page load');
+            }
+        });
+    </script>
+</body>
+</html>
