@@ -85,10 +85,6 @@ export const getTwinPerformance = async (req: Request, res: Response) => {
 
 export const debugUserData = async (req: Request, res: Response) => {
   try {
-    console.log('=== DEBUG USER DATA ===');
-    console.log('req.user:', req.user);
-    console.log('req.session:', req.session);
-    
     let userId: string | null = null;
     
     // Try JWT authentication first
@@ -108,8 +104,6 @@ export const debugUserData = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
     
-    console.log('User ID:', userId);
-
     // Get all user data using raw SQL
     const userResult = await db.query('SELECT * FROM "User" WHERE id = $1', [userId]);
     const user = userResult.rows[0];
@@ -127,8 +121,6 @@ export const debugUserData = async (req: Request, res: Response) => {
       db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "acceptedBy" = $1', [userId]),
     ]);
 
-    console.log('User data from DB:', user);
-
     res.json({
       success: true,
       user: user,
@@ -141,7 +133,7 @@ export const debugUserData = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Debug user data error:', error);
+    logger.error('Debug user data error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -188,38 +180,30 @@ export const createSampleData = async (req: Request, res: Response) => {
       message: 'Sample data created successfully'
     });
   } catch (error) {
-    console.error('Create sample data error:', error);
+    logger.error('Create sample data error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 export const getUserAnalytics = async (req: Request, res: Response) => {
   try {
-    console.log('=== ANALYTICS DEBUG ===');
-    console.log('req.user:', req.user);
-    console.log('req.session:', req.session);
-    
     let userId: string | null = null;
     
     // Try JWT authentication first
     if (req.user) {
       if (req.user.id) {
         userId = req.user.id;
-        console.log('User ID from JWT (id field):', userId);
       } else if (req.user.userId) {
         userId = req.user.userId;
-        console.log('User ID from JWT (userId field):', userId);
       }
     }
     // Fallback to session authentication
     else if (req.session && req.session.userId) {
       userId = req.session.userId;
-      console.log('User ID from session:', userId);
     }
     
     if (!userId) {
-      console.log('No user found in request');
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
     // Check if user exists in database
@@ -227,40 +211,36 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
     try {
       const userResult = await db.query('SELECT id FROM "User" WHERE id = $1', [userId]);
       userExists = userResult.rows[0];
-      console.log('User exists check result:', userExists);
     } catch (dbError) {
-      console.error('Database error checking user:', dbError);
-      return res.status(500).json({ error: 'Database connection error' });
+      logger.error('Database error checking user:', dbError);
+      return res.status(500).json({ success: false, error: 'Database connection error' });
     }
 
     if (!userExists) {
-      console.log('User not found in database, creating basic record...');
       try {
         // Create a basic user record if it doesn't exist
         await db.query(
           'INSERT INTO "User" (id, email, handle, active) VALUES ($1, $2, $3, $4)',
           [userId, req.user?.email || 'unknown@example.com', req.user?.handle || 'unknown', true]
         );
-        console.log('User record created successfully');
       } catch (createError) {
-        console.error('Error creating user record:', createError);
-        return res.status(500).json({ error: 'Failed to create user record' });
+        logger.error('Error creating user record:', createError);
+        return res.status(500).json({ success: false, error: 'Failed to create user record' });
       }
     }
 
-    // Get user's analytics
-    let userTwins, userChats, userMessages, userInvitesSent, userInvitesReceived, userEvents;
+    // Get user's analytics - using same pattern as debugUserData
+    let userTwins = 0, userChats = 0, userMessages = 0, userInvitesSent = 0, userInvitesReceived = 0, userEvents = 0;
     
     try {
-      console.log('Fetching analytics data for user:', userId);
-    const [
+      const [
         twinsResult,
         chatsResult,
         messagesResult,
         invitesSentResult,
         invitesReceivedResult,
         eventsResult
-    ] = await Promise.all([
+      ] = await Promise.all([
         db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "userId" = $1', [userId]),
         db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [userId]),
         db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [userId]),
@@ -269,19 +249,16 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
         db.query('SELECT COUNT(*) as count FROM "Event" WHERE "userId" = $1', [userId]),
       ]);
 
+      // Use same parsing pattern as debugUserData - PostgreSQL COUNT always returns a row
       userTwins = parseInt(twinsResult.rows[0].count);
       userChats = parseInt(chatsResult.rows[0].count);
       userMessages = parseInt(messagesResult.rows[0].count);
       userInvitesSent = parseInt(invitesSentResult.rows[0].count);
       userInvitesReceived = parseInt(invitesReceivedResult.rows[0].count);
       userEvents = parseInt(eventsResult.rows[0].count);
-
-      console.log('Analytics data fetched successfully:', {
-        userTwins, userChats, userMessages, userInvitesSent, userInvitesReceived, userEvents
-      });
     } catch (analyticsError) {
-      console.error('Error fetching analytics data:', analyticsError);
-      return res.status(500).json({ error: 'Failed to fetch analytics data' });
+      logger.error('Error fetching analytics data:', analyticsError);
+      return res.status(500).json({ success: false, error: 'Failed to fetch analytics data' });
     }
 
     // Get user's event breakdown
@@ -289,7 +266,6 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
     let formattedActivity: Array<{description: string, timestamp: Date, metadata: any}> = [];
     
     try {
-      console.log('Fetching event breakdown for user:', userId);
       const userEventTypesResult = await db.query(
         'SELECT type, COUNT(*) as count FROM "Event" WHERE "userId" = $1 GROUP BY type',
         [userId]
@@ -297,9 +273,8 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
 
       userEventBreakdown = userEventTypesResult.rows.reduce((acc, event) => {
         acc[event.type] = parseInt(event.count);
-      return acc;
-    }, {} as Record<string, number>);
-      console.log('Event breakdown fetched:', userEventBreakdown);
+        return acc;
+      }, {} as Record<string, number>);
 
       // Get recent activity (last 10 events)
       const recentActivityResult = await db.query(
@@ -307,15 +282,13 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
         [userId]
       );
 
-      // Format recent activity for frontend
       formattedActivity = recentActivityResult.rows.map(event => ({
         description: `${event.type} activity`,
         timestamp: event.createdAt,
         metadata: event.meta,
       }));
-      console.log('Recent activity fetched:', formattedActivity.length, 'events');
     } catch (eventError) {
-      console.error('Error fetching event data:', eventError);
+      logger.error('Error fetching event data:', eventError);
       // Continue with empty data rather than failing completely
     }
 
@@ -327,9 +300,9 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
         handle: req.user?.handle || 'Unknown',
       },
       analytics: {
-        totalViews: userEvents || 0, // Using events as a proxy for views
-        totalLikes: userInvitesReceived || 0, // Using received invites as likes
-        totalFollowers: userInvitesSent || 0, // Using sent invites as followers
+        totalViews: userEvents || 0,
+        totalLikes: userInvitesReceived || 0,
+        totalFollowers: userInvitesSent || 0,
         totalChats: userChats || 0,
         twins: userTwins || 0,
         messages: userMessages || 0,
@@ -341,11 +314,10 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
       eventBreakdown: userEventBreakdown || {},
     };
 
-    console.log('Sending analytics response:', JSON.stringify(responseData, null, 2));
     res.json(responseData);
   } catch (error) {
     logger.error('Get user analytics error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 

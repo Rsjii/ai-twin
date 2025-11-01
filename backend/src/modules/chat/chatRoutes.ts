@@ -4,7 +4,7 @@ import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import { draftGenerationRateLimit } from '../../middleware/rateLimit';
 import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
 import { sanitizeInput } from '../../middleware/validation';
-import { submitResponseFeedback, getFeedbackStats } from './feedbackController';
+import { submitResponseFeedback, getFeedbackStats, submitChatFeedback, regenerateResponse } from './feedbackController';
 
 const router = Router();
 
@@ -25,6 +25,8 @@ router.post('/:id/message', sanitizeInput, handleUserMessage);
 
 // Feedback endpoints
 router.post('/:id/feedback', submitResponseFeedback);
+router.post('/:chatId/feedback', submitChatFeedback);
+router.post('/:chatId/regenerate', regenerateResponse);
 router.get('/twin/:twinId/feedback-stats', getFeedbackStats);
 
 export default router;

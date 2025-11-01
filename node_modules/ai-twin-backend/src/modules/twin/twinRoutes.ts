@@ -3,6 +3,30 @@ import { createTwin, getUserTwins, getTwinById } from './twinController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import { generateCSRFToken } from '../../middleware/csrf';
 import { getTwinEditData, updateTwinStyle, updateTwinPersona } from './twinEditController';
+import {
+  regeneratePrompt,
+  getLearningData,
+  updateLearningSettings,
+  getTwinChatHistory
+} from './twinLearningController';
+import {
+  addManualTraining,
+  getChatMessages,
+  convertMessagesToTraining,
+  getTrainingEffectiveness,
+  convertToTraining,
+  getTrainingProgress
+} from './twinTrainingController';
+import {
+  getTemplates,
+  getMilestones,
+  setLearningGoal,
+  getPerformanceMetrics,
+  optimizeMemories,
+  analyzePerformance,
+  exportAnalytics,
+  resetPerformance
+} from './twinPerformanceController';
 
 const router = Router();
 
@@ -19,5 +43,29 @@ router.get('/:id', getTwinById);
 router.get('/:id/edit-data', getTwinEditData);
 router.post('/:id/update-style', updateTwinStyle);
 router.post('/:id/update-persona', updateTwinPersona);
+
+// Twin learning endpoints
+router.post('/:id/regenerate-prompt', regeneratePrompt);
+router.get('/:id/learning-data', getLearningData);
+router.post('/:id/learning-settings', updateLearningSettings);
+router.get('/:id/chat-history', getTwinChatHistory);
+
+// Twin training endpoints
+router.post('/:id/manual-training', addManualTraining);
+router.get('/:id/chat/:chatId/messages', getChatMessages);
+router.post('/:id/convert-messages-to-training', convertMessagesToTraining);
+router.get('/:id/training/effectiveness', getTrainingEffectiveness);
+router.post('/:id/convert-to-training', convertToTraining);
+router.get('/:id/training-progress', getTrainingProgress);
+
+// Twin performance endpoints
+router.get('/:id/templates', getTemplates);
+router.get('/:id/milestones', getMilestones);
+router.post('/:id/goals', setLearningGoal);
+router.get('/:id/performance', getPerformanceMetrics);
+router.post('/:id/optimize/memories', optimizeMemories);
+router.post('/:id/analyze/performance', analyzePerformance);
+router.get('/:id/export/analytics', exportAnalytics);
+router.post('/:id/reset/performance', resetPerformance);
 
 export default router;

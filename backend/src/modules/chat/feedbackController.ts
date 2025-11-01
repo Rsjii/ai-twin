@@ -123,3 +123,149 @@ export const getFeedbackStats = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to get feedback statistics' });
   }
 };
+
+// Additional feedback endpoints for ChatFeedback table
+import { updateAILearning } from '../../services/aiLearningService';
+import { generateResponseWithTone, adjustResponseTone } from '../../services/chatService';
+
+/**
+ * Submit feedback with ChatFeedback table (legacy/comprehensive feedback)
+ */
+export const submitChatFeedback = async (req: Request, res: Response) => {
+  try {
+    const { chatId } = req.params;
+    const { responseId, rating, suggestion, tonePreference } = req.body;
+    const userId = req.user.id;
+    
+    // Store feedback in database
+    await db.query(`
+      INSERT INTO "ChatFeedback" ("chatId", "responseId", "userId", "rating", "suggestion", "tonePreference", "createdAt")
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    `, [chatId, responseId, userId, rating, suggestion, tonePreference]);
+    
+    // Update AI learning data
+    await updateAILearning(chatId, rating, suggestion, tonePreference);
+    
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Feedback API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+};
+
+/**
+ * Regenerate response with tone preference
+ */
+export const regenerateResponse = async (req: Request, res: Response) => {
+  try {
+    const { chatId } = req.params;
+    const { responseId, tonePreference } = req.body;
+    const userId = req.user.id;
+    
+    // Generate new response with tone preference
+    const newResponse = await generateResponseWithTone(chatId, tonePreference);
+    
+    res.json({ success: true, newResponse });
+  } catch (error) {
+    logger.error('Regenerate API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+};
+
+/**
+ * Get feedback analytics for user
+ */
+export const getFeedbackAnalytics = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get feedback counts
+    const feedbackResult = await db.query(`
+      SELECT 
+        COUNT(CASE WHEN rating = 'positive' THEN 1 END) as positive_count,
+        COUNT(CASE WHEN rating = 'negative' THEN 1 END) as negative_count,
+        COUNT(*) as total_feedback
+      FROM "ChatFeedback" 
+      WHERE "userId" = $1
+    `, [userId]);
+    
+    const feedback = feedbackResult.rows[0];
+    const satisfactionScore = feedback.total_feedback > 0 
+      ? Math.round((feedback.positive_count / feedback.total_feedback) * 100)
+      : 0;
+    
+    res.json({
+      success: true,
+      analytics: {
+        positiveFeedback: feedback.positive_count,
+        negativeFeedback: feedback.negative_count,
+        totalFeedback: feedback.total_feedback,
+        satisfactionScore: satisfactionScore
+      }
+    });
+  } catch (error) {
+    logger.error('Feedback analytics error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+};
+
+/**
+ * Get feedback status for a specific chat
+ */
+export const getChatFeedbackStatus = async (req: Request, res: Response) => {
+  try {
+    const { chatId } = req.params;
+    const userId = req.user.id;
+    
+    // Get all feedback for this chat
+    const feedbackResult = await db.query(`
+      SELECT "responseId", "rating", "suggestion", "tonePreference"
+      FROM "ChatFeedback"
+      WHERE "chatId" = $1 AND "userId" = $2
+    `, [chatId, userId]);
+    
+    // Convert to object with responseId as key
+    const feedback: any = {};
+    feedbackResult.rows.forEach(row => {
+      feedback[row.responseId] = {
+        rating: row.rating,
+        suggestion: row.suggestion,
+        tonePreference: row.tonePreference
+      };
+    });
+    
+    res.json({ success: true, feedback });
+  } catch (error) {
+    logger.error('Feedback status API error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+};
+
+/**
+ * Adjust response tone
+ */
+export const adjustTone = async (req: Request, res: Response) => {
+  try {
+    const { chatId } = req.params;
+    const { responseId, tone } = req.body;
+    const userId = req.user.id;
+    
+    // Get chat and twin info
+    const chatResult = await db.query(`
+      SELECT c."twinId", c."chatVector" FROM "Chat" c
+      WHERE c.id = $1 AND c."userId" = $2
+    `, [chatId, userId]);
+    
+    if (chatResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+    
+    // Adjust tone using AI service
+    const adjustedResponse = await adjustResponseTone(chatResult.rows[0].twinId, responseId, tone);
+    
+    res.json({ success: true, adjustedResponse });
+  } catch (error) {
+    logger.error('Tone adjustment error:', error);
+    res.status(500).json({ error: 'Failed to adjust tone' });
+  }
+};
