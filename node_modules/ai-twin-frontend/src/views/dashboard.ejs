@@ -636,28 +636,48 @@
     <nav class="glass-effect sticky top-0 z-50 border-b border-white/20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
-                <!-- Logo -->
-                <div class="flex items-center space-x-3">
-                    <% if (typeof user !== 'undefined' && user) { %>
-                        <a href="/dashboard" class="flex items-center space-x-3 group">
-                            <div class="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                </svg>
-                            </div>
-                            <span class="text-2xl font-bold gradient-text">AI Twin</span>
+                <!-- Left: Logo + Navigation Links -->
+                <div class="flex items-center space-x-6">
+                    <!-- Logo -->
+                    <div class="flex items-center space-x-3">
+                        <% if (typeof user !== 'undefined' && user) { %>
+                            <a href="/dashboard" class="flex items-center space-x-3 group">
+                                <div class="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                    </svg>
+                                </div>
+                                <span class="text-2xl font-bold gradient-text">AI Twin</span>
+                            </a>
+                        <% } else { %>
+                            <a href="/" class="flex items-center space-x-3 group">
+                                <div class="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                    </svg>
+                                </div>
+                                <span class="text-2xl font-bold gradient-text">AI Twin</span>
+                            </a>
+                        <% } %>
+                    </div>
+                    
+                    <!-- Top Navigation Links -->
+                    <div class="flex items-center space-x-6">
+                        <!-- Discover Link - Always Visible -->
+                        <a href="/discover" class="text-gray-700 hover:text-primary transition-colors font-medium text-base">
+                            Discover
                         </a>
-                    <% } else { %>
-                        <a href="/" class="flex items-center space-x-3 group">
-                            <div class="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                </svg>
-                            </div>
-                            <span class="text-2xl font-bold gradient-text">AI Twin</span>
-                        </a>
-                    <% } %>
+                        
+                        <!-- Dashboard Link - Only if logged in -->
+                        <% if (typeof user !== 'undefined' && user) { %>
+                            <a href="/dashboard" class="text-gray-700 hover:text-primary transition-colors font-medium text-base">
+                                Dashboard
+                            </a>
+                        <% } %>
+                    </div>
                 </div>
+
+                <!-- Right: User Menu -->                
 
                 <!-- User Menu -->
                 <div class="flex items-center space-x-4">
@@ -716,15 +736,6 @@
                                         <span class="font-medium">Dashboard</span>
                                     </a>
                                     
-                                    <a href="/discover" class="flex items-center px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:text-primary transition-all duration-200 group">
-                                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
-                                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                            </svg>
-                                        </div>
-                                        <span class="font-medium">Discover Twins</span>
-                                    </a>
-                                    
                                     <a href="/profile" class="flex items-center px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:text-primary transition-all duration-200 group">
                                         <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
                                             <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -734,14 +745,37 @@
                                         <span class="font-medium">Profile Settings</span>
                                     </a>
                                     
-                                    <a href="/change-password" class="flex items-center px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:text-primary transition-all duration-200 group">
+                                    <a href="/twin/manage" class="flex items-center px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:text-primary transition-all duration-200 group">
                                         <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
                                             <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                                             </svg>
                                         </div>
-                                        <span class="font-medium">Change Password</span>
+                                        <span class="font-medium">My Twin</span>
                                     </a>
+                                    
+                                    <a href="/analytics" class="flex items-center px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:text-primary transition-all duration-200 group">
+                                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
+                                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="font-medium">Analytics</span>
+                                    </a>
+                                    
+                                    <!-- Divider -->
+                                    <div class="border-t border-gray-100/50 my-3"></div>
+                                    
+                                    <!-- Settings -->
+                                    <a href="/profile?tab=settings" class="flex items-center px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:text-primary transition-all duration-200 group">
+                                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
+                                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="font-medium">Settings</span>
+                                    </a>                                    
                                     
                                     <!-- Divider -->
                                     <div class="border-t border-gray-100/50 my-3"></div>
@@ -777,87 +811,212 @@
     <div class="max-w-6xl mx-auto">
         <h1 class="text-3xl font-bold text-gray-900 mb-8">Welcome, <%= user?.handle || user?.email || 'User' %>!</h1>
         
-        <div class="grid md:grid-cols-2 gap-8 mb-8">
-            <% if (hasTwins) { %>
-                <!-- Chat with Twin Buttons -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Chat with Your AI Twin</h3>
-                    <p class="text-gray-600 mb-4">Start a conversation with your AI twin</p>
-                    <div class="space-y-3">
-                        <a href="/chat-enhanced" class="block bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors text-center">
-                            <span class="inline-flex items-center">
-                                🚀 Start Enhanced Chat
-                            </span>
+        <!-- Quick Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600 mb-1">Total Chats</p>
+                        <p class="text-3xl font-bold text-gray-900"><%= stats?.totalChats || 0 %></p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600 mb-1">Total Views</p>
+                        <p class="text-3xl font-bold text-gray-900"><%= stats?.totalViews || 0 %></p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600 mb-1">Total Likes</p>
+                        <p class="text-3xl font-bold text-gray-900"><%= stats?.totalLikes || 0 %></p>
+                    </div>
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600 mb-1">Total Followers</p>
+                        <p class="text-3xl font-bold text-gray-900"><%= stats?.totalFollowers || 0 %></p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <% if (hasTwins && twin) { %>
+            <!-- Active Twin Card -->
+            <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl shadow-lg p-6 mb-8 border border-blue-100">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900">Your AI Twin</h3>
+                            <p class="text-gray-600"><%= twin.isPublic ? '@' + (twin.publicHandle || 'twin') : 'Private Twin' %></p>
+                            <% if (twin.isPublic) { %>
+                                <span class="inline-block mt-2 px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Public</span>
+                            <% } else { %>
+                                <span class="inline-block mt-2 px-3 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded-full">Private</span>
+                            <% } %>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <a href="/chat-enhanced" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium shadow-lg">
+                            💬 Start Chat
+                        </a>
+                        <a href="/profile?tab=twin" class="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium border border-gray-200">
+                            ⚙️ Manage
                         </a>
                     </div>
                 </div>
-            <% } else { %>
-                <!-- Create Twin Button -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Create New AI Twin</h3>
-                    <p class="text-gray-600 mb-4">Upload text samples to create your AI twin</p>
-                    <a href="/twin/create" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
-                        Create Twin
-                    </a>
+                <div class="grid grid-cols-3 gap-4 mt-4">
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-gray-900"><%= stats?.totalLikes || 0 %></p>
+                        <p class="text-sm text-gray-600">Likes</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-gray-900"><%= stats?.totalFollowers || 0 %></p>
+                        <p class="text-sm text-gray-600">Followers</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-gray-900"><%= stats?.totalChats || 0 %></p>
+                        <p class="text-sm text-gray-600">Chats</p>
+                    </div>
                 </div>
-            <% } %>
-            
-            <!-- My Twins Section -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">My AI Twins</h3>
-                <p class="text-gray-600 mb-4">
-                    <% if (hasTwins) { %>
-                        You have <%= twins.length %> AI twin<%= twins.length > 1 ? 's' : '' %> created.
-                    <% } else { %>
-                        You haven't created any AI twins yet.
-                    <% } %>
-                </p>
-                <a href="/my-twins" class="inline-block bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors font-semibold">
-                    View My Twins
-                </a>
-                <div id="twinsList" class="mt-4 space-y-3"></div>
             </div>
-        </div>
-        
-
-        <!-- Public Twin Management Section -->
-        <div class="mb-8">
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center mb-4">
-                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+            
+            <!-- Quick Actions -->
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                <a href="/twin/<%= twin.id %>/ai-edit" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all group">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900">Edit Style</h4>
+                            <p class="text-sm text-gray-600">Customize your twin's personality</p>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/twin/<%= twin.id %>/learning-dashboard" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all group">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900">Learning Dashboard</h4>
+                            <p class="text-sm text-gray-600">Track training progress</p>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/analytics" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all group">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900">View Analytics</h4>
+                            <p class="text-sm text-gray-600">Detailed insights & metrics</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        <% } else { %>
+            <!-- Welcome State (No Twin) -->
+            <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-2xl p-12 mb-8 text-center text-white">
+                <div class="max-w-2xl mx-auto">
+                    <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                         </svg>
                     </div>
-                    <div>
-                        <h3 class="text-xl font-bold text-gray-800">🌐 Public Twin Profile</h3>
-                        <p class="text-gray-600">Make your AI twin public and share it with the world!</p>
-                    </div>
-                </div>
-                <div id="publicTwinStatus" class="mb-4">
-                    <!-- Status will be loaded here -->
+                    <h2 class="text-4xl font-bold mb-4">Create Your AI Twin</h2>
+                    <p class="text-xl text-white/90 mb-8">Bring your digital persona to life with AI. Upload text samples and let your twin learn your unique style.</p>
+                    <a href="/twin/create" class="inline-block px-8 py-4 bg-white text-blue-600 rounded-xl font-bold text-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl">
+                        🚀 Get Started
+                    </a>
                 </div>
             </div>
-        </div>
-
-        <!-- INVITE FRIENDS SECTION - Always Visible -->
-        <div class="grid md:grid-cols-1 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">Invite Friends</h3>
-                <p class="text-gray-600 mb-4">Share your referral link and invite friends to join</p>
-                <button id="copyReferralBtn" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
-                Copy Referral Link
-                </button>           
-         </div>
-        </div>
+        <% } %>
 
         <!-- Recent Chats Section -->
-        <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">Recent Chats</h2>
+        <div class="mt-8 bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-900">Recent Chats</h2>
+                <a href="/chat-enhanced" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    View All →
+                </a>
+            </div>
             <div id="chatsList" class="space-y-3">
-                <p class="text-gray-500">Loading chats...</p>
+                <% if (recentActivity && recentActivity.length > 0) { %>
+                    <% recentActivity.forEach(chat => { %>
+                        <a href="/chat-enhanced?chatId=<%= chat.id %>" class="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium text-gray-900"><%= chat.title || 'Untitled Chat' %></p>
+                                    <p class="text-sm text-gray-500"><%= new Date(chat.updatedAt).toLocaleString() %></p>
+                                </div>
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </div>
+                        </a>
+                    <% }); %>
+                <% } else { %>
+                    <div class="text-center py-8">
+                        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                        <p class="text-gray-500 mb-4">No chats yet</p>
+                        <a href="/chat-enhanced" class="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                            Start Your First Chat
+                        </a>
+                    </div>
+                <% } %>
             </div>
         </div>
+    </div>
+</div>
+</main>        
     </div>
 </div>
 </main>
