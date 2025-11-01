@@ -78,25 +78,25 @@
                     </div>
                 </div>
             </div>
-    
+
             <!-- Feedback Analytics Section -->
-            <div class="bg-white rounded-lg shadow p-6 mb-8">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Feedback Analytics</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="text-center">
-                        <p class="text-2xl font-bold text-green-600" id="positiveFeedback">-</p>
-                        <p class="text-sm text-gray-600">Positive Feedback</p>
-                    </div>
-                    <div class="text-center">
-                        <p class="text-2xl font-bold text-red-600" id="negativeFeedback">-</p>
-                        <p class="text-sm text-gray-600">Negative Feedback</p>
-                    </div>
-                    <div class="text-center">
-                        <p class="text-2xl font-bold text-blue-600" id="satisfactionScore">-</p>
-                        <p class="text-sm text-gray-600">Satisfaction Score</p>
-                    </div>
-                </div>
-            </div>
+<div class="bg-white rounded-lg shadow p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Feedback Analytics</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="text-center">
+            <p class="text-2xl font-bold text-green-600" id="positiveFeedback">-</p>
+            <p class="text-sm text-gray-600">Positive Feedback</p>
+        </div>
+        <div class="text-center">
+            <p class="text-2xl font-bold text-red-600" id="negativeFeedback">-</p>
+            <p class="text-sm text-gray-600">Negative Feedback</p>
+        </div>
+        <div class="text-center">
+            <p class="text-2xl font-bold text-blue-600" id="satisfactionScore">-</p>
+            <p class="text-sm text-gray-600">Satisfaction Score</p>
+        </div>
+    </div>
+</div>
             
             <!-- Recent Activity -->
             <div class="bg-white rounded-lg shadow">
@@ -139,7 +139,7 @@
                 console.log('Debug data:', data);
                 
                 if (data.success) {
-                    alert('Debug Info:\nUser: ' + (data.user?.email || 'No user') + '\nTwins: ' + (data.counts?.twins || 0) + '\nChats: ' + (data.counts?.chats || 0) + '\nEvents: ' + (data.counts?.events || 0));
+                    alert(\`Debug Info:\\nUser: \${data.user?.email || 'No user'}\\nTwins: \${data.counts?.twins || 0}\\nChats: \${data.counts?.chats || 0}\\nEvents: \${data.counts?.events || 0}\`);
                 } else {
                     alert('Debug failed: ' + data.error);
                 }
@@ -182,16 +182,16 @@
                 // Load user analytics
                 const response = await fetch('/api/metrics/user');
                 const data = await response.json();
-    
-                // Load feedback analytics
-                const feedbackResponse = await fetch('/api/analytics/feedback');
-                const feedbackData = await feedbackResponse.json();
-                
-                if (feedbackData.success) {
-                    document.getElementById('positiveFeedback').textContent = feedbackData.analytics.positiveFeedback;
-                    document.getElementById('negativeFeedback').textContent = feedbackData.analytics.negativeFeedback;
-                    document.getElementById('satisfactionScore').textContent = feedbackData.analytics.satisfactionScore + '%';
-                }
+
+                        // Load feedback analytics
+        const feedbackResponse = await fetch('/api/analytics/feedback');
+        const feedbackData = await feedbackResponse.json();
+        
+        if (feedbackData.success) {
+            document.getElementById('positiveFeedback').textContent = feedbackData.analytics.positiveFeedback;
+            document.getElementById('negativeFeedback').textContent = feedbackData.analytics.negativeFeedback;
+            document.getElementById('satisfactionScore').textContent = feedbackData.analytics.satisfactionScore + '%';
+        }
                 
                 console.log('Raw analytics response:', data);
                 
@@ -207,15 +207,15 @@
                     // Update recent activity
                     const activityContainer = document.getElementById('recentActivity');
                     if (data.analytics?.recentActivity && data.analytics.recentActivity.length > 0) {
-                        activityContainer.innerHTML = data.analytics.recentActivity.map(activity => 
-                            '<div class="flex items-center space-x-3">' +
-                            '<div class="w-2 h-2 bg-blue-500 rounded-full"></div>' +
-                            '<div class="flex-1">' +
-                            '<p class="text-sm text-gray-900">' + activity.description + '</p>' +
-                            '<p class="text-xs text-gray-500">' + new Date(activity.timestamp).toLocaleString() + '</p>' +
-                            '</div>' +
-                            '</div>'
-                        ).join('');
+                        activityContainer.innerHTML = data.analytics.recentActivity.map(activity => \`
+                            <div class="flex items-center space-x-3">
+                                <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-gray-900">\${activity.description}</p>
+                                    <p class="text-xs text-gray-500">\${new Date(activity.timestamp).toLocaleString()}</p>
+                                </div>
+                            </div>
+                        \`).join('');
                     } else {
                         activityContainer.innerHTML = '<p class="text-gray-500">No recent activity</p>';
                     }
@@ -242,4 +242,4 @@
             loadAnalytics();
         });
     </script>
-    ` }) %>
+` }) %>
