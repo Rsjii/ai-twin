@@ -1289,6 +1289,22 @@ if (currentChatItem) {
             });
         }
 
+        // Handle Enter key for submission (Enter = submit, Shift+Enter = new line)
+        if (messageInput) {
+            messageInput.addEventListener('keydown', function(e) {
+                // If Enter is pressed without Shift, submit the form
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault(); // Prevent default newline behavior
+                    // Trigger form submission
+                    const messageForm = document.getElementById('messageForm');
+                    if (messageForm) {
+                        messageForm.dispatchEvent(new Event('submit'));
+                    }
+                }
+                // If Shift+Enter is pressed, allow default behavior (new line)
+            });
+        }
+
         }); // Close DOMContentLoaded
     </script>
 </body>
