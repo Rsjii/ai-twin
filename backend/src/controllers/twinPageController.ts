@@ -2,39 +2,11 @@ import { Response } from 'express';
 import { db } from '../config/database';
 
 /**
- * My Twins page - List all user's twins
+ * My Twins page - Redirects to twin management page
  */
-export async function getMyTwins(req: any, res: Response) {
-  try {
-    console.log('=== MY TWINS ENDPOINT ===');
-    console.log('req.user:', req.user);
-    console.log('req.user.id:', (req.user as any)?.id);
-    console.log('========================');
-    
-    if (!req.user || !(req.user as any).id) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-
-    // Fetch user's twins from database
-    const twins = await db.query(`
-      SELECT id, "styleVector", "sampleReply", "createdAt" 
-      FROM "Twin" 
-      WHERE "userId" = $1 
-      ORDER BY "createdAt" DESC
-    `, [(req.user as any).id]);
-
-    console.log('Found twins:', twins.rows);
-
-    res.render('my-twins', { 
-      title: 'My AI Twins',
-      user: req.user,
-      twins: twins.rows,
-      csrfToken: res.locals['csrfToken']
-    });
-  } catch (error) {
-    console.error('Error fetching twins:', error);
-    res.status(500).json({ error: 'Failed to load twins', details: error.message });
-  }
+export async function getMyTwins(_req: any, res: Response) {
+  // Redirect to new twin management page
+  return res.redirect('/twin/manage');
 }
 
 /**

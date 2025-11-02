@@ -3,6 +3,7 @@ import { requireJWTFromCookie, extractJWTFromCookie } from '../middleware/jwtCoo
 import { generateCSRFToken } from '../middleware/csrf';
 import { optionalAuth } from '../middleware/auth';
 import * as twinPageController from '../controllers/twinPageController';
+import * as twinManagePageController from '../controllers/twinManagePageController';
 
 const router = Router();
 
@@ -21,5 +22,7 @@ router.get('/twin/:id/style-customize', requireJWTFromCookie, generateCSRFToken,
 // Twin Learning Dashboard page
 router.get('/twin/:id/learning-dashboard', requireJWTFromCookie, generateCSRFToken, twinPageController.getTwinLearningDashboard);
 
-export default router;
+// Twin Management page
+router.get('/twin/manage', requireJWTFromCookie, generateCSRFToken, twinManagePageController.getTwinManage);
 
+export default router;

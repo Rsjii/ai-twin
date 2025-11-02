@@ -745,6 +745,7 @@
                                         <span class="font-medium">Profile Settings</span>
                                     </a>
                                     
+                                    <% if (hasTwins && twinId) { %>
                                     <a href="/twin/manage" class="flex items-center px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:text-primary transition-all duration-200 group">
                                         <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
                                             <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -753,6 +754,7 @@
                                         </div>
                                         <span class="font-medium">My Twin</span>
                                     </a>
+                                    <% } %>
                                     
                                     <a href="/analytics" class="flex items-center px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:text-primary transition-all duration-200 group">
                                         <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
@@ -895,7 +897,7 @@
                         <a href="/chat-enhanced" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium shadow-lg">
                             💬 Start Chat
                         </a>
-                        <a href="/profile?tab=twin" class="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium border border-gray-200">
+                        <a href="/twin/manage" class="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium border border-gray-200">
                             ⚙️ Manage
                         </a>
                     </div>

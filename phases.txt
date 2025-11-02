@@ -161,10 +161,10 @@ Estimated changes: ~3 lines added
 Files to modify:
 1. `frontend/src/views/my-twins.ejs`
 
-Option A: Redirect to Profile Tab 2
-Option B: Keep but simplify (show single twin card with management links)
+Option A: Redirect to manage endpoint
+Option B: Keep nice beeter than profile?tab-2but simplify (show single twin card with management links)
 
-Recommendation: Option A — redirect `/my-twins` → `/profile?tab=2`
+Recommendation: Option A — redirect `/my-twins` → `manage endpoint'
 
 Estimated changes: ~10 lines (redirect logic)
 
@@ -174,8 +174,8 @@ Estimated changes: ~10 lines (redirect logic)
 
 Files to modify:
 1. `frontend/src/views/dashboard.ejs`
-   - Update "My Twins" links → Profile Tab 2
-   - Update "Public Twin" links → Profile Tab 2 or `/twin/manage`
+   - Update "My Twins" links → manage 
+   - Update "Public Twin" links →`/twin/manage`
 
 2. `frontend/src/views/layout.ejs`
    - Update dropdown links
@@ -234,7 +234,7 @@ Files to modify:
 
 ### Step 5: Update navigation & cleanup (1-2 hours)
 - Update all internal links
-- Redirect `/my-twins` → `/profile?tab=2`
+- Redirect `/my-twins` → `manage'
 - Test complete flow
 
 ---

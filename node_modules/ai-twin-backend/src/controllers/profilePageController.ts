@@ -46,6 +46,7 @@ export async function getProfile(req: any, res: Response) {
       title: 'Profile - AI Twin',
       user: userWithDefaults,
       twin: twin,
+      twinId: twin?.id || null, // Twin ID for navigation links
       hasTwins: hasTwins,
       activeTab: activeTab, // 'profile', 'twin', or 'settings'
       csrfToken: res.locals['csrfToken'],
@@ -60,7 +61,7 @@ export async function getProfile(req: any, res: Response) {
 /**
  * Change Password page (now redirects to profile settings tab)
  */
-export async function getChangePassword(req: any, res: Response) {
+export async function getChangePassword(_req: any, res: Response) {
   // Redirect to profile page with settings tab
   return res.redirect('/profile?tab=settings');
 }
