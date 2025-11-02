@@ -3,6 +3,7 @@ import { extractJWTFromCookie } from '../middleware/jwtCookie';
 import { generateCSRFToken } from '../middleware/csrf';
 import * as publicPageController from '../controllers/publicPageController';
 import { getPublicChatPage } from '../modules/twin/publicTwinController';
+import { getPublicChatHistoryPage } from '../controllers/publicChatHistoryPageController';
 
 const router = Router();
 
@@ -20,6 +21,9 @@ router.get('/p/:handle', generateCSRFToken, publicPageController.getPublicProfil
 
 // Public Chat page route (renders EJS view)
 router.get('/public-twin/chat/:twinId', extractJWTFromCookie, generateCSRFToken, getPublicChatPage);
+
+// Public Chat History page
+router.get('/public-chat/history', extractJWTFromCookie, generateCSRFToken, getPublicChatHistoryPage);
 
 export default router;
 

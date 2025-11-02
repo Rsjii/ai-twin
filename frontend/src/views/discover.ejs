@@ -45,7 +45,10 @@
                         <a href="/dashboard" class="text-gray-700 hover:text-primary transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white/50">Dashboard</a>
                         <a href="/discover" class="text-primary bg-white/50 px-3 py-2 rounded-lg font-medium">Discover</a>
                         <a href="/chat-enhanced" class="text-gray-700 hover:text-primary transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white/50">Chat</a>
-                    </nav>
+                        <a href="/public-chat/history" class="text-gray-700 hover:text-primary transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white/50">
+                            My Chats
+                        </a>
+                    </nav>                    
                 </div>
             </div>
         </div>
@@ -54,10 +57,20 @@
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
-        <div class="mb-8">
+<!-- AFTER: -->
+<div class="mb-8">
+    <div class="flex items-center justify-between">
+        <div>
             <h1 class="text-3xl font-bold text-gray-900 mb-2">Discover AI Twins</h1>
             <p class="text-gray-600">Explore trending, popular, and recommended AI twins from the community</p>
         </div>
+        <a href="/public-chat/history" 
+           class="hidden md:flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-xl rounded-xl border border-white/20 hover:shadow-lg transition-all">
+            <span>💬</span>
+            <span class="font-medium text-gray-700">My Chats</span>
+        </a>
+    </div>
+</div>        
 
         <!-- Search Bar -->
         <div class="mb-8">

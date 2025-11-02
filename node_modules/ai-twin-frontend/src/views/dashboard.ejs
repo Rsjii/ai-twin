@@ -950,8 +950,8 @@
                 </div>
             </div>
             
-<!-- 🔥 DISCOVER EXCITING TWINS SECTION (NEW) -->
-<div class="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-8 mb-8 border border-white/30 hover:shadow-2xl transition-shadow duration-300">
+<!-- 🔥 DISCOVER EXCITING TWINS SECTION -->
+<div class="mb-8">
     <!-- Section Header -->
     <div class="flex items-center justify-between mb-6">
         <div>
@@ -960,66 +960,50 @@
                 Discover Exciting Twins
             </h2>
             <p class="text-gray-600 text-sm">Explore trending and recommended twins</p>
-                        </div>
+        </div>
         <a href="/discover" class="text-sm text-primary hover:text-secondary font-medium transition-colors">
             View All →
         </a>
     </div>
     
-    <!-- 2-Column Grid Layout -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <!-- LEFT COLUMN: Trending & Recommendations -->
-                        <div>
-            <!-- Trending Carousel -->
-            <div class="mb-6">
-                <div class="flex items-center gap-2 mb-4">
-                    <div class="w-8 h-8 bg-gradient-to-r from-amber-100 to-orange-100 rounded-lg flex items-center justify-center">
-                        <span class="text-lg">🌟</span>
-                    </div>
-                    <span class="text-lg font-semibold text-gray-900">Trending Now</span>
+    <!-- Two Separate Boxes with Gap -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- LEFT BOX: Trending Now -->
+        <div class="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-white/30 hover:shadow-2xl transition-shadow duration-300">
+            <div class="flex items-center gap-2 mb-4">
+                <div class="w-8 h-8 bg-gradient-to-r from-amber-100 to-orange-100 rounded-lg flex items-center justify-center">
+                    <span class="text-lg">🌟</span>
                 </div>
-                <div id="trendingCarousel" class="relative">
-                    <div id="trendingCards" class="flex gap-6 overflow-x-auto pb-4 scrollbar-hide" style="scroll-behavior: smooth;">
-                        <!-- Trending twin cards will be loaded here via JS -->
-                    </div>
+                <span class="text-lg font-semibold text-gray-900">Trending Now</span>
+            </div>
+            <div id="trendingCarousel" class="relative">
+                <div id="trendingCards" class="flex gap-6 overflow-x-auto pb-4 scrollbar-hide" style="scroll-behavior: smooth;">
+                    <!-- Trending twin cards will be loaded here via JS -->
                 </div>
             </div>
-            
-            <!-- Optional: Recommended For You (can add later) -->
-            <!-- <div>
-                <div class="flex items-center mb-4">
-                    <span class="text-lg font-semibold text-gray-800 mr-2">🎯</span>
-                    <span class="text-gray-700 font-medium">Recommended For You</span>
-                </div>
-                <div id="recommendedCards" class="space-y-3">
-                    Recommended twins will be loaded here
-                </div>
-            </div> -->
         </div>
         
-        <!-- RIGHT COLUMN: Recent Interactions -->
-        <div>
+        <!-- RIGHT BOX: You Recently Chatted With -->
+        <div class="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-white/30 hover:shadow-2xl transition-shadow duration-300">
             <div id="recentInteractionsSection">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
-                            <span class="text-lg">💬</span>
-                        </div>
-                        <span class="text-lg font-semibold text-gray-900">You Recently Chatted With</span>
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
+                        <span class="text-lg">💬</span>
                     </div>
+                    <span class="text-lg font-semibold text-gray-900">You Recently Chatted With</span>
                 </div>
                 <div id="recentInteractions" class="space-y-3">
                     <!-- Recent interaction cards will be loaded here via JS -->
                 </div>
                 <div class="mt-4 text-center">
-                    <a href="/discover" class="text-sm text-primary hover:text-secondary font-medium transition-colors">
+                    <a href="/public-chat/history" class="text-sm text-primary hover:text-secondary font-medium transition-colors">
                         View All Chats →
                     </a>
                 </div>
             </div>
         </div>
     </div>
-</div>            
+</div>         
                         
             <!-- Quick Actions (Simplified - Only 2 Cards) -->
             <div class="grid md:grid-cols-2 gap-6 mb-8">
@@ -1115,6 +1099,7 @@
 </main>
 
 <script>
+    const MAX_RECENT_CHATS = 1;
     // Set CSRF token from server
     window.csrfToken = '<%= csrfToken %>';
     console.log('✅ CSRF Token set:', window.csrfToken);
@@ -1263,7 +1248,7 @@ async function loadPublicChatInteractions() {
         
         // API returns: { success: true, chats: [{ twin, latestChat, lastMessage }], total }
         // Already sorted by lastActivity DESC
-        const twinChats = data.chats.slice(0, 4); // Show top 4 most recent
+        const twinChats = data.chats.slice(0, MAX_RECENT_CHATS); // Show top MAX_RECENT_CHATS most recent
         
         renderRecentInteractions(twinChats);
     } catch (error) {
@@ -1352,22 +1337,11 @@ function renderRecentInteractions(chats) {
                 </div>
             ` : ''}
             
-            <div class="flex items-center gap-2">
-                <button onclick="event.stopPropagation(); window.location.href='/public-twin/chat/${twin.id}'" class="flex-1 px-3 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-xs text-center">
+           <button onclick="event.stopPropagation(); window.location.href='/public-twin/chat/${twin.id}'" 
+                        class="w-full px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
                     💬 Continue Chat
                 </button>
-                <button onclick="event.stopPropagation(); window.location.href='/@${twin.publicHandle || 'twin'}'" class="px-3 py-2 bg-white/60 backdrop-blur-sm text-gray-700 rounded-lg hover:bg-white/80 transition-all font-medium text-xs border border-white/40">
-                    👁️ View
-                </button>
-                <button onclick="event.stopPropagation(); toggleChatHistory('${twin.id}', this)" class="px-3 py-2 bg-white/60 backdrop-blur-sm text-gray-700 rounded-lg hover:bg-white/80 transition-all font-medium text-xs border border-white/40" title="View Chat History">
-                    📜
-                </button>
-            </div>
             
-            <!-- Chat History Container (initially hidden) -->
-            <div id="chatHistory-${twin.id}" class="hidden mt-3 pt-3 border-t border-gray-200">
-                <div class="text-xs text-gray-500 mb-2">Loading chat history...</div>
-            </div>
         `;
         
         // Click on card navigates to public chat
@@ -1377,76 +1351,11 @@ function renderRecentInteractions(chats) {
                 window.location.href = `/public-twin/chat/${twin.id}`;
             }
         });
-                
+                        
         container.appendChild(card);
     });
 }
 
-// Toggle chat history for a twin
-async function toggleChatHistory(twinId, button) {
-    const container = document.getElementById(`chatHistory-${twinId}`);
-    if (!container) return;
-    
-    // Toggle visibility
-    const isExpanded = !container.classList.contains('hidden');
-    
-    if (isExpanded) {
-        // Collapse
-        container.classList.add('hidden');
-        button.textContent = '📜';
-    } else {
-        // Expand - load chat history
-        container.classList.remove('hidden');
-        button.textContent = '▼';
-        
-        // Check if already loaded
-        if (container.dataset.loaded === 'true') {
-            return; // Already loaded
-        }
-        
-        try {
-            const response = await fetch(`/api/public-chat/twin/${twinId}/chats`, {
-                credentials: 'include',
-                headers: {
-                    'X-CSRF-Token': window.csrfToken
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to fetch chat history');
-            }
-            
-            const data = await response.json();
-            
-            if (data.success && data.chats && data.chats.length > 0) {
-                renderChatHistory(twinId, data.chats, container);
-            } else {
-                container.innerHTML = '<div class="text-xs text-gray-500 text-center py-2">No chat history yet</div>';
-            }
-            
-            container.dataset.loaded = 'true';
-        } catch (error) {
-            console.error('Error loading chat history:', error);
-            container.innerHTML = '<div class="text-xs text-red-500 text-center py-2">Failed to load chat history</div>';
-        }
-    }
-}
-
-// Render chat history list
-function renderChatHistory(twinId, chats, container) {
-    container.innerHTML = chats.map(chat => `
-        <div class="mb-2 p-2 bg-gray-50/50 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors" onclick="window.location.href='/public-twin/chat/${twinId}?chatId=${chat.id}'">
-            <div class="flex items-center justify-between mb-1">
-                <span class="text-xs font-medium text-gray-700">${chat.title || 'Chat'}</span>
-                <span class="text-xs text-gray-500">${chat.messageCount || 0} msgs</span>
-            </div>
-            ${chat.lastMessage ? `
-                <p class="text-xs text-gray-500 line-clamp-1">${chat.lastMessage.content.substring(0, 60)}${chat.lastMessage.content.length > 60 ? '...' : ''}</p>
-            ` : ''}
-            <p class="text-xs text-gray-400 mt-1">${formatTimeAgo(new Date(chat.lastActivity || chat.createdAt))}</p>
-        </div>
-    `).join('');
-}
 
     // Format time ago helper
     function formatTimeAgo(date) {
