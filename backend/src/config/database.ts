@@ -1,4 +1,5 @@
 import { db } from './db';
+import { logger } from './logger';
 
 // SQL to create all tables
 const createTablesSQL = `
@@ -117,6 +118,7 @@ CREATE TABLE IF NOT EXISTS "PublicChat" (
     "id" TEXT NOT NULL,
     "twinId" TEXT NOT NULL,
     "visitorId" TEXT,
+    "userId" TEXT,
     "messageCount" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "lastActivity" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -569,17 +571,21 @@ export const twinFollowQueries = {
 
 // Public Chat Queries
 export const publicChatQueries = {
-  create: async (twinId: string, visitorId?: string) => {
+  create: async (twinId: string, visitorId?: string, userId?: string) => {
     const id = generateId();
+    logger.info(`[publicChatQueries.create] Creating chat - Id: ${id}, TwinId: ${twinId}, UserId: ${userId || 'null'}, VisitorId: ${visitorId || 'null'}`);
     const result = await db.query(
-      'INSERT INTO "PublicChat" (id, "twinId", "visitorId") VALUES ($1, $2, $3) RETURNING *',
-      [id, twinId, visitorId || null]
+      'INSERT INTO "PublicChat" (id, "twinId", "visitorId", "userId") VALUES ($1, $2, $3, $4) RETURNING *',
+      [id, twinId, visitorId || null, userId || null]
     );
+    if (result && result.rows && result.rows[0]) {
+      logger.info(`[publicChatQueries.create] Chat created - Result userId: ${result.rows[0].userId || 'null'}`);
+    }
     // Update chat count
     await db.query('UPDATE "Twin" SET "chatCount" = "chatCount" + 1 WHERE id = $1', [twinId]);
-    return result.rows[0];
+    return result?.rows?.[0];
   },
-
+  
   updateMessageCount: async (chatId: string) => {
     const result = await db.query(
       'UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "lastActivity" = NOW() WHERE id = $1 RETURNING *',

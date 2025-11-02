@@ -308,14 +308,16 @@ export const getMyTwinProfile = async (req: Request, res: Response) => {
   }
 };
 
-// Get public chat page
-export const getPublicChatPage = async (req: Request, res: Response) => {
+// Line 312: Change to AuthenticatedRequest to get userId
+export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { twinId } = req.params;
+    const { chatId } = req.query; // Get chatId from query params
+    const userId = req.user?.id; // Get userId if logged in
     
-    // Get twin details
+    // Get twin details (existing code)
     const twinResult = await db.query(`
-      SELECT id, "publicHandle", "sampleReply", "isPublic"
+      SELECT id, "publicHandle", "sampleReply", "isPublic", "profileImage", bio
       FROM "Twin"
       WHERE id = $1 AND "isPublic" = true
     `, [twinId]);
@@ -325,7 +327,26 @@ export const getPublicChatPage = async (req: Request, res: Response) => {
     }
     
     const twin = twinResult.rows[0];
-    res.render('public-chat', { twin });
+    
+    // If chatId provided, validate it belongs to user
+    let initialChatId = null;
+    if (chatId && userId) {
+      const chatResult = await db.query(`
+        SELECT id FROM "PublicChat" 
+        WHERE id = $1 AND "twinId" = $2 AND "userId" = $3
+      `, [chatId, twinId, userId]);
+      
+      if (chatResult.rows.length > 0) {
+        initialChatId = chatId;
+      }
+    }
+    
+    // Render with twin data and optional initial chatId
+    res.render('public-chat', { 
+      twin, 
+      initialChatId,
+      csrfToken: req.csrfToken?.() || ''
+    });
   } catch (error) {
     console.error('Public chat page error:', error);
     res.status(500).send('Internal server error');

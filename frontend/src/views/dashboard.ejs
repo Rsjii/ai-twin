@@ -590,7 +590,7 @@
                 min-width: 240px;
             }
         }
-    </style>    
+    </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen font-inter">
     <!-- Mobile Menu Button -->
@@ -950,51 +950,76 @@
                 </div>
             </div>
             
-            <!-- 🔥 DISCOVER EXCITING TWINS SECTION (NEW) -->
-            <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-8 mb-8 border border-white/20">
-                <!-- Section Header -->
-                <div class="flex items-center justify-between mb-6">
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-900 mb-2 flex items-center">
-                            <span class="mr-2">🔥</span>
-                            Discover Exciting Twins
-                        </h2>
-                        <p class="text-gray-600 text-sm">Explore trending and recommended twins</p>
-                    </div>
-                    <a href="/discover" class="text-sm text-primary hover:text-secondary font-medium transition-colors">
-                        View All →
-                    </a>
-                </div>
-                
-                <!-- Trending Carousel -->
-                <div class="mb-8">
-                    <div class="flex items-center mb-4">
-                        <span class="text-lg font-semibold text-gray-800 mr-2">🌟</span>
-                        <span class="text-gray-700 font-medium">Trending Now</span>
-                    </div>
-                    <div id="trendingCarousel" class="relative">
-                        <div id="trendingCards" class="flex gap-6 overflow-x-auto pb-4 scrollbar-hide" style="scroll-behavior: smooth;">
-                            <!-- Trending twin cards will be loaded here via JS -->
+<!-- 🔥 DISCOVER EXCITING TWINS SECTION (NEW) -->
+<div class="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-8 mb-8 border border-white/30 hover:shadow-2xl transition-shadow duration-300">
+    <!-- Section Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2 flex items-center">
+                <span class="mr-2">🔥</span>
+                Discover Exciting Twins
+            </h2>
+            <p class="text-gray-600 text-sm">Explore trending and recommended twins</p>
                         </div>
+        <a href="/discover" class="text-sm text-primary hover:text-secondary font-medium transition-colors">
+            View All →
+        </a>
+    </div>
+    
+    <!-- 2-Column Grid Layout -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- LEFT COLUMN: Trending & Recommendations -->
+                        <div>
+            <!-- Trending Carousel -->
+            <div class="mb-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-8 h-8 bg-gradient-to-r from-amber-100 to-orange-100 rounded-lg flex items-center justify-center">
+                        <span class="text-lg">🌟</span>
                     </div>
+                    <span class="text-lg font-semibold text-gray-900">Trending Now</span>
                 </div>
-                
-                <!-- Recent Interactions -->
-                <div id="recentInteractionsSection">
-                    <div class="flex items-center mb-4">
-                        <span class="text-lg font-semibold text-gray-800 mr-2">💬</span>
-                        <span class="text-gray-700 font-medium">You Recently Chatted With</span>
-                    </div>
-                    <div id="recentInteractions" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Recent interaction cards will be loaded here via JS -->
-                    </div>
-                    <div class="mt-4 text-center">
-                        <a href="/chat-enhanced" class="text-sm text-primary hover:text-secondary font-medium transition-colors">
-                            View All Chats →
-                        </a>
+                <div id="trendingCarousel" class="relative">
+                    <div id="trendingCards" class="flex gap-6 overflow-x-auto pb-4 scrollbar-hide" style="scroll-behavior: smooth;">
+                        <!-- Trending twin cards will be loaded here via JS -->
                     </div>
                 </div>
             </div>
+            
+            <!-- Optional: Recommended For You (can add later) -->
+            <!-- <div>
+                <div class="flex items-center mb-4">
+                    <span class="text-lg font-semibold text-gray-800 mr-2">🎯</span>
+                    <span class="text-gray-700 font-medium">Recommended For You</span>
+                </div>
+                <div id="recommendedCards" class="space-y-3">
+                    Recommended twins will be loaded here
+                </div>
+            </div> -->
+        </div>
+        
+        <!-- RIGHT COLUMN: Recent Interactions -->
+        <div>
+            <div id="recentInteractionsSection">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
+                            <span class="text-lg">💬</span>
+                        </div>
+                        <span class="text-lg font-semibold text-gray-900">You Recently Chatted With</span>
+                    </div>
+                </div>
+                <div id="recentInteractions" class="space-y-3">
+                    <!-- Recent interaction cards will be loaded here via JS -->
+                </div>
+                <div class="mt-4 text-center">
+                    <a href="/discover" class="text-sm text-primary hover:text-secondary font-medium transition-colors">
+                        View All Chats →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>            
                         
             <!-- Quick Actions (Simplified - Only 2 Cards) -->
             <div class="grid md:grid-cols-2 gap-6 mb-8">
@@ -1117,14 +1142,30 @@
                 // Show empty state
                 const container = document.getElementById('trendingCards');
                 if (container) {
-                    container.innerHTML = '<p class="text-gray-500 text-center py-8">No trending twins available right now.</p>';
+                    container.innerHTML = `
+                        <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-6 border border-amber-200/50 text-center">
+                            <div class="w-12 h-12 bg-gradient-to-r from-amber-100 to-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span class="text-2xl">🌟</span>
+                            </div>
+                            <p class="text-gray-600 text-sm">No trending twins available right now.</p>
+                            <p class="text-gray-500 text-xs mt-1">Check back later for exciting discoveries!</p>
+                        </div>
+                    `;
                 }
             }
         } catch (error) {
             console.error('Error loading trending twins:', error);
             const container = document.getElementById('trendingCards');
             if (container) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-8">Failed to load trending twins.</p>';
+                container.innerHTML = `
+                    <div class="bg-red-50 rounded-xl p-6 border border-red-200/50 text-center">
+                        <div class="w-12 h-12 bg-gradient-to-r from-red-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <span class="text-2xl">⚠️</span>
+                        </div>
+                        <p class="text-red-600 text-sm">Failed to load trending twins</p>
+                        <p class="text-red-500 text-xs mt-1">Please refresh the page</p>
+                    </div>
+                `;
             }
         }
     }
@@ -1187,202 +1228,225 @@
         return card;
     }
     
-    // Load recent interactions (twins user chatted with)
-    async function loadRecentInteractions() {
+// Load public chat interactions (twins user chatted with)
+async function loadPublicChatInteractions() {
+    try {
+        console.log('🔍 Loading public chat interactions...');
+        const response = await fetch('/api/public-chat/user/my-chats', {
+            credentials: 'include',
+            headers: {
+                'X-CSRF-Token': '<%= csrfToken %>'
+            }
+        });
+        
+        console.log('📡 Response status:', response.status);
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                console.log('⚠️ User not authenticated');
+                renderRecentInteractions([]);
+                return;
+            }
+            throw new Error('Failed to fetch public chats');
+        }
+
+        const data = await response.json();
+        console.log('📦 Response data:', data);
+        
+        if (!data.success || !data.chats || data.chats.length === 0) {
+            console.log('⚠️ No chats found in response');
+            renderRecentInteractions([]);
+            return;
+        }
+        
+        console.log('✅ Found', data.chats.length, 'chats');
+        
+        // API returns: { success: true, chats: [{ twin, latestChat, lastMessage }], total }
+        // Already sorted by lastActivity DESC
+        const twinChats = data.chats.slice(0, 4); // Show top 4 most recent
+        
+        renderRecentInteractions(twinChats);
+    } catch (error) {
+        console.error('❌ Error loading public chat interactions:', error);
+        // Don't hide section, show error message instead
+        const container = document.getElementById('recentInteractions');
+        if (container) {
+            container.innerHTML = `
+                <div class="bg-red-50 rounded-xl p-6 border border-red-200 text-center">
+                    <p class="text-red-600 text-sm mb-2">Unable to load recent chats</p>
+                    <button onclick="loadPublicChatInteractions()" class="text-xs text-red-500 hover:text-red-700 underline">
+                        Try Again
+                    </button>
+                </div>
+            `;
+        }
+    }
+}    
+
+// Render recent interactions with twin cards
+function renderRecentInteractions(chats) {
+    const container = document.getElementById('recentInteractions');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (!chats || chats.length === 0) {
+        container.innerHTML = `
+            <div class="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl p-8 border border-primary/10 text-center">
+                <div class="w-16 h-16 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">No Recent Chats Yet</h3>
+                <p class="text-gray-600 text-sm mb-4">Start exploring twins and begin conversations!</p>
+                <a href="/discover" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
+                    <span>🔍 Discover Twins</span>
+                </a>
+            </div>
+        `;
+        return;
+    }
+    
+    chats.forEach(({ twin, latestChat, lastMessage }) => {
+        const card = document.createElement('div');
+        card.className = 'bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/40 hover:bg-white hover:shadow-lg transition-all duration-300 cursor-pointer group';
+        
+        // Calculate time ago from lastActivity or lastMessage
+        const timeSource = lastMessage?.createdAt || latestChat?.lastActivity || latestChat?.createdAt;
+        const timeAgo = timeSource ? formatTimeAgo(new Date(timeSource)) : 'Recently';
+        
+        // Avatar initial
+        const avatarInitial = (twin.publicHandle || 'T').charAt(0).toUpperCase();
+        
+        // Last message preview (truncate to 50 chars)
+        const lastMessagePreview = lastMessage?.content 
+            ? (lastMessage.content.length > 50 ? lastMessage.content.substring(0, 50) + '...' : lastMessage.content)
+            : 'Continue conversation...';
+        
+        card.innerHTML = `
+            <div class="flex items-center gap-4 mb-3">
+                <div class="relative flex-shrink-0">
+                    <div class="w-14 h-14 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg group-hover:scale-110 transition-transform">
+                        ${twin.profileImage ? `<img src="${twin.profileImage}" alt="${twin.publicHandle}" class="w-14 h-14 rounded-full object-cover">` : avatarInitial}
+                    </div>
+                    <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <h4 class="font-semibold text-gray-900 text-sm truncate">@${twin.publicHandle || 'twin'}</h4>
+                        ${twin.verified ? '<span class="text-xs text-primary">✓</span>' : ''}
+                    </div>
+                    <p class="text-xs text-gray-500 line-clamp-1">${twin.bio || 'No bio'}</p>
+                    <p class="text-xs text-gray-400 mt-1">${timeAgo}</p>
+                </div>
+            </div>
+            
+            ${latestChat ? `
+                <div class="mb-3 p-2 bg-gray-50/50 rounded-lg">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-xs font-medium text-gray-700">${latestChat.title || 'Chat'}</p>
+                        ${latestChat.messageCount > 0 ? `<span class="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">${latestChat.messageCount} msgs</span>` : ''}
+                    </div>
+                    <p class="text-xs text-gray-500 line-clamp-1">${lastMessagePreview}</p>
+                </div>
+            ` : ''}
+            
+            <div class="flex items-center gap-2">
+                <button onclick="event.stopPropagation(); window.location.href='/public-twin/chat/${twin.id}'" class="flex-1 px-3 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-xs text-center">
+                    💬 Continue Chat
+                </button>
+                <button onclick="event.stopPropagation(); window.location.href='/@${twin.publicHandle || 'twin'}'" class="px-3 py-2 bg-white/60 backdrop-blur-sm text-gray-700 rounded-lg hover:bg-white/80 transition-all font-medium text-xs border border-white/40">
+                    👁️ View
+                </button>
+                <button onclick="event.stopPropagation(); toggleChatHistory('${twin.id}', this)" class="px-3 py-2 bg-white/60 backdrop-blur-sm text-gray-700 rounded-lg hover:bg-white/80 transition-all font-medium text-xs border border-white/40" title="View Chat History">
+                    📜
+                </button>
+            </div>
+            
+            <!-- Chat History Container (initially hidden) -->
+            <div id="chatHistory-${twin.id}" class="hidden mt-3 pt-3 border-t border-gray-200">
+                <div class="text-xs text-gray-500 mb-2">Loading chat history...</div>
+            </div>
+        `;
+        
+        // Click on card navigates to public chat
+        card.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'BUTTON') {
+                // Navigate to public chat page using twin ID
+                window.location.href = `/public-twin/chat/${twin.id}`;
+            }
+        });
+                
+        container.appendChild(card);
+    });
+}
+
+// Toggle chat history for a twin
+async function toggleChatHistory(twinId, button) {
+    const container = document.getElementById(`chatHistory-${twinId}`);
+    if (!container) return;
+    
+    // Toggle visibility
+    const isExpanded = !container.classList.contains('hidden');
+    
+    if (isExpanded) {
+        // Collapse
+        container.classList.add('hidden');
+        button.textContent = '📜';
+    } else {
+        // Expand - load chat history
+        container.classList.remove('hidden');
+        button.textContent = '▼';
+        
+        // Check if already loaded
+        if (container.dataset.loaded === 'true') {
+            return; // Already loaded
+        }
+        
         try {
-            const response = await fetch('/api/chats', {
+            const response = await fetch(`/api/public-chat/twin/${twinId}/chats`, {
                 credentials: 'include',
                 headers: {
-                    'X-CSRF-Token': '<%= csrfToken %>'
+                    'X-CSRF-Token': window.csrfToken
                 }
             });
             
             if (!response.ok) {
-                throw new Error('Failed to fetch chats');
+                throw new Error('Failed to fetch chat history');
             }
             
             const data = await response.json();
             
-            // Chat API returns { success: true, chats: [...] }
-            const chats = data.chats || data || [];
-            
-            // Get unique twin IDs from chats (filter out null/undefined)
-            const twinIds = [...new Set(chats.map(chat => chat.twinId).filter(Boolean))];
-            
-            if (twinIds.length === 0) {
-                // Hide section if no interactions
-                const section = document.getElementById('recentInteractionsSection');
-                if (section) section.style.display = 'none';
-                return;
+            if (data.success && data.chats && data.chats.length > 0) {
+                renderChatHistory(twinId, data.chats, container);
+            } else {
+                container.innerHTML = '<div class="text-xs text-gray-500 text-center py-2">No chat history yet</div>';
             }
             
-            // Build twin interactions map from chat data
-            const twinInteractionsMap = new Map();
-            
-            chats.forEach(chat => {
-                if (!chat.twinId) return;
-                
-                // Get or create twin interaction entry
-                if (!twinInteractionsMap.has(chat.twinId)) {
-                    twinInteractionsMap.set(chat.twinId, {
-                        twin: {
-                            id: chat.twinId,
-                            publicHandle: chat.twinName || `twin_${chat.twinId.slice(-6)}`,
-                            bio: 'Continue your conversation',
-                            profileImage: null,
-                            likeCount: 0,
-                            chatCount: 0,
-                            followCount: 0
-                        },
-                        chat: null, // Most recent chat
-                        lastChatTime: null
-                    });
-                }
-                
-                // Update with most recent chat
-                const interaction = twinInteractionsMap.get(chat.twinId);
-                const chatTime = new Date(chat.updatedAt || chat.createdAt);
-                const currentTime = interaction.lastChatTime ? new Date(interaction.lastChatTime) : null;
-                
-                if (!currentTime || chatTime > currentTime) {
-                    interaction.chat = chat;
-                    interaction.lastChatTime = chat.updatedAt || chat.createdAt;
-                }
-            });
-            
-            // Convert map to array and sort by last chat time
-            const twinInteractions = Array.from(twinInteractionsMap.values())
-                .sort((a, b) => new Date(b.lastChatTime) - new Date(a.lastChatTime))
-                .slice(0, 4); // Show top 4 most recent
-            
-            if (twinInteractions.length === 0) {
-                const section = document.getElementById('recentInteractionsSection');
-                if (section) section.style.display = 'none';
-                return;
-            }
-            
-            // Try to fetch public twin info for better display (optional enhancement)
-            const enhancedInteractions = await Promise.all(
-                twinInteractions.map(async (interaction) => {
-                    try {
-                        // Try to get public profile by handle (if available)
-                        const discoverResponse = await fetch(`/api/discover/search?q=${encodeURIComponent(interaction.twin.publicHandle)}`);
-                        if (discoverResponse.ok) {
-                            const discoverData = await discoverResponse.json();
-                            if (discoverData.success && discoverData.twins && discoverData.twins.length > 0) {
-                                const publicTwin = discoverData.twins.find(t => t.id === interaction.twin.id || t.publicHandle === interaction.twin.publicHandle);
-                                if (publicTwin) {
-                                    interaction.twin.publicHandle = publicTwin.publicHandle || interaction.twin.publicHandle;
-                                    interaction.twin.bio = publicTwin.bio || interaction.twin.bio;
-                                    interaction.twin.profileImage = publicTwin.profileImage || null;
-                                    interaction.twin.likeCount = publicTwin.likeCount || 0;
-                                    interaction.twin.chatCount = publicTwin.chatCount || 0;
-                                    interaction.twin.followCount = publicTwin.followCount || 0;
-                                }
-                            }
-                        }
-                    } catch (error) {
-                        console.error(`Error fetching public info for twin ${interaction.twin.id}:`, error);
-                        // Continue with basic info
-                    }
-                    return interaction;
-                })
-            );
-            
-            renderRecentInteractions(enhancedInteractions);
+            container.dataset.loaded = 'true';
         } catch (error) {
-            console.error('Error loading recent interactions:', error);
-            // Don't hide section, show error message instead
-            const container = document.getElementById('recentInteractions');
-            if (container) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-4 text-sm">Unable to load recent chats. Please try again.</p>';
-            }
+            console.error('Error loading chat history:', error);
+            container.innerHTML = '<div class="text-xs text-red-500 text-center py-2">Failed to load chat history</div>';
         }
     }
+}
 
-    // Render recent interactions with twin cards
-    function renderRecentInteractions(interactions) {
-        const container = document.getElementById('recentInteractions');
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        if (interactions.length === 0) {
-            container.innerHTML = '<p class="text-gray-500 text-center py-4 text-sm">No recent interactions yet. Start chatting to see them here!</p>';
-            return;
-        }
-        
-        interactions.forEach(({ twin, chat, lastChatTime }) => {
-            const card = document.createElement('div');
-            card.className = 'bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/40 hover:bg-white hover:shadow-lg transition-all duration-300 cursor-pointer group';
-            
-            // Calculate time ago
-            const timeAgo = lastChatTime ? formatTimeAgo(new Date(lastChatTime)) : 'Recently';
-            
-            // Avatar initial
-            const avatarInitial = (twin.publicHandle || 'T').charAt(0).toUpperCase();
-            
-            card.innerHTML = `
-                <div class="flex items-center gap-4 mb-3">
-                    <div class="relative flex-shrink-0">
-                        <div class="w-14 h-14 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg group-hover:scale-110 transition-transform">
-                            ${twin.profileImage ? `<img src="${twin.profileImage}" alt="${twin.publicHandle}" class="w-14 h-14 rounded-full object-cover">` : avatarInitial}
-                        </div>
-                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                            <h4 class="font-semibold text-gray-900 text-sm truncate">@${twin.publicHandle || 'twin'}</h4>
-                            ${twin.likeCount > 0 ? '<span class="text-xs text-primary">✓</span>' : ''}
-                        </div>
-                        <p class="text-xs text-gray-500 line-clamp-1">${twin.bio || 'No bio'}</p>
-                        <p class="text-xs text-gray-400 mt-1">${timeAgo}</p>
-                    </div>
-                </div>
-                
-                ${chat ? `
-                    <div class="mb-3 p-2 bg-gray-50/50 rounded-lg">
-                        <p class="text-xs font-medium text-gray-700 mb-1">${chat.title || 'Untitled Chat'}</p>
-                        <p class="text-xs text-gray-500 line-clamp-1">${chat.lastMessage ? (chat.lastMessage.substring(0, 50) + '...') : 'Continue conversation...'}</p>
-                    </div>
-                ` : ''}
-                
-                <div class="flex items-center gap-2">
-                    <button onclick="event.stopPropagation(); window.location.href='/public-twin/chat/${twin.id}'" class="flex-1 px-3 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-xs text-center">
-                        💬 Continue Chat
-                    </button>
-                    <button onclick="event.stopPropagation(); window.location.href='/@${twin.publicHandle || 'twin'}'" class="px-3 py-2 bg-white/60 backdrop-blur-sm text-gray-700 rounded-lg hover:bg-white/80 transition-all font-medium text-xs border border-white/40">
-                        👁️ View
-                    </button>
-                </div>
-            `;
-            
-            // Click on card navigates to public chat
-            card.addEventListener('click', function(e) {
-                if (e.target.tagName !== 'BUTTON') {
-                    // Navigate to public chat page using twin ID
-                    window.location.href = `/public-twin/chat/${twin.id}`;
-                }
-            });
-                        
-            container.appendChild(card);
-        });
-        
-        // Add "Explore More" link if there are more chats
-        if (interactions.length >= 4) {
-            const exploreLink = document.createElement('div');
-            exploreLink.className = 'mt-4 text-center';
-            exploreLink.innerHTML = `
-                <a href="/chat-enhanced" class="inline-flex items-center gap-2 text-sm text-primary hover:text-secondary font-medium transition-colors">
-                    <span>Explore More Chats</span>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                    </svg>
-                </a>
-            `;
-            container.appendChild(exploreLink);
-        }
-    }
+// Render chat history list
+function renderChatHistory(twinId, chats, container) {
+    container.innerHTML = chats.map(chat => `
+        <div class="mb-2 p-2 bg-gray-50/50 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors" onclick="window.location.href='/public-twin/chat/${twinId}?chatId=${chat.id}'">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-medium text-gray-700">${chat.title || 'Chat'}</span>
+                <span class="text-xs text-gray-500">${chat.messageCount || 0} msgs</span>
+            </div>
+            ${chat.lastMessage ? `
+                <p class="text-xs text-gray-500 line-clamp-1">${chat.lastMessage.content.substring(0, 60)}${chat.lastMessage.content.length > 60 ? '...' : ''}</p>
+            ` : ''}
+            <p class="text-xs text-gray-400 mt-1">${formatTimeAgo(new Date(chat.lastActivity || chat.createdAt))}</p>
+        </div>
+    `).join('');
+}
 
     // Format time ago helper
     function formatTimeAgo(date) {
@@ -1402,7 +1466,7 @@
     // Load discover section on page load
     document.addEventListener('DOMContentLoaded', function() {
         loadTrendingTwins();
-        loadRecentInteractions();
+        loadPublicChatInteractions();
     });
     
     

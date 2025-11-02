@@ -74,11 +74,32 @@
         // Load all chats for this twin
         async function loadPublicChatHistory() {
             try {
-                const response = await fetch(`/api/public-chat/twin/${currentTwinId}/chats?visitorId=${visitorId}`);
+                // Build query params - backend will use userId from JWT cookie if available
+                const params = new URLSearchParams();
+                if (visitorId && !localStorage.getItem('userId')) {
+                    params.append('visitorId', visitorId);
+                }
+                // userId will be automatically extracted from JWT cookie by middleware
+                
+                const response = await fetch(`/api/public-chat/twin/${currentTwinId}/chats?${params.toString()}`);
                 const data = await response.json();
                 
                 if (data.success) {
                     displayPublicChatHistory(data.chats);
+                    
+                    // Auto-select first chat or create new one
+                    if (data.chats.length > 0 && !currentChatId) {
+                        if ('<%= initialChatId || "" %>') {
+                            currentChatId = '<%= initialChatId %>';
+                            await switchToPublicChat(currentChatId);
+                        } else {
+                            currentChatId = data.chats[0].id;
+                            await switchToPublicChat(currentChatId);
+                        }
+                    } else if (data.chats.length === 0 && !currentChatId) {
+                        // No chats exist, create new one on page load
+                        await createNewPublicChat();
+                    }
                 }
             } catch (error) {
                 console.error('Error loading public chat history:', error);
@@ -281,9 +302,17 @@
         });
 
         // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             initializeVisitorId();
-            startPublicChat();
+            
+            // If initialChatId provided, load that chat
+            if ('<%= initialChatId || "" %>') {
+                currentChatId = '<%= initialChatId %>';
+                await switchToPublicChat(currentChatId);
+            } else {
+                // Otherwise, load chat history and auto-select/create
+                await startPublicChat();
+            }
         });
     </script>
 </body>

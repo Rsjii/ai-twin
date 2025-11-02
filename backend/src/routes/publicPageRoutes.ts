@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { extractJWTFromCookie } from '../middleware/jwtCookie';
 import { generateCSRFToken } from '../middleware/csrf';
 import * as publicPageController from '../controllers/publicPageController';
+import { getPublicChatPage } from '../modules/twin/publicTwinController';
 
 const router = Router();
 
@@ -16,6 +17,9 @@ router.get('/@:handle', extractJWTFromCookie, generateCSRFToken, publicPageContr
 
 // Public Profile alternative route
 router.get('/p/:handle', generateCSRFToken, publicPageController.getPublicProfileAlt);
+
+// Public Chat page route (renders EJS view)
+router.get('/public-twin/chat/:twinId', extractJWTFromCookie, generateCSRFToken, getPublicChatPage);
 
 export default router;
 

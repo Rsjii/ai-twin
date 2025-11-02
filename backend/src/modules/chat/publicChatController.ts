@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthenticatedRequest } from '../../middleware/auth';
 import { db, publicChatQueries } from '../../config/database';
 import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
@@ -22,12 +23,16 @@ const sendPublicMessageSchema = z.object({
 const twinService = new TwinService();
 
 // Start public chat session
-export const startPublicChat = async (req: Request, res: Response) => {
+export const startPublicChat = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { twinId, visitorId } = startPublicChatSchema.parse(req.body);
 
-    // Generate visitor ID if not provided
-    const finalVisitorId = visitorId || `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Get userId if user is logged in
+    const userId = req.user?.id;
+    logger.info(`[startPublicChat] Twin: ${twinId}, UserId: ${userId || 'anonymous'}, VisitorId: ${visitorId || 'none'}`);
+
+    // Generate visitor ID if not provided and user not logged in
+    const finalVisitorId = userId ? null : (visitorId || `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
@@ -43,15 +48,37 @@ export const startPublicChat = async (req: Request, res: Response) => {
     const twin = twinResult.rows[0];
 
     // Check for existing public chat or create new one
-    let publicChat = await publicChatQueries.findByTwinAndVisitor(twinId, finalVisitorId);
+    // If user is logged in, search by userId; otherwise by visitorId
+    let publicChat;
+    if (userId) {
+      const chatsByUser = await db.query(
+        'SELECT * FROM "PublicChat" WHERE "twinId" = $1 AND "userId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
+        [twinId, userId]
+      );
+      publicChat = chatsByUser.rows.length > 0 ? chatsByUser.rows[0] : null;
+    } else {
+      publicChat = await publicChatQueries.findByTwinAndVisitor(twinId, finalVisitorId);
+      if (publicChat && Array.isArray(publicChat)) {
+        publicChat = publicChat.length > 0 ? publicChat[0] : null;
+      }
+    }
 
     if (!publicChat) {
-      // Create new public chat
-      publicChat = await publicChatQueries.create(twinId, finalVisitorId);
+      // Create new public chat with userId if logged in
+      logger.info(`[startPublicChat] Creating new chat - TwinId: ${twinId}, UserId: ${userId || 'null'}, VisitorId: ${finalVisitorId || 'null'}`);
+      publicChat = await publicChatQueries.create(twinId, finalVisitorId, userId);
+      logger.info(`[startPublicChat] Chat created successfully - ChatId: ${publicChat.id}, UserId set: ${publicChat.userId || 'null'}`);
+    } else {
+      logger.info(`[startPublicChat] Existing chat found - ChatId: ${publicChat.id}, UserId: ${publicChat.userId || 'null'}`);
     }
 
     // Log event
-    if (finalVisitorId && !finalVisitorId.startsWith('visitor_')) {
+    if (userId) {
+      await EventLogger.logUserEvent(userId, 'public_chat_started', {
+        twinId,
+        chatId: publicChat.id
+      });
+    } else if (finalVisitorId && !finalVisitorId.startsWith('visitor_')) {
       await EventLogger.logUserEvent(finalVisitorId, 'public_chat_started', {
         twinId,
         chatId: publicChat.id
@@ -310,10 +337,11 @@ export const getPublicChatByTwin = async (req: Request, res: Response) => {
 // ADD after line 308 (after the closing } of getPublicChatByTwin):
 
 // Get all public chats for a visitor with a specific twin
-export const getPublicChatsByTwin = async (req: Request, res: Response) => {
+export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { twinId } = req.params;
     const { visitorId } = req.query;
+    const userId = req.user?.id;
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
@@ -330,7 +358,7 @@ export const getPublicChatsByTwin = async (req: Request, res: Response) => {
 
     // Get all chats for this visitor with this twin
     const chatsResult = await db.query(`
-      SELECT pc.id, pc."messageCount", pc."createdAt", pc."lastActivity",
+      SELECT pc.id, pc."messageCount", pc."createdAt", pc."lastActivity", pc."title",
              m.content as last_message, m."createdAt" as last_message_time
       FROM "PublicChat" pc
       LEFT JOIN LATERAL (
@@ -340,9 +368,14 @@ export const getPublicChatsByTwin = async (req: Request, res: Response) => {
         ORDER BY "createdAt" DESC 
         LIMIT 1
       ) m ON true
-      WHERE pc."twinId" = $1 AND (pc."visitorId" = $2 OR (pc."visitorId" IS NULL AND $2 IS NULL))
-      ORDER BY pc."createdAt" DESC
-    `, [twinId, visitorId as string]);
+      WHERE pc."twinId" = $1 
+        AND (
+          (pc."userId" = $2 AND $2 IS NOT NULL) 
+          OR 
+          (pc."visitorId" = $3 AND $2 IS NULL AND $3 IS NOT NULL)
+        )
+      ORDER BY pc."lastActivity" DESC, pc."createdAt" DESC
+    `, [twinId, userId || null, visitorId as string || null]);
 
     const chats = chatsResult.rows.map(chat => ({
       id: chat.id,
@@ -371,10 +404,13 @@ export const getPublicChatsByTwin = async (req: Request, res: Response) => {
   }
 };
 
+
 // Create new public chat
-export const createNewPublicChat = async (req: Request, res: Response) => {
+export const createNewPublicChat = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { twinId, visitorId } = req.body;
+    const userId = req.user?.id; // Get userId if logged in
+    logger.info(`[createNewPublicChat] Twin: ${twinId}, UserId: ${userId || 'anonymous'}, VisitorId: ${visitorId || 'none'}`);
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
@@ -389,8 +425,9 @@ export const createNewPublicChat = async (req: Request, res: Response) => {
 
     const twin = twinResult.rows[0];
 
-    // Create new public chat
-    const publicChat = await publicChatQueries.create(twinId, visitorId);
+    // Create new public chat with userId if logged in
+    const publicChat = await publicChatQueries.create(twinId, visitorId, userId);
+    logger.info(`[createNewPublicChat] Chat created - ChatId: ${publicChat.id}, UserId: ${publicChat.userId || 'null'}`);
 
     res.json({
       success: true,
@@ -403,6 +440,129 @@ export const createNewPublicChat = async (req: Request, res: Response) => {
 
   } catch (error) {
     logger.error('Create new public chat error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Get all public chats for logged-in user (grouped by twin)
+export const getUserPublicChats = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      logger.warn('[getUserPublicChats] No user found in request');
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const userId = req.user.id;
+    logger.info(`[getUserPublicChats] Fetching chats for userId: ${userId}`);
+
+    // Get all public chats for this user, grouped by twin
+    // For each twin, get the latest chat and message info
+    const chatsResult = await db.query(`
+      SELECT DISTINCT ON (pc."twinId")
+        pc.id as chat_id,
+        pc."twinId",
+        pc."messageCount",
+        pc."createdAt",
+        pc."lastActivity",
+        pc."title",
+        t."publicHandle",
+        t.bio,
+        t."profileImage",
+        t."likeCount",
+        t."chatCount",
+        t."followCount",
+        t."verified",
+        (
+          SELECT content 
+          FROM "PublicMessage" 
+          WHERE "chatId" = pc.id 
+          ORDER BY "createdAt" DESC 
+          LIMIT 1
+        ) as last_message_content,
+        (
+          SELECT "createdAt" 
+          FROM "PublicMessage" 
+          WHERE "chatId" = pc.id 
+          ORDER BY "createdAt" DESC 
+          LIMIT 1
+        ) as last_message_time
+      FROM "PublicChat" pc
+      JOIN "Twin" t ON pc."twinId" = t.id
+      WHERE pc."userId" = $1 
+        AND t."isPublic" = true
+      ORDER BY pc."twinId", pc."lastActivity" DESC
+    `, [userId]);
+
+    logger.info(`[getUserPublicChats] Query returned ${chatsResult?.rows?.length || 0} rows`);
+
+    // Group by twin and format response
+    const twinChatsMap = new Map();
+
+    chatsResult.rows.forEach(row => {
+      const twinId = row.twinId;
+      
+      if (!twinChatsMap.has(twinId)) {
+        twinChatsMap.set(twinId, {
+          twin: {
+            id: twinId,
+            publicHandle: row.publicHandle,
+            bio: row.bio,
+            profileImage: row.profileImage,
+            likeCount: row.likeCount || 0,
+            chatCount: row.chatCount || 0,
+            followCount: row.followCount || 0,
+            verified: row.verified || false
+          },
+          latestChat: {
+            id: row.chat_id,
+            messageCount: row.messageCount || 0,
+            createdAt: row.createdAt,
+            lastActivity: row.lastActivity,
+            title: row.title
+          },
+          lastMessage: row.last_message_content ? {
+            content: row.last_message_content,
+            createdAt: row.last_message_time
+          } : null
+        });
+      } else {
+        // Update if this chat is more recent
+        const existing = twinChatsMap.get(twinId);
+        if (new Date(row.lastActivity) > new Date(existing.latestChat.lastActivity)) {
+          existing.latestChat = {
+            id: row.chat_id,
+            messageCount: row.messageCount || 0,
+            createdAt: row.createdAt,
+            lastActivity: row.lastActivity,
+            title: row.title
+          };
+          existing.lastMessage = row.last_message_content ? {
+            content: row.last_message_content,
+            createdAt: row.last_message_time
+          } : null;
+        }
+      }
+    });
+
+    // Convert map to array and sort by last activity
+    const twinChats = Array.from(twinChatsMap.values())
+      .sort((a, b) => {
+        const timeA = a.latestChat.lastActivity;
+        const timeB = b.latestChat.lastActivity;
+        return new Date(timeB).getTime() - new Date(timeA).getTime();
+      });
+
+    logger.info(`[getUserPublicChats] Found ${twinChats.length} unique twins with chats for userId: ${userId}`);
+    logger.debug(`[getUserPublicChats] Raw query result count: ${chatsResult.rows.length}`);
+
+    res.json({
+      success: true,
+      chats: twinChats,
+      total: twinChats.length
+    });
+
+  } catch (error) {
+    logger.error('Get user public chats error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
