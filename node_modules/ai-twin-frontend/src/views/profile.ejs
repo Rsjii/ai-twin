@@ -173,20 +173,6 @@
                                 <span>Profile Settings</span>
                             </span>
                         </button>
-                        <% if (hasTwins && twin) { %>
-                            <button 
-                                onclick="switchTab('twin')"
-                                id="tab-twin"
-                                class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors <%= activeTab === 'twin' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700' %>"
-                            >
-                                <span class="flex items-center space-x-2">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                    </svg>
-                                    <span>My Twin</span>
-                                </span>
-                            </button>
-                        <% } %>
                         <button 
                             onclick="switchTab('settings')"
                             id="tab-settings"
@@ -360,121 +346,7 @@
                         </div>
                     </form>
                 </div>
-                
-                <!-- Tab Content: My Twin -->
-                <% if (hasTwins && twin) { %>
-                    <div id="content-twin" class="tab-content <%= activeTab === 'twin' ? '' : 'hidden' %>">
-                        <div class="space-y-6">
-                            <!-- Twin Preview Card -->
-                            <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h3 class="text-xl font-bold text-gray-900">Your AI Twin</h3>
-                                            <p class="text-gray-600"><%= twin.isPublic ? '@' + (twin.publicHandle || 'twin') : 'Private Twin' %></p>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <% if (twin.isPublic) { %>
-                                            <span class="px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">Public</span>
-                                        <% } else { %>
-                                            <span class="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-semibold rounded-full">Private</span>
-                                        <% } %>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Twin Management Links -->
-                            <div class="grid md:grid-cols-3 gap-6">
-                                <a href="/twin/<%= twin.id %>/ai-edit" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all group">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h4 class="font-semibold text-gray-900">Edit Style</h4>
-                                            <p class="text-sm text-gray-600">Customize personality</p>
-                                        </div>
-                                    </div>
-                                </a>
                                 
-                                <a href="/twin/<%= twin.id %>/style-customize" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all group">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h4 class="font-semibold text-gray-900">Style Sandbox</h4>
-                                            <p class="text-sm text-gray-600">Test responses</p>
-                                        </div>
-                                    </div>
-                                </a>
-                                
-                                <a href="/twin/<%= twin.id %>/learning-dashboard" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all group">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h4 class="font-semibold text-gray-900">Learning Dashboard</h4>
-                                            <p class="text-sm text-gray-600">Training progress</p>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                            
-                            <!-- Public Profile Management -->
-                            <div class="bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-100 p-6">
-                                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                                    <svg class="w-6 h-6 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
-                                    </svg>
-                                    Public Profile
-                                </h2>
-                                <% if (twin.isPublic) { %>
-                                    <div class="space-y-4">
-                                        <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Public Handle</label>
-                                            <div class="flex items-center space-x-2">
-                                                <span class="text-gray-600">@</span>
-                                                <span class="text-lg font-medium text-gray-900"><%= twin.publicHandle || 'twin' %></span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Public Profile Link</label>
-                                            <div class="flex items-center space-x-2">
-                                                <input type="text" readonly value="/@<%= twin.publicHandle || 'twin' %>" id="publicLinkInput" class="flex-1 px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600">                                                
-                                                <button id="copyPublicLinkBtn" onclick="copyPublicLink()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors">
-                                                    Copy
-                                                </button>                                                
-                                            </div>
-                                        </div>
-                                        <a href="/@<%= twin.publicHandle || 'twin' %>" target="_blank" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                                            View Public Profile →
-                                        </a>
-                                    </div>
-                                <% } else { %>
-                                    <p class="text-gray-600 mb-4">Your twin is currently private. Make it public to share with others.</p>
-                                    <button onclick="makeTwinPublic('<%= twin.id %>')" class="px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-semibold">
-                                        Make Twin Public
-                                    </button>
-                                <% } %>
-                            </div>
-                        </div>
-                    </div>
-                <% } %>
-                
                 <!-- Tab Content: Settings -->
                 <div id="content-settings" class="tab-content <%= activeTab === 'settings' ? '' : 'hidden' %>">
                     <div class="space-y-8">

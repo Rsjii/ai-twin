@@ -22,74 +22,86 @@ export async function getTwinManage(req: any, res: Response) {
 
     const twinId = twin.id;
 
-    // Helper function to safely execute queries
-    const safeQuery = async (queryText: string, params: any[]): Promise<{ rows: any[] }> => {
+    // Fast helper function - directly queries pool without retry delays for missing tables
+    const fastQuery = async (queryText: string, params: any[]): Promise<{ rows: any[] }> => {
       try {
-        const result = await db.query(queryText, params);
-        return result || { rows: [] };
-      } catch (error) {
-        console.error('Query error:', queryText, error);
-        return { rows: [] };
+        // Use pool directly to avoid retry delays
+        const client = await db.getClient();
+        try {
+          const result = await client.query(queryText, params);
+          return result || { rows: [] };
+        } finally {
+          client.release(); // Always release the client
+        }
+      } catch (error: any) {
+        // Check if it's a missing table error (42P01)
+        if (error?.code === '42P01') {
+          // Table doesn't exist - return empty immediately, no retries
+          return { rows: [{ count: '0' }] };
+        }
+        // For other errors, log and return empty
+        console.error('Query error (non-retry):', queryText.substring(0, 50), error?.message);
+        return { rows: [{ count: '0' }] };
       }
     };
-
-    // Fetch twin analytics - with error handling for each query
+    
+    // Fetch twin analytics - fast queries without retry delays
     const analyticsQueries = [
-      // Total chats (from PublicChat if exists, else from Chat)
-      safeQuery(`
+      // Total chats
+      fastQuery(`
         SELECT COUNT(*) as count 
         FROM "PublicChat" 
         WHERE "twinId" = $1
-      `, [twinId]).catch(() => ({ rows: [{ count: '0' }] })),
+      `, [twinId]),
       
       // Total views
-      safeQuery(`
+      fastQuery(`
         SELECT COUNT(*) as count 
         FROM "PublicTwinView" 
         WHERE "twinId" = $1
-      `, [twinId]).catch(() => ({ rows: [{ count: '0' }] })),
+      `, [twinId]),
       
       // Total likes
-      safeQuery(`
+      fastQuery(`
         SELECT COUNT(*) as count 
         FROM "PublicTwinLike" 
         WHERE "twinId" = $1
-      `, [twinId]).catch(() => ({ rows: [{ count: '0' }] })),
+      `, [twinId]),
       
       // Total followers
-      safeQuery(`
+      fastQuery(`
         SELECT COUNT(*) as count 
         FROM "PublicTwinFollow" 
         WHERE "twinId" = $1
-      `, [twinId]).catch(() => ({ rows: [{ count: '0' }] })),
+      `, [twinId]),
       
       // Memory chunks count
-      safeQuery(`
+      fastQuery(`
         SELECT COUNT(*) as count 
         FROM "mem_chunks" 
         WHERE twin_id = $1
-      `, [twinId]).catch(() => ({ rows: [{ count: '0' }] })),
+      `, [twinId]),
       
       // Style corrections count
-      safeQuery(`
+      fastQuery(`
         SELECT COUNT(*) as count 
         FROM "StyleCorrection" 
         WHERE "twinId" = $1
-      `, [twinId]).catch(() => ({ rows: [{ count: '0' }] })),
+      `, [twinId]),
       
       // AI runs count
-      safeQuery(`
+      fastQuery(`
         SELECT COUNT(*) as count 
         FROM "AIRun" 
         WHERE "twinId" = $1
-      `, [twinId]).catch(() => ({ rows: [{ count: '0' }] })),
+      `, [twinId]),
       
       // Learning goals count
-      safeQuery(`
+      fastQuery(`
         SELECT COUNT(*) as count 
         FROM "LearningGoal" 
         WHERE "twinId" = $1
-      `, [twinId]).catch(() => ({ rows: [{ count: '0' }] }))
+      `, [twinId])
     ];
 
     const [
@@ -103,10 +115,10 @@ export async function getTwinManage(req: any, res: Response) {
       goalsResult
     ] = await Promise.all(analyticsQueries);
 
-    // Fetch recent activity (last 5 chats) - with error handling
+    // Fetch recent activity (last 5 chats) - fast query
     let recentChats: any[] = [];
     try {
-      const recentChatsResult = await safeQuery(`
+      const recentChatsResult = await fastQuery(`
         SELECT 
           pc.id,
           pc.title,
@@ -125,10 +137,10 @@ export async function getTwinManage(req: any, res: Response) {
       recentChats = [];
     }
 
-    // Fetch public status - with error handling
+    // Fetch public status - fast query
     let publicTwin = null;
     try {
-      const publicTwinResult = await safeQuery(`
+      const publicTwinResult = await fastQuery(`
         SELECT 
           id,
           handle,

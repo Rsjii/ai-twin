@@ -5,21 +5,31 @@ import { db } from '../config/database';
  */
 export async function calculateLearningRate(twinId: string): Promise<number> {
   try {
-    // Calculate learning rate based on recent improvements using raw SQL
-    const result = await db.query(`
-      SELECT feedback
-      FROM "style_corrections"
-      WHERE "twin_id" = $1
-      ORDER BY ts DESC
-      LIMIT 20
-    `, [twinId]);
-    
-    if (!result || !result.rows || result.rows.length < 5) return 0;
-    
-    const recentCorrections = result.rows;
-    const positiveRate = recentCorrections.filter((c: any) => c.feedback === 'positive').length / recentCorrections.length;
-    return positiveRate * 100;
-  } catch (error) {
+    // Fast query helper to avoid retry delays
+    const client = await db.getClient();
+    try {
+      const result = await client.query(`
+        SELECT delta
+        FROM "style_corrections"
+        WHERE "twin_id" = $1
+        ORDER BY ts DESC
+        LIMIT 20
+      `, [twinId]);
+      
+      if (!result || !result.rows || result.rows.length < 5) return 0;
+      
+      // Positive delta indicates improvement (learning)
+      const recentCorrections = result.rows;
+      const positiveRate = recentCorrections.filter((c: any) => (c.delta || 0) > 0).length / recentCorrections.length;
+      return positiveRate * 100;
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
+    // Missing table/column errors - return 0 immediately
+    if (error?.code === '42P01' || error?.code === '42703') {
+      return 0;
+    }
     return 0;
   }
 }
@@ -29,21 +39,34 @@ export async function calculateLearningRate(twinId: string): Promise<number> {
  */
 export async function calculateUserSatisfaction(twinId: string): Promise<number> {
   try {
-    // Calculate user satisfaction based on feedback using raw SQL
-    const result = await db.query(`
-      SELECT rating
-      FROM "ChatFeedback"
-      WHERE "twinId" = $1
-      ORDER BY "createdAt" DESC
-      LIMIT 50
-    `, [twinId]);
-    
-    if (!result || !result.rows || result.rows.length === 0) return 0;
-    
-    const feedbacks = result.rows;
-    const satisfactionRate = feedbacks.filter((f: any) => parseInt(f.rating) >= 4).length / feedbacks.length;
-    return satisfactionRate * 100;
-  } catch (error) {
+    // Fast query helper - ChatFeedback table has chatId, need to join with Chat to get twinId
+    const client = await db.getClient();
+    try {
+      const result = await client.query(`
+        SELECT cf.rating
+        FROM "ChatFeedback" cf
+        JOIN "Chat" c ON cf."chatId" = c.id
+        WHERE c."twinId" = $1
+        ORDER BY cf."createdAt" DESC
+        LIMIT 50
+      `, [twinId]);
+      
+      if (!result || !result.rows || result.rows.length === 0) return 0;
+      
+      const feedbacks = result.rows;
+      const satisfactionRate = feedbacks.filter((f: any) => {
+        const rating = parseInt(f.rating) || 0;
+        return rating >= 4;
+      }).length / feedbacks.length;
+      return satisfactionRate * 100;
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
+    // Missing table/column errors - return 0 immediately
+    if (error?.code === '42P01' || error?.code === '42703') {
+      return 0;
+    }
     return 0;
   }
 }
@@ -82,6 +105,15 @@ export function generateOptimizationRecommendations(
       icon: '📈',
       title: 'More Training Data',
       description: 'Increase interactions to improve learning accuracy'
+    });
+  }
+  
+  if (correctionsCount < 5) {
+    recommendations.push({
+      type: 'tip',
+      icon: '🎯',
+      title: 'Add Style Corrections',
+      description: 'Provide feedback on responses to help your twin learn faster'
     });
   }
   
@@ -162,8 +194,13 @@ export async function gatherAnalyticsData(twinId: string): Promise<any> {
       SELECT * FROM "style_corrections" WHERE "twin_id" = $1 ORDER BY ts DESC
     `, [twinId]);
     
+    // ChatFeedback doesn't have twinId directly, need to join with Chat
     const feedbackResult = await db.query(`
-      SELECT * FROM "ChatFeedback" WHERE "twinId" = $1 ORDER BY "createdAt" DESC
+      SELECT cf.*
+      FROM "ChatFeedback" cf
+      JOIN "Chat" c ON cf."chatId" = c.id
+      WHERE c."twinId" = $1
+      ORDER BY cf."createdAt" DESC
     `, [twinId]);
     
     const analytics = {

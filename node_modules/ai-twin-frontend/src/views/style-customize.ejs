@@ -6,9 +6,22 @@
     <title>Style Customize your AI Twin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#4f46e5',
+                        accent: '#8b5cf6',
+                    },
+                }
+            }
+        }
+    </script>
     <script> window.csrfToken = '<%= csrfToken %>';</script>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen font-inter">
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <div class="mb-8">
@@ -57,16 +70,16 @@
   </div>
   
   <!-- Quick Actions -->
-  <div class="mb-6 bg-purple-50 rounded-lg p-4 border border-purple-200">
+  <div class="mb-6 bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-md">
     <div class="flex items-center justify-between">
       <div class="flex items-center space-x-4">
-        <a href="/twin/<%= twinId %>/learning-dashboard" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center">
+        <a href="/twin/<%= twinId %>/learning-dashboard" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md flex items-center">
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
           </svg>
           Back to Learning Dashboard
         </a>
-        <a href="/twin/<%= twinId %>/ai-edit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+        <a href="/twin/<%= twinId %>/ai-edit" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
           AI Edit
         </a>
       </div>
@@ -77,7 +90,7 @@
   </div>
 
         <!-- Style Controls -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 mb-8 border border-white/20">
             <h2 class="text-xl font-semibold mb-4">Communication Style</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
@@ -153,7 +166,7 @@
         </div>
 
         <!-- Persona Controls -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 mb-8 border border-white/20">
             <h2 class="text-xl font-semibold mb-4">Personality & Background</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
@@ -161,51 +174,51 @@
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Full Name</label>
                     <input type="text" id="fullName" placeholder="Your full name" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
                 </div>
 
                 <!-- Bio -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Bio</label>
                     <textarea id="bio" placeholder="Tell us about yourself" rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                              class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md"></textarea>
                 </div>
 
                 <!-- Interests -->
                 <div class="space-y-2 md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700">Interests (comma-separated)</label>
                     <input type="text" id="interests" placeholder="technology, music, travel" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
                 </div>
             </div>
         </div>
 
         <!-- Action Buttons -->
         <div class="flex justify-between items-center">
-            <button onclick="previewChanges()" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600">
+            <button onclick="previewChanges()" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
                 Preview Changes
             </button>
             <div class="space-x-4">
-                <button onclick="resetChanges()" class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600">
+                <button onclick="resetChanges()" class="bg-white/80 backdrop-blur-sm text-gray-700 px-6 py-2 rounded-xl hover:bg-white border border-white/20 transition-all font-medium shadow-md">
                     Reset
                 </button>
-                <button onclick="saveChanges()" class="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
+                <button onclick="saveChanges()" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
                     Save Changes
                 </button>
             </div>
         </div>
 
         <!-- Preview Section -->
-        <div id="preview-section" class="mt-8 bg-white rounded-lg shadow-md p-6" style="display: none;">
+        <div id="preview-section" class="mt-8 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 border border-white/20" style="display: none;">
             <h3 class="text-lg font-semibold mb-4">Preview Your Changes</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <h4 class="font-medium mb-2">Current Response:</h4>
-                    <div id="original-text" class="p-4 bg-gray-50 rounded-md"></div>
+                    <div id="original-text" class="p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-white/20"></div>
                 </div>
                 <div>
                     <h4 class="font-medium mb-2">New Response:</h4>
-                    <div id="new-text" class="p-4 bg-blue-50 rounded-md"></div>
+                    <div id="new-text" class="p-4 bg-primary/10 backdrop-blur-sm rounded-xl border border-primary/20"></div>
                 </div>
             </div>
         </div>

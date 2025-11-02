@@ -659,6 +659,23 @@
                     <% } %>
                 </div>
 
+            </div>
+
+            <!-- Top Navigation Links (NEW) -->
+            <% if (typeof user !== 'undefined' && user) { %>
+            <nav class="hidden md:flex items-center space-x-6 mr-4">
+                <a href="/dashboard" class="text-gray-600 hover:text-primary transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white/50 <%= typeof title !== 'undefined' && title.includes('Dashboard') ? 'text-primary bg-white/50' : '' %>">
+                    Dashboard
+                </a>
+                <a href="/discover" class="text-gray-600 hover:text-primary transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white/50 <%= typeof title !== 'undefined' && title.includes('Discover') ? 'text-primary bg-white/50' : '' %>">
+                    Discover
+                </a>
+                <a href="/chat-enhanced" class="text-gray-600 hover:text-primary transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white/50 <%= typeof title !== 'undefined' && title.includes('Chat') ? 'text-primary bg-white/50' : '' %>">
+                    Chat
+                </a>
+            </nav>
+            <% } %>
+
                 <!-- User Menu -->
                 <div class="flex items-center space-x-4">
                     <% if (typeof user !== 'undefined' && user) { %>
