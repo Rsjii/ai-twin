@@ -60,9 +60,11 @@
                 <nav class="hidden md:flex space-x-8">
                     <a href="/dashboard" class="text-gray-600 hover:text-primary transition-colors font-medium">Dashboard</a>
                     <a href="/profile" class="text-primary font-semibold">Profile</a>
-                    <a href="/onboarding" class="text-gray-600 hover:text-primary transition-colors font-medium">Create Twin</a>
+                    <% if (!hasTwins) { %>
+                        <a href="/onboarding" class="text-gray-600 hover:text-primary transition-colors font-medium">Create Twin</a>
+                    <% } %>
                 </nav>
-                
+
                 <!-- User Menu -->
                 <div class="flex items-center space-x-4">
                     <% if (typeof user !== 'undefined' && user) { %>
@@ -121,12 +123,14 @@
                                         </svg>
                                         Dashboard
                                     </a>
-                                    <a href="/onboarding" class="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50/80 transition-colors">
-                                        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                        </svg>
-                                        Create Twin
-                                    </a>
+                                    <% if (!hasTwins) { %>
+                                        <a href="/onboarding" class="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50/80 transition-colors">
+                                            <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                            </svg>
+                                            Create Twin
+                                        </a>
+                                    <% } %>                                    
                                 </div>
                                 
                                 <!-- Logout -->
@@ -147,454 +151,912 @@
     </header>
 
     <div class="px-4 py-8 sm:px-0">
-        <div class="max-w-4xl mx-auto">
+        <div class="max-w-6xl mx-auto">
             <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 p-8">
-                <div class="flex justify-between items-center mb-8">
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-900 mb-2">Profile Settings</h1>
-                        <p class="text-gray-600">Manage your account information and preferences</p>
-                    </div>
-                    <button 
-                        id="editProfileBtn"
-                        onclick="toggleEditMode()"
-                        class="bg-gradient-to-r from-primary to-accent text-white py-3 px-6 rounded-xl hover:from-secondary hover:to-primary transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                    >
-                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
-                        Edit Profile
-                    </button>
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Profile Settings</h1>
+                    <p class="text-gray-600">Manage your account, twin, and preferences</p>
                 </div>
                 
-                <form id="profileForm">
-                    <!-- Profile Image Section -->
-                    <div class="mb-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-100">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-                            <svg class="w-6 h-6 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                            </svg>
-                            Profile Picture
-                        </h2>
-                        <div class="flex items-center space-x-8">
-                            <div class="flex-shrink-0">
-                                <% if (user.profileImage) { %>
-                                    <img src="<%= user.profileImage %>" alt="Profile" class="w-24 h-24 rounded-2xl object-cover shadow-xl border-4 border-white">
-                                <% } else { %>
-                                    <div class="w-24 h-24 bg-gradient-to-r from-primary via-accent to-purple-500 rounded-2xl flex items-center justify-center text-white text-3xl font-bold shadow-xl border-4 border-white">
-                                        <%= (user.handle || user.email).charAt(0).toUpperCase() %>
-                                    </div>
-                                <% } %>
+                <!-- Tab Navigation -->
+                <div class="border-b border-gray-200 mb-8">
+                    <nav class="flex space-x-8" aria-label="Tabs">
+                        <button 
+                            onclick="switchTab('profile')"
+                            id="tab-profile"
+                            class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors <%= activeTab === 'profile' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700' %>"
+                        >
+                            <span class="flex items-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                <span>Profile Settings</span>
+                            </span>
+                        </button>
+                        <% if (hasTwins && twin) { %>
+                            <button 
+                                onclick="switchTab('twin')"
+                                id="tab-twin"
+                                class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors <%= activeTab === 'twin' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700' %>"
+                            >
+                                <span class="flex items-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                    </svg>
+                                    <span>My Twin</span>
+                                </span>
+                            </button>
+                        <% } %>
+                        <button 
+                            onclick="switchTab('settings')"
+                            id="tab-settings"
+                            class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors <%= activeTab === 'settings' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700' %>"
+                        >
+                            <span class="flex items-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                <span>Settings</span>
+                            </span>
+                        </button>
+                    </nav>                    
+                </div>
+                
+                <!-- Tab Content: Profile Settings -->
+                <div id="content-profile" class="tab-content <%= activeTab === 'profile' ? '' : 'hidden' %>">
+                    <form id="profileForm">
+                        <!-- Edit Profile Button -->
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 class="text-xl font-semibold text-gray-900">Profile Information</h2>
+                                <p class="text-gray-600 text-sm">Update your personal details</p>
                             </div>
-                            <div class="flex-1">
-                                <label class="block text-sm font-medium text-gray-700 mb-3">Upload New Image</label>
-                                <div class="relative">
-                            <input 
-                                        type="file" 
-                                        id="profileImageFile" 
-                                        name="profileImageFile" 
-                                        accept="image/*" 
-                                readonly
-                                        class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
-                                    >
-                                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <div class="text-center">
-                                            <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                            </svg>
-                                            <p class="text-sm text-gray-500">Click to upload</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <p class="text-xs text-gray-500 mt-2">JPG, PNG, GIF, WebP - Max 5MB</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Personal Information -->
-                    <div class="mb-8 p-6 bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-100">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-                            <svg class="w-6 h-6 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            Personal Information
-                        </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-2">
-                                <label class="block text-sm font-semibold text-gray-700">Full Name</label>
-                                <input 
-                                    type="text" 
-                                    id="name" 
-                                    name="name" 
-                                    value="<%= user.name || '' %>" 
-                                    readonly
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
-                            >
-                        </div>
-                        
-                            <div class="space-y-2">
-                                <label class="block text-sm font-semibold text-gray-700">Handle</label>
-                            <input 
-                                type="text" 
-                                    id="handle" 
-                                name="handle"
-                                value="<%= user.handle || '' %>" 
-                                readonly
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
-                            >
-                        </div>
-                        
-                            <div class="space-y-2">
-                                <label class="block text-sm font-semibold text-gray-700">Email Address</label>
-                            <input 
-                                    type="email" 
-                                    id="email" 
-                                    name="email" 
-                                    value="<%= user.email || '' %>" 
-                                readonly
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-500"
-                            >
-                        </div>
-                        
-                            <div class="space-y-2">
-                                <label class="block text-sm font-semibold text-gray-700">Date of Birth</label>
-                            <input 
-                                type="date" 
-                                    id="dob" 
-                                name="dob"
-                                    value="<%= user.dob ? new Date(user.dob).toISOString().split('T')[0] : '' %>" 
-                                readonly
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
-                            >
-                        </div>
-                        </div>
-                        
-                        <div class="mt-6 space-y-2">
-                            <label class="block text-sm font-semibold text-gray-700">Bio</label>
-                            <textarea 
-                                id="bio" 
-                                name="bio" 
-                                rows="4" 
-                                readonly
-                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 resize-none"
-                                placeholder="Tell us about yourself..."><%= user.bio || '' %></textarea>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-end space-x-4">
                             <button 
                                 type="button"
-                            id="cancelBtn" 
+                                id="editProfileBtn"
+                                onclick="toggleEditMode()"
+                                class="bg-gradient-to-r from-primary to-accent text-white py-2 px-6 rounded-xl hover:from-secondary hover:to-primary transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                            >
+                                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                Edit Profile
+                            </button>
+                        </div>
+                        
+                            <!-- Profile Image Section -->                        
+                        <div class="mb-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-100">
+                            <h2 class="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+                                <svg class="w-6 h-6 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                Profile Picture
+                            </h2>
+                            <div class="flex items-center space-x-8">
+                                <div class="flex-shrink-0">
+                                    <% if (user.profileImage) { %>
+                                        <img src="<%= user.profileImage %>" alt="Profile" class="w-24 h-24 rounded-2xl object-cover shadow-xl border-4 border-white">
+                                    <% } else { %>
+                                        <div class="w-24 h-24 bg-gradient-to-r from-primary via-accent to-purple-500 rounded-2xl flex items-center justify-center text-white text-3xl font-bold shadow-xl border-4 border-white">
+                                            <%= (user.handle || user.email).charAt(0).toUpperCase() %>
+                                        </div>
+                                    <% } %>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-sm font-medium text-gray-700 mb-3">Upload New Image</label>
+                                    <div class="relative">
+                                        <input 
+                                            type="file" 
+                                            id="profileImageFile" 
+                                            name="profileImageFile" 
+                                            accept="image/*" 
+                                            readonly
+                                            class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                                        >
+                                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <div class="text-center">
+                                                <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                                </svg>
+                                                <p class="text-sm text-gray-500">Click to upload</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-2">JPG, PNG, GIF, WebP - Max 5MB</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Personal Information -->
+                        <div class="mb-8 p-6 bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-100">
+                            <h2 class="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+                                <svg class="w-6 h-6 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Personal Information
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700">Full Name</label>
+                                    <input 
+                                        type="text" 
+                                        id="name" 
+                                        name="name" 
+                                        value="<%= user.name || '' %>" 
+                                        readonly
+                                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                                    >
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700">Handle</label>
+                                    <input 
+                                        type="text" 
+                                        id="handle" 
+                                        name="handle"
+                                        value="<%= user.handle || '' %>" 
+                                        readonly
+                                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                                    >
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700">Email Address</label>
+                                    <input 
+                                        type="email" 
+                                        id="email" 
+                                        name="email" 
+                                        value="<%= user.email || '' %>" 
+                                        readonly
+                                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-500"
+                                    >
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700">Date of Birth</label>
+                                    <input 
+                                        type="date" 
+                                        id="dob" 
+                                        name="dob"
+                                        value="<%= user.dob ? new Date(user.dob).toISOString().split('T')[0] : '' %>" 
+                                        readonly
+                                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                                    >
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 space-y-2">
+                                <label class="block text-sm font-semibold text-gray-700">Bio</label>
+                                <textarea 
+                                    id="bio" 
+                                    name="bio" 
+                                    rows="4" 
+                                    readonly
+                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 resize-none"
+                                    placeholder="Tell us about yourself..."><%= user.bio || '' %></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-4">
+                            <button 
+                                type="button"
+                                id="cancelBtn" 
                                 onclick="cancelEdit()"
-                            class="px-8 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-300 font-semibold hidden transform hover:-translate-y-0.5"
+                                class="px-8 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-300 font-semibold hidden transform hover:-translate-y-0.5"
                             >
                                 Cancel
                             </button>
-                        <button 
-                            type="submit"
-                            id="saveBtn" 
-                            class="bg-gradient-to-r from-primary to-accent text-white py-3 px-8 rounded-xl hover:from-secondary hover:to-primary transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hidden"
-                        >
-                            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                            Save Changes
-                        </button>
+                            <button 
+                                type="submit"
+                                id="saveBtn" 
+                                class="bg-gradient-to-r from-primary to-accent text-white py-3 px-8 rounded-xl hover:from-secondary hover:to-primary transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hidden"
+                            >
+                                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Tab Content: My Twin -->
+                <% if (hasTwins && twin) { %>
+                    <div id="content-twin" class="tab-content <%= activeTab === 'twin' ? '' : 'hidden' %>">
+                        <div class="space-y-6">
+                            <!-- Twin Preview Card -->
+                            <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-xl font-bold text-gray-900">Your AI Twin</h3>
+                                            <p class="text-gray-600"><%= twin.isPublic ? '@' + (twin.publicHandle || 'twin') : 'Private Twin' %></p>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <% if (twin.isPublic) { %>
+                                            <span class="px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">Public</span>
+                                        <% } else { %>
+                                            <span class="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-semibold rounded-full">Private</span>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Twin Management Links -->
+                            <div class="grid md:grid-cols-3 gap-6">
+                                <a href="/twin/<%= twin.id %>/ai-edit" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all group">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900">Edit Style</h4>
+                                            <p class="text-sm text-gray-600">Customize personality</p>
+                                        </div>
+                                    </div>
+                                </a>
+                                
+                                <a href="/twin/<%= twin.id %>/style-customize" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all group">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900">Style Sandbox</h4>
+                                            <p class="text-sm text-gray-600">Test responses</p>
+                                        </div>
+                                    </div>
+                                </a>
+                                
+                                <a href="/twin/<%= twin.id %>/learning-dashboard" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all group">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900">Learning Dashboard</h4>
+                                            <p class="text-sm text-gray-600">Training progress</p>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                            <!-- Public Profile Management -->
+                            <div class="bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-100 p-6">
+                                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                                    <svg class="w-6 h-6 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+                                    </svg>
+                                    Public Profile
+                                </h2>
+                                <% if (twin.isPublic) { %>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Public Handle</label>
+                                            <div class="flex items-center space-x-2">
+                                                <span class="text-gray-600">@</span>
+                                                <span class="text-lg font-medium text-gray-900"><%= twin.publicHandle || 'twin' %></span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Public Profile Link</label>
+                                            <div class="flex items-center space-x-2">
+                                                <input type="text" readonly value="/@<%= twin.publicHandle || 'twin' %>" id="publicLinkInput" class="flex-1 px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600">                                                
+                                                <button id="copyPublicLinkBtn" onclick="copyPublicLink()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors">
+                                                    Copy
+                                                </button>                                                
+                                            </div>
+                                        </div>
+                                        <a href="/@<%= twin.publicHandle || 'twin' %>" target="_blank" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                            View Public Profile →
+                                        </a>
+                                    </div>
+                                <% } else { %>
+                                    <p class="text-gray-600 mb-4">Your twin is currently private. Make it public to share with others.</p>
+                                    <button onclick="makeTwinPublic('<%= twin.id %>')" class="px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-semibold">
+                                        Make Twin Public
+                                    </button>
+                                <% } %>
+                            </div>
+                        </div>
                     </div>
-                </form>
+                <% } %>
+                
+                <!-- Tab Content: Settings -->
+                <div id="content-settings" class="tab-content <%= activeTab === 'settings' ? '' : 'hidden' %>">
+                    <div class="space-y-8">
+                        <!-- Change Password Section -->
+                        <div class="bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-100 p-6">
+                            <h2 class="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+                                <svg class="w-6 h-6 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                                Change Password
+                            </h2>
+                            <form id="changePasswordForm" class="space-y-6">
+                                <div>
+                                    <label for="currentPassword" class="block text-sm font-semibold text-gray-700 mb-2">Current Password</label>
+                                    <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all" required>
+                                </div>
+                                
+                                <div>
+                                    <label for="newPassword" class="block text-sm font-semibold text-gray-700 mb-2">New Password</label>
+                                    <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all" required>
+                                </div>
+                                
+                                <div>
+                                    <label for="confirmPassword" class="block text-sm font-semibold text-gray-700 mb-2">Confirm New Password</label>
+                                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all" required>
+                                </div>
+                                
+                                <button type="submit" class="bg-gradient-to-r from-primary to-accent text-white py-3 px-8 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">
+                                    Change Password
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <!-- Privacy Settings -->
+                        <div class="bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-100 p-6">
+                            <h2 class="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+                                <svg class="w-6 h-6 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                                Privacy Settings
+                            </h2>
+                            
+                            <% if (hasTwins && twin) { %>
+                                <div class="space-y-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h3 class="font-semibold text-gray-900">Allow Public Chat</h3>
+                                            <p class="text-sm text-gray-600">Let others chat with your twin publicly</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="allowPublicChat" <%= twin.allowPublicChat ? 'checked' : '' %> class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h3 class="font-semibold text-gray-900">Show Chat History</h3>
+                                            <p class="text-sm text-gray-600">Make previous chats visible to others</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="showChatHistory" <%= twin.showChatHistory ? 'checked' : '' %> class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h3 class="font-semibold text-gray-900">Allow Likes</h3>
+                                            <p class="text-sm text-gray-600">Let others like your twin</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="allowLikes" <%= twin.allowLikes ? 'checked' : '' %> class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h3 class="font-semibold text-gray-900">Allow Follows</h3>
+                                            <p class="text-sm text-gray-600">Let others follow your twin</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="allowFollows" <%= twin.allowFollows ? 'checked' : '' %> class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+                                    
+                                    <button onclick="savePrivacySettings()" class="mt-4 bg-gradient-to-r from-primary to-accent text-white py-3 px-8 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">
+                                        Save Privacy Settings
+                                    </button>
+                                </div>
+                            <% } else { %>
+                                <p class="text-gray-600">Create a twin to manage privacy settings.</p>
+                            <% } %>
+                        </div>                        
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<script>
-    // Profile edit functionality
-    function toggleEditMode() {
-        console.log('Edit mode toggled!');
+    <script>
+        // Tab switching functionality - Make it globally accessible
+        const activeTab = '<%= activeTab %>' || 'profile';
         
-        const form = document.getElementById('profileForm');
-        const inputs = form.querySelectorAll('input, textarea');
-        const editBtn = document.getElementById('editProfileBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-        const saveBtn = document.getElementById('saveBtn');
-        const profileImageFile = document.getElementById('profileImageFile');
-        
-        console.log('Elements found:', {
-            form: !!form,
-            inputs: inputs.length,
-            editBtn: !!editBtn,
-            cancelBtn: !!cancelBtn,
-            saveBtn: !!saveBtn,
-            profileImageFile: !!profileImageFile
-        });
-        
-        // Enable all inputs except email
-        inputs.forEach(input => {
-            if (input.id !== 'email') {
-                input.removeAttribute('readonly');
-                input.classList.remove('bg-white/50', 'bg-gray-100');
-                input.classList.add('bg-white', 'border-primary/30');
-                console.log('Enabled input:', input.id);
+        // Make switchTab globally accessible
+        window.switchTab = function(tabName) {
+            console.log('🔵 switchTab called with:', tabName);
+            
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+                console.log('Hidden content:', content.id);
+            });
+            
+            // Remove active state from all tabs
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('border-primary', 'text-primary');
+                button.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            // Show selected tab content
+            const contentId = `content-${tabName}`;
+            const content = document.getElementById(contentId);
+            console.log('Looking for content with ID:', contentId, 'Found:', !!content);
+            
+            if (content) {
+                content.classList.remove('hidden');
+                console.log('✅ Showing content:', contentId);
+            } else {
+                console.error('❌ Content not found:', contentId);
             }
-        });
-        
-        // Enable file input
-        if (profileImageFile) {
-            profileImageFile.removeAttribute('readonly');
-            profileImageFile.classList.remove('bg-white/50');
-            profileImageFile.classList.add('bg-white', 'border-primary/30');
-            console.log('Enabled file input');
-        }
-        
-        // Show/hide buttons
-        if (editBtn) editBtn.classList.add('hidden');
-        if (cancelBtn) cancelBtn.classList.remove('hidden');
-        if (saveBtn) saveBtn.classList.remove('hidden');
-        
-        console.log('Edit mode activated!');
-    }
-
-    function cancelEdit() {
-        console.log('Cancel edit clicked!');
-        
-    const form = document.getElementById('profileForm');
-        const inputs = form.querySelectorAll('input, textarea');
-    const editBtn = document.getElementById('editProfileBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-        const saveBtn = document.getElementById('saveBtn');
-        const profileImageFile = document.getElementById('profileImageFile');
-    
-        // Disable all inputs
-        inputs.forEach(input => {
-            if (input.id !== 'email') {
-                input.setAttribute('readonly', 'true');
-                input.classList.add('bg-white/50', 'border-gray-200');
-                input.classList.remove('bg-white', 'border-primary/30');
-                console.log('Disabled input:', input.id);
+            
+            // Activate selected tab button
+            const tabId = `tab-${tabName}`;
+            const tabButton = document.getElementById(tabId);
+            console.log('Looking for button with ID:', tabId, 'Found:', !!tabButton);
+            
+            if (tabButton) {
+                tabButton.classList.remove('border-transparent', 'text-gray-500');
+                tabButton.classList.add('border-primary', 'text-primary');
+                console.log('✅ Activated button:', tabId);
+            } else {
+                console.error('❌ Button not found:', tabId);
             }
-        });
+            
+            // Update URL without reload
+            const newUrl = `/profile?tab=${tabName}`;
+            window.history.pushState({}, '', newUrl);
+        };
         
-        // Disable file input
-        if (profileImageFile) {
-            profileImageFile.setAttribute('readonly', 'true');
-            profileImageFile.classList.add('bg-white/50', 'border-gray-200');
-            profileImageFile.classList.remove('bg-white', 'border-primary/30');
-            profileImageFile.value = ''; // Clear file input
-            console.log('Disabled file input');
-        }
-        
-        // Show/hide buttons
-        if (editBtn) editBtn.classList.remove('hidden');
-        if (cancelBtn) cancelBtn.classList.add('hidden');
-        if (saveBtn) saveBtn.classList.add('hidden');
-        
-        console.log('Edit mode cancelled!');
-    }
-
-    // Form submission
-    document.addEventListener('DOMContentLoaded', function() {
-        const profileForm = document.getElementById('profileForm');
-        if (profileForm) {
-            profileForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                console.log('Form submitted!');
-                
-                const formData = new FormData();
-                const profileImageFile = document.getElementById('profileImageFile');
-                
-                // Add all form fields
-                formData.append('name', document.getElementById('name').value);
-                formData.append('handle', document.getElementById('handle').value);
-                formData.append('dob', document.getElementById('dob').value);
-                formData.append('bio', document.getElementById('bio').value);
-                
-                console.log('Form data:', {
-                    name: document.getElementById('name').value,
-                    handle: document.getElementById('handle').value,
-                    dob: document.getElementById('dob').value,
-                    bio: document.getElementById('bio').value,
-                    hasImage: profileImageFile.files.length > 0
-                });
-                
-                // Add profile image if selected
-                if (profileImageFile.files.length > 0) {
-                    formData.append('profileImageFile', profileImageFile.files[0]);
-                }
-                
-                try {
-                    const response = await fetch('/api/profile/update', {
-                        method: 'POST',
-                        body: formData,
-                        credentials: 'include'  // This ensures cookies are sent with the request
-                    });
-                    
-                    const result = await response.json();
-                    console.log('Response:', result);
-                    
-                    if (response.ok) {
-                        showNotification('Profile updated successfully!', 'success');
-                        // Reload page to show updated profile
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
-                    } else {
-                        showNotification(result.error || 'Failed to update profile', 'error');
+        // Initialize tab on page load and setup event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📋 DOM Loaded, activeTab:', activeTab);
+            console.log('🔍 Available tab contents:', document.querySelectorAll('.tab-content').length);
+            console.log('🔍 Available tab buttons:', document.querySelectorAll('.tab-button').length);
+            
+            // Setup click event listeners for all tab buttons (backup to onclick)
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Extract tab name from button ID (format: tab-profile, tab-twin, tab-settings)
+                    const buttonId = this.getAttribute('id');
+                    if (buttonId && buttonId.startsWith('tab-')) {
+                        const tabName = buttonId.replace('tab-', '');
+                        console.log('🖱️ Tab button clicked via event listener:', tabName);
+                        if (typeof window.switchTab === 'function') {
+                            window.switchTab(tabName);
+                        }
                     }
-                } catch (error) {
-                    console.error('Profile update error:', error);
-                    showNotification('Network error. Please try again.', 'error');
+                });
+            });
+            
+            // Ensure switchTab is available before calling
+            if (typeof window.switchTab === 'function') {
+                switchTab(activeTab);
+            } else {
+                console.error('❌ switchTab function not found!');
+            }
+        });
+        
+        // Profile edit functionality (existing code)
+        function toggleEditMode() {
+            console.log('Edit mode toggled!');
+            
+            const form = document.getElementById('profileForm');
+            const inputs = form.querySelectorAll('input, textarea');
+            const editBtn = document.getElementById('editProfileBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const profileImageFile = document.getElementById('profileImageFile');
+            
+            // Enable all inputs except email
+            inputs.forEach(input => {
+                if (input.id !== 'email') {
+                    input.removeAttribute('readonly');
+                    input.classList.remove('bg-white/50', 'bg-gray-100');
+                    input.classList.add('bg-white', 'border-primary/30');
                 }
             });
-        } else {
-            console.error('Profile form not found!');
-        }
-    });
-
-    // Logout function
-    function logout() {
-        fetch('/api/auth/logout', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include'  // This ensures cookies are sent with the request
-        })
-        .then(response => {
-            if (response.ok) {
-                window.location.href = '/auth';
+            
+            // Enable file input
+            if (profileImageFile) {
+                profileImageFile.removeAttribute('readonly');
+                profileImageFile.classList.remove('bg-white/50');
+                profileImageFile.classList.add('bg-white', 'border-primary/30');
             }
-        })
-        .catch(error => {
-            console.error('Logout error:', error);
-            window.location.href = '/auth';
-        });
-    }
-
-    // Notification system
-    function showNotification(message, type = 'success') {
-        const notification = document.createElement('div');
-        notification.className = `fixed top-4 right-4 p-4 rounded-xl shadow-2xl z-50 transform transition-all duration-300 ${
-            type === 'success' 
-                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
-                : 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
-        }`;
+            
+            // Show/hide buttons
+            if (editBtn) editBtn.classList.add('hidden');
+            if (cancelBtn) cancelBtn.classList.remove('hidden');
+            if (saveBtn) saveBtn.classList.remove('hidden');
+        }
+    
+        function cancelEdit() {
+            const form = document.getElementById('profileForm');
+            const inputs = form.querySelectorAll('input, textarea');
+            const editBtn = document.getElementById('editProfileBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const profileImageFile = document.getElementById('profileImageFile');
         
-        notification.innerHTML = `
-            <div class="flex items-center space-x-3">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    ${type === 'success' 
-                        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>'
-                        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>'
+            // Disable all inputs
+            inputs.forEach(input => {
+                if (input.id !== 'email') {
+                    input.setAttribute('readonly', 'true');
+                    input.classList.add('bg-white/50', 'border-gray-200');
+                    input.classList.remove('bg-white', 'border-primary/30');
+                }
+            });
+            
+            // Disable file input
+            if (profileImageFile) {
+                profileImageFile.setAttribute('readonly', 'true');
+                profileImageFile.classList.add('bg-white/50', 'border-gray-200');
+                profileImageFile.classList.remove('bg-white', 'border-primary/30');
+                profileImageFile.value = '';
+            }
+            
+            // Show/hide buttons
+            if (editBtn) editBtn.classList.remove('hidden');
+            if (cancelBtn) cancelBtn.classList.add('hidden');
+            if (saveBtn) saveBtn.classList.add('hidden');
+        }
+    
+        // Profile form submission (existing code)
+        document.addEventListener('DOMContentLoaded', function() {
+            const profileForm = document.getElementById('profileForm');
+            if (profileForm) {
+                profileForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData();
+                    const profileImageFile = document.getElementById('profileImageFile');
+                    
+                    formData.append('name', document.getElementById('name').value);
+                    formData.append('handle', document.getElementById('handle').value);
+                    formData.append('dob', document.getElementById('dob').value);
+                    formData.append('bio', document.getElementById('bio').value);
+                    
+                    if (profileImageFile.files.length > 0) {
+                        formData.append('profileImageFile', profileImageFile.files[0]);
                     }
-                </svg>
-                <span class="font-semibold">${message}</span>
-            </div>
-        `;
+                    
+                    try {
+                        const response = await fetch('/api/profile/update', {
+                            method: 'POST',
+                            body: formData,
+                            credentials: 'include'
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            showNotification('Profile updated successfully!', 'success');
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            showNotification(result.error || 'Failed to update profile', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Profile update error:', error);
+                        showNotification('Network error. Please try again.', 'error');
+                    }
+                });
+            }
+            
+            // Change password form submission
+            const changePasswordForm = document.getElementById('changePasswordForm');
+            if (changePasswordForm) {
+                changePasswordForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const currentPassword = document.getElementById('currentPassword').value;
+                    const newPassword = document.getElementById('newPassword').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    
+                    if (newPassword !== confirmPassword) {
+                        showNotification('New passwords do not match', 'error');
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch('/api/auth/change-password', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': '<%= csrfToken %>'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({ currentPassword, newPassword })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            showNotification('Password changed successfully!', 'success');
+                            changePasswordForm.reset();
+                        } else {
+                            showNotification(result.error || 'Failed to change password', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Change password error:', error);
+                        showNotification('Network error. Please try again.', 'error');
+                    }
+                });
+            }
+        });
+    
+        // Helper functions
+        // Make copyPublicLink globally accessible
+        window.copyPublicLink = function() {
+            try {
+                const input = document.getElementById('publicLinkInput');
+                if (!input) {
+                    console.error('Input element not found');
+                    showNotification('Failed to copy link', 'error');
+                    return;
+                }
+                
+                const url = window.location.origin + input.value;
+                console.log('Copying URL:', url);
+                
+                // Modern clipboard API
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url).then(() => {
+                        console.log('Successfully copied to clipboard');
+                        showNotification('Public link copied to clipboard!', 'success');
+                    }).catch(err => {
+                        console.error('Clipboard API failed:', err);
+                        // Fallback method
+                        fallbackCopyTextToClipboard(url);
+                    });
+                } else {
+                    // Fallback for older browsers
+                    fallbackCopyTextToClipboard(url);
+                }
+            } catch (error) {
+                console.error('Copy function error:', error);
+                showNotification('Failed to copy link', 'error');
+            }
+        };
         
-        document.body.appendChild(notification);
+        // Fallback copy method for older browsers
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showNotification('Public link copied to clipboard!', 'success');
+                } else {
+                    throw new Error('execCommand copy failed');
+                }
+            } catch (err) {
+                console.error('Fallback copy failed:', err);
+                showNotification('Failed to copy link. Please copy manually.', 'error');
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }        
+                
+        async function savePrivacySettings() {
+            <% if (!hasTwins) { %>
+                showNotification('No twin found', 'error');
+                return;
+            <% } %>
+            
+            const settings = {
+                allowPublicChat: document.getElementById('allowPublicChat').checked,
+                showChatHistory: document.getElementById('showChatHistory').checked,
+                allowLikes: document.getElementById('allowLikes').checked,
+                allowFollows: document.getElementById('allowFollows').checked,
+            };
+            
+            try {
+                const response = await fetch(`/api/twin/<%= twin?.id || '' %>/privacy`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '<%= csrfToken %>'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ settings })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showNotification('Privacy settings updated!', 'success');
+                } else {
+                    showNotification(result.error || 'Failed to update settings', 'error');
+                }
+            } catch (error) {
+                console.error('Privacy settings error:', error);
+                showNotification('Network error. Please try again.', 'error');
+            }
+        }
         
-        // Animate in
-        setTimeout(() => {
-            notification.style.transform = 'translateX(0)';
-        }, 100);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            notification.style.transform = 'translateX(100%)';
+        async function makeTwinPublic(twinId) {
+            // This would call an API to make twin public
+            showNotification('Feature coming soon', 'info');
+        }
+    
+        function logout() {
+            fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/auth';
+                }
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+                window.location.href = '/auth';
+            });
+        }
+    
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-xl shadow-2xl z-50 transform transition-all duration-300 ${
+                type === 'success' 
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
+                    : type === 'error'
+                    ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
+                    : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
+            }`;
+            
+            notification.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        ${type === 'success' 
+                            ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>'
+                            : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>'
+                        }
+                    </svg>
+                    <span class="font-semibold">${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
                 setTimeout(() => {
-                document.body.removeChild(notification);
-            }, 300);
-        }, 3000);
-    }
-
-    // Dropdown functionality
-    function toggleDropdown() {
-        const dropdown = document.getElementById('userDropdown');
-        const menu = document.getElementById('dropdownMenu');
-        const arrowIcon = document.getElementById('arrowIcon');
-        const isOpen = dropdown.getAttribute('data-open') === 'true';
-        
-        if (isOpen) {
+                    if (notification.parentNode) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+    
+        // Dropdown functionality (existing code)
+        function toggleDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            const menu = document.getElementById('dropdownMenu');
+            const arrowIcon = document.getElementById('arrowIcon');
+            const isOpen = dropdown.getAttribute('data-open') === 'true';
+            
+            if (isOpen) {
+                menu.classList.add('hidden', 'opacity-0', 'scale-95');
+                menu.classList.remove('opacity-100', 'scale-100');
+                arrowIcon.classList.remove('rotate-180');
+                dropdown.setAttribute('data-open', 'false');
+            } else {
+                menu.classList.remove('hidden', 'opacity-0', 'scale-95');
+                menu.classList.add('opacity-100', 'scale-100');
+                arrowIcon.classList.add('rotate-180');
+                dropdown.setAttribute('data-open', 'true');
+            }
+        }
+    
+        function closeDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            const menu = document.getElementById('dropdownMenu');
+            const arrowIcon = document.getElementById('arrowIcon');
+            
             menu.classList.add('hidden', 'opacity-0', 'scale-95');
             menu.classList.remove('opacity-100', 'scale-100');
             arrowIcon.classList.remove('rotate-180');
             dropdown.setAttribute('data-open', 'false');
-        } else {
-            menu.classList.remove('hidden', 'opacity-0', 'scale-95');
-            menu.classList.add('opacity-100', 'scale-100');
-            arrowIcon.classList.add('rotate-180');
-            dropdown.setAttribute('data-open', 'true');
         }
-    }
-
-    function closeDropdown() {
-        const dropdown = document.getElementById('userDropdown');
-        const menu = document.getElementById('dropdownMenu');
-        const arrowIcon = document.getElementById('arrowIcon');
-        
-        menu.classList.add('hidden', 'opacity-0', 'scale-95');
-        menu.classList.remove('opacity-100', 'scale-100');
-        arrowIcon.classList.remove('rotate-180');
-        dropdown.setAttribute('data-open', 'false');
-    }
-
-    // Event listeners
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM loaded, setting up event listeners');
-        
-        
-        // Test edit button
-        const editBtn = document.getElementById('editProfileBtn');
-        if (editBtn) {
-            console.log('Edit button found, adding click listener');
-            editBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                console.log('Edit button clicked!');
-                toggleEditMode();
-            });
-        } else {
-            console.error('Edit button not found!');
-        }
-        
-        // Test cancel button
-        const cancelBtn = document.getElementById('cancelBtn');
-        if (cancelBtn) {
-            console.log('Cancel button found, adding click listener');
-            cancelBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                console.log('Cancel button clicked!');
-                cancelEdit();
-            });
-        } else {
-            console.error('Cancel button not found!');
-        }
-        
-        // Dropdown functionality
-        const dropdownButton = document.getElementById('dropdownButton');
-        const dropdown = document.getElementById('userDropdown');
-        
-        if (dropdownButton && dropdown) {
-            dropdownButton.addEventListener('click', function(e) {
-                e.preventDefault();
-                toggleDropdown();
-            });
+    
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const editBtn = document.getElementById('editProfileBtn');
+            if (editBtn) {
+                editBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    toggleEditMode();
+                });
+            }
             
-            dropdown.addEventListener('mouseenter', function() {
-                const isOpen = dropdown.getAttribute('data-open') === 'true';
-                if (!isOpen) {
+            const cancelBtn = document.getElementById('cancelBtn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    cancelEdit();
+                });
+            }
+            
+            // Copy Public Link button event listener (backup to onclick)
+            const copyPublicLinkBtn = document.getElementById('copyPublicLinkBtn');
+            if (copyPublicLinkBtn) {
+                copyPublicLinkBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Copy button clicked via event listener');
+                    if (typeof window.copyPublicLink === 'function') {
+                        window.copyPublicLink();
+                    } else {
+                        console.error('copyPublicLink function not found');
+                    }
+                });
+            }
+            
+            // Dropdown functionality
+            const dropdownButton = document.getElementById('dropdownButton');
+            const dropdown = document.getElementById('userDropdown');
+            
+            if (dropdownButton && dropdown) {
+                dropdownButton.addEventListener('click', function(e) {
+                    e.preventDefault();
                     toggleDropdown();
-                }
-            });
-            
-            dropdown.addEventListener('mouseleave', function() {
-                closeDropdown();
-            });
-            
-            document.addEventListener('click', function(e) {
-                if (!dropdown.contains(e.target)) {
+                });
+                
+                dropdown.addEventListener('mouseenter', function() {
+                    const isOpen = dropdown.getAttribute('data-open') === 'true';
+                    if (!isOpen) {
+                        toggleDropdown();
+                    }
+                });
+                
+                dropdown.addEventListener('mouseleave', function() {
                     closeDropdown();
-                }
-            });
-    }
-});
-</script>
+                });
+                
+                document.addEventListener('click', function(e) {
+                    if (!dropdown.contains(e.target)) {
+                        closeDropdown();
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

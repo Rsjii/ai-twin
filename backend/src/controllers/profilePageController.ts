@@ -1,9 +1,9 @@
 import { Response } from 'express';
-import { userQueries } from '../config/database';
+import { userQueries, twinQueries } from '../config/database';
 import { logger } from '../config/logger';
 
 /**
- * Profile page - User profile settings
+ * Profile page - User profile settings with tabs
  */
 export async function getProfile(req: any, res: Response) {
   console.log('Profile route accessed. User:', req.user);
@@ -25,6 +25,14 @@ export async function getProfile(req: any, res: Response) {
       return res.redirect('/auth');
     }
 
+    // Fetch twin data if exists (only one twin per user)
+    const userTwins = await twinQueries.findByUserId(user.id);
+    const twin = userTwins.length > 0 ? userTwins[0] : null;
+    const hasTwins = !!twin;
+
+    // Get active tab from query parameter (default to 'profile')
+    const activeTab = req.query.tab || 'profile';
+
     console.log('User found, rendering profile page');
     // Ensure all profile fields exist with default values
     const userWithDefaults = {
@@ -37,6 +45,9 @@ export async function getProfile(req: any, res: Response) {
     res.render('profile', {
       title: 'Profile - AI Twin',
       user: userWithDefaults,
+      twin: twin,
+      hasTwins: hasTwins,
+      activeTab: activeTab, // 'profile', 'twin', or 'settings'
       csrfToken: res.locals['csrfToken'],
     });
   } catch (error) {
@@ -47,29 +58,9 @@ export async function getProfile(req: any, res: Response) {
 }
 
 /**
- * Change Password page
+ * Change Password page (now redirects to profile settings tab)
  */
 export async function getChangePassword(req: any, res: Response) {
-  // Check if user is authenticated via JWT
-  if (!req.user) {
-    return res.redirect('/auth');
-  }
-
-  try {
-    // Fetch complete user data from database
-    const user = await userQueries.findByEmail(req.user.email);
-    if (!user) {
-      return res.redirect('/auth');
-    }
-
-    res.render('change-password', {
-      title: 'Change Password - AI Twin',
-      user: user,
-      csrfToken: res.locals['csrfToken'],
-    });
-  } catch (error) {
-    logger.error('Change password page error:', error);
-    res.status(500).send('Internal server error');
-  }
+  // Redirect to profile page with settings tab
+  return res.redirect('/profile?tab=settings');
 }
-
