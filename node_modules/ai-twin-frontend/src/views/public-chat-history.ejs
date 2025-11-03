@@ -220,7 +220,7 @@
 
             chats.forEach(({ twin, latestChat, lastMessage }) => {
                 const card = document.createElement('div');
-                card.className = 'bg-white/80 backdrop-blur-xl rounded-xl p-6 border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group';
+                card.className = 'bg-white/80 backdrop-blur-xl rounded-xl p-6 border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 group';
                 card.setAttribute('data-twin-id', twin.id);
 
                 // Avatar initial
@@ -265,18 +265,21 @@
                         </div>
                     ` : ''}
                     
-                    <button onclick="event.stopPropagation(); window.location.href='/public-twin/chat/${twin.id}'" 
-                            class="w-full px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
+                    <button data-twin-id="${twin.id}"
+                            class="continue-chat-btn w-full px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
                         💬 Continue Chat
                     </button>
                 `;
 
-                // Click on card navigates to chat
-                card.addEventListener('click', function(e) {
-                    if (e.target.tagName !== 'BUTTON') {
+                // Add click listener to button after innerHTML
+                const button = card.querySelector('.continue-chat-btn');
+                if (button) {
+                    button.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
                         window.location.href = `/public-twin/chat/${twin.id}`;
-                    }
-                });
+                    });
+                }
 
                 twinsGrid.appendChild(card);
             });
