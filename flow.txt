@@ -1,0 +1,985 @@
+Comprehensive analysis prepare kar raha hoon. Dependencies, structure, aur complete flow cover karke:
+
+
+[8 tools called]
+
+Aur details gather kar raha hoon:
+
+
+[8 tools called]
+
+Ultra-detailed document tayyar kar raha hoon covering dependencies, structure, aur complete flow:
+
+
+[2 tools called]
+
+# Complete technical documentation: AI Twin Platform
+
+## 1. Dependency structure
+
+### Backend dependencies (backend/package.json)
+```
+Core Framework:
+├── express@4.18.2          - Web framework
+├── typescript@5.3.3         - Type safety
+└── tsx@4.6.2               - TypeScript execution
+
+Database:
+├── @prisma/client@5.7.1   - ORM client
+├── pg@8.11.3               - PostgreSQL driver
+└── prisma@5.7.1            - Database toolkit
+
+Authentication & Security:
+├── jsonwebtoken@9.0.2      - JWT tokens
+├── express-session@1.17.3  - Session management
+├── cookie-parser@1.4.7     - Cookie parsing
+├── bcryptjs@2.4.3          - Password hashing
+└── helmet@7.1.0            - Security headers
+
+Rate Limiting & Validation:
+├── express-rate-limit@7.1.5 - Rate limiting
+└── zod@3.22.4               - Schema validation
+
+AI & Email:
+├── openai@4.20.1           - OpenAI API
+└── nodemailer@6.9.7        - Email service
+
+Logging & Utilities:
+├── pino@8.17.2             - Logger
+├── morgan@1.10.0           - HTTP logger
+├── dotenv@16.3.1           - Environment vars
+└── node-cron@3.0.3         - Cron jobs
+
+File Upload:
+└── multer@2.0.2            - File uploads
+```
+
+### Frontend dependencies (frontend/package.json)
+```
+Templates:
+└── ejs@3.1.9               - Template engine
+
+Styling (CDN):
+└── Tailwind CSS            - Utility CSS (via CDN)
+```
+
+---
+
+## 2. Project structure
+
+```
+ai-twin-project/
+├── backend/                    # Backend Server
+│   ├── src/
+│   │   ├── app.ts             # Express app configuration
+│   │   ├── server.ts          # Server startup
+│   │   │
+│   │   ├── config/            # Configuration
+│   │   │   ├── env.ts         # Environment variables
+│   │   │   ├── database.ts    # DB queries & initialization
+│   │   │   ├── db.ts          # DB connection
+│   │   │   ├── logger.ts      # Logging setup
+│   │   │   └── featureFlags.ts # Feature toggles
+│   │   │
+│   │   ├── middleware/        # Express Middleware (7 files)
+│   │   │   ├── auth.ts        # Authentication
+│   │   │   ├── csrf.ts        # CSRF protection
+│   │   │   ├── jwtAuth.ts     # JWT auth
+│   │   │   ├── jwtCookie.ts   # JWT from cookies
+│   │   │   ├── rateLimit.ts   # Rate limiting
+│   │   │   ├── security.ts    # Security utils
+│   │   │   └── validation.ts  # Input validation (Zod)
+│   │   │
+│   │   ├── modules/           # Feature Modules (13 modules)
+│   │   │   ├── auth/         # Authentication (3 files)
+│   │   │   ├── twin/         # Twin Management (11 files)
+│   │   │   ├── chat/         # Chat System (7 files)
+│   │   │   ├── profile/      # User Profiles (3 files)
+│   │   │   ├── invite/       # Referral System (2 files)
+│   │   │   ├── analytics/    # Analytics (4 files)
+│   │   │   ├── social/       # Social Features (2 files)
+│   │   │   ├── discover/     # Discovery (2 files)
+│   │   │   ├── onboarding/  # Onboarding (2 files)
+│   │   │   ├── memory/       # Memory System (2 files)
+│   │   │   ├── moderation/   # Moderation (2 files)
+│   │   │   ├── privacy/      # Privacy (2 files)
+│   │   │   └── share/        # Sharing (2 files)
+│   │   │
+│   │   ├── services/          # Business Logic Services (8 files)
+│   │   │   ├── chatService.ts           # Chat logic
+│   │   │   ├── aiLearningService.ts      # AI learning
+│   │   │   ├── learningScheduler.ts      # Background jobs
+│   │   │   ├── performanceService.ts    # Performance metrics
+│   │   │   ├── systemPromptUpdater.ts    # Prompt updates
+│   │   │   ├── backgroundLearning.ts     # Background learning
+│   │   │   ├── eventLogger.ts            # Event logging
+│   │   │   └── jwtService.ts              # JWT utilities
+│   │   │
+│   │   ├── controllers/       # Page Controllers (11 files)
+│   │   │   ├── dashboardPageController.ts
+│   │   │   ├── authPageController.ts
+│   │   │   ├── chatPageController.ts
+│   │   │   ├── profilePageController.ts
+│   │   │   ├── twinPageController.ts
+│   │   │   ├── discoverPageController.ts
+│   │   │   ├── publicPageController.ts
+│   │   │   ├── analyticsPageController.ts
+│   │   │   ├── twinManagePageController.ts
+│   │   │   ├── publicChatHistoryPageController.ts
+│   │   │   └── testController.ts
+│   │   │
+│   │   ├── routes/           # Page Routes (10 files)
+│   │   │   ├── index.ts      # Route aggregator
+│   │   │   ├── authPageRoutes.ts
+│   │   │   ├── dashboardPageRoutes.ts
+│   │   │   ├── chatPageRoutes.ts
+│   │   │   ├── profilePageRoutes.ts
+│   │   │   ├── twinPageRoutes.ts
+│   │   │   ├── discoverPageRoutes.ts
+│   │   │   ├── publicPageRoutes.ts
+│   │   │   ├── analyticsPageRoutes.ts
+│   │   │   └── testRoutes.ts
+│   │   │
+│   │   ├── utils/            # Utilities (3 files)
+│   │   │   ├── safety.ts          # Content safety
+│   │   │   ├── styleCritic.ts     # Style analysis
+│   │   │   └── intentClassification.ts # Intent detection
+│   │   │
+│   │   └── types/            # TypeScript Types (2 files)
+│   │
+│   ├── prisma/
+│   │   ├── schema.prisma     # Database schema
+│   │   └── migrations/       # Migration history
+│   │
+│   ├── migrations/           # SQL Migrations (12 files)
+│   │   ├── 001_add_public_twin_features.sql
+│   │   ├── 002_enhanced_onboarding.sql
+│   │   ├── 003_add_chat_vector.sql
+│   │   ├── 004_add_style_learning.sql
+│   │   ├── 005_add_twin_tracking.sql
+│   │   ├── 006_add_chat_feedback_tables.sql
+│   │   ├── 007_fix_userid_data_types.sql
+│   │   ├── 008_add_chat_management.sql
+│   │   ├── 009_add_public_message_table.sql
+│   │   ├── 010_add_public_chat_title.sql
+│   │   ├── 011_add_referral_code.sql
+│   │   └── 012_add_userid_to_publicchat.sql
+│   │
+│   └── public/uploads/       # Uploaded files
+│
+├── frontend/                  # Frontend Views
+│   └── src/
+│       └── views/            # EJS Templates (41 files)
+│           ├── layout.ejs            # Base layout
+│           ├── landing.ejs           # Landing page
+│           ├── auth.ejs              # Auth page
+│           ├── dashboard.ejs          # Main dashboard
+│           ├── twin_create.ejs        # Twin creation
+│           ├── chat.ejs               # Chat interface
+│           ├── chat-enhanced.ejs      # Enhanced chat
+│           ├── public-chat.ejs        # Public chat
+│           ├── public-profile.ejs     # Public profile
+│           ├── discover.ejs           # Discovery page
+│           ├── profile.ejs             # User profile
+│           └── [28 more views...]
+│
+└── docs/                      # Documentation (10+ files)
+```
+
+---
+
+## 3. Complete code flow (A–Z)
+
+### 3.1 Application startup flow
+
+```
+1. server.ts
+   └─> Load environment variables
+   └─> Connect to database
+   └─> Initialize database tables
+   └─> Start Express server
+   └─> Listen on PORT
+
+2. app.ts
+   └─> Initialize Express app
+   └─> Apply security middleware (Helmet)
+   └─> Apply rate limiting
+   └─> Setup session management
+   └─> Setup body parsing
+   └─> Setup view engine (EJS)
+   └─> Mount routes
+   └─> Setup error handlers
+   └─> Setup 404 handler
+```
+
+### 3.2 Request flow
+
+```
+HTTP Request
+    ↓
+1. Helmet (Security Headers)
+    ↓
+2. Rate Limiter (express-rate-limit)
+    ├─> Check IP-based limits
+    └─> Reject if exceeded
+    ↓
+3. Cookie Parser
+    ↓
+4. Body Parser (JSON/URL-encoded)
+    ↓
+5. Session Middleware
+    ↓
+6. CSRF Token Generation
+    ↓
+7. Route Matching
+    ├─> Page Routes (EJS rendering)
+    └─> API Routes (JSON responses)
+    ↓
+8. Route-Specific Middleware
+    ├─> Authentication (JWT/Session)
+    ├─> Validation (Zod)
+    └─> Authorization checks
+    ↓
+9. Controller/Handler
+    ├─> Validate input
+    ├─> Call Service Layer
+    ├─> Database queries
+    └─> Format response
+    ↓
+10. Response
+    ├─> Render EJS (Page routes)
+    └─> Send JSON (API routes)
+```
+
+### 3.3 User authentication flow
+
+```
+1. User visits /auth
+   └─> Render auth.ejs
+    ↓
+2. User enters email → POST /api/auth/login/start
+   └─> Validate email (Zod)
+   └─> Check if user exists
+   └─> Generate 6-digit OTP
+   └─> Hash OTP (bcrypt)
+   └─> Store in OTP table
+   └─> Send email via Nodemailer
+   └─> Return success
+    ↓
+3. User enters OTP → POST /api/auth/login/verify
+   └─> Validate OTP (Zod)
+   └─> Find OTP in database
+   └─> Check expiry (10 minutes)
+   └─> Verify hash (bcrypt)
+   └─> Mark OTP as used
+   └─> Create/Get user
+   └─> Generate JWT token
+   └─> Set JWT in cookie
+   └─> Create session
+   └─> Redirect to /dashboard
+```
+
+### 3.4 Twin creation flow
+
+```
+1. User visits /twin/create
+   └─> Render twin_create.ejs
+    ↓
+2. User uploads 3-5 text samples → POST /api/twin/create
+   └─> Validate samples (Zod: 100-3000 chars)
+   └─> Safety check (blacklist, toxicity)
+   └─> Extract style using OpenAI
+       ├─> Build prompt with samples
+       ├─> Call OpenAI GPT-4o-mini
+       ├─> Extract style vector (tone, emoji, hinglish, etc.)
+       └─> Generate sample reply
+   └─> Store in database
+       ├─> Create Twin record
+       ├─> Store styleVector (JSON)
+       ├─> Store sampleReply
+       └─> Link to User
+   └─> Log event (twin_created)
+   └─> Return twin data
+    ↓
+3. User sees preview
+   └─> Can approve/reject
+   └─> Option to make public
+```
+
+### 3.5 Chat flow (private)
+
+```
+1. User starts chat → POST /api/chat/start
+   └─> Validate twinId
+   └─> Check user owns twin
+   └─> Create Chat record
+   └─> Return chatId
+    ↓
+2. User types message
+   └─> Frontend validates length
+    ↓
+3. User requests draft → POST /api/chat/:id/draft
+   └─> Rate limit check (1 per 30s)
+   └─> Get chat history
+   └─> Get twin styleVector
+   └─> Build OpenAI prompt
+       ├─> Include style vector
+       ├─> Include conversation context
+       └─> System prompt for style
+   └─> Call OpenAI API
+   └─> Generate draft response
+   └─> Store draft in Message (approved=false)
+   └─> Return draft to user
+    ↓
+4. User approves → POST /api/chat/:id/send
+   └─> Validate messageId
+   └─> Mark message as approved=true
+   └─> Update chat timestamp
+   └─> Log event (message_approved)
+   └─> Return success
+```
+
+### 3.6 Public chat flow
+
+```
+1. User visits /public-twin/chat/:twinId
+   └─> Check twin is public
+   └─> Get twin details
+   └─> Check for existing chat (by userId or visitorId)
+   └─> Render public-chat.ejs
+    ↓
+2. Start/Resume chat → POST /api/public-chat/start
+   └─> Get/create PublicChat record
+   └─> Return chatId
+    ↓
+3. User sends message → POST /api/public-chat/:chatId/message
+   └─> Validate content
+   └─> Create PublicMessage (sender=human)
+   └─> Update message count
+    ↓
+4. Generate AI response → POST /api/public-chat/:chatId/draft
+   └─> Get chat history
+   └─> Get twin style
+   └─> Generate AI draft
+   └─> Create PublicMessage (sender=twin)
+   └─> Return message
+```
+
+### 3.7 Discover & social flow
+
+```
+1. User visits /discover
+   └─> Fetch trending twins → GET /api/discover/trending
+       ├─> Query by likeCount, chatCount
+       └─> Return twin list
+    ↓
+2. User likes twin → POST /api/social/twin/:id/like
+   └─> Check if already liked
+   └─> Create TwinLike record
+   └─> Increment likeCount
+   └─> Return success
+    ↓
+3. User follows twin → POST /api/social/twin/:id/follow
+   └─> Check if already following
+   └─> Create TwinFollow record
+   └─> Increment followCount
+   └─> Return success
+```
+
+### 3.8 Memory & learning flow
+
+```
+1. Background Learning Scheduler (cron)
+   └─> Runs every hour (production)
+   └─> Gets all active twins
+   └─> For each twin:
+       ├─> Analyze recent chats
+       ├─> Extract style patterns
+       ├─> Update styleVector
+       └─> Update systemPrompt
+    ↓
+2. Memory Management
+   └─> User adds memory → POST /api/memory/:twinId/memory/ingest
+       ├─> Categorize (facts/voice)
+       ├─> Generate embedding (optional)
+       └─> Store in mem_chunks
+   └─> Retrieve memories → GET /api/memory/:twinId/memory/retrieve
+       └─> Filter by bucket
+       └─> Return relevant memories
+```
+
+---
+
+## 4. Routes
+
+### 4.1 Page routes (HTML rendering)
+
+```
+GET  /                          → Landing page
+GET  /auth                      → Auth page (login/signup)
+GET  /login                      → Login page
+GET  /login/verify               → OTP verification
+GET  /dashboard                  → User dashboard
+GET  /twin/create                → Create twin
+GET  /twin/manage                → Manage twins
+GET  /chat/:id                   → Chat interface
+GET  /chat-enhanced              → Enhanced chat
+GET  /chat/history               → Chat history
+GET  /profile                    → User profile
+GET  /discover                   → Discover twins
+GET  /public-twin/chat/:twinId   → Public chat
+GET  /public-twin/profile/:handle → Public profile
+GET  /public-chat/history         → Public chat history
+GET  /analytics                   → Analytics dashboard
+GET  /admin/analytics            → Admin analytics
+GET  /onboarding                 → Onboarding flow
+GET  /memory/:twinId             → Memory management
+```
+
+### 4.2 API routes (JSON responses)
+
+#### Authentication (`/api/auth`)
+```
+POST /api/auth/waitlist          → Join waitlist
+POST /api/auth/login/start       → Send OTP
+POST /api/auth/login/verify      → Verify OTP
+POST /api/auth/logout             → Logout
+```
+
+#### Twin Management (`/api/twin`)
+```
+POST   /api/twin/create              → Create twin
+GET    /api/twin                     → Get user's twins
+GET    /api/twin/:id                 → Get specific twin
+PUT    /api/twin/:id                 → Update twin
+DELETE /api/twin/:id                 → Delete twin
+POST   /api/twin/:id/make-public     → Make twin public
+POST   /api/twin/:id/make-private    → Make twin private
+GET    /api/twin/:id/anchors         → Get style anchors
+POST   /api/twin/:id/anchors         → Add style anchor
+PUT    /api/twin/:id/anchors/:anchorId → Update anchor
+DELETE /api/twin/:id/anchors/:anchorId → Delete anchor
+```
+
+#### Public Twin (`/api/public-twin`)
+```
+GET  /api/public-twin/:handle        → Get public twin
+GET  /api/public-twin/:handle/profile → Get profile
+POST /api/public-twin/:id/update    → Update profile
+```
+
+#### Chat (`/api/chat`)
+```
+POST /api/chat/start                 → Start chat
+GET  /api/chat                       → Get user's chats
+GET  /api/chat/:id                   → Get specific chat
+POST /api/chat/:id/draft             → Generate draft
+POST /api/chat/:id/send              → Send message
+```
+
+#### Enhanced Chat (`/api/enhanced-chat`)
+```
+POST /api/enhanced-chat/:id/draft    → Enhanced draft generation
+POST /api/enhanced-chat/:id/send     → Send approved message
+```
+
+#### Public Chat (`/api/public-chat`)
+```
+POST /api/public-chat/start          → Start public chat
+GET  /api/public-chat/:chatId        → Get chat
+POST /api/public-chat/:chatId/message → Send message
+POST /api/public-chat/:chatId/draft  → Generate draft
+GET  /api/public-chat/user/my-chats   → Get user's public chats
+GET  /api/public-chat/twin/:twinId   → Get chats for twin
+POST /api/public-chat/create         → Create new chat
+```
+
+#### Chat Management (`/api/chats`)
+```
+GET    /api/chats                    → Get all chats
+POST   /api/chats/new                → Create new chat
+PUT    /api/chats/:id/title          → Update chat title
+GET    /api/chats/:id/summary        → Get chat summary
+POST   /api/chats/:id/generate-title → Generate title
+```
+
+#### Social (`/api/social`)
+```
+POST /api/social/twin/:id/like       → Like twin
+POST /api/social/twin/:id/unlike     → Unlike twin
+POST /api/social/twin/:id/follow     → Follow twin
+POST /api/social/twin/:id/unfollow   → Unfollow twin
+```
+
+#### Discover (`/api/discover`)
+```
+GET /api/discover/trending           → Trending twins
+GET /api/discover/recent              → Recent twins
+GET /api/discover/popular             → Popular twins
+GET /api/discover/search              → Search twins
+```
+
+#### Profile (`/api/profile`)
+```
+GET  /api/profile                    → Get profile
+PUT  /api/profile                    → Update profile
+POST /api/profile/handle             → Update handle
+POST /api/profile/link                → Generate share link
+POST /api/profile/upload              → Upload image
+```
+
+#### Analytics (`/api/metrics`)
+```
+GET /api/metrics/summary             → System metrics
+GET /api/metrics/user                 → User analytics
+POST /api/metrics/track                → Track event
+GET  /api/analytics/twin/:id/performance → Twin performance
+GET  /api/analytics/feedback          → Feedback analytics
+```
+
+#### Admin Analytics (`/api/admin/analytics`)
+```
+GET /api/admin/analytics/summary      → Admin summary
+GET /api/admin/analytics/users        → User analytics
+GET /api/admin/analytics/twins        → Twin analytics
+GET /api/admin/analytics/chats         → Chat analytics
+GET /api/admin/analytics/messages      → Message analytics
+```
+
+#### Onboarding (`/api/onboarding`)
+```
+POST /api/onboarding/enhanced         → Enhanced onboarding
+POST /api/onboarding/complete         → Complete onboarding
+```
+
+#### Memory (`/api/memory`)
+```
+GET    /api/memory/:id/memory/stats    → Memory stats
+GET    /api/memory/:id/memory/retrieve → Retrieve memories
+POST   /api/memory/:id/memory/ingest   → Add memory
+PUT    /api/memory/:id/memory/:memId   → Update memory
+DELETE /api/memory/:id/memory/:memId   → Delete memory
+```
+
+#### Invite (`/api/invite`)
+```
+POST /api/invite/create               → Create invite
+GET  /api/invite/:code                 → Get invite
+POST /api/invite/:code/accept          → Accept invite
+```
+
+---
+
+## 5. Database schema
+
+### 5.1 Core tables
+
+```sql
+User
+├── id (TEXT, PK)
+├── email (TEXT, UNIQUE)
+├── passwordHash (TEXT, nullable)
+├── handle (TEXT, UNIQUE, nullable)
+├── name (TEXT, nullable)
+├── dob (TEXT, nullable)
+├── phone (TEXT, nullable)
+├── bio (TEXT, nullable)
+├── profileImage (TEXT, nullable)
+├── active (BOOLEAN, default: false)
+├── personaData (JSONB, nullable)
+├── onboardingCompleted (BOOLEAN, default: false)
+├── referralCode (TEXT, UNIQUE)
+├── createdAt (TIMESTAMP)
+└── updatedAt (TIMESTAMP)
+
+Twin
+├── id (TEXT, PK)
+├── userId (TEXT, FK → User.id)
+├── styleVector (JSONB)          # AI-extracted style
+├── sampleReply (TEXT, nullable)
+├── personaData (JSONB, nullable)
+├── systemPrompt (TEXT, nullable)
+├── tokenLimit (INT, default: 500)
+├── tier (TEXT, default: 'free')
+├── isPublic (BOOLEAN, default: false)
+├── publicHandle (TEXT, UNIQUE, nullable)
+├── bio (TEXT, nullable)
+├── profileImage (TEXT, nullable)
+├── verified (BOOLEAN, default: false)
+├── likeCount (INT, default: 0)
+├── followCount (INT, default: 0)
+├── chatCount (INT, default: 0)
+├── createdAt (TIMESTAMP)
+└── updatedAt (TIMESTAMP)
+
+Chat
+├── id (TEXT, PK)
+├── userId (TEXT, FK → User.id)
+├── twinId (TEXT, FK → Twin.id)
+├── chatVector (JSONB, nullable)  # Compressed history
+├── createdAt (TIMESTAMP)
+└── updatedAt (TIMESTAMP)
+
+Message
+├── id (TEXT, PK)
+├── chatId (TEXT, FK → Chat.id)
+├── sender (ENUM: human|twin)
+├── content (TEXT)
+├── approved (BOOLEAN, default: false)
+└── createdAt (TIMESTAMP)
+
+OTP
+├── id (TEXT, PK)
+├── email (TEXT)
+├── codeHash (TEXT)
+├── expiresAt (TIMESTAMP)
+├── used (BOOLEAN, default: false)
+└── createdAt (TIMESTAMP)
+
+Event
+├── id (TEXT, PK)
+├── userId (TEXT, FK → User.id, nullable)
+├── type (TEXT)
+├── meta (JSONB, nullable)
+└── createdAt (TIMESTAMP)
+
+Invite
+├── id (TEXT, PK)
+├── code (TEXT, UNIQUE)
+├── inviterId (TEXT, FK → User.id, nullable)
+├── acceptedBy (TEXT, FK → User.id, nullable)
+└── createdAt (TIMESTAMP)
+```
+
+### 5.2 Public & social tables
+
+```sql
+PublicChat
+├── id (TEXT, PK)
+├── twinId (TEXT, FK → Twin.id)
+├── visitorId (TEXT, nullable)  # Anonymous visitors
+├── userId (TEXT, nullable)     # Logged-in users
+├── messageCount (INT, default: 0)
+├── title (TEXT, nullable)
+├── summary (TEXT, nullable)
+├── createdAt (TIMESTAMP)
+└── lastActivity (TIMESTAMP)
+
+PublicMessage
+├── id (TEXT, PK)
+├── chatId (TEXT, FK → PublicChat.id)
+├── sender (ENUM: human|twin)
+├── content (TEXT)
+├── approved (BOOLEAN, default: false)
+└── createdAt (TIMESTAMP)
+
+TwinLike
+├── id (TEXT, PK)
+├── twinId (TEXT, FK → Twin.id)
+├── userId (TEXT, FK → User.id)
+└── createdAt (TIMESTAMP)
+UNIQUE(twinId, userId)
+
+TwinFollow
+├── id (TEXT, PK)
+├── twinId (TEXT, FK → Twin.id)
+├── userId (TEXT, FK → User.id)
+└── createdAt (TIMESTAMP)
+UNIQUE(twinId, userId)
+```
+
+### 5.3 Learning & memory tables
+
+```sql
+style_anchors
+├── id (TEXT, PK)
+├── twin_id (TEXT, FK → Twin.id)
+├── user_utterance (TEXT)
+├── ideal_reply (TEXT)
+├── tags (TEXT[])
+└── created_at (TIMESTAMPTZ)
+
+mem_chunks
+├── id (TEXT, PK)
+├── twin_id (TEXT, FK → Twin.id)
+├── bucket (ENUM: facts|voice)
+├── text (TEXT)
+├── embedding (JSONB, nullable)
+└── ts (TIMESTAMPTZ)
+
+style_corrections
+├── id (TEXT, PK)
+├── twin_id (TEXT, FK → Twin.id)
+├── knob (TEXT)        # shorter|casual|emoji_off|punchline
+├── delta (INT)        # +1|-1
+├── source (TEXT, nullable)
+└── ts (TIMESTAMPTZ)
+
+ai_runs
+├── id (TEXT, PK)
+├── twin_id (TEXT, FK → Twin.id)
+├── mode (TEXT)        # human|ai2ai
+├── tokens_in (INT, nullable)
+├── tokens_out (INT, nullable)
+├── critic_score (INT, nullable)
+├── regen (BOOLEAN, default: false)
+├── latency_ms (INT, nullable)
+└── ts (TIMESTAMPTZ)
+```
+
+---
+
+## 6. Services & middleware
+
+### 6.1 Middleware
+
+```
+1. Helmet
+   └─> Security headers
+   └─> CSP configuration
+
+2. Rate Limiter
+   └─> Global: 10,000 req/15min per IP
+   └─> Per-endpoint limits (draft, OTP, etc.)
+
+3. Cookie Parser
+   └─> Parse JWT from cookies
+
+4. Body Parser
+   └─> JSON (10MB limit)
+   └─> URL-encoded (10MB limit)
+
+5. Session
+   └─> Express sessions
+   └─> 24-hour expiry
+
+6. CSRF
+   └─> Generate tokens
+   └─> Validate on POST
+
+7. Authentication
+   └─> JWT validation
+   └─> User extraction
+
+8. Validation
+   └─> Zod schemas
+   └─> Input sanitization
+```
+
+### 6.2 Services
+
+```
+1. ChatService
+   └─> Draft generation
+   └─> Style application
+   └─> Context building
+
+2. AILearningService
+   └─> Style extraction
+   └─> Style updates
+   └─> Learning from feedback
+
+3. LearningScheduler
+   └─> Cron jobs (hourly)
+   └─> Background learning
+   └─> Performance updates
+
+4. PerformanceService
+   └─> Metrics collection
+   └─> Analytics aggregation
+
+5. SystemPromptUpdater
+   └─> Prompt generation
+   └─> Dynamic updates
+
+6. EventLogger
+   └─> Event tracking
+   └─> Analytics logging
+
+7. JWTService
+   └─> Token generation
+   └─> Token validation
+```
+
+---
+
+## 7. Frontend structure
+
+### 7.1 View files (41 total)
+
+```
+Core Pages:
+├── layout.ejs              # Base layout with nav
+├── landing.ejs             # Marketing page
+├── 404.ejs                 # Error page
+
+Authentication:
+├── auth.ejs                # Login/Signup
+├── login.ejs               # Login form
+├── login-verify.ejs        # OTP verification
+├── signup.ejs              # Signup form
+├── signup-profile.ejs      # Profile completion
+├── verify-otp.ejs          # OTP page
+├── forgot-password.ejs     # Password reset
+└── change-password.ejs     # Change password
+
+Main App:
+├── dashboard.ejs           # Main dashboard (2085 lines)
+├── twin_create.ejs         # Twin creation
+├── twin-manage.ejs         # Manage twins
+├── my-twins.ejs            # Twin list
+├── chat.ejs                # Chat interface
+├── chat-enhanced.ejs        # Enhanced chat
+├── chat-history.ejs        # Chat history
+├── chat-simple.ejs         # Simple chat
+
+Public:
+├── public-chat.ejs         # Public chat
+├── public-profile.ejs      # Public profile
+├── public-chat-history.ejs # Public chat history
+└── profile_public.ejs     # Public profile view
+
+Discovery:
+├── discover.ejs            # Discover page
+
+Profile:
+├── profile.ejs              # User profile
+└── profile-simple.ejs      # Simple profile
+
+Analytics:
+├── analytics.ejs           # User analytics
+├── admin-analytics.ejs     # Admin dashboard
+├── admin-analytics-users.ejs
+├── admin-analytics-twins.ejs
+├── admin-analytics-chats.ejs
+└── admin-analytics-messages.ejs
+
+Advanced:
+├── onboarding.ejs         # Onboarding flow
+├── memory-management.ejs   # Memory management
+├── learning-dashboard.ejs  # Learning dashboard
+├── ai-edit.ejs             # AI editing
+├── ai-runs.ejs             # AI runs
+└── style-customize.ejs     # Style customization
+```
+
+---
+
+## 8. Overall summary
+
+### 8.1 Architecture summary
+
+- Type: Full-stack web application
+- Backend: Node.js + Express + TypeScript
+- Database: PostgreSQL + Prisma + Raw SQL
+- Frontend: EJS templates + Tailwind CSS (CDN)
+- Authentication: JWT + Session + Email OTP
+- AI: OpenAI GPT-4o-mini
+- Security: Helmet, CSRF, Rate Limiting, Validation
+
+### 8.2 Feature summary
+
+- Core features: 15+
+  - Authentication (Email OTP)
+  - Twin creation & management
+  - Private chat with approve-only
+  - Public chat system
+  - Discovery & search
+  - Social features (Like, Follow)
+  - Memory system
+  - Style learning
+  - Analytics dashboard
+  - Admin panel
+
+- Database: 17+ tables
+  - Core: User, Twin, Chat, Message, OTP, Event, Invite
+  - Public: PublicChat, PublicMessage
+  - Social: TwinLike, TwinFollow
+  - Learning: style_anchors, mem_chunks, style_corrections, ai_runs
+
+- API endpoints: 70+
+  - Auth: 4 endpoints
+  - Twin: 10+ endpoints
+  - Chat: 15+ endpoints
+  - Social: 8 endpoints
+  - Analytics: 10+ endpoints
+  - Other: 20+ endpoints
+
+### 8.3 Code metrics
+
+- Backend files: 100+
+- Frontend views: 41
+- Routes: 70+ endpoints
+- Database migrations: 12
+- Services: 8
+- Middleware: 7
+- Lines of code: ~50,000+
+
+### 8.4 Technology stack summary
+
+```
+Backend Stack:
+├── Runtime: Node.js
+├── Framework: Express.js
+├── Language: TypeScript
+├── Database: PostgreSQL (Supabase)
+├── ORM: Prisma + Raw SQL
+├── AI: OpenAI API
+├── Email: Nodemailer
+└── Security: Helmet, CSRF, Rate Limiting
+
+Frontend Stack:
+├── Templates: EJS
+├── Styling: Tailwind CSS (CDN)
+├── JS: Vanilla ES6+
+└── Icons: SVG (inline)
+
+DevOps:
+├── Package Manager: npm (workspaces)
+├── Build Tool: TypeScript Compiler
+├── Hot Reload: tsx watch
+└── Logging: Pino + Morgan
+```
+
+---
+
+## 9. Critical flows
+
+### 9.1 User journey
+
+```
+1. Landing Page → Email waitlist
+2. Auth → OTP verification
+3. Dashboard → Create twin
+4. Twin Creation → Upload samples → AI extracts style
+5. Chat → Generate drafts → Approve → Send
+6. Make Public → Share handle
+7. Discover → Browse others' twins
+8. Public Chat → Chat with others' twins
+9. Social → Like/Follow twins
+10. Analytics → View stats
+```
+
+### 9.2 Data flow
+
+```
+User Input
+  ↓
+Validation (Zod)
+  ↓
+Safety Check (Blacklist/Toxicity)
+  ↓
+Service Layer
+  ↓
+Database Query
+  ↓
+AI Processing (OpenAI)
+  ↓
+Response Formatting
+  ↓
+Frontend Display
+```
+
+---
+
+Document ready. Next steps: specific improvements, priorities, or implementation tasks.

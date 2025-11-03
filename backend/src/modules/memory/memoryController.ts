@@ -1,25 +1,34 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { db, memChunksQueries } from '../../config/database';
 import { logger } from '../../config/logger';
 
 /**
- * Get memory statistics for a twin
+ * Get memory statistics for a twin (DEPRECATED - uses mem_chunks)
+ * @deprecated Consider using /api/twin/:id/long-term-memory and /api/twin/:id/style-anchors
  */
 export const getMemoryStats = async (req: any, res: Response) => {
   try {
     const { id: twinId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user?.id || req.userId;
+    
+    // Deprecation warning
+    logger.warn('⚠️ DEPRECATED: getMemoryStats - Consider using unified endpoints');
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
     
     // Verify twin ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
+    const twinResult = await db.query(
+      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
+      [twinId, userId]
+    );
     
-    if (twinResult.rows.length === 0) {
+    if (!twinResult || twinResult.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Twin not found' });
     }
     
-    // Get memory statistics
+    // Get memory statistics from mem_chunks (legacy)
     const statsResult = await db.query(`
       SELECT 
         bucket,
@@ -29,10 +38,17 @@ export const getMemoryStats = async (req: any, res: Response) => {
       GROUP BY bucket
     `, [twinId]);
     
+    if (!statsResult) {
+      return res.status(500).json({ success: false, error: 'Failed to get memory statistics' });
+    }
+    
     const totalMemories = statsResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
     
+    res.set('X-Deprecated', 'true');
+    res.set('X-Alternative-Endpoint', '/api/twin/:id/long-term-memory');
     res.json({ 
       success: true, 
+      deprecated: true,
       total: totalMemories,
       stats: statsResult.rows.map(row => ({
         bucket: row.bucket,
@@ -46,24 +62,33 @@ export const getMemoryStats = async (req: any, res: Response) => {
 };
 
 /**
- * Retrieve memories by bucket
+ * Retrieve memories by bucket (DEPRECATED - uses mem_chunks)
+ * @deprecated Use /api/twin/:id/long-term-memory or /api/twin/:id/style-anchors instead
  */
 export const retrieveMemories = async (req: any, res: Response) => {
   try {
     const { id: twinId } = req.params;
     const { bucket, limit = 10, offset = 0 } = req.query;
-    const userId = req.user.id;
+    const userId = req.user?.id || req.userId;
+    
+    // Deprecation warning
+    logger.warn('⚠️ DEPRECATED: retrieveMemories - Consider using unified endpoints');
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
     
     // Verify twin ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
+    const twinResult = await db.query(
+      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
+      [twinId, userId]
+    );
     
-    if (twinResult.rows.length === 0) {
+    if (!twinResult || twinResult.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Twin not found' });
     }
     
-    // Get memories - FIXED: handle "all" bucket
+    // Get memories - FIXED: handle "all" bucket (legacy mem_chunks)
     let memories;
     if (bucket === 'all') {
       // Get memories from both buckets
@@ -81,10 +106,11 @@ export const retrieveMemories = async (req: any, res: Response) => {
         parseInt(limit as string), 
         parseInt(offset as string)
       );
-    }    
+    }
 
-    
-    res.json({ success: true, memories });
+    res.set('X-Deprecated', 'true');
+    res.set('X-Alternative-Endpoint', '/api/twin/:id/long-term-memory');
+    res.json({ success: true, memories, deprecated: true });
   } catch (error) {
     logger.error('Retrieve memories error:', error);
     res.status(500).json({ success: false, error: 'Failed to retrieve memories' });
@@ -92,42 +118,77 @@ export const retrieveMemories = async (req: any, res: Response) => {
 };
 
 /**
- * Ingest new memories
+ * Ingest new memories (DEPRECATED - redirects to unified endpoints)
+ * @deprecated Use /api/twin/:id/long-term-memory or /api/twin/:id/style-anchors instead
  */
 export const ingestMemories = async (req: any, res: Response) => {
   try {
     const { id: twinId } = req.params;
     const { bucket, text } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id || req.userId;
+    
+    // Deprecation warning
+    logger.warn('⚠️ DEPRECATED: ingestMemories endpoint called. Consider using unified endpoints.');
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
     
     // Verify twin ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
+    const twinResult = await db.query(
+      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
+      [twinId, userId]
+    );
     
-    if (twinResult.rows.length === 0) {
+    if (!twinResult || twinResult.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Twin not found' });
     }
     
     // Validate input
     if (!bucket || !text) {
-      return res.status(400).json({ success: false, error: 'Bucket and text are required' });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Bucket and text are required',
+        deprecated: true,
+        message: 'This endpoint is deprecated. Use /api/twin/:id/long-term-memory for facts or /api/twin/:id/style-anchors for voice patterns.'
+      });
     }
     
     if (!['facts', 'voice'].includes(bucket)) {
-      return res.status(400).json({ success: false, error: 'Invalid bucket type' });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid bucket. Use "facts" or "voice".',
+        deprecated: true,
+        message: 'This endpoint is deprecated. Use /api/twin/:id/long-term-memory for facts or /api/twin/:id/style-anchors for voice patterns.'
+      });
     }
     
-    // Create memory
-    const memory = await memChunksQueries.create(twinId, bucket as 'facts' | 'voice', text);
+    // Route to appropriate unified system
+    if (bucket === 'facts') {
+      // Redirect to MemoryLongTerm
+      const { addLongTermMemory } = await import('../twin/longTermMemoryController');
+      req.params.id = twinId;
+      req.body.key = `fact_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      req.body.category = 'fact';
+      req.body.value = text;
+      return addLongTermMemory(req, res);
+      
+    } else if (bucket === 'voice') {
+      // Redirect to StyleAnchors
+      const { addTwinAnchor } = await import('../twin/styleAnchorController');
+      req.params.id = twinId;
+      req.body.type = 'phrase';
+      req.body.phrase = text;
+      req.body.userUtterance = '';
+      req.body.idealReply = '';
+      req.body.tags = ['migrated'];
+      return addTwinAnchor(req, res);
+    }
     
-    res.json({ 
-      success: true, 
-      memory,
-      message: 'Memory ingested successfully' 
-    });
+    // Fallback (should never reach here)
+    return res.status(400).json({ success: false, error: 'Invalid bucket type' });
   } catch (error) {
-    logger.error('Ingest memory error:', error);
+    logger.error('Ingest memories error:', error);
     res.status(500).json({ success: false, error: 'Failed to ingest memory' });
   }
 };
@@ -139,14 +200,19 @@ export const updateMemory = async (req: any, res: Response) => {
   try {
     const { id: twinId, memId } = req.params;
     const { text } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id || req.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
     
     // Verify twin ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
+    const twinResult = await db.query(
+      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
+      [twinId, userId]
+    );
     
-    if (twinResult.rows.length === 0) {
+    if (!twinResult || twinResult.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Twin not found' });
     }
     
@@ -179,14 +245,19 @@ export const updateMemory = async (req: any, res: Response) => {
 export const deleteMemory = async (req: any, res: Response) => {
   try {
     const { id: twinId, memId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user?.id || req.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
     
     // Verify twin ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
+    const twinResult = await db.query(
+      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
+      [twinId, userId]
+    );
     
-    if (twinResult.rows.length === 0) {
+    if (!twinResult || twinResult.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Twin not found' });
     }
     

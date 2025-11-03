@@ -5,6 +5,7 @@ import { logger } from '../../config/logger';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { checkBlacklist, validateMessageLength } from '../../middleware/security';
+import { memoryService } from '../../services/memoryService';
 
 const twinService = new TwinService();
 
@@ -700,6 +701,16 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       return res.status(500).json({ error: 'Failed to save user message' });
     }
 
+    // Get session memory for context (BEFORE generating response)
+    let sessionMemory = null;
+    try {
+      sessionMemory = await memoryService.getSessionMemory(chat.id);
+      logger.info('Session memory retrieved:', sessionMemory ? 'Found' : 'Not found');
+    } catch (error) {
+      logger.error('Error getting session memory:', error);
+      // Continue without session memory
+    }
+
     // Get recent chat context (last 10 messages) using raw SQL
     const recentMessagesResult = await db.query(`
       SELECT content, sender, "createdAt"
@@ -711,13 +722,17 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
     
     const recentMessages = recentMessagesResult.rows;
 
-    // Create context for AI response generation
+    // Create context for AI response generation (INCLUDING SESSION MEMORY)
     const context = {
       styleVector: chat.styleVector as any,
       personaData: chat.personaData as any,
       systemPrompt: chat.systemPrompt as string,
       tokenLimit: chat.tokenLimit as number,
       chatVector: chat.chatVector as any, // Compressed chat history
+      sessionMemory: sessionMemory ? {
+        summary: sessionMemory.summary,
+        keyTopics: sessionMemory.keyTopics || []
+      } : null, // ✅ ADD SESSION MEMORY TO CONTEXT
       chatMemory: recentMessages.reverse().map(msg => ({
         content: msg.content,
         sender: msg.sender,
@@ -733,6 +748,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       logger.info('Generating AI response with context:', {
         styleVector: context.styleVector,
         chatMemoryLength: context.chatMemory.length,
+        sessionMemory: context.sessionMemory ? 'Available' : 'Not available',
         currentMessages: context.currentMessages
       });
       
@@ -805,6 +821,39 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
     updateChatVectorAfterMessage(chat.id, [userMessage, aiMessage]).catch(error => {
       logger.error('Chat vector update failed:', error);
     });
+
+    // ✅ UPDATE SESSION MEMORY AFTER EVERY MESSAGE EXCHANGE
+    try {
+      // Get all messages for session summary (INCLUDING NEW ONES)
+      const allMessagesResult = await db.query(`
+        SELECT content, sender, "createdAt"
+        FROM "Message"
+        WHERE "chatId" = $1
+        ORDER BY "createdAt" ASC
+      `, [chat.id]);
+      
+      const allMessages = allMessagesResult.rows.map(msg => ({
+        content: msg.content,
+        sender: msg.sender,
+        timestamp: msg.createdAt
+      }));
+    
+      // ✅ UPDATE SESSION MEMORY AFTER EVERY MESSAGE (not every 5)
+      await memoryService.createOrUpdateSessionMemory(chat.id, allMessages);
+      logger.info(`Session memory updated for chat ${chat.id} with ${allMessages.length} messages`);
+        
+      // Extract long-term facts if summary is significant (10+ messages or every 20 messages)
+      if (allMessages.length >= 10 && allMessages.length % 10 === 0) {
+        const sessionMem = await memoryService.getSessionMemory(chat.id);
+        if (sessionMem?.summary) {
+          await memoryService.extractLongTermFacts(chat.twinId, sessionMem.summary);
+          logger.info(`Long-term facts extracted for twin ${chat.twinId}`);
+        }
+      }
+    } catch (error) {
+      logger.error('Session memory update failed:', error);
+      // Don't fail the request
+    }    
     
     res.json({
       success: true,

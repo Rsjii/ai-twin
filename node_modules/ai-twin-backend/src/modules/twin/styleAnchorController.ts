@@ -35,30 +35,67 @@ export const getTwinAnchors = async (req: any, res: Response) => {
 };
 
 /**
- * Add new style anchor
+ * Add new style anchor (supports interaction, phrase, pattern)
  */
 export const addTwinAnchor = async (req: any, res: Response) => {
   try {
     const { id: twinId } = req.params;
-    const { userUtterance, idealReply, tags = [] } = req.body;
+    const { 
+      userUtterance = '', 
+      idealReply = '', 
+      tags = [], 
+      type = 'interaction',
+      phrase,
+      patternType,
+      context
+    } = req.body;
     const userId = req.user.id;
     
     // Verify twin ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
+    const twinResult = await db.query(
+      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
+      [twinId, userId]
+    );
     
     if (twinResult.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Twin not found' });
     }
     
-    // Validate input
-    if (!userUtterance || !idealReply) {
-      return res.status(400).json({ success: false, error: 'User utterance and ideal reply are required' });
+    // Validate based on type
+    if (type === 'interaction') {
+      if (!userUtterance || !idealReply) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'User utterance and ideal reply are required for interactions' 
+        });
+      }
+    } else if (type === 'phrase') {
+      if (!phrase || phrase.trim().length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Phrase is required for phrase type anchors' 
+        });
+      }
+    } else if (type === 'pattern') {
+      if (!userUtterance || userUtterance.trim().length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Pattern examples (userUtterance) are required for pattern type anchors' 
+        });
+      }
     }
     
-    // Add style anchor
-    const anchor = await styleAnchorsQueries.create(twinId, userUtterance, idealReply, tags);
+    // Add style anchor with all parameters
+    const anchor = await styleAnchorsQueries.create(
+      twinId, 
+      userUtterance || '', 
+      idealReply || '', 
+      tags,
+      type as 'interaction' | 'phrase' | 'pattern',
+      phrase,
+      patternType,
+      context
+    );
     
     res.json({ 
       success: true, 
@@ -72,30 +109,43 @@ export const addTwinAnchor = async (req: any, res: Response) => {
 };
 
 /**
- * Update style anchor
+ * Update style anchor (supports all types)
  */
 export const updateTwinAnchor = async (req: any, res: Response) => {
   try {
     const { id: twinId, anchorId } = req.params;
-    const { userUtterance, idealReply, tags = [] } = req.body;
+    const { 
+      userUtterance = '', 
+      idealReply = '', 
+      tags = [], 
+      type,
+      phrase,
+      patternType,
+      context
+    } = req.body;
     const userId = req.user.id;
     
     // Verify twin ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
+    const twinResult = await db.query(
+      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
+      [twinId, userId]
+    );
     
     if (twinResult.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Twin not found' });
     }
     
-    // Validate input
-    if (!userUtterance || !idealReply) {
-      return res.status(400).json({ success: false, error: 'User utterance and ideal reply are required' });
-    }
-    
-    // Update style anchor
-    const anchor = await styleAnchorsQueries.update(anchorId, userUtterance, idealReply, tags);
+    // Update style anchor with all parameters
+    const anchor = await styleAnchorsQueries.update(
+      anchorId, 
+      userUtterance || '', 
+      idealReply || '', 
+      tags,
+      type as 'interaction' | 'phrase' | 'pattern' | undefined,
+      phrase,
+      patternType,
+      context
+    );
     
     if (!anchor) {
       return res.status(404).json({ success: false, error: 'Style anchor not found' });
@@ -143,5 +193,38 @@ export const deleteTwinAnchor = async (req: any, res: Response) => {
   } catch (error) {
     logger.error('Delete twin anchor error:', error);
     res.status(500).json({ success: false, error: 'Failed to delete style anchor' });
+  }
+};
+
+/**
+ * Get style phrases for a twin
+ * GET /api/twin/:id/style-anchors/phrases
+ */
+export const getTwinPhrases = async (req: any, res: Response) => {
+  try {
+    const { id: twinId } = req.params;
+    const { limit = 10 } = req.query;
+    const userId = req.user.id;
+    
+    // Verify twin ownership
+    const twinResult = await db.query(
+      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
+      [twinId, userId]
+    );
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Twin not found' });
+    }
+    
+    // Get phrases using new query method
+    const phrases = await styleAnchorsQueries.findPhrasesByTwinId(
+      twinId,
+      parseInt(limit as string) || 10
+    );
+    
+    res.json({ success: true, phrases });
+  } catch (error) {
+    logger.error('Get twin phrases error:', error);
+    res.status(500).json({ success: false, error: 'Failed to get phrases' });
   }
 };

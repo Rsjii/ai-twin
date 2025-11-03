@@ -1,0 +1,207 @@
+Priority-based TODO list tayyar kar raha hoon:
+
+
+[1 tool called]
+
+Priority-based TODO list:
+
+## 🎯 MVP Launch TODO List
+
+### 🔴 CRITICAL (Do Before Launch - Week 1)
+
+#### Code Quality & Cleanup
+- [ ] **Replace all console.log with logger**
+  - Find: `grep -r "console.log" backend/src`
+  - Replace with: `logger.info/debug/error()`
+  - Files: 26 files need fixing (196 instances)
+
+- [ ] **Standardize Error Handling**
+  - Create consistent error response format
+  - Add try-catch in all controllers
+  - Create custom error classes
+  - File: `backend/src/utils/errors.ts` (NEW)
+
+- [ ] **Security Audit**
+  - Review all API endpoints for auth checks
+  - Test CSRF protection on all POST routes
+  - Review rate limiting thresholds
+  - Check SQL injection protection (use parameterized queries)
+
+#### User Experience
+- [ ] **Loading States**
+  - Add skeleton loaders for: Dashboard, Discover, Chat pages
+  - Show loading spinner on API calls
+  - Add "Generating..." state for AI drafts
+
+- [ ] **Error Messages**
+  - User-friendly error messages (no technical jargon)
+  - 404 page improvement
+  - Network error handling
+  - Rate limit exceeded messages
+
+- [ ] **Mobile Testing**
+  - Test on real devices (iOS, Android)
+  - Fix touch target sizes (< 44px)
+  - Test forms on mobile (prevent zoom)
+  - Check scroll performance
+
+---
+
+### 🟠 HIGH PRIORITY (Week 2)
+
+#### Performance
+- [ ] **Database Query Optimization**
+  - Add indexes on frequently queried columns
+  - Review N+1 query problems
+  - Add pagination to list endpoints
+  - Cache static data (twin stats, trending)
+
+- [ ] **Frontend Performance**
+  - Lazy load images
+  - Minify CSS/JS for production
+  - Add service worker (optional)
+  - Optimize Tailwind CSS (purge unused)
+
+#### Features
+- [ ] **Onboarding Flow**
+  - First-time user tutorial
+  - Simplify twin creation flow
+  - Add helpful tooltips
+  - Progress indicator
+
+- [ ] **Empty States**
+  - No chats yet → Actionable CTA
+  - No twins → Guide to create first
+  - Search no results → Suggestions
+
+---
+
+### 🟡 MEDIUM PRIORITY (Week 3)
+
+#### Code Structure
+- [ ] **Break Large Files**
+  - `dashboard.ejs` (2085 lines) → Split into components
+  - Extract common UI patterns
+  - Create reusable components
+
+- [ ] **Remove Code Duplication**
+  - Extract common functions
+  - Create shared utilities
+  - Consolidate similar logic
+
+#### Testing
+- [ ] **Write Critical Tests**
+  - Auth flow (OTP verification)
+  - Twin creation
+  - Chat draft generation
+  - Public chat flow
+
+- [ ] **Manual Testing Checklist**
+  - Complete user journey end-to-end
+  - Test edge cases
+  - Test error scenarios
+  - Test on different browsers
+
+---
+
+### 🟢 NICE TO HAVE (Post-Launch)
+
+#### Enhancements
+- [ ] **Real-time Features**
+  - WebSocket for live chat
+  - Real-time notifications
+  - Online status indicators
+
+- [ ] **Analytics Dashboard**
+  - User activity graphs
+  - Twin performance metrics
+  - Popular features tracking
+
+- [ ] **Accessibility**
+  - Add ARIA labels
+  - Keyboard navigation
+  - Screen reader support
+  - Color contrast check
+
+#### Documentation
+- [ ] **API Documentation**
+  - Swagger/OpenAPI docs
+  - Endpoint descriptions
+  - Request/response examples
+
+- [ ] **User Guide**
+  - How to create twin
+  - How to use public chat
+  - FAQ section
+
+---
+
+### 📝 Quick Action Items (Can Do Anytime)
+
+- [ ] Add .env.example file with all required variables
+- [ ] Setup production environment configs
+- [ ] Add health check endpoint (`/health`)
+- [ ] Setup error monitoring (Sentry, Rollbar)
+- [ ] Add deployment documentation
+- [ ] Create backup strategy for database
+- [ ] Add analytics tracking (Google Analytics/Mixpanel)
+- [ ] Setup email templates (OTP, welcome)
+- [ ] Add "Report Abuse" functionality
+- [ ] Create admin dashboard for moderation
+
+---
+
+### 🎨 Design Polish (Optional)
+
+- [ ] Consistent navigation across all pages
+- [ ] Uniform loading animations
+- [ ] Better empty state illustrations
+- [ ] Smooth page transitions
+- [ ] Dark mode (future)
+- [ ] Improved mobile menu
+- [ ] Better tooltips/popovers
+
+---
+
+### 📊 Priority Summary
+
+**Must Do Before Launch:**
+1. Replace console.logs → logger
+2. Standardize error handling
+3. Add loading states
+4. Mobile testing & fixes
+5. Security audit
+
+**Should Do:**
+6. Performance optimization
+7. Onboarding improvements
+8. Empty states
+9. Break large files
+
+**Nice to Have:**
+10. Tests
+11. Real-time features
+12. Analytics dashboard
+13. Accessibility
+
+---
+
+### 🚀 Launch Checklist
+
+Before going live:
+- [ ] All critical items done
+- [ ] Tested on 3+ browsers
+- [ ] Tested on mobile devices
+- [ ] Database backups configured
+- [ ] Monitoring setup
+- [ ] Error tracking active
+- [ ] Production environment configured
+- [ ] Rate limiting tuned
+- [ ] SSL certificate setup
+- [ ] Domain configured
+
+---
+
+Recommendation: Pehle Critical section complete karo (Week 1), phir High Priority (Week 2). Yeh done hone ke baad beta launch kar sakte ho.
+
+Agar koi specific point pe detail chahiye ya implementation help chahiye, batao.

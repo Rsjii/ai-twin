@@ -40,12 +40,7 @@ import {learningScheduler} from './services/learningScheduler';
 // Import controllers for direct API routes
 import { getChatHistory, createNewChat, updateChatTitle, getChatSummary, generateChatTitle } from './modules/chat/chatManagementController';
 import { getFeedbackAnalytics } from './modules/chat/feedbackController';
-import { 
-  getTwinAnchors, 
-  addTwinAnchor, 
-  updateTwinAnchor, 
-  deleteTwinAnchor 
-} from './modules/twin/styleAnchorController';
+// Style anchor imports removed - now handled in twinRoutes.ts
 
 // Import test routes
 import testRoutes from './routes/testRoutes';
@@ -155,11 +150,8 @@ app.use('/api/admin/analytics', adminAnalyticsRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/memory', memoryRoutes);
 
-// Add style anchor routes
-app.get('/api/twin/:id/anchors', requireJWTFromCookie, getTwinAnchors);
-app.post('/api/twin/:id/anchors', requireJWTFromCookie, addTwinAnchor);
-app.put('/api/twin/:id/anchors/:anchorId', requireJWTFromCookie, updateTwinAnchor);
-app.delete('/api/twin/:id/anchors/:anchorId', requireJWTFromCookie, deleteTwinAnchor);
+// Style anchor routes moved to twinRoutes.ts for consistency
+// All style anchor endpoints are now available via /api/twin/:id/style-anchors
 
 // Direct API route - Analytics performance
 app.get('/api/analytics/twin/:twinId/performance', requireJWTFromCookie, getTwinPerformance);

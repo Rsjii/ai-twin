@@ -224,6 +224,10 @@ Return only valid JSON, no other text.`;
     systemPrompt?: string;
     tokenLimit?: number;
     chatVector?: any; // Compressed chat history
+    sessionMemory?: {        // ✅ ADD THIS
+      summary: string;
+      keyTopics: string[];
+    } | null;
     chatMemory: Array<{content: string, sender: string, timestamp: Date}>;
     currentMessages: string[];
     twinId?: string; // Add twinId for memory retrieval
@@ -231,7 +235,7 @@ Return only valid JSON, no other text.`;
     const startTime = Date.now();
     try {
       const { styleVector, personaData, systemPrompt, tokenLimit, chatVector, chatMemory, currentMessages } = context;
-      
+
       logger.info('TwinService generateDraftWithContext called with:', {
         styleVectorKeys: Object.keys(styleVector),
         hasPersonaData: !!personaData,
@@ -249,36 +253,64 @@ Return only valid JSON, no other text.`;
         throw new Error('Invalid context provided');
       }
       
-      // NEW: Retrieve relevant memories if twinId is provided
-      let relevantFacts: string[] = [];
-      let relevantVoice: string[] = [];
+      // ✅ Retrieve long-term memories (SMART - query-based)
+      let longTermMemories: Array<{key: string, value: string, category: string}> = [];
       
-      if (context.twinId) {
+      if (context.twinId && context.currentMessages.length > 0) {
         try {
-          const { db } = await import('../../config/database');
+          const { memoryService } = await import('../../services/memoryService');
+          const userQuery = context.currentMessages.join(' ');
           
-          // Get relevant facts
-          const factsResult = await db.query(
-            'SELECT text FROM "mem_chunks" WHERE twin_id = $1 AND bucket = $2 ORDER BY ts DESC LIMIT 3',
-            [context.twinId, 'facts']
+          // Use smart hybrid retrieval (common + query-based)
+          longTermMemories = await memoryService.getRelevantLongTermMemories(
+            context.twinId,
+            userQuery,
+            10 // Max 10 memories
           );
-          relevantFacts = factsResult.rows.map(row => row.text);
           
-          // Get relevant voice patterns
-          const voiceResult = await db.query(
-            'SELECT text FROM "mem_chunks" WHERE twin_id = $1 AND bucket = $2 ORDER BY ts DESC LIMIT 2',
-            [context.twinId, 'voice']
-          );
-          relevantVoice = voiceResult.rows.map(row => row.text);
-          
-          logger.info('Retrieved memories:', {
-            factsCount: relevantFacts.length,
-            voiceCount: relevantVoice.length
+          logger.info(`Retrieved ${longTermMemories.length} relevant long-term memories:`, {
+            common: longTermMemories.slice(0, 5).length,
+            querySpecific: longTermMemories.slice(5).length,
+            keywords: userQuery.substring(0, 50)
           });
         } catch (error) {
-          logger.warn('Failed to retrieve memories:', error);
+          logger.warn('Failed to retrieve long-term memories, using fallback:', error);
+          // Fallback: Get at least common memories
+          try {
+            const { memoryService } = await import('../../services/memoryService');
+            longTermMemories = await memoryService.getLongTermMemories(context.twinId, undefined, 5);
+          } catch (e) {
+            logger.error('Fallback long-term memory retrieval failed:', e);
+          }
         }
       }
+
+            // ✅ Retrieve style anchors (BEHAVIORAL PATTERNS)
+            let stylePatterns: Array<{
+              type: string;
+              phrase?: string;
+              userUtterance?: string;
+              idealReply?: string;
+              patternType?: string;
+              context?: string;
+            }> = [];
+            
+            if (context.twinId && context.currentMessages.length > 0) {
+              try {
+                const { memoryService } = await import('../../services/memoryService');
+                const userQuery = context.currentMessages.join(' ');
+                
+                stylePatterns = await memoryService.getRelevantStylePatterns(
+                  context.twinId,
+                  userQuery,
+                  3 // Max 3 patterns (2 interactions + 1 phrase)
+                );
+                
+                logger.info(`Retrieved ${stylePatterns.length} style patterns for twin ${context.twinId}`);
+              } catch (error) {
+                logger.warn('Failed to retrieve style patterns:', error);
+              }
+            }
       
       // Use enhanced persona-based response if available
       if (personaData && systemPrompt) {
@@ -288,7 +320,10 @@ Return only valid JSON, no other text.`;
           personaData,
           systemPrompt,
           chatMemory,
-          tokenLimit || 500
+          tokenLimit || 500,
+          context.sessionMemory || null,
+          longTermMemories,
+          stylePatterns
         );
       }
       
@@ -319,15 +354,58 @@ COMMUNICATION STYLE (CRITICAL - USE THIS):
 - Personality Traits: ${styleVector.personality_traits?.join(', ') || 'helpful, curious'}
 `;
 
-      // Include memories in system prompt
-      const memoryContext = relevantFacts.length > 0 ? `
-FACTS ABOUT YOU (use if relevant):
-${relevantFacts.map(fact => `- ${fact}`).join('\n')}
+      // ✅ Build style anchor context (BEHAVIORAL PATTERNS)
+      const styleAnchorContext = stylePatterns.length > 0 ? `
+## STYLE PATTERNS (HOW TO RESPOND - FOLLOW THESE):
+${stylePatterns.map((pattern, index) => {
+  if (pattern.type === 'interaction' && pattern.userUtterance && pattern.idealReply) {
+    return `Example ${index + 1}:
+User says: "${pattern.userUtterance}"
+You respond: "${pattern.idealReply}"`;
+  } else if (pattern.type === 'phrase' && pattern.phrase) {
+    return `Signature phrase ${index + 1}: "${pattern.phrase}"${pattern.context ? ` (use when: ${pattern.context})` : ''}`;
+  }
+  return '';
+}).filter(Boolean).join('\n\n')}
+
+CRITICAL: When user's message is similar to examples above, match that response style. Use signature phrases naturally (not forced).
 ` : '';
 
-      const voiceContext = relevantVoice.length > 0 ? `
-SIGNATURE PHRASES (use naturally):
-${relevantVoice.join(', ')}
+      // ✅ Build long-term memory context
+      const longTermMemoryContext = longTermMemories.length > 0 ? `
+## LONG-TERM MEMORIES (PERMANENT FACTS - ALWAYS REMEMBER):
+These are important facts about the user that persist across ALL conversations:
+
+${longTermMemories
+  .map((mem, index) => {
+    // Format based on category for clarity
+    let prefix = '';
+    if (mem.category === 'preference') {
+      prefix = 'Preference: ';
+    } else if (mem.category === 'fact') {
+      prefix = 'Fact: ';
+    } else if (mem.category === 'relationship') {
+      prefix = 'Relationship: ';
+    } else if (mem.category === 'interest') {
+      prefix = 'Interest: ';
+    } else {
+      prefix = `${mem.key}: `;
+    }
+    
+    return `${index + 1}. ${prefix}${mem.value}`;
+  })
+  .join('\n')}
+
+CRITICAL: Reference these memories naturally when relevant. Don't repeat them unless asked. Use them to maintain consistency across all conversations. These are permanent facts that don't change.
+` : '';
+
+      // ✅ Build session memory context
+      const sessionMemoryContext = context.sessionMemory?.summary ? `
+## PREVIOUS CONVERSATION SUMMARY:
+${context.sessionMemory.summary}
+
+${context.sessionMemory.keyTopics?.length > 0 ? `## KEY TOPICS DISCUSSED:\n${context.sessionMemory.keyTopics.join(', ')}\n` : ''}
+Use this summary to maintain continuity and reference previous discussions naturally.
 ` : '';
 
       // Build chat history context with chatVector
@@ -355,9 +433,11 @@ ${userPersonality}
 
 ${styleInfo}
 
-${memoryContext}
+${styleAnchorContext}
 
-${voiceContext}
+${longTermMemoryContext}
+
+${sessionMemoryContext}
 
 ${chatContext}
 
@@ -456,7 +536,17 @@ RESPOND AS ${userName.toUpperCase()} - NO GENERIC RESPONSES ALLOWED!`;
     personaData: any, 
     systemPrompt: string, 
     chatHistory: any[] = [],
-    tokenLimit: number = 500
+    tokenLimit: number = 500,
+    sessionMemory: { summary: string; keyTopics: string[] } | null = null,
+    longTermMemories: Array<{key: string, value: string, category: string}> = [],
+    stylePatterns: Array<{
+      type: string;
+      phrase?: string;
+      userUtterance?: string;
+      idealReply?: string;
+      patternType?: string;
+      context?: string;
+    }> = []
   ): Promise<string> {
     try {
       // Build context from chat history
@@ -465,9 +555,57 @@ RESPOND AS ${userName.toUpperCase()} - NO GENERIC RESPONSES ALLOWED!`;
         .map(msg => `${msg.sender === 'human' ? 'User' : 'AI'}: ${msg.content}`)
         .join('\n');
 
+      // ✅ Build long-term memory context
+      const longTermMemoryContext = longTermMemories.length > 0 ? `
+## LONG-TERM MEMORIES (PERMANENT FACTS):
+${longTermMemories.map((mem, index) => {
+    let prefix = '';
+    if (mem.category === 'preference') {
+      prefix = 'Preference: ';
+    } else if (mem.category === 'fact') {
+      prefix = 'Fact: ';
+    } else if (mem.category === 'relationship') {
+      prefix = 'Relationship: ';
+    } else if (mem.category === 'interest') {
+      prefix = 'Interest: ';
+    } else {
+      prefix = `${mem.key}: `;
+    }
+    return `${index + 1}. ${prefix}${mem.value}`;
+  }).join('\n')}
+` : '';
+
+      // ✅ Build style anchor context
+      const styleAnchorContext = stylePatterns.length > 0 ? `
+## STYLE PATTERNS (HOW TO RESPOND):
+${stylePatterns.map((pattern, index) => {
+  if (pattern.type === 'interaction' && pattern.userUtterance && pattern.idealReply) {
+    return `Example ${index + 1}: User says "${pattern.userUtterance}" → You respond "${pattern.idealReply}"`;
+  } else if (pattern.type === 'phrase' && pattern.phrase) {
+    return `Signature phrase ${index + 1}: "${pattern.phrase}"`;
+  }
+  return '';
+}).filter(Boolean).join('\n')}
+` : '';
+
+      // ✅ Build session memory context
+      const sessionMemoryContext = sessionMemory?.summary ? `
+## PREVIOUS CONVERSATION SUMMARY:
+${sessionMemory.summary}
+
+${sessionMemory.keyTopics?.length > 0 ? `## KEY TOPICS DISCUSSED:\n${sessionMemory.keyTopics.join(', ')}\n` : ''}
+Use this summary to maintain continuity and reference previous discussions naturally.
+` : '';
+
       // Create the full prompt with explicit instructions
       const userName = personaData.basicInfo?.fullName || personaData.name || 'the user';
       const fullPrompt = `${systemPrompt}
+
+${styleAnchorContext}
+
+${longTermMemoryContext}
+
+${sessionMemoryContext}
 
 CHAT HISTORY:
 ${chatContext}

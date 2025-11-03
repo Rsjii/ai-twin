@@ -650,14 +650,23 @@ export const publicMessageQueries = {
 
 // Style Anchors Queries
 export const styleAnchorsQueries = {
-  create: async (twinId: string, userUtterance: string, idealReply: string, tags: string[] = []) => {
+  create: async (
+    twinId: string, 
+    userUtterance: string, 
+    idealReply: string, 
+    tags: string[] = [],
+    type: 'interaction' | 'phrase' | 'pattern' = 'interaction',
+    phrase?: string,
+    patternType?: string,
+    context?: string
+  ) => {
     const id = generateId();
     const result = await db.query(
-      'INSERT INTO "style_anchors" (id, twin_id, user_utterance, ideal_reply, tags) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [id, twinId, userUtterance, idealReply, tags]
+      'INSERT INTO "style_anchors" (id, twin_id, user_utterance, ideal_reply, tags, type, phrase, pattern_type, context) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      [id, twinId, userUtterance, idealReply, tags, type, phrase || null, patternType || null, context || null]
     );
     return result.rows[0];
-  },
+  },  
 
   findByTwinId: async (twinId: string, limit = 10, offset = 0) => {
     const result = await db.query(
@@ -672,32 +681,99 @@ export const styleAnchorsQueries = {
     return result.rows[0];
   },
 
-  update: async (anchorId: string, userUtterance: string, idealReply: string, tags: string[]) => {
-    const result = await db.query(
-      'UPDATE "style_anchors" SET user_utterance = $1, ideal_reply = $2, tags = $3 WHERE id = $4 RETURNING *',
-      [userUtterance, idealReply, tags, anchorId]
-    );
+  update: async (
+    anchorId: string, 
+    userUtterance: string, 
+    idealReply: string, 
+    tags: string[],
+    type?: 'interaction' | 'phrase' | 'pattern',
+    phrase?: string,
+    patternType?: string,
+    context?: string
+  ) => {
+    // Build dynamic update query
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCount = 1;
+    
+    updates.push(`user_utterance = $${paramCount++}`);
+    values.push(userUtterance);
+    
+    updates.push(`ideal_reply = $${paramCount++}`);
+    values.push(idealReply);
+    
+    updates.push(`tags = $${paramCount++}`);
+    values.push(tags);
+    
+    if (type) {
+      updates.push(`type = $${paramCount++}`);
+      values.push(type);
+    }
+    
+    if (phrase !== undefined) {
+      updates.push(`phrase = $${paramCount++}`);
+      values.push(phrase);
+    }
+    
+    if (patternType !== undefined) {
+      updates.push(`pattern_type = $${paramCount++}`);
+      values.push(patternType);
+    }
+    
+    if (context !== undefined) {
+      updates.push(`context = $${paramCount++}`);
+      values.push(context);
+    }
+    
+    values.push(anchorId);
+    const query = `UPDATE "style_anchors" SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`;
+    
+    const result = await db.query(query, values);
     return result.rows[0];
-  },
+  },  
 
   delete: async (anchorId: string) => {
     const result = await db.query('DELETE FROM "style_anchors" WHERE id = $1 RETURNING *', [anchorId]);
     return result.rows[0];
   },
 
-  findByTwinAndSimilarity: async (twinId: string, userMessage: string, limit = 2) => {
-    // This will be enhanced with vector similarity search later
-    const result = await db.query(
-      `SELECT *, 
+  findByTwinAndSimilarity: async (
+    twinId: string, 
+    userMessage: string, 
+    limit = 2,
+    type?: 'interaction' | 'phrase' | 'pattern'
+  ) => {
+    let query = `
+      SELECT *, 
        similarity(user_utterance, $2) as sim_score 
        FROM "style_anchors" 
-       WHERE twin_id = $1 
-       ORDER BY sim_score DESC 
-       LIMIT $3`,
-      [twinId, userMessage, limit]
+       WHERE twin_id = $1`;
+    
+    const params: any[] = [twinId, userMessage];
+    
+    // Only get interactions for similarity matching (phrases don't need similarity)
+    if (!type) {
+      query += ` AND type = 'interaction'`;
+    } else {
+      query += ` AND type = $${params.length + 1}`;
+      params.push(type);
+    }
+    
+    query += ` ORDER BY sim_score DESC LIMIT $${params.length + 1}`;
+    params.push(limit);
+    
+    const result = await db.query(query, params);
+    return result.rows;
+  },
+  
+  // NEW METHOD: Find phrases for a twin
+  findPhrasesByTwinId: async (twinId: string, limit = 5) => {
+    const result = await db.query(
+      'SELECT * FROM "style_anchors" WHERE twin_id = $1 AND type = $2 ORDER BY created_at DESC LIMIT $3',
+      [twinId, 'phrase', limit]
     );
     return result.rows;
-  }
+  },  
 };
 
 // Memory Chunks Queries
@@ -829,6 +905,81 @@ export const aiRunsQueries = {
       [twinId, hours]
     );
     return result.rows;
+  }
+};
+
+// Memory Session Queries
+export const memorySessionQueries = {
+  create: async (chatId: string, summary: string, keyTopics: string[], vector: any) => {
+    const id = `mem_sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const result = await db.query(
+      `INSERT INTO "MemorySession" (id, "chatId", summary, "keyTopics", vector, "messageCount", "lastUpdated")
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       RETURNING *`,
+      [id, chatId, summary, keyTopics, JSON.stringify(vector), 0]
+    );
+    return result.rows[0];
+  },
+
+  findByChatId: async (chatId: string) => {
+    const result = await db.query(
+      'SELECT * FROM "MemorySession" WHERE "chatId" = $1',
+      [chatId]
+    );
+    return result.rows[0] || null;
+  },
+
+  update: async (chatId: string, summary: string, keyTopics: string[], vector: any, messageCount: number) => {
+    const result = await db.query(
+      `UPDATE "MemorySession" 
+       SET summary = $1, "keyTopics" = $2, vector = $3, "messageCount" = $4, "lastUpdated" = NOW()
+       WHERE "chatId" = $5
+       RETURNING *`,
+      [summary, keyTopics, JSON.stringify(vector), messageCount, chatId]
+    );
+    return result.rows[0];
+  }
+};
+
+// Memory LongTerm Queries
+export const memoryLongTermQueries = {
+  create: async (twinId: string, key: string, value: string, category: string, source: string = 'session') => {
+    const id = `mem_lt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const result = await db.query(
+      `INSERT INTO "MemoryLongTerm" (id, "twinId", key, value, category, source, "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       ON CONFLICT ("twinId", key) 
+       DO UPDATE SET value = EXCLUDED.value, category = EXCLUDED.category, "updatedAt" = NOW()
+       RETURNING *`,
+      [id, twinId, key, value, category, source]
+    );
+    return result.rows[0];
+  },
+
+  findByTwinId: async (twinId: string, category?: string, limit: number = 10) => {
+    let query = 'SELECT * FROM "MemoryLongTerm" WHERE "twinId" = $1';
+    const params: any[] = [twinId];
+    
+    if (category) {
+      query += ' AND category = $2';
+      params.push(category);
+      query += ' ORDER BY "updatedAt" DESC LIMIT $3';
+      params.push(limit);
+    } else {
+      query += ' ORDER BY "updatedAt" DESC LIMIT $2';
+      params.push(limit);
+    }
+    
+    const result = await db.query(query, params);
+    return result.rows;
+  },
+
+  delete: async (twinId: string, key: string) => {
+    const result = await db.query(
+      'DELETE FROM "MemoryLongTerm" WHERE "twinId" = $1 AND key = $2 RETURNING *',
+      [twinId, key]
+    );
+    return result.rows[0];
   }
 };
 

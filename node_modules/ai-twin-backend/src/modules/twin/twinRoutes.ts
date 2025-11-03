@@ -27,6 +27,19 @@ import {
   exportAnalytics,
   resetPerformance
 } from './twinPerformanceController';
+import {
+  getLongTermMemories,
+  addLongTermMemory,
+  updateLongTermMemory,
+  deleteLongTermMemory
+} from './longTermMemoryController';
+import {
+  getTwinAnchors,
+  addTwinAnchor,
+  updateTwinAnchor,
+  deleteTwinAnchor,
+  getTwinPhrases
+} from './styleAnchorController';
 
 const router = Router();
 
@@ -67,5 +80,18 @@ router.post('/:id/optimize/memories', optimizeMemories);
 router.post('/:id/analyze/performance', analyzePerformance);
 router.get('/:id/export/analytics', exportAnalytics);
 router.post('/:id/reset/performance', resetPerformance);
+
+// Unified Long-Term Memory API
+router.get('/:id/long-term-memory', requireJWTFromCookie, getLongTermMemories);
+router.post('/:id/long-term-memory', requireJWTFromCookie, addLongTermMemory);
+router.put('/:id/long-term-memory/:key', requireJWTFromCookie, updateLongTermMemory);
+router.delete('/:id/long-term-memory/:key', requireJWTFromCookie, deleteLongTermMemory);
+
+// Style Anchor API
+router.get('/:id/style-anchors', getTwinAnchors);
+router.get('/:id/style-anchors/phrases', getTwinPhrases);
+router.post('/:id/style-anchors', addTwinAnchor);
+router.put('/:id/style-anchors/:anchorId', updateTwinAnchor);
+router.delete('/:id/style-anchors/:anchorId', deleteTwinAnchor);
 
 export default router;
