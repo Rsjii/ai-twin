@@ -255,62 +255,31 @@ Return only valid JSON, no other text.`;
       
       // ✅ Retrieve long-term memories (SMART - query-based)
       let longTermMemories: Array<{key: string, value: string, category: string}> = [];
+      let stylePatterns: Array<{
+        type: string;
+        phrase?: string;
+        userUtterance?: string;
+        idealReply?: string;
+        patternType?: string;
+        context?: string;
+      }> = [];
       
-      if (context.twinId && context.currentMessages.length > 0) {
+      // Only retrieve if we have persona data (for generatePersonaResponse)
+      if (personaData && systemPrompt && context.twinId && context.currentMessages.length > 0) {
         try {
           const { memoryService } = await import('../../services/memoryService');
           const userQuery = context.currentMessages.join(' ');
           
-          // Use smart hybrid retrieval (common + query-based)
-          longTermMemories = await memoryService.getRelevantLongTermMemories(
-            context.twinId,
-            userQuery,
-            10 // Max 10 memories
-          );
+          [longTermMemories, stylePatterns] = await Promise.all([
+            memoryService.getRelevantLongTermMemories(context.twinId, userQuery, 10),
+            memoryService.getRelevantStylePatterns(context.twinId, userQuery, 3)
+          ]);
           
-          logger.info(`Retrieved ${longTermMemories.length} relevant long-term memories:`, {
-            common: longTermMemories.slice(0, 5).length,
-            querySpecific: longTermMemories.slice(5).length,
-            keywords: userQuery.substring(0, 50)
-          });
+          logger.info(`Retrieved ${longTermMemories.length} long-term memories and ${stylePatterns.length} style patterns`);
         } catch (error) {
-          logger.warn('Failed to retrieve long-term memories, using fallback:', error);
-          // Fallback: Get at least common memories
-          try {
-            const { memoryService } = await import('../../services/memoryService');
-            longTermMemories = await memoryService.getLongTermMemories(context.twinId, undefined, 5);
-          } catch (e) {
-            logger.error('Fallback long-term memory retrieval failed:', e);
-          }
+          logger.warn('Failed to retrieve memories/patterns for persona response:', error);
         }
       }
-
-            // ✅ Retrieve style anchors (BEHAVIORAL PATTERNS)
-            let stylePatterns: Array<{
-              type: string;
-              phrase?: string;
-              userUtterance?: string;
-              idealReply?: string;
-              patternType?: string;
-              context?: string;
-            }> = [];
-            
-            if (context.twinId && context.currentMessages.length > 0) {
-              try {
-                const { memoryService } = await import('../../services/memoryService');
-                const userQuery = context.currentMessages.join(' ');
-                
-                stylePatterns = await memoryService.getRelevantStylePatterns(
-                  context.twinId,
-                  userQuery,
-                  3 // Max 3 patterns (2 interactions + 1 phrase)
-                );
-                
-                logger.info(`Retrieved ${stylePatterns.length} style patterns for twin ${context.twinId}`);
-              } catch (error) {
-                logger.warn('Failed to retrieve style patterns:', error);
-              }
-            }
       
       // Use enhanced persona-based response if available
       if (personaData && systemPrompt) {
@@ -327,135 +296,26 @@ Return only valid JSON, no other text.`;
         );
       }
       
-      // If no persona data, still use styleVector with proper context
+      // If no persona data, use PromptBuilder to create styleVector-based prompt
       logger.info('Using styleVector-based response with enhanced context');
       
-      // Create comprehensive system prompt with ALL available data
-      const userName = personaData?.basicInfo?.fullName || personaData?.name || 'the user';
-      const userBio = personaData?.basicInfo?.bio || '';
-      const userPersonality = personaData?.personality ? 
-        `Personality: ${JSON.stringify(personaData.personality)}` : '';
+      // ✅ Use PromptBuilder for modular prompt construction
+      const { promptBuilder } = await import('../../services/promptBuilder');
       
-      // Build comprehensive style information
-      const styleInfo = `
-COMMUNICATION STYLE (CRITICAL - USE THIS):
-- Tone: ${styleVector.tone || 'casual'}
-- Communication Style: ${styleVector.communication_style || 'conversational'}
-- Emoji Usage: ${styleVector.emoji_usage || 0.3} (0=none, 1=heavy)
-- Hinglish Ratio: ${styleVector.hinglish_ratio || 0.2} (0=English only, 1=mostly Hindi)
-- Sentence Length: ${styleVector.sentence_length || 'medium'}
-- Formality Level: ${styleVector.formality_level || 0.5} (0=casual, 1=formal)
-- Humor Style: ${styleVector.humor_style || 'light'}
-- Question Frequency: ${styleVector.question_frequency || 0.4}
-- Exclamation Usage: ${styleVector.exclamation_usage || 0.3}
-- Code Mixing: ${styleVector.code_mixing_style || 'minimal'}
-- Response Length: ${styleVector.response_length_preference || 'detailed'}
-- Signature Patterns: ${styleVector.signature_patterns?.join(', ') || 'none'}
-- Personality Traits: ${styleVector.personality_traits?.join(', ') || 'helpful, curious'}
-`;
-
-      // ✅ Build style anchor context (BEHAVIORAL PATTERNS)
-      const styleAnchorContext = stylePatterns.length > 0 ? `
-## STYLE PATTERNS (HOW TO RESPOND - FOLLOW THESE):
-${stylePatterns.map((pattern, index) => {
-  if (pattern.type === 'interaction' && pattern.userUtterance && pattern.idealReply) {
-    return `Example ${index + 1}:
-User says: "${pattern.userUtterance}"
-You respond: "${pattern.idealReply}"`;
-  } else if (pattern.type === 'phrase' && pattern.phrase) {
-    return `Signature phrase ${index + 1}: "${pattern.phrase}"${pattern.context ? ` (use when: ${pattern.context})` : ''}`;
-  }
-  return '';
-}).filter(Boolean).join('\n\n')}
-
-CRITICAL: When user's message is similar to examples above, match that response style. Use signature phrases naturally (not forced).
-` : '';
-
-      // ✅ Build long-term memory context
-      const longTermMemoryContext = longTermMemories.length > 0 ? `
-## LONG-TERM MEMORIES (PERMANENT FACTS - ALWAYS REMEMBER):
-These are important facts about the user that persist across ALL conversations:
-
-${longTermMemories
-  .map((mem, index) => {
-    // Format based on category for clarity
-    let prefix = '';
-    if (mem.category === 'preference') {
-      prefix = 'Preference: ';
-    } else if (mem.category === 'fact') {
-      prefix = 'Fact: ';
-    } else if (mem.category === 'relationship') {
-      prefix = 'Relationship: ';
-    } else if (mem.category === 'interest') {
-      prefix = 'Interest: ';
-    } else {
-      prefix = `${mem.key}: `;
-    }
-    
-    return `${index + 1}. ${prefix}${mem.value}`;
-  })
-  .join('\n')}
-
-CRITICAL: Reference these memories naturally when relevant. Don't repeat them unless asked. Use them to maintain consistency across all conversations. These are permanent facts that don't change.
-` : '';
-
-      // ✅ Build session memory context
-      const sessionMemoryContext = context.sessionMemory?.summary ? `
-## PREVIOUS CONVERSATION SUMMARY:
-${context.sessionMemory.summary}
-
-${context.sessionMemory.keyTopics?.length > 0 ? `## KEY TOPICS DISCUSSED:\n${context.sessionMemory.keyTopics.join(', ')}\n` : ''}
-Use this summary to maintain continuity and reference previous discussions naturally.
-` : '';
-
-      // Build chat history context with chatVector
-      const chatContext = chatVector ? 
-        `CHAT CONTEXT (COMPRESSED HISTORY):
-Summary: ${chatVector.summary || 'No summary available'}
-Topics Discussed: ${chatVector.topics?.join(', ') || 'None'}
-Key Points: ${chatVector.keyPoints?.join(', ') || 'None'}
-User Preferences: ${JSON.stringify(chatVector.userPreferences || {})}
-Conversation Tone: ${chatVector.conversationTone || 'neutral'}
-User Personality: ${JSON.stringify(chatVector.userPersonality || {})}
-Important Context: ${chatVector.context || 'None'}
-
-RECENT MESSAGES:
-${chatMemory.map(msg => `${msg.sender === 'human' ? 'User' : 'AI'}: ${msg.content}`).join('\n')}` : 
-        chatMemory.length > 0 ? 
-        `CHAT HISTORY (IMPORTANT - REFERENCE THIS):
-${chatMemory.map(msg => `${msg.sender === 'human' ? 'User' : 'AI'}: ${msg.content}`).join('\n')}` : 
-        'CHAT HISTORY: This is the start of our conversation.';
+      const promptContext: any = {
+        ...(context.twinId && { twinId: context.twinId }),
+        personaData,
+        styleVector,
+        chatVector,
+        chatMemory,
+        currentMessages,
+        sessionMemory: context.sessionMemory || null,
+        tokenLimit: tokenLimit || 500
+      };
       
-      const enhancedSystemPrompt = `You are an AI twin representing ${userName}. You MUST respond as if you are this person, using their exact communication style.
+      const enhancedSystemPrompt = await promptBuilder.buildSystemPrompt(promptContext);
 
-${userBio ? `ABOUT ${userName.toUpperCase()}: ${userBio}` : ''}
-${userPersonality}
-
-${styleInfo}
-
-${styleAnchorContext}
-
-${longTermMemoryContext}
-
-${sessionMemoryContext}
-
-${chatContext}
-
-CURRENT USER MESSAGE: "${currentMessages.join(' ')}"
-
-CRITICAL INSTRUCTIONS:
-1. You ARE ${userName} - respond as them, not as an AI assistant
-2. Use the EXACT communication style defined above
-3. Reference the chat history to maintain context
-4. If asked "what is my name" or "who am i", respond with "${userName}"
-5. Be authentic to the personality and style defined above
-6. Use appropriate emoji usage (${styleVector.emoji_usage || 0.3})
-7. Mix Hindi/English as specified (${styleVector.hinglish_ratio || 0.2})
-8. Use signature patterns: ${styleVector.signature_patterns?.join(', ') || 'none'}
-
-RESPOND AS ${userName.toUpperCase()} - NO GENERIC RESPONSES ALLOWED!`;
-
-      logger.info('Enhanced system prompt created, calling OpenAI...');
+      logger.info('Enhanced system prompt created using PromptBuilder, calling OpenAI...');
       logger.info('System prompt length:', enhancedSystemPrompt.length);
       logger.info('User message:', currentMessages.join('\n'));
       logger.info('OpenAI API Key present:', !!config.openaiApiKey);
@@ -549,81 +409,19 @@ RESPOND AS ${userName.toUpperCase()} - NO GENERIC RESPONSES ALLOWED!`;
     }> = []
   ): Promise<string> {
     try {
-      // Build context from chat history
-      const chatContext = chatHistory
-        .slice(-10) // Last 10 messages for context
-        .map(msg => `${msg.sender === 'human' ? 'User' : 'AI'}: ${msg.content}`)
-        .join('\n');
-
-      // ✅ Build long-term memory context
-      const longTermMemoryContext = longTermMemories.length > 0 ? `
-## LONG-TERM MEMORIES (PERMANENT FACTS):
-${longTermMemories.map((mem, index) => {
-    let prefix = '';
-    if (mem.category === 'preference') {
-      prefix = 'Preference: ';
-    } else if (mem.category === 'fact') {
-      prefix = 'Fact: ';
-    } else if (mem.category === 'relationship') {
-      prefix = 'Relationship: ';
-    } else if (mem.category === 'interest') {
-      prefix = 'Interest: ';
-    } else {
-      prefix = `${mem.key}: `;
-    }
-    return `${index + 1}. ${prefix}${mem.value}`;
-  }).join('\n')}
-` : '';
-
-      // ✅ Build style anchor context
-      const styleAnchorContext = stylePatterns.length > 0 ? `
-## STYLE PATTERNS (HOW TO RESPOND):
-${stylePatterns.map((pattern, index) => {
-  if (pattern.type === 'interaction' && pattern.userUtterance && pattern.idealReply) {
-    return `Example ${index + 1}: User says "${pattern.userUtterance}" → You respond "${pattern.idealReply}"`;
-  } else if (pattern.type === 'phrase' && pattern.phrase) {
-    return `Signature phrase ${index + 1}: "${pattern.phrase}"`;
-  }
-  return '';
-}).filter(Boolean).join('\n')}
-` : '';
-
-      // ✅ Build session memory context
-      const sessionMemoryContext = sessionMemory?.summary ? `
-## PREVIOUS CONVERSATION SUMMARY:
-${sessionMemory.summary}
-
-${sessionMemory.keyTopics?.length > 0 ? `## KEY TOPICS DISCUSSED:\n${sessionMemory.keyTopics.join(', ')}\n` : ''}
-Use this summary to maintain continuity and reference previous discussions naturally.
-` : '';
-
-      // Create the full prompt with explicit instructions
-      const userName = personaData.basicInfo?.fullName || personaData.name || 'the user';
-      const fullPrompt = `${systemPrompt}
-
-${styleAnchorContext}
-
-${longTermMemoryContext}
-
-${sessionMemoryContext}
-
-CHAT HISTORY:
-${chatContext}
-
-USER MESSAGE: "${userMessage}"
-
-CRITICAL INSTRUCTIONS:
-- You ARE ${userName} - respond as them, not as an AI assistant
-- You know the user's name is ${userName}
-- Use your personality traits and communication style EXACTLY as defined
-- Keep response under ${tokenLimit} tokens
-- Be authentic to your persona - NO GENERIC RESPONSES
-- Reference your interests and background when relevant
-- If asked "what is my name" or "who am i", respond with "${userName}"
-- Always remember who you are representing
-- Use the communication style from your persona data
-
-RESPOND AS ${userName.toUpperCase()} - NO GENERIC RESPONSES ALLOWED!`;
+      // ✅ Use PromptBuilder for persona prompt construction
+      const { promptBuilder } = await import('../../services/promptBuilder');
+      
+      const fullPrompt = promptBuilder.buildPersonaPrompt(
+        systemPrompt,
+        personaData,
+        chatHistory,
+        sessionMemory,
+        longTermMemories,
+        stylePatterns,
+        tokenLimit,
+        userMessage
+      );
 
       const completion = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
