@@ -661,6 +661,91 @@ function removeMessage(messageId) {
     }
 }
 
+/**
+ * Display text with character-by-character typing effect
+ */
+function displayWithTypingEffect(sender, fullText, metadata = null, callback = null) {
+    const messagesContainer = document.getElementById('chatMessages');
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.id = messageId;
+    messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+        sender === 'user' 
+            ? 'bg-blue-600 text-white' 
+            : 'bg-white border border-gray-200'
+    }`;
+    
+    messageDiv.appendChild(messageContent);
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    // Split into words for realistic typing
+    const words = fullText.split(/(\s+)/); // Keep spaces
+    let currentWordIndex = 0;
+    let currentText = '';
+    
+    function typeNextWord() {
+        if (currentWordIndex < words.length) {
+            const word = words[currentWordIndex];
+            currentText += word;
+            
+            // Show text with blinking cursor
+            messageContent.innerHTML = `
+                <p class="text-sm">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
+            `;
+            
+            currentWordIndex++;
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // ✅ Variable speed: faster for short words, slower for long words
+            // Also add small random delay to feel more natural
+            const baseSpeed = word.length < 3 ? 20 : word.length < 6 ? 40 : 60;
+            const randomDelay = Math.random() * 30; // 0-30ms random
+            const speed = baseSpeed + randomDelay;
+            
+            setTimeout(typeNextWord, speed);
+        } else {
+            // Typing complete - show final text with timestamp
+            messageContent.innerHTML = `
+                <p class="text-sm">${fullText}</p>
+                <p class="text-xs mt-1 opacity-75">
+                    ${metadata && metadata.timestamp ? 
+                        new Date(metadata.timestamp).toLocaleTimeString() : 
+                        new Date().toLocaleTimeString()
+                    }
+                </p>
+            `;
+            
+            // Add metadata display if provided
+            if (metadata && (metadata.intent || metadata.criticScore !== undefined)) {
+                const metadataDiv = document.createElement('div');
+                metadataDiv.className = 'mt-2 text-xs text-gray-500';
+                if (metadata.intent) {
+                    metadataDiv.innerHTML += `<span class="mr-2">Intent: ${metadata.intent}</span>`;
+                }
+                if (metadata.criticScore !== undefined) {
+                    metadataDiv.innerHTML += `<span>Score: ${metadata.criticScore.toFixed(2)}</span>`;
+                }
+                messageContent.appendChild(metadataDiv);
+            }
+            
+            // Call callback if provided
+            if (callback) {
+                callback(messageId);
+            }
+        }
+    }
+    
+    // Start typing
+    typeNextWord();
+    
+    return messageId;
+}
+
 function addResponseActionsButton(responseId) {
     const messageDiv = document.getElementById(responseId);
     if (!messageDiv) return;
@@ -1236,46 +1321,47 @@ if (messageForm) {
                 // Remove typing indicator
                 removeMessage(typingId);
                 
-                // Add AI response
-                const responseId = addMessageToChat('ai', data.response, false, {
+                // ✅ Display with character-by-character typing effect
+                const responseId = displayWithTypingEffect('ai', data.response, {
                     intent: data.intent,
                     criticScore: data.criticScore,
                     latency: data.latency
+                }, (messageId) => {
+                    // Callback after typing completes
+                    // Store response metadata for actions
+                    currentResponse = data.response;
+                    currentResponseId = messageId;
+                    responseMetadata = {
+                        intent: data.intent,
+                        criticScore: data.criticScore,
+                        latency: data.latency
+                    };
+                    
+                    // Update display
+                    updateIntentDisplay(data.intent);
+                    updateCriticScore(data.criticScore);
+                    
+                    // Add response actions button
+                    addResponseActionsButton(messageId);
+                    
+                    // Refresh chat history to update message counts
+                    loadChatHistory();
+                    
+                    // Update the current chat item in sidebar immediately
+                    const currentChatItem = document.querySelector(`[data-chat-id="${currentChatId}"]`);
+                    if (currentChatItem) {
+                        const lastMessageSpan = currentChatItem.querySelector('p.text-xs.text-gray-500');
+                        const messageCountSpan = currentChatItem.querySelector('span.text-xs.bg-blue-100');
+                        
+                        if (lastMessageSpan) {
+                            lastMessageSpan.textContent = message;
+                        }
+                        if (messageCountSpan) {
+                            const currentCount = parseInt(messageCountSpan.textContent) || 0;
+                            messageCountSpan.textContent = `${currentCount} messages`;
+                        }
+                    }
                 });
-                
-                // Store response metadata for actions
-                currentResponse = data.response;
-                currentResponseId = responseId;
-                responseMetadata = {
-                    intent: data.intent,
-                    criticScore: data.criticScore,
-                    latency: data.latency
-                };
-                
-                // Update display
-                updateIntentDisplay(data.intent);
-                updateCriticScore(data.criticScore);
-                
-                // Add response actions button
-                addResponseActionsButton(responseId);
-                
-                // Refresh chat history to update message counts
-                await loadChatHistory();
-
-// Update the current chat item in sidebar immediately
-const currentChatItem = document.querySelector(`[data-chat-id="${currentChatId}"]`);
-if (currentChatItem) {
-    const lastMessageSpan = currentChatItem.querySelector('p.text-xs.text-gray-500');
-    const messageCountSpan = currentChatItem.querySelector('span.text-xs.bg-blue-100');
-    
-    if (lastMessageSpan) {
-        lastMessageSpan.textContent = message;
-    }
-    if (messageCountSpan) {
-        const currentCount = parseInt(messageCountSpan.textContent) || 0;
-        messageCountSpan.textContent = `${currentCount } messages`;
-    }
-}
                 
             } else {
                 console.log('❌ API returned error:', data.error);
@@ -1320,5 +1406,18 @@ if (currentChatItem) {
 
         }); // Close DOMContentLoaded
     </script>
+
+    <style>
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        .streaming-cursor {
+            display: inline-block;
+            animation: blink 1s infinite;
+            color: inherit;
+        }
+    </style>
 </body>
 </html>

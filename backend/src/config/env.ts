@@ -40,4 +40,8 @@ export const config = {
   }
 };
 
+export const openai = {
+  apiKey: process.env.OPENAI_API_KEY || '',
+};
+
 export default config;
