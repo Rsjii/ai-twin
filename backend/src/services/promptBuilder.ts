@@ -1,5 +1,7 @@
 import { memoryService } from './memoryService';
 import { logger } from '../config/logger';
+import { encoding_for_model } from 'tiktoken';  
+import { db } from '../config/database';
 
 export interface PromptContext {
   twinId?: string;
@@ -31,6 +33,49 @@ export interface StylePattern {
  */
 export class PromptBuilder {
   /**
+   * Count tokens in text using tiktoken
+   */
+  private countTokens(text: string): number {
+    try {
+      // Use gpt-4o-mini encoding (closest to what we're using)
+      const enc = encoding_for_model('gpt-4o-mini');
+      return enc.encode(text).length;
+    } catch (error) {
+      // Fallback: rough estimate (4 chars ≈ 1 token)
+      logger.warn('Token counting failed, using char estimate:', error);
+      return Math.ceil(text.length / 4);
+    }
+  }
+
+  /**
+   * Truncate text to fit within token budget
+   */
+  private truncateToTokenBudget(text: string, maxTokens: number): string {
+    const tokens = this.countTokens(text);
+    if (tokens <= maxTokens) return text;
+    
+    // Binary search for optimal truncation point
+    let left = 0;
+    let right = text.length;
+    let bestFit = '';
+    
+    while (left < right) {
+      const mid = Math.floor((left + right) / 2);
+      const testText = text.substring(0, mid);
+      const testTokens = this.countTokens(testText);
+      
+      if (testTokens <= maxTokens) {
+        bestFit = testText;
+        left = mid + 1;
+      } else {
+        right = mid;
+      }
+    }
+    
+    return bestFit || text.substring(0, Math.floor(text.length * 0.8));
+  }
+
+  /**
    * Build complete system prompt with all contexts
    */
   async buildSystemPrompt(context: PromptContext): Promise<string> {
@@ -47,8 +92,20 @@ export class PromptBuilder {
     } = context;
 
     try {
+      // Token budget calculation
+      // gpt-4o-mini context window: 128k tokens
+      // Reserve 90% for system prompt, 10% for response
+      const MAX_PROMPT_TOKENS = 115000; // Safe limit (90% of 128k)
+      const responseTokenReserve = tokenLimit;
+      const tokenBudget = MAX_PROMPT_TOKENS - responseTokenReserve - 500; // 500 token buffer
+      
+      logger.info('Token budget:', { 
+        maxPromptTokens: MAX_PROMPT_TOKENS, 
+        responseReserve: responseTokenReserve,
+        availableBudget: tokenBudget 
+      });
+
       // 1. Retrieve all memory contexts in parallel
-      // If sessionMemory not provided but chatId is, retrieve it
       const sessionMemoryPromise = providedSessionMemory 
         ? Promise.resolve(providedSessionMemory)
         : this.getSessionMemory(chatId);
@@ -59,6 +116,9 @@ export class PromptBuilder {
         this.getStylePatterns(twinId, currentMessages.join(' '))
       ]);
 
+      // Get feedback context (recent user adjustments)
+      const feedbackContext = await this.getFeedbackContext(twinId);
+
       // 2. Build individual context sections
       const personaSection = this.buildPersonaSection(personaData);
       const styleSection = this.buildStyleSection(styleVector);
@@ -67,25 +127,88 @@ export class PromptBuilder {
       const sessionMemorySection = this.buildSessionMemorySection(sessionMemory);
       const chatContextSection = this.buildChatContextSection(chatVector, chatMemory);
       const instructionsSection = this.buildInstructionsSection(personaData, styleVector, tokenLimit);
+      const userMessage = currentMessages.join(' ');
 
-      // 3. Assemble final prompt
-      return this.assemblePrompt(
-        personaSection,
-        styleSection,
-        styleAnchorSection,
-        longTermMemorySection,
-        sessionMemorySection,
-        chatContextSection,
-        instructionsSection,
-        currentMessages.join(' '),
-        personaData
-      );
+      // 3. Calculate base prompt size (mandatory parts)
+      const basePrompt = `You are an AI twin representing ${personaData?.basicInfo?.fullName || personaData?.name || 'the user'}. You MUST respond as if you are this person, using their exact communication style.\n\nCURRENT USER MESSAGE: "${userMessage}"\n\n`;
+      const baseTokens = this.countTokens(basePrompt);
+      const instructionsTokens = this.countTokens(instructionsSection);
+      
+      // Available budget for optional sections
+      let availableBudget = tokenBudget - baseTokens - instructionsTokens;
+      
+      logger.info('Base prompt tokens:', { baseTokens, instructionsTokens, availableBudget });
+
+      // Priority order: persona > style > anchors > long-term memories > session > chat context
+      const sections: Array<{name: string, content: string, priority: number}> = [
+        { name: 'feedback', content: feedbackContext, priority: 0 },  // Highest priority - recent user feedback
+        { name: 'persona', content: personaSection, priority: 1 },
+        { name: 'style', content: styleSection, priority: 2 },
+        { name: 'anchors', content: styleAnchorSection, priority: 3 },
+        { name: 'longTermMemories', content: longTermMemorySection, priority: 4 },
+        { name: 'sessionMemory', content: sessionMemorySection, priority: 5 },
+        { name: 'chatContext', content: chatContextSection, priority: 6 }
+      ];
+
+      let assembledSections: string[] = [];
+      let remainingBudget = availableBudget;
+
+      for (const section of sections) {
+        if (!section.content || section.content.trim().length === 0) {
+          continue; // Skip empty sections
+        }
+
+        const sectionTokens = this.countTokens(section.content);
+        
+        if (sectionTokens <= remainingBudget) {
+          // Full section fits
+          assembledSections.push(section.content);
+          remainingBudget -= sectionTokens;
+          logger.debug(`Added full ${section.name} section (${sectionTokens} tokens, ${remainingBudget} remaining)`);
+        } else if (remainingBudget > 100) {
+          // Truncate section to fit (only if we have meaningful budget left)
+          const truncated = this.truncateToTokenBudget(section.content, remainingBudget);
+          const truncatedTokens = this.countTokens(truncated);
+          if (truncatedTokens > 50) { // Only add if meaningful content
+            assembledSections.push(truncated);
+            remainingBudget -= truncatedTokens;
+            logger.warn(`Added truncated ${section.name} section (${truncatedTokens} tokens, ${remainingBudget} remaining)`);
+          } else {
+            logger.warn(`Skipping ${section.name} section - too large (${sectionTokens} tokens, only ${remainingBudget} available)`);
+          }
+        } else {
+          // Budget exhausted, skip this and lower priority sections
+          logger.warn(`Skipping ${section.name} section and lower priority - budget exhausted (${sectionTokens} tokens needed, ${remainingBudget} available)`);
+          break;
+        }
+      }
+
+      // 5. Assemble final prompt
+      const finalPrompt = basePrompt + 
+        assembledSections.join('\n\n') + 
+        '\n\n' + 
+        instructionsSection;
+
+      const finalTokens = this.countTokens(finalPrompt);
+      logger.info('Final prompt token count:', { finalTokens, tokenBudget, underBudget: finalTokens <= tokenBudget });
+
+      // Safety check: if still over budget, return truncated version
+      if (finalTokens > tokenBudget) {
+        logger.error('Prompt exceeds token budget even after truncation!', { 
+          finalTokens, 
+          tokenBudget,
+          exceededBy: finalTokens - tokenBudget 
+        });
+        return this.truncateToTokenBudget(finalPrompt, tokenBudget);
+      }
+
+      return finalPrompt;
     } catch (error) {
       logger.error('Error building system prompt:', error);
       // Return basic fallback prompt
       return this.buildFallbackPrompt(personaData, styleVector, currentMessages.join(' '));
     }
-  }
+  }  
 
   /**
    * Retrieve session memory (if chatId provided)
@@ -145,6 +268,49 @@ export class PromptBuilder {
       return [];
     }
   }
+  
+  /**
+   * Get feedback context from recent style corrections
+   * Aggregates feedback from last 7 days and returns adjustments
+   */
+  private async getFeedbackContext(twinId?: string): Promise<string> {
+    if (!twinId) return '';
+    
+    try {
+      const feedbackResult = await db.query(`
+        SELECT knob, AVG(delta::float) as avg_delta, COUNT(*) as count
+        FROM style_corrections
+        WHERE twin_id = $1 AND ts >= NOW() - INTERVAL '7 days'
+        GROUP BY knob
+        HAVING COUNT(*) >= 2 AND ABS(AVG(delta::float)) > 0.3
+      `, [twinId]);
+      
+      if (feedbackResult.rows.length === 0) {
+        return '';
+      }
+      
+      const adjustments = feedbackResult.rows
+        .map(f => {
+          const avgDelta = parseFloat(f.avg_delta);
+          if (avgDelta > 0.3) {
+            return `Increase ${f.knob} usage`;
+          } else if (avgDelta < -0.3) {
+            return `Decrease ${f.knob} usage`;
+          }
+          return null;
+        })
+        .filter(Boolean);
+      
+      if (adjustments.length === 0) {
+        return '';
+      }
+      
+      return `\n## RECENT USER FEEDBACK (APPLY THESE ADJUSTMENTS):\n${adjustments.join('\n')}\n`;
+    } catch (error) {
+      logger.warn('Failed to get feedback context:', error);
+      return '';
+    }
+  }    
 
   /**
    * Build persona section (bio, personality)
