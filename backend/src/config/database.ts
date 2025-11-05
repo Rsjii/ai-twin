@@ -768,7 +768,7 @@ export const styleAnchorsQueries = {
   ) => {
     let query = `
       SELECT *, 
-       similarity(user_utterance, $2) as sim_score 
+       similarity(user_utterance, $2::text) as sim_score 
        FROM "style_anchors" 
        WHERE twin_id = $1`;
     
@@ -785,9 +785,42 @@ export const styleAnchorsQueries = {
     query += ` ORDER BY sim_score DESC LIMIT $${params.length + 1}`;
     params.push(limit);
     
-    const result = await db.query(query, params);
-    return result.rows;
-  },
+    try {
+      const result = await db.query(query, params);
+      return result.rows;
+    } catch (error: any) {
+      // Fallback: if similarity function fails, use recency-based search
+      if (error.code === '42883' || error.message?.includes('similarity') || error.message?.includes('does not exist')) {
+        logger.warn('Similarity function not available, falling back to recency-based search', {
+          error: error.message,
+          twinId,
+          userMessage
+        });
+        
+        let fallbackQuery = `
+          SELECT *, 0.5 as sim_score 
+          FROM "style_anchors" 
+          WHERE twin_id = $1`;
+        
+        const fallbackParams: any[] = [twinId];
+        
+        if (!type) {
+          fallbackQuery += ` AND type = 'interaction'`;
+        } else {
+          fallbackQuery += ` AND type = $2`;
+          fallbackParams.push(type);
+        }
+        
+        fallbackQuery += ` ORDER BY created_at DESC LIMIT $${fallbackParams.length + 1}`;
+        fallbackParams.push(limit);
+        
+        const result = await db.query(fallbackQuery, fallbackParams);
+        return result.rows;
+      }
+      // Re-throw if it's a different error
+      throw error;
+    }
+  },  
   
   // NEW METHOD: Find phrases for a twin
   findPhrasesByTwinId: async (twinId: string, limit = 5) => {

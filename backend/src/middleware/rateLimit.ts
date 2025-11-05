@@ -104,3 +104,41 @@ export const apiRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Public chat message rate limiter (for anonymous users - strict)
+export const publicChatRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // 20 messages per 15 min for anonymous users
+  keyGenerator: (req) => {
+    // For anonymous users: use IP address (most reliable)
+    // IP tracking works even if visitorId changes
+    return req.ip || req.socket.remoteAddress || 'unknown';
+  },
+  message: {
+    error: 'Too many messages. Please wait before sending another.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for authenticated users (they get higher limit)
+    // Authenticated users are handled by publicChatRateLimitAuthenticated
+    return !!req.user?.id || !!req.user?.userId;
+  }
+});
+
+// Public chat rate limiter (for authenticated users - higher limit)
+export const publicChatRateLimitAuthenticated = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 messages per 15 min for authenticated users
+  keyGenerator: (req) => {
+    // Use userId if authenticated, otherwise IP
+    return req.user?.id || req.user?.userId || req.ip || 'unknown';
+  },
+  message: {
+    error: 'Too many messages. Please wait before sending another.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
