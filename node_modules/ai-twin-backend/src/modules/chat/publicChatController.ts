@@ -7,6 +7,7 @@ import { TwinService } from '../twin/twinService';
 import { z } from 'zod';
 import { checkBlacklist, validateMessageLength } from '../../middleware/security';
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
+import { moderateContentSync, getModerationSettings } from '../moderation/moderationController';
 
 // Validation schemas
 const startPublicChatSchema = z.object({
@@ -37,7 +38,7 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
-      SELECT id, "isPublic", "styleVector", "sampleReply"
+      SELECT id, "isPublic", "styleVector", "sampleReply", "requireApproval"
       FROM "Twin"
       WHERE id = $1 AND "isPublic" = true
     `, [twinId]);
@@ -133,18 +134,77 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
 
     const chat = chatResult.rows[0];
 
-    // Save visitor message using raw SQL
-    const visitorMessageId = `pub_msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    await db.query(`
-      INSERT INTO "PublicMessage" ("id", "chatId", "sender", "content", "approved", "createdAt")
-      VALUES ($1, $2, $3, $4, $5, NOW())
-    `, [visitorMessageId, chatId, 'human', message.trim(), true]);
+    // Get twin info for requireApproval check
+    const twinInfoResult = await db.query(`
+      SELECT "requireApproval"
+      FROM "Twin"
+      WHERE id = $1
+    `, [chat.twinId]);
+    const twinInfo = twinInfoResult.rows[0] || {};
 
-    // Get recent chat context (last 10 messages)
+    // Moderation check before saving visitor message
+    const moderationSettings = await getModerationSettings(chat.twinId);
+    const autoModeration = await moderateContentSync(message.trim(), 'message', undefined, chat.twinId);
+    
+    // Calculate approved status
+    // For public chats: requireApproval from twin settings or moderation settings
+    const requireApproval = twinInfo.requireApproval || moderationSettings.requireApproval || false;
+    const approved = !requireApproval && autoModeration.isApproved;
+    
+    // ✅ REJECT MESSAGE IMMEDIATELY IF NOT APPROVED
+    if (!approved) {
+      logger.warn('Public message rejected by moderation:', {
+        message: message.substring(0, 50),
+        reasons: autoModeration.reasons,
+        chatId: chatId,
+        twinId: chat.twinId
+      });
+      
+      return res.status(400).json({
+        success: false,
+        error: 'Message blocked',
+        message: 'I cannot answer this message due to content moderation policies.',
+        reasons: autoModeration.reasons || ['Content does not meet our guidelines'],
+        suggestions: autoModeration.suggestions || ['Please revise your message']
+      });
+    }
+    
+    // Save visitor message using raw SQL (only if approved)
+    const visitorMessageId = `pub_msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // ✅ Simple requestId: userId/visitorId + exact timestamp + random (no window, unique per request)
+    const userIdOrVisitor = chat.userId || chat.visitorId || `visitor_${Date.now()}`;
+    const requestId = `${userIdOrVisitor}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    
+    // ✅ Simple check: exact requestId match (no time filter)
+    const existing = await db.query(`
+      SELECT id, "chatId", sender, content, approved, "createdAt"
+      FROM "PublicMessage"
+      WHERE "chatId" = $1 AND "requestId" = $2
+      LIMIT 1
+    `, [chatId, requestId]);
+    
+    if (existing && existing.rows && existing.rows.length > 0) {
+      // Exact duplicate requestId (retry scenario)
+      logger.info('Duplicate public message requestId detected:', requestId);
+      return res.status(400).json({
+        success: false,
+        error: 'Duplicate request',
+        message: 'Message already sent.',
+        duplicate: true
+      });
+    }
+    
+    await db.query(`
+      INSERT INTO "PublicMessage" ("id", "chatId", "sender", "content", "approved", "requestId", "createdAt")
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    `, [visitorMessageId, chatId, 'human', message.trim(), true, requestId]);  // ✅ Save requestId for idempotency
+
+    // Get recent chat context (last 10 messages - only approved)
     const recentMessagesResult = await db.query(`
       SELECT content, sender, "createdAt"
       FROM "PublicMessage"
-      WHERE "chatId" = $1
+      WHERE "chatId" = $1 AND approved = true
       ORDER BY "createdAt" DESC
       LIMIT 10
     `, [chatId]);

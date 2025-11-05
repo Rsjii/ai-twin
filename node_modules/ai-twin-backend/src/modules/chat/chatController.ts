@@ -7,6 +7,7 @@ import { AuthenticatedRequest } from '../../middleware/auth';
 import { checkBlacklist, validateMessageLength } from '../../middleware/security';
 import { memoryService } from '../../services/memoryService';
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
+import { moderateContentSync, getModerationSettings } from '../moderation/moderationController';
 
 const twinService = new TwinService();
 
@@ -261,11 +262,11 @@ export const getChatMessages = async (req: AuthenticatedRequest, res: Response, 
 
     const chat = chatResult.rows[0];
 
-    // Get messages for this chat
+    // Get messages for this chat (only approved messages)
     const messagesResult = await db.query(`
       SELECT id, "chatId", sender, content, approved, "createdAt"
       FROM "Message"
-      WHERE "chatId" = $1
+      WHERE "chatId" = $1 AND approved = true
       ORDER BY "createdAt" ASC
     `, [id]);
 
@@ -687,19 +688,76 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       styleVector: chat.styleVector 
     });
 
-    // Save user message using raw SQL
+    // Moderation check before saving user message
+    const moderationSettings = await getModerationSettings(chat.twinId);
+    const autoModeration = await moderateContentSync(message.trim(), 'message', req.user?.id, chat.twinId);
+    
+    // Calculate approved status
+    // If requireApproval = false → auto approve (if moderation passes)
+    // If requireApproval = true → require autoModeration.isApproved
+    const approved = !moderationSettings.requireApproval || autoModeration.isApproved;
+    
+    // ✅ REJECT MESSAGE IMMEDIATELY IF NOT APPROVED
+    if (!approved) {
+      logger.warn('Message rejected by moderation:', {
+        message: message.substring(0, 50),
+        reasons: autoModeration.reasons,
+        userId: req.user?.id,
+        chatId: chat.id
+      });
+      
+      return res.status(400).json({
+        success: false,
+        error: 'Message blocked',
+        message: 'I cannot answer this message due to content moderation policies.',
+        reasons: autoModeration.reasons || ['Content does not meet our guidelines'],
+        suggestions: autoModeration.suggestions || ['Please revise your message']
+      });
+    }
+    
+    // Save user message using raw SQL (only if approved)
     let userMessage;
     try {
+      // ✅ Simple requestId: userId + exact timestamp + random (no window, unique per request)
+      const requestId = `${req.user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+      
+      // ✅ Simple check: exact requestId match (no time filter)
+      const existing = await db.query(`
+        SELECT id, "chatId", sender, content, approved, "createdAt"
+        FROM "Message"
+        WHERE "chatId" = $1 AND "requestId" = $2
+        LIMIT 1
+      `, [chat.id, requestId]);
+      
+      if (existing && existing.rows && existing.rows.length > 0) {
+        // Exact duplicate requestId (retry scenario)
+        logger.info('Duplicate requestId detected:', requestId);
+        return res.json({
+          success: true,
+          duplicate: true,
+          message: 'Message already sent.',
+          userMessage: {
+            id: existing.rows[0].id,
+            content: existing.rows[0].content,
+            sender: existing.rows[0].sender,
+            createdAt: existing.rows[0].createdAt,
+          },
+          aiMessage: null  // No AI response for duplicate
+        });
+      }
+      
+      // New request - save with requestId
       const userMessageResult = await db.query(`
-        INSERT INTO "Message" ("id", "chatId", "sender", "content", "approved", "createdAt")
-        VALUES ($1, $2, $3, $4, $5, NOW())
+        INSERT INTO "Message" ("id", "chatId", "sender", "content", "approved", "requestId", "createdAt")
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
         RETURNING id, "chatId", sender, content, approved, "createdAt"
       `, [
         `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         chat.id,
         'human',
         message.trim(),
-        true
+        approved,
+        requestId  // ✅ Save requestId for idempotency
       ]);
       
       userMessage = userMessageResult.rows[0];
@@ -722,7 +780,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
         db.query(`
       SELECT content, sender, "createdAt"
       FROM "Message"
-      WHERE "chatId" = $1
+      WHERE "chatId" = $1 AND approved = true
       ORDER BY "createdAt" DESC
       LIMIT 10
         `, [chat.id]).catch(err => {

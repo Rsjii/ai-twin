@@ -383,7 +383,7 @@ export const messageQueries = {
   },
 
   findByChatId: async (chatId: string) => {
-    const result = await db.query('SELECT * FROM "Message" WHERE "chatId" = $1 ORDER BY "createdAt" ASC', [chatId]);
+    const result = await db.query('SELECT * FROM "Message" WHERE "chatId" = $1 AND approved = true ORDER BY "createdAt" ASC', [chatId]);
     return result.rows;
   }
 };
@@ -658,7 +658,7 @@ export const publicMessageQueries = {
 
   findByChatId: async (chatId: string, limit: number = 50) => {
     const result = await db.query(
-      'SELECT * FROM "PublicMessage" WHERE "chatId" = $1 ORDER BY "createdAt" ASC LIMIT $2',
+      'SELECT * FROM "PublicMessage" WHERE "chatId" = $1 AND approved = true ORDER BY "createdAt" ASC LIMIT $2',
       [chatId, limit]
     );
     return result.rows;
@@ -666,7 +666,7 @@ export const publicMessageQueries = {
 
   getRecentMessages: async (chatId: string, limit: number = 10) => {
     const result = await db.query(
-      'SELECT content, sender, "createdAt" FROM "PublicMessage" WHERE "chatId" = $1 ORDER BY "createdAt" DESC LIMIT $2',
+      'SELECT content, sender, "createdAt" FROM "PublicMessage" WHERE "chatId" = $1 AND approved = true ORDER BY "createdAt" DESC LIMIT $2',
       [chatId, limit]
     );
     return result.rows.reverse();

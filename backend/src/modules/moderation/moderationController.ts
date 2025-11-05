@@ -197,10 +197,32 @@ export const getModerationStats = async (req: Request, res: Response) => {
 };
 
 // Helper functions
-async function getModerationSettings() {
-  // Get global moderation settings
+export async function getModerationSettings(twinId?: string) {
+  // If twinId provided, check for per-twin settings first
+  if (twinId) {
+    const twinSettings = await db.query(`
+      SELECT t."requireApproval" as twinRequireApproval,
+             ms."requireApproval" as moderationRequireApproval,
+             ms."useAIModeration", ms."moderationLevel", ms."spamThreshold"
+      FROM "Twin" t
+      LEFT JOIN "ModerationSettings" ms ON ms."twinId" = t.id
+      WHERE t.id = $1
+    `, [twinId]);
+    
+    if (twinSettings.rows.length > 0) {
+      const row = twinSettings.rows[0];
+      return {
+        requireApproval: row.twinRequireApproval || row.moderationRequireApproval || false,
+        useAIModeration: row.useAIModeration ?? true,
+        moderationLevel: row.moderationLevel || 'basic',
+        spamThreshold: row.spamThreshold ?? 0.7
+      };
+    }
+  }
+  
+  // Global settings fallback
   const settings = await db.query(`
-    SELECT "useAIModeration", "moderationLevel", "spamThreshold"
+    SELECT "useAIModeration", "moderationLevel", "spamThreshold", "requireApproval"
     FROM "ModerationSettings"
     WHERE id = 'global'
   `);
@@ -208,7 +230,55 @@ async function getModerationSettings() {
   return settings.rows[0] || {
     useAIModeration: true,
     moderationLevel: 'basic',
-    spamThreshold: 0.7
+    spamThreshold: 0.7,
+    requireApproval: false  // Default: no approval required
+  };
+}
+
+// Helper function to moderate content directly (for use in controllers)
+export async function moderateContentSync(
+  content: string, 
+  contentType: string = 'message', 
+  userId?: string, 
+  twinId?: string
+): Promise<{ isApproved: boolean; confidence: number; reasons: string[]; suggestions: string[] }> {
+  // Get moderation settings
+  const moderationSettings = await getModerationSettings(twinId);
+
+  // Basic content checks
+  const basicChecks = await performBasicModeration(content);
+  
+  // Advanced AI-based moderation (if enabled)
+  let aiModeration = null;
+  if (moderationSettings.useAIModeration) {
+    aiModeration = await performAIModeration(content, contentType);
+  }
+
+  // Spam detection
+  const spamCheck = await detectSpam(content, userId, twinId);
+
+  // Combine all checks
+  const isApproved = basicChecks.isApproved && 
+                    (!aiModeration || aiModeration.isApproved) && 
+                    !spamCheck.isSpam;
+
+  return {
+    isApproved,
+    confidence: Math.max(
+      basicChecks.confidence,
+      aiModeration?.confidence || 0,
+      spamCheck.confidence
+    ),
+    reasons: [
+      ...basicChecks.reasons,
+      ...(aiModeration?.reasons || []),
+      ...spamCheck.reasons
+    ],
+    suggestions: [
+      ...basicChecks.suggestions,
+      ...(aiModeration?.suggestions || []),
+      ...spamCheck.suggestions
+    ]
   };
 }
 
