@@ -5,10 +5,10 @@ import rateLimit from 'express-rate-limit';
  * Different limits for different types of operations
  */
 
-// Global rate limiter (applied to all routes)
+// Global rate limiter (applied to all routes) - TESTING MODE
 export const globalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // 1000 requests per window
+  max: 100000, // ✅ 100k requests per window (testing)
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: '15 minutes'
@@ -90,10 +90,10 @@ export const inviteCreationRateLimit = rateLimit({
   legacyHeaders: false,
 });
 
-// API rate limiter (for general API endpoints)
+// API rate limiter (for general API endpoints) - TESTING MODE
 export const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 API requests per 15 minutes per user/IP
+  max: 10000, // ✅ 10k API requests per 15 minutes (testing)
   keyGenerator: (req) => {
     return req.user?.userId || req.ip || 'unknown';
   },
@@ -105,10 +105,10 @@ export const apiRateLimit = rateLimit({
   legacyHeaders: false,
 });
 
-// Public chat message rate limiter (for anonymous users - strict)
+// Public chat message rate limiter (for anonymous users - strict) - TESTING MODE
 export const publicChatRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // 20 messages per 15 min for anonymous users
+  max: 1000, // ✅ 1000 messages per 15 min for anonymous users (testing)
   keyGenerator: (req) => {
     // For anonymous users: use IP address (most reliable)
     // IP tracking works even if visitorId changes
@@ -127,10 +127,10 @@ export const publicChatRateLimit = rateLimit({
   }
 });
 
-// Public chat rate limiter (for authenticated users - higher limit)
+// Public chat rate limiter (for authenticated users - higher limit) - TESTING MODE
 export const publicChatRateLimitAuthenticated = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 messages per 15 min for authenticated users
+  max: 5000, // ✅ 5k messages per 15 min for authenticated users (testing)
   keyGenerator: (req) => {
     // Use userId if authenticated, otherwise IP
     return req.user?.id || req.user?.userId || req.ip || 'unknown';

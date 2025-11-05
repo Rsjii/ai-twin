@@ -638,7 +638,10 @@ function addMessageToChat(sender, content, isTyping = false, metadata = null) {
     
     const messageDiv = document.createElement('div');
     messageDiv.id = messageId;
-    messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+    messageDiv.className = `flex flex-col ${sender === 'user' ? 'justify-end items-end' : 'justify-start items-start'}`;
+    
+    const messageWrapper = document.createElement('div');
+    messageWrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
     
     const messageContent = document.createElement('div');
     messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
@@ -646,6 +649,11 @@ function addMessageToChat(sender, content, isTyping = false, metadata = null) {
             ? 'bg-blue-600 text-white' 
             : 'bg-white border border-gray-200'
     }`;
+    
+    // ✅ Create actions container for AI messages (so buttons can be added later)
+    const actionsContainer = document.createElement('div');
+    actionsContainer.id = `actions_${messageId}`;
+    actionsContainer.className = 'mt-2';
     
     if (isTyping) {
         messageContent.innerHTML = `
@@ -666,7 +674,9 @@ function addMessageToChat(sender, content, isTyping = false, metadata = null) {
         `;
     }
     
-    messageDiv.appendChild(messageContent);
+    messageWrapper.appendChild(messageContent);
+    messageDiv.appendChild(messageWrapper);
+    messageDiv.appendChild(actionsContainer); // ✅ Actions container separate
     messagesContainer.appendChild(messageDiv);
     
     // Scroll to bottom
@@ -691,7 +701,10 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
     
     const messageDiv = document.createElement('div');
     messageDiv.id = messageId;
-    messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+    messageDiv.className = `flex flex-col ${sender === 'user' ? 'justify-end items-end' : 'justify-start items-start'}`;
+    
+    const messageWrapper = document.createElement('div');
+    messageWrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
     
     const messageContent = document.createElement('div');
     messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
@@ -700,7 +713,14 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
             : 'bg-white border border-gray-200'
     }`;
     
-    messageDiv.appendChild(messageContent);
+    // ✅ FIX: Create actions container OUTSIDE messageContent (so it doesn't get wiped)
+    const actionsContainer = document.createElement('div');
+    actionsContainer.id = `actions_${messageId}`;
+    actionsContainer.className = 'mt-2';
+    
+    messageWrapper.appendChild(messageContent);
+    messageDiv.appendChild(messageWrapper);
+    messageDiv.appendChild(actionsContainer); // ✅ Actions container separate
     messagesContainer.appendChild(messageDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
     
@@ -768,41 +788,72 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
 }
 
 function addResponseActionsButton(responseId) {
-    const messageDiv = document.getElementById(responseId);
-    if (!messageDiv) return;
+    console.log('🔧 Adding response actions for:', responseId);
+    let retries = 0;
+    const maxRetries = 20;
+    const retryDelay = 100; // 100ms
     
-    const actionsDiv = document.createElement('div');
-    actionsDiv.className = 'mt-2 flex space-x-2';
-    actionsDiv.innerHTML = `
-<div class="flex space-x-2 text-xs">
-    <button id="copyBtn_${responseId}" class="text-gray-600 hover:text-gray-800">
-        📋 Copy
-    </button>
-    <div id="feedbackSection_${responseId}" class="flex space-x-2">
-        <button id="upvoteBtn_${responseId}" class="text-green-600 hover:text-green-800">
-            👍 Good
-        </button>
-        <button id="downvoteBtn_${responseId}" class="text-red-600 hover:text-red-800">
-            👎 Bad
-        </button>
-    </div>
-    <button id="regenerateBtn_${responseId}" class="text-blue-600 hover:text-blue-800">
-        🔄 Regenerate
-    </button>
-    <button id="shareBtn_${responseId}" class="text-purple-600 hover:text-purple-800">
-        📤 Share
-    </button>
-</div>`;
-
-    currentResponseId = responseId;
-    messageDiv.appendChild(actionsDiv);
-
-    // Add event listeners after creating the HTML
-    document.getElementById(`copyBtn_${responseId}`).addEventListener('click', () => copyResponse(responseId));
-    document.getElementById(`upvoteBtn_${responseId}`).addEventListener('click', () => upvoteResponse(responseId));
-    document.getElementById(`downvoteBtn_${responseId}`).addEventListener('click', () => downvoteResponse(responseId));
-    document.getElementById(`regenerateBtn_${responseId}`).addEventListener('click', () => regenerateResponse(responseId));
-    document.getElementById(`shareBtn_${responseId}`).addEventListener('click', () => shareResponse(responseId));
+    const tryAdd = () => {
+        const actionsContainer = document.getElementById(`actions_${responseId}`);
+        if (!actionsContainer) {
+            retries++;
+            if (retries < maxRetries) {
+                console.log(`⏳ Actions container not found, retrying... (${retries}/${maxRetries})`);
+                setTimeout(tryAdd, retryDelay);
+            } else {
+                console.error('❌ Actions container not found after', maxRetries, 'retries');
+            }
+            return;
+        }
+        
+        // Check if buttons already exist
+        if (actionsContainer.querySelector(`#copyBtn_${responseId}`)) {
+            console.log('✅ Buttons already exist, skipping');
+            return;
+        }
+        
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'flex space-x-2 text-xs';
+        actionsDiv.innerHTML = `
+            <button id="copyBtn_${responseId}" class="text-gray-600 hover:text-gray-800 px-2 py-1 rounded hover:bg-gray-100">
+                📋 Copy
+            </button>
+            <div id="feedbackSection_${responseId}" class="flex space-x-2">
+                <button id="upvoteBtn_${responseId}" class="text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50">
+                    👍 Good
+                </button>
+                <button id="downvoteBtn_${responseId}" class="text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50">
+                    👎 Bad
+                </button>
+            </div>
+            <button id="regenerateBtn_${responseId}" class="text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50">
+                🔄 Regenerate
+            </button>
+            <button id="shareBtn_${responseId}" class="text-purple-600 hover:text-purple-800 px-2 py-1 rounded hover:bg-purple-50">
+                📤 Share
+            </button>
+        `;
+        
+        currentResponseId = responseId;
+        actionsContainer.appendChild(actionsDiv);
+        console.log('✅ Actions buttons added to container');
+        
+        // Add event listeners after creating the HTML
+        setTimeout(() => {
+            try {
+                document.getElementById(`copyBtn_${responseId}`)?.addEventListener('click', () => copyResponse(responseId));
+                document.getElementById(`upvoteBtn_${responseId}`)?.addEventListener('click', () => upvoteResponse(responseId));
+                document.getElementById(`downvoteBtn_${responseId}`)?.addEventListener('click', () => downvoteResponse(responseId));
+                document.getElementById(`regenerateBtn_${responseId}`)?.addEventListener('click', () => regenerateResponse(responseId));
+                document.getElementById(`shareBtn_${responseId}`)?.addEventListener('click', () => shareResponse(responseId));
+                console.log('✅ Event listeners attached');
+            } catch (error) {
+                console.error('❌ Error attaching event listeners:', error);
+            }
+        }, 50);
+    };
+    
+    tryAdd();
 }
 
 
@@ -903,6 +954,42 @@ function updateCriticScore(score) {
     }
 }
 
+// ✅ IMMEDIATE sidebar update (before typing animation)
+// Note: Don't manually increment count - backend already does it
+function updateSidebarImmediately(aiResponse, userMessage) {
+    console.log('🔄 Updating sidebar immediately for chat:', currentChatId);
+    if (!currentChatId) {
+        console.warn('⚠️ No currentChatId set');
+        return;
+    }
+    
+    // Find chat item in sidebar
+    let currentChatItem = document.querySelector(`.chat-item[data-chat-id="${currentChatId}"]`);
+    if (!currentChatItem) {
+        currentChatItem = document.querySelector(`[data-chat-id="${currentChatId}"]`);
+    }
+    
+    if (currentChatItem) {
+        console.log('✅ Found chat item, updating...');
+        
+        // ✅ Update last message only (count will be updated by loadChatHistory)
+        const lastMessageSpan = currentChatItem.querySelector('p.text-xs.text-gray-500');
+        if (lastMessageSpan) {
+            const truncated = aiResponse.length > 50 ? aiResponse.substring(0, 50) + '...' : aiResponse;
+            lastMessageSpan.textContent = truncated;
+            console.log('✅ Updated last message:', truncated);
+        }
+        
+        // ✅ Update timestamp
+        const timeSpan = currentChatItem.querySelector('.text-xs.text-gray-400');
+        if (timeSpan) {
+            timeSpan.textContent = 'Just now';
+        }
+    } else {
+        console.warn('⚠️ Chat item not found in sidebar');
+    }
+}
+
 async function loadFeedbackStatus(chatId) {
     try {
         const response = await fetch(`/api/enhanced-chat/${chatId}/feedback-status`, {
@@ -957,7 +1044,10 @@ async function loadCurrentChatMessages() {
     // Create message with specific ID
     const messageDiv = document.createElement('div');
     messageDiv.id = messageId;
-    messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+    messageDiv.className = `flex flex-col ${sender === 'user' ? 'justify-end items-end' : 'justify-start items-start'}`;
+    
+    const messageWrapper = document.createElement('div');
+    messageWrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
     
     const messageContent = document.createElement('div');
     messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
@@ -966,6 +1056,11 @@ async function loadCurrentChatMessages() {
             : 'bg-white border border-gray-200'
     }`;
     
+    // ✅ Create actions container for AI messages
+    const actionsContainer = document.createElement('div');
+    actionsContainer.id = `actions_${messageId}`;
+    actionsContainer.className = 'mt-2';
+    
     messageContent.innerHTML = `
         <p class="text-sm">${msg.content}</p>
         <p class="text-xs mt-1 opacity-75">
@@ -973,18 +1068,23 @@ async function loadCurrentChatMessages() {
         </p>
     `;
     
-    messageDiv.appendChild(messageContent);
+    messageWrapper.appendChild(messageContent);
+    messageDiv.appendChild(messageWrapper);
+    messageDiv.appendChild(actionsContainer); // ✅ Actions container separate
     document.getElementById('chatMessages').appendChild(messageDiv);
     
     // Add feedback buttons to AI messages (not user messages)
     if (sender === 'ai') {
-        addResponseActionsButton(messageId);
-        
-        // Check if feedback already exists for this message
-        if (feedbackStatus[messageId]) {
-            const feedbackType = feedbackStatus[messageId].rating === 'positive' ? 'positive' : 'negative';
-            disableFeedbackButtons(messageId, feedbackType);
-        }
+        // Delay to ensure container is in DOM
+        setTimeout(() => {
+            addResponseActionsButton(messageId);
+            
+            // Check if feedback already exists for this message
+            if (feedbackStatus[messageId]) {
+                const feedbackType = feedbackStatus[messageId].rating === 'positive' ? 'positive' : 'negative';
+                disableFeedbackButtons(messageId, feedbackType);
+            }
+        }, 50);
     }
 });
         } else {
@@ -1358,6 +1458,9 @@ if (messageForm) {
                     generatingIndicator.classList.add('hidden');
                 }
                 
+                // ✅ IMMEDIATE: Update sidebar BEFORE typing starts (last message only)
+                updateSidebarImmediately(data.response, message);
+                
                 // ✅ Display with character-by-character typing effect
                 const responseId = displayWithTypingEffect('ai', data.response, {
                     intent: data.intent,
@@ -1377,28 +1480,21 @@ if (messageForm) {
                     // Update display
                     updateIntentDisplay(data.intent);
                     updateCriticScore(data.criticScore);
-                    
-                    // Add response actions button
-                    addResponseActionsButton(messageId);
-                    
-                    // Refresh chat history to update message counts
-                    loadChatHistory();
-                    
-                    // Update the current chat item in sidebar immediately
-                    const currentChatItem = document.querySelector(`[data-chat-id="${currentChatId}"]`);
-                    if (currentChatItem) {
-                        const lastMessageSpan = currentChatItem.querySelector('p.text-xs.text-gray-500');
-                        const messageCountSpan = currentChatItem.querySelector('span.text-xs.bg-blue-100');
-                        
-                        if (lastMessageSpan) {
-                            lastMessageSpan.textContent = message;
-                        }
-                        if (messageCountSpan) {
-                            const currentCount = parseInt(messageCountSpan.textContent) || 0;
-                            messageCountSpan.textContent = `${currentCount} messages`;
-                        }
-                    }
                 });
+                
+                // ✅ IMMEDIATE: Add response actions button (with delay to ensure container exists)
+                setTimeout(() => {
+                    addResponseActionsButton(responseId);
+                }, 200); // 200ms delay to ensure actions container is created
+                
+                // ✅ Refresh chat history after a delay (to sync with backend - this will update count correctly)
+                setTimeout(() => {
+                    loadChatHistory();
+                }, 1000);
+                
+                // ✅ RE-ENABLE: Input and button after successful response
+                messageInput.disabled = false;
+                if (sendBtn) sendBtn.disabled = false;
                 
             } else {
                 console.log('❌ API returned error:', data.error);
@@ -1408,6 +1504,10 @@ if (messageForm) {
                     generatingIndicator.classList.add('hidden');
                 }
                 addMessageToChat('ai', 'Sorry, I had trouble processing that. Please try again.');
+                
+                // ✅ RE-ENABLE: Input and button on error
+                messageInput.disabled = false;
+                if (sendBtn) sendBtn.disabled = false;
             }
         } catch (error) {
             // Hide generating indicator on error
@@ -1420,7 +1520,7 @@ if (messageForm) {
                 removeMessage(typingId);
             }
             
-            // Re-enable input and button
+            // ✅ RE-ENABLE: Input and button on exception
             messageInput.disabled = false;
             if (sendBtn) sendBtn.disabled = false;
             

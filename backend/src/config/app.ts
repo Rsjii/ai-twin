@@ -20,10 +20,10 @@ app.use(helmet({
   },
 }));
 
-// Rate limiting
+// Rate limiting - TESTING MODE (increased limits)
 const limiter = rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.maxRequests,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100000, // ✅ 100k requests per 15 min (testing)
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
