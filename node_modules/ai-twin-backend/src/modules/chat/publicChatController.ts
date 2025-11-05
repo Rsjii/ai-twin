@@ -186,9 +186,7 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
       VALUES ($1, $2, $3, $4, $5, NOW())
     `, [aiMessageId, chatId, 'twin', aiResponse, true]);
 
-    // Update public chat message count
-    await publicChatQueries.updateMessageCount(chatId);
-
+    // ✅ OPTIMIZED: Send response immediately, update metadata async
     res.json({
       success: true,
       messages: [
@@ -206,6 +204,13 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
         }
       ]
     });
+
+    // ✅ POST-RESPONSE CLEANUP - ASYNC (non-blocking)
+    if (chatId) {
+      publicChatQueries.updateMessageCount(chatId).catch(err => 
+        logger.warn('Failed to update public chat message count:', err)
+      );
+    }
 
   } catch (error) {
     if (error instanceof AppError) {

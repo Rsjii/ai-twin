@@ -709,26 +709,35 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       throw createError.internal('Failed to save user message', error);
     }
 
-    // Get session memory for context (BEFORE generating response)
+    // OPTIMIZED: Get session memory and recent messages in parallel
     let sessionMemory = null;
+    let recentMessages = [];
+    
     try {
-      sessionMemory = await memoryService.getSessionMemory(chat.id);
-      logger.info('Session memory retrieved:', sessionMemory ? 'Found' : 'Not found');
-    } catch (error) {
-      logger.error('Error getting session memory:', error);
-      // Continue without session memory
-    }
-
-    // Get recent chat context (last 10 messages) using raw SQL
-    const recentMessagesResult = await db.query(`
+      const [sessionMemoryResult, recentMessagesResult] = await Promise.all([
+        memoryService.getSessionMemory(chat.id).catch(err => {
+          logger.error('Error getting session memory:', err);
+          return null;
+        }),
+        db.query(`
       SELECT content, sender, "createdAt"
       FROM "Message"
       WHERE "chatId" = $1
       ORDER BY "createdAt" DESC
       LIMIT 10
-    `, [chat.id]);
-    
-    const recentMessages = recentMessagesResult.rows;
+        `, [chat.id]).catch(err => {
+          logger.error('Error getting recent messages:', err);
+          return { rows: [] };
+        })
+      ]);
+      
+      sessionMemory = sessionMemoryResult;
+      recentMessages = recentMessagesResult.rows;
+      logger.info('Session memory retrieved:', sessionMemory ? 'Found' : 'Not found');
+    } catch (error) {
+      logger.error('Error in parallel data fetching:', error);
+      // Continue without session memory
+    }
 
     // Create context for AI response generation (INCLUDING SESSION MEMORY)
     const context = {
@@ -794,75 +803,8 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       throw createError.internal('Failed to save AI response', error);
     }
 
-    await db.query(`
-      UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = NOW() WHERE id = $2
-    `, [aiResponse, chat.id]);
-
-    // Log chat message event using raw SQL
-    try {
-      await db.query(`
-        INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
-        VALUES ($1, $2, $3, $4, NOW())
-      `, [
-        `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        req.user.id,
-        'chat_message',
-        JSON.stringify({ 
-          chatId: chat.id, 
-          twinId: chat.twinId,
-          userMessageId: userMessage.id,
-          aiMessageId: aiMessage.id
-        })
-      ]);
-      logger.info('Chat event logged successfully');
-    } catch (error) {
-      logger.error('Failed to log chat event:', error);
-      // Don't fail the request for logging errors
-    }
-
-    // Update style vector and chat vector based on new conversation (async, don't wait)
-    updateStyleVectorAfterChat(chat.twinId, req.user.id).catch(error => {
-      logger.error('Style vector update failed:', error);
-    });
-    
-    // Update chat vector with new conversation
-    updateChatVectorAfterMessage(chat.id, [userMessage, aiMessage]).catch(error => {
-      logger.error('Chat vector update failed:', error);
-    });
-
-    // ✅ UPDATE SESSION MEMORY AFTER EVERY MESSAGE EXCHANGE
-    try {
-      // Get all messages for session summary (INCLUDING NEW ONES)
-      const allMessagesResult = await db.query(`
-        SELECT content, sender, "createdAt"
-        FROM "Message"
-        WHERE "chatId" = $1
-        ORDER BY "createdAt" ASC
-      `, [chat.id]);
-      
-      const allMessages = allMessagesResult.rows.map(msg => ({
-        content: msg.content,
-        sender: msg.sender,
-        timestamp: msg.createdAt
-      }));
-    
-      // ✅ UPDATE SESSION MEMORY AFTER EVERY MESSAGE (not every 5)
-      await memoryService.createOrUpdateSessionMemory(chat.id, allMessages);
-      logger.info(`Session memory updated for chat ${chat.id} with ${allMessages.length} messages`);
-        
-      // Extract long-term facts if summary is significant (10+ messages or every 20 messages)
-      if (allMessages.length >= 10 && allMessages.length % 10 === 0) {
-        const sessionMem = await memoryService.getSessionMemory(chat.id);
-        if (sessionMem?.summary) {
-          await memoryService.extractLongTermFacts(chat.twinId, sessionMem.summary);
-          logger.info(`Long-term facts extracted for twin ${chat.twinId}`);
-        }
-      }
-    } catch (error) {
-      logger.error('Session memory update failed:', error);
-      // Don't fail the request
-    }    
-    
+    // ✅ CRITICAL OPTIMIZATION: Send response IMMEDIATELY after saving AI message
+    // All cleanup operations happen async after response is sent
     res.json({
       success: true,
       response: aiResponse,
@@ -879,6 +821,90 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
         createdAt: aiMessage.createdAt,
       },
     });
+
+    // ✅ ALL POST-RESPONSE CLEANUP OPERATIONS - ASYNC (fire and forget)
+    // These complete after response is sent, don't block user
+    (async () => {
+      try {
+        const userId = req.user?.id;
+        if (!userId) {
+          logger.warn('No user ID available for cleanup operations');
+          return;
+        }
+
+        await Promise.all([
+          // 1. Update chat metadata
+          db.query(`
+            UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = NOW() WHERE id = $2
+          `, [aiResponse, chat.id]),
+          
+          // 2. Log chat message event
+          db.query(`
+        INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
+        VALUES ($1, $2, $3, $4, NOW())
+      `, [
+        `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            userId,
+        'chat_message',
+        JSON.stringify({ 
+          chatId: chat.id, 
+          twinId: chat.twinId,
+          userMessageId: userMessage.id,
+          aiMessageId: aiMessage.id
+        })
+          ]).catch(err => logger.warn('Event logging failed:', err)),
+          
+          // 3. Update style vector (already async)
+          updateStyleVectorAfterChat(chat.twinId, userId).catch(err => 
+            logger.warn('Style vector update failed:', err)
+          ),
+          
+          // 4. Update chat vector (already async)
+          updateChatVectorAfterMessage(chat.id, [userMessage, aiMessage]).catch(err => 
+            logger.warn('Chat vector update failed:', err)
+          )
+        ]);
+
+        // 5. ✅ UPDATE SESSION MEMORY AFTER EVERY MESSAGE (CRITICAL - must complete for next message)
+        // This is done separately to ensure it completes even if other operations fail
+    try {
+      // Get all messages for session summary (INCLUDING NEW ONES)
+      const allMessagesResult = await db.query(`
+        SELECT content, sender, "createdAt"
+        FROM "Message"
+        WHERE "chatId" = $1
+        ORDER BY "createdAt" ASC
+      `, [chat.id]);
+      
+      const allMessages = allMessagesResult.rows.map(msg => ({
+        content: msg.content,
+        sender: msg.sender,
+        timestamp: msg.createdAt
+      }));
+    
+          // ✅ UPDATE SESSION MEMORY AFTER EVERY MESSAGE (required for context)
+      await memoryService.createOrUpdateSessionMemory(chat.id, allMessages);
+      logger.info(`Session memory updated for chat ${chat.id} with ${allMessages.length} messages`);
+        
+          // Extract long-term facts if summary is significant (10+ messages or every 10 messages)
+      if (allMessages.length >= 10 && allMessages.length % 10 === 0) {
+        const sessionMem = await memoryService.getSessionMemory(chat.id);
+        if (sessionMem?.summary) {
+              // Long-term facts extraction (async, don't block)
+              memoryService.extractLongTermFacts(chat.twinId, sessionMem.summary)
+                .then(() => logger.info(`Long-term facts extracted for twin ${chat.twinId}`))
+                .catch(err => logger.error('Long-term facts extraction failed:', err));
+        }
+      }
+    } catch (error) {
+      logger.error('Session memory update failed:', error);
+          // Don't fail - response already sent
+        }
+      } catch (error) {
+        logger.error('Post-response cleanup failed:', error);
+        // Don't fail - response already sent
+      }
+    })();
   } catch (error) {
     if (error instanceof AppError) {
       throw error;

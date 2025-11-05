@@ -496,9 +496,11 @@ export const twinLikeQueries = {
     // Update like count
     await db.query('UPDATE "Twin" SET "likeCount" = "likeCount" + 1 WHERE id = $1', [twinId]);
     
-    // ✅ ADD THIS: Update performance scores
+    // ✅ OPTIMIZED: Update performance scores async (non-blocking)
     const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
-    await updateTwinPerformanceScores(twinId);
+    updateTwinPerformanceScores(twinId).catch(err => 
+      logger.warn('Performance score update failed for like:', err)
+    );
     
     return result.rows[0];
   },
@@ -512,9 +514,11 @@ export const twinLikeQueries = {
     if (result.rows.length > 0) {
       await db.query('UPDATE "Twin" SET "likeCount" = "likeCount" - 1 WHERE id = $1', [twinId]);
       
-      // ✅ ADD THIS: Update performance scores when like is removed
+      // ✅ OPTIMIZED: Update performance scores async (non-blocking)
       const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
-      await updateTwinPerformanceScores(twinId);
+      updateTwinPerformanceScores(twinId).catch(err => 
+        logger.warn('Performance score update failed for unlike:', err)
+      );
     }
     return result.rows[0];
   },
@@ -547,9 +551,11 @@ export const twinFollowQueries = {
     // Update follow count
     await db.query('UPDATE "Twin" SET "followCount" = "followCount" + 1 WHERE id = $1', [twinId]);
     
-    // ✅ ADD THIS: Update performance scores
+    // ✅ OPTIMIZED: Update performance scores async (non-blocking)
     const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
-    await updateTwinPerformanceScores(twinId);
+    updateTwinPerformanceScores(twinId).catch(err => 
+      logger.warn('Performance score update failed for follow:', err)
+    );
     
     return result.rows[0];
   },
@@ -563,9 +569,11 @@ export const twinFollowQueries = {
     if (result.rows.length > 0) {
       await db.query('UPDATE "Twin" SET "followCount" = "followCount" - 1 WHERE id = $1', [twinId]);
       
-      // ✅ ADD THIS: Update performance scores when follow is removed
+      // ✅ OPTIMIZED: Update performance scores async (non-blocking)
       const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
-      await updateTwinPerformanceScores(twinId);
+      updateTwinPerformanceScores(twinId).catch(err => 
+        logger.warn('Performance score update failed for unfollow:', err)
+      );
     }
     return result.rows[0];
   },
@@ -602,9 +610,11 @@ export const publicChatQueries = {
     // Update chat count
     await db.query('UPDATE "Twin" SET "chatCount" = "chatCount" + 1 WHERE id = $1', [twinId]);
     
-    // ✅ ADD THIS: Update performance scores
+    // ✅ OPTIMIZED: Update performance scores async (non-blocking)
     const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
-    await updateTwinPerformanceScores(twinId);
+    updateTwinPerformanceScores(twinId).catch(err => 
+      logger.warn('Performance score update failed for chat creation:', err)
+    );
     
     return result?.rows?.[0];
   },  

@@ -228,19 +228,43 @@ async getRelevantLongTermMemories(
       let queryMemories: Array<{key: string, value: string, category: string}> = [];
       
       if (keywords.length > 0) {
-        // Strategy A: Match by memory KEY (e.g., key contains keyword)
-        for (const keyword of keywords.slice(0, 3)) { // Limit to top 3 keywords
+        // OPTIMIZED: Single query with PostgreSQL array operators instead of loop
+        const topKeywords = keywords.slice(0, 3); // Limit to top 3 keywords
+        const searchPatterns = topKeywords.map(k => `%${k}%`);
+        
+        // Strategy A: Match by memory KEY using single query with ANY()
+        try {
           const keyMatches = await db.query(
-            `SELECT key, value, category 
+            `SELECT DISTINCT ON (key) key, value, category 
              FROM "MemoryLongTerm" 
              WHERE "twinId" = $1 
-             AND (key ILIKE $2 OR value ILIKE $2)
-             ORDER BY "updatedAt" DESC 
-             LIMIT 2`,
-            [twinId, `%${keyword}%`]
+             AND (
+               key = ANY($2::text[]) OR
+               key ILIKE ANY($3::text[]) OR
+               value ILIKE ANY($3::text[])
+             )
+             ORDER BY key, "updatedAt" DESC 
+             LIMIT 5`,
+            [twinId, topKeywords, searchPatterns]
           );
           
           queryMemories.push(...keyMatches.rows.map(r => ({
+            key: r.key,
+            value: r.value,
+            category: r.category
+          })));
+        } catch (error) {
+          logger.warn('Optimized memory query failed, falling back to simple search:', error);
+          // Fallback: simpler query
+          const fallbackQuery = await db.query(
+            `SELECT key, value, category 
+             FROM "MemoryLongTerm" 
+             WHERE "twinId" = $1 
+             ORDER BY "updatedAt" DESC 
+             LIMIT 5`,
+            [twinId]
+          );
+          queryMemories.push(...fallbackQuery.rows.map(r => ({
             key: r.key,
             value: r.value,
             category: r.category
@@ -256,12 +280,17 @@ async getRelevantLongTermMemories(
           'context': 'context'
         };
         
-        for (const keyword of keywords) {
-          const category = categoryMap[keyword];
-          if (category) {
-            const categoryMemories = await this.getLongTermMemories(twinId, category, 3);
-            queryMemories.push(...categoryMemories);
-          }
+        // Get category memories in parallel if multiple categories match
+        const categoryPromises = keywords
+          .map(keyword => categoryMap[keyword])
+          .filter((cat, idx, arr) => cat && arr.indexOf(cat) === idx) // Unique categories
+          .map(category => this.getLongTermMemories(twinId, category, 3));
+        
+        if (categoryPromises.length > 0) {
+          const categoryResults = await Promise.all(categoryPromises);
+          categoryResults.forEach(memories => {
+            queryMemories.push(...memories);
+          });
         }
       }
       

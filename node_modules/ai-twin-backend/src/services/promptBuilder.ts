@@ -105,19 +105,17 @@ export class PromptBuilder {
         availableBudget: tokenBudget 
       });
 
-      // 1. Retrieve all memory contexts in parallel
+      // OPTIMIZED: Retrieve all memory contexts in parallel (including feedback)
       const sessionMemoryPromise = providedSessionMemory 
         ? Promise.resolve(providedSessionMemory)
         : this.getSessionMemory(chatId);
       
-      const [sessionMemory, longTermMemories, stylePatterns] = await Promise.all([
+      const [sessionMemory, longTermMemories, stylePatterns, feedbackContext] = await Promise.all([
         sessionMemoryPromise,
         this.getLongTermMemories(twinId, currentMessages.join(' ')),
-        this.getStylePatterns(twinId, currentMessages.join(' '))
+        this.getStylePatterns(twinId, currentMessages.join(' ')),
+        this.getFeedbackContext(twinId) // ✅ Now parallel instead of sequential
       ]);
-
-      // Get feedback context (recent user adjustments)
-      const feedbackContext = await this.getFeedbackContext(twinId);
 
       // 2. Build individual context sections
       const personaSection = this.buildPersonaSection(personaData);

@@ -429,7 +429,7 @@ Day 1-2: Token budget + feedback integration
 3. Add feedback context method to `promptBuilder.ts`
 4. Test: Verify prompts stay under limit, feedback appears in prompts
 
-Day 3: Console.log cleanup
+Day 3: Console.log cleanup //Baad meii
 1. Run find-replace across all files
 2. Test: Verify no console.logs in production logs
 
@@ -448,7 +448,7 @@ Day 5: Public chat rate limiting
 
 ### Week 2: Quality improvements
 
-Day 6-7: Emotion tracking
+Day 6-7: Emotion tracking //NOT IN SCOPE YETT
 1. Create migration `017_add_emotion_tracking.sql`
 2. Create `emotionService.ts`
 3. Integrate into chat controllers
