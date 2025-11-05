@@ -1,11 +1,12 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { db, styleAnchorsQueries } from '../../config/database';
 import { logger } from '../../config/logger';
+import { AppError, createError, ErrorCodes } from '../../utils/errors';
 
 /**
  * Get all style anchors for a twin
  */
-export const getTwinAnchors = async (req: any, res: Response) => {
+export const getTwinAnchors = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { id: twinId } = req.params;
     const { limit = 10, offset = 0 } = req.query;
@@ -17,7 +18,7 @@ export const getTwinAnchors = async (req: any, res: Response) => {
     `, [twinId, userId]);
     
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     // Get style anchors
@@ -29,15 +30,17 @@ export const getTwinAnchors = async (req: any, res: Response) => {
     
     res.json({ success: true, anchors });
   } catch (error) {
-    logger.error('Get twin anchors error:', error);
-    res.status(500).json({ success: false, error: 'Failed to get style anchors' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get style anchors', error);
   }
 };
 
 /**
  * Add new style anchor (supports interaction, phrase, pattern)
  */
-export const addTwinAnchor = async (req: any, res: Response) => {
+export const addTwinAnchor = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { id: twinId } = req.params;
     const { 
@@ -58,30 +61,21 @@ export const addTwinAnchor = async (req: any, res: Response) => {
     );
     
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     // Validate based on type
     if (type === 'interaction') {
       if (!userUtterance || !idealReply) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'User utterance and ideal reply are required for interactions' 
-        });
+        throw createError.validation('User utterance and ideal reply are required for interactions');
       }
     } else if (type === 'phrase') {
       if (!phrase || phrase.trim().length === 0) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Phrase is required for phrase type anchors' 
-        });
+        throw createError.validation('Phrase is required for phrase type anchors');
       }
     } else if (type === 'pattern') {
       if (!userUtterance || userUtterance.trim().length === 0) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Pattern examples (userUtterance) are required for pattern type anchors' 
-        });
+        throw createError.validation('Pattern examples (userUtterance) are required for pattern type anchors');
       }
     }
     
@@ -103,15 +97,17 @@ export const addTwinAnchor = async (req: any, res: Response) => {
       message: 'Style anchor added successfully' 
     });
   } catch (error) {
-    logger.error('Add twin anchor error:', error);
-    res.status(500).json({ success: false, error: 'Failed to add style anchor' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to add style anchor', error);
   }
 };
 
 /**
  * Update style anchor (supports all types)
  */
-export const updateTwinAnchor = async (req: any, res: Response) => {
+export const updateTwinAnchor = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { id: twinId, anchorId } = req.params;
     const { 
@@ -132,7 +128,7 @@ export const updateTwinAnchor = async (req: any, res: Response) => {
     );
     
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     // Update style anchor with all parameters
@@ -148,7 +144,7 @@ export const updateTwinAnchor = async (req: any, res: Response) => {
     );
     
     if (!anchor) {
-      return res.status(404).json({ success: false, error: 'Style anchor not found' });
+      throw createError.notFound('Style anchor not found');
     }
     
     res.json({ 
@@ -157,15 +153,17 @@ export const updateTwinAnchor = async (req: any, res: Response) => {
       message: 'Style anchor updated successfully' 
     });
   } catch (error) {
-    logger.error('Update twin anchor error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update style anchor' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to update style anchor', error);
   }
 };
 
 /**
  * Delete style anchor
  */
-export const deleteTwinAnchor = async (req: any, res: Response) => {
+export const deleteTwinAnchor = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { id: twinId, anchorId } = req.params;
     const userId = req.user.id;
@@ -176,14 +174,14 @@ export const deleteTwinAnchor = async (req: any, res: Response) => {
     `, [twinId, userId]);
     
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     // Delete style anchor
     const anchor = await styleAnchorsQueries.delete(anchorId);
     
     if (!anchor) {
-      return res.status(404).json({ success: false, error: 'Style anchor not found' });
+      throw createError.notFound('Style anchor not found');
     }
     
     res.json({ 
@@ -191,8 +189,10 @@ export const deleteTwinAnchor = async (req: any, res: Response) => {
       message: 'Style anchor deleted successfully' 
     });
   } catch (error) {
-    logger.error('Delete twin anchor error:', error);
-    res.status(500).json({ success: false, error: 'Failed to delete style anchor' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to delete style anchor', error);
   }
 };
 
@@ -200,7 +200,7 @@ export const deleteTwinAnchor = async (req: any, res: Response) => {
  * Get style phrases for a twin
  * GET /api/twin/:id/style-anchors/phrases
  */
-export const getTwinPhrases = async (req: any, res: Response) => {
+export const getTwinPhrases = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { id: twinId } = req.params;
     const { limit = 10 } = req.query;
@@ -213,7 +213,7 @@ export const getTwinPhrases = async (req: any, res: Response) => {
     );
     
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     // Get phrases using new query method
@@ -224,7 +224,9 @@ export const getTwinPhrases = async (req: any, res: Response) => {
     
     res.json({ success: true, phrases });
   } catch (error) {
-    logger.error('Get twin phrases error:', error);
-    res.status(500).json({ success: false, error: 'Failed to get phrases' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get phrases', error);
   }
 };

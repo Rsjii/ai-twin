@@ -1,20 +1,21 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { db } from '../../config/database';
 import { memoryService } from '../../services/memoryService';
 import { logger } from '../../config/logger';
+import { AppError, createError, ErrorCodes } from '../../utils/errors';
 
 /**
  * Get all long-term memories for a twin
  * GET /api/twin/:id/long-term-memory
  */
-export const getLongTermMemories = async (req: any, res: Response) => {
+export const getLongTermMemories = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { id: twinId } = req.params;
     const { category, limit = 20, query } = req.query;
     const userId = req.user?.id || req.userId;
     
     if (!userId) {
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
+      throw createError.unauthorized();
     }
     
     // Verify ownership
@@ -24,7 +25,7 @@ export const getLongTermMemories = async (req: any, res: Response) => {
     );
     
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     // If query provided, use smart retrieval
@@ -46,8 +47,10 @@ export const getLongTermMemories = async (req: any, res: Response) => {
     
     res.json({ success: true, memories });
   } catch (error) {
-    logger.error('Get long-term memories error:', error);
-    res.status(500).json({ success: false, error: 'Failed to get memories' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get memories', error);
   }
 };
 
@@ -55,18 +58,18 @@ export const getLongTermMemories = async (req: any, res: Response) => {
  * Add long-term memory
  * POST /api/twin/:id/long-term-memory
  */
-export const addLongTermMemory = async (req: any, res: Response) => {
+export const addLongTermMemory = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { id: twinId } = req.params;
     const { key, value, category = 'fact' } = req.body;
     const userId = req.user?.id || req.userId;
     
     if (!userId) {
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
+      throw createError.unauthorized();
     }
     
     if (!value || typeof value !== 'string' || value.trim().length === 0) {
-      return res.status(400).json({ success: false, error: 'Value is required' });
+      throw createError.validation('Value is required');
     }
     
     // Verify ownership
@@ -76,7 +79,7 @@ export const addLongTermMemory = async (req: any, res: Response) => {
     );
     
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     // Auto-generate key if not provided
@@ -96,8 +99,10 @@ export const addLongTermMemory = async (req: any, res: Response) => {
       memory: { key: finalKey, value: value.trim(), category }
     });
   } catch (error) {
-    logger.error('Add long-term memory error:', error);
-    res.status(500).json({ success: false, error: 'Failed to store memory' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to store memory', error);
   }
 };
 
@@ -105,18 +110,18 @@ export const addLongTermMemory = async (req: any, res: Response) => {
  * Update long-term memory
  * PUT /api/twin/:id/long-term-memory/:key
  */
-export const updateLongTermMemory = async (req: any, res: Response) => {
+export const updateLongTermMemory = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { id: twinId, key } = req.params;
     const { value, category } = req.body;
     const userId = req.user?.id || req.userId;
     
     if (!userId) {
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
+      throw createError.unauthorized();
     }
     
     if (!value || typeof value !== 'string' || value.trim().length === 0) {
-      return res.status(400).json({ success: false, error: 'Value is required' });
+      throw createError.validation('Value is required');
     }
     
     // Verify ownership
@@ -126,7 +131,7 @@ export const updateLongTermMemory = async (req: any, res: Response) => {
     );
     
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     // Update via storeLongTermMemory (ON CONFLICT handles update)
@@ -144,8 +149,10 @@ export const updateLongTermMemory = async (req: any, res: Response) => {
       memory: { key, value: value.trim(), category: category || 'fact' }
     });
   } catch (error) {
-    logger.error('Update long-term memory error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update memory' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to update memory', error);
   }
 };
 
@@ -153,13 +160,13 @@ export const updateLongTermMemory = async (req: any, res: Response) => {
  * Delete long-term memory
  * DELETE /api/twin/:id/long-term-memory/:key
  */
-export const deleteLongTermMemory = async (req: any, res: Response) => {
+export const deleteLongTermMemory = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { id: twinId, key } = req.params;
     const userId = req.user?.id || req.userId;
     
     if (!userId) {
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
+      throw createError.unauthorized();
     }
     
     // Verify ownership
@@ -169,7 +176,7 @@ export const deleteLongTermMemory = async (req: any, res: Response) => {
     );
     
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     const { memoryLongTermQueries } = await import('../../config/database');
@@ -177,7 +184,9 @@ export const deleteLongTermMemory = async (req: any, res: Response) => {
     
     res.json({ success: true, message: 'Memory deleted successfully' });
   } catch (error) {
-    logger.error('Delete long-term memory error:', error);
-    res.status(500).json({ success: false, error: 'Failed to delete memory' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to delete memory', error);
   }
 };

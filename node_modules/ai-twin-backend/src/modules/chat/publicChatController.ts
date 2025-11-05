@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { db, publicChatQueries } from '../../config/database';
 import { logger } from '../../config/logger';
@@ -6,6 +6,7 @@ import { EventLogger } from '../../services/eventLogger';
 import { TwinService } from '../twin/twinService';
 import { z } from 'zod';
 import { checkBlacklist, validateMessageLength } from '../../middleware/security';
+import { AppError, createError, ErrorCodes } from '../../utils/errors';
 
 // Validation schemas
 const startPublicChatSchema = z.object({
@@ -23,7 +24,7 @@ const sendPublicMessageSchema = z.object({
 const twinService = new TwinService();
 
 // Start public chat session
-export const startPublicChat = async (req: AuthenticatedRequest, res: Response) => {
+export const startPublicChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { twinId, visitorId } = startPublicChatSchema.parse(req.body);
 
@@ -42,7 +43,7 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response) 
     `, [twinId]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Public twin not found' });
+      throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     const twin = twinResult.rows[0];
@@ -95,32 +96,26 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response) 
     });
 
   } catch (error) {
-    logger.error('Start public chat error:', error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        error: 'Invalid input', 
-        details: error.errors 
-      });
+    if (error instanceof AppError) {
+      throw error;
     }
-    
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to start public chat', error);
   }
 };
 
 // Send message in public chat
-export const sendPublicMessage = async (req: Request, res: Response) => {
+export const sendPublicMessage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { chatId } = req.params;
     const { message } = sendPublicMessageSchema.parse(req.body);
 
     // Validate message
     if (!validateMessageLength(message)) {
-      return res.status(400).json({ error: 'Message length invalid' });
+      throw createError.validation('Message length invalid');
     }
 
     if (checkBlacklist(message)) {
-      return res.status(400).json({ error: 'Message contains restricted content' });
+      throw createError.validation('Message contains restricted content');
     }
 
     // Get public chat with twin information
@@ -133,7 +128,7 @@ export const sendPublicMessage = async (req: Request, res: Response) => {
     `, [chatId]);
 
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Public chat not found' });
+      throw createError.notFound('Public chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     const chat = chatResult.rows[0];
@@ -213,21 +208,15 @@ export const sendPublicMessage = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Send public message error:', error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        error: 'Invalid input', 
-        details: error.errors 
-      });
+    if (error instanceof AppError) {
+      throw error;
     }
-    
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to send public message', error);
   }
 };
 
 // Get public chat history
-export const getPublicChatHistory = async (req: Request, res: Response) => {
+export const getPublicChatHistory = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { chatId } = req.params;
 
@@ -241,7 +230,7 @@ export const getPublicChatHistory = async (req: Request, res: Response) => {
     `, [chatId]);
 
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Public chat not found' });
+      throw createError.notFound('Public chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     const chat = chatResult.rows[0];
@@ -268,13 +257,15 @@ export const getPublicChatHistory = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Get public chat history error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get public chat history', error);
   }
 };
 
 // Get public chat by twin ID (for starting new chat)
-export const getPublicChatByTwin = async (req: Request, res: Response) => {
+export const getPublicChatByTwin = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { twinId } = req.params;
     const { visitorId } = req.query;
@@ -287,7 +278,7 @@ export const getPublicChatByTwin = async (req: Request, res: Response) => {
     `, [twinId]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Public twin not found' });
+      throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     const twin = twinResult.rows[0];
@@ -329,15 +320,17 @@ export const getPublicChatByTwin = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Get public chat by twin error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get public chat by twin', error);
   }
 };
 
 // ADD after line 308 (after the closing } of getPublicChatByTwin):
 
 // Get all public chats for a visitor with a specific twin
-export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Response) => {
+export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { twinId } = req.params;
     const { visitorId } = req.query;
@@ -351,7 +344,7 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
     `, [twinId]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Public twin not found' });
+      throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     const twin = twinResult.rows[0];
@@ -399,14 +392,16 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
     });
 
   } catch (error) {
-    logger.error('Get public chats by twin error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get public chats by twin', error);
   }
 };
 
 
 // Create new public chat
-export const createNewPublicChat = async (req: AuthenticatedRequest, res: Response) => {
+export const createNewPublicChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { twinId, visitorId } = req.body;
     const userId = req.user?.id; // Get userId if logged in
@@ -420,7 +415,7 @@ export const createNewPublicChat = async (req: AuthenticatedRequest, res: Respon
     `, [twinId]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Public twin not found' });
+      throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     const twin = twinResult.rows[0];
@@ -439,17 +434,18 @@ export const createNewPublicChat = async (req: AuthenticatedRequest, res: Respon
     });
 
   } catch (error) {
-    logger.error('Create new public chat error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to create new public chat', error);
   }
 };
 
 // Get all public chats for logged-in user (grouped by twin)
-export const getUserPublicChats = async (req: AuthenticatedRequest, res: Response) => {
+export const getUserPublicChats = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      logger.warn('[getUserPublicChats] No user found in request');
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     const userId = req.user.id;
@@ -562,7 +558,9 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
     });
 
   } catch (error) {
-    logger.error('Get user public chats error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get user public chats', error);
   }
 };

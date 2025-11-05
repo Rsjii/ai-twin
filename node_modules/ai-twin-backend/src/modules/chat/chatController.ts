@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { db } from '../../config/database';
 import { TwinService } from '../twin/twinService';
 import { logger } from '../../config/logger';
@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { checkBlacklist, validateMessageLength } from '../../middleware/security';
 import { memoryService } from '../../services/memoryService';
+import { AppError, createError, ErrorCodes } from '../../utils/errors';
 
 const twinService = new TwinService();
 
@@ -21,12 +22,12 @@ const generateDraftSchema = z.object({
   messages: z.array(z.string()).min(1, 'At least one message required'),
 });
 
-export const startChat = async (req: AuthenticatedRequest, res: Response) => {
+export const startChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { twinId } = startChatSchema.parse(req.body);
     
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     let twin;
@@ -50,7 +51,7 @@ export const startChat = async (req: AuthenticatedRequest, res: Response) => {
     }
     
     if (!twin) {
-      return res.status(404).json({ error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     // Create chat
@@ -75,24 +76,23 @@ export const startChat = async (req: AuthenticatedRequest, res: Response) => {
       redirect: `/chat/${chat.id}`,
     });
   } catch (error) {
-    logger.error('Start chat error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    return res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to start chat', error);
   }
 };
 
-export const getChat = async (req: AuthenticatedRequest, res: Response) => {
+export const getChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     if (!id) {
-      return res.status(400).json({ error: 'Chat ID is required' });
+      throw createError.validation('Chat ID is required');
     }
 
     // Get chat with twin information using raw SQL
@@ -105,7 +105,7 @@ export const getChat = async (req: AuthenticatedRequest, res: Response) => {
     `, [id, req.user.id]);
     
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Chat not found' });
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     const chat = chatResult.rows[0];
@@ -134,15 +134,17 @@ export const getChat = async (req: AuthenticatedRequest, res: Response) => {
     
     res.json({ chat: chatData });
   } catch (error) {
-    logger.error('Get chat error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get chat', error);
   }
 };
 
-export const getUserChats = async (req: AuthenticatedRequest, res: Response) => {
+export const getUserChats = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     const chats = await db.query(`
@@ -164,16 +166,18 @@ export const getUserChats = async (req: AuthenticatedRequest, res: Response) => 
     
     res.json({ chats: chats.rows });
   } catch (error) {
-    logger.error('Get chats error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get chats', error);
   }
 };
 
 // Get chat history for user (all previous chats)
-export const getChatHistory = async (req: AuthenticatedRequest, res: Response) => {
+export const getChatHistory = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     const chats = await db.query(`
@@ -222,22 +226,24 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response) =
       total: chatHistory.length 
     });
   } catch (error) {
-    logger.error('Get chat history error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get chat history', error);
   }
 };
 
 // Get specific chat with all messages
-export const getChatMessages = async (req: AuthenticatedRequest, res: Response) => {
+export const getChatMessages = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     if (!id) {
-      return res.status(400).json({ error: 'Chat ID is required' });
+      throw createError.validation('Chat ID is required');
     }
 
     // Get chat with twin information using raw SQL
@@ -250,7 +256,7 @@ export const getChatMessages = async (req: AuthenticatedRequest, res: Response) 
     `, [id, req.user.id]);
 
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Chat not found' });
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     const chat = chatResult.rows[0];
@@ -279,22 +285,24 @@ export const getChatMessages = async (req: AuthenticatedRequest, res: Response) 
       },
     });
   } catch (error) {
-    logger.error('Get chat messages error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get chat messages', error);
   }
 };
 
 // Continue existing chat or create new one
-export const continueChat = async (req: AuthenticatedRequest, res: Response) => {
+export const continueChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { twinId } = req.body;
     
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     if (!twinId) {
-      return res.status(400).json({ error: 'Twin ID is required' });
+      throw createError.validation('Twin ID is required');
     }
 
     let twin;
@@ -320,7 +328,7 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response) => 
     }
     
     if (!twin) {
-      return res.status(404).json({ error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     // Find the most recent chat with this twin using raw SQL
@@ -371,28 +379,30 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response) => 
       redirect: `/chat/${chat.id}`,
     });
   } catch (error) {
-    logger.error('Continue chat error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to continue chat', error);
   }
 };
 
-export const generateDraft = async (req: AuthenticatedRequest, res: Response) => {
+export const generateDraft = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { messages } = generateDraftSchema.parse(req.body);
     const { id } = req.params;
     
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     if (!id) {
-      return res.status(400).json({ error: 'Chat ID is required' });
+      throw createError.validation('Chat ID is required');
     }
 
     // Validate message lengths
     for (const message of messages) {
       if (!validateMessageLength(message)) {
-        return res.status(400).json({ error: 'Message length invalid' });
+        throw createError.validation('Message length invalid');
       }
     }
 
@@ -406,7 +416,7 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response) =>
     `, [id, req.user.id]);
     
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Chat not found' });
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
     
     const chat = chatResult.rows[0];
@@ -453,34 +463,33 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response) =>
     
     res.json({ draft });
   } catch (error) {
-    logger.error('Generate draft error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    return res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to generate draft', error);
   }
 };
 
-export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
+export const sendMessage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { content } = sendMessageSchema.parse(req.body);
     const { id } = req.params;
     
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     // Validate message
     if (!validateMessageLength(content)) {
-      return res.status(400).json({ error: 'Message length invalid' });
+      throw createError.validation('Message length invalid');
     }
 
     if (checkBlacklist(content)) {
-      return res.status(400).json({ error: 'Message contains restricted content' });
+      throw createError.validation('Message contains restricted content');
     }
 
     if (!id) {
-      return res.status(400).json({ error: 'Chat ID is required' });
+      throw createError.validation('Chat ID is required');
     }
 
     // Get chat using raw SQL
@@ -491,7 +500,7 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
     `, [id, req.user.id]);
     
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Chat not found' });
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
     
     const chat = chatResult.rows[0];
@@ -537,39 +546,38 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
       },
     });
   } catch (error) {
-    logger.error('Send message error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    return res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to send message', error);
   }
 };
 
 // New function to handle user messages and generate AI responses
-export const handleUserMessage = async (req: AuthenticatedRequest, res: Response) => {
+export const handleUserMessage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { message } = req.body;
     const { id } = req.params;
     
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     // Validate message
     if (!message || message.trim().length === 0) {
-      return res.status(400).json({ error: 'Message cannot be empty' });
+      throw createError.validation('Message cannot be empty');
     }
 
     if (!validateMessageLength(message)) {
-      return res.status(400).json({ error: 'Message length invalid' });
+      throw createError.validation('Message length invalid');
     }
 
     if (checkBlacklist(message)) {
-      return res.status(400).json({ error: 'Message contains restricted content' });
+      throw createError.validation('Message contains restricted content');
     }
 
     if (!id) {
-      return res.status(400).json({ error: 'Chat ID is required' });
+      throw createError.validation('Chat ID is required');
     }
 
     // Get chat with twin information using raw SQL
@@ -617,7 +625,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       
       if (twinResult.rows.length === 0) {
         logger.error('No twin found for user:', req.user.id);
-        return res.status(404).json({ error: 'No twin found. Please create a twin first.' });
+        throw createError.notFound('No twin found. Please create a twin first.', ErrorCodes.TWIN_NOT_FOUND);
       }
       
       const twin = twinResult.rows[0];
@@ -632,7 +640,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       
       if (newChatResult.rows.length === 0) {
         logger.error('Failed to create new chat');
-        return res.status(500).json({ error: 'Failed to create chat' });
+        throw createError.internal('Failed to create chat');
       }
       
       const newChat = newChatResult.rows[0];
@@ -698,7 +706,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       logger.info('User message saved successfully:', userMessage.id);
     } catch (error) {
       logger.error('Failed to save user message:', error);
-      return res.status(500).json({ error: 'Failed to save user message' });
+      throw createError.internal('Failed to save user message', error);
     }
 
     // Get session memory for context (BEFORE generating response)
@@ -783,7 +791,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       logger.info('AI message saved successfully:', aiMessage.id);
     } catch (error) {
       logger.error('Failed to save AI message:', error);
-      return res.status(500).json({ error: 'Failed to save AI response' });
+      throw createError.internal('Failed to save AI response', error);
     }
 
     await db.query(`
@@ -872,11 +880,10 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       },
     });
   } catch (error) {
-    logger.error('Handle user message error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    return res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to handle user message', error);
   }
 };
 

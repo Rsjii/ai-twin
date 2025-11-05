@@ -1,8 +1,9 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { db, publicTwinQueries } from '../../config/database';
 import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
+import { AppError, createError, ErrorCodes } from '../../utils/errors';
 
 // Validation schemas
 const makePublicSchema = z.object({
@@ -26,10 +27,10 @@ const updateProfileSchema = z.object({
 });
 
 // Make twin public
-export const makeTwinPublic = async (req: Request, res: Response) => {
+export const makeTwinPublic = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized('Authentication required');
     }
 
     const { twinId, publicHandle, bio, profileImage } = makePublicSchema.parse(req.body);
@@ -43,14 +44,14 @@ export const makeTwinPublic = async (req: Request, res: Response) => {
     `, [req.user.id, twinId]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'No twin found. Create a twin first.' });
+      throw createError.notFound('No twin found. Create a twin first.', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     const twin = twinResult.rows[0];
 
     // Check if already public
     if (twin.isPublic) {
-      return res.status(400).json({ error: 'Twin is already public' });
+      throw createError.conflict('Twin is already public');
     }
 
     // Check if handle is already taken
@@ -59,7 +60,7 @@ export const makeTwinPublic = async (req: Request, res: Response) => {
     `, [publicHandle, twin.id]);
 
     if (existingHandle.rows.length > 0) {
-      return res.status(400).json({ error: 'This handle is already taken' });
+      throw createError.conflict('This handle is already taken');
     }
 
     // Make twin public
@@ -90,30 +91,24 @@ export const makeTwinPublic = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Make twin public error:', error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        error: 'Invalid input', 
-        details: error.errors 
-      });
+    if (error instanceof AppError) {
+      throw error;
     }
-    
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to make twin public', error);
   }
 };
 
 // Make twin private
-export const makeTwinPrivate = async (req: Request, res: Response) => {
+export const makeTwinPrivate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized('Authentication required');
     }
 
     const { twinId } = req.body;
 
     if (!twinId) {
-      return res.status(400).json({ error: 'Twin ID is required' });
+      throw createError.validation('Twin ID is required');
     }
 
     // Get user's specific twin
@@ -125,13 +120,13 @@ export const makeTwinPrivate = async (req: Request, res: Response) => {
     `, [req.user.id, twinId]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'No twin found' });
+      throw createError.notFound('No twin found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     const twin = twinResult.rows[0];
 
     if (!twin.isPublic) {
-      return res.status(400).json({ error: 'Twin is already private' });
+      throw createError.conflict('Twin is already private');
     }
 
     // Make twin private
@@ -148,16 +143,18 @@ export const makeTwinPrivate = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Make twin private error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to make twin private', error);
   }
 };
 
 // Update twin profile
-export const updateTwinProfile = async (req: Request, res: Response) => {
+export const updateTwinProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized('Authentication required');
     }
 
     const updateData = updateProfileSchema.parse(req.body);
@@ -171,7 +168,7 @@ export const updateTwinProfile = async (req: Request, res: Response) => {
     `, [req.user.id]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'No twin found' });
+      throw createError.notFound('No twin found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     const twin = twinResult.rows[0];
@@ -183,7 +180,7 @@ export const updateTwinProfile = async (req: Request, res: Response) => {
       `, [updateData.publicHandle, twin.id]);
 
       if (existingHandle.rows.length > 0) {
-        return res.status(400).json({ error: 'This handle is already taken' });
+        throw createError.conflict('This handle is already taken');
       }
     }
 
@@ -208,32 +205,26 @@ export const updateTwinProfile = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Update twin profile error:', error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        error: 'Invalid input', 
-        details: error.errors 
-      });
+    if (error instanceof AppError) {
+      throw error;
     }
-    
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to update twin profile', error);
   }
 };
 
 // Get public twin profile by handle
-export const getPublicTwinProfile = async (req: Request, res: Response) => {
+export const getPublicTwinProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { handle } = req.params;
 
     if (!handle) {
-      return res.status(400).json({ error: 'Handle is required' });
+      throw createError.validation('Handle is required');
     }
 
     const publicTwin = await publicTwinQueries.findByPublicHandle(handle);
 
     if (!publicTwin) {
-      return res.status(404).json({ error: 'Public twin not found' });
+      throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     // Return public data only (no sensitive information)
@@ -256,16 +247,18 @@ export const getPublicTwinProfile = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Get public twin profile error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get public twin profile', error);
   }
 };
 
 // Get user's own twin profile (with all data)
-export const getMyTwinProfile = async (req: Request, res: Response) => {
+export const getMyTwinProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized('Authentication required');
     }
 
     const twinResult = await db.query(`
@@ -277,7 +270,7 @@ export const getMyTwinProfile = async (req: Request, res: Response) => {
     `, [req.user.id]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'No twin found' });
+      throw createError.notFound('No twin found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     const twin = twinResult.rows[0];
@@ -303,13 +296,15 @@ export const getMyTwinProfile = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Get my twin profile error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get twin profile', error);
   }
 };
 
 // Line 312: Change to AuthenticatedRequest to get userId
-export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response) => {
+export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { twinId } = req.params;
     const { chatId } = req.query; // Get chatId from query params
@@ -323,7 +318,7 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
     `, [twinId]);
     
     if (twinResult.rows.length === 0) {
-      return res.status(404).send('Public twin not found');
+      throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     const twin = twinResult.rows[0];
@@ -348,7 +343,9 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
       csrfToken: req.csrfToken?.() || ''
     });
   } catch (error) {
-    console.error('Public chat page error:', error);
-    res.status(500).send('Internal server error');
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to load public chat page', error);
   }
 };

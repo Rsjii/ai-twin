@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { db, userQueries, otpQueries } from '../../config/database';
 import { EmailService, generateOTP, hashOTP, verifyOTP, hashPassword, verifyPassword , generateInviteCode} from './authService';
 import { logger } from '../../config/logger';
@@ -6,6 +6,7 @@ import { config } from '../../config/env';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { generateJWT } from '../../services/jwtService';
+import { AppError, createError, ErrorCodes } from '../../utils/errors';
 
 const emailService = new EmailService();
 
@@ -40,14 +41,14 @@ const resetPasswordSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-export const signup = async (req: Request, res: Response) => {
+export const signup = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password, referralCode } = signupSchema.parse(req.body);
     
     // Check if user already exists
     const existingUser = await userQueries.findByEmail(email.toLowerCase());
     if (existingUser) {
-      return res.status(400).json({ error: 'User already exists' });
+      throw createError.conflict('User already exists');
     }
     
     // Hash password
@@ -101,7 +102,7 @@ if (referrerId) {
     const emailSent = await emailService.sendOTP(email, otp);
     
     if (!emailSent) {
-      return res.status(500).json({ error: 'Failed to send OTP' });
+      throw createError.internal('Failed to send OTP');
     }
     
     res.json({ 
@@ -110,15 +111,14 @@ if (referrerId) {
       redirect: '/signup/verify?email=' + encodeURIComponent(email)
     });
   } catch (error) {
-    logger.error('Signup error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to signup', error);
   }
 };
 
-export const signupVerify = async (req: Request, res: Response) => {
+export const signupVerify = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, code } = signupVerifySchema.parse(req.body);
     
@@ -126,13 +126,13 @@ export const signupVerify = async (req: Request, res: Response) => {
     const otpRecord = await otpQueries.findByEmail(email.toLowerCase());
     
     if (!otpRecord) {
-      return res.status(400).json({ error: 'Invalid or expired OTP' });
+      throw createError.validation('Invalid or expired OTP');
     }
     
     // Verify OTP
     const isValid = await verifyOTP(code, otpRecord.codeHash);
     if (!isValid) {
-      return res.status(400).json({ error: 'Invalid OTP code' });
+      throw createError.validation('Invalid OTP code');
     }
     
     // Mark OTP as used
@@ -146,15 +146,14 @@ export const signupVerify = async (req: Request, res: Response) => {
       redirect: '/signup/profile?email=' + encodeURIComponent(email)
     });
   } catch (error) {
-    logger.error('Signup verify error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to verify signup', error);
   }
 };
 
-export const completeProfile = async (req: Request, res: Response) => {
+export const completeProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, name, handle, dob, phone, bio, profileImage } = completeProfileSchema.parse(req.body);
     
@@ -191,22 +190,21 @@ export const completeProfile = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    logger.error('Complete profile error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to complete profile', error);
   }
 };
 
-export const forgotPassword = async (req: Request, res: Response) => {
+export const forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email } = forgotPasswordSchema.parse(req.body);
     
     // Check if user exists
     const user = await userQueries.findByEmail(email.toLowerCase());
     if (!user) {
-      return res.status(400).json({ error: 'User not found' });
+      throw createError.notFound('User not found', ErrorCodes.USER_NOT_FOUND);
     }
     
     // Generate OTP for password reset
@@ -221,7 +219,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     const emailSent = await emailService.sendOTP(email, otp);
     
     if (!emailSent) {
-      return res.status(500).json({ error: 'Failed to send OTP email' });
+      throw createError.internal('Failed to send OTP email');
     }
     
     res.json({ 
@@ -230,15 +228,14 @@ export const forgotPassword = async (req: Request, res: Response) => {
       redirect: '/forgot-password/reset?email=' + encodeURIComponent(email)
     });
   } catch (error) {
-    logger.error('Forgot password error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to process forgot password', error);
   }
 };
 
-export const forgotPasswordVerify = async (req: Request, res: Response) => {
+export const forgotPasswordVerify = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, code } = signupVerifySchema.parse(req.body);
     
@@ -246,13 +243,13 @@ export const forgotPasswordVerify = async (req: Request, res: Response) => {
     const otpRecord = await otpQueries.findByEmail(email.toLowerCase());
     
     if (!otpRecord) {
-      return res.status(400).json({ error: 'Invalid or expired OTP' });
+      throw createError.validation('Invalid or expired OTP');
     }
     
     // Verify OTP
     const isValid = await verifyOTP(code, otpRecord.codeHash);
     if (!isValid) {
-      return res.status(400).json({ error: 'Invalid OTP code' });
+      throw createError.validation('Invalid OTP code');
     }
     
     // Mark OTP as used
@@ -263,15 +260,14 @@ export const forgotPasswordVerify = async (req: Request, res: Response) => {
       redirect: '/reset-password?email=' + encodeURIComponent(email)
     });
   } catch (error) {
-    logger.error('Forgot password verify error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to verify forgot password', error);
   }
 };
 
-export const resetPassword = async (req: Request, res: Response) => {
+export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = z.object({
       email: z.string().email('Invalid email format'),
@@ -289,11 +285,10 @@ export const resetPassword = async (req: Request, res: Response) => {
       redirect: '/auth'
     });
   } catch (error) {
-    logger.error('Reset password error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to reset password', error);
   }
 };
 
@@ -307,7 +302,7 @@ const loginVerifySchema = z.object({
   code: z.string().length(6, 'OTP must be 6 digits').regex(/^\d{6}$/, 'OTP must contain only numbers'),
 });
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
     
@@ -315,18 +310,18 @@ export const login = async (req: Request, res: Response) => {
     const user = await userQueries.findByEmail(email.toLowerCase());
     
     if (!user || !user.passwordHash) {
-      return res.status(400).json({ error: 'Invalid email or password' });
+      throw createError.unauthorized('Invalid email or password');
     }
     
     // Check if user is active
     if (!user.active) {
-      return res.status(400).json({ error: 'Account not activated. Please check your email for activation link.' });
+      throw createError.forbidden('Account not activated. Please check your email for activation link.');
     }
     
     // Verify password
     const isValidPassword = await verifyPassword(password, user.passwordHash);
     if (!isValidPassword) {
-      return res.status(400).json({ error: 'Invalid email or password' });
+      throw createError.unauthorized('Invalid email or password');
     }
     
     // Generate JWT token
@@ -356,15 +351,14 @@ export const login = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    logger.error('Login error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to login', error);
   }
 };
 
-export const loginVerify = async (req: Request, res: Response) => {
+export const loginVerify = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, code } = loginVerifySchema.parse(req.body);
     
@@ -372,13 +366,13 @@ export const loginVerify = async (req: Request, res: Response) => {
     const otpRecord = await otpQueries.findByEmail(email.toLowerCase());
     
     if (!otpRecord) {
-      return res.status(400).json({ error: 'Invalid or expired OTP' });
+      throw createError.validation('Invalid or expired OTP');
     }
     
     // Verify OTP
     const isValid = await verifyOTP(code, otpRecord.codeHash);
     if (!isValid) {
-      return res.status(400).json({ error: 'Invalid OTP code' });
+      throw createError.validation('Invalid OTP code');
     }
     
     // Mark OTP as used
@@ -423,11 +417,10 @@ export const loginVerify = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    logger.error('Login verify error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to verify login', error);
   }
 };
 
@@ -436,25 +429,25 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(6, 'New password must be at least 6 characters'),
 });
 
-export const changePassword = async (req: AuthenticatedRequest, res: Response) => {
+export const changePassword = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
     
     // Check if user is logged in
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
     
     // Find user
     const user = await userQueries.findByEmail(req.user.email);
     if (!user || !user.passwordHash) {
-      return res.status(400).json({ error: 'User not found or no password set' });
+      throw createError.notFound('User not found or no password set', ErrorCodes.USER_NOT_FOUND);
     }
     
     // Verify current password
     const isValidPassword = await verifyPassword(currentPassword, user.passwordHash);
     if (!isValidPassword) {
-      return res.status(400).json({ error: 'Current password is incorrect' });
+      throw createError.validation('Current password is incorrect');
     }
     
     // Hash new password
@@ -465,15 +458,14 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response) =
     
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
-    logger.error('Change password error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to change password', error);
   }
 };
 
-export const logout = (req: Request, res: Response) => {
+export const logout = (req: Request, res: Response, next: NextFunction) => {
   try {
     // Clear JWT cookie
     res.clearCookie('jwtToken');
@@ -489,7 +481,9 @@ export const logout = (req: Request, res: Response) => {
     
     res.json({ message: 'Logged out successfully', redirect: '/auth' });
   } catch (error) {
-    logger.error('Logout error:', error);
-    res.status(500).json({ error: 'Failed to logout' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to logout', error);
   }
 };

@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
+import { AppError, createError } from '../../utils/errors';
 
 // Validation schemas
 const searchSchema = z.object({
@@ -17,7 +18,7 @@ const trendingSchema = z.object({
 });
 
 // Get trending twins based on engagement
-export const getTrendingTwins = async (req: Request, res: Response) => {
+export const getTrendingTwins = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { limit, offset, timeframe } = trendingSchema.parse(req.query);
 
@@ -89,21 +90,15 @@ export const getTrendingTwins = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Get trending twins error:', error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        error: 'Invalid input', 
-        details: error.errors 
-      });
+    if (error instanceof AppError) {
+      throw error;
     }
-    
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to get trending twins', error);
   }
 };
 
 // Search twins by handle, bio, or user name
-export const searchTwins = async (req: Request, res: Response) => {
+export const searchTwins = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { query, limit, offset } = searchSchema.parse(req.query);
 
@@ -170,21 +165,15 @@ export const searchTwins = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Search twins error:', error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        error: 'Invalid input', 
-        details: error.errors 
-      });
+    if (error instanceof AppError) {
+      throw error;
     }
-    
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to search twins', error);
   }
 };
 
 // Get recommended twins for a user (if authenticated)
-export const getRecommendedTwins = async (req: Request, res: Response) => {
+export const getRecommendedTwins = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { limit, offset } = trendingSchema.parse(req.query);
 
@@ -278,7 +267,7 @@ export const getRecommendedTwins = async (req: Request, res: Response) => {
 };
 
 // Get recently active twins
-export const getRecentTwins = async (req: Request, res: Response) => {
+export const getRecentTwins = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { limit, offset } = trendingSchema.parse(req.query);
 
@@ -328,7 +317,7 @@ export const getRecentTwins = async (req: Request, res: Response) => {
 };
 
 // Get most liked twins
-export const getMostLikedTwins = async (req: Request, res: Response) => {
+export const getMostLikedTwins = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { limit, offset } = trendingSchema.parse(req.query);
 
@@ -378,7 +367,7 @@ export const getMostLikedTwins = async (req: Request, res: Response) => {
 };
 
 // Get most followed twins
-export const getMostFollowedTwins = async (req: Request, res: Response) => {
+export const getMostFollowedTwins = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { limit, offset } = trendingSchema.parse(req.query);
 
@@ -428,7 +417,7 @@ export const getMostFollowedTwins = async (req: Request, res: Response) => {
 };
 
 // Get popular twins (most liked + most followed + most chatted)
-export const getPopularTwins = async (req: Request, res: Response) => {
+export const getPopularTwins = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { limit, offset } = trendingSchema.parse(req.query);
 
@@ -489,7 +478,7 @@ export const getPopularTwins = async (req: Request, res: Response) => {
 };
 
 // Get discover feed (mixed content)
-export const getDiscoverFeed = async (req: Request, res: Response) => {
+export const getDiscoverFeed = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { limit, offset } = trendingSchema.parse(req.query);
 

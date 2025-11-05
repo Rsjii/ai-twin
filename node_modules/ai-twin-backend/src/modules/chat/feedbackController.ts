@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
+import { AppError, createError, ErrorCodes } from '../../utils/errors';
 
 const feedbackSchema = z.object({
   rating: z.enum(['up', 'down']),
@@ -21,7 +22,7 @@ const knobMapping = {
 /**
  * Submit response feedback - INTEGRATED with existing style_corrections
  */
-export const submitResponseFeedback = async (req: Request, res: Response) => {
+export const submitResponseFeedback = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { rating, messageId, correction } = feedbackSchema.parse(req.body);
     const { id: chatId } = req.params;
@@ -34,7 +35,7 @@ export const submitResponseFeedback = async (req: Request, res: Response) => {
     `, [chatId, userId]);
 
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Chat not found or access denied' });
+      throw createError.notFound('Chat not found or access denied', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     const twinId = chatResult.rows[0].twinId;
@@ -73,15 +74,17 @@ export const submitResponseFeedback = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Submit feedback error:', error);
-    res.status(500).json({ error: 'Failed to submit feedback' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to submit feedback', error);
   }
 };
 
 /**
  * Get feedback statistics - INTEGRATED with existing style_corrections
  */
-export const getFeedbackStats = async (req: Request, res: Response) => {
+export const getFeedbackStats = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { twinId } = req.params;
     const userId = req.user.id;
@@ -92,7 +95,7 @@ export const getFeedbackStats = async (req: Request, res: Response) => {
     `, [twinId, userId]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Twin not found or access denied' });
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     // Get feedback statistics from EXISTING style_corrections table
@@ -119,8 +122,10 @@ export const getFeedbackStats = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Get feedback stats error:', error);
-    res.status(500).json({ error: 'Failed to get feedback statistics' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get feedback statistics', error);
   }
 };
 
@@ -131,7 +136,7 @@ import { generateResponseWithTone, adjustResponseTone } from '../../services/cha
 /**
  * Submit feedback with ChatFeedback table (legacy/comprehensive feedback)
  */
-export const submitChatFeedback = async (req: Request, res: Response) => {
+export const submitChatFeedback = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { chatId } = req.params;
     const { responseId, rating, suggestion, tonePreference } = req.body;
@@ -148,15 +153,17 @@ export const submitChatFeedback = async (req: Request, res: Response) => {
     
     res.json({ success: true });
   } catch (error) {
-    logger.error('Feedback API error:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to submit chat feedback', error);
   }
 };
 
 /**
  * Regenerate response with tone preference
  */
-export const regenerateResponse = async (req: Request, res: Response) => {
+export const regenerateResponse = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { chatId } = req.params;
     const { responseId, tonePreference } = req.body;
@@ -175,7 +182,7 @@ export const regenerateResponse = async (req: Request, res: Response) => {
 /**
  * Get feedback analytics for user
  */
-export const getFeedbackAnalytics = async (req: Request, res: Response) => {
+export const getFeedbackAnalytics = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user.id;
     
@@ -212,7 +219,7 @@ export const getFeedbackAnalytics = async (req: Request, res: Response) => {
 /**
  * Get feedback status for a specific chat
  */
-export const getChatFeedbackStatus = async (req: Request, res: Response) => {
+export const getChatFeedbackStatus = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { chatId } = req.params;
     const userId = req.user.id;
@@ -244,7 +251,7 @@ export const getChatFeedbackStatus = async (req: Request, res: Response) => {
 /**
  * Adjust response tone
  */
-export const adjustTone = async (req: Request, res: Response) => {
+export const adjustTone = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { chatId } = req.params;
     const { responseId, tone } = req.body;
@@ -257,7 +264,7 @@ export const adjustTone = async (req: Request, res: Response) => {
     `, [chatId, userId]);
     
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Chat not found' });
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
     
     // Adjust tone using AI service
@@ -265,7 +272,9 @@ export const adjustTone = async (req: Request, res: Response) => {
     
     res.json({ success: true, adjustedResponse });
   } catch (error) {
-    logger.error('Tone adjustment error:', error);
-    res.status(500).json({ error: 'Failed to adjust tone' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to adjust tone', error);
   }
 };

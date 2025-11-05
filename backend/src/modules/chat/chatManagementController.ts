@@ -1,8 +1,9 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { TwinService } from '../twin/twinService';
+import { AppError, createError, ErrorCodes } from '../../utils/errors';
 
 const twinService = new TwinService();
 
@@ -22,10 +23,10 @@ const generateTitleSchema = z.object({
 /**
  * Get all user's chats with titles and last messages
  */
-export const getChatHistory = async (req: Request, res: Response) => {
+export const getChatHistory = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     const userId = req.user.id;
@@ -67,18 +68,20 @@ export const getChatHistory = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Get chat history error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get chat history', error);
   }
 };
 
 /**
  * Create new chat
  */
-export const createNewChat = async (req: Request, res: Response) => {
+export const createNewChat = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     const { twinId } = createNewChatSchema.parse(req.body);
@@ -90,7 +93,7 @@ export const createNewChat = async (req: Request, res: Response) => {
     `, [twinId, userId]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     // Create new chat
@@ -127,21 +130,20 @@ export const createNewChat = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Create new chat error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to create new chat', error);
   }
 };
 
 /**
  * Update chat title
  */
-export const updateChatTitle = async (req: Request, res: Response) => {
+export const updateChatTitle = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     const { id: chatId } = req.params;
@@ -154,7 +156,7 @@ export const updateChatTitle = async (req: Request, res: Response) => {
     `, [chatId, userId]);
 
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Chat not found' });
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     // Update chat title
@@ -168,21 +170,20 @@ export const updateChatTitle = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Update chat title error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to update chat title', error);
   }
 };
 
 /**
  * Generate chat title using AI
  */
-export const generateChatTitle = async (req: Request, res: Response) => {
+export const generateChatTitle = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     const { id: chatId } = req.params;
@@ -195,7 +196,7 @@ export const generateChatTitle = async (req: Request, res: Response) => {
     `, [chatId, userId]);
 
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Chat not found' });
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     // Generate title using AI
@@ -213,21 +214,20 @@ export const generateChatTitle = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Generate chat title error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to generate chat title', error);
   }
 };
 
 /**
  * Get chat summary
  */
-export const getChatSummary = async (req: Request, res: Response) => {
+export const getChatSummary = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     const { id: chatId } = req.params;
@@ -239,7 +239,7 @@ export const getChatSummary = async (req: Request, res: Response) => {
     `, [chatId, userId]);
 
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Chat not found' });
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     const chat = chatResult.rows[0];
@@ -250,8 +250,10 @@ export const getChatSummary = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Get chat summary error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get chat summary', error);
   }
 };
 

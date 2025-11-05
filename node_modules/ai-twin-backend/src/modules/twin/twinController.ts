@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { db } from '../../config/database';
 import { TwinService } from './twinService';
 import { logger } from '../../config/logger';
@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { EventLogger } from '../../services/eventLogger';
 import { validateTwinSamples, isContentSafe, sanitizeText } from '../../utils/safety';
 import { featureFlags } from '../../config/featureFlags';
+import { AppError, createError, ErrorCodes } from '../../utils/errors';
 
 const twinService = new TwinService();
 
@@ -18,7 +19,7 @@ const testSchema = z.object({
   samples: z.array(z.string())
 });
 
-export const createTwin = async (req: Request, res: Response) => {
+export const createTwin = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Add this at the very top of createTwin function
 console.log('=== MIDDLEWARE CHECK ===');
@@ -59,9 +60,9 @@ console.log('========================');
     console.log('req.user keys:', req.user ? Object.keys(req.user) : 'undefined');
     console.log('============================');
 
-    // Temporarily bypass authentication for testing
+    // Check authentication
     if (!req.user) {
-       return res.status(401).json({ error: 'Authentication required' });
+       throw createError.unauthorized();
     }
 
    const existingTwinQuery = `
@@ -75,8 +76,7 @@ console.log('========================');
 
   if (existingTwinResult.rows.length > 0) {
     const existingTwin = existingTwinResult.rows[0];
-    return res.status(400).json({ 
-      error: 'User already has a twin. Only one twin per user is allowed.',
+    throw createError.conflict('User already has a twin. Only one twin per user is allowed.', {
       existingTwin: {
         id: existingTwin.id,
         createdAt: existingTwin.createdAt
@@ -86,7 +86,7 @@ console.log('========================');
 
     // Check if AI generation is enabled
     if (!featureFlags.ENABLE_AI_GENERATION) {
-      return res.status(503).json({ error: 'AI generation is currently disabled' });
+      throw createError.internal('AI generation is currently disabled');
     }
 
     // Validate samples using safety utils
@@ -94,10 +94,7 @@ console.log('========================');
     console.log('Samples received for validation:', samples);
     console.log('Validation result:', validation);
     if (!validation.valid) {
-      return res.status(400).json({ 
-        error: 'Invalid samples', 
-        details: validation.errors 
-      });
+      throw createError.validation('Invalid samples', validation.errors);
     }
 
     // Check content safety
@@ -105,10 +102,7 @@ console.log('========================');
     const safetyCheck = isContentSafe(combinedText);
     console.log('Safety check result:', safetyCheck);
     if (!safetyCheck.safe) {
-      return res.status(400).json({ 
-        error: 'Content safety check failed', 
-        reasons: safetyCheck.reasons 
-      });
+      throw createError.validation('Content safety check failed', { reasons: safetyCheck.reasons });
     }
 
     // Sanitize samples
@@ -178,25 +172,19 @@ console.log('========================');
       });
     }
     
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+    if (error instanceof AppError) {
+      throw error;
     }
-    if (error instanceof Error) {
-      return res.status(400).json({ error: error.message });
-    }
-    res.status(500).json({ error: 'Internal server error' });
+    throw createError.internal('Failed to create twin', error);
   }
 };
 
-export const getUserTwins = async (req: Request, res: Response) => {
+export const getUserTwins = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    console.log('=== GET USER TWINS ===');
-    console.log('req.user:', req.user);
-    console.log('User ID:', req.user?.id);
-    console.log('=====================');
+    logger.debug('Getting user twins:', { userId: req.user?.id });
     
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     const twins = await db.query(`
@@ -206,20 +194,22 @@ export const getUserTwins = async (req: Request, res: Response) => {
       ORDER BY "createdAt" DESC
     `, [req.user.id]);
     
-    console.log('Found twins:', twins.rows);
+    logger.debug('Found twins:', { count: twins.rows.length });
     res.json({ twins: twins.rows });
   } catch (error) {
-    logger.error('Get twins error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get user twins', error);
   }
 };
 
-export const getTwinById = async (req: Request, res: Response) => {
+export const getTwinById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     const twinResult = await db.query(`
@@ -230,12 +220,14 @@ export const getTwinById = async (req: Request, res: Response) => {
     const twin = twinResult.rows[0];
     
     if (!twin) {
-      return res.status(404).json({ error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     res.json({ twin });
   } catch (error) {
-    logger.error('Get twin error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get twin', error);
   }
 };

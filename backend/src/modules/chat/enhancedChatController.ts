@@ -3,7 +3,7 @@
  * Implements the new generation pipeline with intent classification and style critic
  */
 
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { db } from '../../config/database';
 import { EventLogger } from '../../services/eventLogger';
@@ -12,6 +12,7 @@ import { TwinService } from '../twin/twinService';
 import { classifyIntent, shapeByIntent } from '../../utils/intentClassification';
 import { runStyleCritic, checkBanlist, rewriteBanlist } from '../../utils/styleCritic';
 import { updateChatMetadata } from './chatController';
+import { AppError, createError, ErrorCodes } from '../../utils/errors';
 
 const twinService = new TwinService();
 
@@ -29,13 +30,13 @@ const styleCorrectionSchema = z.object({
 /**
  * Enhanced reply generation - simplified to work like normal chat
  */
-export const generateEnhancedReply = async (req: any, res: Response) => {
+export const generateEnhancedReply = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { message, strictStyle } = generateReplySchema.parse(req.body);
     const { id: chatId } = req.params;
     const userId = req.user.id;
 
-    console.log('🚀 Enhanced reply request:', { chatId, userId, message });
+    logger.info('🚀 Enhanced reply request:', { chatId, userId, message });
 
     // 1. Get chat and twin data
     const chatResult = await db.query(`
@@ -47,12 +48,11 @@ export const generateEnhancedReply = async (req: any, res: Response) => {
     `, [chatId, userId]);
 
     if (chatResult.rows.length === 0) {
-      console.log('❌ Chat not found');
-      return res.status(404).json({ error: 'Chat not found' });
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     const chat = chatResult.rows[0];
-    console.log('✅ Chat found:', chat.id);
+    logger.info('✅ Chat found:', chat.id);
     
     // 2. Get chat history for context
     const messagesResult = await db.query(`
@@ -68,17 +68,17 @@ export const generateEnhancedReply = async (req: any, res: Response) => {
       timestamp: msg.createdAt
     }));
     
-    console.log('📚 Chat history loaded:', chatHistory.length, 'messages');
+    logger.info('📚 Chat history loaded:', chatHistory.length, 'messages');
     
     // 3. Simple intent classification
     const intent = classifyIntent(message);
-    console.log('🎯 Intent classified:', intent.intent);
+    logger.info('🎯 Intent classified:', intent.intent);
 
     // 4. Generate response using TwinService with full context
     let response = "I'm your AI twin! How can I help you today?";
     
     try {
-      console.log('🤖 Generating response with TwinService...');
+      logger.info('🤖 Generating response with TwinService...');
       const twinService = new TwinService();
       response = await twinService.generateDraftWithContext({
         styleVector: chat.styleVector,
@@ -89,9 +89,9 @@ export const generateEnhancedReply = async (req: any, res: Response) => {
         currentMessages: [message],
         twinId: chat.twin_id
       });
-      console.log('✅ Response generated:', response.substring(0, 50) + '...');
+      logger.info('✅ Response generated:', response.substring(0, 50) + '...');
     } catch (error) {
-      console.error('❌ TwinService error:', error);
+      logger.error('❌ TwinService error:', error);
       response = "I'm having trouble thinking right now. Could you try again?";
     }
 
@@ -102,9 +102,9 @@ export const generateEnhancedReply = async (req: any, res: Response) => {
         INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
         VALUES ($1, $2, $3, 'human', NOW())
       `, [userMessageId, chatId, message]);
-      console.log('✅ User message saved');
+      logger.info('✅ User message saved');
     } catch (error) {
-      console.warn('⚠️ Failed to save user message:', error);
+      logger.warn('⚠️ Failed to save user message:', error);
     }
 
     // 6. Save AI response to chat
@@ -114,9 +114,9 @@ export const generateEnhancedReply = async (req: any, res: Response) => {
         INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
         VALUES ($1, $2, $3, 'twin', NOW())
       `, [aiMessageId, chatId, response]);
-      console.log('✅ AI response saved');
+      logger.info('✅ AI response saved');
     } catch (error) {
-      console.warn('⚠️ Failed to save AI response:', error);
+      logger.warn('⚠️ Failed to save AI response:', error);
     }
 
         // 8. Update chat metadata
@@ -124,9 +124,9 @@ export const generateEnhancedReply = async (req: any, res: Response) => {
           await db.query(`
             UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = NOW() WHERE id = $2
           `, [response, chatId]);
-          console.log('✅ Chat metadata updated');
+          logger.info('✅ Chat metadata updated');
         } catch (error) {
-          console.warn('⚠️ Failed to update chat metadata:', error);
+          logger.warn('⚠️ Failed to update chat metadata:', error);
         }
 
     // 7. Log AI run (optional)
@@ -136,12 +136,12 @@ export const generateEnhancedReply = async (req: any, res: Response) => {
         INSERT INTO ai_runs (id, twin_id, mode, tokens_in, tokens_out, latency_ms) 
         VALUES ($1, $2, $3, $4, $5, $6)
       `, [runId, chat.twin_id, 'human', Math.ceil(message.length / 4), Math.ceil(response.length / 4), 1000]);
-      console.log('✅ AI run logged');
+      logger.info('✅ AI run logged');
     } catch (error) {
-      console.warn('⚠️ Failed to log AI run:', error);
+      logger.warn('⚠️ Failed to log AI run:', error);
     }
 
-    console.log('🎉 Enhanced reply completed successfully');
+    logger.info('🎉 Enhanced reply completed successfully');
     res.json({
       success: true,
       response: response,
@@ -151,20 +151,22 @@ export const generateEnhancedReply = async (req: any, res: Response) => {
     });
 
   } catch (error) {
-    console.error('💥 Enhanced reply generation error:', error);
-    res.status(500).json({ error: 'Failed to generate enhanced reply', details: error.message });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to generate enhanced reply', error);
   }
 };
 
 /**
  * Get chat history for enhanced chat
  */
-export const getChatHistory = async (req: any, res: Response) => {
+export const getChatHistory = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { id: chatId } = req.params;
     const userId = req.user.id;
 
-    console.log('📚 Getting chat history for:', chatId);
+    logger.info('📚 Getting chat history for:', chatId);
 
     // Get chat with twin information
     const chatResult = await db.query(`
@@ -176,7 +178,7 @@ export const getChatHistory = async (req: any, res: Response) => {
     `, [chatId, userId]);
 
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Chat not found' });
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     const chat = chatResult.rows[0];
@@ -204,15 +206,17 @@ export const getChatHistory = async (req: any, res: Response) => {
     
     res.json({ chat: chatData });
   } catch (error) {
-    console.error('💥 Get chat history error:', error);
-    res.status(500).json({ error: 'Failed to get chat history', details: error.message });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get chat history', error);
   }
 };
 
 /**
  * Apply style correction to current response
  */
-export const applyStyleCorrection = async (req: any, res: Response) => {
+export const applyStyleCorrection = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { knob, delta } = styleCorrectionSchema.parse(req.body);
     const { id: chatId } = req.params;
@@ -225,7 +229,7 @@ export const applyStyleCorrection = async (req: any, res: Response) => {
     `, [chatId, userId]);
     
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Chat not found' });
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     const twinId = chatResult.rows[0].twinId;
@@ -238,7 +242,7 @@ export const applyStyleCorrection = async (req: any, res: Response) => {
     `, [chatId]);
     
     if (responseResult.rows.length === 0) {
-      return res.status(404).json({ error: 'No AI response found' });
+      throw createError.notFound('No AI response found');
     }
 
     const currentResponse = responseResult.rows[0].content;
@@ -271,15 +275,17 @@ export const applyStyleCorrection = async (req: any, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Style correction error:', error);
-    res.status(500).json({ error: 'Failed to apply style correction' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to apply style correction', error);
   }
 };
 
 /**
  * Add current response as style anchor
  */
-export const addToAnchors = async (req: any, res: Response) => {
+export const addToAnchors = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { userUtterance, idealReply } = req.body;
     const { id: chatId } = req.params;
@@ -291,7 +297,7 @@ export const addToAnchors = async (req: any, res: Response) => {
     `, [chatId, userId]);
     
     if (chatResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Chat not found' });
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     const twinId = chatResult.rows[0].twinId;
@@ -310,8 +316,10 @@ export const addToAnchors = async (req: any, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Add to anchors error:', error);
-    res.status(500).json({ error: 'Failed to add style anchor' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to add style anchor', error);
   }
 };
 

@@ -10,6 +10,7 @@ import cookieParser from 'cookie-parser';
 import { config } from './config/env';
 import { logger } from './config/logger';
 import { db } from './config/database';
+import { errorHandler } from './utils/errors';
 
 // Import API route modules
 import authRoutes from './modules/auth/authRoutes';
@@ -165,11 +166,8 @@ app.use('/', testRoutes);
 
 
 
-// Error handling middleware
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  logger.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Internal server error' });
-});
+// Error handling middleware (must be after all routes)
+app.use(errorHandler);
 
 // 404 handler
 app.use((_req, res) => {
