@@ -56,23 +56,27 @@ export const getTrendingTwins = async (req: Request, res: Response) => {
         t."createdAt",
         u.handle as "userHandle",
         u.name as "userName",
-        -- Calculate engagement score
-        (
-          t."likeCount" * 0.3 +
-          t."followCount" * 0.4 +
-          t."chatCount" * 0.3 +
-          CASE 
-            WHEN t."verified" = true THEN 10 
-            ELSE 0 
-          END
+        -- Use cached engagement score (fallback to calculated if missing)
+        COALESCE(
+          tp."engagementScore",
+          (
+            t."likeCount" * 0.3 +
+            t."followCount" * 0.4 +
+            t."chatCount" * 0.3 +
+            CASE 
+              WHEN t."verified" = true THEN 10 
+              ELSE 0 
+            END
+          )
         ) as engagement_score
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
+      LEFT JOIN "TwinPerformance" tp ON t.id = tp."twinId"
       WHERE t."isPublic" = true
       ${timeFilter}
       ORDER BY engagement_score DESC, t."createdAt" DESC
       LIMIT $1 OFFSET $2
-    `, [limit, offset]);
+    `, [limit, offset]);    
 
     res.json({
       success: true,
@@ -443,18 +447,22 @@ export const getPopularTwins = async (req: Request, res: Response) => {
         t."createdAt",
         u.handle as "userHandle",
         u.name as "userName",
-        -- Calculate popularity score
-        (
-          t."likeCount" * 0.4 +
-          t."followCount" * 0.3 +
-          t."chatCount" * 0.3
+        -- Use cached popularity score (fallback to calculated if missing)
+        COALESCE(
+          tp."popularityScore",
+          (
+            t."likeCount" * 0.4 +
+            t."followCount" * 0.3 +
+            t."chatCount" * 0.3
+          )
         ) as popularity_score
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
+      LEFT JOIN "TwinPerformance" tp ON t.id = tp."twinId"
       WHERE t."isPublic" = true
       ORDER BY popularity_score DESC, t."createdAt" DESC
       LIMIT $1 OFFSET $2
-    `, [limit, offset]);
+    `, [limit, offset]);    
 
     res.json({
       success: true,
@@ -504,12 +512,11 @@ export const getDiscoverFeed = async (req: Request, res: Response) => {
           'trending' as feed_type
         FROM "Twin" t
         JOIN "User" u ON t."userId" = u.id
+        LEFT JOIN "TwinPerformance" tp ON t.id = tp."twinId"
         WHERE t."isPublic" = true
-        ORDER BY (
-          t."likeCount" * 0.3 +
-          t."followCount" * 0.4 +
-          t."chatCount" * 0.3
-        ) DESC, t."createdAt" DESC
+        ORDER BY COALESCE(tp."engagementScore", 
+          (t."likeCount" * 0.3 + t."followCount" * 0.4 + t."chatCount" * 0.3)
+        ) DESC, t."createdAt" DESC         
         LIMIT $1
       `, [Math.ceil(limit / 3)]),
       

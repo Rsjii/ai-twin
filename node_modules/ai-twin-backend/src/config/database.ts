@@ -495,9 +495,14 @@ export const twinLikeQueries = {
     );
     // Update like count
     await db.query('UPDATE "Twin" SET "likeCount" = "likeCount" + 1 WHERE id = $1', [twinId]);
+    
+    // ✅ ADD THIS: Update performance scores
+    const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
+    await updateTwinPerformanceScores(twinId);
+    
     return result.rows[0];
   },
-
+  
   remove: async (twinId: string, userId: string) => {
     const result = await db.query(
       'DELETE FROM "TwinLike" WHERE "twinId" = $1 AND "userId" = $2 RETURNING *',
@@ -506,6 +511,10 @@ export const twinLikeQueries = {
     // Update like count
     if (result.rows.length > 0) {
       await db.query('UPDATE "Twin" SET "likeCount" = "likeCount" - 1 WHERE id = $1', [twinId]);
+      
+      // ✅ ADD THIS: Update performance scores when like is removed
+      const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
+      await updateTwinPerformanceScores(twinId);
     }
     return result.rows[0];
   },
@@ -537,9 +546,14 @@ export const twinFollowQueries = {
     );
     // Update follow count
     await db.query('UPDATE "Twin" SET "followCount" = "followCount" + 1 WHERE id = $1', [twinId]);
+    
+    // ✅ ADD THIS: Update performance scores
+    const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
+    await updateTwinPerformanceScores(twinId);
+    
     return result.rows[0];
   },
-
+  
   remove: async (twinId: string, userId: string) => {
     const result = await db.query(
       'DELETE FROM "TwinFollow" WHERE "twinId" = $1 AND "userId" = $2 RETURNING *',
@@ -548,6 +562,10 @@ export const twinFollowQueries = {
     // Update follow count
     if (result.rows.length > 0) {
       await db.query('UPDATE "Twin" SET "followCount" = "followCount" - 1 WHERE id = $1', [twinId]);
+      
+      // ✅ ADD THIS: Update performance scores when follow is removed
+      const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
+      await updateTwinPerformanceScores(twinId);
     }
     return result.rows[0];
   },
@@ -583,8 +601,13 @@ export const publicChatQueries = {
     }
     // Update chat count
     await db.query('UPDATE "Twin" SET "chatCount" = "chatCount" + 1 WHERE id = $1', [twinId]);
+    
+    // ✅ ADD THIS: Update performance scores
+    const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
+    await updateTwinPerformanceScores(twinId);
+    
     return result?.rows?.[0];
-  },
+  },  
   
   updateMessageCount: async (chatId: string) => {
     const result = await db.query(
