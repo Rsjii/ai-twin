@@ -258,7 +258,11 @@ export const getPublicTwinProfile = async (req: Request, res: Response, next: Ne
 export const getMyTwinProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      throw createError.unauthorized('Authentication required');
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+        errorCode: 'UNAUTHORIZED'
+      });
     }
 
     const twinResult = await db.query(`
@@ -270,7 +274,13 @@ export const getMyTwinProfile = async (req: Request, res: Response, next: NextFu
     `, [req.user.id]);
 
     if (twinResult.rows.length === 0) {
-      throw createError.notFound('No twin found', ErrorCodes.TWIN_NOT_FOUND);
+      // Return JSON instead of throwing - user doesn't have a twin yet
+      return res.status(404).json({
+        success: false,
+        error: 'No twin found. Please create a twin first.',
+        errorCode: 'TWIN_NOT_FOUND',
+        hasTwin: false
+      });
     }
 
     const twin = twinResult.rows[0];
@@ -295,11 +305,20 @@ export const getMyTwinProfile = async (req: Request, res: Response, next: NextFu
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
+    logger.error('getMyTwinProfile error:', error);
     if (error instanceof AppError) {
-      throw error;
+      return res.status(error.statusCode).json({
+        success: false,
+        error: error.message,
+        errorCode: error.errorCode
+      });
     }
-    throw createError.internal('Failed to get twin profile', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to get twin profile',
+      errorCode: 'INTERNAL_ERROR'
+    });
   }
 };
 

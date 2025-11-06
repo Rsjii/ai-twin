@@ -1,6 +1,16 @@
 import dotenv from 'dotenv';
+import path from 'path';
 
-dotenv.config();
+// Load .env file from backend root directory (explicit path)
+const envPath = path.resolve(__dirname, '../../.env');
+dotenv.config({ path: envPath });
+
+// Debug: Log if Google OAuth env vars are loaded
+if (process.env.GOOGLE_CLIENT_ID) {
+  console.log('✅ GOOGLE_CLIENT_ID loaded from .env');
+} else {
+  console.log('⚠️ GOOGLE_CLIENT_ID not found in .env');
+}
 
 export const config = {
   // Database
@@ -21,6 +31,13 @@ export const config = {
       user: process.env.SMTP_USER || 'rsji1806@gmail.com',
       pass: process.env.SMTP_PASS || 'xtomoneelqsbgpql'
     }
+  },
+  
+  // Google OAuth Configuration
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '181370507290-brlrtkce5b59d8tkgflabpblc5lo4kii.apps.googleusercontent.com',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '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',
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/api/auth/google/callback'
   },
   
   // App Configuration

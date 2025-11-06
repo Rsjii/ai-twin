@@ -200,39 +200,68 @@ export const getModerationStats = async (req: Request, res: Response) => {
 export async function getModerationSettings(twinId?: string) {
   // If twinId provided, check for per-twin settings first
   if (twinId) {
-    const twinSettings = await db.query(`
-      SELECT t."requireApproval" as twinRequireApproval,
-             ms."requireApproval" as moderationRequireApproval,
-             ms."useAIModeration", ms."moderationLevel", ms."spamThreshold"
-      FROM "Twin" t
-      LEFT JOIN "ModerationSettings" ms ON ms."twinId" = t.id
-      WHERE t.id = $1
-    `, [twinId]);
-    
-    if (twinSettings.rows.length > 0) {
-      const row = twinSettings.rows[0];
-      return {
-        requireApproval: row.twinRequireApproval || row.moderationRequireApproval || false,
-        useAIModeration: row.useAIModeration ?? true,
-        moderationLevel: row.moderationLevel || 'basic',
-        spamThreshold: row.spamThreshold ?? 0.7
-      };
+    try {
+      // Query Twin table directly (no JOIN needed - ModerationSettings doesn't have twinId)
+      const twinSettings = await db.query(`
+        SELECT t."requireApproval" as twinRequireApproval
+        FROM "Twin" t
+        WHERE t.id = $1
+      `, [twinId]);
+      
+      if (twinSettings.rows.length > 0) {
+        const row = twinSettings.rows[0];
+        // Get global moderation settings for defaults
+        const globalSettings = await db.query(`
+          SELECT "useAIModeration", "moderationLevel", "spamThreshold", "requireApproval"
+          FROM "ModerationSettings"
+          WHERE id = 'global'
+        `);
+        
+        const global = globalSettings.rows[0] || {
+          useAIModeration: true,
+          moderationLevel: 'basic',
+          spamThreshold: 0.7,
+          requireApproval: false
+        };
+        
+        return {
+          requireApproval: row.twinRequireApproval ?? global.requireApproval ?? false,
+          useAIModeration: global.useAIModeration ?? true,
+          moderationLevel: global.moderationLevel || 'basic',
+          spamThreshold: global.spamThreshold ?? 0.7
+        };
+      }
+      // If twin not found, fall through to global settings
+    } catch (error) {
+      logger.warn('Error fetching twin moderation settings, using global:', error);
+      // Fall through to global settings
     }
   }
   
   // Global settings fallback
-  const settings = await db.query(`
-    SELECT "useAIModeration", "moderationLevel", "spamThreshold", "requireApproval"
-    FROM "ModerationSettings"
-    WHERE id = 'global'
-  `);
+  try {
+    const settings = await db.query(`
+      SELECT "useAIModeration", "moderationLevel", "spamThreshold", "requireApproval"
+      FROM "ModerationSettings"
+      WHERE id = 'global'
+    `);
 
-  return settings.rows[0] || {
-    useAIModeration: true,
-    moderationLevel: 'basic',
-    spamThreshold: 0.7,
-    requireApproval: false  // Default: no approval required
-  };
+    return settings.rows[0] || {
+      useAIModeration: true,
+      moderationLevel: 'basic',
+      spamThreshold: 0.7,
+      requireApproval: false  // Default: no approval required
+    };
+  } catch (error) {
+    logger.warn('Error fetching global moderation settings, using defaults:', error);
+    // Return safe defaults
+    return {
+      useAIModeration: true,
+      moderationLevel: 'basic',
+      spamThreshold: 0.7,
+      requireApproval: false
+    };
+  }
 }
 
 // Helper function to moderate content directly (for use in controllers)

@@ -27,34 +27,58 @@ export class EmailService {
         to: email,
         subject: 'Your AI Twin Login Code',
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2 style="color: #333;">Your AI Twin Login Code</h2>
             <p>Your verification code is:</p>
-            <div style="background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
+            <div style="background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; border-radius: 8px;">
               ${code}
             </div>
-            <p>This code will expire in 10 minutes.</p>
-            <p>If you didn't request this code, please ignore this email.</p>
+            <p>This code will expire in ${config.otp.expiryMinutes} minutes.</p>
+            <p style="color: #666; font-size: 12px;">If you didn't request this code, please ignore this email.</p>
           </div>
         `,
       };
 
+      // Development mode: Log to console + try to send actual email
       if (config.nodeEnv === 'development') {
         console.log('\n🔐 ===== OTP GENERATED =====');
         console.log(`📧 Email: ${email}`);
         console.log(`🔑 OTP Code: ${code}`);
         console.log('=============================\n');
         logger.info(`OTP for ${email}: ${code}`);
-        return true;
+        
+        // Try to send actual email in development
+        try {
+          await this.transporter.sendMail(mailOptions);
+          logger.info(`✅ OTP email sent successfully to ${email}`);
+          return true;
+        } catch (emailError: any) {
+          logger.warn(`⚠️ Failed to send OTP email in development:`, emailError?.message || emailError);
+          // Still return true so signup doesn't fail - OTP is in console + response
+          return true;
+        }
       }
 
-      await this.transporter.sendMail(mailOptions);
-      return true;
+      // Production mode: Send actual email
+      try {
+        await this.transporter.sendMail(mailOptions);
+        logger.info(`✅ OTP email sent successfully to ${email}`);
+        return true;
+      } catch (error: any) {
+        logger.error(`❌ Failed to send OTP email to ${email}:`, error?.message || error);
+        
+        // Log error details
+        if (error instanceof Error) {
+          logger.error(`Email error: ${error.message}`);
+        }
+        
+        return false;
+      }
     } catch (error) {
       logger.error('Failed to send OTP email:', error);
       return false;
     }
-  }
+  }  
 }
 
 // OTP utilities

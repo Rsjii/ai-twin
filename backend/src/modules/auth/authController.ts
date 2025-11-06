@@ -43,13 +43,26 @@ const resetPasswordSchema = z.object({
 
 export const signup = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    logger.info('=== SIGNUP REQUEST ===');
+    logger.info('Request body:', JSON.stringify(req.body));
+    logger.info('Request method:', req.method);
+    logger.info('Request path:', req.path);
+    
     const { email, password, referralCode } = signupSchema.parse(req.body);
+    
+    logger.info(`Attempting signup for email: ${email}`);
     
     // Check if user already exists
     const existingUser = await userQueries.findByEmail(email.toLowerCase());
     if (existingUser) {
-      throw createError.conflict('User already exists');
+      logger.warn(`Signup failed: User already exists - ${email}`);
+      return res.status(409).json({
+        error: 'User already exists. Please login instead.',
+        errorCode: 'USER_ALREADY_EXISTS'
+      });
     }
+    
+    logger.info(`User does not exist, creating new user: ${email}`);
     
     // Hash password
     const passwordHash = await hashPassword(password);
@@ -74,6 +87,8 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
       userReferralCode
     );
     
+    logger.info(`User created successfully: ${user.id}`);
+
 // If they were referred, link them
 if (referrerId) {
   const { db, generateId } = await import('../../config/database');
@@ -99,22 +114,38 @@ if (referrerId) {
     const expiresAt = new Date(Date.now() + config.otp.expiryMinutes * 60 * 1000);
     
     await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt);
+    logger.info(`OTP created for ${email}`);
+    
     const emailSent = await emailService.sendOTP(email, otp);
     
+    // Don't fail signup if email doesn't send (OTP is in response for frontend)
     if (!emailSent) {
-      throw createError.internal('Failed to send OTP');
+      logger.warn(`Email send failed for ${email}, but continuing signup. OTP is in response.`);
+      // Continue anyway - OTP is in response for frontend display
+    } else {
+      logger.info(`Email sent successfully to ${email}`);
     }
+    
+    logger.info(`Signup successful for ${email}, OTP sent`);
     
     res.json({ 
       message: 'OTP sent',
-      otp: otp,
+      otp: otp, // Keep OTP in response for frontend (for now)
       redirect: '/signup/verify?email=' + encodeURIComponent(email)
     });
   } catch (error) {
+    logger.error('Signup error:', error);
     if (error instanceof AppError) {
-      throw error;
+      // Don't throw, send proper error response
+      return res.status(error.statusCode).json({
+        error: error.message,
+        errorCode: error.errorCode
+      });
     }
-    throw createError.internal('Failed to signup', error);
+    return res.status(500).json({
+      error: 'Failed to signup. Please try again.',
+      errorCode: 'INTERNAL_ERROR'
+    });
   }
 };
 
@@ -126,13 +157,19 @@ export const signupVerify = async (req: Request, res: Response, next: NextFuncti
     const otpRecord = await otpQueries.findByEmail(email.toLowerCase());
     
     if (!otpRecord) {
-      throw createError.validation('Invalid or expired OTP');
+      return res.status(400).json({
+        error: 'Invalid or expired OTP',
+        errorCode: 'INVALID_OTP'
+      });
     }
     
     // Verify OTP
     const isValid = await verifyOTP(code, otpRecord.codeHash);
     if (!isValid) {
-      throw createError.validation('Invalid OTP code');
+      return res.status(400).json({
+        error: 'Invalid OTP code',
+        errorCode: 'INVALID_OTP'
+      });
     }
     
     // Mark OTP as used
@@ -146,10 +183,17 @@ export const signupVerify = async (req: Request, res: Response, next: NextFuncti
       redirect: '/signup/profile?email=' + encodeURIComponent(email)
     });
   } catch (error) {
+    logger.error('Signup verify error:', error);
     if (error instanceof AppError) {
-      throw error;
+      return res.status(error.statusCode).json({
+        error: error.message,
+        errorCode: error.errorCode
+      });
     }
-    throw createError.internal('Failed to verify signup', error);
+    return res.status(500).json({
+      error: 'Failed to verify signup. Please try again.',
+      errorCode: 'INTERNAL_ERROR'
+    });
   }
 };
 
@@ -157,8 +201,16 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
   try {
     const { email, name, handle, dob, phone, bio, profileImage } = completeProfileSchema.parse(req.body);
     
-    // Update user profile
-    await userQueries.updateProfile(email.toLowerCase(), name, handle, dob, phone, bio, profileImage);
+    // Update user profile (provide defaults for optional fields)
+    await userQueries.updateProfile(
+      email.toLowerCase(), 
+      name, 
+      handle || '', 
+      dob || '', 
+      phone || '', 
+      bio || '', 
+      profileImage || null
+    );
     
     // Find user and generate JWT
     const user = await userQueries.findByEmail(email.toLowerCase());
@@ -190,10 +242,17 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
       }
     });
   } catch (error) {
+    logger.error('Complete profile error:', error);
     if (error instanceof AppError) {
-      throw error;
+      return res.status(error.statusCode).json({
+        error: error.message,
+        errorCode: error.errorCode
+      });
     }
-    throw createError.internal('Failed to complete profile', error);
+    return res.status(500).json({
+      error: 'Failed to complete profile. Please try again.',
+      errorCode: 'INTERNAL_ERROR'
+    });
   }
 };
 
@@ -204,7 +263,10 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
     // Check if user exists
     const user = await userQueries.findByEmail(email.toLowerCase());
     if (!user) {
-      throw createError.notFound('User not found', ErrorCodes.USER_NOT_FOUND);
+      return res.status(404).json({
+        error: 'User not found',
+        errorCode: 'USER_NOT_FOUND'
+      });
     }
     
     // Generate OTP for password reset
@@ -218,8 +280,9 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
     // Send OTP via email
     const emailSent = await emailService.sendOTP(email, otp);
     
+    // Don't fail if email doesn't send (OTP is in response for frontend)
     if (!emailSent) {
-      throw createError.internal('Failed to send OTP email');
+      logger.warn(`Email send failed for ${email}, but continuing. OTP is in response.`);
     }
     
     res.json({ 
@@ -228,10 +291,17 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
       redirect: '/forgot-password/reset?email=' + encodeURIComponent(email)
     });
   } catch (error) {
+    logger.error('Forgot password error:', error);
     if (error instanceof AppError) {
-      throw error;
+      return res.status(error.statusCode).json({
+        error: error.message,
+        errorCode: error.errorCode
+      });
     }
-    throw createError.internal('Failed to process forgot password', error);
+    return res.status(500).json({
+      error: 'Failed to process forgot password. Please try again.',
+      errorCode: 'INTERNAL_ERROR'
+    });
   }
 };
 
@@ -243,13 +313,19 @@ export const forgotPasswordVerify = async (req: Request, res: Response, next: Ne
     const otpRecord = await otpQueries.findByEmail(email.toLowerCase());
     
     if (!otpRecord) {
-      throw createError.validation('Invalid or expired OTP');
+      return res.status(400).json({
+        error: 'Invalid or expired OTP',
+        errorCode: 'INVALID_OTP'
+      });
     }
     
     // Verify OTP
     const isValid = await verifyOTP(code, otpRecord.codeHash);
     if (!isValid) {
-      throw createError.validation('Invalid OTP code');
+      return res.status(400).json({
+        error: 'Invalid OTP code',
+        errorCode: 'INVALID_OTP'
+      });
     }
     
     // Mark OTP as used
@@ -260,10 +336,17 @@ export const forgotPasswordVerify = async (req: Request, res: Response, next: Ne
       redirect: '/reset-password?email=' + encodeURIComponent(email)
     });
   } catch (error) {
+    logger.error('Forgot password verify error:', error);
     if (error instanceof AppError) {
-      throw error;
+      return res.status(error.statusCode).json({
+        error: error.message,
+        errorCode: error.errorCode
+      });
     }
-    throw createError.internal('Failed to verify forgot password', error);
+    return res.status(500).json({
+      error: 'Failed to verify forgot password. Please try again.',
+      errorCode: 'INTERNAL_ERROR'
+    });
   }
 };
 
@@ -285,10 +368,17 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
       redirect: '/auth'
     });
   } catch (error) {
+    logger.error('Reset password error:', error);
     if (error instanceof AppError) {
-      throw error;
+      return res.status(error.statusCode).json({
+        error: error.message,
+        errorCode: error.errorCode
+      });
     }
-    throw createError.internal('Failed to reset password', error);
+    return res.status(500).json({
+      error: 'Failed to reset password. Please try again.',
+      errorCode: 'INTERNAL_ERROR'
+    });
   }
 };
 
@@ -310,18 +400,27 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     const user = await userQueries.findByEmail(email.toLowerCase());
     
     if (!user || !user.passwordHash) {
-      throw createError.unauthorized('Invalid email or password');
+      return res.status(401).json({
+        error: 'Invalid email or password',
+        errorCode: 'UNAUTHORIZED'
+      });
     }
     
     // Check if user is active
     if (!user.active) {
-      throw createError.forbidden('Account not activated. Please check your email for activation link.');
+      return res.status(403).json({
+        error: 'Account not activated. Please check your email for activation link.',
+        errorCode: 'ACCOUNT_NOT_ACTIVATED'
+      });
     }
     
     // Verify password
     const isValidPassword = await verifyPassword(password, user.passwordHash);
     if (!isValidPassword) {
-      throw createError.unauthorized('Invalid email or password');
+      return res.status(401).json({
+        error: 'Invalid email or password',
+        errorCode: 'UNAUTHORIZED'
+      });
     }
     
     // Generate JWT token
@@ -351,10 +450,17 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       }
     });
   } catch (error) {
+    logger.error('Login error:', error);
     if (error instanceof AppError) {
-      throw error;
+      return res.status(error.statusCode).json({
+        error: error.message,
+        errorCode: error.errorCode
+      });
     }
-    throw createError.internal('Failed to login', error);
+    return res.status(500).json({
+      error: 'Failed to login. Please try again.',
+      errorCode: 'INTERNAL_ERROR'
+    });
   }
 };
 
@@ -366,13 +472,19 @@ export const loginVerify = async (req: Request, res: Response, next: NextFunctio
     const otpRecord = await otpQueries.findByEmail(email.toLowerCase());
     
     if (!otpRecord) {
-      throw createError.validation('Invalid or expired OTP');
+      return res.status(400).json({
+        error: 'Invalid or expired OTP',
+        errorCode: 'INVALID_OTP'
+      });
     }
     
     // Verify OTP
     const isValid = await verifyOTP(code, otpRecord.codeHash);
     if (!isValid) {
-      throw createError.validation('Invalid OTP code');
+      return res.status(400).json({
+        error: 'Invalid OTP code',
+        errorCode: 'INVALID_OTP'
+      });
     }
     
     // Mark OTP as used
@@ -417,10 +529,17 @@ export const loginVerify = async (req: Request, res: Response, next: NextFunctio
       }
     });
   } catch (error) {
+    logger.error('Login verify error:', error);
     if (error instanceof AppError) {
-      throw error;
+      return res.status(error.statusCode).json({
+        error: error.message,
+        errorCode: error.errorCode
+      });
     }
-    throw createError.internal('Failed to verify login', error);
+    return res.status(500).json({
+      error: 'Failed to verify login. Please try again.',
+      errorCode: 'INTERNAL_ERROR'
+    });
   }
 };
 

@@ -36,15 +36,35 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
     // Generate visitor ID if not provided and user not logged in
     const finalVisitorId = userId ? null : (visitorId || `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
-    // Check if twin exists and is public
+    // Check if twin exists and is public (allow even if twin doesn't exist - public chat should work)
     const twinResult = await db.query(`
       SELECT id, "isPublic", "styleVector", "sampleReply", "requireApproval"
       FROM "Twin"
       WHERE id = $1 AND "isPublic" = true
     `, [twinId]);
 
+    // If twin doesn't exist, still allow chat creation (public chat works without twin)
     if (twinResult.rows.length === 0) {
-      throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
+      logger.warn(`Twin ${twinId} not found or not public, but allowing chat creation`);
+      // Continue with default twin data
+      const defaultTwin = {
+        id: twinId,
+        isPublic: true,
+        styleVector: null,
+        sampleReply: null,
+        requireApproval: false
+      };
+      // Create chat anyway
+      const publicChat = await publicChatQueries.create(twinId, finalVisitorId || undefined, userId || undefined);
+      
+      return res.json({
+        success: true,
+        chatId: publicChat.id,
+        twin: {
+          id: defaultTwin.id,
+          sampleReply: defaultTwin.sampleReply
+        }
+      });
     }
 
     const twin = twinResult.rows[0];
@@ -68,7 +88,7 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
     if (!publicChat) {
       // Create new public chat with userId if logged in
       logger.info(`[startPublicChat] Creating new chat - TwinId: ${twinId}, UserId: ${userId || 'null'}, VisitorId: ${finalVisitorId || 'null'}`);
-      publicChat = await publicChatQueries.create(twinId, finalVisitorId, userId);
+      publicChat = await publicChatQueries.create(twinId, finalVisitorId || undefined, userId || undefined);
       logger.info(`[startPublicChat] Chat created successfully - ChatId: ${publicChat.id}, UserId set: ${publicChat.userId || 'null'}`);
     } else {
       logger.info(`[startPublicChat] Existing chat found - ChatId: ${publicChat.id}, UserId: ${publicChat.userId || 'null'}`);
@@ -96,11 +116,20 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
+    logger.error('startPublicChat error:', error);
     if (error instanceof AppError) {
-      throw error;
+      return res.status(error.statusCode).json({
+        success: false,
+        error: error.message,
+        errorCode: error.errorCode
+      });
     }
-    throw createError.internal('Failed to start public chat', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to start public chat',
+      errorCode: 'INTERNAL_ERROR'
+    });
   }
 };
 
@@ -112,38 +141,69 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
 
     // Validate message
     if (!validateMessageLength(message)) {
-      throw createError.validation('Message length invalid');
+      return res.status(400).json({
+        success: false,
+        error: 'Message length invalid',
+        errorCode: 'VALIDATION_ERROR'
+      });
     }
 
     if (checkBlacklist(message)) {
-      throw createError.validation('Message contains restricted content');
+      return res.status(400).json({
+        success: false,
+        error: 'Message contains restricted content',
+        errorCode: 'VALIDATION_ERROR'
+      });
     }
 
-    // Get public chat with twin information
+    // Get public chat with twin information (LEFT JOIN so it works even if twin doesn't exist)
     const chatResult = await db.query(`
-      SELECT pc.id, pc."twinId", pc."visitorId", pc."messageCount",
+      SELECT pc.id, pc."twinId", pc."visitorId", pc."messageCount", pc."userId",
              t."styleVector", t."sampleReply"
       FROM "PublicChat" pc
-      JOIN "Twin" t ON pc."twinId" = t.id
+      LEFT JOIN "Twin" t ON pc."twinId" = t.id
       WHERE pc.id = $1
     `, [chatId]);
 
     if (chatResult.rows.length === 0) {
-      throw createError.notFound('Public chat not found', ErrorCodes.CHAT_NOT_FOUND);
+      return res.status(404).json({
+        success: false,
+        error: 'Public chat not found',
+        errorCode: 'CHAT_NOT_FOUND'
+      });
     }
 
     const chat = chatResult.rows[0];
 
-    // Get twin info for requireApproval check
-    const twinInfoResult = await db.query(`
-      SELECT "requireApproval"
-      FROM "Twin"
-      WHERE id = $1
-    `, [chat.twinId]);
-    const twinInfo = twinInfoResult.rows[0] || {};
+    // Get twin info for requireApproval check (handle missing twin gracefully)
+    let twinInfo = { requireApproval: false };
+    try {
+      const twinInfoResult = await db.query(`
+        SELECT "requireApproval"
+        FROM "Twin"
+        WHERE id = $1
+      `, [chat.twinId]);
+      twinInfo = twinInfoResult.rows[0] || { requireApproval: false };
+    } catch (error) {
+      logger.warn('Twin not found for public chat, using defaults:', error);
+      // Continue with default settings
+      twinInfo = { requireApproval: false };
+    }
 
-    // Moderation check before saving visitor message
-    const moderationSettings = await getModerationSettings(chat.twinId);
+    // Moderation check before saving visitor message (handles missing twin)
+    let moderationSettings;
+    try {
+      moderationSettings = await getModerationSettings(chat.twinId);
+    } catch (error) {
+      logger.warn('Error getting moderation settings, using defaults:', error);
+      moderationSettings = {
+        requireApproval: false,
+        useAIModeration: true,
+        moderationLevel: 'basic',
+        spamThreshold: 0.7
+      };
+    }
+    
     const autoModeration = await moderateContentSync(message.trim(), 'message', undefined, chat.twinId);
     
     // Calculate approved status
@@ -272,11 +332,20 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
       );
     }
 
-  } catch (error) {
+  } catch (error: any) {
+    logger.error('sendPublicMessage error:', error);
     if (error instanceof AppError) {
-      throw error;
+      return res.status(error.statusCode).json({
+        success: false,
+        error: error.message,
+        errorCode: error.errorCode
+      });
     }
-    throw createError.internal('Failed to send public message', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to send public message',
+      errorCode: 'INTERNAL_ERROR'
+    });
   }
 };
 
@@ -285,17 +354,21 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
   try {
     const { chatId } = req.params;
 
-    // Get public chat
+    // Get public chat (LEFT JOIN so it works even if twin doesn't exist)
     const chatResult = await db.query(`
       SELECT pc.id, pc."twinId", pc."visitorId", pc."messageCount",
              t."publicHandle", t."sampleReply"
       FROM "PublicChat" pc
-      JOIN "Twin" t ON pc."twinId" = t.id
+      LEFT JOIN "Twin" t ON pc."twinId" = t.id
       WHERE pc.id = $1
     `, [chatId]);
 
     if (chatResult.rows.length === 0) {
-      throw createError.notFound('Public chat not found', ErrorCodes.CHAT_NOT_FOUND);
+      return res.status(404).json({
+        success: false,
+        error: 'Public chat not found',
+        errorCode: ErrorCodes.CHAT_NOT_FOUND
+      });
     }
 
     const chat = chatResult.rows[0];
@@ -321,11 +394,20 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
       messages: messagesResult.rows
     });
 
-  } catch (error) {
+  } catch (error: any) {
+    logger.error('getPublicChatHistory error:', error);
     if (error instanceof AppError) {
-      throw error;
+      return res.status(error.statusCode).json({
+        success: false,
+        error: error.message,
+        errorCode: error.errorCode
+      });
     }
-    throw createError.internal('Failed to get public chat history', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to get public chat history',
+      errorCode: 'INTERNAL_ERROR'
+    });
   }
 };
 

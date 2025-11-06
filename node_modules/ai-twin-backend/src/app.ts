@@ -11,6 +11,8 @@ import { config } from './config/env';
 import { logger } from './config/logger';
 import { db } from './config/database';
 import { errorHandler } from './utils/errors';
+import passport from 'passport';
+import googleAuthRoutes from './modules/auth/googleAuthRoutes';
 
 // Import API route modules
 import authRoutes from './modules/auth/authRoutes';
@@ -104,6 +106,10 @@ app.use(session({
   },
 }));
 
+// Initialize Passport (must be after session middleware)
+app.use(passport.initialize());
+app.use(passport.session());
+
 // Logging middleware
 if (config.nodeEnv === 'development') {
   app.use(morgan('dev'));
@@ -135,6 +141,7 @@ app.use('/', pageRoutes);
 
 // API Routes (JSON responses)
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', googleAuthRoutes); // Add this line
 app.use('/api/twin', twinRoutes);
 app.use('/api/public-twin', publicTwinRoutes);
 app.use('/api/public-chat', publicChatRoutes);
