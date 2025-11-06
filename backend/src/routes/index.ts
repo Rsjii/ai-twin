@@ -7,6 +7,7 @@ import twinPageRoutes from './twinPageRoutes';
 import chatPageRoutes from './chatPageRoutes';
 import discoverPageRoutes from './discoverPageRoutes';
 import publicPageRoutes from './publicPageRoutes';
+import supportPageRoutes from './supportPageRoutes';
 
 const router = Router();
 
@@ -19,6 +20,7 @@ router.use(twinPageRoutes);
 router.use(chatPageRoutes);
 router.use(discoverPageRoutes);
 router.use(publicPageRoutes);
+router.use(supportPageRoutes);
 
 export default router;
 
