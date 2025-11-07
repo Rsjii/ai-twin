@@ -6,7 +6,9 @@ import {
   getPublicChatByTwin,
   getPublicChatsByTwin,
   createNewPublicChat,
-  getUserPublicChats  // ADD THIS
+  getUserPublicChats,
+  deletePublicChat,
+  updatePublicChatTitle
 } from './publicChatController';
 import { optionalJWT } from '../../middleware/jwtAuth';
 import { requireJWTFromCookie, extractJWTFromCookie } from '../../middleware/jwtCookie';
@@ -33,5 +35,11 @@ router.post('/create', extractJWTFromCookie, createNewPublicChat); // Create new
 
 // Authenticated route - Get user's public chats
 router.get('/user/my-chats', requireJWTFromCookie, getUserPublicChats);
+
+// Delete public chat endpoint (no authentication required)
+router.delete('/:chatId', deletePublicChat);
+
+// Update public chat title endpoint (no authentication required)
+router.put('/:chatId/title', updatePublicChatTitle);
 
 export default router;

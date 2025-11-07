@@ -164,26 +164,72 @@
             }
 
             container.innerHTML = chats.map(chat => `
-                <div class="chat-item p-3 border-b cursor-pointer hover:bg-gray-50 rounded-lg ${chat.id === currentChatId ? 'bg-blue-50 border-blue-200' : ''}" data-chat-id="${chat.id}">
+                <div class="chat-item p-3 border-b cursor-pointer hover:bg-gray-50 rounded-lg relative group ${chat.id === currentChatId ? 'bg-blue-50 border-blue-200' : ''}" data-chat-id="${chat.id}">
                     <div class="flex justify-between items-start">
                         <div class="flex-1">
-                           <h4 class="font-medium text-sm ${chat.id === currentChatId ? 'text-blue-700' : ''}">${chat.title || 'Chat #' + chat.id.slice(-6)}</h4>
+                            <div class="flex items-center justify-between gap-2 mb-1">
+                                <h4 class="font-medium text-sm flex-1 ${chat.id === currentChatId ? 'text-blue-700' : ''}" id="public-chat-title-${chat.id}">${chat.title || 'Chat #' + chat.id.slice(-6)}</h4>
+                                <div class="flex items-center gap-1 flex-shrink-0">
+                                    <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50 pointer-events-auto" data-chat-id="${chat.id}" title="Edit title">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                    </button>
+                                    <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 pointer-events-auto" data-chat-id="${chat.id}" title="Delete chat">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                             <p class="text-xs text-gray-500 truncate">${chat.lastMessage ? chat.lastMessage.content : 'No messages yet'}</p>
                         </div>
-                        <div class="text-xs text-gray-400">${formatTime(chat.createdAt)}</div>
                     </div>
-                    <div class="flex items-center mt-1">
+                    <div class="flex items-center justify-between mt-2">
                         <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">${chat.messageCount || 0} messages</span>
+                        <div class="text-xs text-gray-400">${formatTime(chat.createdAt)}</div>
                     </div>
                 </div>
             `).join('');
 
             // Add click listeners
             container.querySelectorAll('.chat-item').forEach(item => {
-                item.addEventListener('click', function() {
+                item.addEventListener('click', function(e) {
+                    // Don't switch if delete or edit button was clicked
+                    if (e.target.closest('.delete-chat-btn') || e.target.closest('.edit-chat-btn')) {
+                        return;
+                    }
                     const chatId = this.dataset.chatId;
                     if (chatId !== currentChatId) {
                         switchToPublicChat(chatId);
+                    }
+                });
+            });
+            
+            // Add click listeners to delete buttons
+            container.querySelectorAll('.delete-chat-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const chatId = this.dataset.chatId;
+                    if (chatId && typeof deletePublicChat === 'function') {
+                        deletePublicChat(chatId);
+                    } else {
+                        console.error('deletePublicChat function not found or chatId missing');
+                    }
+                });
+            });
+            
+            // Add click listeners to edit buttons
+            container.querySelectorAll('.edit-chat-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const chatId = this.dataset.chatId;
+                    if (chatId && typeof editPublicChatTitle === 'function') {
+                        editPublicChatTitle(chatId);
+                    } else {
+                        console.error('editPublicChatTitle function not found or chatId missing');
                     }
                 });
             });
@@ -217,6 +263,177 @@
             } catch (error) {
                 console.error('Error switching to chat:', error);
             }
+        }
+
+        // Delete public chat function
+        async function deletePublicChat(chatId) {
+            // Show confirmation dialog
+            if (!confirm('Are you sure you want to delete this chat?\n\nThis action cannot be undone.')) {
+                return;
+            }
+            
+            // Find the chat item and delete button
+            const chatItem = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
+            const deleteBtn = chatItem?.querySelector('.delete-chat-btn');
+            
+            // Disable button and show loading state
+            if (deleteBtn) {
+                deleteBtn.disabled = true;
+                deleteBtn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>';
+            }
+            
+            try {
+                const response = await fetch(`/api/public-chat/${chatId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to delete chat');
+                }
+                
+                const data = await response.json();
+                
+                // Fade-out animation before removing
+                if (chatItem) {
+                    chatItem.style.transition = 'opacity 0.3s ease-out';
+                    chatItem.style.opacity = '0';
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+                
+                // If deleted chat is currently open, switch to another chat
+                if (chatId === currentChatId) {
+                    // Reload chat history to get updated list
+                    await loadPublicChatHistory();
+                    
+                    // Get updated chats
+                    const container = document.getElementById('publicChatHistoryList');
+                    const remainingChats = container.querySelectorAll('.chat-item');
+                    
+                    if (remainingChats.length > 0) {
+                        // Switch to first available chat
+                        const firstChatId = remainingChats[0].dataset.chatId;
+                        await switchToPublicChat(firstChatId);
+                    } else {
+                        // No chats left, create new chat or show empty state
+                        currentChatId = null;
+                        const messagesContainer = document.getElementById('messages');
+                        if (messagesContainer) {
+                            messagesContainer.innerHTML = '<div class="text-center py-8 text-gray-500">No chats available. Create a new chat to get started.</div>';
+                        }
+                        // Optionally create new chat automatically
+                        await createNewPublicChat();
+                    }
+                } else {
+                    // Just reload the chat history
+                    await loadPublicChatHistory();
+                }
+                
+                // Show success notification
+                showNotification('Chat deleted successfully', 'success');
+                
+            } catch (error) {
+                console.error('Error deleting public chat:', error);
+                showNotification(error.message || 'Failed to delete chat', 'error');
+                
+                // Re-enable button on error
+                if (deleteBtn) {
+                    deleteBtn.disabled = false;
+                    deleteBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>';
+                }
+            }
+        }
+
+        // Edit public chat title function
+        async function editPublicChatTitle(chatId) {
+            const titleElement = document.getElementById(`public-chat-title-${chatId}`);
+            if (!titleElement) {
+                console.error('Title element not found');
+                return;
+            }
+            
+            const currentTitle = titleElement.textContent.trim();
+            
+            // Create input field
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentTitle;
+            input.className = 'font-medium text-sm flex-1 px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500';
+            input.style.minWidth = '100px';
+            input.style.maxWidth = '200px';
+            
+            // Replace title with input
+            const parent = titleElement.parentElement;
+            titleElement.style.display = 'none';
+            parent.insertBefore(input, titleElement);
+            input.focus();
+            input.select();
+            
+            // Save on Enter or blur
+            const saveTitle = async () => {
+                const newTitle = input.value.trim();
+                
+                if (newTitle === currentTitle) {
+                    // No change, just restore
+                    input.remove();
+                    titleElement.style.display = '';
+                    return;
+                }
+                
+                if (!newTitle) {
+                    // Empty title, restore original
+                    input.remove();
+                    titleElement.style.display = '';
+                    showNotification('Title cannot be empty', 'error');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/public-chat/${chatId}/title`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({ title: newTitle })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to update title');
+                    }
+                    
+                    // Update title in UI
+                    titleElement.textContent = newTitle;
+                    input.remove();
+                    titleElement.style.display = '';
+                    
+                    showNotification('Title updated successfully', 'success');
+                    
+                    // Reload chat history to reflect changes
+                    await loadPublicChatHistory();
+                } catch (error) {
+                    console.error('Error updating title:', error);
+                    showNotification(error.message || 'Failed to update title', 'error');
+                    input.remove();
+                    titleElement.style.display = '';
+                }
+            };
+            
+            input.addEventListener('blur', saveTitle);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    input.remove();
+                    titleElement.style.display = '';
+                }
+            });
         }
 
         // Create new public chat
@@ -467,6 +684,44 @@
             if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
             if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
             return Math.floor(diff / 86400000) + 'd ago';
+        }
+
+        // Show notification function
+        function showNotification(message, type = 'info') {
+            // Remove existing notification if any
+            const existing = document.getElementById('notification-toast');
+            if (existing) {
+                existing.remove();
+            }
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.id = 'notification-toast';
+            notification.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-x-0 ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            // Add to body
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.opacity = '1';
+            }, 10);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
         }
 
         // Event listeners

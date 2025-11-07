@@ -1137,7 +1137,10 @@ async function loadChatMessages() {
                     // Create message with specific ID
                     const messageDiv = document.createElement('div');
                     messageDiv.id = messageId;
-                    messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+                    messageDiv.className = `flex flex-col ${sender === 'user' ? 'justify-end items-end' : 'justify-start items-start'}`;
+                    
+                    const messageWrapper = document.createElement('div');
+                    messageWrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
                     
                     const messageContent = document.createElement('div');
                     messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
@@ -1153,18 +1156,28 @@ async function loadChatMessages() {
                         </p>
                     `;
                     
-                    messageDiv.appendChild(messageContent);
+                    // ✅ Create actions container for AI messages
+                    const actionsContainer = document.createElement('div');
+                    actionsContainer.id = `actions_${messageId}`;
+                    actionsContainer.className = 'mt-2';
+                    
+                    messageWrapper.appendChild(messageContent);
+                    messageDiv.appendChild(messageWrapper);
+                    messageDiv.appendChild(actionsContainer); // ✅ Actions container separate
                     document.getElementById('chatMessages').appendChild(messageDiv);
                     
                     // Add feedback buttons to AI messages (not user messages)
                     if (sender === 'ai') {
-                        addResponseActionsButton(messageId);
-                        
-                        // Check if feedback already exists for this message
-                        if (feedbackStatus[messageId]) {
-                            const feedbackType = feedbackStatus[messageId].rating === 'positive' ? 'positive' : 'negative';
-                            disableFeedbackButtons(messageId, feedbackType);
-                        }
+                        // Delay to ensure container is in DOM
+                        setTimeout(() => {
+                            addResponseActionsButton(messageId);
+                            
+                            // Check if feedback already exists for this message
+                            if (feedbackStatus[messageId]) {
+                                const feedbackType = feedbackStatus[messageId].rating === 'positive' ? 'positive' : 'negative';
+                                disableFeedbackButtons(messageId, feedbackType);
+                            }
+                        }, 50);
                     }
                 });
             } else {
@@ -1215,26 +1228,72 @@ function displayChatHistory(chats) {
 
     // Remove the old text-only empty state if it exists
     container.innerHTML = chats.map(chat => `
-        <div class="chat-item p-3 border-b cursor-pointer hover:bg-gray-50 rounded-lg ${chat.id === currentChatId ? 'bg-blue-50 border-blue-200' : ''}" data-chat-id="${chat.id}">
+        <div class="chat-item p-3 border-b cursor-pointer hover:bg-gray-50 rounded-lg relative group ${chat.id === currentChatId ? 'bg-blue-50 border-blue-200' : ''}" data-chat-id="${chat.id}">
             <div class="flex justify-between items-start">
                 <div class="flex-1">
-                    <h4 class="font-medium text-sm ${chat.id === currentChatId ? 'text-blue-700' : ''}">${chat.title || 'Untitled Chat'}</h4>
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <h4 class="font-medium text-sm flex-1 ${chat.id === currentChatId ? 'text-blue-700' : ''}" id="chat-title-${chat.id}">${chat.title || 'Untitled Chat'}</h4>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50 pointer-events-auto" data-chat-id="${chat.id}" title="Edit title">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 pointer-events-auto" data-chat-id="${chat.id}" title="Delete chat">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                     <p class="text-xs text-gray-500 truncate">${chat.lastMessage ? (chat.lastMessage.length > 50 ? chat.lastMessage.substring(0, 50) + '...' : chat.lastMessage) : 'No messages yet'}</p>
                 </div>
-                <div class="text-xs text-gray-400">${formatTime(chat.updatedAt)}</div>
             </div>
-            <div class="flex items-center mt-1">
+            <div class="flex items-center justify-between mt-2">
                 <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">${chat.messageCount || 0} messages</span>
+                <div class="text-xs text-gray-400">${formatTime(chat.updatedAt)}</div>
             </div>
         </div>
     `).join('');
 
     // Add click listeners to chat items
     container.querySelectorAll('.chat-item').forEach(item => {
-        item.addEventListener('click', function() {
+        item.addEventListener('click', function(e) {
+            // Don't switch if delete or edit button was clicked
+            if (e.target.closest('.delete-chat-btn') || e.target.closest('.edit-chat-btn')) {
+                return;
+            }
             const chatId = this.dataset.chatId;
             if (chatId !== currentChatId) {
                 switchToChat(chatId);
+            }
+        });
+    });
+    
+    // Add click listeners to delete buttons
+    container.querySelectorAll('.delete-chat-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            const chatId = this.dataset.chatId;
+            if (chatId && typeof deleteChat === 'function') {
+                deleteChat(chatId);
+            } else {
+                console.error('deleteChat function not found or chatId missing');
+            }
+        });
+    });
+    
+    // Add click listeners to edit buttons
+    container.querySelectorAll('.edit-chat-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            const chatId = this.dataset.chatId;
+            if (chatId && typeof editChatTitle === 'function') {
+                editChatTitle(chatId);
+            } else {
+                console.error('editChatTitle function not found or chatId missing');
             }
         });
     });
@@ -1262,6 +1321,178 @@ async function switchToChat(chatId) {
         console.error('Error switching to chat:', error);
         showNotification('Error switching to chat', 'error');
     }
+}
+
+// Delete chat function
+async function deleteChat(chatId) {
+    // Show confirmation dialog
+    if (!confirm('Are you sure you want to delete this chat?\n\nThis action cannot be undone.')) {
+        return;
+    }
+    
+    // Find the chat item and delete button
+    const chatItem = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
+    const deleteBtn = chatItem?.querySelector('.delete-chat-btn');
+    
+    // Disable button and show loading state
+    if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>';
+    }
+    
+    try {
+        const response = await fetch(`/api/chat/${chatId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '<%= csrfToken %>'
+            },
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to delete chat');
+        }
+        
+        const data = await response.json();
+        
+        // Fade-out animation before removing
+        if (chatItem) {
+            chatItem.style.transition = 'opacity 0.3s ease-out';
+            chatItem.style.opacity = '0';
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+        
+        // If deleted chat is currently open, switch to another chat
+        if (chatId === currentChatId) {
+            // Reload chat history to get updated list
+            await loadChatHistory();
+            
+            // Get updated chats
+            const container = document.getElementById('chatHistoryList');
+            const remainingChats = container.querySelectorAll('.chat-item');
+            
+            if (remainingChats.length > 0) {
+                // Switch to first available chat
+                const firstChatId = remainingChats[0].dataset.chatId;
+                await switchToChat(firstChatId);
+            } else {
+                // No chats left, clear current chat
+                currentChatId = null;
+                const messagesContainer = document.getElementById('messages');
+                if (messagesContainer) {
+                    messagesContainer.innerHTML = '<div class="text-center py-8 text-gray-500">No chats available. Create a new chat to get started.</div>';
+                }
+            }
+        } else {
+            // Just reload the chat history
+            await loadChatHistory();
+        }
+        
+        // Show success notification
+        showNotification('Chat deleted successfully', 'success');
+        
+    } catch (error) {
+        console.error('Error deleting chat:', error);
+        showNotification(error.message || 'Failed to delete chat', 'error');
+        
+        // Re-enable button on error
+        if (deleteBtn) {
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>';
+        }
+    }
+}
+
+// Edit chat title function
+async function editChatTitle(chatId) {
+    const titleElement = document.getElementById(`chat-title-${chatId}`);
+    if (!titleElement) {
+        console.error('Title element not found');
+        return;
+    }
+    
+    const currentTitle = titleElement.textContent.trim();
+    
+    // Create input field
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentTitle;
+    input.className = 'font-medium text-sm flex-1 px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500';
+    input.style.minWidth = '100px';
+    input.style.maxWidth = '200px';
+    
+    // Replace title with input
+    const parent = titleElement.parentElement;
+    const originalTitle = titleElement.textContent;
+    titleElement.style.display = 'none';
+    parent.insertBefore(input, titleElement);
+    input.focus();
+    input.select();
+    
+    // Save on Enter or blur
+    const saveTitle = async () => {
+        const newTitle = input.value.trim();
+        
+        if (newTitle === currentTitle) {
+            // No change, just restore
+            input.remove();
+            titleElement.style.display = '';
+            return;
+        }
+        
+        if (!newTitle) {
+            // Empty title, restore original
+            input.remove();
+            titleElement.style.display = '';
+            showNotification('Title cannot be empty', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/chats/${chatId}/title`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': '<%= csrfToken %>'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ title: newTitle })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update title');
+            }
+            
+            // Update title in UI
+            titleElement.textContent = newTitle;
+            input.remove();
+            titleElement.style.display = '';
+            
+            showNotification('Title updated successfully', 'success');
+            
+            // Reload chat history to reflect changes
+            await loadChatHistory();
+        } catch (error) {
+            console.error('Error updating title:', error);
+            showNotification(error.message || 'Failed to update title', 'error');
+            input.remove();
+            titleElement.style.display = '';
+        }
+    };
+    
+    input.addEventListener('blur', saveTitle);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            input.blur();
+        } else if (e.key === 'Escape') {
+            input.remove();
+            titleElement.style.display = '';
+        }
+    });
 }
 
 // Create new chat

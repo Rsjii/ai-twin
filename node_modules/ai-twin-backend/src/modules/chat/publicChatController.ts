@@ -757,3 +757,120 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
     throw createError.internal('Failed to get user public chats', error);
   }
 };
+
+// Delete public chat
+export const deletePublicChat = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { chatId } = req.params;
+
+    if (!chatId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Chat ID is required',
+        errorCode: 'VALIDATION_ERROR'
+      });
+    }
+
+    // Check if chat exists
+    const chatResult = await db.query(`
+      SELECT id FROM "PublicChat" WHERE id = $1
+    `, [chatId]);
+    
+    if (!chatResult || chatResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Public chat not found',
+        errorCode: ErrorCodes.CHAT_NOT_FOUND
+      });
+    }
+    
+    // Delete chat (CASCADE will automatically delete all messages)
+    await db.query(`
+      DELETE FROM "PublicChat" WHERE id = $1
+    `, [chatId]);
+    
+    logger.info('Public chat deleted successfully:', { chatId });
+    
+    res.json({
+      success: true,
+      message: 'Chat deleted successfully'
+    });
+  } catch (error: any) {
+    logger.error('deletePublicChat error:', error);
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        error: error.message,
+        errorCode: error.errorCode
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to delete public chat',
+      errorCode: 'INTERNAL_ERROR'
+    });
+  }
+};
+
+// Update public chat title
+export const updatePublicChatTitle = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { chatId } = req.params;
+    const { title } = req.body;
+
+    if (!chatId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Chat ID is required',
+        errorCode: 'VALIDATION_ERROR'
+      });
+    }
+
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Title is required',
+        errorCode: 'VALIDATION_ERROR'
+      });
+    }
+
+    // Check if chat exists
+    const chatResult = await db.query(`
+      SELECT id FROM "PublicChat" WHERE id = $1
+    `, [chatId]);
+    
+    if (!chatResult || chatResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Public chat not found',
+        errorCode: ErrorCodes.CHAT_NOT_FOUND
+      });
+    }
+
+    // Update chat title
+    await db.query(`
+      UPDATE "PublicChat" SET "title" = $1, "lastActivity" = NOW() WHERE id = $2
+    `, [title.trim(), chatId]);
+    
+    logger.info('Public chat title updated:', { chatId, title: title.trim() });
+    
+    res.json({
+      success: true,
+      message: 'Chat title updated successfully'
+    });
+  } catch (error: any) {
+    logger.error('updatePublicChatTitle error:', error);
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        error: error.message,
+        errorCode: error.errorCode
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update chat title',
+      errorCode: 'INTERNAL_ERROR'
+    });
+  }
+};

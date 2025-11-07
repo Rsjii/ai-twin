@@ -1198,3 +1198,62 @@ async function updateChatVectorAfterMessage(chatId: string, newMessages: Array<{
     logger.error('Error updating chat vector:', error);
   }
 }
+
+// Delete chat
+export const deleteChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    
+    if (!req.user) {
+      throw createError.unauthorized();
+    }
+
+    if (!id) {
+      throw createError.validation('Chat ID is required');
+    }
+
+    // Verify chat belongs to user
+    const chatResult = await db.query(`
+      SELECT id, "userId" FROM "Chat" WHERE id = $1
+    `, [id]);
+    
+    if (chatResult.rows.length === 0) {
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
+    }
+    
+    const chat = chatResult.rows[0];
+    
+    // Verify ownership
+    if (chat.userId !== req.user.id) {
+      throw createError.unauthorized('You do not have permission to delete this chat');
+    }
+    
+    // Delete chat (CASCADE will automatically delete all messages and related data)
+    await db.query(`
+      DELETE FROM "Chat" WHERE id = $1
+    `, [id]);
+    
+    // Log event
+    try {
+      const eventId = `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await db.query(`
+        INSERT INTO "Event" (id, "userId", type, meta, "createdAt")
+        VALUES ($1, $2, $3, $4, NOW())
+      `, [eventId, req.user.id, 'chat_deleted', JSON.stringify({ chatId: id })]);
+    } catch (error) {
+      logger.warn('Failed to log chat deletion event:', error);
+    }
+    
+    logger.info('Chat deleted successfully:', { chatId: id, userId: req.user.id });
+    
+    res.json({
+      success: true,
+      message: 'Chat deleted successfully'
+    });
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to delete chat', error);
+  }
+};

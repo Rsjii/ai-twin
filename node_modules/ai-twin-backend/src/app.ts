@@ -144,6 +144,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/auth', googleAuthRoutes); // Add this line
 app.use('/api/twin', twinRoutes);
 app.use('/api/public-twin', publicTwinRoutes);
+app.use('/api/chat', chatRoutes);
 app.use('/api/public-chat', publicChatRoutes);
 app.use('/api/enhanced-chat', enhancedChatRoutes);
 app.use('/api/social', socialRoutes);
