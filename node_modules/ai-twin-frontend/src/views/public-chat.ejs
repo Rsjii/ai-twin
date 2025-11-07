@@ -167,7 +167,7 @@
                 <div class="chat-item p-3 border-b cursor-pointer hover:bg-gray-50 rounded-lg ${chat.id === currentChatId ? 'bg-blue-50 border-blue-200' : ''}" data-chat-id="${chat.id}">
                     <div class="flex justify-between items-start">
                         <div class="flex-1">
-                            <h4 class="font-medium text-sm ${chat.id === currentChatId ? 'text-blue-700' : ''}">Chat #${chat.id.slice(-6)}</h4>
+                           <h4 class="font-medium text-sm ${chat.id === currentChatId ? 'text-blue-700' : ''}">${chat.title || 'Chat #' + chat.id.slice(-6)}</h4>
                             <p class="text-xs text-gray-500 truncate">${chat.lastMessage ? chat.lastMessage.content : 'No messages yet'}</p>
                         </div>
                         <div class="text-xs text-gray-400">${formatTime(chat.createdAt)}</div>

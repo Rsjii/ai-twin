@@ -231,7 +231,8 @@ Return only valid JSON, no other text.`;
     chatMemory: Array<{content: string, sender: string, timestamp: Date}>;
     currentMessages: string[];
     twinId?: string; // Add twinId for memory retrieval
-  }): Promise<string> {
+    isFirstMessage?: boolean; // Flag to generate title too
+  }): Promise<string | {response: string, title: string}> {
     const startTime = Date.now();
     try {
       const { styleVector, personaData, systemPrompt, tokenLimit, chatVector, chatMemory, currentMessages } = context;
@@ -252,6 +253,9 @@ Return only valid JSON, no other text.`;
         logger.error('Invalid context provided:', { styleVector, currentMessages });
         throw new Error('Invalid context provided');
       }
+      
+      // Check if first message (before any processing)
+      const isFirstMessage = context.isFirstMessage && chatMemory.length === 0;
       
       // ✅ Retrieve long-term memories (SMART - query-based)
       let longTermMemories: Array<{key: string, value: string, category: string}> = [];
@@ -284,7 +288,7 @@ Return only valid JSON, no other text.`;
       // Use enhanced persona-based response if available
       if (personaData && systemPrompt) {
         logger.info('Using enhanced persona-based response');
-        return await this.generatePersonaResponse(
+        const personaResult = await this.generatePersonaResponse(
           currentMessages.join('\n'),
           personaData,
           systemPrompt,
@@ -292,8 +296,15 @@ Return only valid JSON, no other text.`;
           tokenLimit || 500,
           context.sessionMemory || null,
           longTermMemories,
-          stylePatterns
+          stylePatterns,
+          isFirstMessage
         );
+        
+        // If first message and got JSON, return it
+        if (isFirstMessage && typeof personaResult === 'object' && personaResult.response && personaResult.title) {
+          return personaResult;
+        }
+        return personaResult;
       }
       
       // If no persona data, use PromptBuilder to create styleVector-based prompt
@@ -315,40 +326,71 @@ Return only valid JSON, no other text.`;
       
       const enhancedSystemPrompt = await promptBuilder.buildSystemPrompt(promptContext);
 
-      logger.info('Enhanced system prompt created using PromptBuilder, calling OpenAI...');
-      logger.info('System prompt length:', enhancedSystemPrompt.length);
-      logger.info('User message:', currentMessages.join('\n'));
-      logger.info('OpenAI API Key present:', !!config.openaiApiKey);
+      // If first message, ask for both response and title in one call
+      let userPrompt = currentMessages.join('\n');
+      let systemPromptFinal = enhancedSystemPrompt;
       
-      // Add timeout and better error handling
+      if (isFirstMessage) {
+        systemPromptFinal = `${enhancedSystemPrompt}
+
+CRITICAL: You MUST respond ONLY in valid JSON format with exactly these two fields:
+{
+  "response": "your conversational reply here",
+  "title": "short chat title max 30 characters"
+}
+
+Do NOT include any text before or after the JSON. Return ONLY the JSON object.`;
+        userPrompt = `${userPrompt}\n\nGenerate a response and also create a short title (max 30 characters) for this chat.`;
+      }
+      
       const response = await Promise.race([
         openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [
-            { role: 'system', content: enhancedSystemPrompt },
-            { role: 'user', content: currentMessages.join('\n') }
+            { role: 'system', content: systemPromptFinal },
+            { role: 'user', content: userPrompt }
           ],
           max_tokens: tokenLimit || 500,
-          temperature: 0.7
+          temperature: 0.7,
+          ...(isFirstMessage ? { response_format: { type: 'json_object' } } : {})
         }),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('OpenAI API timeout')), 30000)
         )
       ]) as any;
 
-      logger.info('OpenAI response object:', {
-        choices: response.choices?.length,
-        usage: response.usage
-      });
-
       const result = response.choices[0]?.message?.content;
-      logger.info('OpenAI response received:', result?.substring(0, 100));
       
       if (!result || result.trim().length === 0) {
         logger.error('Empty response from OpenAI');
         return 'Sorry, I couldn\'t generate a response.';
       }
-
+      
+      // Parse JSON if first message
+      if (isFirstMessage) {
+        try {
+          let cleanedResult = result.trim();
+          if (cleanedResult.startsWith('```json')) {
+            cleanedResult = cleanedResult.replace(/```json\n?/g, '').replace(/```\n?$/g, '').trim();
+          } else if (cleanedResult.startsWith('```')) {
+            cleanedResult = cleanedResult.replace(/```\n?/g, '').trim();
+          }
+          
+          const parsed = JSON.parse(cleanedResult);
+          if (parsed.response && parsed.title) {
+            const title = parsed.title.trim().substring(0, 30);
+            return { response: parsed.response.trim(), title: title };
+          } else if (parsed.response) {
+            return parsed.response.trim();
+          }
+        } catch (e) {
+          logger.error('JSON parse error for first message:', e);
+          if (result && result.trim().length > 0) {
+            return result.trim();
+          }
+        }
+      }
+      
       // Log AI run for quality tracking
       if (context.twinId) {
         try {
@@ -406,8 +448,9 @@ Return only valid JSON, no other text.`;
       idealReply?: string;
       patternType?: string;
       context?: string;
-    }> = []
-  ): Promise<string> {
+    }> = [],
+    isFirstMessage: boolean = false
+  ): Promise<string | {response: string, title: string}> {
     try {
       // ✅ Use PromptBuilder for persona prompt construction
       const { promptBuilder } = await import('../../services/promptBuilder');
@@ -423,22 +466,71 @@ Return only valid JSON, no other text.`;
         userMessage
       );
 
+      // If first message, ask for both response and title
+      let finalUserMessage = userMessage;
+      let systemPromptFinal = fullPrompt;
+      
+      if (isFirstMessage && chatHistory.length === 0) {
+        // Very explicit instructions for JSON format
+        systemPromptFinal = `${fullPrompt}
+
+CRITICAL: You MUST respond ONLY in valid JSON format with exactly these two fields:
+{
+  "response": "your conversational reply here",
+  "title": "short chat title max 30 characters"
+}
+
+Do NOT include any text before or after the JSON. Return ONLY the JSON object.`;
+        finalUserMessage = `${userMessage}\n\nGenerate a response and also create a short title (max 30 characters) for this chat.`;
+      }
+      
       const completion = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
-            content: fullPrompt
+            content: systemPromptFinal
+          },
+          {
+            role: 'user',
+            content: finalUserMessage
           }
         ],
         max_tokens: tokenLimit,
         temperature: 0.7,
+        ...(isFirstMessage && chatHistory.length === 0 ? { response_format: { type: 'json_object' } } : {}) // Use JSON format only when first message
       });
 
       const response = completion.choices[0]?.message?.content?.trim() || '';
       
       if (!response) {
         throw new Error('No response generated');
+      }
+      
+      // Parse JSON if first message
+      if (isFirstMessage && chatHistory.length === 0) {
+        try {
+          // Clean the response - remove any markdown code blocks or extra text
+          let cleanedResponse = response.trim();
+          if (cleanedResponse.startsWith('```json')) {
+            cleanedResponse = cleanedResponse.replace(/```json\n?/g, '').replace(/```\n?$/g, '').trim();
+          } else if (cleanedResponse.startsWith('```')) {
+            cleanedResponse = cleanedResponse.replace(/```\n?/g, '').trim();
+          }
+          
+          const parsed = JSON.parse(cleanedResponse);
+          if (parsed.response && parsed.title) {
+            const title = parsed.title.trim().substring(0, 30);
+            return { response: parsed.response.trim(), title: title };
+          } else if (parsed.response) {
+            return parsed.response.trim();
+          }
+        } catch (e) {
+          logger.error('Failed to parse JSON response in persona:', e);
+          if (response && response.trim().length > 0) {
+            return response.trim();
+          }
+        }
       }
 
       return response;

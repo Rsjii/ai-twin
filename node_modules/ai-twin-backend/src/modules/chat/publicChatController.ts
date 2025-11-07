@@ -158,8 +158,8 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
 
     // Get public chat with twin information (LEFT JOIN so it works even if twin doesn't exist)
     const chatResult = await db.query(`
-      SELECT pc.id, pc."twinId", pc."visitorId", pc."messageCount", pc."userId",
-             t."styleVector", t."sampleReply"
+      SELECT pc.id, pc."twinId", pc."visitorId", pc."messageCount", pc."userId", pc."title",
+             t."styleVector", t."sampleReply", t."personaData", t."systemPrompt", t."tokenLimit"
       FROM "PublicChat" pc
       LEFT JOIN "Twin" t ON pc."twinId" = t.id
       WHERE pc.id = $1
@@ -174,6 +174,16 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
     }
 
     const chat = chatResult.rows[0];
+
+    // Check if this is first message and get current title
+    let isFirstMessage = false;
+    let currentTitle = chat.title || null;
+    try {
+      isFirstMessage = (chat.messageCount || 0) === 0;
+      currentTitle = chat.title;
+    } catch (err) {
+      logger.warn('Failed to check public chat info for title:', err);
+    }
 
     // Get twin info for requireApproval check (handle missing twin gracefully)
     let twinInfo = { requireApproval: false };
@@ -255,12 +265,7 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
       });
     }
     
-    await db.query(`
-      INSERT INTO "PublicMessage" ("id", "chatId", "sender", "content", "approved", "requestId", "createdAt")
-      VALUES ($1, $2, $3, $4, $5, $6, NOW())
-    `, [visitorMessageId, chatId, 'human', message.trim(), true, requestId]);  // ✅ Save requestId for idempotency
-
-    // Get recent chat context (last 10 messages - only approved)
+    // Get recent chat context BEFORE saving user message (so chatMemory.length === 0 for first message)
     const recentMessagesResult = await db.query(`
       SELECT content, sender, "createdAt"
       FROM "PublicMessage"
@@ -271,33 +276,53 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
     
     const recentMessages = recentMessagesResult.rows.reverse();
 
+    // Generate response using TwinService with full context (and title if first message)
+    let aiResponse = "I'm your AI twin! How can I help you today?";
+    let generatedTitle: string | null = null;
+    const shouldGenerateTitle = isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '' || currentTitle === null);
+
     // Create context for AI response generation
     const context = {
       styleVector: chat.styleVector as any,
+      personaData: chat.personaData as any,
+      systemPrompt: chat.systemPrompt || "You are a helpful AI assistant. Respond naturally and helpfully.",
+      tokenLimit: chat.tokenLimit || 500,
       chatMemory: recentMessages.map(msg => ({
         content: msg.content,
         sender: msg.sender,
         timestamp: msg.createdAt
       })),
       currentMessages: [message.trim()],
-      twinId: chat.twinId // Add twinId for memory retrieval
+      twinId: chat.twinId,
+      isFirstMessage: shouldGenerateTitle
     };
 
     // Generate AI response using TwinService
-    let aiResponse;
     try {
-      logger.info('Generating AI response for public chat:', { chatId, twinId: chat.twinId });
-      aiResponse = await twinService.generateDraftWithContext(context);
+      const draftResult = await twinService.generateDraftWithContext(context);
+      
+      if (typeof draftResult === 'object' && draftResult.response && draftResult.title) {
+        aiResponse = draftResult.response;
+        generatedTitle = draftResult.title;
+      } else if (typeof draftResult === 'string') {
+        aiResponse = draftResult;
+      } else {
+        aiResponse = "I'm having trouble thinking right now. Could you try again?";
+      }
       
       if (!aiResponse || aiResponse.trim().length === 0) {
         throw new Error('Empty response from AI');
       }
-      
-      logger.info('AI response generated successfully:', { responseLength: aiResponse.length });
     } catch (error) {
-      logger.error('AI response generation failed:', error);
+      logger.error('TwinService error:', error);
       aiResponse = "I'm having trouble thinking right now. Could you try again?";
     }
+
+    // Save user message AFTER generating response (so chatMemory.length === 0 check works for first message)
+    await db.query(`
+      INSERT INTO "PublicMessage" ("id", "chatId", "sender", "content", "approved", "requestId", "createdAt")
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    `, [visitorMessageId, chatId, 'human', message.trim(), true, requestId]);
 
     // Save AI response using raw SQL
     const aiMessageId = `pub_msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -305,6 +330,31 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
       INSERT INTO "PublicMessage" ("id", "chatId", "sender", "content", "approved", "createdAt")
       VALUES ($1, $2, $3, $4, $5, NOW())
     `, [aiMessageId, chatId, 'twin', aiResponse, true]);
+
+    // Update chat metadata and title
+    try {
+      if (generatedTitle) {
+        await db.query(`
+          UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "title" = $1, "lastActivity" = NOW() WHERE id = $2
+        `, [generatedTitle, chatId]);
+      } else if (isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '' || currentTitle === null)) {
+        // Fallback: use first 30 chars of message as title
+        const fallbackTitle = message.trim().length > 30 
+          ? message.trim().substring(0, 30) + '...' 
+          : message.trim();
+        if (fallbackTitle && fallbackTitle.trim().length > 0) {
+          await db.query(`
+            UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "title" = $1, "lastActivity" = NOW() WHERE id = $2
+          `, [fallbackTitle.trim(), chatId]);
+        }
+      } else {
+        await db.query(`
+          UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "lastActivity" = NOW() WHERE id = $1
+        `, [chatId]);
+      }
+    } catch (error) {
+      logger.warn('Failed to update chat metadata:', error);
+    }
 
     // ✅ OPTIMIZED: Send response immediately, update metadata async
     res.json({
@@ -322,15 +372,10 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
           sender: 'twin',
           createdAt: new Date()
         }
-      ]
+      ],
+      generatedTitle: generatedTitle || null,
+      isFirstMessage: isFirstMessage
     });
-
-    // ✅ POST-RESPONSE CLEANUP - ASYNC (non-blocking)
-    if (chatId) {
-      publicChatQueries.updateMessageCount(chatId).catch(err => 
-        logger.warn('Failed to update public chat message count:', err)
-      );
-    }
 
   } catch (error: any) {
     logger.error('sendPublicMessage error:', error);
@@ -522,6 +567,7 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
       messageCount: chat.messageCount || 0,
       createdAt: chat.createdAt,
       lastActivity: chat.lastActivity,
+      title: chat.title || null,
       lastMessage: chat.last_message ? {
         content: chat.last_message,
         createdAt: chat.last_message_time

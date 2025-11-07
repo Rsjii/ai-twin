@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthenticatedRequest } from '../../middleware/auth';
 import { db, publicTwinQueries } from '../../config/database';
 import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
@@ -326,8 +327,12 @@ export const getMyTwinProfile = async (req: Request, res: Response, next: NextFu
 export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { twinId } = req.params;
-    const { chatId } = req.query; // Get chatId from query params
+    // Get chatId from query params - handle both string and array
+    const chatIdParam = req.query.chatId;
+    const chatId = Array.isArray(chatIdParam) ? chatIdParam[0] : (chatIdParam as string);
     const userId = req.user?.id; // Get userId if logged in
+    
+    logger.info('getPublicChatPage:', { twinId, chatId, userId });
     
     // Get twin details (existing code)
     const twinResult = await db.query(`
@@ -350,9 +355,16 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
         WHERE id = $1 AND "twinId" = $2 AND "userId" = $3
       `, [chatId, twinId, userId]);
       
-      if (chatResult.rows.length > 0) {
+      if (chatResult && chatResult.rows && chatResult.rows.length > 0) {
         initialChatId = chatId;
+        logger.info('Valid chatId found:', { chatId, twinId, userId });
+      } else {
+        logger.warn('ChatId not found or not owned by user:', { chatId, twinId, userId });
       }
+    } else if (chatId && !userId) {
+      // If no userId but chatId provided, still try to use it (for anonymous users)
+      initialChatId = chatId;
+      logger.info('Using chatId without userId validation:', { chatId });
     }
     
     // Render with twin data and optional initial chatId

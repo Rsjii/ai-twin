@@ -1219,7 +1219,7 @@ function displayChatHistory(chats) {
             <div class="flex justify-between items-start">
                 <div class="flex-1">
                     <h4 class="font-medium text-sm ${chat.id === currentChatId ? 'text-blue-700' : ''}">${chat.title || 'Untitled Chat'}</h4>
-                    <p class="text-xs text-gray-500 truncate">${chat.lastMessage || 'No messages yet'}</p>
+                    <p class="text-xs text-gray-500 truncate">${chat.lastMessage ? (chat.lastMessage.length > 50 ? chat.lastMessage.substring(0, 50) + '...' : chat.lastMessage) : 'No messages yet'}</p>
                 </div>
                 <div class="text-xs text-gray-400">${formatTime(chat.updatedAt)}</div>
             </div>
@@ -1487,7 +1487,21 @@ if (messageForm) {
                     addResponseActionsButton(responseId);
                 }, 200); // 200ms delay to ensure actions container is created
                 
-                // ✅ Refresh chat history after a delay (to sync with backend - this will update count correctly)
+                // ✅ Update title if generated
+                if (data.generatedTitle) {
+                    console.log('📝 Title generated:', data.generatedTitle);
+                    // Update title in sidebar immediately
+                    const currentChatItem = document.querySelector(`.chat-item[data-chat-id="${currentChatId}"]`);
+                    if (currentChatItem) {
+                        const titleElement = currentChatItem.querySelector('h4');
+                        if (titleElement) {
+                            titleElement.textContent = data.generatedTitle;
+                            console.log('✅ Title updated in sidebar:', data.generatedTitle);
+                        }
+                    }
+                }
+                
+                // ✅ Refresh chat history after a delay (to sync with backend - this will update count and title correctly)
                 setTimeout(() => {
                     loadChatHistory();
                 }, 1000);

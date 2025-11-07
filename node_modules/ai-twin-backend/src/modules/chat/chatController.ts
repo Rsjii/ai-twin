@@ -149,7 +149,7 @@ export const getUserChats = async (req: AuthenticatedRequest, res: Response, nex
     }
 
     const chats = await db.query(`
-      SELECT c.id, c."twinId", c."createdAt",
+      SELECT c.id, c."twinId", c."title", c."createdAt", c."updatedAt", c."messageCount",
              t.id as twin_id, t."sampleReply",
              m.content as last_message, m."createdAt" as last_message_time
       FROM "Chat" c
@@ -162,10 +162,25 @@ export const getUserChats = async (req: AuthenticatedRequest, res: Response, nex
         LIMIT 1
       ) m ON true
       WHERE c."userId" = $1
-      ORDER BY c."createdAt" DESC
+      ORDER BY c."updatedAt" DESC, c."createdAt" DESC
     `, [req.user.id]);
     
-    res.json({ chats: chats.rows });
+    // Format response with proper field names (matching frontend expectations)
+    const formattedChats = chats.rows.map(chat => ({
+      id: chat.id,
+      twinId: chat.twinId,
+      title: chat.title || null, // ✅ Include title
+      createdAt: chat.createdAt,
+      updatedAt: chat.updatedAt || chat.createdAt, // Use updatedAt or fallback to createdAt
+      messageCount: chat.messageCount || 0,
+      lastMessage: chat.last_message || null, // Frontend expects lastMessage
+      twin: {
+        id: chat.twin_id,
+        sampleReply: chat.sampleReply
+      }
+    }));
+    
+    res.json({ chats: formattedChats });
   } catch (error) {
     if (error instanceof AppError) {
       throw error;
@@ -449,7 +464,11 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response, ne
     };
 
     // Generate draft with full context
-    const draft = await twinService.generateDraftWithContext(context);
+    const draftResult = await twinService.generateDraftWithContext(context);
+    // Handle both string and object response
+    const draft = typeof draftResult === 'object' && draftResult.response 
+      ? draftResult.response 
+      : (typeof draftResult === 'string' ? draftResult : '');
     
     // Log draft generated event using raw SQL
     await db.query(`
@@ -827,7 +846,17 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
         currentMessages: context.currentMessages
       });
       
-      aiResponse = await twinService.generateDraftWithContext(context);
+      const draftResult = await twinService.generateDraftWithContext(context);
+      
+      // Handle both string and object response (for title generation)
+      if (typeof draftResult === 'object' && draftResult.response) {
+        aiResponse = draftResult.response;
+        // Note: Title generation for regular Chat is handled in enhancedChatController
+      } else if (typeof draftResult === 'string') {
+        aiResponse = draftResult;
+      } else {
+        throw new Error('Invalid response format from AI');
+      }
       
       if (!aiResponse || aiResponse.trim().length === 0) {
         throw new Error('Empty response from AI');

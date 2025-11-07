@@ -54,6 +54,22 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     const chat = chatResult.rows[0];
     logger.info('✅ Chat found:', chat.id);
     
+    // Check if this is first message and get current title
+    let isFirstMessage = false;
+    let currentTitle = null;
+    try {
+      const titleCheckResult = await db.query(`
+        SELECT "title", "messageCount" FROM "Chat" WHERE id = $1
+      `, [chatId]);
+      if (titleCheckResult && titleCheckResult.rows && titleCheckResult.rows.length > 0) {
+        const chatInfo = titleCheckResult.rows[0];
+        isFirstMessage = chatInfo.messageCount === 0;
+        currentTitle = chatInfo.title;
+      }
+    } catch (err) {
+      logger.warn('Failed to check chat info for title:', err);
+    }
+    
     // 2. Get chat history for context
     const messagesResult = await db.query(`
       SELECT content, sender, "createdAt"
@@ -74,24 +90,34 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     const intent = classifyIntent(message);
     logger.info('🎯 Intent classified:', intent.intent);
 
-    // 4. Generate response using TwinService with full context
+    // Generate response using TwinService with full context (and title if first message)
     let response = "I'm your AI twin! How can I help you today?";
+    let generatedTitle: string | null = null;
+    const shouldGenerateTitle = isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '');
     
     try {
-      logger.info('🤖 Generating response with TwinService...');
       const twinService = new TwinService();
-      response = await twinService.generateDraftWithContext({
+      const draftResult = await twinService.generateDraftWithContext({
         styleVector: chat.styleVector,
         personaData: chat.personaData,
         systemPrompt: chat.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.",
         tokenLimit: chat.tokenLimit || 500,
-        chatMemory: chatHistory, // Use full chat history
+        chatMemory: chatHistory,
         currentMessages: [message],
-        twinId: chat.twin_id
+        twinId: chat.twin_id,
+        isFirstMessage: shouldGenerateTitle
       });
-      logger.info('✅ Response generated:', response.substring(0, 50) + '...');
+      
+      if (typeof draftResult === 'object' && draftResult.response && draftResult.title) {
+        response = draftResult.response;
+        generatedTitle = draftResult.title;
+      } else if (typeof draftResult === 'string') {
+        response = draftResult;
+      } else {
+        response = "I'm having trouble thinking right now. Could you try again?";
+      }
     } catch (error) {
-      logger.error('❌ TwinService error:', error);
+      logger.error('TwinService error:', error);
       response = "I'm having trouble thinking right now. Could you try again?";
     }
 
@@ -119,15 +145,30 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
       logger.warn('⚠️ Failed to save AI response:', error);
     }
 
-        // 8. Update chat metadata
-        try {
+    // Update chat metadata and title
+    try {
+      if (generatedTitle) {
+        await db.query(`
+          UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "title" = $2, "updatedAt" = NOW() WHERE id = $3
+        `, [response, generatedTitle, chatId]);
+      } else if (isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '')) {
+        // Fallback: use first 30 chars of message as title
+        const fallbackTitle = message.trim().length > 30 
+          ? message.trim().substring(0, 30) + '...' 
+          : message.trim();
+        if (fallbackTitle && fallbackTitle.trim().length > 0) {
           await db.query(`
-            UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = NOW() WHERE id = $2
-          `, [response, chatId]);
-          logger.info('✅ Chat metadata updated');
-        } catch (error) {
-          logger.warn('⚠️ Failed to update chat metadata:', error);
+            UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "title" = $2, "updatedAt" = NOW() WHERE id = $3
+          `, [response, fallbackTitle.trim(), chatId]);
         }
+      } else {
+        await db.query(`
+          UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = NOW() WHERE id = $2
+        `, [response, chatId]);
+      }
+    } catch (error) {
+      logger.warn('Failed to update chat metadata:', error);
+    }
 
     // 7. Log AI run (optional)
     try {
@@ -147,7 +188,9 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
       response: response,
       intent: intent.intent,
       criticScore: null,
-      latency: 1000
+      latency: 1000,
+      generatedTitle: generatedTitle || null,
+      isFirstMessage: isFirstMessage
     });
 
   } catch (error) {
@@ -379,7 +422,7 @@ RULES:
 
 async function generateFirstPass(persona: string, message: string, intent: any, chat: any): Promise<string> {
   try {
-    const response = await twinService.generateDraftWithContext({
+    const draftResult = await twinService.generateDraftWithContext({
       styleVector: chat.styleVector,
       personaData: chat.personaData,
       systemPrompt: persona,
@@ -388,6 +431,11 @@ async function generateFirstPass(persona: string, message: string, intent: any, 
       currentMessages: [message],
       twinId: chat.twin_id
     });
+    
+    // Handle both string and object response
+    const response = typeof draftResult === 'object' && draftResult.response 
+      ? draftResult.response 
+      : (typeof draftResult === 'string' ? draftResult : "I'm having trouble thinking right now. Could you try again?");
     
     return response;
   } catch (error) {
