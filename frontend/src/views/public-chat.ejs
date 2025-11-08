@@ -187,7 +187,6 @@
                     </div>
                     <div class="flex items-center justify-between mt-2">
                         <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">${chat.messageCount || 0} messages</span>
-                        <div class="text-xs text-gray-400">${formatTime(chat.createdAt)}</div>
                     </div>
                 </div>
             `).join('');
@@ -577,15 +576,9 @@
                     
                     setTimeout(typeNextWord, speed);
                 } else {
-                    // Typing complete - show final text with timestamp
+                    // Typing complete - show final text
                     messageContent.innerHTML = `
                         <p class="text-sm">${fullText}</p>
-                        <p class="text-xs mt-1 opacity-75">
-                            ${metadata && metadata.timestamp ? 
-                                new Date(metadata.timestamp).toLocaleTimeString() : 
-                                new Date().toLocaleTimeString()
-                            }
-                        </p>
                     `;
                     
                     // Call callback if provided
@@ -674,17 +667,6 @@
             }
         }
 
-        // Format time helper
-        function formatTime(timestamp) {
-            const date = new Date(timestamp);
-            const now = new Date();
-            const diff = now - date;
-            
-            if (diff < 60000) return 'Just now';
-            if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-            if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-            return Math.floor(diff / 86400000) + 'd ago';
-        }
 
         // Show notification function
         function showNotification(message, type = 'info') {

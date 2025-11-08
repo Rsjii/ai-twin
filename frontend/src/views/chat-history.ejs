@@ -149,11 +149,6 @@ function displayChatHistory(chats) {
             <div class="text-sm text-gray-600 mb-2">
                 <p class="truncate">\${chat.lastMessage ? chat.lastMessage.content : 'No messages yet'}</p>
             </div>
-            
-            <div class="flex items-center justify-between text-xs text-gray-500">
-                <span>\${new Date(chat.createdAt).toLocaleDateString()}</span>
-                <span>\${new Date(chat.createdAt).toLocaleTimeString()}</span>
-            </div>
         </div>
     \`).join('');
 }
@@ -170,7 +165,7 @@ function selectChat(chatId) {
     
     // Update chat details
     document.getElementById('chatTitle').textContent = \`Chat #\${chat.id.slice(-6)}\`;
-    document.getElementById('chatInfo').textContent = \`\${chat.messageCount} messages • Created \${new Date(chat.createdAt).toLocaleDateString()}\`;
+    document.getElementById('chatInfo').textContent = \`\${chat.messageCount} messages\`;
     
     // Display messages
     displayChatMessages(chat.messages);
@@ -188,10 +183,7 @@ function displayChatMessages(messages) {
         <div class="flex \${msg.sender === 'human' ? 'justify-end' : 'justify-start'}">
             <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg \${msg.sender === 'human' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-800'}">
                 <p class="text-sm">\${msg.content}</p>
-                <p class="text-xs mt-1 opacity-75">
-                    \${new Date(msg.createdAt).toLocaleTimeString()}
-                    \${msg.sender === 'twin' ? ' • AI-generated' : ''}
-                </p>
+                \${msg.sender === 'twin' ? '<p class="text-xs mt-1 opacity-75">AI-generated</p>' : ''}
             </div>
         </div>
     \`).join('');

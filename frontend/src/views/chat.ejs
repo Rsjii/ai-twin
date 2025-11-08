@@ -176,10 +176,7 @@ function displayMessages(messages) {
                 : 'bg-gray-200 text-gray-800'
         }">
             <p>${msg.content}</p>
-            <p class="text-xs mt-1 opacity-75">
-                ${new Date(msg.createdAt).toLocaleTimeString()}
-                ${msg.sender === 'twin' ? ' • AI-generated' : ''}
-            </p>
+            ${msg.sender === 'twin' ? '<p class="text-xs mt-1 opacity-75">AI-generated</p>' : ''}
         </div>
         ${msg.sender === 'twin' ? `
             <!-- Feedback buttons for AI messages -->
@@ -238,10 +235,7 @@ messageDiv.innerHTML = `
             : 'bg-gray-200 text-gray-800'
     }">
         <p>${content}</p>
-        <p class="text-xs mt-1 opacity-75">
-            ${new Date().toLocaleTimeString()}
-            ${sender === 'twin' ? ' • AI-generated' : ''}
-        </p>
+        ${sender === 'twin' ? '<p class="text-xs mt-1 opacity-75">AI-generated</p>' : ''}
     </div>
     ${sender === 'twin' ? `
         <!-- Feedback buttons for AI messages -->
@@ -400,7 +394,6 @@ function displayChatHistory(chats) {
             </div>
             ${chat.lastMessage ? `
                 <p class="text-xs text-gray-600 truncate">${chat.lastMessage.content}</p>
-                <p class="text-xs text-gray-400 mt-1">${new Date(chat.updatedAt).toLocaleDateString()}</p>
             ` : `
                 <p class="text-xs text-gray-500">No messages yet</p>
             `}

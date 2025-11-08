@@ -663,15 +663,9 @@ function addMessageToChat(sender, content, isTyping = false, metadata = null) {
             </div>
         `;
     } else {
-        messageContent.innerHTML = `
-            <p class="text-sm">${content}</p>
-            <p class="text-xs mt-1 opacity-75">
-                ${metadata && metadata.timestamp ? 
-                    new Date(metadata.timestamp).toLocaleTimeString() : 
-                    new Date().toLocaleTimeString()
-                }
-            </p>
-        `;
+    messageContent.innerHTML = `
+        <p class="text-sm">${content}</p>
+    `;
     }
     
     messageWrapper.appendChild(messageContent);
@@ -753,12 +747,6 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
             // Typing complete - show final text with timestamp
             messageContent.innerHTML = `
                 <p class="text-sm">${fullText}</p>
-                <p class="text-xs mt-1 opacity-75">
-                    ${metadata && metadata.timestamp ? 
-                        new Date(metadata.timestamp).toLocaleTimeString() : 
-                        new Date().toLocaleTimeString()
-                    }
-                </p>
             `;
             
             // Add metadata display if provided
@@ -980,11 +968,6 @@ function updateSidebarImmediately(aiResponse, userMessage) {
             console.log('✅ Updated last message:', truncated);
         }
         
-        // ✅ Update timestamp
-        const timeSpan = currentChatItem.querySelector('.text-xs.text-gray-400');
-        if (timeSpan) {
-            timeSpan.textContent = 'Just now';
-        }
     } else {
         console.warn('⚠️ Chat item not found in sidebar');
     }
@@ -1063,9 +1046,6 @@ async function loadCurrentChatMessages() {
     
     messageContent.innerHTML = `
         <p class="text-sm">${msg.content}</p>
-        <p class="text-xs mt-1 opacity-75">
-            ${new Date(msg.createdAt).toLocaleTimeString()}
-        </p>
     `;
     
     messageWrapper.appendChild(messageContent);
@@ -1151,9 +1131,6 @@ async function loadChatMessages() {
                     
                     messageContent.innerHTML = `
                         <p class="text-sm">${msg.content}</p>
-                        <p class="text-xs mt-1 opacity-75">
-                            ${new Date(msg.createdAt).toLocaleTimeString()}
-                        </p>
                     `;
                     
                     // ✅ Create actions container for AI messages
@@ -1251,7 +1228,6 @@ function displayChatHistory(chats) {
             </div>
             <div class="flex items-center justify-between mt-2">
                 <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">${chat.messageCount || 0} messages</span>
-                <div class="text-xs text-gray-400">${formatTime(chat.updatedAt)}</div>
             </div>
         </div>
     `).join('');
@@ -1518,19 +1494,9 @@ async function createNewChat() {
     }
 }
 
-// Format time helper
-function formatTime(timestamp) {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-    
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-    return Math.floor(diff / 86400000) + 'd ago';
-}
 
-        // Initialize chat
+
+// Initialize chat
         document.addEventListener('DOMContentLoaded', function() {
             // Get chat ID from EJS variable
             currentChatId = '<%= chatId %>';
@@ -1647,10 +1613,10 @@ if (messageForm) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': '<%= csrfToken %>',
-                    credentials: 'include'
+                    'X-CSRF-Token': '<%= csrfToken %>'
                 },
-                body: JSON.stringify({ message: message })
+                credentials: 'include',
+                body: JSON.stringify({ content: message })
             });
 
             // Clear input after saving

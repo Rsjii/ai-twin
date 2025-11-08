@@ -226,9 +226,6 @@
                 // Avatar initial
                 const avatarInitial = (twin.publicHandle || 'T').charAt(0).toUpperCase();
 
-                // Time ago
-                const timeSource = lastMessage?.createdAt || latestChat?.lastActivity || latestChat?.createdAt;
-                const timeAgo = timeSource ? formatTimeAgo(new Date(timeSource)) : 'Recently';
 
                 // Last message preview
                 const lastMessagePreview = lastMessage?.content 
@@ -251,7 +248,6 @@
                                 ${twin.verified ? '<span class="text-sm text-primary">✓</span>' : ''}
                             </div>
                             <p class="text-sm text-gray-500 line-clamp-1">${twin.bio || 'No bio available'}</p>
-                            <p class="text-xs text-gray-400 mt-1">${timeAgo}</p>
                         </div>
                     </div>
                     
@@ -285,20 +281,6 @@
             });
         }
 
-        // Format time ago
-        function formatTimeAgo(date) {
-            const now = new Date();
-            const diff = now - date;
-            const seconds = Math.floor(diff / 1000);
-            const minutes = Math.floor(seconds / 60);
-            const hours = Math.floor(minutes / 60);
-            const days = Math.floor(hours / 24);
-
-            if (days > 0) return `${days}d ago`;
-            if (hours > 0) return `${hours}h ago`;
-            if (minutes > 0) return `${minutes}m ago`;
-            return 'Just now';
-        }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {

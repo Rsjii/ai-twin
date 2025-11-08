@@ -145,7 +145,6 @@
                     
                     // Update twin info display
                     document.getElementById('twinId').textContent = latestTwin.id.slice(-6);
-                    document.getElementById('twinCreated').textContent = new Date(latestTwin.createdAt).toLocaleDateString();
                 } else {
                     console.error('No twins found');
                 }
@@ -183,9 +182,6 @@
                             : 'bg-gray-200 text-gray-800'
                     }">
                         <p class="text-sm">${msg.content}</p>
-                        <p class="text-xs mt-1 opacity-75">
-                            ${new Date(msg.createdAt).toLocaleTimeString()}
-                        </p>
                     </div>
                 </div>
             `).join('');
@@ -205,9 +201,6 @@
                         : 'bg-gray-200 text-gray-800'
                 }">
                     <p class="text-sm">${message}</p>
-                    <p class="text-xs mt-1 opacity-75">
-                        ${new Date().toLocaleTimeString()}
-                    </p>
                 </div>
             `;
             
