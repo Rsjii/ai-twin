@@ -1,5 +1,7 @@
 import { Response } from 'express';
 import { db, twinQueries } from '../config/database';
+import { logger } from '../config/logger';
+import { AppError, createError } from '../utils/errors';
 
 /**
  * Twin Management Page - Complete twin dashboard
@@ -40,7 +42,10 @@ export async function getTwinManage(req: any, res: Response) {
           return { rows: [{ count: '0' }] };
         }
         // For other errors, log and return empty
-        console.error('Query error (non-retry):', queryText.substring(0, 50), error?.message);
+        logger.warn('Query error (non-retry):', {
+          query: queryText.substring(0, 50),
+          error: error?.message
+        });
         return { rows: [{ count: '0' }] };
       }
     };
@@ -133,7 +138,10 @@ export async function getTwinManage(req: any, res: Response) {
       `, [twinId]);
       recentChats = recentChatsResult.rows || [];
     } catch (error) {
-      console.error('Error fetching recent chats:', error);
+      logger.warn('Error fetching recent chats:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        twinId: twinId
+      });
       recentChats = [];
     }
 
@@ -151,7 +159,10 @@ export async function getTwinManage(req: any, res: Response) {
       `, [twinId]);
       publicTwin = publicTwinResult.rows.length > 0 ? publicTwinResult.rows[0] : null;
     } catch (error) {
-      console.error('Error fetching public twin:', error);
+      logger.warn('Error fetching public twin:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        twinId: twinId
+      });
       publicTwin = null;
     }
 
@@ -179,19 +190,27 @@ export async function getTwinManage(req: any, res: Response) {
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {
-    console.error('Twin manage page error:', error);
-    // Try to render error page, if that fails send JSON
-    try {
-      res.status(500).render('error', {
-        message: 'Failed to load twin management page',
+    logger.error('Twin manage page error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: req.user?.id,
+      path: req.path
+    });
+    
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).render('error', {
+        title: 'Error',
+        message: error.message,
+        errorCode: error.errorCode,
         user: req.user || null
       });
-    } catch (renderError) {
-      console.error('Error rendering error page:', renderError);
-      res.status(500).json({
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
     }
+    
+    const appError = createError.internal('Failed to load twin management page', error);
+    return res.status(appError.statusCode).render('error', {
+      title: 'Error',
+      message: appError.message,
+      errorCode: appError.errorCode,
+      user: req.user || null
+    });
   }
 }

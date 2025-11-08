@@ -1,5 +1,7 @@
 import { Response } from 'express';
 import { db } from '../config/database';
+import { logger } from '../config/logger';
+import { AppError, createError, ErrorCodes } from '../utils/errors';
 
 /**
  * My Twins page - Redirects to twin management page
@@ -31,9 +33,12 @@ export function getTwinCreate(req: any, res: Response) {
 export async function getTwinAiEdit(req: any, res: Response) {
   try {
     const { id: twinId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user?.id;
     
-    // Verify twin ownership
+    if (!userId) {
+      return res.redirect('/auth');
+    }
+    
     const twinResult = await db.query(`
       SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version"
       FROM "Twin" 
@@ -41,10 +46,7 @@ export async function getTwinAiEdit(req: any, res: Response) {
     `, [twinId, userId]);
     
     if (twinResult.rows.length === 0) {
-      return res.status(404).render('error', { 
-        message: 'Twin not found or access denied',
-        user: req.user 
-      });
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     res.render('ai-edit', { 
@@ -54,10 +56,28 @@ export async function getTwinAiEdit(req: any, res: Response) {
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {
-    console.error('AI edit route error:', error);
-    res.status(500).render('error', { 
-      message: 'Internal server error',
-      user: req.user 
+    logger.error('AI edit route error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: req.user?.id,
+      twinId: req.params.id,
+      path: req.path
+    });
+    
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).render('error', {
+        title: 'Error',
+        message: error.message,
+        errorCode: error.errorCode,
+        user: req.user || null
+      });
+    }
+    
+    const appError = createError.internal('Failed to load AI edit page', error);
+    return res.status(appError.statusCode).render('error', {
+      title: 'Error',
+      message: appError.message,
+      errorCode: appError.errorCode,
+      user: req.user || null
     });
   }
 }
@@ -68,9 +88,12 @@ export async function getTwinAiEdit(req: any, res: Response) {
 export async function getTwinStyleCustomize(req: any, res: Response) {
   try {
     const { id: twinId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user?.id;
     
-    // Verify twin ownership
+    if (!userId) {
+      return res.redirect('/auth');
+    }
+    
     const twinResult = await db.query(`
       SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version"
       FROM "Twin" 
@@ -78,10 +101,7 @@ export async function getTwinStyleCustomize(req: any, res: Response) {
     `, [twinId, userId]);
     
     if (twinResult.rows.length === 0) {
-      return res.status(404).render('error', { 
-        message: 'Twin not found or access denied',
-        user: req.user 
-      });
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     res.render('style-customize', { 
@@ -91,10 +111,28 @@ export async function getTwinStyleCustomize(req: any, res: Response) {
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {
-    console.error('Style customize route error:', error);
-    res.status(500).render('error', { 
-      message: 'Internal server error',
-      user: req.user 
+    logger.error('Style customize route error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: req.user?.id,
+      twinId: req.params.id,
+      path: req.path
+    });
+    
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).render('error', {
+        title: 'Error',
+        message: error.message,
+        errorCode: error.errorCode,
+        user: req.user || null
+      });
+    }
+    
+    const appError = createError.internal('Failed to load style customize page', error);
+    return res.status(appError.statusCode).render('error', {
+      title: 'Error',
+      message: appError.message,
+      errorCode: appError.errorCode,
+      user: req.user || null
     });
   }
 }
@@ -105,9 +143,12 @@ export async function getTwinStyleCustomize(req: any, res: Response) {
 export async function getTwinLearningDashboard(req: any, res: Response) {
   try {
     const { id: twinId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user?.id;
     
-    // Verify twin ownership
+    if (!userId) {
+      return res.redirect('/auth');
+    }
+    
     const twinResult = await db.query(`
       SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version"
       FROM "Twin" 
@@ -115,10 +156,7 @@ export async function getTwinLearningDashboard(req: any, res: Response) {
     `, [twinId, userId]);
     
     if (twinResult.rows.length === 0) {
-      return res.status(404).render('error', { 
-        message: 'Twin not found or access denied',
-        user: req.user 
-      });
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
     }
     
     res.render('learning-dashboard', { 
@@ -128,10 +166,28 @@ export async function getTwinLearningDashboard(req: any, res: Response) {
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {
-    console.error('Learning dashboard route error:', error);
-    res.status(500).render('error', { 
-      message: 'Internal server error',
-      user: req.user 
+    logger.error('Learning dashboard route error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: req.user?.id,
+      twinId: req.params.id,
+      path: req.path
+    });
+    
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).render('error', {
+        title: 'Error',
+        message: error.message,
+        errorCode: error.errorCode,
+        user: req.user || null
+      });
+    }
+    
+    const appError = createError.internal('Failed to load learning dashboard', error);
+    return res.status(appError.statusCode).render('error', {
+      title: 'Error',
+      message: appError.message,
+      errorCode: appError.errorCode,
+      user: req.user || null
     });
   }
 }

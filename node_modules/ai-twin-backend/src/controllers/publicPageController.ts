@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { db } from '../config/database';
 import { logger } from '../config/logger';
+import { AppError, createError, ErrorCodes } from '../utils/errors';
 
 /**
  * Landing page - Public home page
@@ -70,11 +71,27 @@ export async function getPublicProfile(req: any, res: Response) {
     });
 
   } catch (error) {
-    console.error('Public profile error:', error);
-    logger.error('Public profile error:', error);
-    res.status(500).render('404', { 
+    logger.error('Public profile error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      handle: req.params.handle,
+      path: req.path
+    });
+    
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).render('error', {
+        title: 'Error',
+        message: error.message,
+        errorCode: error.errorCode,
+        user: req.user || null
+      });
+    }
+    
+    const appError = createError.internal('Failed to load public profile', error);
+    return res.status(appError.statusCode).render('error', {
       title: 'Error',
-      message: 'Something went wrong'
+      message: appError.message,
+      errorCode: appError.errorCode,
+      user: req.user || null
     });
   }
 }

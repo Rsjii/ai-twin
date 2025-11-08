@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../config/database';
 import { logger } from '../config/logger';
+import { AppError, createError, ErrorCodes } from '../utils/errors';
 
 /**
  * Test route - Basic health check
@@ -28,8 +29,23 @@ export const testDatabase = async (_req: Request, res: Response) => {
   try {
     const result = await db.query('SELECT COUNT(*) as count FROM "User"');
     res.json({ message: 'Database working!', userCount: result?.rows[0]?.count });
-  } catch (error: any) {
-    res.status(500).json({ error: 'Database error', details: error.message });
+  } catch (error) {
+    logger.error('Test database error:', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        errorCode: error.errorCode
+      });
+    }
+    
+    const appError = createError.internal('Database error', error);
+    return res.status(appError.statusCode).json({ 
+      error: appError.message,
+      errorCode: appError.errorCode
+    });
   }
 };
 
@@ -40,14 +56,29 @@ export const testAuth = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
     if (!email) {
-      return res.status(400).json({ error: 'Email required' });
+      throw createError.validation('Email required');
     }
     
     const { userQueries } = await import('../config/database');
     const user = await userQueries.findByEmail(email);
     return res.json({ message: 'Auth working!', userExists: !!user });
-  } catch (error: any) {
-    return res.status(500).json({ error: 'Auth error', details: error.message });
+  } catch (error) {
+    logger.error('Test auth error:', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        errorCode: error.errorCode
+      });
+    }
+    
+    const appError = createError.internal('Auth error', error);
+    return res.status(appError.statusCode).json({ 
+      error: appError.message,
+      errorCode: appError.errorCode
+    });
   }
 };
 
@@ -61,47 +92,37 @@ export const testOTP = async (req: Request, res: Response) => {
     // If code is provided, this is a verification request
     if (code) {
       if (!email) {
-        return res.status(400).json({ error: 'Email required for verification' });
+        throw createError.validation('Email required for verification');
       }
       
-      // Verify OTP
       const { verifyOTP } = await import('../modules/auth/authService.js');
       const { otpQueries } = await import('../config/database.js');
       
-      // Get stored OTP
       const storedOTP = await otpQueries.findByEmail(email.toLowerCase());
       if (!storedOTP) {
-        return res.status(400).json({ error: 'No OTP found for this email' });
+        throw createError.notFound('No OTP found for this email');
       }
       
-      // Check if OTP is expired
       if (new Date() > storedOTP.expires_at) {
-        return res.status(400).json({ error: 'OTP has expired' });
+        throw createError.validation('OTP has expired');
       }
       
-      // Check if OTP is already used
       if (storedOTP.used) {
-        return res.status(400).json({ error: 'OTP has already been used' });
+        throw createError.validation('OTP has already been used');
       }
       
-      // Verify the code
       const isValid = await verifyOTP(code, storedOTP.codeHash);
       if (!isValid) {
-        return res.status(400).json({ error: 'Invalid OTP code' });
+        throw createError.validation('Invalid OTP code');
       }
       
-      // OTP is valid - create user session
       req.session!.userId = 'test-user-id';
       req.session!.userEmail = email.toLowerCase();
       req.session!.userHandle = email.split('@')[0];
       
-      // Clean up used OTP
       await otpQueries.markAsUsed(storedOTP.id);
       
-      console.log('\n✅ ===== OTP VERIFIED (TEST) =====');
-      console.log(`📧 Email: ${email}`);
-      console.log(`🔑 OTP Code: ${code}`);
-      console.log('=====================================\n');
+      logger.info('OTP verified (test)', { email });
       
       return res.json({ 
         message: 'OTP verification successful!', 
@@ -112,33 +133,41 @@ export const testOTP = async (req: Request, res: Response) => {
     
     // If no code provided, this is a generation request
     if (!email) {
-      return res.status(400).json({ error: 'Email required' });
+      throw createError.validation('Email required');
     }
     
-    // Generate OTP
     const { generateOTP, hashOTP } = await import('../modules/auth/authService.js');
     const otp = generateOTP(6);
     const hashedOTP = await hashOTP(otp);
-    
-    // Set expiry time
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     
-    // Store OTP in database
     const { otpQueries } = await import('../config/database.js');
     await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt);
     
-    console.log('\n🔐 ===== OTP GENERATED (TEST) =====');
-    console.log(`📧 Email: ${email}`);
-    console.log(`🔑 OTP Code: ${otp}`);
-    console.log('=====================================\n');
+    logger.info('OTP generated (test)', { email });
     
     return res.json({ 
       message: 'OTP generated successfully!', 
       otp: otp,
       email: email 
     });
-  } catch (error: any) {
-    return res.status(500).json({ error: 'OTP operation error', details: error.message });
+  } catch (error) {
+    logger.error('Test OTP error:', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        errorCode: error.errorCode
+      });
+    }
+    
+    const appError = createError.internal('OTP operation error', error);
+    return res.status(appError.statusCode).json({ 
+      error: appError.message,
+      errorCode: appError.errorCode
+    });
   }
 };
 
@@ -169,9 +198,24 @@ export const testProfile = async (req: any, res: Response) => {
       user: user,
       csrfToken: res.locals['csrfToken']
     });
-  } catch (error: any) {
-    logger.error('Test profile error:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+  } catch (error) {
+    logger.error('Test profile error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: req.user?.id
+    });
+    
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        errorCode: error.errorCode
+      });
+    }
+    
+    const appError = createError.internal('Internal server error', error);
+    return res.status(appError.statusCode).json({ 
+      error: appError.message,
+      errorCode: appError.errorCode
+    });
   }
 };
 

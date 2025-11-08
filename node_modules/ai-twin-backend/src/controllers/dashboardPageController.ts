@@ -3,6 +3,8 @@
 import { Response } from 'express';
 import { userQueries, twinQueries } from '../config/database';
 import { db } from '../config/database';
+import { logger } from '../config/logger';
+import { AppError, createError } from '../utils/errors';
 
 /**
  * Dashboard page - Main user dashboard
@@ -65,8 +67,10 @@ export async function getDashboard(req: any, res: Response) {
         stats.totalFollowers = twinData.followCount || 0;
       }
     } catch (error) {
-      console.error('Error fetching stats:', error);
-      // Continue with default stats
+      logger.warn('Error fetching stats:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userId: fullUser.id
+      });
     }
     
     // Fetch recent activity (last 5 chats)
@@ -89,8 +93,10 @@ export async function getDashboard(req: any, res: Response) {
         }));
       }
     } catch (error) {
-      console.error('Error fetching recent activity:', error);
-      // Continue with empty array
+      logger.warn('Error fetching recent activity:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userId: fullUser.id
+      });
     }
     
     // Set user data with all fields including profileImage
@@ -113,9 +119,26 @@ export async function getDashboard(req: any, res: Response) {
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {
-    console.error('Dashboard page error:', error);
-    res.status(500).render('error', {
-      message: 'Failed to load dashboard',
+    logger.error('Dashboard page error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: req.user?.id,
+      path: req.path
+    });
+    
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).render('error', {
+        title: 'Error',
+        message: error.message,
+        errorCode: error.errorCode,
+        user: req.user || null
+      });
+    }
+    
+    const appError = createError.internal('Failed to load dashboard', error);
+    return res.status(appError.statusCode).render('error', {
+      title: 'Error',
+      message: appError.message,
+      errorCode: appError.errorCode,
       user: req.user || null
     });
   }
