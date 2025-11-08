@@ -8,7 +8,7 @@ import rateLimit from 'express-rate-limit';
 // Global rate limiter (applied to all routes) - TESTING MODE
 export const globalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500000, // ✅ 500k requests per window (increased for testing)
+  max: 5000000, // ✅ 500k requests per window (increased for testing)
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: '15 minutes'
@@ -93,7 +93,7 @@ export const inviteCreationRateLimit = rateLimit({
 // API rate limiter (for general API endpoints) - TESTING MODE
 export const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50000, // ✅ Increased to 50k API requests per 15 minutes (testing)
+  max: 500000, // ✅ Increased to 50k API requests per 15 minutes (testing)
   keyGenerator: (req) => {
     return req.user?.userId || req.ip || 'unknown';
   },

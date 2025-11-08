@@ -3,8 +3,6 @@ import { signup, signupVerify, completeProfile, login, loginVerify, forgotPasswo
 import { otpRequestRateLimit } from '../../middleware/rateLimit';
 import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
 import { sanitizeInput } from '../../middleware/validation';
-import { requireAuth } from '../../middleware/auth';
-import { authenticateJWT } from '../../middleware/jwtAuth';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 
 const router = Router();
