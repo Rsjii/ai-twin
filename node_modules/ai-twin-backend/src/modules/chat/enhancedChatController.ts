@@ -70,7 +70,7 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
       logger.warn('Failed to check chat info for title:', err);
     }
     
-    // 2. Get chat history for context
+    // 2. Get chat history for context (BEFORE saving user message)
     const messagesResult = await db.query(`
       SELECT content, sender, "createdAt"
       FROM "Message"

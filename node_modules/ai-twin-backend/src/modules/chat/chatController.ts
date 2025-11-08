@@ -733,7 +733,64 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
         suggestions: autoModeration.suggestions || ['Please revise your message']
       });
     }
+
+    // ✅ STEP 1: Check if this is first message and get current title (BEFORE saving user message)
+    // Check if this is first message and get current title
+    let isFirstMessage = false;
+    let currentTitle = null;
+    try {
+      const messageCountResult = await db.query(`
+        SELECT COUNT(*) as count
+        FROM "Message"
+        WHERE "chatId" = $1 AND approved = true
+      `, [chat.id]);
+      const messageCount = parseInt(messageCountResult.rows[0]?.count || '0');
+      isFirstMessage = messageCount === 0;
+      
+      const titleResult = await db.query(`
+        SELECT "title"
+        FROM "Chat"
+        WHERE id = $1
+      `, [chat.id]);
+      currentTitle = titleResult.rows[0]?.title || null;
+    } catch (err) {
+      logger.warn('Failed to check chat info for title:', err);
+    }
     
+    const shouldGenerateTitle = isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '' || currentTitle === null);
+
+    // ✅ STEP 2: Get recent messages BEFORE saving user message (so chatMemory.length === 0 for first message)
+    // OPTIMIZED: Get session memory and recent messages in parallel
+    let sessionMemory = null;
+    let recentMessages = [];
+    
+    try {
+      const [sessionMemoryResult, recentMessagesResult] = await Promise.all([
+        memoryService.getSessionMemory(chat.id).catch(err => {
+          logger.error('Error getting session memory:', err);
+          return null;
+        }),
+        db.query(`
+      SELECT content, sender, "createdAt"
+      FROM "Message"
+      WHERE "chatId" = $1 AND approved = true
+      ORDER BY "createdAt" DESC
+      LIMIT 10
+        `, [chat.id]).catch(err => {
+          logger.error('Error getting recent messages:', err);
+          return { rows: [] };
+        })
+      ]);
+      
+      sessionMemory = sessionMemoryResult;
+      recentMessages = recentMessagesResult.rows || [];
+      logger.info('Session memory retrieved:', sessionMemory ? 'Found' : 'Not found');
+    } catch (error) {
+      logger.error('Error in parallel data fetching:', error);
+      // Continue without session memory
+    }
+    
+    // ✅ STEP 3: NOW save user message (AFTER getting messages)
     // Save user message using raw SQL (only if approved)
     let userMessage;
     try {
@@ -786,37 +843,14 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       throw createError.internal('Failed to save user message', error);
     }
 
-    // OPTIMIZED: Get session memory and recent messages in parallel
-    let sessionMemory = null;
-    let recentMessages = [];
-    
-    try {
-      const [sessionMemoryResult, recentMessagesResult] = await Promise.all([
-        memoryService.getSessionMemory(chat.id).catch(err => {
-          logger.error('Error getting session memory:', err);
-          return null;
-        }),
-        db.query(`
-      SELECT content, sender, "createdAt"
-      FROM "Message"
-      WHERE "chatId" = $1 AND approved = true
-      ORDER BY "createdAt" DESC
-      LIMIT 10
-        `, [chat.id]).catch(err => {
-          logger.error('Error getting recent messages:', err);
-          return { rows: [] };
-        })
-      ]);
-      
-      sessionMemory = sessionMemoryResult;
-      recentMessages = recentMessagesResult.rows;
-      logger.info('Session memory retrieved:', sessionMemory ? 'Found' : 'Not found');
-    } catch (error) {
-      logger.error('Error in parallel data fetching:', error);
-      // Continue without session memory
-    }
-
+    // ✅ STEP 4: Create context with messages from BEFORE saving (chatMemory.length === 0 for first message)
     // Create context for AI response generation (INCLUDING SESSION MEMORY)
+    const chatMemory = recentMessages.reverse().map(msg => ({
+      content: msg.content,
+      sender: msg.sender,
+      timestamp: msg.createdAt
+    }));
+    
     const context = {
       styleVector: chat.styleVector as any,
       personaData: chat.personaData as any,
@@ -827,17 +861,15 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
         summary: sessionMemory.summary,
         keyTopics: sessionMemory.keyTopics || []
       } : null, // ✅ ADD SESSION MEMORY TO CONTEXT
-      chatMemory: recentMessages.reverse().map(msg => ({
-        content: msg.content,
-        sender: msg.sender,
-        timestamp: msg.createdAt
-      })),
+      chatMemory: chatMemory,
       currentMessages: [message.trim()],
-      twinId: chat.twinId // Add twinId for memory retrieval
+      twinId: chat.twinId, // Add twinId for memory retrieval
+      isFirstMessage: shouldGenerateTitle // Add flag for title generation
     };
 
     // Generate AI response using TwinService
-    let aiResponse;
+    let aiResponse: string;
+    let generatedTitle: string | null = null;
     try {
       logger.info('Generating AI response with context:', {
         styleVector: context.styleVector,
@@ -849,12 +881,15 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       const draftResult = await twinService.generateDraftWithContext(context);
       
       // Handle both string and object response (for title generation)
-      if (typeof draftResult === 'object' && draftResult.response) {
+      if (typeof draftResult === 'object' && draftResult.response && draftResult.title) {
         aiResponse = draftResult.response;
-        // Note: Title generation for regular Chat is handled in enhancedChatController
+        generatedTitle = draftResult.title;
+      } else if (typeof draftResult === 'object' && draftResult.response) {
+        aiResponse = draftResult.response;
       } else if (typeof draftResult === 'string') {
         aiResponse = draftResult;
       } else {
+        logger.error('Invalid response format from AI');
         throw new Error('Invalid response format from AI');
       }
       
@@ -895,6 +930,8 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
     res.json({
       success: true,
       response: aiResponse,
+      generatedTitle: generatedTitle || null,
+      isFirstMessage: isFirstMessage,
       userMessage: {
         id: userMessage.id,
         content: userMessage.content,
@@ -920,10 +957,28 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
         }
 
         await Promise.all([
-          // 1. Update chat metadata
-          db.query(`
-            UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = NOW() WHERE id = $2
-          `, [aiResponse, chat.id]),
+          // 1. Update chat metadata and title
+          (async () => {
+            if (generatedTitle) {
+              await db.query(`
+                UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "title" = $1, "lastMessage" = $2, "updatedAt" = NOW() WHERE id = $3
+              `, [generatedTitle, aiResponse, chat.id]);
+            } else if (isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '' || currentTitle === null)) {
+              // Fallback: use first 30 chars of message as title
+              const fallbackTitle = message.trim().length > 30 
+                ? message.trim().substring(0, 30) + '...' 
+                : message.trim();
+              if (fallbackTitle && fallbackTitle.trim().length > 0) {
+                await db.query(`
+                  UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "title" = $1, "lastMessage" = $2, "updatedAt" = NOW() WHERE id = $3
+                `, [fallbackTitle.trim(), aiResponse, chat.id]);
+              }
+            } else {
+              await db.query(`
+                UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = NOW() WHERE id = $2
+              `, [aiResponse, chat.id]);
+            }
+          })(),
           
           // 2. Log chat message event
           db.query(`
@@ -1002,8 +1057,17 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
 
 /**
  * Update chat metadata when new message is added
+ * @deprecated This function is no longer used. Title generation is now handled
+ * directly in handleUserMessage using the same OpenAI call that generates the response.
+ * This function made a separate API call which caused issues.
  */
 export const updateChatMetadata = async (chatId: string, message: string, sender: string) => {
+  // DISABLED: Title generation is now handled in handleUserMessage
+  // This function is kept for backwards compatibility but does nothing
+  logger.warn('updateChatMetadata called but is deprecated. Title generation handled in handleUserMessage.');
+  return;
+  
+  /* OLD CODE - DISABLED
   try {
     console.log('Updating chat metadata:', { chatId, message: message.substring(0, 50), sender });
     
@@ -1069,6 +1133,7 @@ export const updateChatMetadata = async (chatId: string, message: string, sender
     logger.error('Error updating chat metadata:', error);
     throw error; // Re-throw to see the actual error
   }
+  */
 };
 
 

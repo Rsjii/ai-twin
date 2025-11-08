@@ -253,9 +253,11 @@ Return only valid JSON, no other text.`;
         logger.error('Invalid context provided:', { styleVector, currentMessages });
         throw new Error('Invalid context provided');
       }
-      
+
       // Check if first message (before any processing)
-      const isFirstMessage = context.isFirstMessage && chatMemory.length === 0;
+      // Trust context.isFirstMessage if it's true (it's already checked in controller)
+      // Only require chatMemory.length === 0 if context.isFirstMessage is not explicitly set
+      const isFirstMessage = context.isFirstMessage === true ? true : (context.isFirstMessage && chatMemory.length === 0);
       
       // ✅ Retrieve long-term memories (SMART - query-based)
       let longTermMemories: Array<{key: string, value: string, category: string}> = [];
@@ -299,7 +301,7 @@ Return only valid JSON, no other text.`;
           stylePatterns,
           isFirstMessage
         );
-        
+
         // If first message and got JSON, return it
         if (isFirstMessage && typeof personaResult === 'object' && personaResult.response && personaResult.title) {
           return personaResult;
@@ -469,7 +471,7 @@ Do NOT include any text before or after the JSON. Return ONLY the JSON object.`;
       // If first message, ask for both response and title
       let finalUserMessage = userMessage;
       let systemPromptFinal = fullPrompt;
-      
+
       if (isFirstMessage && chatHistory.length === 0) {
         // Very explicit instructions for JSON format
         systemPromptFinal = `${fullPrompt}

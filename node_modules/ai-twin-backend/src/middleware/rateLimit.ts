@@ -8,7 +8,7 @@ import rateLimit from 'express-rate-limit';
 // Global rate limiter (applied to all routes) - TESTING MODE
 export const globalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100000, // ✅ 100k requests per window (testing)
+  max: 500000, // ✅ 500k requests per window (increased for testing)
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: '15 minutes'
@@ -20,13 +20,13 @@ export const globalRateLimit = rateLimit({
 // Twin creation rate limiter
 export const twinCreationRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // Increase to 10 twins per hour per user for testing
+  max: 50, // ✅ Increased to 50 twins per hour per user for testing
   keyGenerator: (req) => {
     // Use user ID if authenticated, otherwise IP
     return req.user?.userId || req.ip || 'unknown';
   },
   message: {
-    error: 'Twin creation limit exceeded. You can create 2 twins per hour.',
+    error: 'Twin creation limit exceeded. You can create 50 twins per hour.',
     retryAfter: '1 hour'
   },
   standardHeaders: true,
@@ -36,12 +36,12 @@ export const twinCreationRateLimit = rateLimit({
 // Draft generation rate limiter
 export const draftGenerationRateLimit = rateLimit({
   windowMs: 30 * 1000, // 30 seconds
-  max: 1, // 1 draft per 30 seconds per user
+  max: 10, // ✅ Increased to 10 drafts per 30 seconds per user
   keyGenerator: (req) => {
     return req.user?.userId || req.ip || 'unknown';
   },
   message: {
-    error: 'Please wait 30 seconds before generating another draft.',
+    error: 'Draft generation limit exceeded. You can generate 10 drafts per 30 seconds.',
     retryAfter: '30 seconds'
   },
   standardHeaders: true,
@@ -51,7 +51,7 @@ export const draftGenerationRateLimit = rateLimit({
 // OTP request rate limiter
 export const otpRequestRateLimit = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 3, // 3 OTP requests per 10 minutes per IP
+  max: 20, // ✅ Increased to 20 OTP requests per 10 minutes per IP
   message: {
     error: 'Too many OTP requests. Please wait 10 minutes before trying again.',
     retryAfter: '10 minutes'
@@ -63,12 +63,12 @@ export const otpRequestRateLimit = rateLimit({
 // Profile link generation rate limiter
 export const profileLinkRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // 10 profile links per hour per user
+  max: 100, // ✅ Increased to 100 profile links per hour per user
   keyGenerator: (req) => {
     return req.user?.userId || req.ip || 'unknown';
   },
   message: {
-    error: 'Profile link generation limit exceeded. You can generate 10 links per hour.',
+    error: 'Profile link generation limit exceeded. You can generate 100 links per hour.',
     retryAfter: '1 hour'
   },
   standardHeaders: true,
@@ -78,12 +78,12 @@ export const profileLinkRateLimit = rateLimit({
 // Invite creation rate limiter
 export const inviteCreationRateLimit = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 5, // 5 invites per day per user
+  max: 50, // ✅ Increased to 50 invites per day per user
   keyGenerator: (req) => {
     return req.user?.userId || req.ip || 'unknown';
   },
   message: {
-    error: 'Invite creation limit exceeded. You can create 5 invites per day.',
+    error: 'Invite creation limit exceeded. You can create 50 invites per day.',
     retryAfter: '24 hours'
   },
   standardHeaders: true,
@@ -93,7 +93,7 @@ export const inviteCreationRateLimit = rateLimit({
 // API rate limiter (for general API endpoints) - TESTING MODE
 export const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000, // ✅ 10k API requests per 15 minutes (testing)
+  max: 50000, // ✅ Increased to 50k API requests per 15 minutes (testing)
   keyGenerator: (req) => {
     return req.user?.userId || req.ip || 'unknown';
   },
@@ -108,7 +108,7 @@ export const apiRateLimit = rateLimit({
 // Public chat message rate limiter (for anonymous users - strict) - TESTING MODE
 export const publicChatRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // ✅ 1000 messages per 15 min for anonymous users (testing)
+  max: 10000, // ✅ Increased to 10k messages per 15 min for anonymous users (testing)
   keyGenerator: (req) => {
     // For anonymous users: use IP address (most reliable)
     // IP tracking works even if visitorId changes
@@ -130,7 +130,7 @@ export const publicChatRateLimit = rateLimit({
 // Public chat rate limiter (for authenticated users - higher limit) - TESTING MODE
 export const publicChatRateLimitAuthenticated = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5000, // ✅ 5k messages per 15 min for authenticated users (testing)
+  max: 50000, // ✅ Increased to 50k messages per 15 min for authenticated users (testing)
   keyGenerator: (req) => {
     // Use userId if authenticated, otherwise IP
     return req.user?.id || req.user?.userId || req.ip || 'unknown';
