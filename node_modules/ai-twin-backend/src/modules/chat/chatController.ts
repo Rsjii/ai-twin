@@ -4,7 +4,7 @@ import { TwinService } from '../twin/twinService';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
-import { checkBlacklist, validateMessageLength } from '../../middleware/security';
+import { checkBlacklist, validateMessageLength } from '../../utils/safety';
 import { memoryService } from '../../services/memoryService';
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
 import { moderateContentSync, getModerationSettings } from '../moderation/moderationController';

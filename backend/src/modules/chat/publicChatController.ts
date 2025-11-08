@@ -5,7 +5,7 @@ import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { TwinService } from '../twin/twinService';
 import { z } from 'zod';
-import { checkBlacklist, validateMessageLength } from '../../middleware/security';
+import { checkBlacklist, validateMessageLength } from '../../utils/safety';
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
 import { moderateContentSync, getModerationSettings } from '../moderation/moderationController';
 

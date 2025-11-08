@@ -1,9 +1,10 @@
 /**
  * Safety and Content Filtering Utilities
+ * Consolidated from security.ts and safety.ts
  * Prevents impersonation, toxicity, and inappropriate content
  */
 
-// Celebrity and brand names that could be used for impersonation
+// ========== BLACKLIST ARRAYS (Merged & Comprehensive) ==========
 const CELEBRITY_BRAND_LIST = [
   // Indian celebrities
   'Shah Rukh Khan', 'Amitabh Bachchan', 'Salman Khan', 'Aamir Khan', 'Akshay Kumar',
@@ -16,28 +17,31 @@ const CELEBRITY_BRAND_LIST = [
   'Taylor Swift', 'Ariana Grande', 'Justin Bieber', 'Drake', 'Kanye West',
   'Barack Obama', 'Donald Trump', 'Joe Biden', 'Vladimir Putin', 'Xi Jinping',
   
-  // Brands and companies
+  // Brands and companies (merged from both files)
   'Apple', 'Google', 'Microsoft', 'Amazon', 'Meta', 'Facebook', 'Instagram', 'Twitter',
   'Netflix', 'Disney', 'Spotify', 'Uber', 'Tesla', 'SpaceX', 'OpenAI', 'ChatGPT',
   'Nike', 'Adidas', 'McDonald\'s', 'Coca Cola', 'Pepsi', 'Samsung', 'Sony',
+  'x.com', 'TikTok', 'Snapchat', 'YouTube', 'Airbnb', 'KFC', 'Starbucks',
+  'Marvel', 'DC', 'LG', 'Huawei', 'Xiaomi', 'OnePlus', 'Oppo', 'Vivo',
   
   // Media and entertainment
   'BBC', 'CNN', 'Fox News', 'Times of India', 'Hindustan Times', 'The Hindu',
   'Bollywood', 'Hollywood', 'Tollywood', 'Kollywood',
 ];
 
-// Banned words and phrases
 const BANNED_WORDS = [
-  // Violence and harm
+  // Violence and harm (merged from both)
   'suicide', 'self-harm', 'kill yourself', 'bomb', 'terrorist', 'terrorism',
   'murder', 'assassination', 'violence', 'weapon', 'gun', 'knife',
+  'kill', 'die', 'rape', 'abuse', 'harassment',
   
   // Hate speech
   'hate', 'racist', 'sexist', 'homophobic', 'discrimination', 'prejudice',
+  'slave', 'nazi', 'hitler', 'isis',
   
   // Illegal activities
-  'drugs', 'cocaine', 'heroin', 'marijuana', 'weed', 'alcohol abuse',
-  'fraud', 'scam', 'theft', 'robbery', 'money laundering',
+  'drugs', 'drug', 'cocaine', 'heroin', 'marijuana', 'weed', 'alcohol abuse',
+  'fraud', 'scam', 'theft', 'robbery', 'money laundering', 'steal', 'rob', 'cheat', 'lie', 'fake',
   
   // Adult content
   'porn', 'pornography', 'sex', 'sexual', 'nude', 'naked',
@@ -47,13 +51,17 @@ const BANNED_WORDS = [
   'verify account', 'suspended account', 'urgent action required',
 ];
 
-// Suspicious patterns
 const SUSPICIOUS_PATTERNS = [
   /https?:\/\/[^\s]+/gi, // URLs
   /[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}/gi, // Credit card numbers
   /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi, // Email addresses
   /\+?[0-9]{10,15}/gi, // Phone numbers
 ];
+
+// ========== EXPORT BLACKLISTS (for external use if needed) ==========
+export const CELEBRITY_BRAND_BLACKLIST = CELEBRITY_BRAND_LIST.map(s => s.toLowerCase());
+
+// ========== CONTENT CHECKING FUNCTIONS ==========
 
 /**
  * Check if text contains celebrity or brand names (impersonation risk)
@@ -116,38 +124,80 @@ export function isContentSafe(text: string): {
 }
 
 /**
- * Sanitize text by removing suspicious patterns
+ * Convenience function: Check blacklist (combines impersonation + banned words)
+ * This is the function from security.ts - kept for backward compatibility
+ */
+export function checkBlacklist(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  return hasImpersonationRisk(text) || hasBannedWords(text);
+}
+
+// ========== SANITIZATION FUNCTIONS ==========
+
+/**
+ * Sanitize text by removing suspicious patterns and HTML
+ * Enhanced version that combines both security.ts and safety.ts functionality
  */
 export function sanitizeText(text: string): string {
   if (!text || typeof text !== 'string') return '';
   
   let sanitized = text;
   
-  // Remove URLs
+  // Remove excessive whitespace (from security.ts)
+  sanitized = sanitized.replace(/\s+/g, ' ').trim();
+  
+  // Remove potential script tags (from security.ts)
+  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  
+  // Remove potential HTML tags (from security.ts)
+  sanitized = sanitized.replace(/<[^>]*>/g, '');
+  
+  // Remove URLs (from safety.ts)
   sanitized = sanitized.replace(/https?:\/\/[^\s]+/gi, '[URL_REMOVED]');
   
-  // Remove email addresses
+  // Remove email addresses (from safety.ts)
   sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi, '[EMAIL_REMOVED]');
   
-  // Remove phone numbers
+  // Remove phone numbers (from safety.ts)
   sanitized = sanitized.replace(/\+?[0-9]{10,15}/gi, '[PHONE_REMOVED]');
   
-  // Remove credit card patterns
+  // Remove credit card patterns (from safety.ts)
   sanitized = sanitized.replace(/[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}/gi, '[CARD_REMOVED]');
   
   return sanitized.trim();
 }
 
+// ========== VALIDATION FUNCTIONS ==========
+
 /**
- * Validate message length
+ * Validate message length (enhanced version with minLength support)
+ * Combines functionality from both security.ts and safety.ts
  */
-export function validateMessageLength(text: string, minLength: number = 1, maxLength: number = 300): boolean {
+export function validateMessageLength(
+  text: string, 
+  minLength: number = 1, 
+  maxLength: number = 300
+): boolean {
   if (!text || typeof text !== 'string') return false;
   return text.length >= minLength && text.length <= maxLength;
 }
 
 /**
- * Validate twin samples
+ * Validate samples length (simple string length check)
+ * From security.ts - kept for backward compatibility
+ */
+export function validateSamplesLength(
+  text: string, 
+  minLength: number = 100, 
+  maxLength: number = 3000
+): boolean {
+  if (!text || typeof text !== 'string') return false;
+  return text.length >= minLength && text.length <= maxLength;
+}
+
+/**
+ * Validate twin samples (comprehensive array validation)
+ * From safety.ts - more detailed validation
  */
 export function validateTwinSamples(samples: string[]): {
   valid: boolean;

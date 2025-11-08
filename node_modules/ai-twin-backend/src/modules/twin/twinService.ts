@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { config } from '../../config/env';
 import { logger } from '../../config/logger';
-import { checkBlacklist, sanitizeText, validateSamplesLength } from '../../middleware/security';
+import { checkBlacklist, sanitizeText, validateSamplesLength } from '../../utils/safety';
 
 const openai = new OpenAI({
   apiKey: config.openaiApiKey,
