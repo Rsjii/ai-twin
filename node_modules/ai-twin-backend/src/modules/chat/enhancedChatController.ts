@@ -11,7 +11,8 @@ import { logger } from '../../config/logger';
 import { TwinService } from '../twin/twinService';
 import { classifyIntent, shapeByIntent } from '../../utils/intentClassification';
 import { runStyleCritic, checkBanlist, rewriteBanlist } from '../../utils/styleCritic';
-import { updateChatMetadata } from './chatController';
+// updateChatMetadata is deprecated - title generation handled in handleUserMessage
+// Keeping import for backwards compatibility but function does nothing
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
 
 const twinService = new TwinService();

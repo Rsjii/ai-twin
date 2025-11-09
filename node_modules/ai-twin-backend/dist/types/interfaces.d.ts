@@ -24,6 +24,14 @@ export interface Twin {
     styleVector: StyleVector;
     instructions?: InstructionState;
     sampleReply?: string;
+    isPublic: boolean;
+    publicHandle?: string;
+    bio?: string;
+    profileImage?: string;
+    verified: boolean;
+    likeCount: number;
+    followCount: number;
+    chatCount: number;
     createdAt: Date;
     chats: Chat[];
 }
@@ -97,7 +105,47 @@ export declare enum EventType {
     MESSAGE_APPROVED = "message_approved",
     PROFILE_SHARED = "profile_shared",
     INVITE_SENT = "invite_sent",
-    INVITE_ACCEPTED = "invite_accepted"
+    INVITE_ACCEPTED = "invite_accepted",
+    TWIN_MADE_PUBLIC = "twin_made_public",
+    TWIN_LIKED = "twin_liked",
+    TWIN_FOLLOWED = "twin_followed",
+    PUBLIC_CHAT_STARTED = "public_chat_started"
+}
+export interface TwinLike {
+    id: string;
+    twinId: string;
+    userId: string;
+    createdAt: Date;
+}
+export interface TwinFollow {
+    id: string;
+    twinId: string;
+    userId: string;
+    createdAt: Date;
+}
+export interface PublicChat {
+    id: string;
+    twinId: string;
+    visitorId?: string;
+    messageCount: number;
+    createdAt: Date;
+    lastActivity: Date;
+}
+export interface PublicTwinProfile {
+    id: string;
+    userId: string;
+    userHandle: string;
+    userName: string;
+    publicHandle: string;
+    bio?: string;
+    profileImage?: string;
+    verified: boolean;
+    likeCount: number;
+    followCount: number;
+    chatCount: number;
+    styleVector: StyleVector;
+    sampleReply?: string;
+    createdAt: Date;
 }
 export interface ApiResponse<T = any> {
     success?: boolean;
@@ -177,6 +225,26 @@ export interface CreateInviteRequest {
 export interface ProcessInviteRequest {
     code: string;
 }
+export interface MakeTwinPublicRequest {
+    publicHandle: string;
+    bio?: string;
+    profileImage?: string;
+}
+export interface UpdateTwinProfileRequest {
+    bio?: string;
+    profileImage?: string;
+    publicHandle?: string;
+}
+export interface LikeTwinRequest {
+    twinId: string;
+}
+export interface FollowTwinRequest {
+    twinId: string;
+}
+export interface StartPublicChatRequest {
+    twinId: string;
+    visitorId?: string;
+}
 export interface AppConfig {
     databaseUrl: string;
     openaiApiKey: string;
@@ -214,5 +282,91 @@ export interface SessionData {
     userEmail?: string;
     userHandle?: string;
     csrfToken?: string;
+}
+export interface StyleAnchor {
+    id: string;
+    twin_id: string;
+    user_utterance: string;
+    ideal_reply: string;
+    tags: string[];
+    created_at: Date;
+}
+export interface MemChunk {
+    id: string;
+    twin_id: string;
+    bucket: 'facts' | 'voice';
+    text: string;
+    embedding?: number[];
+    ts: Date;
+}
+export interface StyleCorrection {
+    id: string;
+    twin_id: string;
+    knob: string;
+    delta: number;
+    source?: string;
+    ts: Date;
+}
+export interface AIRun {
+    id: string;
+    twin_id: string;
+    mode: 'human' | 'ai2ai';
+    tokens_in: number;
+    tokens_out: number;
+    critic_score?: number;
+    regen: boolean;
+    latency_ms: number;
+    ts: Date;
+}
+export interface QualityMetrics {
+    avg_critic_score: number;
+    total_runs: number;
+    high_quality_runs: number;
+    avg_latency: number;
+    avg_tokens_in: number;
+    avg_tokens_out: number;
+}
+export interface AggregatedCorrections {
+    knob: string;
+    total_delta: number;
+    correction_count: number;
+}
+export interface CreateStyleAnchorRequest {
+    user_utterance: string;
+    ideal_reply: string;
+    tags?: string[];
+}
+export interface UpdateStyleAnchorRequest {
+    user_utterance: string;
+    ideal_reply: string;
+    tags: string[];
+}
+export interface CreateMemChunkRequest {
+    bucket: 'facts' | 'voice';
+    text: string;
+    embedding?: number[];
+}
+export interface CreateStyleCorrectionRequest {
+    knob: string;
+    delta: number;
+    source?: string;
+}
+export interface CreateAIRunRequest {
+    mode: 'human' | 'ai2ai';
+    tokens_in: number;
+    tokens_out: number;
+    critic_score?: number;
+    regen?: boolean;
+    latency_ms: number;
+}
+export interface AutoSuggestAnchor {
+    user_utterance: string;
+    ideal_reply: string;
+    tags: string[];
+    confidence: number;
+}
+export interface AutoSuggestResponse {
+    anchors: AutoSuggestAnchor[];
+    total_found: number;
 }
 //# sourceMappingURL=interfaces.d.ts.map

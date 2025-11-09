@@ -1,0 +1,538 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getDiscoverFeed = exports.getPopularTwins = exports.getMostFollowedTwins = exports.getMostLikedTwins = exports.getRecentTwins = exports.getRecommendedTwins = exports.searchTwins = exports.getTrendingTwins = void 0;
+const database_1 = require("../../config/database");
+const logger_1 = require("../../config/logger");
+const zod_1 = require("zod");
+const errors_1 = require("../../utils/errors");
+const searchSchema = zod_1.z.object({
+    query: zod_1.z.string().min(1, 'Search query is required').max(100, 'Search query too long'),
+    limit: zod_1.z.coerce.number().min(1).max(50).optional().default(20),
+    offset: zod_1.z.coerce.number().min(0).optional().default(0)
+});
+const trendingSchema = zod_1.z.object({
+    limit: zod_1.z.coerce.number().min(1).max(50).optional().default(20),
+    offset: zod_1.z.coerce.number().min(0).optional().default(0),
+    timeframe: zod_1.z.enum(['day', 'week', 'month', 'all']).optional().default('week')
+});
+const getTrendingTwins = async (req, res, next) => {
+    try {
+        const { limit, offset, timeframe } = trendingSchema.parse(req.query);
+        let timeFilter = '';
+        const now = new Date();
+        switch (timeframe) {
+            case 'day':
+                timeFilter = `AND t."createdAt" >= NOW() - INTERVAL '1 day'`;
+                break;
+            case 'week':
+                timeFilter = `AND t."createdAt" >= NOW() - INTERVAL '7 days'`;
+                break;
+            case 'month':
+                timeFilter = `AND t."createdAt" >= NOW() - INTERVAL '30 days'`;
+                break;
+            case 'all':
+            default:
+                timeFilter = '';
+                break;
+        }
+        const trendingTwins = await database_1.db.query(`
+      SELECT 
+        t.id,
+        t."publicHandle",
+        t."bio",
+        t."profileImage",
+        t."verified",
+        t."likeCount",
+        t."followCount",
+        t."chatCount",
+        t."sampleReply",
+        t."createdAt",
+        u.handle as "userHandle",
+        u.name as "userName",
+        -- Use cached engagement score (fallback to calculated if missing)
+        COALESCE(
+          tp."engagementScore",
+          (
+            t."likeCount" * 0.3 +
+            t."followCount" * 0.4 +
+            t."chatCount" * 0.3 +
+            CASE 
+              WHEN t."verified" = true THEN 10 
+              ELSE 0 
+            END
+          )
+        ) as engagement_score
+      FROM "Twin" t
+      JOIN "User" u ON t."userId" = u.id
+      LEFT JOIN "TwinPerformance" tp ON t.id = tp."twinId"
+      WHERE t."isPublic" = true
+      ${timeFilter}
+      ORDER BY engagement_score DESC, t."createdAt" DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
+        res.json({
+            success: true,
+            twins: trendingTwins.rows,
+            pagination: {
+                limit,
+                offset,
+                total: trendingTwins.rows.length
+            }
+        });
+    }
+    catch (error) {
+        if (error instanceof errors_1.AppError) {
+            throw error;
+        }
+        throw errors_1.createError.internal('Failed to get trending twins', error);
+    }
+};
+exports.getTrendingTwins = getTrendingTwins;
+const searchTwins = async (req, res, next) => {
+    try {
+        const { query, limit, offset } = searchSchema.parse(req.query);
+        const searchResults = await database_1.db.query(`
+      SELECT 
+        t.id,
+        t."publicHandle",
+        t."bio",
+        t."profileImage",
+        t."verified",
+        t."likeCount",
+        t."followCount",
+        t."chatCount",
+        t."sampleReply",
+        t."createdAt",
+        u.handle as "userHandle",
+        u.name as "userName",
+        -- Calculate relevance score
+        (
+          CASE 
+            WHEN LOWER(t."publicHandle") LIKE LOWER($1) THEN 10
+            WHEN LOWER(t."publicHandle") LIKE LOWER($2) THEN 5
+            ELSE 0
+          END +
+          CASE 
+            WHEN LOWER(t."bio") LIKE LOWER($1) THEN 5
+            WHEN LOWER(t."bio") LIKE LOWER($2) THEN 3
+            ELSE 0
+          END +
+          CASE 
+            WHEN LOWER(u.handle) LIKE LOWER($1) THEN 3
+            WHEN LOWER(u.handle) LIKE LOWER($2) THEN 2
+            ELSE 0
+          END +
+          CASE 
+            WHEN LOWER(u.name) LIKE LOWER($1) THEN 2
+            WHEN LOWER(u.name) LIKE LOWER($2) THEN 1
+            ELSE 0
+          END
+        ) as relevance_score
+      FROM "Twin" t
+      JOIN "User" u ON t."userId" = u.id
+      WHERE t."isPublic" = true
+      AND (
+        LOWER(t."publicHandle") LIKE LOWER($1) OR
+        LOWER(t."bio") LIKE LOWER($1) OR
+        LOWER(u.handle) LIKE LOWER($1) OR
+        LOWER(u.name) LIKE LOWER($1)
+      )
+      ORDER BY relevance_score DESC, t."likeCount" DESC, t."createdAt" DESC
+      LIMIT $3 OFFSET $4
+    `, [`%${query}%`, `%${query}%`, limit, offset]);
+        res.json({
+            success: true,
+            query,
+            twins: searchResults.rows,
+            pagination: {
+                limit,
+                offset,
+                total: searchResults.rows.length
+            }
+        });
+    }
+    catch (error) {
+        if (error instanceof errors_1.AppError) {
+            throw error;
+        }
+        throw errors_1.createError.internal('Failed to search twins', error);
+    }
+};
+exports.searchTwins = searchTwins;
+const getRecommendedTwins = async (req, res, next) => {
+    try {
+        const { limit, offset } = trendingSchema.parse(req.query);
+        let recommendations = [];
+        if (req.user) {
+            const userLikes = await database_1.db.query(`
+        SELECT tl."twinId"
+        FROM "TwinLike" tl
+        WHERE tl."userId" = $1
+        ORDER BY tl."createdAt" DESC
+        LIMIT 10
+      `, [req.user.id]);
+            if (userLikes.rows.length > 0) {
+                const likedTwinIds = userLikes.rows.map(row => row.twinId);
+                recommendations = await database_1.db.query(`
+          SELECT 
+            t.id,
+            t."publicHandle",
+            t."bio",
+            t."profileImage",
+            t."verified",
+            t."likeCount",
+            t."followCount",
+            t."chatCount",
+            t."sampleReply",
+            t."createdAt",
+            u.handle as "userHandle",
+            u.name as "userName"
+          FROM "Twin" t
+          JOIN "User" u ON t."userId" = u.id
+          WHERE t."isPublic" = true
+          AND t.id NOT IN (${likedTwinIds.map((_, i) => `$${i + 2}`).join(', ')})
+          AND t."userId" != $1
+          ORDER BY t."likeCount" DESC, t."chatCount" DESC, t."createdAt" DESC
+          LIMIT $${likedTwinIds.length + 2} OFFSET $${likedTwinIds.length + 3}
+        `, [req.user.id, ...likedTwinIds, limit, offset]);
+            }
+        }
+        if (recommendations.length === 0) {
+            recommendations = await database_1.db.query(`
+        SELECT 
+          t.id,
+          t."publicHandle",
+          t."bio",
+          t."profileImage",
+          t."verified",
+          t."likeCount",
+          t."followCount",
+          t."chatCount",
+          t."sampleReply",
+          t."createdAt",
+          u.handle as "userHandle",
+          u.name as "userName"
+        FROM "Twin" t
+        JOIN "User" u ON t."userId" = u.id
+        WHERE t."isPublic" = true
+        ORDER BY t."likeCount" DESC, t."chatCount" DESC, t."createdAt" DESC
+        LIMIT $1 OFFSET $2
+      `, [limit, offset]);
+        }
+        res.json({
+            success: true,
+            twins: recommendations.rows,
+            pagination: {
+                limit,
+                offset,
+                total: recommendations.rows.length
+            }
+        });
+    }
+    catch (error) {
+        logger_1.logger.error('Get recommended twins error:', error);
+        if (error instanceof zod_1.z.ZodError) {
+            return res.status(400).json({
+                error: 'Invalid input',
+                details: error.errors
+            });
+        }
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+exports.getRecommendedTwins = getRecommendedTwins;
+const getRecentTwins = async (req, res, next) => {
+    try {
+        const { limit, offset } = trendingSchema.parse(req.query);
+        const recentTwins = await database_1.db.query(`
+      SELECT 
+        t.id,
+        t."publicHandle",
+        t."bio",
+        t."profileImage",
+        t."verified",
+        t."likeCount",
+        t."followCount",
+        t."chatCount",
+        t."sampleReply",
+        t."createdAt",
+        u.handle as "userHandle",
+        u.name as "userName"
+      FROM "Twin" t
+      JOIN "User" u ON t."userId" = u.id
+      WHERE t."isPublic" = true
+      ORDER BY t."createdAt" DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
+        res.json({
+            success: true,
+            twins: recentTwins.rows,
+            pagination: {
+                limit,
+                offset,
+                total: recentTwins.rows.length
+            }
+        });
+    }
+    catch (error) {
+        logger_1.logger.error('Get recent twins error:', error);
+        if (error instanceof zod_1.z.ZodError) {
+            return res.status(400).json({
+                error: 'Invalid input',
+                details: error.errors
+            });
+        }
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+exports.getRecentTwins = getRecentTwins;
+const getMostLikedTwins = async (req, res, next) => {
+    try {
+        const { limit, offset } = trendingSchema.parse(req.query);
+        const mostLikedTwins = await database_1.db.query(`
+      SELECT 
+        t.id,
+        t."publicHandle",
+        t."bio",
+        t."profileImage",
+        t."verified",
+        t."likeCount",
+        t."followCount",
+        t."chatCount",
+        t."sampleReply",
+        t."createdAt",
+        u.handle as "userHandle",
+        u.name as "userName"
+      FROM "Twin" t
+      JOIN "User" u ON t."userId" = u.id
+      WHERE t."isPublic" = true
+      ORDER BY t."likeCount" DESC, t."createdAt" DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
+        res.json({
+            success: true,
+            twins: mostLikedTwins.rows,
+            pagination: {
+                limit,
+                offset,
+                total: mostLikedTwins.rows.length
+            }
+        });
+    }
+    catch (error) {
+        logger_1.logger.error('Get most liked twins error:', error);
+        if (error instanceof zod_1.z.ZodError) {
+            return res.status(400).json({
+                error: 'Invalid input',
+                details: error.errors
+            });
+        }
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+exports.getMostLikedTwins = getMostLikedTwins;
+const getMostFollowedTwins = async (req, res, next) => {
+    try {
+        const { limit, offset } = trendingSchema.parse(req.query);
+        const mostFollowedTwins = await database_1.db.query(`
+      SELECT 
+        t.id,
+        t."publicHandle",
+        t."bio",
+        t."profileImage",
+        t."verified",
+        t."likeCount",
+        t."followCount",
+        t."chatCount",
+        t."sampleReply",
+        t."createdAt",
+        u.handle as "userHandle",
+        u.name as "userName"
+      FROM "Twin" t
+      JOIN "User" u ON t."userId" = u.id
+      WHERE t."isPublic" = true
+      ORDER BY t."followCount" DESC, t."likeCount" DESC, t."createdAt" DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
+        res.json({
+            success: true,
+            twins: mostFollowedTwins.rows,
+            pagination: {
+                limit,
+                offset,
+                total: mostFollowedTwins.rows.length
+            }
+        });
+    }
+    catch (error) {
+        logger_1.logger.error('Get most followed twins error:', error);
+        if (error instanceof zod_1.z.ZodError) {
+            return res.status(400).json({
+                error: 'Invalid input',
+                details: error.errors
+            });
+        }
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+exports.getMostFollowedTwins = getMostFollowedTwins;
+const getPopularTwins = async (req, res, next) => {
+    try {
+        const { limit, offset } = trendingSchema.parse(req.query);
+        const popularTwins = await database_1.db.query(`
+      SELECT 
+        t.id,
+        t."publicHandle",
+        t."bio",
+        t."profileImage",
+        t."verified",
+        t."likeCount",
+        t."followCount",
+        t."chatCount",
+        t."sampleReply",
+        t."createdAt",
+        u.handle as "userHandle",
+        u.name as "userName",
+        -- Use cached popularity score (fallback to calculated if missing)
+        COALESCE(
+          tp."popularityScore",
+          (
+            t."likeCount" * 0.4 +
+            t."followCount" * 0.3 +
+            t."chatCount" * 0.3
+          )
+        ) as popularity_score
+      FROM "Twin" t
+      JOIN "User" u ON t."userId" = u.id
+      LEFT JOIN "TwinPerformance" tp ON t.id = tp."twinId"
+      WHERE t."isPublic" = true
+      ORDER BY popularity_score DESC, t."createdAt" DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
+        res.json({
+            success: true,
+            twins: popularTwins.rows,
+            pagination: {
+                limit,
+                offset,
+                total: popularTwins.rows.length
+            }
+        });
+    }
+    catch (error) {
+        logger_1.logger.error('Get popular twins error:', error);
+        if (error instanceof zod_1.z.ZodError) {
+            return res.status(400).json({
+                error: 'Invalid input',
+                details: error.errors
+            });
+        }
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+exports.getPopularTwins = getPopularTwins;
+const getDiscoverFeed = async (req, res, next) => {
+    try {
+        const { limit, offset } = trendingSchema.parse(req.query);
+        const [trending, recent, popular] = await Promise.all([
+            database_1.db.query(`
+        SELECT 
+          t.id,
+          t."publicHandle",
+          t."bio",
+          t."profileImage",
+          t."verified",
+          t."likeCount",
+          t."followCount",
+          t."chatCount",
+          t."sampleReply",
+          t."createdAt",
+          u.handle as "userHandle",
+          u.name as "userName",
+          'trending' as feed_type
+        FROM "Twin" t
+        JOIN "User" u ON t."userId" = u.id
+        LEFT JOIN "TwinPerformance" tp ON t.id = tp."twinId"
+        WHERE t."isPublic" = true
+        ORDER BY COALESCE(tp."engagementScore", 
+          (t."likeCount" * 0.3 + t."followCount" * 0.4 + t."chatCount" * 0.3)
+        ) DESC, t."createdAt" DESC         
+        LIMIT $1
+      `, [Math.ceil(limit / 3)]),
+            database_1.db.query(`
+        SELECT 
+          t.id,
+          t."publicHandle",
+          t."bio",
+          t."profileImage",
+          t."verified",
+          t."likeCount",
+          t."followCount",
+          t."chatCount",
+          t."sampleReply",
+          t."createdAt",
+          u.handle as "userHandle",
+          u.name as "userName",
+          'recent' as feed_type
+        FROM "Twin" t
+        JOIN "User" u ON t."userId" = u.id
+        WHERE t."isPublic" = true
+        ORDER BY t."createdAt" DESC
+        LIMIT $1
+      `, [Math.ceil(limit / 3)]),
+            database_1.db.query(`
+        SELECT 
+          t.id,
+          t."publicHandle",
+          t."bio",
+          t."profileImage",
+          t."verified",
+          t."likeCount",
+          t."followCount",
+          t."chatCount",
+          t."sampleReply",
+          t."createdAt",
+          u.handle as "userHandle",
+          u.name as "userName",
+          'popular' as feed_type
+        FROM "Twin" t
+        JOIN "User" u ON t."userId" = u.id
+        WHERE t."isPublic" = true
+        ORDER BY t."likeCount" DESC, t."chatCount" DESC
+        LIMIT $1
+      `, [Math.ceil(limit / 3)])
+        ]);
+        const mixedFeed = [];
+        const maxLength = Math.max(trending.rows.length, recent.rows.length, popular.rows.length);
+        for (let i = 0; i < maxLength; i++) {
+            if (trending.rows[i])
+                mixedFeed.push(trending.rows[i]);
+            if (recent.rows[i])
+                mixedFeed.push(recent.rows[i]);
+            if (popular.rows[i])
+                mixedFeed.push(popular.rows[i]);
+        }
+        const limitedFeed = mixedFeed.slice(0, limit);
+        res.json({
+            success: true,
+            twins: limitedFeed,
+            pagination: {
+                limit,
+                offset,
+                total: limitedFeed.length
+            }
+        });
+    }
+    catch (error) {
+        logger_1.logger.error('Get discover feed error:', error);
+        if (error instanceof zod_1.z.ZodError) {
+            return res.status(400).json({
+                error: 'Invalid input',
+                details: error.errors
+            });
+        }
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+exports.getDiscoverFeed = getDiscoverFeed;
+//# sourceMappingURL=discoverController.js.map

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { startChat, getChat, getUserChats, generateDraft, sendMessage, getChatHistory, getChatMessages, continueChat, handleUserMessage, deleteChat } from './chatController';
+import { startChat, getChat, getUserChats, generateDraft, sendMessage, getChatHistory, getChatMessages, continueChat, handleUserMessage, deleteChat } from './privateChatController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import { draftGenerationRateLimit } from '../../middleware/rateLimit';
 import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';

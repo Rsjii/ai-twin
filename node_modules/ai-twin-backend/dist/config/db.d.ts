@@ -1,5 +1,5 @@
 export declare const db: {
-    query: (text: string, params?: any[]) => Promise<import("pg").QueryResult<any>>;
+    query: (text: string, params?: any[]) => Promise<import("pg").QueryResult<any> | undefined>;
     getClient: () => Promise<import("pg").PoolClient>;
     close: () => Promise<void>;
 };

@@ -11,6 +11,11 @@ export declare const config: {
             pass: string;
         };
     };
+    google: {
+        clientId: string;
+        clientSecret: string;
+        callbackURL: string;
+    };
     nodeEnv: string;
     port: number;
     rateLimit: {
@@ -21,6 +26,9 @@ export declare const config: {
         expiryMinutes: number;
         codeLength: number;
     };
+};
+export declare const openai: {
+    apiKey: string;
 };
 export default config;
 //# sourceMappingURL=env.d.ts.map

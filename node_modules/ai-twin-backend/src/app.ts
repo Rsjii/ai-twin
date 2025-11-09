@@ -41,7 +41,7 @@ import pageRoutes from './routes';
 import {learningScheduler} from './services/learningScheduler';
 
 // Import controllers for direct API routes
-import { getChatHistory, createNewChat, updateChatTitle, getChatSummary, generateChatTitle } from './modules/chat/chatManagementController';
+import { getChatHistory, createNewChat, updateChatTitle, getChatSummary, generateChatTitle } from './modules/chat/privateChatController';
 import { getFeedbackAnalytics } from './modules/chat/feedbackController';
 // Style anchor imports removed - now handled in twinRoutes.ts
 

@@ -1,11 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.CELEBRITY_BRAND_BLACKLIST = void 0;
 exports.hasImpersonationRisk = hasImpersonationRisk;
 exports.hasBannedWords = hasBannedWords;
 exports.hasSuspiciousPatterns = hasSuspiciousPatterns;
 exports.isContentSafe = isContentSafe;
+exports.checkBlacklist = checkBlacklist;
 exports.sanitizeText = sanitizeText;
 exports.validateMessageLength = validateMessageLength;
+exports.validateSamplesLength = validateSamplesLength;
 exports.validateTwinSamples = validateTwinSamples;
 const CELEBRITY_BRAND_LIST = [
     'Shah Rukh Khan', 'Amitabh Bachchan', 'Salman Khan', 'Aamir Khan', 'Akshay Kumar',
@@ -18,15 +21,19 @@ const CELEBRITY_BRAND_LIST = [
     'Apple', 'Google', 'Microsoft', 'Amazon', 'Meta', 'Facebook', 'Instagram', 'Twitter',
     'Netflix', 'Disney', 'Spotify', 'Uber', 'Tesla', 'SpaceX', 'OpenAI', 'ChatGPT',
     'Nike', 'Adidas', 'McDonald\'s', 'Coca Cola', 'Pepsi', 'Samsung', 'Sony',
+    'x.com', 'TikTok', 'Snapchat', 'YouTube', 'Airbnb', 'KFC', 'Starbucks',
+    'Marvel', 'DC', 'LG', 'Huawei', 'Xiaomi', 'OnePlus', 'Oppo', 'Vivo',
     'BBC', 'CNN', 'Fox News', 'Times of India', 'Hindustan Times', 'The Hindu',
     'Bollywood', 'Hollywood', 'Tollywood', 'Kollywood',
 ];
 const BANNED_WORDS = [
     'suicide', 'self-harm', 'kill yourself', 'bomb', 'terrorist', 'terrorism',
     'murder', 'assassination', 'violence', 'weapon', 'gun', 'knife',
+    'kill', 'die', 'rape', 'abuse', 'harassment',
     'hate', 'racist', 'sexist', 'homophobic', 'discrimination', 'prejudice',
-    'drugs', 'cocaine', 'heroin', 'marijuana', 'weed', 'alcohol abuse',
-    'fraud', 'scam', 'theft', 'robbery', 'money laundering',
+    'slave', 'nazi', 'hitler', 'isis',
+    'drugs', 'drug', 'cocaine', 'heroin', 'marijuana', 'weed', 'alcohol abuse',
+    'fraud', 'scam', 'theft', 'robbery', 'money laundering', 'steal', 'rob', 'cheat', 'lie', 'fake',
     'porn', 'pornography', 'sex', 'sexual', 'nude', 'naked',
     'click here', 'free money', 'win lottery', 'congratulations you won',
     'verify account', 'suspended account', 'urgent action required',
@@ -37,6 +44,7 @@ const SUSPICIOUS_PATTERNS = [
     /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi,
     /\+?[0-9]{10,15}/gi,
 ];
+exports.CELEBRITY_BRAND_BLACKLIST = CELEBRITY_BRAND_LIST.map(s => s.toLowerCase());
 function hasImpersonationRisk(text) {
     if (!text || typeof text !== 'string')
         return false;
@@ -70,10 +78,18 @@ function isContentSafe(text) {
         reasons
     };
 }
+function checkBlacklist(text) {
+    if (!text || typeof text !== 'string')
+        return false;
+    return hasImpersonationRisk(text) || hasBannedWords(text);
+}
 function sanitizeText(text) {
     if (!text || typeof text !== 'string')
         return '';
     let sanitized = text;
+    sanitized = sanitized.replace(/\s+/g, ' ').trim();
+    sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    sanitized = sanitized.replace(/<[^>]*>/g, '');
     sanitized = sanitized.replace(/https?:\/\/[^\s]+/gi, '[URL_REMOVED]');
     sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi, '[EMAIL_REMOVED]');
     sanitized = sanitized.replace(/\+?[0-9]{10,15}/gi, '[PHONE_REMOVED]');
@@ -81,6 +97,11 @@ function sanitizeText(text) {
     return sanitized.trim();
 }
 function validateMessageLength(text, minLength = 1, maxLength = 300) {
+    if (!text || typeof text !== 'string')
+        return false;
+    return text.length >= minLength && text.length <= maxLength;
+}
+function validateSamplesLength(text, minLength = 100, maxLength = 3000) {
     if (!text || typeof text !== 'string')
         return false;
     return text.length >= minLength && text.length <= maxLength;

@@ -8,7 +8,7 @@ import rateLimit from 'express-rate-limit';
 // Global rate limiter (applied to all routes) - TESTING MODE
 export const globalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5000000, // ✅ 500k requests per window (increased for testing)
+  max: 10000000, // ✅ 10M requests per window (increased for testing)
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: '15 minutes'
@@ -36,12 +36,12 @@ export const twinCreationRateLimit = rateLimit({
 // Draft generation rate limiter
 export const draftGenerationRateLimit = rateLimit({
   windowMs: 30 * 1000, // 30 seconds
-  max: 10, // ✅ Increased to 10 drafts per 30 seconds per user
+  max: 100, // ✅ Increased to 100 drafts per 30 seconds per user
   keyGenerator: (req) => {
     return req.user?.userId || req.ip || 'unknown';
   },
   message: {
-    error: 'Draft generation limit exceeded. You can generate 10 drafts per 30 seconds.',
+    error: 'Draft generation limit exceeded. You can generate 100 drafts per 30 seconds.',
     retryAfter: '30 seconds'
   },
   standardHeaders: true,
@@ -93,7 +93,7 @@ export const inviteCreationRateLimit = rateLimit({
 // API rate limiter (for general API endpoints) - TESTING MODE
 export const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500000, // ✅ Increased to 50k API requests per 15 minutes (testing)
+  max: 5000000, // ✅ Increased to 5M API requests per 15 minutes (testing)
   keyGenerator: (req) => {
     return req.user?.userId || req.ip || 'unknown';
   },
@@ -108,7 +108,7 @@ export const apiRateLimit = rateLimit({
 // Public chat message rate limiter (for anonymous users - strict) - TESTING MODE
 export const publicChatRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000, // ✅ Increased to 10k messages per 15 min for anonymous users (testing)
+  max: 100000, // ✅ Increased to 100k messages per 15 min for anonymous users (testing)
   keyGenerator: (req) => {
     // For anonymous users: use IP address (most reliable)
     // IP tracking works even if visitorId changes
@@ -138,7 +138,7 @@ export const publicChatRateLimit = rateLimit({
 // Public chat rate limiter (for authenticated users - higher limit) - TESTING MODE
 export const publicChatRateLimitAuthenticated = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50000, // ✅ Increased to 50k messages per 15 min for authenticated users (testing)
+  max: 500000, // ✅ Increased to 500k messages per 15 min for authenticated users (testing)
   keyGenerator: (req) => {
     // Use userId if authenticated, otherwise IP
     return req.user?.id || req.user?.userId || req.ip || 'unknown';

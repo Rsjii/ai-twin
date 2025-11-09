@@ -16,5 +16,9 @@ var EventType;
     EventType["PROFILE_SHARED"] = "profile_shared";
     EventType["INVITE_SENT"] = "invite_sent";
     EventType["INVITE_ACCEPTED"] = "invite_accepted";
+    EventType["TWIN_MADE_PUBLIC"] = "twin_made_public";
+    EventType["TWIN_LIKED"] = "twin_liked";
+    EventType["TWIN_FOLLOWED"] = "twin_followed";
+    EventType["PUBLIC_CHAT_STARTED"] = "public_chat_started";
 })(EventType || (exports.EventType = EventType = {}));
 //# sourceMappingURL=interfaces.js.map

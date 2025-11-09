@@ -8,29 +8,41 @@ const pool = new pg_1.Pool({
     ssl: {
         rejectUnauthorized: false
     },
-    max: 20,
+    max: 5,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 10000,
+    acquireTimeoutMillis: 10000,
+    createTimeoutMillis: 10000,
+    retryDelayMs: 1000,
+    retryAttempts: 3,
 });
 pool.on('connect', () => {
     console.log('Connected to PostgreSQL database');
 });
 pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
-    process.exit(-1);
+    console.error('Database connection error:', err);
 });
 exports.db = {
     query: async (text, params) => {
         const start = Date.now();
-        try {
-            const res = await pool.query(text, params);
-            const duration = Date.now() - start;
-            console.log('Executed query', { text, duration, rows: res.rowCount });
-            return res;
-        }
-        catch (error) {
-            console.error('Database query error:', error);
-            throw error;
+        let attempts = 0;
+        const maxAttempts = 3;
+        while (attempts < maxAttempts) {
+            try {
+                const res = await pool.query(text, params);
+                const duration = Date.now() - start;
+                console.log('Executed query', { text: text.substring(0, 100), duration, rows: res.rowCount });
+                return res;
+            }
+            catch (error) {
+                attempts++;
+                console.error(`Database query error (attempt ${attempts}):`, error.message);
+                if (attempts >= maxAttempts) {
+                    console.error('Database query failed after all retries:', error);
+                    throw error;
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+            }
         }
     },
     getClient: async () => {
