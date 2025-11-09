@@ -254,10 +254,9 @@ Return only valid JSON, no other text.`;
         throw new Error('Invalid context provided');
       }
 
-      // Check if first message (before any processing)
-      // Trust context.isFirstMessage if it's true (it's already checked in controller)
-      // Only require chatMemory.length === 0 if context.isFirstMessage is not explicitly set
-      const isFirstMessage = context.isFirstMessage === true ? true : (context.isFirstMessage && chatMemory.length === 0);
+      // Check if first message - trust the controller's check
+      // Controller already verified messageCount === 0, so trust isFirstMessage flag
+      const isFirstMessage = context.isFirstMessage === true;
       
       // ✅ Retrieve long-term memories (SMART - query-based)
       let longTermMemories: Array<{key: string, value: string, category: string}> = [];
@@ -287,9 +286,12 @@ Return only valid JSON, no other text.`;
         }
       }
       
-      // Use enhanced persona-based response if available
-      if (personaData && systemPrompt) {
-        logger.info('Using enhanced persona-based response');
+      // Use enhanced persona-based response ONLY if both exist (not fallback)
+      if (personaData && systemPrompt && systemPrompt.trim().length > 0) {
+        logger.info('[TWIN SERVICE] Using enhanced persona-based response', {
+          isFirstMessage,
+          chatMemoryLength: chatMemory.length
+        });
         const personaResult = await this.generatePersonaResponse(
           currentMessages.join('\n'),
           personaData,
@@ -332,7 +334,14 @@ Return only valid JSON, no other text.`;
       let userPrompt = currentMessages.join('\n');
       let systemPromptFinal = enhancedSystemPrompt;
       
+      logger.info('[TWIN SERVICE] StyleVector path - isFirstMessage check:', {
+        isFirstMessage,
+        userPromptLength: userPrompt.length,
+        systemPromptLength: enhancedSystemPrompt.length
+      });
+      
       if (isFirstMessage) {
+        logger.info('[TWIN SERVICE] ✅ First message detected - adding JSON format requirement');
         systemPromptFinal = `${enhancedSystemPrompt}
 
 CRITICAL: You MUST respond ONLY in valid JSON format with exactly these two fields:
@@ -343,6 +352,13 @@ CRITICAL: You MUST respond ONLY in valid JSON format with exactly these two fiel
 
 Do NOT include any text before or after the JSON. Return ONLY the JSON object.`;
         userPrompt = `${userPrompt}\n\nGenerate a response and also create a short title (max 30 characters) for this chat.`;
+        logger.info('[TWIN SERVICE] Modified prompts for title generation:', {
+          systemPromptLength: systemPromptFinal.length,
+          userPromptLength: userPrompt.length,
+          userPromptPreview: userPrompt.substring(0, 200)
+        });
+      } else {
+        logger.warn('[TWIN SERVICE] ⚠️ NOT first message - title generation skipped');
       }
       
       const response = await Promise.race([
@@ -370,27 +386,51 @@ Do NOT include any text before or after the JSON. Return ONLY the JSON object.`;
       
       // Parse JSON if first message
       if (isFirstMessage) {
+        logger.info('[TWIN SERVICE] Attempting to parse JSON for first message:', {
+          resultLength: result.length,
+          resultPreview: result.substring(0, 200)
+        });
         try {
           let cleanedResult = result.trim();
           if (cleanedResult.startsWith('```json')) {
             cleanedResult = cleanedResult.replace(/```json\n?/g, '').replace(/```\n?$/g, '').trim();
+            logger.info('[TWIN SERVICE] Removed ```json markers');
           } else if (cleanedResult.startsWith('```')) {
             cleanedResult = cleanedResult.replace(/```\n?/g, '').trim();
+            logger.info('[TWIN SERVICE] Removed ``` markers');
           }
           
+          logger.info('[TWIN SERVICE] Parsing cleaned JSON:', cleanedResult.substring(0, 200));
           const parsed = JSON.parse(cleanedResult);
+          logger.info('[TWIN SERVICE] JSON parsed successfully:', {
+            hasResponse: !!parsed.response,
+            hasTitle: !!parsed.title,
+            titleValue: parsed.title
+          });
+          
           if (parsed.response && parsed.title) {
             const title = parsed.title.trim().substring(0, 30);
+            logger.info('[TWIN SERVICE] ✅ Returning response with title:', title);
             return { response: parsed.response.trim(), title: title };
           } else if (parsed.response) {
+            logger.warn('[TWIN SERVICE] ⚠️ JSON has response but no title:', parsed);
             return parsed.response.trim();
+          } else {
+            logger.error('[TWIN SERVICE] ❌ JSON missing response field:', parsed);
+            return result.trim();
           }
         } catch (e) {
-          logger.error('JSON parse error for first message:', e);
+          logger.error('[TWIN SERVICE] ❌ JSON parse error for first message:', {
+            error: e instanceof Error ? e.message : String(e),
+            resultPreview: result.substring(0, 200)
+          });
           if (result && result.trim().length > 0) {
+            logger.warn('[TWIN SERVICE] Returning raw result due to parse error');
             return result.trim();
           }
         }
+      } else {
+        logger.info('[TWIN SERVICE] Not first message - returning string result');
       }
       
       // Log AI run for quality tracking
@@ -485,9 +525,9 @@ CRITICAL: You MUST respond ONLY in valid JSON format with exactly these two fiel
 Do NOT include any text before or after the JSON. Return ONLY the JSON object.`;
         finalUserMessage = `${userMessage}\n\nGenerate a response and also create a short title (max 30 characters) for this chat.`;
       }
-      
+
       const completion = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -521,14 +561,17 @@ Do NOT include any text before or after the JSON. Return ONLY the JSON object.`;
           }
           
           const parsed = JSON.parse(cleanedResponse);
+          
           if (parsed.response && parsed.title) {
             const title = parsed.title.trim().substring(0, 30);
             return { response: parsed.response.trim(), title: title };
           } else if (parsed.response) {
             return parsed.response.trim();
+          } else {
+            return response.trim();
           }
         } catch (e) {
-          logger.error('Failed to parse JSON response in persona:', e);
+          logger.error('JSON parse error for first message:', e instanceof Error ? e.message : String(e));
           if (response && response.trim().length > 0) {
             return response.trim();
           }
@@ -537,17 +580,32 @@ Do NOT include any text before or after the JSON. Return ONLY the JSON object.`;
 
       return response;
     } catch (error) {
-      logger.error('Error generating persona response:', error);
-      logger.error('Persona data available:', !!personaData);
-      logger.error('User message:', userMessage);
+      logger.error('Error generating persona response:', error instanceof Error ? error.message : String(error));
       
       // Try to provide a personalized fallback response
       const userName = personaData?.basicInfo?.fullName || personaData?.name || 'there';
+      let fallbackResponse: string;
+      
       if (userMessage.toLowerCase().includes('what is my name') || userMessage.toLowerCase().includes('who am i')) {
-        return `Your name is ${userName}! I know you well.`;
+        fallbackResponse = `Your name is ${userName}! I know you well.`;
+      } else {
+        fallbackResponse = this.generateFallbackResponse(userMessage, personaData);
       }
       
-      return this.generateFallbackResponse(userMessage, personaData);
+      // If first message and error occurred, return object with title for consistency
+      if (isFirstMessage && chatHistory.length === 0) {
+        // Generate simple title from user message (first 30 chars)
+        const simpleTitle = userMessage.trim().length > 30
+          ? userMessage.trim().substring(0, 30) + '...'
+          : userMessage.trim();
+        
+        return {
+          response: fallbackResponse,
+          title: simpleTitle
+        };
+      }
+      
+      return fallbackResponse;
     }
   }
 

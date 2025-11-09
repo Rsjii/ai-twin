@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { checkBlacklist, validateMessageLength } from '../../utils/safety';
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
 import { moderateContentSync, getModerationSettings } from '../moderation/moderationController';
+import * as chatUtils from './chatSharedUtils';
 
 // Validation schemas
 const startPublicChatSchema = z.object({
@@ -139,24 +140,21 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
     const { chatId } = req.params;
     const { message } = sendPublicMessageSchema.parse(req.body);
 
-    // Validate message
-    if (!validateMessageLength(message)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Message length invalid',
-        errorCode: 'VALIDATION_ERROR'
-      });
+    // ✅ Use shared validation
+    try {
+      chatUtils.validateMessage(message);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          error: error.message,
+          errorCode: error.errorCode
+        });
+      }
+      throw error;
     }
 
-    if (checkBlacklist(message)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Message contains restricted content',
-        errorCode: 'VALIDATION_ERROR'
-      });
-    }
-
-    // Get public chat with twin information (LEFT JOIN so it works even if twin doesn't exist)
+    // Get public chat with twin information
     const chatResult = await db.query(`
       SELECT pc.id, pc."twinId", pc."visitorId", pc."messageCount", pc."userId", pc."title",
              t."styleVector", t."sampleReply", t."personaData", t."systemPrompt", t."tokenLimit"
@@ -175,17 +173,7 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
 
     const chat = chatResult.rows[0];
 
-    // Check if this is first message and get current title
-    let isFirstMessage = false;
-    let currentTitle = chat.title || null;
-    try {
-      isFirstMessage = (chat.messageCount || 0) === 0;
-      currentTitle = chat.title;
-    } catch (err) {
-      logger.warn('Failed to check public chat info for title:', err);
-    }
-
-    // Get twin info for requireApproval check (handle missing twin gracefully)
+    // Get twin info for requireApproval check
     let twinInfo = { requireApproval: false };
     try {
       const twinInfoResult = await db.query(`
@@ -196,66 +184,46 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
       twinInfo = twinInfoResult.rows[0] || { requireApproval: false };
     } catch (error) {
       logger.warn('Twin not found for public chat, using defaults:', error);
-      // Continue with default settings
-      twinInfo = { requireApproval: false };
     }
 
-    // Moderation check before saving visitor message (handles missing twin)
-    let moderationSettings;
-    try {
-      moderationSettings = await getModerationSettings(chat.twinId);
-    } catch (error) {
-      logger.warn('Error getting moderation settings, using defaults:', error);
-      moderationSettings = {
-        requireApproval: false,
-        useAIModeration: true,
-        moderationLevel: 'basic',
-        spamThreshold: 0.7
-      };
-    }
-    
-    const autoModeration = await moderateContentSync(message.trim(), 'message', undefined, chat.twinId);
-    
-    // Calculate approved status
-    // For public chats: requireApproval from twin settings or moderation settings
-    const requireApproval = twinInfo.requireApproval || moderationSettings.requireApproval || false;
-    const approved = !requireApproval && autoModeration.isApproved;
-    
-    // ✅ REJECT MESSAGE IMMEDIATELY IF NOT APPROVED
-    if (!approved) {
+    // ✅ Use shared moderation check
+    const moderation = await chatUtils.checkModerationAndApprove(
+      message,
+      chat.twinId,
+      chat.userId || undefined,
+      twinInfo.requireApproval
+    );
+
+    if (!moderation.approved) {
       logger.warn('Public message rejected by moderation:', {
         message: message.substring(0, 50),
-        reasons: autoModeration.reasons,
+        reasons: moderation.moderationResult.reasons,
         chatId: chatId,
         twinId: chat.twinId
       });
       
-      return res.status(400).json({
-        success: false,
-        error: 'Message blocked',
-        message: 'I cannot answer this message due to content moderation policies.',
-        reasons: autoModeration.reasons || ['Content does not meet our guidelines'],
-        suggestions: autoModeration.suggestions || ['Please revise your message']
-      });
+      return res.status(400).json(
+        chatUtils.getModerationRejectionResponse(moderation.moderationResult)
+      );
     }
+
+    // ✅ Check first message and title
+    const [isFirstMessage, currentTitle] = await Promise.all([
+      chatUtils.checkFirstMessage(chatId, 'PublicMessage'),
+      chatUtils.getChatTitle(chatId, 'PublicChat')
+    ]);
     
-    // Save visitor message using raw SQL (only if approved)
-    const visitorMessageId = `pub_msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // ✅ Simple requestId: userId/visitorId + exact timestamp + random (no window, unique per request)
+    const shouldGenerateTitle = isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '' || currentTitle === null);
+
+    // ✅ Get recent messages
+    const recentMessages = await chatUtils.getRecentMessages(chatId, 'PublicMessage', 10);
+
+    // ✅ Create request ID and check duplicate
     const userIdOrVisitor = chat.userId || chat.visitorId || `visitor_${Date.now()}`;
-    const requestId = `${userIdOrVisitor}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const requestId = chatUtils.createRequestId(userIdOrVisitor);
+    const duplicateCheck = await chatUtils.checkDuplicateRequest(chatId, requestId, 'PublicMessage');
     
-    // ✅ Simple check: exact requestId match (no time filter)
-    const existing = await db.query(`
-      SELECT id, "chatId", sender, content, approved, "createdAt"
-      FROM "PublicMessage"
-      WHERE "chatId" = $1 AND "requestId" = $2
-      LIMIT 1
-    `, [chatId, requestId]);
-    
-    if (existing && existing.rows && existing.rows.length > 0) {
-      // Exact duplicate requestId (retry scenario)
+    if (duplicateCheck.isDuplicate) {
       logger.info('Duplicate public message requestId detected:', requestId);
       return res.status(400).json({
         success: false,
@@ -264,28 +232,14 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
         duplicate: true
       });
     }
-    
-    // Get recent chat context BEFORE saving user message (so chatMemory.length === 0 for first message)
-    const recentMessagesResult = await db.query(`
-      SELECT content, sender, "createdAt"
-      FROM "PublicMessage"
-      WHERE "chatId" = $1 AND approved = true
-      ORDER BY "createdAt" DESC
-      LIMIT 10
-    `, [chatId]);
-    
-    const recentMessages = recentMessagesResult.rows.reverse();
 
-    // Generate response using TwinService with full context (and title if first message)
-    let aiResponse = "I'm your AI twin! How can I help you today?";
-    let generatedTitle: string | null = null;
-    const shouldGenerateTitle = isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '' || currentTitle === null);
-
-    // Create context for AI response generation
-    const context = {
-      styleVector: chat.styleVector as any,
-      personaData: chat.personaData as any,
-      systemPrompt: chat.systemPrompt || "You are a helpful AI assistant. Respond naturally and helpfully.",
+    // ✅ Build context (no session memory for public chat)
+    const context = chatUtils.buildChatContext({
+      styleVector: chat.styleVector,
+      personaData: chat.personaData,
+      // ⚠️ FIX: Only pass systemPrompt if it exists (don't use fallback)
+      // This ensures persona path is only used when both personaData AND systemPrompt exist
+      systemPrompt: chat.systemPrompt, // Remove the fallback || "You are a helpful AI assistant..."
       tokenLimit: chat.tokenLimit || 500,
       chatMemory: recentMessages.map(msg => ({
         content: msg.content,
@@ -295,82 +249,55 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
       currentMessages: [message.trim()],
       twinId: chat.twinId,
       isFirstMessage: shouldGenerateTitle
-    };
+    });
 
-    // Generate AI response using TwinService
-    try {
-      const draftResult = await twinService.generateDraftWithContext(context);
-      
-      if (typeof draftResult === 'object' && draftResult.response && draftResult.title) {
-        aiResponse = draftResult.response;
-        generatedTitle = draftResult.title;
-      } else if (typeof draftResult === 'string') {
-        aiResponse = draftResult;
-      } else {
-        aiResponse = "I'm having trouble thinking right now. Could you try again?";
-      }
-      
-      if (!aiResponse || aiResponse.trim().length === 0) {
-        throw new Error('Empty response from AI');
-      }
-    } catch (error) {
-      logger.error('TwinService error:', error);
-      aiResponse = "I'm having trouble thinking right now. Could you try again?";
-    }
+    // ✅ Generate AI response
+    const { aiResponse, generatedTitle } = await chatUtils.generateAIResponse(context);
 
-    // Save user message AFTER generating response (so chatMemory.length === 0 check works for first message)
-    await db.query(`
-      INSERT INTO "PublicMessage" ("id", "chatId", "sender", "content", "approved", "requestId", "createdAt")
-      VALUES ($1, $2, $3, $4, $5, $6, NOW())
-    `, [visitorMessageId, chatId, 'human', message.trim(), true, requestId]);
+    // ✅ Save messages
+    const userMessage = await chatUtils.saveUserMessage({
+      chatId,
+      message,
+      approved: moderation.approved,
+      requestId,
+      messageTable: 'PublicMessage',
+      messageIdPrefix: 'pub_msg'
+    });
 
-    // Save AI response using raw SQL
-    const aiMessageId = `pub_msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    await db.query(`
-      INSERT INTO "PublicMessage" ("id", "chatId", "sender", "content", "approved", "createdAt")
-      VALUES ($1, $2, $3, $4, $5, NOW())
-    `, [aiMessageId, chatId, 'twin', aiResponse, true]);
+    const aiMessage = await chatUtils.saveAIMessage({
+      chatId,
+      aiResponse,
+      messageTable: 'PublicMessage',
+      messageIdPrefix: 'pub_msg'
+    });
 
-    // Update chat metadata and title
-    try {
-      if (generatedTitle) {
-        await db.query(`
-          UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "title" = $1, "lastActivity" = NOW() WHERE id = $2
-        `, [generatedTitle, chatId]);
-      } else if (isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '' || currentTitle === null)) {
-        // Fallback: use first 30 chars of message as title
-        const fallbackTitle = message.trim().length > 30 
-          ? message.trim().substring(0, 30) + '...' 
-          : message.trim();
-        if (fallbackTitle && fallbackTitle.trim().length > 0) {
-          await db.query(`
-            UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "title" = $1, "lastActivity" = NOW() WHERE id = $2
-          `, [fallbackTitle.trim(), chatId]);
-        }
-      } else {
-        await db.query(`
-          UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "lastActivity" = NOW() WHERE id = $1
-        `, [chatId]);
-      }
-    } catch (error) {
-      logger.warn('Failed to update chat metadata:', error);
-    }
+    // ✅ Update metadata
+    await chatUtils.updateChatMetadata({
+      chatId,
+      chatTable: 'PublicChat',
+      generatedTitle,
+      isFirstMessage,
+      currentTitle,
+      userMessage: message,
+      aiResponse,
+      updatedAtField: 'lastActivity'
+    });
 
-    // ✅ OPTIMIZED: Send response immediately, update metadata async
+    // ✅ Send response
     res.json({
       success: true,
       messages: [
         {
-          id: visitorMessageId,
+          id: userMessage.id,
           content: message,
           sender: 'human',
-          createdAt: new Date()
+          createdAt: userMessage.createdAt
         },
         {
-          id: aiMessageId,
+          id: aiMessage.id,
           content: aiResponse,
           sender: 'twin',
-          createdAt: new Date()
+          createdAt: aiMessage.createdAt
         }
       ],
       generatedTitle: generatedTitle || null,

@@ -4,10 +4,9 @@ import { TwinService } from '../twin/twinService';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
-import { checkBlacklist, validateMessageLength } from '../../utils/safety';
-import { memoryService } from '../../services/memoryService';
+import { validateMessageLength, checkBlacklist } from '../../utils/safety';
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
-import { moderateContentSync, getModerationSettings } from '../moderation/moderationController';
+import * as chatUtils from './chatSharedUtils';
 
 const twinService = new TwinService();
 
@@ -601,24 +600,14 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       throw createError.unauthorized();
     }
 
-    // Validate message
-    if (!message || message.trim().length === 0) {
-      throw createError.validation('Message cannot be empty');
-    }
-
-    if (!validateMessageLength(message)) {
-      throw createError.validation('Message length invalid');
-    }
-
-    if (checkBlacklist(message)) {
-      throw createError.validation('Message contains restricted content');
-    }
+    // ✅ Use shared validation
+    chatUtils.validateMessage(message);
 
     if (!id) {
       throw createError.validation('Chat ID is required');
     }
 
-    // Get chat with twin information using raw SQL
+    // Get chat with twin information
     const chatResult = await db.query(`
       SELECT c.id, c."userId", c."twinId", c."createdAt", c."chatVector",
              t.id as twin_id, t."styleVector", t."sampleReply", t."instructions", 
@@ -628,6 +617,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       WHERE c.id = $1 AND c."userId" = $2
     `, [id, req.user.id]);
     
+    let chat;
     if (chatResult.rows.length === 0) {
       logger.info('Chat not found, creating new chat for user:', { chatId: id, userId: req.user.id });
       
@@ -696,7 +686,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       }];
     }
 
-    const chat = chatResult.rows[0];
+    chat = chatResult.rows[0];
     logger.info('Chat found:', { 
       chatId: chat.id, 
       twinId: chat.twinId, 
@@ -704,226 +694,99 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       styleVector: chat.styleVector 
     });
 
-    // Moderation check before saving user message
-    const moderationSettings = await getModerationSettings(chat.twinId);
-    const autoModeration = await moderateContentSync(message.trim(), 'message', req.user?.id, chat.twinId);
-    
-    // Calculate approved status
-    // If requireApproval = false → auto approve (if moderation passes)
-    // If requireApproval = true → require autoModeration.isApproved
-    const approved = !moderationSettings.requireApproval || autoModeration.isApproved;
-    
-    // ✅ REJECT MESSAGE IMMEDIATELY IF NOT APPROVED
-    if (!approved) {
+    // ✅ Use shared moderation check
+    const moderation = await chatUtils.checkModerationAndApprove(
+      message,
+      chat.twinId,
+      req.user.id
+    );
+
+    if (!moderation.approved) {
       logger.warn('Message rejected by moderation:', {
         message: message.substring(0, 50),
-        reasons: autoModeration.reasons,
-        userId: req.user?.id,
+        reasons: moderation.moderationResult.reasons,
+        userId: req.user.id,
         chatId: chat.id
       });
       
-      return res.status(400).json({
-        success: false,
-        error: 'Message blocked',
-        message: 'I cannot answer this message due to content moderation policies.',
-        reasons: autoModeration.reasons || ['Content does not meet our guidelines'],
-        suggestions: autoModeration.suggestions || ['Please revise your message']
-      });
+      return res.status(400).json(
+        chatUtils.getModerationRejectionResponse(moderation.moderationResult)
+      );
     }
 
-    // ✅ STEP 1: Check if this is first message and get current title (BEFORE saving user message)
-    // Check if this is first message and get current title
-    let isFirstMessage = false;
-    let currentTitle = null;
-    try {
-      const messageCountResult = await db.query(`
-        SELECT COUNT(*) as count
-        FROM "Message"
-        WHERE "chatId" = $1 AND approved = true
-      `, [chat.id]);
-      const messageCount = parseInt(messageCountResult.rows[0]?.count || '0');
-      isFirstMessage = messageCount === 0;
-      
-      const titleResult = await db.query(`
-        SELECT "title"
-        FROM "Chat"
-        WHERE id = $1
-      `, [chat.id]);
-      currentTitle = titleResult.rows[0]?.title || null;
-    } catch (err) {
-      logger.warn('Failed to check chat info for title:', err);
-    }
+    // ✅ Check first message and title
+    const [isFirstMessage, currentTitle] = await Promise.all([
+      chatUtils.checkFirstMessage(chat.id, 'Message'),
+      chatUtils.getChatTitle(chat.id, 'Chat')
+    ]);
     
     const shouldGenerateTitle = isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '' || currentTitle === null);
 
-    // ✅ STEP 2: Get recent messages BEFORE saving user message (so chatMemory.length === 0 for first message)
-    // OPTIMIZED: Get session memory and recent messages in parallel
-    let sessionMemory = null;
-    let recentMessages = [];
-    
-    try {
-      const [sessionMemoryResult, recentMessagesResult] = await Promise.all([
-        memoryService.getSessionMemory(chat.id).catch(err => {
-          logger.error('Error getting session memory:', err);
-          return null;
-        }),
-        db.query(`
-      SELECT content, sender, "createdAt"
-      FROM "Message"
-      WHERE "chatId" = $1 AND approved = true
-      ORDER BY "createdAt" DESC
-      LIMIT 10
-        `, [chat.id]).catch(err => {
-          logger.error('Error getting recent messages:', err);
-          return { rows: [] };
-        })
-      ]);
-      
-      sessionMemory = sessionMemoryResult;
-      recentMessages = recentMessagesResult.rows || [];
-      logger.info('Session memory retrieved:', sessionMemory ? 'Found' : 'Not found');
-    } catch (error) {
-      logger.error('Error in parallel data fetching:', error);
-      // Continue without session memory
-    }
-    
-    // ✅ STEP 3: NOW save user message (AFTER getting messages)
-    // Save user message using raw SQL (only if approved)
-    let userMessage;
-    try {
-      // ✅ Simple requestId: userId + exact timestamp + random (no window, unique per request)
-      const requestId = `${req.user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-      
-      // ✅ Simple check: exact requestId match (no time filter)
-      const existing = await db.query(`
-        SELECT id, "chatId", sender, content, approved, "createdAt"
-        FROM "Message"
-        WHERE "chatId" = $1 AND "requestId" = $2
-        LIMIT 1
-      `, [chat.id, requestId]);
-      
-      if (existing && existing.rows && existing.rows.length > 0) {
-        // Exact duplicate requestId (retry scenario)
-        logger.info('Duplicate requestId detected:', requestId);
-        return res.json({
-          success: true,
-          duplicate: true,
-          message: 'Message already sent.',
-          userMessage: {
-            id: existing.rows[0].id,
-            content: existing.rows[0].content,
-            sender: existing.rows[0].sender,
-            createdAt: existing.rows[0].createdAt,
-          },
-          aiMessage: null  // No AI response for duplicate
-        });
-      }
-      
-      // New request - save with requestId
-      const userMessageResult = await db.query(`
-        INSERT INTO "Message" ("id", "chatId", "sender", "content", "approved", "requestId", "createdAt")
-        VALUES ($1, $2, $3, $4, $5, $6, NOW())
-        RETURNING id, "chatId", sender, content, approved, "createdAt"
-      `, [
-        `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        chat.id,
-        'human',
-        message.trim(),
-        approved,
-        requestId  // ✅ Save requestId for idempotency
-      ]);
-      
-      userMessage = userMessageResult.rows[0];
-      logger.info('User message saved successfully:', userMessage.id);
-    } catch (error) {
-      logger.error('Failed to save user message:', error);
-      throw createError.internal('Failed to save user message', error);
-    }
+    // ✅ Get recent messages and session memory in parallel
+    const [sessionMemory, recentMessages] = await Promise.all([
+      chatUtils.getSessionMemoryForContext(chat.id).catch(() => null),
+      chatUtils.getRecentMessages(chat.id, 'Message', 10)
+    ]);
 
-    // ✅ STEP 4: Create context with messages from BEFORE saving (chatMemory.length === 0 for first message)
-    // Create context for AI response generation (INCLUDING SESSION MEMORY)
-    const chatMemory = recentMessages.reverse().map(msg => ({
-      content: msg.content,
-      sender: msg.sender,
-      timestamp: msg.createdAt
-    }));
+    // ✅ Create request ID and check duplicate
+    const requestId = chatUtils.createRequestId(req.user.id);
+    const duplicateCheck = await chatUtils.checkDuplicateRequest(chat.id, requestId, 'Message');
     
-    const context = {
-      styleVector: chat.styleVector as any,
-      personaData: chat.personaData as any,
-      systemPrompt: chat.systemPrompt as string,
-      tokenLimit: chat.tokenLimit as number,
-      chatVector: chat.chatVector as any, // Compressed chat history
-      sessionMemory: sessionMemory ? {
-        summary: sessionMemory.summary,
-        keyTopics: sessionMemory.keyTopics || []
-      } : null, // ✅ ADD SESSION MEMORY TO CONTEXT
-      chatMemory: chatMemory,
-      currentMessages: [message.trim()],
-      twinId: chat.twinId, // Add twinId for memory retrieval
-      isFirstMessage: shouldGenerateTitle // Add flag for title generation
-    };
-
-    // Generate AI response using TwinService
-    let aiResponse: string;
-    let generatedTitle: string | null = null;
-    try {
-      logger.info('Generating AI response with context:', {
-        styleVector: context.styleVector,
-        chatMemoryLength: context.chatMemory.length,
-        sessionMemory: context.sessionMemory ? 'Available' : 'Not available',
-        currentMessages: context.currentMessages
+    if (duplicateCheck.isDuplicate) {
+      logger.info('Duplicate requestId detected:', requestId);
+      return res.json({
+        success: true,
+        duplicate: true,
+        message: 'Message already sent.',
+        userMessage: {
+          id: duplicateCheck.existingMessage!.id,
+          content: duplicateCheck.existingMessage!.content,
+          sender: duplicateCheck.existingMessage!.sender,
+          createdAt: duplicateCheck.existingMessage!.createdAt,
+        },
+        aiMessage: null
       });
-      
-      const draftResult = await twinService.generateDraftWithContext(context);
-      
-      // Handle both string and object response (for title generation)
-      if (typeof draftResult === 'object' && draftResult.response && draftResult.title) {
-        aiResponse = draftResult.response;
-        generatedTitle = draftResult.title;
-      } else if (typeof draftResult === 'object' && draftResult.response) {
-        aiResponse = draftResult.response;
-      } else if (typeof draftResult === 'string') {
-        aiResponse = draftResult;
-      } else {
-        logger.error('Invalid response format from AI');
-        throw new Error('Invalid response format from AI');
-      }
-      
-      if (!aiResponse || aiResponse.trim().length === 0) {
-        throw new Error('Empty response from AI');
-      }
-      
-      logger.info('AI response generated successfully:', aiResponse.substring(0, 100));
-    } catch (error) {
-      logger.error('AI response generation failed:', error);
-      aiResponse = "I'm having trouble thinking right now. Could you try again?";
     }
 
-    // Save AI response using raw SQL
-    let aiMessage;
-    try {
-      const aiMessageResult = await db.query(`
-        INSERT INTO "Message" ("id", "chatId", "sender", "content", "approved", "createdAt")
-        VALUES ($1, $2, $3, $4, $5, NOW())
-        RETURNING id, "chatId", sender, content, approved, "createdAt"
-      `, [
-        `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        chat.id,
-        'twin',
-        aiResponse,
-        true
-      ]);
-      
-      aiMessage = aiMessageResult.rows[0];
-      logger.info('AI message saved successfully:', aiMessage.id);
-    } catch (error) {
-      logger.error('Failed to save AI message:', error);
-      throw createError.internal('Failed to save AI response', error);
-    }
+    // ✅ Build context
+    const context = chatUtils.buildChatContext({
+      styleVector: chat.styleVector,
+      personaData: chat.personaData,
+      systemPrompt: chat.systemPrompt,
+      tokenLimit: chat.tokenLimit,
+      chatMemory: recentMessages.map(msg => ({
+        content: msg.content,
+        sender: msg.sender,
+        timestamp: msg.createdAt
+      })),
+      currentMessages: [message.trim()],
+      twinId: chat.twinId,
+      isFirstMessage: shouldGenerateTitle,
+      chatVector: chat.chatVector,
+      sessionMemory: sessionMemory
+    });
 
-    // ✅ CRITICAL OPTIMIZATION: Send response IMMEDIATELY after saving AI message
-    // All cleanup operations happen async after response is sent
+    // ✅ Generate AI response
+    const { aiResponse, generatedTitle } = await chatUtils.generateAIResponse(context);
+
+    // ✅ Save messages
+    const userMessage = await chatUtils.saveUserMessage({
+      chatId: chat.id,
+      message,
+      approved: moderation.approved,
+      requestId,
+      messageTable: 'Message',
+      messageIdPrefix: 'msg'
+    });
+
+    const aiMessage = await chatUtils.saveAIMessage({
+      chatId: chat.id,
+      aiResponse,
+      messageTable: 'Message',
+      messageIdPrefix: 'msg'
+    });
+
+    // ✅ Send response immediately
     res.json({
       success: true,
       response: aiResponse,
@@ -943,105 +806,57 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       },
     });
 
-    // ✅ ALL POST-RESPONSE CLEANUP OPERATIONS - ASYNC (fire and forget)
-    // These complete after response is sent, don't block user
+    // ✅ Post-response cleanup (async)
     (async () => {
       try {
         const userId = req.user?.id;
-        if (!userId) {
-          logger.warn('No user ID available for cleanup operations');
-          return;
-        }
+        if (!userId) return;
 
         await Promise.all([
-          // 1. Update chat metadata and title
-          (async () => {
-            if (generatedTitle) {
-              await db.query(`
-                UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "title" = $1, "lastMessage" = $2, "updatedAt" = NOW() WHERE id = $3
-              `, [generatedTitle, aiResponse, chat.id]);
-            } else if (isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '' || currentTitle === null)) {
-              // Fallback: use first 30 chars of message as title
-              const fallbackTitle = message.trim().length > 30 
-                ? message.trim().substring(0, 30) + '...' 
-                : message.trim();
-              if (fallbackTitle && fallbackTitle.trim().length > 0) {
-                await db.query(`
-                  UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "title" = $1, "lastMessage" = $2, "updatedAt" = NOW() WHERE id = $3
-                `, [fallbackTitle.trim(), aiResponse, chat.id]);
-              }
-            } else {
-              await db.query(`
-                UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = NOW() WHERE id = $2
-              `, [aiResponse, chat.id]);
-            }
-          })(),
-          
-          // 2. Log chat message event
+          // Update metadata
+          chatUtils.updateChatMetadata({
+            chatId: chat.id,
+            chatTable: 'Chat',
+            generatedTitle,
+            isFirstMessage,
+            currentTitle,
+            userMessage: message,
+            aiResponse,
+            lastMessageField: 'lastMessage',
+            updatedAtField: 'updatedAt'
+          }),
+
+          // Log event
           db.query(`
-        INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
-        VALUES ($1, $2, $3, $4, NOW())
-      `, [
-        `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
+            VALUES ($1, $2, $3, $4, NOW())
+          `, [
+            `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             userId,
-        'chat_message',
-        JSON.stringify({ 
-          chatId: chat.id, 
-          twinId: chat.twinId,
-          userMessageId: userMessage.id,
-          aiMessageId: aiMessage.id
-        })
+            'chat_message',
+            JSON.stringify({ 
+              chatId: chat.id, 
+              twinId: chat.twinId,
+              userMessageId: userMessage.id,
+              aiMessageId: aiMessage.id
+            })
           ]).catch(err => logger.warn('Event logging failed:', err)),
-          
-          // 3. Update style vector (already async)
+
+          // Update style vector
           updateStyleVectorAfterChat(chat.twinId, userId).catch(err => 
             logger.warn('Style vector update failed:', err)
           ),
-          
-          // 4. Update chat vector (already async)
+
+          // Update chat vector
           updateChatVectorAfterMessage(chat.id, [userMessage, aiMessage]).catch(err => 
             logger.warn('Chat vector update failed:', err)
           )
         ]);
 
-        // 5. ✅ UPDATE SESSION MEMORY AFTER EVERY MESSAGE (CRITICAL - must complete for next message)
-        // This is done separately to ensure it completes even if other operations fail
-    try {
-      // Get all messages for session summary (INCLUDING NEW ONES)
-      const allMessagesResult = await db.query(`
-        SELECT content, sender, "createdAt"
-        FROM "Message"
-        WHERE "chatId" = $1
-        ORDER BY "createdAt" ASC
-      `, [chat.id]);
-      
-      const allMessages = allMessagesResult.rows.map(msg => ({
-        content: msg.content,
-        sender: msg.sender,
-        timestamp: msg.createdAt
-      }));
-    
-          // ✅ UPDATE SESSION MEMORY AFTER EVERY MESSAGE (required for context)
-      await memoryService.createOrUpdateSessionMemory(chat.id, allMessages);
-      logger.info(`Session memory updated for chat ${chat.id} with ${allMessages.length} messages`);
-        
-          // Extract long-term facts if summary is significant (10+ messages or every 10 messages)
-      if (allMessages.length >= 10 && allMessages.length % 10 === 0) {
-        const sessionMem = await memoryService.getSessionMemory(chat.id);
-        if (sessionMem?.summary) {
-              // Long-term facts extraction (async, don't block)
-              memoryService.extractLongTermFacts(chat.twinId, sessionMem.summary)
-                .then(() => logger.info(`Long-term facts extracted for twin ${chat.twinId}`))
-                .catch(err => logger.error('Long-term facts extraction failed:', err));
-        }
-      }
-    } catch (error) {
-      logger.error('Session memory update failed:', error);
-          // Don't fail - response already sent
-        }
+        // Update session memory
+        await chatUtils.updateSessionMemory(chat.id, chat.twinId);
       } catch (error) {
         logger.error('Post-response cleanup failed:', error);
-        // Don't fail - response already sent
       }
     })();
   } catch (error) {

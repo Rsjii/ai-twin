@@ -120,6 +120,14 @@ export const publicChatRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many messages. Please wait before sending another.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: '15 minutes'
+    });
+  },
   skip: (req) => {
     // Skip rate limiting for authenticated users (they get higher limit)
     // Authenticated users are handled by publicChatRateLimitAuthenticated
@@ -141,4 +149,12 @@ export const publicChatRateLimitAuthenticated = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many messages. Please wait before sending another.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: '15 minutes'
+    });
+  }
 });
