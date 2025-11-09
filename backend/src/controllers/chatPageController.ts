@@ -145,27 +145,72 @@ export async function getChatEnhanced(req: any, res: Response) {
     }
 
     const latestTwin = twins.rows[0];
-
-    let chats = await db.query(`
-      SELECT id, "userId", "twinId", "createdAt"
-      FROM "Chat"
-      WHERE "userId" = $1 AND "twinId" = $2
-      ORDER BY "createdAt" DESC
-      LIMIT 1
-    `, [req.user.id, latestTwin.id]);
-
     let chat;
-    if (chats.rows.length === 0) {
-      const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const newChat = await db.query(`
-        INSERT INTO "Chat" ("id", "userId", "twinId", "createdAt")
-        VALUES ($1, $2, $3, NOW())
-        RETURNING id
-      `, [chatId, req.user.id, latestTwin.id]);
+
+    // ✅ FIX: Check if chatId query parameter exists
+    const requestedChatId = req.query.chatId;
+    
+    if (requestedChatId) {
+      // Verify the chat belongs to the user
+      const chatResult = await db.query(`
+        SELECT id, "userId", "twinId", "createdAt"
+        FROM "Chat"
+        WHERE id = $1 AND "userId" = $2
+      `, [requestedChatId, req.user.id]);
       
-      chat = { id: newChat.rows[0].id };
+      if (chatResult.rows.length > 0) {
+        // Chat exists and belongs to user - use it
+        chat = chatResult.rows[0];
+      } else {
+        // Chat doesn't exist or doesn't belong to user - fall back to latest
+        logger.warn('Requested chat not found or unauthorized', {
+          requestedChatId,
+          userId: req.user.id
+        });
+        
+        const chats = await db.query(`
+          SELECT id, "userId", "twinId", "createdAt"
+          FROM "Chat"
+          WHERE "userId" = $1 AND "twinId" = $2
+          ORDER BY "createdAt" DESC
+          LIMIT 1
+        `, [req.user.id, latestTwin.id]);
+        
+        if (chats.rows.length === 0) {
+          const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const newChat = await db.query(`
+            INSERT INTO "Chat" ("id", "userId", "twinId", "createdAt")
+            VALUES ($1, $2, $3, NOW())
+            RETURNING id
+          `, [chatId, req.user.id, latestTwin.id]);
+          
+          chat = { id: newChat.rows[0].id };
+        } else {
+          chat = chats.rows[0];
+        }
+      }
     } else {
-      chat = chats.rows[0];
+      // No chatId provided - get or create latest chat
+      const chats = await db.query(`
+        SELECT id, "userId", "twinId", "createdAt"
+        FROM "Chat"
+        WHERE "userId" = $1 AND "twinId" = $2
+        ORDER BY "createdAt" DESC
+        LIMIT 1
+      `, [req.user.id, latestTwin.id]);
+      
+      if (chats.rows.length === 0) {
+        const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const newChat = await db.query(`
+          INSERT INTO "Chat" ("id", "userId", "twinId", "createdAt")
+          VALUES ($1, $2, $3, NOW())
+          RETURNING id
+        `, [chatId, req.user.id, latestTwin.id]);
+        
+        chat = { id: newChat.rows[0].id };
+      } else {
+        chat = chats.rows[0];
+      }
     }
 
     res.render('chat-enhanced', { 

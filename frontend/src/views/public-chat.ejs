@@ -9,7 +9,7 @@
 <body class="bg-gray-100">
     <div class="flex h-screen">
         <!-- Chat Sidebar -->
-        <div class="w-64 bg-white shadow-lg">
+        <div class="w-64 bg-white shadow-lg overflow-x-hidden">
             <div class="p-4 border-b">
                 <h2 class="text-lg font-semibold">Chat with <%= twin.publicHandle %></h2>
                 <button id="newPublicChatBtn" class="w-full mt-2 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
@@ -18,7 +18,7 @@
             </div>
             
             <!-- Chat History List -->
-            <div id="publicChatHistoryList" class="p-4 space-y-2 max-h-96 overflow-y-auto">
+            <div id="publicChatHistoryList" class="p-4 space-y-2 max-h-96 overflow-y-auto overflow-x-hidden">
                 <!-- ✅ ADD: Loading state -->
                 <div id="chatHistoryLoadingState" class="text-center py-8">
                     <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
@@ -165,10 +165,10 @@
 
             container.innerHTML = chats.map(chat => `
                 <div class="chat-item p-3 border-b cursor-pointer hover:bg-gray-50 rounded-lg relative group ${chat.id === currentChatId ? 'bg-blue-50 border-blue-200' : ''}" data-chat-id="${chat.id}">
-                    <div class="flex justify-between items-start">
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between gap-2 mb-1">
-                                <h4 class="font-medium text-sm flex-1 ${chat.id === currentChatId ? 'text-blue-700' : ''}" id="public-chat-title-${chat.id}">${chat.title || 'Chat #' + chat.id.slice(-6)}</h4>
+                    <div class="flex justify-between items-start min-w-0">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-2 mb-1 min-w-0">
+                                <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.id === currentChatId ? 'text-blue-700' : ''}" id="public-chat-title-${chat.id}">${chat.title || 'Chat #' + chat.id.slice(-6)}</h4>
                                 <div class="flex items-center gap-1 flex-shrink-0">
                                     <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50 pointer-events-auto" data-chat-id="${chat.id}" title="Edit title">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

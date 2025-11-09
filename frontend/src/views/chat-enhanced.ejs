@@ -82,7 +82,7 @@
         </div>
 
         <!-- Desktop Sidebar -->
-        <div class="hidden lg:block w-64 bg-white/80 backdrop-blur-xl border-r border-white/20 shadow-xl">
+        <div class="hidden lg:block w-64 bg-white/80 backdrop-blur-xl border-r border-white/20 shadow-xl overflow-x-hidden">
             <div class="p-4 border-b border-white/20">
                 <h2 class="text-lg font-semibold text-gray-900">AI Twin Chat</h2>
                 <p class="text-sm text-gray-600">Enhanced with style learning</p>
@@ -93,7 +93,7 @@
             </div>
             
             <!-- ADD CHAT HISTORY LIST -->
-            <div id="chatHistoryList" class="p-4 space-y-2 max-h-96 overflow-y-auto">
+            <div id="chatHistoryList" class="p-4 space-y-2 max-h-96 overflow-y-auto overflow-x-hidden">
                 <!-- Chat items will be loaded here -->
                 
                 <!-- ✅ ADD: Empty state for chat history -->
@@ -1206,10 +1206,10 @@ function displayChatHistory(chats) {
     // Remove the old text-only empty state if it exists
     container.innerHTML = chats.map(chat => `
         <div class="chat-item p-3 border-b cursor-pointer hover:bg-gray-50 rounded-lg relative group ${chat.id === currentChatId ? 'bg-blue-50 border-blue-200' : ''}" data-chat-id="${chat.id}">
-            <div class="flex justify-between items-start">
-                <div class="flex-1">
-                    <div class="flex items-center justify-between gap-2 mb-1">
-                        <h4 class="font-medium text-sm flex-1 ${chat.id === currentChatId ? 'text-blue-700' : ''}" id="chat-title-${chat.id}">${chat.title || 'Untitled Chat'}</h4>
+            <div class="flex justify-between items-start min-w-0">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2 mb-1 min-w-0">
+                        <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.id === currentChatId ? 'text-blue-700' : ''}" id="chat-title-${chat.id}">${chat.title || 'Untitled Chat'}</h4>
                         <div class="flex items-center gap-1 flex-shrink-0">
                             <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50 pointer-events-auto" data-chat-id="${chat.id}" title="Edit title">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
