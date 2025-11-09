@@ -56,7 +56,7 @@ export const getTwinEditData = async (req: Request, res: Response) => {
         id: twin.id,
         styleVector: twin.styleVector,
         personaData: twin.personaData,
-        systemPrompt: twin.systemPrompt,
+        // systemPrompt removed - should not be exposed to users
         sampleReply: twin.sampleReply,
         createdAt: twin.createdAt,
         lastUpdated: twin.last_updated,
@@ -131,8 +131,8 @@ export const updateTwinPersona = async (req: Request, res: Response) => {
   try {
     const { id: twinId } = req.params;
     const userId = req.user.id;
-    const personaUpdates = updatePersonaSchema.parse(req.body);
-
+    const personaUpdates = updatePersonaSchema.parse(req.body.personaData || req.body);
+    
     // Verify twin ownership
     const twinResult = await db.query(`
       SELECT id, "personaData", "styleVector" FROM "Twin" 
@@ -171,5 +171,65 @@ export const updateTwinPersona = async (req: Request, res: Response) => {
   } catch (error) {
     logger.error('Update twin persona error:', error);
     res.status(500).json({ error: 'Failed to update twin persona' });
+  }
+};
+
+/**
+ * Preview style changes without saving
+ */
+export const previewStyleChanges = async (req: Request, res: Response) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user.id;
+    const { styleChanges, testMessage } = req.body;
+
+    if (!testMessage) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Test message is required' 
+      });
+    }
+
+    // Verify twin ownership
+    const twinResult = await db.query(`
+      SELECT id, "styleVector", "personaData" FROM "Twin" 
+      WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Twin not found or access denied' 
+      });
+    }
+
+    const currentStyleVector = twinResult.rows[0].styleVector;
+    const personaData = twinResult.rows[0].personaData;
+
+    // Generate original response with current style
+    const originalResponse = await twinService.generateSampleReply(currentStyleVector);
+
+    // Merge style changes with current style vector
+    const previewStyleVector = {
+      ...currentStyleVector,
+      ...styleChanges
+    };
+
+    // Generate new response with preview style
+    const newResponse = await twinService.generateSampleReply(previewStyleVector);
+
+    res.json({
+      success: true,
+      originalResponse,
+      newResponse,
+      previewStyleVector
+    });
+
+  } catch (error) {
+    logger.error('Preview style changes error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to preview style changes' 
+    });
   }
 };

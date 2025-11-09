@@ -165,34 +165,6 @@
             </div>
         </div>
 
-        <!-- Persona Controls -->
-        <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 mb-8 border border-white/20">
-            <h2 class="text-xl font-semibold mb-4">Personality & Background</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                <!-- Full Name -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Full Name</label>
-                    <input type="text" id="fullName" placeholder="Your full name" 
-                           class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
-                </div>
-
-                <!-- Bio -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Bio</label>
-                    <textarea id="bio" placeholder="Tell us about yourself" rows="3"
-                              class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md"></textarea>
-                </div>
-
-                <!-- Interests -->
-                <div class="space-y-2 md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700">Interests (comma-separated)</label>
-                    <input type="text" id="interests" placeholder="technology, music, travel" 
-                           class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
-                </div>
-            </div>
-        </div>
-
         <!-- Action Buttons -->
         <div class="flex justify-between items-center">
             <button onclick="previewChanges()" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
@@ -268,16 +240,7 @@
         document.getElementById('question_frequency').value = twin.styleVector.question_frequency || 0.4;
         document.getElementById('response_length_preference').value = twin.styleVector.response_length_preference || 'detailed';
         document.getElementById('tone').value = twin.styleVector.tone || 'casual';
-        
-        // Populate persona controls
-        if (twin.personaData?.basicInfo) {
-            document.getElementById('fullName').value = twin.personaData.basicInfo.fullName || '';
-            document.getElementById('bio').value = twin.personaData.basicInfo.bio || '';
-        }
-        if (twin.personaData?.interests) {
-            document.getElementById('interests').value = twin.personaData.interests.join(', ');
-        }
-        
+                
         updateRangeDisplays();
     }
 
@@ -315,12 +278,10 @@
 
     async function saveChanges() {
         const styleUpdates = getStyleChanges();
-        const personaUpdates = getPersonaChanges();
         
         try {
-            // Update style
             if (Object.keys(styleUpdates).length > 0) {
-                await fetch(`/api/twin/${twinId}/update-style`, {
+                const response = await fetch(`/api/twin/${twinId}/update-style`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -328,22 +289,17 @@
                     },
                     body: JSON.stringify(styleUpdates)
                 });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Changes saved successfully!');
+                    loadTwinData();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to save changes'));
+                }
+            } else {
+                alert('No changes to save');
             }
-            
-            // Update persona
-            if (Object.keys(personaUpdates).length > 0) {
-                await fetch(`/api/twin/${twinId}/update-persona`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': window.csrfToken
-                    },
-                    body: JSON.stringify(personaUpdates)
-                });
-            }
-            
-            alert('Changes saved successfully!');
-            loadTwinData();
         } catch (error) {
             console.error('Error saving changes:', error);
             alert('Error saving changes');
@@ -352,33 +308,13 @@
 
     function getStyleChanges() {
         return {
-            formality: parseFloat(document.getElementById('formality').value),
+            formality_level: parseFloat(document.getElementById('formality').value),
             emoji_usage: parseFloat(document.getElementById('emoji_usage').value),
             humor_style: document.getElementById('humor_style').value,
             question_frequency: parseFloat(document.getElementById('question_frequency').value),
             response_length_preference: document.getElementById('response_length_preference').value,
             tone: document.getElementById('tone').value
         };
-    }
-
-    function getPersonaChanges() {
-        const changes = {};
-        
-        const fullName = document.getElementById('fullName').value;
-        const bio = document.getElementById('bio').value;
-        const interests = document.getElementById('interests').value.split(',').map(i => i.trim()).filter(i => i);
-        
-        if (fullName || bio) {
-            changes.basicInfo = {};
-            if (fullName) changes.basicInfo.fullName = fullName;
-            if (bio) changes.basicInfo.bio = bio;
-        }
-        
-        if (interests.length > 0) {
-            changes.interests = interests;
-        }
-        
-        return changes;
     }
 
     function resetChanges() {

@@ -18,6 +18,7 @@
             }
         }
     </script>
+    <script> window.csrfToken = '<%= csrfToken %>';</script>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen font-inter">
     <div class="min-h-screen">
@@ -92,10 +93,12 @@
     </div>
   </div>
 
-                    <h1 class="text-2xl font-bold text-gray-900">Memory Management</h1>
-                    <button onclick="showIngestModal()" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
-                        Ingest Memory
-                    </button>
+                    <div class="flex justify-between items-center w-full">
+                        <h1 class="text-2xl font-bold text-gray-900">Memory Management</h1>
+                        <button onclick="showIngestModal()" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
+                            Ingest Memory
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -277,7 +280,8 @@
                 const response = await fetch(`/api/memory/${twinId}/memory/ingest`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken
                     },
                     credentials: 'include',
                     body: JSON.stringify(data)
@@ -286,12 +290,13 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert(`Successfully extracted ${result.extracted.length} memories!`);
+                    const count = result.memory ? 1 : (result.anchor ? 1 : 0);
+                    alert(`Successfully added memory!`);
                     hideIngestModal();
                     loadMemoryData(); // Reload data
                 } else {
-                    alert('Error: ' + result.error);
-                }
+                        alert('Error: ' + (result.error || result.message || 'Failed to add memory'));
+                }          
             } catch (error) {
                 console.error('Error ingesting memory:', error);
                 alert('Error ingesting memory');
