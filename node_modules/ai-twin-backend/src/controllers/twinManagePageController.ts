@@ -50,75 +50,18 @@ export async function getTwinManage(req: any, res: Response) {
       }
     };
     
-    // Fetch twin analytics - fast queries without retry delays
-    const analyticsQueries = [
-      // Total chats
-      fastQuery(`
-        SELECT COUNT(*) as count 
-        FROM "PublicChat" 
-        WHERE "twinId" = $1
-      `, [twinId]),
-      
-      // Total views
-      fastQuery(`
-        SELECT COUNT(*) as count 
-        FROM "PublicTwinView" 
-        WHERE "twinId" = $1
-      `, [twinId]),
-      
-      // Total likes
-      fastQuery(`
-        SELECT COUNT(*) as count 
-        FROM "PublicTwinLike" 
-        WHERE "twinId" = $1
-      `, [twinId]),
-      
-      // Total followers
-      fastQuery(`
-        SELECT COUNT(*) as count 
-        FROM "PublicTwinFollow" 
-        WHERE "twinId" = $1
-      `, [twinId]),
-      
-      // Memory chunks count
-      fastQuery(`
-        SELECT COUNT(*) as count 
-        FROM "mem_chunks" 
-        WHERE twin_id = $1
-      `, [twinId]),
-      
-      // Style corrections count
-      fastQuery(`
-        SELECT COUNT(*) as count 
-        FROM "StyleCorrection" 
-        WHERE "twinId" = $1
-      `, [twinId]),
-      
-      // AI runs count
-      fastQuery(`
-        SELECT COUNT(*) as count 
-        FROM "AIRun" 
-        WHERE "twinId" = $1
-      `, [twinId]),
-      
-      // Learning goals count
-      fastQuery(`
-        SELECT COUNT(*) as count 
-        FROM "LearningGoal" 
-        WHERE "twinId" = $1
-      `, [twinId])
-    ];
-
-    const [
-      chatsResult,
-      viewsResult,
-      likesResult,
-      followersResult,
-      memoryResult,
-      correctionsResult,
-      aiRunsResult,
-      goalsResult
-    ] = await Promise.all(analyticsQueries);
+    // Fetch twin analytics - optimized single query instead of 8 separate queries
+    const analyticsResult = await fastQuery(`
+      SELECT 
+        (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1) as chats,
+        (SELECT COUNT(*) FROM "PublicTwinView" WHERE "twinId" = $1) as views,
+        (SELECT COUNT(*) FROM "PublicTwinLike" WHERE "twinId" = $1) as likes,
+        (SELECT COUNT(*) FROM "PublicTwinFollow" WHERE "twinId" = $1) as followers,
+        (SELECT COUNT(*) FROM "mem_chunks" WHERE twin_id = $1) as memories,
+        (SELECT COUNT(*) FROM "StyleCorrection" WHERE "twinId" = $1) as corrections,
+        (SELECT COUNT(*) FROM "AIRun" WHERE "twinId" = $1) as aiRuns,
+        (SELECT COUNT(*) FROM "LearningGoal" WHERE "twinId" = $1) as goals
+    `, [twinId]);
 
     // Fetch recent activity (last 5 chats) - fast query
     let recentChats: any[] = [];
@@ -166,16 +109,17 @@ export async function getTwinManage(req: any, res: Response) {
       publicTwin = null;
     }
 
-    // Parse counts safely
+    // Parse counts safely from optimized single query result
+    const row = analyticsResult?.rows?.[0] || {};
     const stats = {
-      totalChats: parseInt(chatsResult?.rows?.[0]?.count || '0', 10),
-      totalViews: parseInt(viewsResult?.rows?.[0]?.count || '0', 10),
-      totalLikes: parseInt(likesResult?.rows?.[0]?.count || '0', 10),
-      totalFollowers: parseInt(followersResult?.rows?.[0]?.count || '0', 10),
-      memoryChunks: parseInt(memoryResult?.rows?.[0]?.count || '0', 10),
-      styleCorrections: parseInt(correctionsResult?.rows?.[0]?.count || '0', 10),
-      aiRuns: parseInt(aiRunsResult?.rows?.[0]?.count || '0', 10),
-      learningGoals: parseInt(goalsResult?.rows?.[0]?.count || '0', 10)
+      totalChats: parseInt(row.chats || '0', 10),
+      totalViews: parseInt(row.views || '0', 10),
+      totalLikes: parseInt(row.likes || '0', 10),
+      totalFollowers: parseInt(row.followers || '0', 10),
+      memoryChunks: parseInt(row.memories || '0', 10),
+      styleCorrections: parseInt(row.corrections || '0', 10),
+      aiRuns: parseInt(row.aiRuns || '0', 10),
+      learningGoals: parseInt(row.goals || '0', 10)
     };
 
     res.render('twin-manage', {

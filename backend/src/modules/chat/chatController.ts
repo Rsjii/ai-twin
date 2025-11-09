@@ -196,6 +196,11 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response, n
       throw createError.unauthorized();
     }
 
+    // Pagination support with defaults for backward compatibility
+    const page = parseInt(req.query['page'] as string) || 1;
+    const limit = Math.min(parseInt(req.query['limit'] as string) || 50, 100); // Max 100 per page
+    const offset = (page - 1) * limit;
+
     const chats = await db.query(`
       SELECT c.id, c."twinId", c."createdAt",
              t.id as twin_id, t."sampleReply",
@@ -217,6 +222,14 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response, n
       ) msg_count ON true
       WHERE c."userId" = $1
       ORDER BY c."createdAt" DESC
+      LIMIT $2 OFFSET $3
+    `, [req.user.id, limit, offset]);
+
+    // Get total count for pagination metadata
+    const totalResult = await db.query(`
+      SELECT COUNT(*) as total
+      FROM "Chat" c
+      WHERE c."userId" = $1
     `, [req.user.id]);
 
     // Format chat history with summary
@@ -236,10 +249,15 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response, n
       updatedAt: chat.last_message_time || chat.createdAt,
     }));
     
+    const total = parseInt(totalResult.rows[0]?.total || '0', 10);
+    
     res.json({ 
       success: true,
       chats: chatHistory,
-      total: chatHistory.length 
+      total: total,
+      page: page,
+      limit: limit,
+      totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
     if (error instanceof AppError) {
@@ -609,27 +627,6 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       JOIN "Twin" t ON c."twinId" = t.id
       WHERE c.id = $1 AND c."userId" = $2
     `, [id, req.user.id]);
-    
-    logger.info('Chat query result:', {
-      chatId: id,
-      userId: req.user.id,
-      rowsFound: chatResult.rows.length,
-      rows: chatResult.rows
-    });
-    
-    // Also try to find any chats for this user to debug
-    const allChatsResult = await db.query(`
-      SELECT c.id, c."userId", c."twinId"
-      FROM "Chat" c
-      WHERE c."userId" = $1
-      LIMIT 5
-    `, [req.user.id]);
-    
-    logger.info('All chats for user:', {
-      userId: req.user.id,
-      totalChats: allChatsResult.rows.length,
-      chats: allChatsResult.rows
-    });
     
     if (chatResult.rows.length === 0) {
       logger.info('Chat not found, creating new chat for user:', { chatId: id, userId: req.user.id });

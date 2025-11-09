@@ -178,29 +178,32 @@ export async function performPerformanceAnalysis(twinId: string): Promise<any> {
 export async function gatherAnalyticsData(twinId: string): Promise<any> {
   try {
     // Gather comprehensive analytics data using raw SQL
+    // Added LIMIT to prevent huge result sets (analytics typically needs recent data)
     const performanceResult = await db.query(`
-      SELECT * FROM "ai_runs" WHERE "twin_id" = $1 ORDER BY ts DESC
+      SELECT * FROM "ai_runs" WHERE "twin_id" = $1 ORDER BY ts DESC LIMIT 1000
     `, [twinId]);
     
     const memoriesResult = await db.query(`
-      SELECT * FROM "mem_chunks" WHERE twin_id = $1 ORDER BY ts DESC
+      SELECT * FROM "mem_chunks" WHERE twin_id = $1 ORDER BY ts DESC LIMIT 1000
     `, [twinId]);
     
     const anchorsResult = await db.query(`
-      SELECT * FROM "style_anchors" WHERE twin_id = $1 ORDER BY createdAt DESC
+      SELECT * FROM "style_anchors" WHERE twin_id = $1 ORDER BY createdAt DESC LIMIT 1000
     `, [twinId]);
     
     const correctionsResult = await db.query(`
-      SELECT * FROM "style_corrections" WHERE "twin_id" = $1 ORDER BY ts DESC
+      SELECT * FROM "style_corrections" WHERE "twin_id" = $1 ORDER BY ts DESC LIMIT 1000
     `, [twinId]);
     
     // ChatFeedback doesn't have twinId directly, need to join with Chat
+    // Added LIMIT to prevent huge result sets
     const feedbackResult = await db.query(`
       SELECT cf.*
       FROM "ChatFeedback" cf
       JOIN "Chat" c ON cf."chatId" = c.id
       WHERE c."twinId" = $1
       ORDER BY cf."createdAt" DESC
+      LIMIT 1000
     `, [twinId]);
     
     const analytics = {

@@ -31,6 +31,11 @@ export const getChatHistory = async (req: Request, res: Response, next: NextFunc
 
     const userId = req.user.id;
 
+    // Pagination support with defaults for backward compatibility
+    const page = parseInt(req.query['page'] as string) || 1;
+    const limit = Math.min(parseInt(req.query['limit'] as string) || 50, 100); // Max 100 per page
+    const offset = (page - 1) * limit;
+
     // Get all user's chats with last message and message count
     const chatsResult = await db.query(`
       SELECT 
@@ -47,7 +52,14 @@ export const getChatHistory = async (req: Request, res: Response, next: NextFunc
       JOIN "Twin" t ON c."twinId" = t.id
       WHERE c."userId" = $1
       ORDER BY c."updatedAt" DESC, c."createdAt" DESC
-      LIMIT 50
+      LIMIT $2 OFFSET $3
+    `, [userId, limit, offset]);
+
+    // Get total count for pagination metadata
+    const totalResult = await db.query(`
+      SELECT COUNT(*) as total
+      FROM "Chat" c
+      WHERE c."userId" = $1
     `, [userId]);
 
     const chats = chatsResult.rows.map(chat => ({
@@ -62,9 +74,15 @@ export const getChatHistory = async (req: Request, res: Response, next: NextFunc
       twinName: chat.twinName || 'AI Twin'
     }));
 
+    const total = parseInt(totalResult.rows[0]?.total || '0', 10);
+    
     res.json({
       success: true,
-      chats
+      chats,
+      total: total,
+      page: page,
+      limit: limit,
+      totalPages: Math.ceil(total / limit)
     });
 
   } catch (error) {

@@ -83,12 +83,12 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       db.query('SELECT COUNT(*) as count FROM "Event"'),
       db.query('SELECT COUNT(*) as count FROM "Invite"'),
       
-      // Daily metrics (today)
-      db.query('SELECT COUNT(*) as count FROM "User" WHERE DATE("createdAt") = CURRENT_DATE'),
-      db.query('SELECT COUNT(*) as count FROM "Twin" WHERE DATE("createdAt") = CURRENT_DATE'),
-      db.query('SELECT COUNT(*) as count FROM "Chat" WHERE DATE("createdAt") = CURRENT_DATE'),
-      db.query('SELECT COUNT(*) as count FROM "Message" WHERE DATE("createdAt") = CURRENT_DATE'),
-      db.query('SELECT COUNT(*) as count FROM "Event" WHERE DATE("createdAt") = CURRENT_DATE'),
+      // Daily metrics (today) - optimized to use index-friendly range queries
+      db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
+      db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
+      db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
+      db.query('SELECT COUNT(*) as count FROM "Message" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
+      db.query('SELECT COUNT(*) as count FROM "Event" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
       
       // Weekly metrics (last 7 days)
       db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
@@ -106,7 +106,7 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       
       // User activity metrics
       db.query('SELECT COUNT(DISTINCT "userId") as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'1 day\''),
-      db.query('SELECT COUNT(*) as count FROM "User" WHERE DATE("createdAt") = CURRENT_DATE'),
+      db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
       db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
       db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
       
@@ -411,7 +411,8 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
     
     switch (period) {
       case 'today':
-        timeFilter = 'DATE("createdAt") = CURRENT_DATE';
+        // Optimized: use range query instead of DATE() function for index usage
+        timeFilter = '"createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\'';
         interval = '1 hour';
         break;
       case 'week':
