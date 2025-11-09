@@ -8,64 +8,38 @@ import { featureFlags } from '../../config/featureFlags';
 
 const twinService = new TwinService();
 
-// Enhanced onboarding schema
+// Simplified onboarding schema - focused on essential data
 const enhancedOnboardingSchema = z.object({
   basicInfo: z.object({
     fullName: z.string().min(1, 'Full name is required'),
     username: z.string().min(3, 'Username must be at least 3 characters'),
     bio: z.string().min(50, 'Bio must be at least 50 characters').max(150, 'Bio must not exceed 150 characters'),
-    ageRange: z.string().min(1, 'Age range is required'),
-    profession: z.string().min(1, 'Profession is required'),
-    location: z.string().min(1, 'Location is required')
+    primaryUseCase: z.string().min(1, 'Primary use case is required')
   }),
-  personality: z.object({
-    ocean: z.object({
-      openness: z.number().min(1).max(5),
-      conscientiousness: z.number().min(1).max(5),
-      extraversion: z.number().min(1).max(5),
-      agreeableness: z.number().min(1).max(5),
-      neuroticism: z.number().min(1).max(5)
-    }),
-    communicationStyle: z.object({
-      formality: z.number().min(1).max(5),
-      casual: z.number().min(1).max(5),
-      humor: z.number().min(1).max(5),
-      directness: z.number().min(1).max(5)
-    })
-  }),
-  tone: z.object({
-    sliders: z.object({
+  communicationStyle: z.object({
+    tone: z.object({
       formalCasual: z.number().min(0).max(100),
       seriousPlayful: z.number().min(0).max(100),
-      directDiplomatic: z.number().min(0).max(100),
-      enthusiasticReserved: z.number().min(0).max(100),
-      technicalSimple: z.number().min(0).max(100),
-      warmProfessional: z.number().min(0).max(100)
+      directDiplomatic: z.number().min(0).max(100)
     }),
-    scenarios: z.object({
-      greetingStyle: z.string().optional(),
-      badNewsStyle: z.string().optional(),
-      excitementStyle: z.string().optional()
+    language: z.object({
+      greetingStyle: z.string().min(1, 'Greeting style is required'),
+      closingStyle: z.string().min(1, 'Closing style is required'),
+      emojiUsage: z.string().min(1, 'Emoji usage is required'),
+      responseLength: z.string().min(1, 'Response length is required'),
+      commonPhrases: z.string().optional()
     })
-  }),
-  language: z.object({
-    greetingStyle: z.string().min(1, 'Greeting style is required'),
-    closingStyle: z.string().min(1, 'Closing style is required'),
-    punctuationStyle: z.string().min(1, 'Punctuation style is required'),
-    vocabularyLevel: z.string().min(1, 'Vocabulary level is required'),
-    slangUsage: z.string().min(1, 'Slang usage is required')
   }),
   context: z.object({
     interests: z.array(z.string()).min(3, 'Please select at least 3 interests'),
-    primaryUseCase: z.string().min(1, 'Primary use case is required'),
-    targetAudience: z.string().min(1, 'Target audience is required')
+    targetAudience: z.string().min(1, 'Target audience is required'),
+    topicsToAvoid: z.string().optional()
   }),
   samples: z.object({
-    categories: z.array(z.string()),
     content: z.array(z.object({
       category: z.string(),
-      content: z.string()
-    }))
+      content: z.string().min(20, 'Sample must be at least 20 characters')
+    })).min(2, 'At least 2 text samples are required for accuracy')
   }),
   onboardingCompleted: z.boolean(),
   completedAt: z.string()
@@ -230,9 +204,7 @@ async function updateUserProfile(userId: string, data: any) {
     
     const personaData = {
       basicInfo: data.basicInfo,
-      personality: data.personality,
-      tone: data.tone,
-      language: data.language,
+      communicationStyle: data.communicationStyle,
       context: data.context,
       samples: data.samples,
       completedAt: data.completedAt
@@ -275,24 +247,15 @@ function createPersonaData(data: any) {
     name: data.basicInfo.fullName,
     username: data.basicInfo.username,
     bio: data.basicInfo.bio,
-    ageRange: data.basicInfo.ageRange,
-    profession: data.basicInfo.profession,
-    location: data.basicInfo.location,
+    primaryUseCase: data.basicInfo.primaryUseCase,
 
-    // Personality Traits
-    personality: {
-      ocean: data.personality.ocean,
-      communicationStyle: data.personality.communicationStyle
-    },
-
-    // Communication Preferences
-    tone: data.tone,
-    language: data.language,
+    // Communication Style
+    communicationStyle: data.communicationStyle,
 
     // Context & Interests
     context: data.context,
 
-    // Writing Samples
+    // Writing Samples (most important for accuracy)
     samples: data.samples,
 
     // Metadata
@@ -302,190 +265,97 @@ function createPersonaData(data: any) {
 }
 
 function generateSystemPrompt(personaData: any) {
-  const { name, bio, personality, tone, language, context } = personaData;
+  const { name, bio, communicationStyle, context, samples } = personaData;
   
-  // Build personality description
-  const personalityDesc = buildPersonalityDescription(personality);
-  
-  // Build communication style
-  const communicationStyle = buildCommunicationStyle(tone, language);
+  // Build communication style description
+  const styleDesc = buildCommunicationStyle(communicationStyle);
   
   // Build context information
   const contextInfo = buildContextInfo(context);
+  
+  // Reference to samples for style learning
+  const samplesNote = samples && samples.content && samples.content.length > 0 
+    ? `\n\nWRITING SAMPLES REFERENCE:\nYou have ${samples.content.length} writing sample(s) that demonstrate this person's actual writing style. Use these as reference for tone, vocabulary, and communication patterns.`
+    : '';
 
-  return `You are ${name}, an AI twin created to represent this person's personality and communication style.
-
-PERSONALITY PROFILE:
-${personalityDesc}
-
-COMMUNICATION STYLE:
-${communicationStyle}
-
-CONTEXT & INTERESTS:
-${contextInfo}
+  return `You are ${name}, an AI twin created to represent this person's communication style and personality.
 
 BIO:
 ${bio}
 
+COMMUNICATION STYLE:
+${styleDesc}
+
+CONTEXT & INTERESTS:
+${contextInfo}${samplesNote}
+
 INSTRUCTIONS:
 - Always speak in first person as ${name}
-- Maintain the personality traits and communication style described above
-- Be authentic to the person's interests and background
-- Use the specified tone and language preferences
+- Match the communication style described above exactly
+- Use the specified tone, language preferences, and response length
+- Be authentic to the person's interests and use case
 - Keep responses natural and conversational
+- Reference the writing samples to match their actual style
 - Remember that you are representing a real person, so be respectful and appropriate
 
-Remember: You are ${name}, not an AI assistant. Respond as this person would, maintaining their unique personality and communication style.`;
+Remember: You are ${name}, not an AI assistant. Respond as this person would, maintaining their unique communication style and personality.`;
 }
 
-function buildPersonalityDescription(personality: any) {
-  const { ocean, communicationStyle } = personality;
+function buildCommunicationStyle(communicationStyle: any) {
+  const { tone, language } = communicationStyle;
   
-  let description = "Personality Traits:\n";
-  
-  // OCEAN traits
-  description += `- Openness: ${getTraitDescription('openness', ocean.openness)}\n`;
-  description += `- Conscientiousness: ${getTraitDescription('conscientiousness', ocean.conscientiousness)}\n`;
-  description += `- Extraversion: ${getTraitDescription('extraversion', ocean.extraversion)}\n`;
-  description += `- Agreeableness: ${getTraitDescription('agreeableness', ocean.agreeableness)}\n`;
-  description += `- Neuroticism: ${getTraitDescription('neuroticism', ocean.neuroticism)}\n`;
-  
-  // Communication style
-  description += "\nCommunication Style:\n";
-  description += `- Formality Level: ${getFormalityDescription(communicationStyle.formality)}\n`;
-  description += `- Humor Usage: ${getHumorDescription(communicationStyle.humor)}\n`;
-  description += `- Directness: ${getDirectnessDescription(communicationStyle.directness)}\n`;
-  
-  return description;
-}
-
-function buildCommunicationStyle(tone: any, language: any) {
   let style = "Communication Preferences:\n";
   
   // Tone sliders
-  style += `- Formality: ${tone.sliders.formalCasual > 50 ? 'More formal' : 'More casual'}\n`;
-  style += `- Energy: ${tone.sliders.enthusiasticReserved > 50 ? 'More enthusiastic' : 'More reserved'}\n`;
-  style += `- Approach: ${tone.sliders.directDiplomatic > 50 ? 'More direct' : 'More diplomatic'}\n`;
-  style += `- Language: ${tone.sliders.technicalSimple > 50 ? 'More technical' : 'More simple'}\n`;
+  style += `- Formality Level: ${tone.formalCasual > 50 ? 'More formal' : 'More casual'} (${tone.formalCasual}/100)\n`;
+  style += `- Tone: ${tone.seriousPlayful > 50 ? 'More serious' : 'More playful'} (${tone.seriousPlayful}/100)\n`;
+  style += `- Approach: ${tone.directDiplomatic > 50 ? 'More direct' : 'More diplomatic'} (${tone.directDiplomatic}/100)\n`;
   
   // Language preferences
+  style += `\nLanguage Style:\n`;
   style += `- Greeting Style: ${language.greetingStyle}\n`;
   style += `- Closing Style: ${language.closingStyle}\n`;
-  style += `- Punctuation: ${language.punctuationStyle}\n`;
-  style += `- Vocabulary: ${language.vocabularyLevel}\n`;
-  style += `- Slang Usage: ${language.slangUsage}\n`;
+  style += `- Emoji Usage: ${language.emojiUsage}\n`;
+  style += `- Response Length: ${language.responseLength}\n`;
+  if (language.commonPhrases) {
+    style += `- Common Phrases: ${language.commonPhrases}\n`;
+  }
   
   return style;
 }
 
 function buildContextInfo(context: any) {
   let info = "Background & Interests:\n";
-  info += `- Primary Use: ${context.primaryUseCase}\n`;
   info += `- Target Audience: ${context.targetAudience}\n`;
   info += `- Interests: ${context.interests.join(', ')}\n`;
+  if (context.topicsToAvoid) {
+    info += `- Topics to Avoid: ${context.topicsToAvoid}\n`;
+  }
   
   return info;
 }
 
-function getTraitDescription(trait: string, score: number) {
-  const descriptions = {
-    openness: {
-      1: 'Very traditional, prefers routine',
-      2: 'Somewhat traditional',
-      3: 'Balanced between traditional and open',
-      4: 'Somewhat open to new experiences',
-      5: 'Very open to new experiences and ideas'
-    },
-    conscientiousness: {
-      1: 'Very spontaneous, flexible',
-      2: 'Somewhat spontaneous',
-      3: 'Balanced between organized and flexible',
-      4: 'Somewhat organized and disciplined',
-      5: 'Very organized and disciplined'
-    },
-    extraversion: {
-      1: 'Very introverted, prefers solitude',
-      2: 'Somewhat introverted',
-      3: 'Balanced between introverted and extroverted',
-      4: 'Somewhat extroverted',
-      5: 'Very extroverted, enjoys social interaction'
-    },
-    agreeableness: {
-      1: 'Very competitive, skeptical',
-      2: 'Somewhat competitive',
-      3: 'Balanced between competitive and cooperative',
-      4: 'Somewhat cooperative and trusting',
-      5: 'Very cooperative and trusting'
-    },
-    neuroticism: {
-      1: 'Very emotionally stable, calm',
-      2: 'Somewhat stable',
-      3: 'Balanced emotional stability',
-      4: 'Somewhat sensitive to stress',
-      5: 'Very sensitive to stress and emotions'
-    }
-  };
-  
-  return descriptions[trait as keyof typeof descriptions][score as keyof typeof descriptions[keyof typeof descriptions]] || 'Balanced';
-}
-
-function getFormalityDescription(score: number) {
-  const descriptions = {
-    1: 'Very casual and informal',
-    2: 'Somewhat casual',
-    3: 'Balanced formality',
-    4: 'Somewhat formal',
-    5: 'Very formal and professional'
-  };
-  return descriptions[score as keyof typeof descriptions] || 'Balanced';
-}
-
-function getHumorDescription(score: number) {
-  const descriptions = {
-    1: 'Rarely uses humor',
-    2: 'Occasionally uses humor',
-    3: 'Balanced use of humor',
-    4: 'Frequently uses humor',
-    5: 'Always incorporates humor'
-  };
-  return descriptions[score as keyof typeof descriptions] || 'Balanced';
-}
-
-function getDirectnessDescription(score: number) {
-  const descriptions = {
-    1: 'Very indirect and diplomatic',
-    2: 'Somewhat indirect',
-    3: 'Balanced directness',
-    4: 'Somewhat direct',
-    5: 'Very direct and straightforward'
-  };
-  return descriptions[score as keyof typeof descriptions] || 'Balanced';
-}
 
 async function createEnhancedStyleVector(data: any) {
-  // Create a more sophisticated style vector based on all the collected data
+  // Create style vector based on simplified onboarding data
   const styleVector = {
-    // Basic personality traits
-    personality: data.personality,
-    
-    // Communication preferences
-    tone: data.tone,
-    language: data.language,
+    // Communication style
+    communicationStyle: data.communicationStyle,
     
     // Context information
     context: data.context,
     
-    // Sample analysis (if provided)
+    // Sample analysis (most important for accuracy)
     samples: data.samples.content.length > 0 ? {
       count: data.samples.content.length,
-      categories: data.samples.categories,
-      // In a real implementation, you would analyze the actual sample content here
-      analysis: 'Enhanced analysis based on provided samples'
+      categories: data.samples.content.map((s: any) => s.category),
+      // Samples will be analyzed for actual style patterns
+      hasSamples: true
     } : null,
     
     // Metadata
     createdAt: new Date().toISOString(),
-    version: '2.0' // Enhanced version
+    version: '3.0' // Simplified version focused on essentials
   };
   
   return styleVector;

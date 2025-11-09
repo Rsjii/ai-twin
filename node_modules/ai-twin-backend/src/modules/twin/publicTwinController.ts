@@ -286,6 +286,15 @@ export const getMyTwinProfile = async (req: Request, res: Response, next: NextFu
 
     const twin = twinResult.rows[0];
 
+    // Get User's personaData and onboarding status
+    const userResult = await db.query(`
+      SELECT "personaData", "onboardingCompleted" 
+      FROM "User" 
+      WHERE id = $1
+    `, [req.user.id]);
+    
+    const userData = userResult?.rows?.[0] || {};
+
     res.json({
       success: true,
       twin: {
@@ -300,9 +309,15 @@ export const getMyTwinProfile = async (req: Request, res: Response, next: NextFu
         chatCount: twin.chatCount,
         styleVector: twin.styleVector,
         sampleReply: twin.sampleReply,
+        personaData: twin.personaData,        // ✅ Complete onboarding data
+        systemPrompt: twin.systemPrompt,      // ✅ Generated system prompt
         createdAt: twin.createdAt,
         userHandle: twin.userHandle,
         userName: twin.userName
+      },
+      user: {
+        personaData: userData.personaData,           // ✅ User's stored personaData
+        onboardingCompleted: userData.onboardingCompleted || false
       }
     });
 
