@@ -114,8 +114,10 @@ export const getMilestones = async (req: any, res: Response) => {
     `, [id]);
     
     const memoriesResult = await fastQuery(`
-      SELECT COUNT(*) as count FROM "mem_chunks" WHERE twin_id = $1
-    `, [id]);
+      SELECT 
+        (SELECT COUNT(*) FROM "MemoryLongTerm" WHERE "twinId" = $1) +
+        (SELECT COUNT(*) FROM "style_anchors" WHERE twin_id = $1) as count
+    `, [id]);    
     
     const trainingResult = await fastQuery(`
       SELECT COUNT(*) as count FROM "style_anchors" WHERE twin_id = $1 AND tags @> ARRAY['manual']::text[]
@@ -332,12 +334,26 @@ export const optimizeMemories = async (req: any, res: Response) => {
       return res.status(404).json({ success: false, error: 'Twin not found' });
     }
     
-    // Get all memories using fast query (table may not exist)
-    const memoriesResult = await fastQuery(`
-      SELECT id, text, "createdAt"
-      FROM "mem_chunks"
-      WHERE "twin_id" = $1
-    `, [id]);
+// Get from both systems
+const [longTermMemories, styleAnchors] = await Promise.all([
+  fastQuery(`
+    SELECT key as id, value as text, "createdAt"
+    FROM "MemoryLongTerm"
+    WHERE "twinId" = $1
+  `, [id]),
+  fastQuery(`
+    SELECT id, phrase as text, created_at as "createdAt"
+    FROM "style_anchors"
+    WHERE twin_id = $1 AND type = 'phrase'
+  `, [id])
+]);
+
+const memoriesResult = {
+  rows: [
+    ...(longTermMemories?.rows || []),
+    ...(styleAnchors?.rows || [])
+  ]
+};    
     
     const memories = memoriesResult?.rows || [];
     

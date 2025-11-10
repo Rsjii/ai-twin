@@ -29,7 +29,6 @@
             <p class="text-gray-600">Customize your AI twin's communication style and personality</p>
         </div>
 
-
         <!-- Navigation Breadcrumbs -->
 <div class="mb-6">
     <nav class="flex" aria-label="Breadcrumb">
@@ -82,6 +81,9 @@
         <a href="/twin/<%= twinId %>/ai-edit" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
           AI Edit
         </a>
+                    <a href="/twin/<%= twinId %>/memory-management" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
+                        Memory Management
+                    </a>
       </div>
       <div class="text-sm text-gray-600">
         <span class="font-medium">Twin ID:</span> <%= twinId %>
@@ -165,16 +167,122 @@
             </div>
         </div>
 
+        <!-- Style Anchors Preview Section -->
+        <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 mb-8 border border-white/20">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Style Anchors</h2>
+                <a href="/twin/<%= twinId %>/memory-management" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    View All →
+                </a>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex space-x-2 mb-4 border-b border-gray-200">
+                <button id="tab-phrases" data-tab="phrases" class="px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600 style-anchor-tab">
+                    Phrases
+                </button>
+                <button id="tab-interactions" data-tab="interactions" class="px-4 py-2 font-medium text-gray-600 hover:text-blue-600 style-anchor-tab">
+                    Interactions
+                </button>
+            </div>
+
+            <!-- Phrases Tab Content -->
+            <div id="phrases-content" class="style-anchor-content">
+                <div id="phrasesList" class="space-y-3 mb-4 min-h-[100px]">
+                    <div class="text-center text-gray-500 py-4">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="mt-2">Loading phrases...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactions Tab Content -->
+            <div id="interactions-content" class="style-anchor-content" style="display: none;">
+                <div id="interactionsList" class="space-y-3 mb-4 min-h-[100px]">
+                    <div class="text-center text-gray-500 py-4">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="mt-2">Loading interactions...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <div class="flex justify-between text-sm text-gray-600">
+                    <span>Total Phrases: <span id="totalPhrases" class="font-medium text-gray-900">0</span></span>
+                    <span>Total Interactions: <span id="totalInteractions" class="font-medium text-gray-900">0</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Add Style Anchor Section -->
+        <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 mb-8 border border-white/20">
+            <h2 class="text-xl font-semibold mb-4">Quick Add Style Anchor</h2>
+
+            <!-- Mode Toggle -->
+            <div class="flex space-x-2 mb-4 border-b border-gray-200">
+                <button id="mode-phrase" data-mode="phrase" class="px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600 anchor-mode-btn">
+                    Add Phrase
+                </button>
+                <button id="mode-interaction" data-mode="interaction" class="px-4 py-2 font-medium text-gray-600 hover:text-blue-600 anchor-mode-btn">
+                    Add Interaction
+                </button>
+            </div>
+
+            <!-- Phrase Form -->
+            <div id="phrase-form" class="anchor-form">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Phrase</label>
+                        <input type="text" id="phraseText" placeholder="Enter a phrase your AI twin should use..." 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tags (optional, comma-separated)</label>
+                        <input type="text" id="phraseTags" placeholder="greeting, casual, friendly" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button id="addPhraseBtn" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                        Add Phrase
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interaction Form -->
+            <div id="interaction-form" class="anchor-form" style="display: none;">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">User Utterance</label>
+                        <input type="text" id="userUtterance" placeholder="What the user might say..." 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Ideal Reply</label>
+                        <textarea id="idealReply" placeholder="How your AI twin should respond..." rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tags (optional, comma-separated)</label>
+                        <input type="text" id="interactionTags" placeholder="greeting, helpful, friendly" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button id="addInteractionBtn" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                        Add Interaction
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="flex justify-between items-center">
-            <button onclick="previewChanges()" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
+            <button id="previewChangesBtn" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
                 Preview Changes
             </button>
             <div class="space-x-4">
-                <button onclick="resetChanges()" class="bg-white/80 backdrop-blur-sm text-gray-700 px-6 py-2 rounded-xl hover:bg-white border border-white/20 transition-all font-medium shadow-md">
+                <button id="resetChangesBtn" class="bg-white/80 backdrop-blur-sm text-gray-700 px-6 py-2 rounded-xl hover:bg-white border border-white/20 transition-all font-medium shadow-md">
                     Reset
                 </button>
-                <button onclick="saveChanges()" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
+                <button id="saveChangesBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
                     Save Changes
                 </button>
             </div>
@@ -199,23 +307,143 @@
     <script>
     let currentTwinData = null;
     const twinId = '<%= twinId %>';
+    let currentStyleAnchorTab = 'phrases';
+    let currentAnchorMode = 'phrase';
 
     // Load twin data on page load
     document.addEventListener('DOMContentLoaded', function() {
         loadTwinData();
         setupRangeListeners();
+        setupEventListeners();
+        loadStyleAnchors();
     });
 
+    function setupEventListeners() {
+        // Style anchor tab switching
+        document.querySelectorAll('.style-anchor-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabType = this.dataset.tab;
+                switchStyleAnchorTab(tabType);
+            });
+        });
+
+        // Anchor mode switching
+        document.querySelectorAll('.anchor-mode-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const mode = this.dataset.mode;
+                switchAnchorMode(mode);
+            });
+        });
+
+        // Add phrase button
+        const addPhraseBtn = document.getElementById('addPhraseBtn');
+        if (addPhraseBtn) {
+            addPhraseBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                addPhrase();
+            });
+        }
+
+        // Add interaction button
+        const addInteractionBtn = document.getElementById('addInteractionBtn');
+        if (addInteractionBtn) {
+            addInteractionBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                addInteraction();
+            });
+        }
+
+        // Action buttons
+        const previewBtn = document.getElementById('previewChangesBtn');
+        if (previewBtn) {
+            previewBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Preview button clicked');
+                previewChanges();
+            });
+        }
+
+        const resetBtn = document.getElementById('resetChangesBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Reset button clicked');
+                resetChanges();
+            });
+        }
+
+        const saveBtn = document.getElementById('saveChangesBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Save button clicked');
+                saveChanges();
+            });
+        }
+    }
+
+    function switchStyleAnchorTab(tabType) {
+        currentStyleAnchorTab = tabType;
+        
+        // Update tab styles
+        document.querySelectorAll('.style-anchor-tab').forEach(tab => {
+            tab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+            tab.classList.add('text-gray-600');
+        });
+        document.getElementById(`tab-${tabType}`).classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+        document.getElementById(`tab-${tabType}`).classList.remove('text-gray-600');
+
+        // Show/hide content
+        document.getElementById('phrases-content').style.display = tabType === 'phrases' ? 'block' : 'none';
+        document.getElementById('interactions-content').style.display = tabType === 'interactions' ? 'block' : 'none';
+
+        // Reload data for selected tab
+        if (tabType === 'phrases') {
+            loadPhrases();
+        } else {
+            loadInteractions();
+        }
+    }
+
+    function switchAnchorMode(mode) {
+        currentAnchorMode = mode;
+        
+        // Update mode button styles
+        document.querySelectorAll('.anchor-mode-btn').forEach(btn => {
+            btn.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+            btn.classList.add('text-gray-600');
+        });
+        document.getElementById(`mode-${mode}`).classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+        document.getElementById(`mode-${mode}`).classList.remove('text-gray-600');
+
+        // Show/hide forms
+        document.getElementById('phrase-form').style.display = mode === 'phrase' ? 'block' : 'none';
+        document.getElementById('interaction-form').style.display = mode === 'interaction' ? 'block' : 'none';
+    }
+
     function setupRangeListeners() {
-        document.getElementById('formality').addEventListener('input', function() {
+        const formality = document.getElementById('formality');
+        const emoji = document.getElementById('emoji_usage');
+        const question = document.getElementById('question_frequency');
+        
+        if (formality) {
+            formality.addEventListener('input', function() {
             document.getElementById('formality-value').textContent = this.value;
         });
-        document.getElementById('emoji_usage').addEventListener('input', function() {
+        }
+        if (emoji) {
+            emoji.addEventListener('input', function() {
             document.getElementById('emoji-value').textContent = this.value;
         });
-        document.getElementById('question_frequency').addEventListener('input', function() {
+        }
+        if (question) {
+            question.addEventListener('input', function() {
             document.getElementById('question-value').textContent = this.value;
         });
+        }
     }
 
     async function loadTwinData() {
@@ -233,46 +461,295 @@
     }
 
     function populateForm(twin) {
-        // Populate style controls
-        document.getElementById('formality').value = twin.styleVector.formality || 0.5;
-        document.getElementById('emoji_usage').value = twin.styleVector.emoji_usage || 0.3;
-        document.getElementById('humor_style').value = twin.styleVector.humor_style || 'light';
-        document.getElementById('question_frequency').value = twin.styleVector.question_frequency || 0.4;
-        document.getElementById('response_length_preference').value = twin.styleVector.response_length_preference || 'detailed';
-        document.getElementById('tone').value = twin.styleVector.tone || 'casual';
+        const styleVector = twin.styleVector || {};
+        const formalityEl = document.getElementById('formality');
+        const emojiEl = document.getElementById('emoji_usage');
+        const humorEl = document.getElementById('humor_style');
+        const questionEl = document.getElementById('question_frequency');
+        const responseEl = document.getElementById('response_length_preference');
+        const toneEl = document.getElementById('tone');
+
+        if (formalityEl) formalityEl.value = styleVector.formality || styleVector.formality_level || 0.5;
+        if (emojiEl) emojiEl.value = styleVector.emoji_usage || 0.3;
+        if (humorEl) humorEl.value = styleVector.humor_style || 'light';
+        if (questionEl) questionEl.value = styleVector.question_frequency || 0.4;
+        if (responseEl) responseEl.value = styleVector.response_length_preference || 'detailed';
+        if (toneEl) toneEl.value = styleVector.tone || 'casual';
                 
         updateRangeDisplays();
     }
 
     function updateRangeDisplays() {
-        document.getElementById('formality-value').textContent = document.getElementById('formality').value;
-        document.getElementById('emoji-value').textContent = document.getElementById('emoji_usage').value;
-        document.getElementById('question-value').textContent = document.getElementById('question_frequency').value;
+        const formalityEl = document.getElementById('formality');
+        const emojiEl = document.getElementById('emoji_usage');
+        const questionEl = document.getElementById('question_frequency');
+        const formalityValue = document.getElementById('formality-value');
+        const emojiValue = document.getElementById('emoji-value');
+        const questionValue = document.getElementById('question-value');
+
+        if (formalityEl && formalityValue) {
+            formalityValue.textContent = formalityEl.value;
+        }
+        if (emojiEl && emojiValue) {
+            emojiValue.textContent = emojiEl.value;
+        }
+        if (questionEl && questionValue) {
+            questionValue.textContent = questionEl.value;
+        }
     }
 
-    async function previewChanges() {
-        const styleChanges = getStyleChanges();
-        const testMessage = "Hello! How are you doing today?";
-        
+    async function loadStyleAnchors() {
+        await Promise.all([
+            loadPhrases(),
+            loadInteractions(),
+            loadStyleAnchorStats()
+        ]);
+    }
+
+    async function loadPhrases() {
         try {
-            const response = await fetch(`/api/twin/${twinId}/style-preview`, {
+            const response = await fetch(`/api/twin/${twinId}/style-anchors?type=phrase&limit=5`, {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            
+            const phrasesListEl = document.getElementById('phrasesList');
+            if (!phrasesListEl) return;
+
+            if (data.success && data.anchors && data.anchors.length > 0) {
+                const phrasesHTML = data.anchors.map(anchor => {
+                    const phrase = anchor.phrase || '';
+                    const tags = anchor.tags || [];
+                    const date = anchor.created_at ? new Date(anchor.created_at).toLocaleDateString() : '';
+                    const tagsDisplay = tags.length > 0 ? tags.map(tag => `<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">${escapeHtml(tag)}</span>`).join(' ') : '';
+                    
+                    return `
+                        <div class="flex justify-between items-start p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div class="flex-1">
+                                <p class="text-sm text-gray-900 font-medium">${escapeHtml(phrase)}</p>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    ${tagsDisplay}
+                                    <span class="text-xs text-gray-500">${date}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                phrasesListEl.innerHTML = phrasesHTML;
+            } else {
+                phrasesListEl.innerHTML = `<p class="text-gray-500 text-center py-4">No phrases yet. Add your first one below!</p>`;
+            }
+        } catch (error) {
+            console.error('Error loading phrases:', error);
+            const phrasesListEl = document.getElementById('phrasesList');
+            if (phrasesListEl) {
+                phrasesListEl.innerHTML = '<p class="text-red-500 text-center py-4">Error loading phrases</p>';
+            }
+        }
+    }
+
+    async function loadInteractions() {
+        try {
+            const response = await fetch(`/api/twin/${twinId}/style-anchors?type=interaction&limit=5`, {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            
+            const interactionsListEl = document.getElementById('interactionsList');
+            if (!interactionsListEl) return;
+
+            if (data.success && data.anchors && data.anchors.length > 0) {
+                const interactionsHTML = data.anchors.map(anchor => {
+                    const userUtterance = anchor.user_utterance || '';
+                    const idealReply = anchor.ideal_reply || '';
+                    const tags = anchor.tags || [];
+                    const date = anchor.created_at ? new Date(anchor.created_at).toLocaleDateString() : '';
+                    const tagsDisplay = tags.length > 0 ? tags.map(tag => `<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">${escapeHtml(tag)}</span>`).join(' ') : '';
+                    
+                    return `
+                        <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div class="mb-2">
+                                <p class="text-xs text-gray-500 mb-1">User:</p>
+                                <p class="text-sm text-gray-700">${escapeHtml(userUtterance)}</p>
+                            </div>
+                            <div class="mb-2">
+                                <p class="text-xs text-gray-500 mb-1">Ideal Reply:</p>
+                                <p class="text-sm text-gray-900 font-medium">${escapeHtml(idealReply)}</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                ${tagsDisplay}
+                                <span class="text-xs text-gray-500">${date}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                interactionsListEl.innerHTML = interactionsHTML;
+            } else {
+                interactionsListEl.innerHTML = `<p class="text-gray-500 text-center py-4">No interactions yet. Add your first one below!</p>`;
+            }
+        } catch (error) {
+            console.error('Error loading interactions:', error);
+            const interactionsListEl = document.getElementById('interactionsList');
+            if (interactionsListEl) {
+                interactionsListEl.innerHTML = '<p class="text-red-500 text-center py-4">Error loading interactions</p>';
+            }
+        }
+    }
+
+    async function loadStyleAnchorStats() {
+        try {
+            const response = await fetch(`/api/twin/${twinId}/style-anchors?limit=1000`, {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            
+            if (data.success && data.anchors) {
+                const phrases = data.anchors.filter(a => a.type === 'phrase' || a.phrase);
+                const interactions = data.anchors.filter(a => a.type === 'interaction' || (a.user_utterance && a.ideal_reply));
+                
+                const totalPhrasesEl = document.getElementById('totalPhrases');
+                const totalInteractionsEl = document.getElementById('totalInteractions');
+                
+                if (totalPhrasesEl) totalPhrasesEl.textContent = phrases.length;
+                if (totalInteractionsEl) totalInteractionsEl.textContent = interactions.length;
+            }
+        } catch (error) {
+            console.error('Error loading style anchor stats:', error);
+        }
+    }
+
+    async function addPhrase() {
+        const phraseText = document.getElementById('phraseText')?.value.trim();
+        if (!phraseText) {
+            alert('Please enter a phrase');
+            return;
+        }
+
+        const tagsInput = document.getElementById('phraseTags')?.value.trim() || '';
+        const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t);
+
+        try {
+            const response = await fetch(`/api/twin/${twinId}/style-anchors`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': window.csrfToken
                 },
-                body: JSON.stringify({ styleChanges, testMessage })
+                credentials: 'include',
+                body: JSON.stringify({
+                    type: 'phrase',
+                    phrase: phraseText,
+                    tags: tags
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                document.getElementById('phraseText').value = '';
+                document.getElementById('phraseTags').value = '';
+                loadPhrases();
+                loadStyleAnchorStats();
+                alert('Phrase added successfully!');
+            } else {
+                alert('Error: ' + (data.error || 'Failed to add phrase'));
+            }
+        } catch (error) {
+            console.error('Error adding phrase:', error);
+            alert('Error adding phrase: ' + error.message);
+        }
+    }
+
+    async function addInteraction() {
+        const userUtterance = document.getElementById('userUtterance')?.value.trim();
+        const idealReply = document.getElementById('idealReply')?.value.trim();
+
+        if (!userUtterance || !idealReply) {
+            alert('Please enter both user utterance and ideal reply');
+            return;
+        }
+
+        const tagsInput = document.getElementById('interactionTags')?.value.trim() || '';
+        const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t);
+
+        try {
+            const response = await fetch(`/api/twin/${twinId}/style-anchors`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    type: 'interaction',
+                    userUtterance: userUtterance,
+                    idealReply: idealReply,
+                    tags: tags
+                })
             });
             
             const data = await response.json();
             
             if (data.success) {
-                document.getElementById('original-text').textContent = data.originalResponse;
-                document.getElementById('new-text').textContent = data.newResponse;
-                document.getElementById('preview-section').style.display = 'block';
+                document.getElementById('userUtterance').value = '';
+                document.getElementById('idealReply').value = '';
+                document.getElementById('interactionTags').value = '';
+                loadInteractions();
+                loadStyleAnchorStats();
+                alert('Interaction added successfully!');
+            } else {
+                alert('Error: ' + (data.error || 'Failed to add interaction'));
             }
         } catch (error) {
-            console.error('Error previewing changes:', error);
+            console.error('Error adding interaction:', error);
+            alert('Error adding interaction: ' + error.message);
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function previewChanges() {
+        if (!currentTwinData) {
+            alert('Please wait for data to load first');
+            return;
+        }
+
+        const styleVector = currentTwinData.styleVector || {};
+        
+        const current = {
+            formality: styleVector.formality || styleVector.formality_level || 0.5,
+            emoji_usage: styleVector.emoji_usage || 0.3,
+            humor_style: styleVector.humor_style || 'light',
+            question_frequency: styleVector.question_frequency || 0.4,
+            response_length_preference: styleVector.response_length_preference || 'detailed',
+            tone: styleVector.tone || 'casual'
+        };
+        
+        const updated = {
+            formality: parseFloat(document.getElementById('formality')?.value || 0.5),
+            emoji_usage: parseFloat(document.getElementById('emoji_usage')?.value || 0.3),
+            humor_style: document.getElementById('humor_style')?.value || 'light',
+            question_frequency: parseFloat(document.getElementById('question_frequency')?.value || 0.4),
+            response_length_preference: document.getElementById('response_length_preference')?.value || 'detailed',
+            tone: document.getElementById('tone')?.value || 'casual'
+        };
+        
+        let changes = [];
+        Object.keys(current).forEach(key => {
+            if (String(current[key]) !== String(updated[key])) {
+                changes.push(`${key}: "${current[key]}" → "${updated[key]}"`);
+            }
+        });
+        
+        if (changes.length === 0) {
+            alert('No changes detected');
+        } else {
+            alert('Preview Changes:\n\n' + changes.join('\n'));
         }
     }
 
@@ -287,6 +764,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': window.csrfToken
                     },
+                    credentials: 'include',
                     body: JSON.stringify(styleUpdates)
                 });
                 
@@ -308,20 +786,28 @@
 
     function getStyleChanges() {
         return {
-            formality_level: parseFloat(document.getElementById('formality').value),
-            emoji_usage: parseFloat(document.getElementById('emoji_usage').value),
-            humor_style: document.getElementById('humor_style').value,
-            question_frequency: parseFloat(document.getElementById('question_frequency').value),
-            response_length_preference: document.getElementById('response_length_preference').value,
-            tone: document.getElementById('tone').value
+            formality_level: parseFloat(document.getElementById('formality')?.value || 0.5),
+            emoji_usage: parseFloat(document.getElementById('emoji_usage')?.value || 0.3),
+            humor_style: document.getElementById('humor_style')?.value || 'light',
+            question_frequency: parseFloat(document.getElementById('question_frequency')?.value || 0.4),
+            response_length_preference: document.getElementById('response_length_preference')?.value || 'detailed',
+            tone: document.getElementById('tone')?.value || 'casual'
         };
     }
 
     function resetChanges() {
         if (currentTwinData) {
             populateForm(currentTwinData);
+            alert('Form reset to original values');
+        } else {
+            alert('No data loaded. Please refresh the page.');
         }
     }
+
+    // Make functions globally accessible
+    window.previewChanges = previewChanges;
+    window.resetChanges = resetChanges;
+    window.saveChanges = saveChanges;
     </script>
 </body>
 </html>

@@ -842,63 +842,6 @@ export const styleAnchorsQueries = {
   },  
 };
 
-// Memory Chunks Queries
-export const memChunksQueries = {
-  create: async (twinId: string, bucket: 'facts' | 'voice', text: string, embedding?: number[]) => {
-    const id = generateId();
-    const result = await db.query(
-      'INSERT INTO "mem_chunks" (id, twin_id, bucket, text, embedding) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [id, twinId, bucket, text, embedding ? JSON.stringify(embedding) : null]
-    );
-    return result.rows[0];
-  },
-
-  findByTwinAndBucket: async (twinId: string, bucket: 'facts' | 'voice', limit = 10) => {
-    const result = await db.query(
-      'SELECT * FROM "mem_chunks" WHERE twin_id = $1 AND bucket = $2 ORDER BY ts DESC LIMIT $3',
-      [twinId, bucket, limit]
-    );
-    return result.rows;
-  },
-
-  findByTwinAndSimilarity: async (twinId: string, bucket: 'facts' | 'voice', queryEmbedding: number[], limit = 3) => {
-    // This will be enhanced with vector similarity search later
-    const result = await db.query(
-      `SELECT *, 
-       embedding <-> $3 as distance 
-       FROM "mem_chunks" 
-       WHERE twin_id = $1 AND bucket = $2 
-       ORDER BY distance ASC 
-       LIMIT $4`,
-      [twinId, bucket, JSON.stringify(queryEmbedding), limit]
-    );
-    return result.rows;
-  },
-
-  delete: async (chunkId: string) => {
-    const result = await db.query('DELETE FROM "mem_chunks" WHERE id = $1 RETURNING *', [chunkId]);
-    return result.rows[0];
-  },
-
-  // Add this function inside memChunksQueries object (around line 659)
-update: async (chunkId: string, text: string) => {
-  const result = await db.query(
-    'UPDATE "mem_chunks" SET text = $1 WHERE id = $2 RETURNING *',
-    [text, chunkId]
-  );
-  return result.rows[0];
-},
-
-  // Add this function to memChunksQueries object
-findByTwinIdAndBucket: async (twinId: string, bucket: 'facts' | 'voice', limit = 10, offset = 0) => {
-  const result = await db.query(
-    'SELECT * FROM "mem_chunks" WHERE twin_id = $1 AND bucket = $2 ORDER BY ts DESC LIMIT $3 OFFSET $4',
-    [twinId, bucket, limit, offset]
-  );
-  return result.rows;
-},
-};
-
 // Style Corrections Queries
 export const styleCorrectionsQueries = {
   create: async (twinId: string, knob: string, delta: number, source?: string) => {

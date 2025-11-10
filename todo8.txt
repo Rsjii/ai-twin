@@ -1,0 +1,831 @@
+Analyzing the codebase to draft a detailed migration plan. Checking current implementations:
+
+
+[7 tools called]
+
+
+
+
+
+[1 tool called]
+
+
+# ULTRA-DETAILED MIGRATION PLAN
+
+## Overview
+- Remove `mem_chunks` completely
+- Use unified system: `MemoryLongTerm` + `StyleAnchors`
+- Update all pages to new flow
+- Remove deprecated code
+
+---
+
+## PHASE 1: Backend cleanup — remove mem_chunks
+
+### Step 1.1: Files to update/remove
+
+#### A. `backend/src/config/database.ts`
+Remove:
+- `memChunksQueries` object (lines 846-900)
+- All functions: `create`, `findByTwinAndBucket`, `findByTwinAndSimilarity`, `delete`, `update`, `findByTwinIdAndBucket`
+
+Keep:
+- `styleAnchorsQueries`
+- `memoryLongTermQueries`
+
+#### B. `backend/src/modules/memory/memoryController.ts`
+Current status: Already redirects, but still uses mem_chunks internally
+
+Changes needed:
+1. `getMemoryStats()` — replace with unified stats
+   ```typescript
+   // OLD: Uses mem_chunks
+   // NEW: Combine MemoryLongTerm + StyleAnchors stats
+   ```
+2. `retrieveMemories()` — replace with unified retrieval
+   ```typescript
+   // OLD: memChunksQueries.findByTwinIdAndBucket()
+   // NEW: 
+   // - If bucket='facts' → use MemoryLongTerm
+   // - If bucket='voice' → use StyleAnchors (type='phrase')
+   ```
+3. `updateMemory()` — remove (use unified endpoints)
+4. `deleteMemory()` — remove (use unified endpoints)
+5. `ingestMemories()` — keep redirect logic, remove mem_chunks code
+
+#### C. Files using mem_chunks (replace all)
+
+1. `backend/src/modules/chat/enhancedChatController.ts`
+   - Line 391: `SELECT text FROM mem_chunks`
+   - Replace with: `MemoryLongTerm` for facts, `StyleAnchors` for phrases
+
+2. `backend/src/controllers/twinManagePageController.ts`
+   - Line 60: `SELECT COUNT(*) FROM "mem_chunks"`
+   - Replace with: Count from `MemoryLongTerm` + `StyleAnchors`
+
+3. `backend/src/services/performanceService.ts`
+   - Lines 146, 187: mem_chunks queries
+   - Replace with unified system
+
+4. `backend/src/modules/twin/twinPerformanceController.ts`
+   - Lines 117, 338: mem_chunks queries
+   - Replace with unified system
+
+5. `backend/src/modules/analytics/analyticsController.ts`
+   - Line 446: mem_chunks query
+   - Replace with unified system
+
+6. `backend/src/modules/twin/twinTrainingController.ts`
+   - Line 174: mem_chunks count
+   - Replace with unified system
+
+7. `backend/src/services/systemPromptUpdater.ts`
+   - Line 42: mem_chunks query
+   - Replace with MemoryLongTerm
+
+---
+
+## PHASE 2: Frontend pages — new flow
+
+### PAGE 1: `/ai-edit` — persona & facts
+
+#### Current issues
+- Uses `/api/memory/:id/memory/retrieve?bucket=facts` (deprecated)
+- Uses `/api/memory/:id/memory/ingest` (redirects but old endpoint)
+- Shows system prompt (should be hidden)
+
+#### New flow
+
+Section 1: Memory & Facts
+- Purpose: View and manage permanent facts
+- Data source: `MemoryLongTerm` table
+- API endpoints:
+  - GET: `/api/twin/:id/long-term-memory?category=fact&limit=20`
+  - POST: `/api/twin/:id/long-term-memory` (body: `{value, category: 'fact'}`)
+  - DELETE: `/api/twin/:id/long-term-memory/:key`
+  - PUT: `/api/twin/:id/long-term-memory/:key` (body: `{value, category}`)
+
+Display format:
+```javascript
+// Each memory shows:
+{
+  key: "fact_1234567890_abc",
+  value: "User loves coffee",
+  category: "fact",
+  createdAt: "2024-01-15T10:30:00Z",
+  updatedAt: "2024-01-15T10:30:00Z"
+}
+```
+
+UI changes:
+- Remove: Old memory list using `mem_chunks` format
+- Add: New memory list showing `key`, `value`, `category`
+- Add: Category badge (fact/preference/interest/etc.)
+- Add: Edit button (opens modal with key/value)
+- Add: Delete button (uses key, not id)
+
+Section 2: Personality Traits
+- Keep as is (Full Name, Bio, Interests)
+- API: `/api/twin/:id/update-persona` (unchanged)
+
+Section 3: System prompt
+- Remove: System prompt textarea/display
+- Keep: Backend generates it, don't show to user
+
+Code changes:
+```javascript
+// OLD CODE (REMOVE):
+async function loadMemories() {
+    const response = await fetch(`/api/memory/${twinId}/memory/retrieve?bucket=facts&limit=20`);
+    // Uses mem_chunks format
+}
+
+// NEW CODE:
+async function loadMemories() {
+    const response = await fetch(`/api/twin/${twinId}/long-term-memory?category=fact&limit=20`, {
+        credentials: 'include'
+    });
+    const data = await response.json();
+    if (data.success) {
+        // data.memories format: [{key, value, category, createdAt, updatedAt}]
+        displayMemories(data.memories);
+    }
+}
+
+// OLD CODE (REMOVE):
+async function addMemory() {
+    const response = await fetch(`/api/memory/${twinId}/memory/ingest`, {
+        body: JSON.stringify({bucket: 'facts', text: memory})
+    });
+}
+
+// NEW CODE:
+async function addMemory() {
+    const memoryText = document.getElementById('newMemory').value.trim();
+    if (!memoryText) {
+        alert('Please enter a memory');
+        return;
+    }
+    
+    const response = await fetch(`/api/twin/${twinId}/long-term-memory`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': window.csrfToken
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+            value: memoryText,
+            category: 'fact' // or let user select category
+        })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        document.getElementById('newMemory').value = '';
+        loadMemories(); // Reload
+        alert('Memory added successfully!');
+    }
+}
+
+// OLD CODE (REMOVE):
+async function deleteMemory(memoryId) {
+    const response = await fetch(`/api/memory/${twinId}/memory/${memoryId}`, {
+        method: 'DELETE'
+    });
+}
+
+// NEW CODE:
+async function deleteMemory(memoryKey) {
+    if (!confirm('Are you sure you want to delete this memory?')) {
+        return;
+    }
+    
+    const response = await fetch(`/api/twin/${twinId}/long-term-memory/${memoryKey}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-Token': window.csrfToken
+        },
+        credentials: 'include'
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        loadMemories(); // Reload
+        alert('Memory deleted successfully!');
+    }
+}
+```
+
+---
+
+### PAGE 2: `/style-customize` — communication style
+
+#### Current status
+- Mostly correct (uses StyleVector)
+- No memory-related features (correct)
+
+#### What to keep
+- All style controls (formality, emoji, humor, etc.)
+- Preview functionality
+- Save/Reset buttons
+- API endpoints: `/api/twin/:id/edit-data`, `/api/twin/:id/update-style`, `/api/twin/:id/style-preview`
+
+#### Optional enhancement
+- Add Style Anchors preview section (show top 3 anchors that influence style)
+- API: `/api/twin/:id/style-anchors?limit=3`
+
+Code (optional):
+```javascript
+// Add this function to show style anchors influence
+async function loadStyleAnchorsPreview() {
+    const response = await fetch(`/api/twin/${twinId}/style-anchors?limit=3`, {
+        credentials: 'include'
+    });
+    const data = await response.json();
+    if (data.success && data.anchors.length > 0) {
+        // Display in a "Style Examples" section
+        displayStyleAnchorsPreview(data.anchors);
+    }
+}
+```
+
+---
+
+### PAGE 3: `/memory-management` — unified memory hub
+
+#### Current issues
+- Uses `/api/memory/:id/memory/stats` (deprecated)
+- Uses `/api/memory/:id/memory/retrieve?bucket=facts` (deprecated)
+- Uses `/api/memory/:id/memory/retrieve?bucket=voice` (deprecated)
+- Uses `/api/memory/:id/memory/ingest` (redirects but old)
+
+#### New flow
+
+Section 1: Memory statistics
+- Purpose: Show unified stats
+- New API: Combine two endpoints
+  ```javascript
+  // Get stats from both systems
+  const [longTermStats, styleAnchorsStats] = await Promise.all([
+      fetch(`/api/twin/${twinId}/long-term-memory?limit=1`), // Get count
+      fetch(`/api/twin/${twinId}/style-anchors?limit=1`) // Get count
+  ]);
+  ```
+
+Display:
+- Total Memories: Count from `MemoryLongTerm`
+- Facts: Count from `MemoryLongTerm` where `category='fact'`
+- Style Anchors: Count from `style_anchors` table
+- Voice Patterns: Count from `style_anchors` where `type='phrase'`
+
+Section 2: Facts list
+- Data source: `MemoryLongTerm` where `category='fact'`
+- API: `/api/twin/:id/long-term-memory?category=fact&limit=10`
+- Display: `{key, value, category, createdAt}`
+
+Section 3: Voice patterns list
+- Data source: `style_anchors` where `type='phrase'`
+- API: `/api/twin/:id/style-anchors/phrases?limit=10`
+- Display: `{id, phrase, userUtterance, idealReply, tags, createdAt}`
+
+Section 4: Ingest memory modal
+- Remove: Bucket selector (facts/voice)
+- Add: Type selector (Fact / Style Anchor)
+- If Fact → use `/api/twin/:id/long-term-memory`
+- If Style Anchor → use `/api/twin/:id/style-anchors`
+
+Code changes:
+```javascript
+// OLD CODE (REMOVE):
+async function loadMemoryData() {
+    const statsResponse = await fetch(`/api/memory/${twinId}/memory/stats`);
+    const factsResponse = await fetch(`/api/memory/${twinId}/memory/retrieve?bucket=facts&limit=10`);
+    const voiceResponse = await fetch(`/api/memory/${twinId}/memory/retrieve?bucket=voice&limit=10`);
+}
+
+// NEW CODE:
+async function loadMemoryData() {
+    try {
+        // Load stats (combine both systems)
+        const [longTermMemories, styleAnchors] = await Promise.all([
+            fetch(`/api/twin/${twinId}/long-term-memory?limit=1000`, {credentials: 'include'}),
+            fetch(`/api/twin/${twinId}/style-anchors?limit=1000`, {credentials: 'include'})
+        ]);
+        
+        const longTermData = await longTermMemories.json();
+        const anchorsData = await styleAnchors.json();
+        
+        // Calculate stats
+        const totalMemories = longTermData.memories?.length || 0;
+        const factsCount = longTermData.memories?.filter(m => m.category === 'fact').length || 0;
+        const voiceCount = anchorsData.anchors?.filter(a => a.type === 'phrase').length || 0;
+        
+        // Update UI
+        document.getElementById('totalMemories').textContent = totalMemories;
+        document.getElementById('factsCount').textContent = factsCount;
+        document.getElementById('voiceCount').textContent = voiceCount;
+        
+        // Load facts
+        const factsResponse = await fetch(`/api/twin/${twinId}/long-term-memory?category=fact&limit=10`, {
+            credentials: 'include'
+        });
+        const factsData = await factsResponse.json();
+        if (factsData.success) {
+            displayMemories('factsList', factsData.memories);
+        }
+        
+        // Load voice patterns (phrases from style anchors)
+        const phrasesResponse = await fetch(`/api/twin/${twinId}/style-anchors/phrases?limit=10`, {
+            credentials: 'include'
+        });
+        const phrasesData = await phrasesResponse.json();
+        if (phrasesData.success) {
+            displayVoicePatterns('voiceList', phrasesData.phrases);
+        }
+    } catch (error) {
+        console.error('Error loading memory data:', error);
+    }
+}
+
+// NEW: Display voice patterns
+function displayVoicePatterns(containerId, phrases) {
+    const container = document.getElementById(containerId);
+    
+    if (phrases.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center">No voice patterns found</p>';
+        return;
+    }
+    
+    container.innerHTML = phrases.map(phrase => `
+        <div class="mb-3 p-3 bg-white/60 backdrop-blur-sm rounded-xl border border-white/20">
+            <p class="text-gray-900 font-medium">${phrase.phrase || phrase.userUtterance}</p>
+            ${phrase.idealReply ? `<p class="text-sm text-gray-600 mt-1">Reply: ${phrase.idealReply}</p>` : ''}
+            <p class="text-xs text-gray-500 mt-1">${new Date(phrase.created_at).toLocaleDateString()}</p>
+        </div>
+    `).join('');
+}
+
+// OLD CODE (REMOVE):
+document.getElementById('ingestForm').addEventListener('submit', async (e) => {
+    const data = {
+        bucket: formData.get('bucket'), // 'facts' or 'voice'
+        text: formData.get('text')
+    };
+    const response = await fetch(`/api/memory/${twinId}/memory/ingest`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+    });
+});
+
+// NEW CODE:
+document.getElementById('ingestForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const memoryType = document.getElementById('memoryType').value; // 'fact' or 'style_anchor'
+    const memoryText = document.getElementById('memoryText').value.trim();
+    
+    if (!memoryText) {
+        alert('Please enter memory text');
+        return;
+    }
+    
+    try {
+        let response;
+        
+        if (memoryType === 'fact') {
+            // Add to MemoryLongTerm
+            response = await fetch(`/api/twin/${twinId}/long-term-memory`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    value: memoryText,
+                    category: 'fact'
+                })
+            });
+        } else if (memoryType === 'style_anchor') {
+            // Add to StyleAnchors as phrase
+            response = await fetch(`/api/twin/${twinId}/style-anchors`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    type: 'phrase',
+                    phrase: memoryText,
+                    userUtterance: '',
+                    idealReply: '',
+                    tags: ['manual']
+                })
+            });
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Memory added successfully!');
+            hideIngestModal();
+            loadMemoryData(); // Reload
+        } else {
+            alert('Error: ' + (result.error || 'Failed to add memory'));
+        }
+    } catch (error) {
+        console.error('Error ingesting memory:', error);
+        alert('Error ingesting memory');
+    }
+});
+```
+
+---
+
+### PAGE 4: `/learning-dashboard` — analytics & training hub
+
+#### Current issues
+- Uses `/api/memory/:id/memory/retrieve?bucket=...` (deprecated)
+- Uses `/api/twin/:id/anchors` (wrong endpoint, should be `/api/twin/:id/style-anchors`)
+- Uses `/api/twin/:id/long-term-memory` (correct, but needs fixes)
+- Charts may not render
+
+#### New flow
+
+Section 1: Learning progress metrics
+- Keep as is
+- API: `/api/twin/:id/learning-data` (unchanged)
+
+Section 2: Style learning chart
+- Fix: Ensure Chart.js initializes
+- Data source: Learning events from `style_corrections` table
+
+Section 3: Recent learning events
+- Keep as is
+- API: `/api/twin/:id/learning-data` (unchanged)
+
+Section 4: Chat history
+- Keep as is
+- API: `/api/twin/:id/chat-history` (unchanged)
+
+Section 5: Twin memory management
+- Current: Uses `/api/memory/:id/memory/retrieve?bucket=...`
+- New: Use `/api/twin/:id/long-term-memory`
+
+Code changes:
+```javascript
+// OLD CODE (REMOVE):
+async function loadMemories() {
+    const bucket = document.getElementById('memoryBucketFilter').value;
+    const response = await fetch(`/api/memory/${twinId}/memory/retrieve?bucket=${bucket}&limit=${pageSize}&offset=${currentMemoryOffset}`);
+}
+
+// NEW CODE:
+async function loadMemories() {
+    const category = document.getElementById('memoryCategoryFilter').value; // 'all', 'fact', 'preference', etc.
+    
+    let url = `/api/twin/${twinId}/long-term-memory?limit=${pageSize}&offset=${currentMemoryOffset}`;
+    if (category !== 'all') {
+        url += `&category=${category}`;
+    }
+    
+    const response = await fetch(url, {
+        credentials: 'include'
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+        displayMemories(data.memories);
+    }
+}
+
+// OLD CODE (REMOVE):
+async function addMemory() {
+    const type = document.getElementById('memoryType').value; // 'facts' or 'voice'
+    const response = await fetch(`/api/twin/${twinId}/long-term-memory`, {
+        body: JSON.stringify({
+            value: content,
+            category: type === 'facts' ? 'fact' : 'voice' // WRONG: 'voice' should go to StyleAnchors
+        })
+    });
+}
+
+// NEW CODE:
+async function addMemory() {
+    const type = document.getElementById('memoryType').value; // 'fact' or 'style_anchor'
+    const content = document.getElementById('memoryContent').value.trim();
+    
+    if (!content) {
+        alert('Please enter memory content');
+        return;
+    }
+    
+    try {
+        let response;
+        
+        if (type === 'fact') {
+            // Add to MemoryLongTerm
+            response = await fetch(`/api/twin/${twinId}/long-term-memory`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    value: content,
+                    category: 'fact'
+                })
+            });
+        } else if (type === 'style_anchor') {
+            // Add to StyleAnchors
+            response = await fetch(`/api/twin/${twinId}/style-anchors`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    type: 'phrase',
+                    phrase: content,
+                    userUtterance: '',
+                    idealReply: '',
+                    tags: ['manual']
+                })
+            });
+        }
+        
+        const data = await response.json();
+        if (data.success) {
+            alert('Memory added successfully!');
+            document.getElementById('memoryContent').value = '';
+            closeMemoryModal();
+            loadMemories();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error adding memory:', error);
+        alert('Error adding memory');
+    }
+}
+```
+
+Section 6: Style anchors
+- Current: Uses `/api/twin/:id/anchors` (wrong)
+- New: Use `/api/twin/:id/style-anchors`
+
+Code changes:
+```javascript
+// OLD CODE (REMOVE):
+async function loadStyleAnchors() {
+    const response = await fetch(`/api/twin/${twinId}/anchors`); // WRONG ENDPOINT
+}
+
+// NEW CODE:
+async function loadStyleAnchors() {
+    const response = await fetch(`/api/twin/${twinId}/style-anchors`, {
+        credentials: 'include'
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+        displayStyleAnchors(data.anchors);
+    }
+}
+```
+
+Section 7: Manual training
+- Keep as is
+- API: `/api/twin/:id/manual-training` (unchanged)
+
+Section 8: Learning settings
+- Keep as is
+- API: `/api/twin/:id/learning-settings` (unchanged)
+
+---
+
+## PHASE 3: Backend API updates
+
+### Update `memoryController.ts` — unified stats endpoint
+
+Create new endpoint:
+```typescript
+/**
+ * Get unified memory statistics
+ * GET /api/memory/:id/memory/stats (NEW VERSION)
+ */
+export const getUnifiedMemoryStats = async (req: any, res: Response) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user?.id || req.userId;
+    
+    // Verify ownership
+    const twinResult = await db.query(
+      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
+      [twinId, userId]
+    );
+    
+    if (!twinResult || twinResult.rows.length === 0) {
+      throw createError.notFound('Twin not found');
+    }
+    
+    // Get MemoryLongTerm stats
+    const longTermResult = await db.query(`
+      SELECT 
+        category,
+        COUNT(*) as count
+      FROM "MemoryLongTerm"
+      WHERE "twinId" = $1
+      GROUP BY category
+    `, [twinId]);
+    
+    // Get StyleAnchors stats
+    const anchorsResult = await db.query(`
+      SELECT 
+        type,
+        COUNT(*) as count
+      FROM "style_anchors"
+      WHERE twin_id = $1
+      GROUP BY type
+    `, [twinId]);
+    
+    const totalMemories = longTermResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
+    const totalAnchors = anchorsResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
+    
+    res.json({
+      success: true,
+      total: totalMemories + totalAnchors,
+      longTermMemories: {
+        total: totalMemories,
+        byCategory: longTermResult.rows.map(row => ({
+          category: row.category,
+          count: parseInt(row.count)
+        }))
+      },
+      styleAnchors: {
+        total: totalAnchors,
+        byType: anchorsResult.rows.map(row => ({
+          type: row.type,
+          count: parseInt(row.count)
+        }))
+      }
+    });
+  } catch (error) {
+    throw createError.internal('Failed to get memory statistics', error);
+  }
+};
+```
+
+### Update `retrieveMemories()` — unified retrieval
+
+```typescript
+/**
+ * Retrieve memories (UNIFIED VERSION)
+ * GET /api/memory/:id/memory/retrieve
+ */
+export const retrieveUnifiedMemories = async (req: any, res: Response) => {
+  try {
+    const { id: twinId } = req.params;
+    const { bucket, limit = 10, offset = 0 } = req.query;
+    const userId = req.user?.id || req.userId;
+    
+    // Verify ownership
+    const twinResult = await db.query(
+      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
+      [twinId, userId]
+    );
+    
+    if (!twinResult || twinResult.rows.length === 0) {
+      throw createError.notFound('Twin not found');
+    }
+    
+    if (bucket === 'facts') {
+      // Get from MemoryLongTerm
+      const { getLongTermMemories } = await import('../twin/longTermMemoryController');
+      req.query.category = 'fact';
+      req.query.limit = limit;
+      req.query.offset = offset;
+      return getLongTermMemories(req, res);
+      
+    } else if (bucket === 'voice') {
+      // Get from StyleAnchors (phrases)
+      const { getTwinPhrases } = await import('../twin/styleAnchorController');
+      req.query.limit = limit;
+      return getTwinPhrases(req, res);
+      
+    } else if (bucket === 'all') {
+      // Get from both
+      const [longTermMemories, styleAnchors] = await Promise.all([
+        db.query(`
+          SELECT key, value, category, "createdAt", "updatedAt"
+          FROM "MemoryLongTerm"
+          WHERE "twinId" = $1
+          ORDER BY "updatedAt" DESC
+          LIMIT $2 OFFSET $3
+        `, [twinId, parseInt(limit as string), parseInt(offset as string)]),
+        db.query(`
+          SELECT id, phrase, user_utterance, ideal_reply, tags, created_at
+          FROM "style_anchors"
+          WHERE twin_id = $1 AND type = 'phrase'
+          ORDER BY created_at DESC
+          LIMIT $2 OFFSET $3
+        `, [twinId, parseInt(limit as string), parseInt(offset as string)])
+      ]);
+      
+      res.json({
+        success: true,
+        memories: [
+          ...longTermMemories.rows.map(row => ({
+            type: 'fact',
+            key: row.key,
+            value: row.value,
+            category: row.category,
+            createdAt: row.createdAt
+          })),
+          ...styleAnchors.rows.map(row => ({
+            type: 'voice',
+            id: row.id,
+            phrase: row.phrase,
+            userUtterance: row.user_utterance,
+            idealReply: row.ideal_reply,
+            createdAt: row.created_at
+          }))
+        ]
+      });
+    } else {
+      throw createError.validation('Invalid bucket. Use "facts", "voice", or "all"');
+    }
+  } catch (error) {
+    throw createError.internal('Failed to retrieve memories', error);
+  }
+};
+```
+
+---
+
+## PHASE 4: Database migration
+
+### Step 4.1: Run migration script
+- File: `migrations_js/migrate-mem-chunks-to-unified.js`
+- Action: Run to migrate existing data
+- Result: All `mem_chunks.facts` → `MemoryLongTerm`, all `mem_chunks.voice` → `StyleAnchors`
+
+### Step 4.2: Verify migration
+- Check: All data migrated
+- Test: Old endpoints still work (redirect)
+- Test: New endpoints work correctly
+
+### Step 4.3: Remove mem_chunks table (optional, later)
+- After verification, can drop table
+- Or keep for audit trail
+
+---
+
+## SUMMARY: What changes where
+
+| Page | Old Endpoint | New Endpoint | Data Source |
+|------|-------------|--------------|-------------|
+| **ai-edit** | `/api/memory/:id/memory/retrieve?bucket=facts` | `/api/twin/:id/long-term-memory?category=fact` | MemoryLongTerm |
+| **ai-edit** | `/api/memory/:id/memory/ingest` | `/api/twin/:id/long-term-memory` | MemoryLongTerm |
+| **memory-management** | `/api/memory/:id/memory/stats` | Combined: MemoryLongTerm + StyleAnchors | Both |
+| **memory-management** | `/api/memory/:id/memory/retrieve?bucket=facts` | `/api/twin/:id/long-term-memory?category=fact` | MemoryLongTerm |
+| **memory-management** | `/api/memory/:id/memory/retrieve?bucket=voice` | `/api/twin/:id/style-anchors/phrases` | StyleAnchors |
+| **learning-dashboard** | `/api/memory/:id/memory/retrieve?bucket=...` | `/api/twin/:id/long-term-memory` | MemoryLongTerm |
+| **learning-dashboard** | `/api/twin/:id/anchors` | `/api/twin/:id/style-anchors` | StyleAnchors |
+
+---
+
+## FINAL CHECKLIST
+
+### Backend
+- [ ] Remove `memChunksQueries` from `database.ts`
+- [ ] Update `memoryController.ts` to use unified system
+- [ ] Update all files using `mem_chunks` queries
+- [ ] Test all endpoints
+
+### Frontend
+- [ ] Update `ai-edit.ejs` — use MemoryLongTerm
+- [ ] Update `memory-management.ejs` — use unified system
+- [ ] Update `learning-dashboard.ejs` — fix all endpoints
+- [ ] Remove system prompt display from `ai-edit.ejs`
+- [ ] Fix chart rendering in `learning-dashboard.ejs`
+
+### Database
+- [ ] Run migration script
+- [ ] Verify data migrated correctly
+- [ ] Test new endpoints with migrated data
+
+### Testing
+- [ ] Test adding facts (MemoryLongTerm)
+- [ ] Test adding voice patterns (StyleAnchors)
+- [ ] Test editing memories
+- [ ] Test deleting memories
+- [ ] Test all pages load correctly
+
+---
+
+Yeh plan complete hai. Har page ka flow, code changes, aur endpoints clearly defined hain. Implementation start karein?

@@ -3,9 +3,7 @@ import { extractJWTFromCookie } from '../../middleware/jwtCookie';
 import { 
   getMemoryStats, 
   retrieveMemories, 
-  ingestMemories, 
-  updateMemory, 
-  deleteMemory 
+  ingestMemories
 } from './memoryController';
 
 const router = Router();
@@ -17,7 +15,5 @@ router.use(extractJWTFromCookie);
 router.get('/:id/memory/stats', getMemoryStats);
 router.get('/:id/memory/retrieve', retrieveMemories);
 router.post('/:id/memory/ingest', ingestMemories);
-router.put('/:id/memory/:memId', updateMemory);
-router.delete('/:id/memory/:memId', deleteMemory);
 
 export default router;

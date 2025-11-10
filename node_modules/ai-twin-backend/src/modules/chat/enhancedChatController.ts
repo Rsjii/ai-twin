@@ -387,13 +387,28 @@ async function getNearestAnchors(twinId: string, userMessage: string, limit: num
 
 async function retrieveMemories(twinId: string, bucket: 'facts' | 'voice', query: string, limit: number) {
   try {
-    const result = await db.query(`
-      SELECT text FROM mem_chunks 
-      WHERE twin_id = $1 AND bucket = $2 
-      ORDER BY ts DESC 
-      LIMIT $3
-    `, [twinId, bucket, limit]);
-    return result.rows.map(row => row.text);
+    if (bucket === 'facts') {
+      // Get from MemoryLongTerm
+      const result = await db.query(`
+        SELECT value as text
+        FROM "MemoryLongTerm"
+        WHERE "twinId" = $1 AND category = 'fact'
+        ORDER BY "updatedAt" DESC
+        LIMIT $2
+      `, [twinId, limit]);
+      return result.rows.map(row => row.text);
+    } else if (bucket === 'voice') {
+      // Get from StyleAnchors (phrases)
+      const result = await db.query(`
+        SELECT phrase as text
+        FROM "style_anchors"
+        WHERE twin_id = $1 AND type = 'phrase'
+        ORDER BY created_at DESC
+        LIMIT $2
+      `, [twinId, limit]);
+      return result.rows.map(row => row.text);
+    }
+    return [];
   } catch (error) {
     logger.warn('Failed to retrieve memories:', error);
     return [];

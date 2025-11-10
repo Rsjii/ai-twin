@@ -171,8 +171,10 @@ export const getTrainingEffectiveness = async (req: any, res: Response) => {
     `, [twinId]);
     
     const memoriesResult = await db.query(`
-      SELECT COUNT(*) as count FROM "mem_chunks" WHERE twin_id = $1
-    `, [twinId]);
+      SELECT 
+        (SELECT COUNT(*) FROM "MemoryLongTerm" WHERE "twinId" = $1) +
+        (SELECT COUNT(*) FROM "style_anchors" WHERE twin_id = $1) as count
+    `, [twinId]);    
     
     const correctionsResult = await db.query(`
       SELECT COUNT(*) as count 

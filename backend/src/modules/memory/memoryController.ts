@@ -1,19 +1,16 @@
 import { Response, NextFunction } from 'express';
-import { db, memChunksQueries } from '../../config/database';
+import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
 
 /**
- * Get memory statistics for a twin (DEPRECATED - uses mem_chunks)
- * @deprecated Consider using /api/twin/:id/long-term-memory and /api/twin/:id/style-anchors
+ * Get unified memory statistics
+ * GET /api/memory/:id/memory/stats
  */
 export const getMemoryStats = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { id: twinId } = req.params;
     const userId = req.user?.id || req.userId;
-    
-    // Deprecation warning
-    logger.warn('⚠️ DEPRECATED: getMemoryStats - Consider using unified endpoints');
     
     if (!userId) {
       throw createError.unauthorized();
@@ -29,32 +26,42 @@ export const getMemoryStats = async (req: any, res: Response, next: NextFunction
       throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
-    // Get memory statistics from mem_chunks (legacy)
-    const statsResult = await db.query(`
+    // Get MemoryLongTerm stats
+    const longTermResult = await db.query(`
       SELECT 
-        bucket,
+        category,
         COUNT(*) as count
-      FROM mem_chunks 
-      WHERE twin_id = $1 
-      GROUP BY bucket
+      FROM "MemoryLongTerm"
+      WHERE "twinId" = $1
+      GROUP BY category
     `, [twinId]);
     
-    if (!statsResult) {
-      throw createError.internal('Failed to get memory statistics');
-    }
+    // Get StyleAnchors stats
+    const anchorsResult = await db.query(`
+      SELECT 
+        type,
+        COUNT(*) as count
+      FROM "style_anchors"
+      WHERE twin_id = $1
+      GROUP BY type
+    `, [twinId]);
     
-    const totalMemories = statsResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
+    const totalMemories = longTermResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
+    const totalAnchors = anchorsResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
     
-    res.set('X-Deprecated', 'true');
-    res.set('X-Alternative-Endpoint', '/api/twin/:id/long-term-memory');
-    res.json({ 
-      success: true, 
-      deprecated: true,
-      total: totalMemories,
-      stats: statsResult.rows.map(row => ({
-        bucket: row.bucket,
-        count: parseInt(row.count)
-      }))
+    res.json({
+      success: true,
+      total: totalMemories + totalAnchors,
+      stats: [
+        ...longTermResult.rows.map(row => ({
+          bucket: row.category === 'fact' ? 'facts' : row.category,
+          count: parseInt(row.count)
+        })),
+        ...anchorsResult.rows.map(row => ({
+          bucket: row.type === 'phrase' ? 'voice' : row.type,
+          count: parseInt(row.count)
+        }))
+      ]
     });
   } catch (error) {
     if (error instanceof AppError) {
@@ -65,17 +72,14 @@ export const getMemoryStats = async (req: any, res: Response, next: NextFunction
 };
 
 /**
- * Retrieve memories by bucket (DEPRECATED - uses mem_chunks)
- * @deprecated Use /api/twin/:id/long-term-memory or /api/twin/:id/style-anchors instead
+ * Retrieve memories by bucket (UNIFIED VERSION)
+ * GET /api/memory/:id/memory/retrieve
  */
 export const retrieveMemories = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { id: twinId } = req.params;
     const { bucket, limit = 10, offset = 0 } = req.query;
     const userId = req.user?.id || req.userId;
-    
-    // Deprecation warning
-    logger.warn('⚠️ DEPRECATED: retrieveMemories - Consider using unified endpoints');
     
     if (!userId) {
       throw createError.unauthorized();
@@ -91,29 +95,86 @@ export const retrieveMemories = async (req: any, res: Response, next: NextFuncti
       throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
     
-    // Get memories - FIXED: handle "all" bucket (legacy mem_chunks)
-    let memories;
-    if (bucket === 'all') {
-      // Get memories from both buckets
-      const factsMemories = await memChunksQueries.findByTwinIdAndBucket(
-        twinId, 'facts', parseInt(limit as string), parseInt(offset as string)
-      );
-      const voiceMemories = await memChunksQueries.findByTwinIdAndBucket(
-        twinId, 'voice', parseInt(limit as string), parseInt(offset as string)
-      );
-      memories = [...factsMemories, ...voiceMemories];
+    if (bucket === 'facts') {
+      // Get from MemoryLongTerm
+      const longTermResult = await db.query(`
+        SELECT key, value, category, "createdAt", "updatedAt"
+        FROM "MemoryLongTerm"
+        WHERE "twinId" = $1 AND category = 'fact'
+        ORDER BY "updatedAt" DESC
+        LIMIT $2 OFFSET $3
+      `, [twinId, parseInt(limit as string), parseInt(offset as string)]);
+      
+      res.json({
+        success: true,
+        memories: longTermResult.rows.map(row => ({
+          id: row.key,
+          text: row.value,
+          bucket: 'facts',
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt
+        }))
+      });
+      
+    } else if (bucket === 'voice') {
+      // Get from StyleAnchors (phrases)
+      const phrasesResult = await db.query(`
+        SELECT id, phrase, user_utterance, ideal_reply, tags, created_at
+        FROM "style_anchors"
+        WHERE twin_id = $1 AND type = 'phrase'
+        ORDER BY created_at DESC
+        LIMIT $2 OFFSET $3
+      `, [twinId, parseInt(limit as string), parseInt(offset as string)]);
+      
+      res.json({
+        success: true,
+        memories: phrasesResult.rows.map(row => ({
+          id: row.id,
+          text: row.phrase || row.user_utterance,
+          bucket: 'voice',
+          createdAt: row.created_at
+        }))
+      });
+      
+    } else if (bucket === 'all') {
+      // Get from both
+      const [longTermResult, phrasesResult] = await Promise.all([
+        db.query(`
+          SELECT key, value, category, "createdAt", "updatedAt"
+          FROM "MemoryLongTerm"
+          WHERE "twinId" = $1
+          ORDER BY "updatedAt" DESC
+          LIMIT $2 OFFSET $3
+        `, [twinId, parseInt(limit as string), parseInt(offset as string)]),
+        db.query(`
+          SELECT id, phrase, user_utterance, ideal_reply, tags, created_at
+          FROM "style_anchors"
+          WHERE twin_id = $1 AND type = 'phrase'
+          ORDER BY created_at DESC
+          LIMIT $2 OFFSET $3
+        `, [twinId, parseInt(limit as string), parseInt(offset as string)])
+      ]);
+      
+      res.json({
+        success: true,
+        memories: [
+          ...longTermResult.rows.map(row => ({
+            id: row.key,
+            text: row.value,
+            bucket: 'facts',
+            createdAt: row.createdAt
+          })),
+          ...phrasesResult.rows.map(row => ({
+            id: row.id,
+            text: row.phrase || row.user_utterance,
+            bucket: 'voice',
+            createdAt: row.created_at
+          }))
+        ]
+      });
     } else {
-      memories = await memChunksQueries.findByTwinIdAndBucket(
-        twinId, 
-        bucket as 'facts' | 'voice', 
-        parseInt(limit as string), 
-        parseInt(offset as string)
-      );
+      throw createError.validation('Invalid bucket. Use "facts", "voice", or "all"');
     }
-
-    res.set('X-Deprecated', 'true');
-    res.set('X-Alternative-Endpoint', '/api/twin/:id/long-term-memory');
-    res.json({ success: true, memories, deprecated: true });
   } catch (error) {
     if (error instanceof AppError) {
       throw error;
@@ -121,6 +182,7 @@ export const retrieveMemories = async (req: any, res: Response, next: NextFuncti
     throw createError.internal('Failed to retrieve memories', error);
   }
 };
+
 
 /**
  * Ingest new memories (DEPRECATED - redirects to unified endpoints)
@@ -193,94 +255,5 @@ export const ingestMemories = async (req: any, res: Response, next: NextFunction
       throw error;
     }
     throw createError.internal('Failed to ingest memory', error);
-  }
-};
-
-/**
- * Update memory
- */
-export const updateMemory = async (req: any, res: Response, next: NextFunction) => {
-  try {
-    const { id: twinId, memId } = req.params;
-    const { text } = req.body;
-    const userId = req.user?.id || req.userId;
-    
-    if (!userId) {
-      throw createError.unauthorized();
-    }
-    
-    // Verify twin ownership
-    const twinResult = await db.query(
-      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
-      [twinId, userId]
-    );
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
-    }
-    
-    // Validate input
-    if (!text) {
-      throw createError.validation('Text is required');
-    }
-    
-    // Update memory
-    const memory = await memChunksQueries.update(memId, text);
-    
-    if (!memory) {
-      throw createError.notFound('Memory not found');
-    }
-    
-    res.json({ 
-      success: true, 
-      memory,
-      message: 'Memory updated successfully' 
-    });
-  } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to update memory', error);
-  }
-};
-
-/**
- * Delete memory
- */
-export const deleteMemory = async (req: any, res: Response, next: NextFunction) => {
-  try {
-    const { id: twinId, memId } = req.params;
-    const userId = req.user?.id || req.userId;
-    
-    if (!userId) {
-      throw createError.unauthorized();
-    }
-    
-    // Verify twin ownership
-    const twinResult = await db.query(
-      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
-      [twinId, userId]
-    );
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
-    }
-    
-    // Delete memory
-    const memory = await memChunksQueries.delete(memId);
-    
-    if (!memory) {
-      throw createError.notFound('Memory not found');
-    }
-    
-    res.json({ 
-      success: true, 
-      message: 'Memory deleted successfully' 
-    });
-  } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to delete memory', error);
   }
 };

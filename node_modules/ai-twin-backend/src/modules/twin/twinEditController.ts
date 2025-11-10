@@ -20,13 +20,33 @@ const updateStyleSchema = z.object({
 const updatePersonaSchema = z.object({
   basicInfo: z.object({
     fullName: z.string().optional(),
-    bio: z.string().optional()
+    bio: z.string().optional(),
+    username: z.string().optional(),
+    primaryUseCase: z.string().optional()
+  }).optional(),
+  communicationStyle: z.object({
+    tone: z.object({
+      formalCasual: z.number().min(0).max(100).optional(),
+      seriousPlayful: z.number().min(0).max(100).optional(),
+      directDiplomatic: z.number().min(0).max(100).optional()
+    }).optional(),
+    language: z.object({
+      greetingStyle: z.string().optional(),
+      closingStyle: z.string().optional(),
+      emojiUsage: z.string().optional(),
+      responseLength: z.string().optional(),
+      commonPhrases: z.string().optional()
+    }).optional()
+  }).optional(),
+  context: z.object({
+    interests: z.array(z.string()).optional(),
+    targetAudience: z.string().optional(),
+    topicsToAvoid: z.string().optional()
   }).optional(),
   personality: z.object({
     ocean: z.record(z.number()).optional(),
     communicationStyle: z.record(z.number()).optional()
-  }).optional(),
-  interests: z.array(z.string()).optional()
+  }).optional()
 });
 
 /**

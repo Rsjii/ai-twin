@@ -36,24 +36,42 @@ export class SystemPromptUpdater {
 
       const twin = twinResult.rows[0];
 
-      // Get recent memories (last 30 days) - FIXED: use 'text' and 'ts' columns
-      const memoriesResult = await db.query(`
-        SELECT text, bucket, ts
-        FROM mem_chunks 
-        WHERE twin_id = $1 
-        AND ts >= NOW() - INTERVAL '30 days'
-        ORDER BY ts DESC
-        LIMIT 20
-      `, [twinId]);
+// Get from both MemoryLongTerm and StyleAnchors
+const [longTermMemories, styleAnchors] = await Promise.all([
+  db.query(`
+    SELECT value as text, category as bucket, "updatedAt" as ts
+    FROM "MemoryLongTerm"
+    WHERE "twinId" = $1 
+    AND "updatedAt" >= NOW() - INTERVAL '30 days'
+    ORDER BY "updatedAt" DESC
+    LIMIT 10
+  `, [twinId]),
+  db.query(`
+    SELECT phrase as text, 'voice' as bucket, created_at as ts
+    FROM "style_anchors"
+    WHERE twin_id = $1 
+    AND type = 'phrase'
+    AND created_at >= NOW() - INTERVAL '30 days'
+    ORDER BY created_at DESC
+    LIMIT 10
+  `, [twinId])
+]);
 
-      // Get top style anchors - FIXED: use correct column names
-      const anchorsResult = await db.query(`
-        SELECT "userUtterance", "idealReply", "trainingType", "createdAt"
-        FROM style_anchors 
-        WHERE "twinId" = $1 
-        ORDER BY "createdAt" DESC
-        LIMIT 10
-      `, [twinId]);
+const memoriesResult = {
+  rows: [
+    ...longTermMemories.rows,
+    ...styleAnchors.rows
+  ].sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime()).slice(0, 20)
+};      
+
+// Get top style anchors - use correct column names
+const anchorsResult = await db.query(`
+  SELECT user_utterance, ideal_reply, tags, created_at
+  FROM "style_anchors" 
+  WHERE twin_id = $1 
+  ORDER BY created_at DESC
+  LIMIT 10
+`, [twinId]);      
 
       // Get recent feedback patterns - FIXED: use correct column names
       const feedbackResult = await db.query(`
@@ -106,10 +124,10 @@ export class SystemPromptUpdater {
         `RECENT MEMORIES (use as context):
 ${memories.map(m => `- ${m.text}`).join('\n')}` : '';
 
-      // Build style anchor context
-      const anchorContext = anchors.length > 0 ?
-        `STYLE EXAMPLES (follow these patterns):
-${anchors.map(a => `User: "${a.userUtterance}"\nIdeal Reply: "${a.idealReply}"`).join('\n\n')}` : '';
+// Build style anchor context
+const anchorContext = anchors.length > 0 ?
+  `STYLE EXAMPLES (follow these patterns):
+${anchors.map(a => `User: "${a.user_utterance}"\nIdeal Reply: "${a.ideal_reply}"`).join('\n\n')}` : '';
 
       // Build feedback context
       const feedbackContext = feedback.length > 0 ?

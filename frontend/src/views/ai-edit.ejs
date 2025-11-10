@@ -88,24 +88,54 @@
     </div>
   </div>
 
-        <!-- Memory Section -->
+        <!-- Memory Categories Tabs -->
         <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 mb-8 border border-white/20">
-            <h2 class="text-xl font-semibold mb-4">Memory & Facts</h2>
-            <div id="memoryList" class="space-y-3 mb-4">
-                <!-- Memory items will be loaded here -->
+            <h2 class="text-xl font-semibold mb-4">Memory Categories</h2>
+            
+            <!-- Category Tabs -->
+            <div class="flex space-x-2 mb-4 border-b border-gray-200">
+                <button data-category="fact" id="tab-fact" class="category-tab px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600">
+                    Facts
+                </button>
+                <button data-category="preference" id="tab-preference" class="category-tab px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
+                    Preferences
+                </button>
+                <button data-category="interest" id="tab-interest" class="category-tab px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
+                    Interests
+                </button>
+                <button data-category="relationship" id="tab-relationship" class="category-tab px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
+                    Relationships
+                </button>
+                <button data-category="context" id="tab-context" class="category-tab px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
+                    Context
+                </button>
             </div>
+            
+            <!-- Memory List for Current Category -->
+            <div id="memoryList" class="space-y-3 mb-4 min-h-[100px]">
+                <div class="text-center text-gray-500 py-4">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                    <p class="mt-2">Loading memories...</p>
+                </div>
+            </div>
+            
+            <!-- Add Memory Form -->
             <div class="flex space-x-4">
                 <input type="text" id="newMemory" placeholder="Add new memory..." 
                        class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button onclick="addMemory()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                <button id="addMemoryBtn" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
                     Add Memory
                 </button>
             </div>
         </div>
 
-        <!-- Personality Traits -->
+        <!-- Enhanced Personality & Persona -->
         <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 mb-8 border border-white/20">
-            <h2 class="text-xl font-semibold mb-4">Personality Traits</h2>
+            <h2 class="text-xl font-semibold mb-4">Personality & Persona</h2>
+            
+            <!-- Basic Information -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3 text-gray-700">Basic Information</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Full Name</label>
@@ -113,28 +143,125 @@
                            class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
                 </div>
                 <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Username</label>
+                        <input type="text" id="username" placeholder="Your username" 
+                               class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                    </div>
+                    <div class="space-y-2 md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700">Bio</label>
                     <textarea id="bio" placeholder="Tell us about yourself" rows="3"
                               class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md"></textarea>
                 </div>
+                    <div class="space-y-2 md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Primary Use Case</label>
+                        <input type="text" id="primaryUseCase" placeholder="What will you use this AI twin for?" 
+                               class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Communication Style -->
+            <div class="mb-6 border-t pt-6">
+                <h3 class="text-lg font-medium mb-3 text-gray-700">Communication Style</h3>
+                
+                <!-- Tone Sliders -->
+                <div class="mb-4">
+                    <h4 class="text-sm font-medium mb-3 text-gray-600">Tone Preferences</h4>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Formal ↔ Casual: <span id="formalCasual-value">50</span>
+                            </label>
+                            <input type="range" id="formalCasual" min="0" max="100" value="50" 
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Serious ↔ Playful: <span id="seriousPlayful-value">50</span>
+                            </label>
+                            <input type="range" id="seriousPlayful" min="0" max="100" value="50" 
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Direct ↔ Diplomatic: <span id="directDiplomatic-value">50</span>
+                            </label>
+                            <input type="range" id="directDiplomatic" min="0" max="100" value="50" 
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Language Preferences -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Greeting Style</label>
+                        <input type="text" id="greetingStyle" placeholder="e.g., Hey, Hi, Hello" 
+                               class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Closing Style</label>
+                        <input type="text" id="closingStyle" placeholder="e.g., Thanks, Cheers, Best" 
+                               class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Emoji Usage</label>
+                        <select id="emojiUsage" class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                            <option value="none">None</option>
+                            <option value="minimal">Minimal</option>
+                            <option value="moderate" selected>Moderate</option>
+                            <option value="frequent">Frequent</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Response Length</label>
+                        <select id="responseLength" class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                            <option value="brief">Brief</option>
+                            <option value="detailed" selected>Detailed</option>
+                            <option value="comprehensive">Comprehensive</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2 md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Common Phrases</label>
+                        <textarea id="commonPhrases" placeholder="Phrases you commonly use..." rows="2"
+                                  class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Context -->
+            <div class="mb-6 border-t pt-6">
+                <h3 class="text-lg font-medium mb-3 text-gray-700">Context & Interests</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-2 md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700">Interests (comma-separated)</label>
                     <input type="text" id="interests" placeholder="technology, music, travel" 
                            class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Target Audience</label>
+                        <input type="text" id="targetAudience" placeholder="Who are you communicating with?" 
+                               class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Topics to Avoid</label>
+                        <input type="text" id="topicsToAvoid" placeholder="Topics you prefer not to discuss" 
+                               class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Action Buttons -->
         <div class="flex justify-between items-center">
-            <button onclick="previewChanges()" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
+            <button id="previewChangesBtn" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
                 Preview Changes
             </button>
             <div class="space-x-4">
-                <button onclick="resetChanges()" class="bg-white/80 backdrop-blur-sm text-gray-700 px-6 py-2 rounded-xl hover:bg-white border border-white/20 transition-all font-medium shadow-md">
+                <button id="resetChangesBtn" class="bg-white/80 backdrop-blur-sm text-gray-700 px-6 py-2 rounded-xl hover:bg-white border border-white/20 transition-all font-medium shadow-md">
                     Reset
                 </button>
-                <button onclick="saveChanges()" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
+                <button id="saveChangesBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
                     Save Changes
                 </button>
             </div>
@@ -144,11 +271,145 @@
     <script>
     let currentTwinData = null;
     const twinId = '<%= twinId %>';
+    let currentMemoryCategory = 'fact'; // Track current category
+
+    function switchMemoryCategory(category) {
+        console.log('Switching to category:', category);
+        
+        if (!category) {
+            console.error('No category provided');
+            return;
+        }
+        
+        currentMemoryCategory = category;
+        console.log('Current category set to:', currentMemoryCategory);
+        
+        // Update tab styles - remove active from all
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+            tab.classList.add('text-gray-600');
+        });
+        
+        // Add active to selected tab
+        const activeTab = document.querySelector(`[data-category="${category}"]`);
+        if (activeTab) {
+            activeTab.classList.remove('text-gray-600');
+            activeTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+            console.log('Tab activated:', category);
+        } else {
+            console.error('Tab not found for category:', category);
+        }
+        
+        // Reload memories for new category
+        if (typeof loadMemories === 'function') {
+            loadMemories();
+        } else {
+            console.error('loadMemories function not found');
+        }
+    }
 
     // Load twin data on page load
     document.addEventListener('DOMContentLoaded', function() {
         loadTwinData();
+        setupEventListeners();
+        
+        // Setup tone slider listeners
+        ['formalCasual', 'seriousPlayful', 'directDiplomatic'].forEach(id => {
+            const slider = document.getElementById(id);
+            if (slider) {
+                slider.addEventListener('input', function() {
+                    document.getElementById(`${id}-value`).textContent = this.value;
+                });
+            }
+        });
     });
+
+    function setupEventListeners() {
+        // Setup category tab click listeners
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const category = this.dataset.category;
+                if (category) {
+                    switchMemoryCategory(category);
+                }
+            });
+        });
+
+        // Setup Add Memory button
+        const addMemoryBtn = document.getElementById('addMemoryBtn');
+        if (addMemoryBtn) {
+            addMemoryBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                addMemory();
+            });
+        }
+
+        // Setup Enter key for Add Memory input
+        const newMemoryInput = document.getElementById('newMemory');
+        if (newMemoryInput) {
+            newMemoryInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addMemory();
+                }
+            });
+        }
+
+        // Setup event delegation for Edit/Delete buttons (for dynamically generated content)
+        const memoryListEl = document.getElementById('memoryList');
+        if (memoryListEl) {
+            memoryListEl.addEventListener('click', function(e) {
+                // Handle Edit button clicks
+                if (e.target.classList.contains('edit-memory-btn') || e.target.closest('.edit-memory-btn')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const btn = e.target.closest('.edit-memory-btn') || e.target;
+                    const memoryKey = btn.dataset.memoryKey;
+                    const currentValue = btn.dataset.memoryValue;
+                    const category = btn.dataset.memoryCategory;
+                    if (memoryKey && currentValue && category) {
+                        editMemory(memoryKey, currentValue, category);
+                    }
+                }
+                
+                // Handle Delete button clicks
+                if (e.target.classList.contains('delete-memory-btn') || e.target.closest('.delete-memory-btn')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const btn = e.target.closest('.delete-memory-btn') || e.target;
+                    const memoryKey = btn.dataset.memoryKey;
+                    if (memoryKey) {
+                        deleteMemory(memoryKey);
+                    }
+                }
+            });
+        }
+
+        // Setup Action Buttons
+        const previewBtn = document.getElementById('previewChangesBtn');
+        if (previewBtn) {
+            previewBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                previewChanges();
+            });
+        }
+
+        const resetBtn = document.getElementById('resetChangesBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                resetChanges();
+            });
+        }
+
+        const saveBtn = document.getElementById('saveChangesBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                saveChanges();
+            });
+        }
+    }
 
     async function loadTwinData() {
         try {
@@ -165,52 +426,135 @@
     }
 
     function populateForm(twin) {        
-        // Populate persona data
-        if (twin.personaData?.basicInfo) {
-            document.getElementById('fullName').value = twin.personaData.basicInfo.fullName || '';
-            document.getElementById('bio').value = twin.personaData.basicInfo.bio || '';
+        const pd = twin.personaData || {};
+        
+        // Basic Info - Support both old structure (basicInfo) and new structure (direct fields)
+        const basicInfo = pd.basicInfo || {};
+        if (document.getElementById('fullName')) document.getElementById('fullName').value = basicInfo.fullName || pd.name || '';
+        if (document.getElementById('bio')) document.getElementById('bio').value = basicInfo.bio || pd.bio || '';
+        if (document.getElementById('username')) document.getElementById('username').value = basicInfo.username || pd.username || '';
+        if (document.getElementById('primaryUseCase')) document.getElementById('primaryUseCase').value = basicInfo.primaryUseCase || pd.primaryUseCase || '';
+        
+        // Context - Interests
+        const interests = pd.context?.interests || pd.interests || [];
+        if (document.getElementById('interests')) document.getElementById('interests').value = Array.isArray(interests) ? interests.join(', ') : '';
+        
+        // Context - Target Audience & Topics to Avoid
+        if (document.getElementById('targetAudience')) document.getElementById('targetAudience').value = pd.context?.targetAudience || '';
+        if (document.getElementById('topicsToAvoid')) document.getElementById('topicsToAvoid').value = pd.context?.topicsToAvoid || '';
+        
+        // Communication Style - Tone
+        const tone = pd.communicationStyle?.tone || {};
+        if (document.getElementById('formalCasual')) {
+            document.getElementById('formalCasual').value = tone.formalCasual || 50;
+            document.getElementById('formalCasual-value').textContent = tone.formalCasual || 50;
         }
-        if (twin.personaData?.interests) {
-            document.getElementById('interests').value = twin.personaData.interests.join(', ');
+        if (document.getElementById('seriousPlayful')) {
+            document.getElementById('seriousPlayful').value = tone.seriousPlayful || 50;
+            document.getElementById('seriousPlayful-value').textContent = tone.seriousPlayful || 50;
+        }
+        if (document.getElementById('directDiplomatic')) {
+            document.getElementById('directDiplomatic').value = tone.directDiplomatic || 50;
+            document.getElementById('directDiplomatic-value').textContent = tone.directDiplomatic || 50;
         }
         
-        // Load memories (if any)
+        // Communication Style - Language
+        const language = pd.communicationStyle?.language || {};
+        if (document.getElementById('greetingStyle')) document.getElementById('greetingStyle').value = language.greetingStyle || '';
+        if (document.getElementById('closingStyle')) document.getElementById('closingStyle').value = language.closingStyle || '';
+        if (document.getElementById('emojiUsage')) document.getElementById('emojiUsage').value = language.emojiUsage || 'moderate';
+        if (document.getElementById('responseLength')) document.getElementById('responseLength').value = language.responseLength || 'detailed';
+        if (document.getElementById('commonPhrases')) document.getElementById('commonPhrases').value = language.commonPhrases || '';
+        
+        // Load memories for all categories
         loadMemories();
+    }
+
+
+    function updateToneDisplays() {
+        const formalCasual = document.getElementById('formalCasual');
+        const seriousPlayful = document.getElementById('seriousPlayful');
+        const directDiplomatic = document.getElementById('directDiplomatic');
+        
+        if (formalCasual) document.getElementById('formalCasual-value').textContent = formalCasual.value;
+        if (seriousPlayful) document.getElementById('seriousPlayful-value').textContent = seriousPlayful.value;
+        if (directDiplomatic) document.getElementById('directDiplomatic-value').textContent = directDiplomatic.value;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function escapeForAttribute(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     }
 
     async function loadMemories() {
     try {
-        const response = await fetch(`/api/memory/${twinId}/memory/retrieve?bucket=facts&limit=20`, {
+            const response = await fetch(`/api/twin/${twinId}/long-term-memory?category=${currentMemoryCategory}&limit=20`, {
             credentials: 'include'
         });
         const data = await response.json();
+            
+            const memoryListEl = document.getElementById('memoryList');
+            if (!memoryListEl) return;
         
         if (data.success && data.memories && data.memories.length > 0) {
-            const memoryHTML = data.memories.map(memory => `
-                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <p class="text-sm text-gray-900">${memory.text}</p>
-                    <button onclick="deleteMemory('${memory.id}')" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                const memoryHTML = data.memories.map(memory => {
+                    const safeKey = escapeForAttribute(memory.key);
+                    const safeValue = escapeHtml(memory.value);
+                    const safeValueAttr = escapeForAttribute(memory.value);
+                    const safeCategory = escapeForAttribute(memory.category || currentMemoryCategory);
+                    const date = memory.createdAt || memory.created_at ? new Date(memory.createdAt || memory.created_at).toLocaleDateString() : '';
+                    
+                    return `
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div class="flex-1">
+                                <p class="text-sm text-gray-900">${safeValue}</p>
+                                <span class="text-xs text-gray-500">${safeCategory} • ${date}</span>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button data-memory-key="${safeKey}" data-memory-value="${safeValueAttr}" data-memory-category="${safeCategory}" class="edit-memory-btn text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded hover:bg-blue-50 cursor-pointer">
+                                    Edit
+                                </button>
+                                <button data-memory-key="${safeKey}" class="delete-memory-btn text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50 cursor-pointer">
+                                    Delete
+                                </button>
+                    </div>
                 </div>
-            `).join('');
-            document.getElementById('memoryList').innerHTML = memoryHTML;
+                    `;
+                }).join('');
+                memoryListEl.innerHTML = memoryHTML;
         } else {
-            document.getElementById('memoryList').innerHTML = '<p class="text-gray-500">No memories yet</p>';
+                memoryListEl.innerHTML = `<p class="text-gray-500 text-center py-4">No ${currentMemoryCategory} memories yet. Add your first one above!</p>`;
         }
     } catch (error) {
         console.error('Error loading memories:', error);
-        document.getElementById('memoryList').innerHTML = '<p class="text-red-500">Error loading memories</p>';
+            const memoryListEl = document.getElementById('memoryList');
+            if (memoryListEl) {
+                memoryListEl.innerHTML = '<p class="text-red-500 text-center py-4">Error loading memories</p>';
+            }
     }
-}    
+}
 
-    async function addMemory() {
-    const memory = document.getElementById('newMemory').value.trim();
-    if (!memory) {
+async function addMemory() {
+        const memoryText = document.getElementById('newMemory')?.value.trim();
+    if (!memoryText) {
         alert('Please enter a memory');
         return;
     }
     
     try {
-        const response = await fetch(`/api/memory/${twinId}/memory/ingest`, {
+        const response = await fetch(`/api/twin/${twinId}/long-term-memory`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -218,8 +562,8 @@
             },
             credentials: 'include',
             body: JSON.stringify({
-                bucket: 'facts',
-                text: memory
+                value: memoryText,
+                    category: currentMemoryCategory
             })
         });
         
@@ -227,24 +571,58 @@
         
         if (data.success) {
             document.getElementById('newMemory').value = '';
-            loadMemories(); // Reload memory list
+                loadMemories();
             alert('Memory added successfully!');
         } else {
             alert('Error: ' + (data.error || 'Failed to add memory'));
         }
     } catch (error) {
         console.error('Error adding memory:', error);
-        alert('Error adding memory');
+            alert('Error adding memory: ' + error.message);
+        }
+    }
+
+    async function editMemory(memoryKey, currentValue, category) {
+        const newValue = prompt('Edit memory:', currentValue);
+        if (newValue === null || newValue.trim() === '') {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/twin/${twinId}/long-term-memory/${memoryKey}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    value: newValue.trim(),
+                    category: category
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                loadMemories();
+                alert('Memory updated successfully!');
+            } else {
+                alert('Error: ' + (data.error || 'Failed to update memory'));
+            }
+        } catch (error) {
+            console.error('Error updating memory:', error);
+            alert('Error updating memory: ' + error.message);
     }
 }
 
-async function deleteMemory(memoryId) {
+async function deleteMemory(memoryKey) {
     if (!confirm('Are you sure you want to delete this memory?')) {
         return;
     }
     
     try {
-        const response = await fetch(`/api/memory/${twinId}/memory/${memoryId}`, {
+        const response = await fetch(`/api/twin/${twinId}/long-term-memory/${memoryKey}`, {
             method: 'DELETE',
             headers: {
                 'X-CSRF-Token': window.csrfToken
@@ -255,26 +633,45 @@ async function deleteMemory(memoryId) {
         const data = await response.json();
         
         if (data.success) {
-            loadMemories(); // Reload memory list
+                loadMemories();
             alert('Memory deleted successfully!');
         } else {
             alert('Error: ' + (data.error || 'Failed to delete memory'));
         }
     } catch (error) {
         console.error('Error deleting memory:', error);
-        alert('Error deleting memory');
+            alert('Error deleting memory: ' + error.message);
     }
 }
-
 
 async function saveChanges() {
     const updates = {
         personaData: {
             basicInfo: {
-                fullName: document.getElementById('fullName').value,
-                bio: document.getElementById('bio').value
-            },
-            interests: document.getElementById('interests').value.split(',').map(i => i.trim()).filter(i => i)
+                    fullName: document.getElementById('fullName')?.value || '',
+                    bio: document.getElementById('bio')?.value || '',
+                    username: document.getElementById('username')?.value || '',
+                    primaryUseCase: document.getElementById('primaryUseCase')?.value || ''
+                },
+                communicationStyle: {
+                    tone: {
+                        formalCasual: parseInt(document.getElementById('formalCasual')?.value || 50),
+                        seriousPlayful: parseInt(document.getElementById('seriousPlayful')?.value || 50),
+                        directDiplomatic: parseInt(document.getElementById('directDiplomatic')?.value || 50)
+                    },
+                    language: {
+                        greetingStyle: document.getElementById('greetingStyle')?.value || '',
+                        closingStyle: document.getElementById('closingStyle')?.value || '',
+                        emojiUsage: document.getElementById('emojiUsage')?.value || 'moderate',
+                        responseLength: document.getElementById('responseLength')?.value || 'detailed',
+                        commonPhrases: document.getElementById('commonPhrases')?.value || ''
+                    }
+                },
+                context: {
+                    interests: (document.getElementById('interests')?.value || '').split(',').map(i => i.trim()).filter(i => i),
+                    targetAudience: document.getElementById('targetAudience')?.value || '',
+                    topicsToAvoid: document.getElementById('topicsToAvoid')?.value || ''
+                }
         }
     };
     
@@ -285,6 +682,7 @@ async function saveChanges() {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': window.csrfToken
             },
+                credentials: 'include',
             body: JSON.stringify(updates)
         });
         
@@ -297,44 +695,71 @@ async function saveChanges() {
         }
     } catch (error) {
         console.error('Error saving changes:', error);
-        alert('Error saving changes');
+            alert('Error saving changes: ' + error.message);
     }
 }
     
     function resetChanges() {
         if (currentTwinData) {
             populateForm(currentTwinData);
+        } else {
+            alert('No data loaded. Please refresh the page.');
         }
     }
 
     function previewChanges() {
     if (!currentTwinData) {
-        alert('Please load data first');
+            alert('Please wait for data to load first');
         return;
     }
+        
+        const pd = currentTwinData.personaData || {};
+        const basicInfo = pd.basicInfo || {};
+        const tone = pd.communicationStyle?.tone || {};
+        const language = pd.communicationStyle?.language || {};
     
     const current = {
-        fullName: currentTwinData.personaData?.basicInfo?.fullName || '',
-        bio: currentTwinData.personaData?.basicInfo?.bio || '',
-        interests: currentTwinData.personaData?.interests?.join(', ') || ''
+            fullName: basicInfo.fullName || pd.name || '',
+            username: basicInfo.username || pd.username || '',
+            bio: basicInfo.bio || pd.bio || '',
+            primaryUseCase: basicInfo.primaryUseCase || pd.primaryUseCase || '',
+            formalCasual: tone.formalCasual || 50,
+            seriousPlayful: tone.seriousPlayful || 50,
+            directDiplomatic: tone.directDiplomatic || 50,
+            greetingStyle: language.greetingStyle || '',
+            closingStyle: language.closingStyle || '',
+            emojiUsage: language.emojiUsage || 'moderate',
+            responseLength: language.responseLength || 'detailed',
+            commonPhrases: language.commonPhrases || '',
+            interests: (pd.context?.interests || pd.interests || []).join(', '),
+            targetAudience: pd.context?.targetAudience || '',
+            topicsToAvoid: pd.context?.topicsToAvoid || ''
     };
     
     const updated = {
-        fullName: document.getElementById('fullName').value,
-        bio: document.getElementById('bio').value,
-        interests: document.getElementById('interests').value
+            fullName: document.getElementById('fullName')?.value || '',
+            username: document.getElementById('username')?.value || '',
+            bio: document.getElementById('bio')?.value || '',
+            primaryUseCase: document.getElementById('primaryUseCase')?.value || '',
+            formalCasual: parseInt(document.getElementById('formalCasual')?.value || 50),
+            seriousPlayful: parseInt(document.getElementById('seriousPlayful')?.value || 50),
+            directDiplomatic: parseInt(document.getElementById('directDiplomatic')?.value || 50),
+            greetingStyle: document.getElementById('greetingStyle')?.value || '',
+            closingStyle: document.getElementById('closingStyle')?.value || '',
+            emojiUsage: document.getElementById('emojiUsage')?.value || 'moderate',
+            responseLength: document.getElementById('responseLength')?.value || 'detailed',
+            commonPhrases: document.getElementById('commonPhrases')?.value || '',
+            interests: document.getElementById('interests')?.value || '',
+            targetAudience: document.getElementById('targetAudience')?.value || '',
+            topicsToAvoid: document.getElementById('topicsToAvoid')?.value || ''
     };
     
     let changes = [];
-    if (current.fullName !== updated.fullName) {
-        changes.push(`Full Name: "${current.fullName}" → "${updated.fullName}"`);
-    }
-    if (current.bio !== updated.bio) {
-        changes.push(`Bio: "${current.bio}" → "${updated.bio}"`);
-    }
-    if (current.interests !== updated.interests) {
-        changes.push(`Interests: "${current.interests}" → "${updated.interests}"`);
-    }
+        Object.keys(current).forEach(key => {
+            if (String(current[key]) !== String(updated[key])) {
+                changes.push(`${key}: "${current[key]}" → "${updated[key]}"`);
+            }
+        });
     
     if (changes.length === 0) {
         alert('No changes detected');
@@ -342,6 +767,15 @@ async function saveChanges() {
         alert('Preview Changes:\n\n' + changes.join('\n'));
     }
 }
+
+    // Make functions globally accessible
+    window.switchMemoryCategory = switchMemoryCategory;
+    window.addMemory = addMemory;
+    window.editMemory = editMemory;
+    window.deleteMemory = deleteMemory;
+    window.saveChanges = saveChanges;
+    window.resetChanges = resetChanges;
+    window.previewChanges = previewChanges;
 
     </script>
 </body>

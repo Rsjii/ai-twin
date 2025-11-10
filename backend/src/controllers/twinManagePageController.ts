@@ -57,7 +57,8 @@ export async function getTwinManage(req: any, res: Response) {
         (SELECT COUNT(*) FROM "PublicTwinView" WHERE "twinId" = $1) as views,
         (SELECT COUNT(*) FROM "PublicTwinLike" WHERE "twinId" = $1) as likes,
         (SELECT COUNT(*) FROM "PublicTwinFollow" WHERE "twinId" = $1) as followers,
-        (SELECT COUNT(*) FROM "mem_chunks" WHERE twin_id = $1) as memories,
+        (SELECT COUNT(*) FROM "MemoryLongTerm" WHERE "twinId" = $1) + 
+        (SELECT COUNT(*) FROM "style_anchors" WHERE twin_id = $1) as memories,        
         (SELECT COUNT(*) FROM "StyleCorrection" WHERE "twinId" = $1) as corrections,
         (SELECT COUNT(*) FROM "AIRun" WHERE "twinId" = $1) as aiRuns,
         (SELECT COUNT(*) FROM "LearningGoal" WHERE "twinId" = $1) as goals

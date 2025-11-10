@@ -79,11 +79,27 @@ export const addTwinAnchor = async (req: any, res: Response, next: NextFunction)
       }
     }
     
+    // For phrases, use the phrase itself as user_utterance to make it unique
+    // This avoids the unique constraint violation while satisfying NOT NULL
+    // The phrase column will still store the actual phrase text
+    let finalUserUtterance: string;
+    let finalIdealReply: string;
+    
+    if (type === 'phrase') {
+      // Use phrase as user_utterance to ensure uniqueness per twin
+      // This satisfies both NOT NULL and unique constraint requirements
+      finalUserUtterance = phrase || '';
+      finalIdealReply = '';
+    } else {
+      finalUserUtterance = userUtterance || '';
+      finalIdealReply = idealReply || '';
+    }
+    
     // Add style anchor with all parameters
     const anchor = await styleAnchorsQueries.create(
       twinId, 
-      userUtterance || '', 
-      idealReply || '', 
+      finalUserUtterance, 
+      finalIdealReply, 
       tags,
       type as 'interaction' | 'phrase' | 'pattern',
       phrase,

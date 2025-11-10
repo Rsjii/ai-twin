@@ -143,8 +143,10 @@ export async function performPerformanceAnalysis(twinId: string): Promise<any> {
     `, [twinId]);
     
     const memoriesResult = await db.query(`
-      SELECT COUNT(*) as count FROM "mem_chunks" WHERE twin_id = $1
-    `, [twinId]);
+      SELECT 
+        (SELECT COUNT(*) FROM "MemoryLongTerm" WHERE "twinId" = $1) +
+        (SELECT COUNT(*) FROM "style_anchors" WHERE twin_id = $1) as count
+    `, [twinId]);    
     
     const anchorsResult = await db.query(`
       SELECT COUNT(*) as count FROM "style_anchors" WHERE twin_id = $1
@@ -183,13 +185,34 @@ export async function gatherAnalyticsData(twinId: string): Promise<any> {
       SELECT * FROM "ai_runs" WHERE "twin_id" = $1 ORDER BY ts DESC LIMIT 1000
     `, [twinId]);
     
-    const memoriesResult = await db.query(`
-      SELECT * FROM "mem_chunks" WHERE twin_id = $1 ORDER BY ts DESC LIMIT 1000
-    `, [twinId]);
+// Get from both MemoryLongTerm and StyleAnchors
+const [longTermMemories, styleAnchors] = await Promise.all([
+  db.query(`
+    SELECT key as id, value as text, category, "createdAt" as ts
+    FROM "MemoryLongTerm"
+    WHERE "twinId" = $1
+    ORDER BY "updatedAt" DESC
+    LIMIT 500
+  `, [twinId]),
+  db.query(`
+    SELECT id, phrase as text, 'voice' as category, created_at as ts
+    FROM "style_anchors"
+    WHERE twin_id = $1 AND type = 'phrase'
+    ORDER BY created_at DESC
+    LIMIT 500
+  `, [twinId])
+]);
+
+const memoriesResult = {
+  rows: [
+    ...longTermMemories.rows,
+    ...styleAnchors.rows
+  ].sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime()).slice(0, 1000)
+};    
     
-    const anchorsResult = await db.query(`
-      SELECT * FROM "style_anchors" WHERE twin_id = $1 ORDER BY createdAt DESC LIMIT 1000
-    `, [twinId]);
+const anchorsResult = await db.query(`
+  SELECT * FROM "style_anchors" WHERE twin_id = $1 ORDER BY created_at DESC LIMIT 1000
+`, [twinId]);    
     
     const correctionsResult = await db.query(`
       SELECT * FROM "style_corrections" WHERE "twin_id" = $1 ORDER BY ts DESC LIMIT 1000

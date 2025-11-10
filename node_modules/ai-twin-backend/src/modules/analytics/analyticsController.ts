@@ -438,17 +438,37 @@ async function getAvgResponseTime(twinId: string) {
 }
 
 async function getMemoryStats(twinId: string) {
-  const result = await db.query(`
-    SELECT 
-      bucket,
-      COUNT(*) as count,
-      COUNT(CASE WHEN is_public THEN 1 END) as public_count
-    FROM mem_chunks 
-    WHERE twin_id = $1
-    GROUP BY bucket
-  `, [twinId]);
+  const [longTermResult, anchorsResult] = await Promise.all([
+    db.query(`
+      SELECT 
+        category as bucket,
+        COUNT(*) as count
+      FROM "MemoryLongTerm"
+      WHERE "twinId" = $1
+      GROUP BY category
+    `, [twinId]),
+    db.query(`
+      SELECT 
+        'voice' as bucket,
+        COUNT(*) as count
+      FROM "style_anchors"
+      WHERE twin_id = $1 AND type = 'phrase'
+      GROUP BY bucket
+    `, [twinId])
+  ]);
   
-  return result.rows;
+  return [
+    ...longTermResult.rows.map(row => ({
+      bucket: row.bucket === 'fact' ? 'facts' : row.bucket,
+      count: parseInt(row.count),
+      public_count: 0
+    })),
+    ...anchorsResult.rows.map(row => ({
+      bucket: row.bucket,
+      count: parseInt(row.count),
+      public_count: 0
+    }))
+  ];
 }
 
 async function getFeedbackStats(twinId: string) {

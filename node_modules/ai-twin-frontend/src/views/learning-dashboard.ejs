@@ -600,11 +600,12 @@
     <div class="mb-4 flex justify-between items-center">
       <p class="text-sm text-gray-600">Manage your twin's knowledge base</p>
       <div class="flex space-x-2">
-        <select id="memoryBucketFilter" class="text-sm border border-gray-300 rounded px-2 py-1 form-input">
+        <select id="memoryCategoryFilter" class="text-sm border border-gray-300 rounded px-2 py-1 form-input">
           <option value="all">All Memories</option>
-          <option value="facts">Facts</option>
-          <option value="voice">Voice Patterns</option>
-        </select>
+          <option value="fact">Facts</option>
+          <option value="preference">Preferences</option>
+          <option value="interest">Interests</option>
+        </select>        
       </div>
     </div>
     <div id="memoryList" class="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4 list-container scrollable">
@@ -777,9 +778,9 @@
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Memory Type</label>
               <select id="memoryType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input">
-                <option value="facts">Facts</option>
-                <option value="voice">Voice Patterns</option>
-              </select>
+                <option value="fact">Facts</option>
+                <option value="style_anchor">Style Anchor</option>
+              </select>              
             </div>
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Memory Content</label>
@@ -1326,54 +1327,61 @@
     
         // Load memories
         async function loadMemories() {
-            try {
-                const bucket = document.getElementById('memoryBucketFilter').value;
-                const response = await fetch(`/api/memory/${twinId}/memory/retrieve?bucket=${bucket}&limit=${pageSize}&offset=${currentMemoryOffset}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    displayMemories(data.memories);
-                }
-            } catch (error) {
-                console.error('Error loading memories:', error);
-            }
+    try {
+        const category = document.getElementById('memoryCategoryFilter').value; // 'all', 'fact', 'preference', etc.
+        
+        let url = `/api/twin/${twinId}/long-term-memory?limit=${pageSize}&offset=${currentMemoryOffset}`;
+        if (category !== 'all') {
+            url += `&category=${category}`;
         }
-    
+        
+        const response = await fetch(url, {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            displayMemories(data.memories);
+        }
+    } catch (error) {
+        console.error('Error loading memories:', error);
+    }
+}    
+
         // Display memories
         function displayMemories(memories) {
-            const container = document.getElementById('memoryList');
-            
-            if (memories.length === 0 && currentMemoryOffset === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-8">No memories found</p>';
-                return;
-            }
-            
-            if (currentMemoryOffset === 0) {
-                container.innerHTML = '';
-            }
-            
-            memories.forEach(memory => {
-                const memoryElement = document.createElement('div');
-                memoryElement.className = 'border rounded-lg p-3 hover:bg-gray-50 transition-colors';
-                memoryElement.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div class="flex-1">
-                            <div class="flex items-center space-x-2 mb-2">
-                                <span class="px-2 py-1 text-xs rounded-full ${memory.bucket === 'facts' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">${memory.bucket}</span>
-                            </div>
-                            <p class="text-sm text-gray-900">${memory.text}</p>
-                            <p class="text-xs text-gray-500 mt-1">${new Date(memory.createdAt).toLocaleDateString()}</p>
-                        </div>
-                        <div class="flex space-x-1">
-                            <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editMemory('${memory.id}')">Edit</button>
-                            <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteMemory('${memory.id}')">Delete</button>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(memoryElement);
-            });
-        }
+    const container = document.getElementById('memoryList');
     
+    if (memories.length === 0 && currentMemoryOffset === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">No memories found</p>';
+        return;
+    }
+    
+    if (currentMemoryOffset === 0) {
+        container.innerHTML = '';
+    }
+    
+    memories.forEach(memory => {
+        const memoryElement = document.createElement('div');
+        memoryElement.className = 'border rounded-lg p-3 hover:bg-gray-50 transition-colors';
+        memoryElement.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-2">
+                        <span class="px-2 py-1 text-xs rounded-full ${memory.category === 'fact' ? 'bg-blue-100 text-blue-800' : memory.category === 'preference' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}">${memory.category || 'fact'}</span>
+                    </div>
+                    <p class="text-sm text-gray-900">${memory.value || memory.text}</p>
+                    <p class="text-xs text-gray-500 mt-1">${new Date(memory.createdAt || memory.created_at).toLocaleDateString()}</p>
+                </div>
+                <div class="flex space-x-1">
+                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editMemory('${memory.key || memory.id}')">Edit</button>
+                    <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteMemory('${memory.key || memory.id}')">Delete</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(memoryElement);
+    });
+}        
         // Load style anchors
         async function loadStyleAnchors() {
             try {
@@ -1388,46 +1396,47 @@
             }
         }
     
-        // Display style anchors
         function displayStyleAnchors(anchors) {
-            const container = document.getElementById('styleAnchorsList');
-            
-            if (anchors.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-8">No style anchors found</p>';
-                return;
-            }
-            
-            container.innerHTML = '';
-            
-            anchors.forEach(anchor => {
-                const anchorElement = document.createElement('div');
-                anchorElement.className = 'border rounded-lg p-4 hover:bg-gray-50 transition-colors';
-                anchorElement.innerHTML = `
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="flex items-center space-x-2">
-                            <span class="px-2 py-1 text-xs rounded-full ${anchor.trainingType === 'manual' ? 'bg-purple-100 text-purple-800' : anchor.trainingType === 'chat_conversion' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">${anchor.trainingType}</span>
-                        </div>
-                        <div class="flex space-x-1">
-                            <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editAnchor('${anchor.id}')">Edit</button>
-                            <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteAnchor('${anchor.id}')">Delete</button>
-                        </div>
-                    </div>
-                    <div class="space-y-2">
-                        <div>
-                            <p class="text-xs font-medium text-gray-600">User Utterance:</p>
-                            <p class="text-sm text-gray-900">${anchor.userUtterance}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs font-medium text-gray-600">Ideal Reply:</p>
-                            <p class="text-sm text-gray-900">${anchor.idealReply}</p>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">${new Date(anchor.createdAt).toLocaleDateString()}</p>
-                `;
-                container.appendChild(anchorElement);
-            });
-        }
+    const container = document.getElementById('styleAnchorsList');
     
+    if (anchors.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">No style anchors found</p>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    anchors.forEach(anchor => {
+        const anchorElement = document.createElement('div');
+        anchorElement.className = 'border rounded-lg p-4 hover:bg-gray-50 transition-colors';
+        const tags = anchor.tags || [];
+        const trainingType = tags.includes('manual') ? 'manual' : tags.includes('chat_conversion') ? 'chat_conversion' : 'auto';
+        anchorElement.innerHTML = `
+            <div class="flex justify-between items-start mb-3">
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 text-xs rounded-full ${trainingType === 'manual' ? 'bg-purple-100 text-purple-800' : trainingType === 'chat_conversion' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">${trainingType}</span>
+                </div>
+                <div class="flex space-x-1">
+                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editAnchor('${anchor.id}')">Edit</button>
+                    <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteAnchor('${anchor.id}')">Delete</button>
+                </div>
+            </div>
+            <div class="space-y-2">
+                <div>
+                    <p class="text-xs font-medium text-gray-600">User Utterance:</p>
+                    <p class="text-sm text-gray-900">${anchor.user_utterance || anchor.userUtterance || ''}</p>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-gray-600">Ideal Reply:</p>
+                    <p class="text-sm text-gray-900">${anchor.ideal_reply || anchor.idealReply || ''}</p>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">${new Date(anchor.created_at || anchor.createdAt).toLocaleDateString()}</p>
+        `;
+        container.appendChild(anchorElement);
+    });
+}
+        
         // Convert chat to training
         async function convertChatToTraining(chatId) {
             try {
@@ -1497,42 +1506,64 @@
     
         // Add memory
         async function addMemory() {
-            const type = document.getElementById('memoryType').value;
-            const content = document.getElementById('memoryContent').value.trim();
-            
-            if (!content) {
-                alert('Please enter memory content');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/twin/${twinId}/long-term-memory`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfToken
-                    },
-                    body: JSON.stringify({
-                        value: content,
-                        category: type === 'facts' ? 'fact' : 'voice'
-                    })
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    alert('Memory added successfully!');
-                    document.getElementById('memoryContent').value = '';
-                    closeMemoryModal();
-                    loadMemories();
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            } catch (error) {
-                console.error('Error adding memory:', error);
-                alert('Error adding memory');
-            }
-        }
+    const type = document.getElementById('memoryType').value; // 'fact' or 'style_anchor'
+    const content = document.getElementById('memoryContent').value.trim();
     
+    if (!content) {
+        alert('Please enter memory content');
+        return;
+    }
+    
+    try {
+        let response;
+        
+        if (type === 'fact') {
+            // Add to MemoryLongTerm
+            response = await fetch(`/api/twin/${twinId}/long-term-memory`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    value: content,
+                    category: 'fact'
+                })
+            });
+        } else if (type === 'style_anchor') {
+            // Add to StyleAnchors
+            response = await fetch(`/api/twin/${twinId}/style-anchors`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    type: 'phrase',
+                    phrase: content,
+                    userUtterance: '',
+                    idealReply: '',
+                    tags: ['manual']
+                })
+            });
+        }
+        
+        const data = await response.json();
+        if (data.success) {
+            alert('Memory added successfully!');
+            document.getElementById('memoryContent').value = '';
+            closeMemoryModal();
+            loadMemories();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error adding memory:', error);
+        alert('Error adding memory');
+    }
+}        
         // Add style anchor
         async function addAnchor() {
             const userUtterance = document.getElementById('anchorUserUtterance').value.trim();
@@ -1716,7 +1747,7 @@
                 loadMemories();
             });
     
-            document.getElementById('memoryBucketFilter').addEventListener('change', function() {
+            document.getElementById('memoryCategoryFilter').addEv                
                 currentMemoryOffset = 0;
                 loadMemories();
             });
