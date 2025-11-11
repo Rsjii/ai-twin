@@ -593,36 +593,50 @@
             </div>
         </div>
 
-
-        <!-- Memory Management Section -->
-<div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-white/20 p-6 mb-8 section">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Twin Memory</h3>
-    <div class="mb-4 flex justify-between items-center">
-      <p class="text-sm text-gray-600">Manage your twin's knowledge base</p>
-      <div class="flex space-x-2">
-        <select id="memoryCategoryFilter" class="text-sm border border-gray-300 rounded px-2 py-1 form-input">
-          <option value="all">All Memories</option>
-          <option value="fact">Facts</option>
-          <option value="preference">Preferences</option>
-          <option value="interest">Interests</option>
-        </select>        
-      </div>
-    </div>
-    <div id="memoryList" class="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4 list-container scrollable">
-      <div class="text-center text-gray-500 py-8">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
-        <p>Loading memories...</p>
-      </div>
-    </div>
-    <div class="mt-4 flex space-x-2 btn-group">
-      <button id="addMemoryBtn" class="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors btn touch-target">
-        Add Memory
-      </button>
-      <button id="refreshMemories" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors btn touch-target">
-        Refresh
-      </button>
-    </div>
-  </div>
+        <!-- Quick Navigation Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <a href="/twin/<%= twinId %>/ai-edit" class="bg-white/80 backdrop-blur-xl rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 hover:scale-[1.02]">
+                <div class="flex items-center space-x-4">
+                    <div class="bg-blue-100 rounded-lg p-3">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900">Edit Persona</h4>
+                        <p class="text-sm text-gray-600">Customize personality & communication style</p>
+                    </div>
+                </div>
+            </a>
+            
+            <a href="/twin/<%= twinId %>/style-customize" class="bg-white/80 backdrop-blur-xl rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 hover:scale-[1.02]">
+                <div class="flex items-center space-x-4">
+                    <div class="bg-purple-100 rounded-lg p-3">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900">Customize Style</h4>
+                        <p class="text-sm text-gray-600">Adjust communication style & preview anchors</p>
+                    </div>
+                </div>
+            </a>
+            
+            <a href="/twin/<%= twinId %>/memory-management" class="bg-white/80 backdrop-blur-xl rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 hover:scale-[1.02]">
+                <div class="flex items-center space-x-4">
+                    <div class="bg-green-100 rounded-lg p-3">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900">Manage Memories</h4>
+                        <p class="text-sm text-gray-600">Complete memory & style anchor management</p>
+                    </div>
+                </div>
+            </a>
+        </div>
 
         <!-- Action Buttons -->
         <div class="flex justify-between items-center action-buttons">
@@ -638,60 +652,6 @@
                 </button>
             </div>
         </div>
-
-        <!-- Style Anchor Management -->
-<div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-white/20 p-6 mb-8 section">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Style Anchors</h3>
-    <div class="mb-4 flex justify-between items-center">
-      <p class="text-sm text-gray-600">Training examples that shape your twin's communication style</p>
-      <div class="flex space-x-2">
-        <select id="anchorTypeFilter" class="text-sm border border-gray-300 rounded px-2 py-1 form-input">
-          <option value="all">All Types</option>
-          <option value="manual">Manual</option>
-          <option value="chat_conversion">From Chats</option>
-          <option value="auto">Auto-Generated</option>
-        </select>
-      </div>
-    </div>
-    <div id="styleAnchorsList" class="space-y-3 max-h-96 overflow-y-auto border rounded-lg p-4 list-container scrollable">
-      <div class="text-center text-gray-500 py-8">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
-        <p>Loading style anchors...</p>
-      </div>
-    </div>
-    <!-- ADD at line 640 in learning-dashboard.ejs -->
-<div class="bg-white rounded-lg shadow p-6">
-  <h3 class="text-lg font-semibold mb-4">Learning Progress</h3>
-  <div class="space-y-4">
-      <div>
-          <div class="flex justify-between text-sm">
-              <span>Memory Count</span>
-              <span id="memoryProgress">0</span>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-2">
-              <div id="memoryProgressBar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
-          </div>
-      </div>
-      <div>
-          <div class="flex justify-between text-sm">
-              <span>Style Anchors</span>
-              <span id="anchorProgress">0</span>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-2">
-              <div id="anchorProgressBar" class="bg-green-600 h-2 rounded-full" style="width: 0%"></div>
-          </div>
-      </div>
-  </div>
-</div>
-    <div class="mt-4 flex space-x-2 btn-group">
-      <button id="addAnchorBtn" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors btn touch-target">
-        Add Style Anchor
-      </button>
-      <button id="refreshAnchors" class="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition-colors btn touch-target">
-        Refresh
-      </button>
-    </div>
-  </div>
 
   <!-- Manual Training Interface -->
 <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-white/20 p-6 mb-8 section">
@@ -766,77 +726,6 @@
     </div>
   </div>
 
-        <!-- Memory Management Modal -->
-<div id="memoryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 modal">
-    <div class="flex items-center justify-center min-h-screen p-4">
-      <div class="bg-white rounded-lg shadow-xl max-w-md w-full modal-content">
-        <div class="px-6 py-4 border-b border-gray-200 modal-header">
-          <h3 class="text-lg font-semibold text-gray-900" id="memoryModalTitle">Add Memory</h3>
-        </div>
-        <div class="px-6 py-4 modal-body">
-          <form id="memoryForm">
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Memory Type</label>
-              <select id="memoryType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input">
-                <option value="fact">Facts</option>
-                <option value="style_anchor">Style Anchor</option>
-              </select>              
-            </div>
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Memory Content</label>
-              <textarea id="memoryContent" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input" placeholder="Enter memory content..."></textarea>
-            </div>
-            <div class="flex space-x-2 modal-footer">
-              <button type="submit" class="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors btn touch-target">
-                Save Memory
-              </button>
-              <button type="button" id="closeMemoryModal" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors btn touch-target">
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Style Anchor Management Modal -->
-  <div id="anchorModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 modal">
-    <div class="flex items-center justify-center min-h-screen p-4">
-      <div class="bg-white rounded-lg shadow-xl max-w-md w-full modal-content">
-        <div class="px-6 py-4 border-b border-gray-200 modal-header">
-          <h3 class="text-lg font-semibold text-gray-900" id="anchorModalTitle">Add Style Anchor</h3>
-        </div>
-        <div class="px-6 py-4 modal-body">
-          <form id="anchorForm">
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2 form-label">User Utterance</label>
-              <textarea id="anchorUserUtterance" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input" placeholder="What the user might say..."></textarea>
-            </div>
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Ideal Reply</label>
-              <textarea id="anchorIdealReply" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input" placeholder="How your twin should respond..."></textarea>
-            </div>
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2 form-label">Training Type</label>
-              <select id="anchorTrainingType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 form-input">
-                <option value="manual">Manual</option>
-                <option value="chat_conversion">From Chat</option>
-              </select>
-            </div>
-            <div class="flex space-x-2 modal-footer">
-              <button type="submit" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors btn touch-target">
-                Save Anchor
-              </button>
-              <button type="button" id="closeAnchorModal" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors btn touch-target">
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Training Validation & Feedback -->
 <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-white/20 p-6 mb-8 section">
@@ -1325,117 +1214,6 @@
             });
         }
     
-        // Load memories
-        async function loadMemories() {
-    try {
-        const category = document.getElementById('memoryCategoryFilter').value; // 'all', 'fact', 'preference', etc.
-        
-        let url = `/api/twin/${twinId}/long-term-memory?limit=${pageSize}&offset=${currentMemoryOffset}`;
-        if (category !== 'all') {
-            url += `&category=${category}`;
-        }
-        
-        const response = await fetch(url, {
-            credentials: 'include'
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-            displayMemories(data.memories);
-        }
-    } catch (error) {
-        console.error('Error loading memories:', error);
-    }
-}    
-
-        // Display memories
-        function displayMemories(memories) {
-    const container = document.getElementById('memoryList');
-    
-    if (memories.length === 0 && currentMemoryOffset === 0) {
-        container.innerHTML = '<p class="text-gray-500 text-center py-8">No memories found</p>';
-        return;
-    }
-    
-    if (currentMemoryOffset === 0) {
-        container.innerHTML = '';
-    }
-    
-    memories.forEach(memory => {
-        const memoryElement = document.createElement('div');
-        memoryElement.className = 'border rounded-lg p-3 hover:bg-gray-50 transition-colors';
-        memoryElement.innerHTML = `
-            <div class="flex justify-between items-start">
-                <div class="flex-1">
-                    <div class="flex items-center space-x-2 mb-2">
-                        <span class="px-2 py-1 text-xs rounded-full ${memory.category === 'fact' ? 'bg-blue-100 text-blue-800' : memory.category === 'preference' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}">${memory.category || 'fact'}</span>
-                    </div>
-                    <p class="text-sm text-gray-900">${memory.value || memory.text}</p>
-                    <p class="text-xs text-gray-500 mt-1">${new Date(memory.createdAt || memory.created_at).toLocaleDateString()}</p>
-                </div>
-                <div class="flex space-x-1">
-                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editMemory('${memory.key || memory.id}')">Edit</button>
-                    <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteMemory('${memory.key || memory.id}')">Delete</button>
-                </div>
-            </div>
-        `;
-        container.appendChild(memoryElement);
-    });
-}        
-        // Load style anchors
-        async function loadStyleAnchors() {
-            try {
-                const response = await fetch(`/api/twin/${twinId}/style-anchors`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    displayStyleAnchors(data.anchors);
-                }
-            } catch (error) {
-                console.error('Error loading style anchors:', error);
-            }
-        }
-    
-        function displayStyleAnchors(anchors) {
-    const container = document.getElementById('styleAnchorsList');
-    
-    if (anchors.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 text-center py-8">No style anchors found</p>';
-        return;
-    }
-    
-    container.innerHTML = '';
-    
-    anchors.forEach(anchor => {
-        const anchorElement = document.createElement('div');
-        anchorElement.className = 'border rounded-lg p-4 hover:bg-gray-50 transition-colors';
-        const tags = anchor.tags || [];
-        const trainingType = tags.includes('manual') ? 'manual' : tags.includes('chat_conversion') ? 'chat_conversion' : 'auto';
-        anchorElement.innerHTML = `
-            <div class="flex justify-between items-start mb-3">
-                <div class="flex items-center space-x-2">
-                    <span class="px-2 py-1 text-xs rounded-full ${trainingType === 'manual' ? 'bg-purple-100 text-purple-800' : trainingType === 'chat_conversion' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">${trainingType}</span>
-                </div>
-                <div class="flex space-x-1">
-                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editAnchor('${anchor.id}')">Edit</button>
-                    <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteAnchor('${anchor.id}')">Delete</button>
-                </div>
-            </div>
-            <div class="space-y-2">
-                <div>
-                    <p class="text-xs font-medium text-gray-600">User Utterance:</p>
-                    <p class="text-sm text-gray-900">${anchor.user_utterance || anchor.userUtterance || ''}</p>
-                </div>
-                <div>
-                    <p class="text-xs font-medium text-gray-600">Ideal Reply:</p>
-                    <p class="text-sm text-gray-900">${anchor.ideal_reply || anchor.idealReply || ''}</p>
-                </div>
-            </div>
-            <p class="text-xs text-gray-500 mt-2">${new Date(anchor.created_at || anchor.createdAt).toLocaleDateString()}</p>
-        `;
-        container.appendChild(anchorElement);
-    });
-}
         
         // Convert chat to training
         async function convertChatToTraining(chatId) {
@@ -1455,7 +1233,6 @@
                 const data = await response.json();
                 if (data.success) {
                     alert('Chat converted to training example successfully!');
-                    loadStyleAnchors();
                 } else {
                     alert('Error: ' + data.error);
                 }
@@ -1494,7 +1271,6 @@
                     alert('Training example added successfully!');
                     document.getElementById('userUtterance').value = '';
                     document.getElementById('idealReply').value = '';
-                    loadStyleAnchors();
                 } else {
                     alert('Error: ' + data.error);
                 }
@@ -1504,106 +1280,6 @@
             }
         }
     
-        // Add memory
-        async function addMemory() {
-    const type = document.getElementById('memoryType').value; // 'fact' or 'style_anchor'
-    const content = document.getElementById('memoryContent').value.trim();
-    
-    if (!content) {
-        alert('Please enter memory content');
-        return;
-    }
-    
-    try {
-        let response;
-        
-        if (type === 'fact') {
-            // Add to MemoryLongTerm
-            response = await fetch(`/api/twin/${twinId}/long-term-memory`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    value: content,
-                    category: 'fact'
-                })
-            });
-        } else if (type === 'style_anchor') {
-            // Add to StyleAnchors
-            response = await fetch(`/api/twin/${twinId}/style-anchors`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    type: 'phrase',
-                    phrase: content,
-                    userUtterance: '',
-                    idealReply: '',
-                    tags: ['manual']
-                })
-            });
-        }
-        
-        const data = await response.json();
-        if (data.success) {
-            alert('Memory added successfully!');
-            document.getElementById('memoryContent').value = '';
-            closeMemoryModal();
-            loadMemories();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    } catch (error) {
-        console.error('Error adding memory:', error);
-        alert('Error adding memory');
-    }
-}        
-        // Add style anchor
-        async function addAnchor() {
-            const userUtterance = document.getElementById('anchorUserUtterance').value.trim();
-            const idealReply = document.getElementById('anchorIdealReply').value.trim();
-            const trainingType = document.getElementById('anchorTrainingType').value;
-            
-            if (!userUtterance || !idealReply) {
-                alert('Please enter both user utterance and ideal reply');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/twin/${twinId}/style-anchors`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfToken
-                    },
-                    body: JSON.stringify({
-                        userUtterance: userUtterance,
-                        idealReply: idealReply,
-                        type: 'interaction',
-                        tags: [trainingType]
-                    })
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    alert('Style anchor added successfully!');
-                    document.getElementById('anchorForm').reset();
-                    closeAnchorModal();
-                    loadStyleAnchors();
-                } else {
-                    alert('Error: ' + (data.error || 'Failed to add anchor'));
-                }
-            } catch (error) {
-                console.error('Error adding anchor:', error);
-                alert('Error adding anchor');
-            }
-        }
     
         // Save learning settings
         async function saveLearningSettings() {
@@ -1646,8 +1322,6 @@
                 // Clear local state and reload
                 alert('Learning reset functionality will be implemented soon');
                 loadLearningData();
-                loadMemories();
-                loadStyleAnchors();
             } catch (error) {
                 console.error('Error resetting learning:', error);
                 alert('Error resetting learning');
@@ -1696,32 +1370,10 @@
         }
     
         // Modal functions
-        function openMemoryModal() {
-            document.getElementById('memoryModal').classList.remove('hidden');
-            document.getElementById('memoryModalTitle').textContent = 'Add Memory';
-            document.getElementById('memoryForm').reset();
-        }
-    
-        function closeMemoryModal() {
-            document.getElementById('memoryModal').classList.add('hidden');
-        }
-    
-        function openAnchorModal() {
-            document.getElementById('anchorModal').classList.remove('hidden');
-            document.getElementById('anchorModalTitle').textContent = 'Add Style Anchor';
-            document.getElementById('anchorForm').reset();
-        }
-    
-        function closeAnchorModal() {
-            document.getElementById('anchorModal').classList.add('hidden');
-        }
-    
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
             loadLearningData();
             loadChatHistory();
-            loadMemories();
-            loadStyleAnchors();
     
             // Chat history events
             document.getElementById('loadMoreChats').addEventListener('click', function() {
@@ -1734,35 +1386,6 @@
                 loadChatHistory();
             });
     
-            // Memory events
-            document.getElementById('addMemoryBtn').addEventListener('click', openMemoryModal);
-            document.getElementById('closeMemoryModal').addEventListener('click', closeMemoryModal);
-            document.getElementById('memoryForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                addMemory();
-            });
-    
-            document.getElementById('refreshMemories').addEventListener('click', function() {
-                currentMemoryOffset = 0;
-                loadMemories();
-            });
-    
-            document.getElementById('memoryCategoryFilter').addEv                
-                currentMemoryOffset = 0;
-                loadMemories();
-            });
-    
-            // Style anchor events
-            document.getElementById('addAnchorBtn').addEventListener('click', openAnchorModal);
-            document.getElementById('closeAnchorModal').addEventListener('click', closeAnchorModal);
-            document.getElementById('anchorForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                addAnchor();
-            });
-    
-            document.getElementById('refreshAnchors').addEventListener('click', function() {
-                loadStyleAnchors();
-            });
     
             // Manual training events
             document.getElementById('addTrainingExample').addEventListener('click', addTrainingExample);
@@ -1915,7 +1538,6 @@ async function convertSelectedToTraining() {
       alert(`Successfully converted ${selectedMessages.length} messages to training examples!`);
       selectedMessages = [];
       updateBulkTrainingActions();
-      loadStyleAnchors();
       loadTrainingEffectiveness();
     } else {
       alert('Error: ' + data.error);
@@ -2096,12 +1718,6 @@ async function syncAllData() {
     
     // Sync chat history
     await loadChatHistory();
-    
-    // Sync memories
-    await loadMemories();
-    
-    // Sync style anchors
-    await loadStyleAnchors();
     
     // Sync training effectiveness
     await loadTrainingEffectiveness();
@@ -2510,7 +2126,6 @@ async function optimizeMemories() {
     const data = await response.json();
     if (data.success) {
       showSuccessNotification(`Optimized ${data.optimized} memories successfully!`);
-      loadMemories();
       loadPerformanceMetrics();
     } else {
       alert('Error: ' + data.error);

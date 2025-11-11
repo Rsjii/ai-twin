@@ -88,44 +88,16 @@
     </div>
   </div>
 
-        <!-- Memory Categories Tabs -->
+        <!-- Recent Memories Preview (Read-Only) -->
         <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 mb-8 border border-white/20">
-            <h2 class="text-xl font-semibold mb-4">Memory Categories</h2>
-            
-            <!-- Category Tabs -->
-            <div class="flex space-x-2 mb-4 border-b border-gray-200">
-                <button data-category="fact" id="tab-fact" class="category-tab px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600">
-                    Facts
-                </button>
-                <button data-category="preference" id="tab-preference" class="category-tab px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
-                    Preferences
-                </button>
-                <button data-category="interest" id="tab-interest" class="category-tab px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
-                    Interests
-                </button>
-                <button data-category="relationship" id="tab-relationship" class="category-tab px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
-                    Relationships
-                </button>
-                <button data-category="context" id="tab-context" class="category-tab px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
-                    Context
-                </button>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Recent Memories</h2>
+                <a href="/twin/<%= twinId %>/memory-management" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    Manage All Memories →
+                </a>
             </div>
-            
-            <!-- Memory List for Current Category -->
-            <div id="memoryList" class="space-y-3 mb-4 min-h-[100px]">
-                <div class="text-center text-gray-500 py-4">
-                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-                    <p class="mt-2">Loading memories...</p>
-                </div>
-            </div>
-            
-            <!-- Add Memory Form -->
-            <div class="flex space-x-4">
-                <input type="text" id="newMemory" placeholder="Add new memory..." 
-                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button id="addMemoryBtn" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
-                    Add Memory
-                </button>
+            <div id="recentMemoriesPreview" class="space-y-2 max-h-[200px] overflow-y-auto">
+                <p class="text-gray-500 text-sm">Loading recent memories...</p>
             </div>
         </div>
 
@@ -271,42 +243,6 @@
     <script>
     let currentTwinData = null;
     const twinId = '<%= twinId %>';
-    let currentMemoryCategory = 'fact'; // Track current category
-
-    function switchMemoryCategory(category) {
-        console.log('Switching to category:', category);
-        
-        if (!category) {
-            console.error('No category provided');
-            return;
-        }
-        
-        currentMemoryCategory = category;
-        console.log('Current category set to:', currentMemoryCategory);
-        
-        // Update tab styles - remove active from all
-        document.querySelectorAll('.category-tab').forEach(tab => {
-            tab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
-            tab.classList.add('text-gray-600');
-        });
-        
-        // Add active to selected tab
-        const activeTab = document.querySelector(`[data-category="${category}"]`);
-        if (activeTab) {
-            activeTab.classList.remove('text-gray-600');
-            activeTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-            console.log('Tab activated:', category);
-        } else {
-            console.error('Tab not found for category:', category);
-        }
-        
-        // Reload memories for new category
-        if (typeof loadMemories === 'function') {
-            loadMemories();
-        } else {
-            console.error('loadMemories function not found');
-        }
-    }
 
     // Load twin data on page load
     document.addEventListener('DOMContentLoaded', function() {
@@ -325,66 +261,6 @@
     });
 
     function setupEventListeners() {
-        // Setup category tab click listeners
-        document.querySelectorAll('.category-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                const category = this.dataset.category;
-                if (category) {
-                    switchMemoryCategory(category);
-                }
-            });
-        });
-
-        // Setup Add Memory button
-        const addMemoryBtn = document.getElementById('addMemoryBtn');
-        if (addMemoryBtn) {
-            addMemoryBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                addMemory();
-            });
-        }
-
-        // Setup Enter key for Add Memory input
-        const newMemoryInput = document.getElementById('newMemory');
-        if (newMemoryInput) {
-            newMemoryInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addMemory();
-                }
-            });
-        }
-
-        // Setup event delegation for Edit/Delete buttons (for dynamically generated content)
-        const memoryListEl = document.getElementById('memoryList');
-        if (memoryListEl) {
-            memoryListEl.addEventListener('click', function(e) {
-                // Handle Edit button clicks
-                if (e.target.classList.contains('edit-memory-btn') || e.target.closest('.edit-memory-btn')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const btn = e.target.closest('.edit-memory-btn') || e.target;
-                    const memoryKey = btn.dataset.memoryKey;
-                    const currentValue = btn.dataset.memoryValue;
-                    const category = btn.dataset.memoryCategory;
-                    if (memoryKey && currentValue && category) {
-                        editMemory(memoryKey, currentValue, category);
-                    }
-                }
-                
-                // Handle Delete button clicks
-                if (e.target.classList.contains('delete-memory-btn') || e.target.closest('.delete-memory-btn')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const btn = e.target.closest('.delete-memory-btn') || e.target;
-                    const memoryKey = btn.dataset.memoryKey;
-                    if (memoryKey) {
-                        deleteMemory(memoryKey);
-                    }
-                }
-            });
-        }
-
         // Setup Action Buttons
         const previewBtn = document.getElementById('previewChangesBtn');
         if (previewBtn) {
@@ -466,8 +342,8 @@
         if (document.getElementById('responseLength')) document.getElementById('responseLength').value = language.responseLength || 'detailed';
         if (document.getElementById('commonPhrases')) document.getElementById('commonPhrases').value = language.commonPhrases || '';
         
-        // Load memories for all categories
-        loadMemories();
+        // Load recent memories preview
+        loadRecentMemoriesPreview();
     }
 
 
@@ -498,151 +374,44 @@
             .replace(/>/g, '&gt;');
     }
 
-    async function loadMemories() {
-    try {
-            const response = await fetch(`/api/twin/${twinId}/long-term-memory?category=${currentMemoryCategory}&limit=20`, {
-            credentials: 'include'
-        });
-        const data = await response.json();
-            
-            const memoryListEl = document.getElementById('memoryList');
-            if (!memoryListEl) return;
-        
-        if (data.success && data.memories && data.memories.length > 0) {
-                const memoryHTML = data.memories.map(memory => {
-                    const safeKey = escapeForAttribute(memory.key);
-                    const safeValue = escapeHtml(memory.value);
-                    const safeValueAttr = escapeForAttribute(memory.value);
-                    const safeCategory = escapeForAttribute(memory.category || currentMemoryCategory);
-                    const date = memory.createdAt || memory.created_at ? new Date(memory.createdAt || memory.created_at).toLocaleDateString() : '';
-                    
-                    return `
-                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div class="flex-1">
-                                <p class="text-sm text-gray-900">${safeValue}</p>
-                                <span class="text-xs text-gray-500">${safeCategory} • ${date}</span>
-                            </div>
-                            <div class="flex space-x-2">
-                                <button data-memory-key="${safeKey}" data-memory-value="${safeValueAttr}" data-memory-category="${safeCategory}" class="edit-memory-btn text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded hover:bg-blue-50 cursor-pointer">
-                                    Edit
-                                </button>
-                                <button data-memory-key="${safeKey}" class="delete-memory-btn text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50 cursor-pointer">
-                                    Delete
-                                </button>
-                    </div>
-                </div>
-                    `;
-                }).join('');
-                memoryListEl.innerHTML = memoryHTML;
-        } else {
-                memoryListEl.innerHTML = `<p class="text-gray-500 text-center py-4">No ${currentMemoryCategory} memories yet. Add your first one above!</p>`;
-        }
-    } catch (error) {
-        console.error('Error loading memories:', error);
-            const memoryListEl = document.getElementById('memoryList');
-            if (memoryListEl) {
-                memoryListEl.innerHTML = '<p class="text-red-500 text-center py-4">Error loading memories</p>';
-            }
-    }
-}
-
-async function addMemory() {
-        const memoryText = document.getElementById('newMemory')?.value.trim();
-    if (!memoryText) {
-        alert('Please enter a memory');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/twin/${twinId}/long-term-memory`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': window.csrfToken
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                value: memoryText,
-                    category: currentMemoryCategory
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            document.getElementById('newMemory').value = '';
-                loadMemories();
-            alert('Memory added successfully!');
-        } else {
-            alert('Error: ' + (data.error || 'Failed to add memory'));
-        }
-    } catch (error) {
-        console.error('Error adding memory:', error);
-            alert('Error adding memory: ' + error.message);
-        }
-    }
-
-    async function editMemory(memoryKey, currentValue, category) {
-        const newValue = prompt('Edit memory:', currentValue);
-        if (newValue === null || newValue.trim() === '') {
-            return;
-        }
-        
+    // Load recent memories preview (read-only, all categories mixed)
+    async function loadRecentMemoriesPreview() {
         try {
-            const response = await fetch(`/api/twin/${twinId}/long-term-memory/${memoryKey}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': window.csrfToken
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    value: newValue.trim(),
-                    category: category
-                })
+            const response = await fetch(`/api/twin/${twinId}/long-term-memory?limit=5`, {
+                credentials: 'include'
             });
-            
             const data = await response.json();
             
-            if (data.success) {
-                loadMemories();
-                alert('Memory updated successfully!');
+            const previewEl = document.getElementById('recentMemoriesPreview');
+            if (!previewEl) return;
+            
+            if (data.success && data.memories && data.memories.length > 0) {
+                const memoriesHTML = data.memories.map(memory => {
+                    const safeValue = escapeHtml(memory.value || memory.text || '');
+                    const category = memory.category || 'fact';
+                    const date = memory.createdAt ? new Date(memory.createdAt).toLocaleDateString() : '';
+                    
+                    return `
+                        <div class="flex items-start p-2 bg-gray-50 rounded-lg text-sm">
+                            <div class="flex-1">
+                                <p class="text-gray-900">${safeValue}</p>
+                                <p class="text-xs text-gray-500 mt-1">${category} • ${date}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                previewEl.innerHTML = memoriesHTML;
             } else {
-                alert('Error: ' + (data.error || 'Failed to update memory'));
+                previewEl.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No memories yet</p>';
             }
         } catch (error) {
-            console.error('Error updating memory:', error);
-            alert('Error updating memory: ' + error.message);
-    }
-}
-
-async function deleteMemory(memoryKey) {
-    if (!confirm('Are you sure you want to delete this memory?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/twin/${twinId}/long-term-memory/${memoryKey}`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRF-Token': window.csrfToken
-            },
-            credentials: 'include'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-                loadMemories();
-            alert('Memory deleted successfully!');
-        } else {
-            alert('Error: ' + (data.error || 'Failed to delete memory'));
+            console.error('Error loading recent memories:', error);
+            const previewEl = document.getElementById('recentMemoriesPreview');
+            if (previewEl) {
+                previewEl.innerHTML = '<p class="text-red-500 text-sm text-center py-2">Error loading memories</p>';
+            }
         }
-    } catch (error) {
-        console.error('Error deleting memory:', error);
-            alert('Error deleting memory: ' + error.message);
     }
-}
 
 async function saveChanges() {
     const updates = {
@@ -769,10 +538,6 @@ async function saveChanges() {
 }
 
     // Make functions globally accessible
-    window.switchMemoryCategory = switchMemoryCategory;
-    window.addMemory = addMemory;
-    window.editMemory = editMemory;
-    window.deleteMemory = deleteMemory;
     window.saveChanges = saveChanges;
     window.resetChanges = resetChanges;
     window.previewChanges = previewChanges;
