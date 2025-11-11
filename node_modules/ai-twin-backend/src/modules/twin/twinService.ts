@@ -1,11 +1,14 @@
-import OpenAI from 'openai';
+// COMMENTED OUT: OpenAI - Now using Groq via llmClient
+// import OpenAI from 'openai';
 import { config } from '../../config/env';
 import { logger } from '../../config/logger';
 import { checkBlacklist, sanitizeText, validateSamplesLength } from '../../utils/safety';
+import { llmClient } from '../../services/llmClient';
 
-const openai = new OpenAI({
-  apiKey: config.openaiApiKey,
-});
+// COMMENTED OUT: OpenAI client initialization - Now using llmClient
+// const openai = new OpenAI({
+//   apiKey: config.openaiApiKey,
+// });
 
 export interface StyleVector {
   tone: 'casual' | 'witty' | 'serious' | 'friendly' | 'professional';
@@ -59,17 +62,27 @@ Enhanced characteristics:
 
 Return only valid JSON, no other text.`;
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: sanitizedSamples }
-        ],
+      // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
+      // const response = await openai.chat.completions.create({
+      //   model: 'gpt-4o-mini',
+      //   messages: [
+      //     { role: 'system', content: systemPrompt },
+      //     { role: 'user', content: sanitizedSamples }
+      //   ],
+      //   temperature: 0.3,
+      //   max_tokens: 500,
+      // });
+
+      // NEW: Using Groq via llmClient
+      const llmResponse = await llmClient.generateResponse([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: sanitizedSamples }
+      ], {
         temperature: 0.3,
-        max_tokens: 500,
+        maxTokens: 500
       });
 
-      const content = response.choices[0]?.message?.content;
+      const content = llmResponse.content;
       if (!content) {
         throw new Error('No response from OpenAI');
       }
@@ -98,17 +111,27 @@ Return only valid JSON, no other text.`;
 Reply in 1 line, casual, code-mixed Hinglish (~${styleVector.hinglish_ratio} ratio), light emojis if appropriate, safe topics only.
 If the content would be unsafe or inappropriate, respond with: '[not allowed]'`;
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Say hello in the user\'s style' }
-        ],
+      // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
+      // const response = await openai.chat.completions.create({
+      //   model: 'gpt-4o-mini',
+      //   messages: [
+      //     { role: 'system', content: systemPrompt },
+      //     { role: 'user', content: 'Say hello in the user\'s style' }
+      //   ],
+      //   temperature: 0.7,
+      //   max_tokens: 100,
+      // });
+
+      // NEW: Using Groq via llmClient
+      const llmResponse = await llmClient.generateResponse([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: 'Say hello in the user\'s style' }
+      ], {
         temperature: 0.7,
-        max_tokens: 100,
+        maxTokens: 100
       });
 
-      const content = response.choices[0]?.message?.content;
+      const content = llmResponse.content;
       if (!content) {
         throw new Error('No response from OpenAI');
       }
@@ -134,17 +157,27 @@ No politics, health, finance, or sensitive topics. If unsafe, say: '[not allowed
 
       const userPrompt = conversationHistory.slice(-4).join('\n'); // Last 4 messages
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
+      // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
+      // const response = await openai.chat.completions.create({
+      //   model: 'gpt-4o-mini',
+      //   messages: [
+      //     { role: 'system', content: systemPrompt },
+      //     { role: 'user', content: userPrompt }
+      //   ],
+      //   temperature: 0.8,
+      //   max_tokens: 150,
+      // });
+
+      // NEW: Using Groq via llmClient
+      const llmResponse = await llmClient.generateResponse([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ], {
         temperature: 0.8,
-        max_tokens: 150,
+        maxTokens: 150
       });
 
-      const content = response.choices[0]?.message?.content;
+      const content = llmResponse.content;
       if (!content) {
         throw new Error('No response from OpenAI');
       }
@@ -186,18 +219,28 @@ Focus on:
 
 Return only valid JSON, no other text.`;
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Update the style vector based on new conversations: ${combinedNewText}` }
-        ],
-        
+      // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
+      // const response = await openai.chat.completions.create({
+      //   model: 'gpt-4o-mini',
+      //   messages: [
+      //     { role: 'system', content: systemPrompt },
+      //     { role: 'user', content: `Update the style vector based on new conversations: ${combinedNewText}` }
+      //   ],
+      //   
+      //   temperature: 0.3,
+      //   max_tokens: 800,
+      // });
+
+      // NEW: Using Groq via llmClient
+      const llmResponse = await llmClient.generateResponse([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Update the style vector based on new conversations: ${combinedNewText}` }
+      ], {
         temperature: 0.3,
-        max_tokens: 800,
+        maxTokens: 800
       });
 
-      const content = response.choices[0]?.message?.content;
+      const content = llmResponse.content;
       if (!content) {
         throw new Error('No response from OpenAI');
       }
@@ -334,103 +377,126 @@ Return only valid JSON, no other text.`;
       let userPrompt = currentMessages.join('\n');
       let systemPromptFinal = enhancedSystemPrompt;
       
-      logger.info('[TWIN SERVICE] StyleVector path - isFirstMessage check:', {
-        isFirstMessage,
-        userPromptLength: userPrompt.length,
-        systemPromptLength: enhancedSystemPrompt.length
-      });
-      
       if (isFirstMessage) {
-        logger.info('[TWIN SERVICE] ✅ First message detected - adding JSON format requirement');
+        // ✅ More explicit prompt for Groq to ensure JSON response
         systemPromptFinal = `${enhancedSystemPrompt}
 
-CRITICAL: You MUST respond ONLY in valid JSON format with exactly these two fields:
+IMPORTANT: You MUST respond in valid JSON format ONLY. No other text allowed.
+
+Required JSON structure:
 {
   "response": "your conversational reply here",
-  "title": "short chat title max 30 characters"
+  "title": "short descriptive title max 30 characters"
 }
 
-Do NOT include any text before or after the JSON. Return ONLY the JSON object.`;
-        userPrompt = `${userPrompt}\n\nGenerate a response and also create a short title (max 30 characters) for this chat.`;
-        logger.info('[TWIN SERVICE] Modified prompts for title generation:', {
-          systemPromptLength: systemPromptFinal.length,
-          userPromptLength: userPrompt.length,
-          userPromptPreview: userPrompt.substring(0, 200)
-        });
-      } else {
-        logger.warn('[TWIN SERVICE] ⚠️ NOT first message - title generation skipped');
+Rules:
+- Return ONLY the JSON object, nothing else
+- No markdown, no code blocks, no explanations
+- Title should be descriptive and relevant to the conversation
+- Response should be your natural conversational reply`;
+        
+        userPrompt = `${userPrompt}
+
+Please respond in JSON format with "response" and "title" fields. Title should be max 30 characters.`;
       }
       
-      const response = await Promise.race([
-        openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: systemPromptFinal },
-            { role: 'user', content: userPrompt }
-          ],
-          max_tokens: tokenLimit || 500,
+      // COMMENTED OUT: OpenAI call with timeout - Now using Groq via llmClient
+      // const response = await Promise.race([
+      //   openai.chat.completions.create({
+      //     model: 'gpt-4o-mini',
+      //     messages: [
+      //       { role: 'system', content: systemPromptFinal },
+      //       { role: 'user', content: userPrompt }
+      //     ],
+      //     max_tokens: tokenLimit || 500,
+      //     temperature: 0.7,
+      //     ...(isFirstMessage ? { response_format: { type: 'json_object' } } : {})
+      //   }),
+      //   new Promise((_, reject) => 
+      //     setTimeout(() => reject(new Error('OpenAI API timeout')), 30000)
+      //   )
+      // ]) as any;
+
+      // NEW: Using Groq via llmClient with timeout
+      const llmResponse = await Promise.race([
+        llmClient.generateResponse([
+          { role: 'system', content: systemPromptFinal },
+          { role: 'user', content: userPrompt }
+        ], {
+          maxTokens: tokenLimit || 500,
           temperature: 0.7,
-          ...(isFirstMessage ? { response_format: { type: 'json_object' } } : {})
+          ...(isFirstMessage ? { responseFormat: { type: 'json_object' } } : {})
         }),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('OpenAI API timeout')), 30000)
+          setTimeout(() => reject(new Error('LLM API timeout')), 30000)
         )
       ]) as any;
 
-      const result = response.choices[0]?.message?.content;
+      const result = llmResponse.content;
       
       if (!result || result.trim().length === 0) {
         logger.error('Empty response from OpenAI');
         return 'Sorry, I couldn\'t generate a response.';
       }
       
-      // Parse JSON if first message
+      // Parse JSON if first message (similar to public chat flow)
       if (isFirstMessage) {
-        logger.info('[TWIN SERVICE] Attempting to parse JSON for first message:', {
-          resultLength: result.length,
-          resultPreview: result.substring(0, 200)
-        });
         try {
           let cleanedResult = result.trim();
-          if (cleanedResult.startsWith('```json')) {
-            cleanedResult = cleanedResult.replace(/```json\n?/g, '').replace(/```\n?$/g, '').trim();
-            logger.info('[TWIN SERVICE] Removed ```json markers');
-          } else if (cleanedResult.startsWith('```')) {
-            cleanedResult = cleanedResult.replace(/```\n?/g, '').trim();
-            logger.info('[TWIN SERVICE] Removed ``` markers');
+          
+          // ✅ Remove markdown code blocks if present (multiple patterns)
+          if (cleanedResult.includes('```json')) {
+            cleanedResult = cleanedResult.replace(/```json\s*/g, '').replace(/\s*```/g, '').trim();
+          } else if (cleanedResult.includes('```')) {
+            cleanedResult = cleanedResult.replace(/```\s*/g, '').replace(/\s*```/g, '').trim();
           }
           
-          logger.info('[TWIN SERVICE] Parsing cleaned JSON:', cleanedResult.substring(0, 200));
-          const parsed = JSON.parse(cleanedResult);
-          logger.info('[TWIN SERVICE] JSON parsed successfully:', {
-            hasResponse: !!parsed.response,
-            hasTitle: !!parsed.title,
-            titleValue: parsed.title
-          });
+          // ✅ Try to extract JSON if there's extra text (greedy match for nested objects)
+          const jsonMatch = cleanedResult.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            cleanedResult = jsonMatch[0];
+          }
           
+          // ✅ If still no JSON found, check if it's just plain text (Groq might ignore format)
+          if (!cleanedResult.startsWith('{')) {
+            // Try to extract meaningful title from the response itself
+            const firstLine = cleanedResult.split('\n')[0]?.trim() || '';
+            const titleFromResponse = firstLine.length > 30 ? firstLine.substring(0, 30) : firstLine;
+            const fallbackTitle = titleFromResponse || context.currentMessages?.[0]?.trim().substring(0, 30) || 'New Chat';
+            return { response: cleanedResult.trim(), title: fallbackTitle };
+          }
+          
+          const parsed = JSON.parse(cleanedResult);
+          
+          // Return object with response and title (like public chat)
           if (parsed.response && parsed.title) {
             const title = parsed.title.trim().substring(0, 30);
-            logger.info('[TWIN SERVICE] ✅ Returning response with title:', title);
             return { response: parsed.response.trim(), title: title };
           } else if (parsed.response) {
-            logger.warn('[TWIN SERVICE] ⚠️ JSON has response but no title:', parsed);
-            return parsed.response.trim();
+            // Has response but no title - try to generate from response
+            const titleFromResponse = parsed.response.trim().substring(0, 30) || context.currentMessages?.[0]?.trim().substring(0, 30) || 'New Chat';
+            return { response: parsed.response.trim(), title: titleFromResponse };
           } else {
-            logger.error('[TWIN SERVICE] ❌ JSON missing response field:', parsed);
-            return result.trim();
+            logger.error('[TWIN SERVICE] JSON missing response field:', parsed);
+            // Fallback: use result as response, generate title from user message
+            const fallbackTitle = context.currentMessages?.[0]?.trim().substring(0, 30) || 'New Chat';
+            return { response: result.trim(), title: fallbackTitle };
           }
         } catch (e) {
-          logger.error('[TWIN SERVICE] ❌ JSON parse error for first message:', {
-            error: e instanceof Error ? e.message : String(e),
-            resultPreview: result.substring(0, 200)
-          });
+          logger.error('[TWIN SERVICE] JSON parse error for first message:', e instanceof Error ? e.message : String(e));
+          
+          // ✅ Better fallback: try to extract title from response text itself
           if (result && result.trim().length > 0) {
-            logger.warn('[TWIN SERVICE] Returning raw result due to parse error');
-            return result.trim();
+            const firstLine = result.split('\n')[0]?.trim() || '';
+            const titleFromResponse = firstLine.length > 30 ? firstLine.substring(0, 30) : firstLine;
+            const fallbackTitle = titleFromResponse || context.currentMessages?.[0]?.trim().substring(0, 30) || 'New Chat';
+            return { response: result.trim(), title: fallbackTitle };
           }
+          
+          // Last resort fallback
+          const fallbackTitle = context.currentMessages?.[0]?.trim().substring(0, 30) || 'New Chat';
+          return { response: 'Sorry, I couldn\'t generate a proper response.', title: fallbackTitle };
         }
-      } else {
-        logger.info('[TWIN SERVICE] Not first message - returning string result');
       }
       
       // Log AI run for quality tracking
@@ -444,8 +510,8 @@ Do NOT include any text before or after the JSON. Return ONLY the JSON object.`;
               runId,
               context.twinId,
               'human', // Mode: human interaction
-              response.usage?.prompt_tokens || 0,
-              response.usage?.completion_tokens || 0,
+              llmResponse.tokensUsed ? Math.floor(llmResponse.tokensUsed * 0.7) : 0, // Approximate prompt tokens
+              llmResponse.tokensUsed ? Math.floor(llmResponse.tokensUsed * 0.3) : 0, // Approximate completion tokens
               Date.now() - startTime
             ]
           );
@@ -512,69 +578,129 @@ Do NOT include any text before or after the JSON. Return ONLY the JSON object.`;
       let finalUserMessage = userMessage;
       let systemPromptFinal = fullPrompt;
 
-      if (isFirstMessage && chatHistory.length === 0) {
-        // Very explicit instructions for JSON format
+      // ✅ Check isFirstMessage flag (not chatHistory.length) because user message is already saved
+      if (isFirstMessage) {
+        // ✅ More explicit instructions for Groq JSON format
         systemPromptFinal = `${fullPrompt}
 
-CRITICAL: You MUST respond ONLY in valid JSON format with exactly these two fields:
+IMPORTANT: You MUST respond in valid JSON format ONLY. No other text allowed.
+
+Required JSON structure:
 {
   "response": "your conversational reply here",
-  "title": "short chat title max 30 characters"
+  "title": "short descriptive title max 30 characters"
 }
 
-Do NOT include any text before or after the JSON. Return ONLY the JSON object.`;
-        finalUserMessage = `${userMessage}\n\nGenerate a response and also create a short title (max 30 characters) for this chat.`;
+Rules:
+- Return ONLY the JSON object, nothing else
+- No markdown, no code blocks, no explanations
+- Title should be descriptive and relevant to the conversation
+- Response should be your natural conversational reply`;
+        
+        finalUserMessage = `${userMessage}
+
+Please respond in JSON format with "response" and "title" fields. Title should be max 30 characters and descriptive.`;
       }
 
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: systemPromptFinal
-          },
-          {
-            role: 'user',
-            content: finalUserMessage
-          }
-        ],
-        max_tokens: tokenLimit,
+      // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
+      // const completion = await openai.chat.completions.create({
+      //   model: 'gpt-4o-mini',
+      //   messages: [
+      //     {
+      //       role: 'system',
+      //       content: systemPromptFinal
+      //     },
+      //     {
+      //       role: 'user',
+      //       content: finalUserMessage
+      //     }
+      //   ],
+      //   max_tokens: tokenLimit,
+      //   temperature: 0.7,
+      //   ...(isFirstMessage && chatHistory.length === 0 ? { response_format: { type: 'json_object' } } : {}) // Use JSON format only when first message
+      // });
+
+      // NEW: Using Groq via llmClient
+      const llmResponse = await llmClient.generateResponse([
+        {
+          role: 'system',
+          content: systemPromptFinal
+        },
+        {
+          role: 'user',
+          content: finalUserMessage
+        }
+      ], {
+        maxTokens: tokenLimit,
         temperature: 0.7,
-        ...(isFirstMessage && chatHistory.length === 0 ? { response_format: { type: 'json_object' } } : {}) // Use JSON format only when first message
+        ...(isFirstMessage ? { responseFormat: { type: 'json_object' } } : {}) // ✅ Use isFirstMessage only, not chatHistory.length
       });
 
-      const response = completion.choices[0]?.message?.content?.trim() || '';
+      const response = llmResponse.content.trim() || '';
       
       if (!response) {
         throw new Error('No response generated');
       }
       
-      // Parse JSON if first message
-      if (isFirstMessage && chatHistory.length === 0) {
+      // Parse JSON if first message (similar to public chat flow)
+      // ✅ Check isFirstMessage only (not chatHistory.length) because user message is already saved
+      if (isFirstMessage) {
         try {
           // Clean the response - remove any markdown code blocks or extra text
           let cleanedResponse = response.trim();
-          if (cleanedResponse.startsWith('```json')) {
-            cleanedResponse = cleanedResponse.replace(/```json\n?/g, '').replace(/```\n?$/g, '').trim();
-          } else if (cleanedResponse.startsWith('```')) {
-            cleanedResponse = cleanedResponse.replace(/```\n?/g, '').trim();
+          
+          // ✅ Remove markdown code blocks if present (multiple patterns)
+          if (cleanedResponse.includes('```json')) {
+            cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/\s*```/g, '').trim();
+          } else if (cleanedResponse.includes('```')) {
+            cleanedResponse = cleanedResponse.replace(/```\s*/g, '').replace(/\s*```/g, '').trim();
+          }
+          
+          // ✅ Try to extract JSON if there's extra text (greedy match for nested objects)
+          const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            cleanedResponse = jsonMatch[0];
+          }
+          
+          // ✅ If still no JSON found, check if it's just plain text (Groq might ignore format)
+          if (!cleanedResponse.startsWith('{')) {
+            // Try to extract meaningful title from the response itself
+            const firstLine = cleanedResponse.split('\n')[0]?.trim() || '';
+            const titleFromResponse = firstLine.length > 30 ? firstLine.substring(0, 30) : firstLine;
+            const fallbackTitle = titleFromResponse || userMessage.trim().substring(0, 30) || 'New Chat';
+            return { response: cleanedResponse.trim(), title: fallbackTitle };
           }
           
           const parsed = JSON.parse(cleanedResponse);
           
+          // Return object with response and title (like public chat)
           if (parsed.response && parsed.title) {
             const title = parsed.title.trim().substring(0, 30);
             return { response: parsed.response.trim(), title: title };
           } else if (parsed.response) {
-            return parsed.response.trim();
+            // Has response but no title - try to generate from response
+            const titleFromResponse = parsed.response.trim().substring(0, 30) || userMessage.trim().substring(0, 30) || 'New Chat';
+            return { response: parsed.response.trim(), title: titleFromResponse };
           } else {
-            return response.trim();
+            logger.error('[TWIN SERVICE] JSON missing response field:', parsed);
+            // Fallback: use response as is, generate title from response text
+            const titleFromResponse = response.trim().substring(0, 30) || userMessage.trim().substring(0, 30) || 'New Chat';
+            return { response: response.trim(), title: titleFromResponse };
           }
         } catch (e) {
-          logger.error('JSON parse error for first message:', e instanceof Error ? e.message : String(e));
+          logger.error('[TWIN SERVICE] JSON parse error for first message:', e instanceof Error ? e.message : String(e));
+          
+          // ✅ Better fallback: try to extract title from response text itself
           if (response && response.trim().length > 0) {
-            return response.trim();
+            const firstLine = response.split('\n')[0]?.trim() || '';
+            const titleFromResponse = firstLine.length > 30 ? firstLine.substring(0, 30) : firstLine;
+            const fallbackTitle = titleFromResponse || userMessage.trim().substring(0, 30) || 'New Chat';
+            return { response: response.trim(), title: fallbackTitle };
           }
+          
+          // Last resort fallback
+          const fallbackTitle = userMessage.trim().substring(0, 30) || 'New Chat';
+          return { response: 'Sorry, I couldn\'t generate a proper response.', title: fallbackTitle };
         }
       }
 
@@ -718,17 +844,27 @@ ${conversationText}
 
 Return only valid JSON, no other text.`;
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Create chatVector for this conversation' }
-        ],
+      // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
+      // const response = await openai.chat.completions.create({
+      //   model: 'gpt-4o-mini',
+      //   messages: [
+      //     { role: 'system', content: systemPrompt },
+      //     { role: 'user', content: 'Create chatVector for this conversation' }
+      //   ],
+      //   temperature: 0.3,
+      //   max_tokens: 800,
+      // });
+
+      // NEW: Using Groq via llmClient
+      const llmResponse = await llmClient.generateResponse([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: 'Create chatVector for this conversation' }
+      ], {
         temperature: 0.3,
-        max_tokens: 800,
+        maxTokens: 800
       });
 
-      const content = response.choices[0]?.message?.content;
+      const content = llmResponse.content;
       if (!content) {
         throw new Error('No response from OpenAI');
       }
@@ -774,17 +910,27 @@ Update the chatVector by:
 
 Return only valid JSON with the same structure, no other text.`;
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Update chatVector with new conversation' }
-        ],
+      // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
+      // const response = await openai.chat.completions.create({
+      //   model: 'gpt-4o-mini',
+      //   messages: [
+      //     { role: 'system', content: systemPrompt },
+      //     { role: 'user', content: 'Update chatVector with new conversation' }
+      //   ],
+      //   temperature: 0.3,
+      //   max_tokens: 1000,
+      // });
+
+      // NEW: Using Groq via llmClient
+      const llmResponse = await llmClient.generateResponse([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: 'Update chatVector with new conversation' }
+      ], {
         temperature: 0.3,
-        max_tokens: 1000,
+        maxTokens: 1000
       });
 
-      const content = response.choices[0]?.message?.content;
+      const content = llmResponse.content;
       if (!content) {
         throw new Error('No response from OpenAI');
       }

@@ -726,7 +726,8 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       chatUtils.getChatTitle(chat.id, 'Chat')
     ]);
     
-    const shouldGenerateTitle = isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '' || currentTitle === null);
+    // ✅ Always generate title for first message (even if title is "New Chat")
+    const shouldGenerateTitle = isFirstMessage === true;
 
     // ✅ Get recent messages and session memory in parallel
     const [sessionMemory, recentMessages] = await Promise.all([
@@ -917,22 +918,35 @@ export const updateChatMetadata = async (chatId: string, message: string, sender
       // If title is default and this is the first user message, generate title
       if ((!chat.title || chat.title === 'New Chat') && sender === 'human' && chat.messageCount === 1) {
         try {
-          const { OpenAI } = await import('openai');
-          const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY
-          });
+          // COMMENTED OUT: OpenAI inline import - Now using Groq via llmClient
+          // const { OpenAI } = await import('openai');
+          // const openai = new OpenAI({
+          //   apiKey: process.env.OPENAI_API_KEY
+          // });
 
-          const completion = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages: [{
+          // const completion = await openai.chat.completions.create({
+          //   model: 'gpt-3.5-turbo',
+          //   messages: [{
+          //     role: 'system',
+          //     content: `Generate a short, descriptive title (max 30 characters) for a chat that starts with: "${message}"`
+          //   }],
+          //   max_tokens: 20,
+          //   temperature: 0.3
+          // });
+
+          // NEW: Using Groq via llmClient
+          const { llmClient } = await import('../../services/llmClient');
+          const llmResponse = await llmClient.generateResponse([
+            {
               role: 'system',
               content: `Generate a short, descriptive title (max 30 characters) for a chat that starts with: "${message}"`
-            }],
-            max_tokens: 20,
+            }
+          ], {
+            maxTokens: 20,
             temperature: 0.3
           });
 
-          const title = completion.choices[0]?.message?.content?.trim() || 'New Chat';
+          const title = llmResponse.content.trim() || 'New Chat';
           const finalTitle = title.length > 30 ? title.substring(0, 30) + '...' : title;
 
           await db.query(`
@@ -1328,23 +1342,35 @@ export const getChatSummary = async (req: AuthenticatedRequest, res: Response, n
  */
 async function generateTitleFromMessage(message: string): Promise<string> {
   try {
-    // Use OpenAI to generate title
-    const { OpenAI } = await import('openai');
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
+    // COMMENTED OUT: OpenAI inline import - Now using Groq via llmClient
+    // const { OpenAI } = await import('openai');
+    // const openai = new OpenAI({
+    //   apiKey: process.env.OPENAI_API_KEY
+    // });
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [{
+    // const completion = await openai.chat.completions.create({
+    //   model: 'gpt-3.5-turbo',
+    //   messages: [{
+    //     role: 'system',
+    //     content: `Generate a short, descriptive title (max 30 characters) for a chat that starts with: "${message}"`
+    //   }],
+    //   max_tokens: 20,
+    //   temperature: 0.3
+    // });
+
+    // NEW: Using Groq via llmClient
+    const { llmClient } = await import('../../services/llmClient');
+    const llmResponse = await llmClient.generateResponse([
+      {
         role: 'system',
         content: `Generate a short, descriptive title (max 30 characters) for a chat that starts with: "${message}"`
-      }],
-      max_tokens: 20,
+      }
+    ], {
+      maxTokens: 20,
       temperature: 0.3
     });
 
-    const title = completion.choices[0]?.message?.content?.trim() || 'New Chat';
+    const title = llmResponse.content.trim() || 'New Chat';
     return title.length > 30 ? title.substring(0, 30) + '...' : title;
 
   } catch (error) {

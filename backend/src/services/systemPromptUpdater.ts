@@ -2,11 +2,15 @@ import { db } from '../config/database';
 import { logger } from '../config/logger';
 import { TwinService } from '../modules/twin/twinService';
 import { config } from '../config/env';
-import OpenAI from 'openai';
+// COMMENTED OUT: OpenAI - Now using Groq via llmClient
+// import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: config.openaiApiKey,
-});
+// const openai = new OpenAI({
+//   apiKey: config.openaiApiKey,
+// });
+
+// NEW: Import llmClient
+import { llmClient } from './llmClient';
 
 export class SystemPromptUpdater {
   private twinService: TwinService;
@@ -155,17 +159,27 @@ Create a comprehensive system prompt that:
 
 Return only the system prompt, no additional text.`;
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: promptGenerationPrompt },
-          { role: 'user', content: 'Generate the enhanced system prompt' }
-        ],
+      // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
+      // const response = await openai.chat.completions.create({
+      //   model: 'gpt-4o-mini',
+      //   messages: [
+      //     { role: 'system', content: promptGenerationPrompt },
+      //     { role: 'user', content: 'Generate the enhanced system prompt' }
+      //   ],
+      //   temperature: 0.3,
+      //   max_tokens: 1000
+      // });
+
+      // NEW: Using Groq via llmClient
+      const llmResponse = await llmClient.generateResponse([
+        { role: 'system', content: promptGenerationPrompt },
+        { role: 'user', content: 'Generate the enhanced system prompt' }
+      ], {
         temperature: 0.3,
-        max_tokens: 1000
+        maxTokens: 1000
       });
 
-      return response.choices[0]?.message?.content || this.generateFallbackPrompt(styleVector, personaData);
+      return llmResponse.content || this.generateFallbackPrompt(styleVector, personaData);
 
     } catch (error) {
       logger.error('Error generating enhanced system prompt:', error);

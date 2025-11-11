@@ -3,12 +3,16 @@
  * Evaluates and improves AI responses to match user's style
  */
 
-import OpenAI from 'openai';
+// COMMENTED OUT: OpenAI - Now using Groq via llmClient
+// import OpenAI from 'openai';
 import { config } from '../config/env';
 
-const openai = new OpenAI({
-  apiKey: config.openaiApiKey,
-});
+// const openai = new OpenAI({
+//   apiKey: config.openaiApiKey,
+// });
+
+// NEW: Import llmClient
+import { llmClient } from '../services/llmClient';
 
 export interface StyleCriticResult {
   score: number; // 0-100
@@ -69,17 +73,27 @@ Return JSON only:
   "suggestions": ["improvement suggestions"]
 }`;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: prompt },
-        { role: 'user', content: 'Critique this draft for style match' }
-      ],
+    // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
+    // const response = await openai.chat.completions.create({
+    //   model: 'gpt-4o-mini',
+    //   messages: [
+    //     { role: 'system', content: prompt },
+    //     { role: 'user', content: 'Critique this draft for style match' }
+    //   ],
+    //   temperature: 0.3,
+    //   max_tokens: 800,
+    // });
+
+    // NEW: Using Groq via llmClient
+    const llmResponse = await llmClient.generateResponse([
+      { role: 'system', content: prompt },
+      { role: 'user', content: 'Critique this draft for style match' }
+    ], {
       temperature: 0.3,
-      max_tokens: 800,
+      maxTokens: 800
     });
 
-    const content = response.choices[0]?.message?.content;
+    const content = llmResponse.content;
     if (!content) {
       throw new Error('No response from style critic');
     }
@@ -174,17 +188,27 @@ RULES:
 
 REWRITTEN RESPONSE:`;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: prompt },
-        { role: 'user', content: 'Rewrite this response' }
-      ],
+    // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
+    // const response = await openai.chat.completions.create({
+    //   model: 'gpt-4o-mini',
+    //   messages: [
+    //     { role: 'system', content: prompt },
+    //     { role: 'user', content: 'Rewrite this response' }
+    //   ],
+    //   temperature: 0.7,
+    //   max_tokens: 300,
+    // });
+
+    // NEW: Using Groq via llmClient
+    const llmResponse = await llmClient.generateResponse([
+      { role: 'system', content: prompt },
+      { role: 'user', content: 'Rewrite this response' }
+    ], {
       temperature: 0.7,
-      max_tokens: 300,
+      maxTokens: 300
     });
 
-    const content = response.choices[0]?.message?.content;
+    const content = llmResponse.content;
     return content?.trim() || text;
   } catch (error) {
     console.error('Banlist rewrite error:', error);

@@ -1,11 +1,15 @@
 import { db } from '../config/database';
 import { logger } from '../config/logger';
 import { config } from '../config/env';
-import OpenAI from 'openai';
+// COMMENTED OUT: OpenAI - Now using Groq via llmClient
+// import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: config.openaiApiKey,
-});
+// const openai = new OpenAI({
+//   apiKey: config.openaiApiKey,
+// });
+
+// NEW: Import llmClient
+import { llmClient } from './llmClient';
 /**
  * Memory Service - Handles session and long-term memory management
  */
@@ -491,17 +495,27 @@ ${conversationText}
 
 Provide a concise summary:`;
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You are a conversation summarizer. Create concise summaries.' },
-          { role: 'user', content: prompt }
-        ],
+      // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
+      // const response = await openai.chat.completions.create({
+      //   model: 'gpt-4o-mini',
+      //   messages: [
+      //     { role: 'system', content: 'You are a conversation summarizer. Create concise summaries.' },
+      //     { role: 'user', content: prompt }
+      //   ],
+      //   temperature: 0.3,
+      //   max_tokens: 200,
+      // });
+
+      // NEW: Using Groq via llmClient
+      const llmResponse = await llmClient.generateResponse([
+        { role: 'system', content: 'You are a conversation summarizer. Create concise summaries.' },
+        { role: 'user', content: prompt }
+      ], {
         temperature: 0.3,
-        max_tokens: 200,
+        maxTokens: 200
       });
 
-      return response.choices[0]?.message?.content?.trim() || 'Conversation summary unavailable.';
+      return llmResponse.content.trim() || 'Conversation summary unavailable.';
     } catch (error) {
       logger.error('Error generating session summary:', error);
       return 'Summary generation failed.';
@@ -527,17 +541,27 @@ ${conversationText}
 
 Return only JSON array, example: ["topic1", "topic2", "topic3"]`;
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You extract topics from conversations. Return only JSON arrays.' },
-          { role: 'user', content: prompt }
-        ],
+      // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
+      // const response = await openai.chat.completions.create({
+      //   model: 'gpt-4o-mini',
+      //   messages: [
+      //     { role: 'system', content: 'You extract topics from conversations. Return only JSON arrays.' },
+      //     { role: 'user', content: prompt }
+      //   ],
+      //   temperature: 0.3,
+      //   max_tokens: 100,
+      // });
+
+      // NEW: Using Groq via llmClient
+      const llmResponse = await llmClient.generateResponse([
+        { role: 'system', content: 'You extract topics from conversations. Return only JSON arrays.' },
+        { role: 'user', content: prompt }
+      ], {
         temperature: 0.3,
-        max_tokens: 100,
+        maxTokens: 100
       });
 
-      const content = response.choices[0]?.message?.content?.trim();
+      const content = llmResponse.content.trim();
       if (content) {
         return JSON.parse(content);
       }
@@ -565,17 +589,27 @@ Return only valid JSON array, example:
 
 If no important facts, return empty array [].`;
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You extract facts from summaries. Return only valid JSON arrays.' },
-          { role: 'user', content: prompt }
-        ],
+      // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
+      // const response = await openai.chat.completions.create({
+      //   model: 'gpt-4o-mini',
+      //   messages: [
+      //     { role: 'system', content: 'You extract facts from summaries. Return only valid JSON arrays.' },
+      //     { role: 'user', content: prompt }
+      //   ],
+      //   temperature: 0.3,
+      //   max_tokens: 300,
+      // });
+
+      // NEW: Using Groq via llmClient
+      const llmResponse = await llmClient.generateResponse([
+        { role: 'system', content: 'You extract facts from summaries. Return only valid JSON arrays.' },
+        { role: 'user', content: prompt }
+      ], {
         temperature: 0.3,
-        max_tokens: 300,
+        maxTokens: 300
       });
 
-      const content = response.choices[0]?.message?.content?.trim();
+      const content = llmResponse.content.trim();
       if (content) {
         return JSON.parse(content);
       }

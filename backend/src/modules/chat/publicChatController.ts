@@ -213,7 +213,8 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
       chatUtils.getChatTitle(chatId, 'PublicChat')
     ]);
     
-    const shouldGenerateTitle = isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '' || currentTitle === null);
+    // ✅ Always generate title for first message (even if title is "New Chat")
+    const shouldGenerateTitle = isFirstMessage === true;
 
     // ✅ Get recent messages
     const recentMessages = await chatUtils.getRecentMessages(chatId, 'PublicMessage', 10);
