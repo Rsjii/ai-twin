@@ -905,6 +905,47 @@
             </div>
         </div>
 
+        <!-- ✅ NEW: Twin Analytics Cards Section -->
+        <% if (hasTwins && twinId) { %>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Twin Memory Card -->
+            <div class="bg-white rounded-lg shadow-md p-6 border border-gray-100 hover:shadow-xl transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium mb-1">Twin Memory</p>
+                        <p class="text-3xl font-bold text-blue-600" id="memoryCount">0</p>
+                        <p class="text-sm text-gray-500">facts learned</p>
+                    </div>
+                    <div class="text-4xl">🧠</div>
+                </div>
+            </div>
+
+            <!-- Twin IQ Growth Card -->
+            <div class="bg-white rounded-lg shadow-md p-6 border border-gray-100 hover:shadow-xl transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium mb-1">Twin IQ Growth</p>
+                        <p class="text-3xl font-bold text-green-600" id="iqGrowth">+0%</p>
+                        <p class="text-sm text-gray-500">this week</p>
+                    </div>
+                    <div class="text-4xl">📈</div>
+                </div>
+            </div>
+
+            <!-- Conversations Card -->
+            <div class="bg-white rounded-lg shadow-md p-6 border border-gray-100 hover:shadow-xl transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium mb-1">Conversations</p>
+                        <p class="text-3xl font-bold text-purple-600" id="conversationCount">0</p>
+                        <p class="text-sm text-gray-500">total chats</p>
+                    </div>
+                    <div class="text-4xl">💬</div>
+                </div>
+            </div>
+        </div>
+        <% } %>
+
         <% if (hasTwins && twin) { %>
             <!-- Active Twin Card -->
             <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl shadow-lg p-6 mb-8 border border-blue-100">
@@ -2102,6 +2143,67 @@ setTimeout(() => {
                 console.error('Logout button not found on page load');
             }
         });
+
+        // ✅ NEW: Load analytics data for Twin Analytics Cards
+        async function loadAnalytics() {
+            try {
+                <% if (hasTwins && twinId) { %>
+                const twinId = '<%= twinId %>';
+                
+                // Get memory count
+                try {
+                    const memoryRes = await fetch(`/api/memory/${twinId}/memory/stats`);
+                    if (memoryRes.ok) {
+                        const memoryData = await memoryRes.json();
+                        const memoryCountEl = document.getElementById('memoryCount');
+                        if (memoryCountEl) {
+                            memoryCountEl.textContent = memoryData.totalMemories || 0;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to load memory stats:', error);
+                }
+
+                // Get IQ growth (calculate from feedback)
+                try {
+                    const feedbackRes = await fetch('/api/analytics/feedback');
+                    if (feedbackRes.ok) {
+                        const feedbackData = await feedbackRes.json();
+                        const growth = feedbackData.positiveFeedbackRate || 0;
+                        const iqGrowthEl = document.getElementById('iqGrowth');
+                        if (iqGrowthEl) {
+                            iqGrowthEl.textContent = `+${Math.round(growth * 100)}%`;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to load feedback stats:', error);
+                }
+
+                // Get conversation count
+                try {
+                    const chatRes = await fetch('/api/chats');
+                    if (chatRes.ok) {
+                        const chatData = await chatRes.json();
+                        const conversationCountEl = document.getElementById('conversationCount');
+                        if (conversationCountEl) {
+                            conversationCountEl.textContent = chatData.length || 0;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to load chat count:', error);
+                }
+                <% } %>
+            } catch (error) {
+                console.error('Failed to load analytics:', error);
+            }
+        }
+
+        // Load analytics on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadAnalytics);
+        } else {
+            loadAnalytics();
+        }
     </script>
 </body>
 </html>

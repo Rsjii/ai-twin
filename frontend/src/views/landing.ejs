@@ -1,12 +1,66 @@
 <%- include('layout', { title: title, user: user, csrfToken: csrfToken, body: `
-    <div class="px-4 py-6 sm:px-0 mobile-p-4">
+    <!-- ✅ NEW: Hero Section -->
+    <div class="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 text-white">
+        <div class="absolute inset-0 bg-black opacity-10"></div>
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
+            <div class="text-center">
+                <!-- Logo/Branding in Hero -->
+                <div class="flex justify-center items-center space-x-3 mb-6">
+                    <div class="w-16 h-16 bg-white/20 backdrop-blur-lg rounded-2xl flex items-center justify-center shadow-2xl">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                    </div>
+                    <h1 class="text-5xl sm:text-6xl md:text-7xl font-bold">TwinOS</h1>
+                </div>
+                
+                <!-- Hero Tagline -->
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
+                    Create Your AI Twin
+                </h2>
+                <p class="text-xl sm:text-2xl text-blue-100 mb-4 max-w-3xl mx-auto">
+                    An AI that chats exactly like you
+                </p>
+                <p class="text-lg text-blue-200 mb-10 max-w-2xl mx-auto">
+                    Upload your text samples and create an AI version of yourself that communicates in your unique style, tone, and personality.
+                </p>
+                
+                <!-- CTA Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <a 
+                        href="/auth"
+                        class="inline-block bg-white text-blue-600 py-4 px-10 rounded-xl hover:bg-blue-50 transition-all font-bold text-lg shadow-2xl hover:shadow-3xl transform hover:scale-105 mobile-btn touch-target"
+                    >
+                        🚀 Get Started Free
+                    </a>
+                    <a 
+                        href="#features"
+                        class="inline-block bg-white/10 backdrop-blur-lg text-white border-2 border-white/30 py-4 px-10 rounded-xl hover:bg-white/20 transition-all font-semibold text-lg mobile-btn touch-target"
+                    >
+                        Learn More
+                    </a>
+                </div>
+                
+                <!-- Demo Video Placeholder (Optional) -->
+                <div class="mt-16 max-w-4xl mx-auto">
+                    <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20">
+                        <div class="aspect-video bg-black/20 rounded-lg flex items-center justify-center">
+                            <div class="text-center">
+                                <svg class="w-20 h-20 text-white/50 mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z"/>
+                                </svg>
+                                <p class="text-white/70 text-lg">Demo Video Coming Soon</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="px-4 py-6 sm:px-0 mobile-p-4" id="features">
         <div class="max-w-4xl mx-auto text-center">
-            <h1 class="text-5xl font-bold text-gray-900 mb-6 mobile-text-3xl mobile-text-center">
-                Create Your AI Twin
-            </h1>
-            <p class="text-xl text-gray-600 mb-8 mobile-text-lg mobile-text-center">
-                Upload your text samples and create an AI version of yourself that chats in your unique style.
-            </p>
             
             <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg p-8 mb-8 text-white mobile-card mobile-p-6">
                 <h2 class="text-3xl font-semibold mb-4 mobile-text-2xl mobile-text-center">Ready to Create Your AI Twin?</h2>
