@@ -27,11 +27,11 @@ Current MVP readiness: ~65%
 - Performance: 60% (no caching, no pre-warming)
 
 Critical gaps:
-1. Cost: Using OpenAI (₹500-1000/month) instead of Groq (₹0)
-2. Background learning: Active scheduler (unnecessary for MVP)
-3. Memory limits: Too high (10 vs 5 for MVP)
-4. Fact extraction: Too frequent (every 10 msgs vs once/day)
-5. Response caching: None (every request hits API)
+1. Cost: Using OpenAI (₹500-1000/month) instead of Groq (₹0) ✅ FIXED
+2. Background learning: Reduced frequency (6h → 12h) ✅ OPTIMIZED
+3. Memory limits: Optimized (10→7, 5→4, style patterns kept at 3) ✅ OPTIMIZED
+4. Fact extraction: Removed automatic, added user-triggered (ChatGPT-style) ✅ FIXED
+5. Response caching: None (every request hits API) ⚠️ PENDING
 
 ---
 
@@ -112,22 +112,26 @@ Action: Add `groqApiKey` here
 
 #### File: `backend/src/services/promptBuilder.ts`
 
-Current limits:
-```236:263:backend/src/services/promptBuilder.ts
-// Line 236: Retrieves 10 long-term memories (hybrid: 5 common + 5 query-specific)
-return await memoryService.getRelevantLongTermMemories(twinId, userQuery, 10);
+Current limits (✅ OPTIMIZED):
+```237:266:backend/src/services/promptBuilder.ts
+// Line 237: Retrieves 7 long-term memories (reduced from 10)
+// ✅ Reduced from 10 to 7 (still good quality, 30% token savings)
+return await memoryService.getRelevantLongTermMemories(twinId, userQuery, 7);
 
-// Line 239: Gets 5 common memories as fallback
-return await memoryService.getLongTermMemories(twinId, undefined, 5);
+// Line 240: Gets 4 common memories as fallback (reduced from 5)
+// ✅ Get common memories only (reduced from 5 to 4)
+return await memoryService.getLongTermMemories(twinId, undefined, 4);
 
-// Line 263: Retrieves 3 style patterns
+// Line 266: Retrieves 3 style patterns (kept at 3)
+// ✅ Keep 3 style patterns (necessary for user-like responses)
+// Don't reduce - style patterns are critical for quality
 return await memoryService.getRelevantStylePatterns(twinId, userQuery, 3);
 ```
 
-MVP optimization:
-- Line 236: 10 → 5 (reduce long-term memories)
-- Line 239: 5 → 3 (reduce common memories)
-- Line 263: 3 → 2 (reduce style patterns)
+**Status**: ✅ OPTIMIZED
+- Line 237: 10 → 7 (30% token savings, quality maintained)
+- Line 240: 5 → 4 (20% token savings)
+- Line 266: 3 → 3 (kept at 3 - critical for reply quality, user priority)
 
 ---
 
@@ -140,56 +144,51 @@ if(config.nodeEnv==='production'){
 }
 ```
 
-Analysis:
-- Scheduler runs every 6 hours (line 14 in `learningScheduler.ts`)
+**Status**: ✅ ACTIVE - Scheduler is running (optimized to 12 hours)
+- Scheduler runs every 12 hours (optimized from 6 hours)
 - Processes all twins automatically
 - Applies style corrections from feedback
-- Unnecessary for MVP (fake-learning illusion is enough)
-
-Action: Comment out lines 51-53
+- Maintains learning illusion while saving 50% cost
 
 ---
 
 #### File: `backend/src/services/learningScheduler.ts`
-```12:21:backend/src/services/learningScheduler.ts
+```12:22:backend/src/services/learningScheduler.ts
 start(): void {
-  // Run background learning every 6 hours
+  // ✅ Run background learning every 12 hours (was 6 hours)
   this.intervalId = setInterval(async () => {
     try {
-      logger.info('Running scheduled background learning');
+      logger.info('Running scheduled background learning (updating style vector & prompt from feedback)');
       await backgroundLearningService.processAllTwins();
     } catch (error) {
       logger.error('Scheduled background learning error:', error);
     }
-  }, 6 * 60 * 60 * 1000); // 6 hours
+  }, 12 * 60 * 60 * 1000); // ✅ 12 hours (was 6 hours)
 ```
 
-Also includes weekly system prompt updates (line 24-31) — disable for MVP
+**Status**: ✅ OPTIMIZED - Reduced from 6 hours to 12 hours (50% cost savings)
+- Still maintains learning illusion (feedback-based updates)
+- Weekly system prompt updates remain unchanged
 
 ---
 
 ### 1.4 Backend — fact extraction frequency
 
 #### File: `backend/src/modules/chat/chatSharedUtils.ts`
-```478:487:backend/src/modules/chat/chatSharedUtils.ts
-// Extract long-term facts if summary is significant (10+ messages or every 10 messages)
-if (allMessages.length >= 10 && allMessages.length % 10 === 0) {
-  const sessionMem = await memoryService.getSessionMemory(chatId);
-  if (sessionMem?.summary) {
-    // Long-term facts extraction (async, don't block)
-    memoryService.extractLongTermFacts(twinId, sessionMem.summary)
-      .then(() => logger.info(`Long-term facts extracted for twin ${twinId}`))
-      .catch(err => logger.error('Long-term facts extraction failed:', err));
-  }
-}
+```478:483:backend/src/modules/chat/chatSharedUtils.ts
+// ✅ REMOVED: Automatic fact extraction (har 10 messages)
+// Facts will be extracted only when:
+// 1. User explicitly says "remember this" / "save it" in chat (ChatGPT-style)
+// 2. User manually trains via learning dashboard
+// 3. User extracts from learning dashboard summary (feature to be added)
+// This saves cost while maintaining quality - facts extracted on-demand
 ```
 
-Issues:
-- Too frequent (every 10 messages = ~₹0.01 per extraction)
-- Uses OpenAI API (cost)
-- Should be once per day or manual only
-
-Action: Change to once/day with timestamp check
+**Status**: ✅ FIXED - Removed automatic extraction, added user-triggered extraction
+- **Removed**: Automatic extraction every 10 messages
+- **Added**: ChatGPT-style "remember this" detection in both private and public chat
+- **User control**: Facts extracted only when user explicitly requests
+- **No migration needed**: Removed automatic extraction, no timestamp column required
 
 ---
 
@@ -250,9 +249,9 @@ Issues (from todo9.txt):
 | Priority | Task | Impact | Effort | Files | Lines |
 |----------|------|--------|--------|-------|-------|
 | **A** | **Groq Integration** | 🔴 Critical | Medium | `llmClient.ts` (NEW), `twinService.ts`, `memoryService.ts`, `systemPromptUpdater.ts`, `privateChatController.ts`, `styleCritic.ts` | 18 replacements |
-| **B** | **Disable Background Learning** | 🟡 Medium | Low | `app.ts` | 51-53 |
-| **C** | **Optimize Memory Limits** | 🟡 Medium | Low | `promptBuilder.ts` | 236, 239, 263 |
-| **D** | **Optimize Fact Extraction** | 🟡 Medium | Low | `chatSharedUtils.ts`, migration | 479, NEW migration |
+| **B** | **Optimize Background Learning** | 🟡 Medium | Low | `learningScheduler.ts` | 22 ✅ DONE |
+| **C** | **Optimize Memory Limits** | 🟡 Medium | Low | `promptBuilder.ts` | 237, 240, 266 ✅ DONE |
+| **D** | **Remove Auto Extraction + Add User-Triggered** | 🟡 Medium | Low | `chatSharedUtils.ts`, `privateChatController.ts`, `publicChatController.ts` | 478-483, 866-905, 287-317 ✅ DONE |
 
 ### P1 — High priority (polish for MVP)
 
@@ -565,24 +564,24 @@ File: `backend/src/utils/styleCritic.ts` (lines 72, 177)
 
 ---
 
-#### Task B: Disable background learning scheduler
+#### Task B: Optimize background learning scheduler
 
-File: `backend/src/app.ts`
+File: `backend/src/services/learningScheduler.ts`
 
-Change (lines 51-53):
+Change (line 22):
 ```typescript
 // OLD:
-if(config.nodeEnv==='production'){
-  learningScheduler.start();
-}
+}, 6 * 60 * 60 * 1000); // 6 hours
 
 // NEW:
-// Disable background learning for MVP (fake-learning illusion is enough)
-// Feedback is still logged, but not auto-applied
-// if(config.nodeEnv==='production'){
-//   learningScheduler.start();
-// }
+}, 12 * 60 * 60 * 1000); // ✅ 12 hours (was 6 hours)
 ```
+
+**Rationale**: Instead of disabling completely, we reduced frequency from 6 hours to 12 hours. This:
+- Saves 50% cost (runs half as often)
+- Still maintains learning illusion (feedback-based updates)
+- Keeps quality improvements active
+- Weekly system prompt updates remain unchanged
 
 ---
 
@@ -590,40 +589,49 @@ if(config.nodeEnv==='production'){
 
 File: `backend/src/services/promptBuilder.ts`
 
-Change 1: Line 236 — Reduce from 10 to 5
+Change 1: Line 237 — Reduce from 10 to 7
 ```typescript
 // OLD:
 return await memoryService.getRelevantLongTermMemories(twinId, userQuery, 10);
 
 // NEW:
-return await memoryService.getRelevantLongTermMemories(twinId, userQuery, 5);
+// ✅ Reduced from 10 to 7 (still good quality, 30% token savings)
+return await memoryService.getRelevantLongTermMemories(twinId, userQuery, 7);
 ```
 
-Change 2: Line 239 — Reduce from 5 to 3
+Change 2: Line 240 — Reduce from 5 to 4
 ```typescript
 // OLD:
 return await memoryService.getLongTermMemories(twinId, undefined, 5);
 
 // NEW:
-return await memoryService.getLongTermMemories(twinId, undefined, 3);
+// ✅ Get common memories only (reduced from 5 to 4)
+return await memoryService.getLongTermMemories(twinId, undefined, 4);
 ```
 
-Change 3: Line 263 — Reduce from 3 to 2
+Change 3: Line 266 — Keep at 3 (NOT reduced)
 ```typescript
 // OLD:
 return await memoryService.getRelevantStylePatterns(twinId, userQuery, 3);
 
 // NEW:
-return await memoryService.getRelevantStylePatterns(twinId, userQuery, 2);
+// ✅ Keep 3 style patterns (necessary for user-like responses)
+// Don't reduce - style patterns are critical for quality
+return await memoryService.getRelevantStylePatterns(twinId, userQuery, 3);
 ```
+
+**Rationale**: 
+- Long-term memories: 10→7 (30% token savings, quality maintained)
+- Common memories: 5→4 (20% token savings)
+- Style patterns: Kept at 3 (critical for reply quality - user priority)
 
 ---
 
-#### Task D: Optimize fact extraction frequency
+#### Task D: Remove automatic fact extraction + Add user-triggered extraction
 
 File: `backend/src/modules/chat/chatSharedUtils.ts`
 
-Change (lines 478-487):
+Change 1: Remove automatic extraction (lines 478-487):
 ```typescript
 // OLD:
 // Extract long-term facts if summary is significant (10+ messages or every 10 messages)
@@ -638,41 +646,102 @@ if (allMessages.length >= 10 && allMessages.length % 10 === 0) {
 }
 
 // NEW:
-// Extract long-term facts once per day per chat (MVP optimization)
-// Check last extraction timestamp
-const lastExtractionResult = await db.query(`
-  SELECT "lastFactExtraction" FROM "Chat" WHERE id = $1
-`, [chatId]);
+// ✅ REMOVED: Automatic fact extraction (har 10 messages)
+// Facts will be extracted only when:
+// 1. User explicitly says "remember this" / "save it" in chat (ChatGPT-style)
+// 2. User manually trains via learning dashboard
+// 3. User extracts from learning dashboard summary (feature to be added)
+// This saves cost while maintaining quality - facts extracted on-demand
+```
 
-const lastExtraction = lastExtractionResult.rows[0]?.lastFactExtraction;
-const hoursSinceExtraction = lastExtraction 
-  ? (Date.now() - new Date(lastExtraction).getTime()) / (1000 * 60 * 60)
-  : 999;
+File: `backend/src/modules/chat/privateChatController.ts`
 
-// Only extract if 24+ hours passed
-if (hoursSinceExtraction >= 24 && allMessages.length >= 10) {
-  const sessionMem = await memoryService.getSessionMemory(chatId);
+Change 2: Add "Remember this" detection (after line 864):
+```typescript
+// ✅ Check if user wants to save something (ChatGPT-style "remember this")
+const rememberPatterns = [
+  /remember\s+(?:that|this|my|i|me|my\s+name)/i,
+  /save\s+(?:this|it|that|my\s+name)/i,
+  /don'?t\s+forget/i,
+  /keep\s+in\s+mind/i,
+  /memorize/i,
+  /store\s+(?:this|it|that)/i,
+  /isko\s+yaad\s+rakho/i,
+  /yaad\s+rakhna/i
+];
+
+const shouldExtractFacts = rememberPatterns.some(pattern => pattern.test(message));
+
+if (shouldExtractFacts && chat.twinId) {
+  logger.info('✅ User requested to remember something - extracting facts');
+  
+  // Get session memory summary for context
+  const sessionMem = await chatUtils.getSessionMemoryForContext(chat.id);
   if (sessionMem?.summary) {
-    // Long-term facts extraction (async, don't block)
-    memoryService.extractLongTermFacts(twinId, sessionMem.summary)
-      .then(async () => {
-        logger.info(`Long-term facts extracted for twin ${twinId}`);
-        // Update last extraction timestamp
-        await db.query(`
-          UPDATE "Chat" SET "lastFactExtraction" = NOW() WHERE id = $1
-        `, [chatId]);
+    // Extract facts from summary (async, don't block response)
+    const { memoryService } = await import('../../services/memoryService');
+    memoryService.extractLongTermFacts(chat.twinId, sessionMem.summary)
+      .then(() => {
+        logger.info(`✅ Facts extracted from user's "remember this" request for twin ${chat.twinId}`);
       })
-      .catch(err => logger.error('Long-term facts extraction failed:', err));
+      .catch(err => logger.error('Fact extraction failed:', err));
+  } else {
+    // If no summary yet, extract from current message + recent context
+    const recentMessages = await chatUtils.getRecentMessages(chat.id, 'Message', 5);
+    const contextText = recentMessages.map(m => m.content).join('\n');
+    
+    const { memoryService } = await import('../../services/memoryService');
+    memoryService.extractLongTermFacts(chat.twinId, contextText)
+      .then(() => {
+        logger.info(`✅ Facts extracted from recent context for twin ${chat.twinId}`);
+      })
+      .catch(err => logger.error('Fact extraction failed:', err));
   }
 }
 ```
 
-Migration required: Add `lastFactExtraction` column to `Chat` table
+File: `backend/src/modules/chat/publicChatController.ts`
 
-File: `backend/migrations/021_add_last_fact_extraction.sql` (NEW)
-```sql
-ALTER TABLE "Chat" ADD COLUMN IF NOT EXISTS "lastFactExtraction" TIMESTAMP(3);
+Change 3: Add same "Remember this" detection (after line 285):
+```typescript
+// ✅ Check if user wants to save something (ChatGPT-style "remember this")
+if (chat.twinId) {
+  const rememberPatterns = [
+    /remember\s+(?:that|this|my|i|me|my\s+name)/i,
+    /save\s+(?:this|it|that|my\s+name)/i,
+    /don'?t\s+forget/i,
+    /keep\s+in\s+mind/i,
+    /memorize/i,
+    /store\s+(?:this|it|that)/i,
+    /isko\s+yaad\s+rakho/i,
+    /yaad\s+rakhna/i
+  ];
+
+  const shouldExtractFacts = rememberPatterns.some(pattern => pattern.test(message));
+
+  if (shouldExtractFacts) {
+    logger.info('✅ User requested to remember something - extracting facts');
+    
+    // Get recent messages for context
+    const recentMessages = await chatUtils.getRecentMessages(chatId, 'PublicMessage', 5);
+    const contextText = recentMessages.map(m => m.content).join('\n');
+    
+    // Extract facts from context (async, don't block response)
+    const { memoryService } = await import('../../services/memoryService');
+    memoryService.extractLongTermFacts(chat.twinId, contextText)
+      .then(() => {
+        logger.info(`✅ Facts extracted from user's "remember this" request for twin ${chat.twinId}`);
+      })
+      .catch(err => logger.error('Fact extraction failed:', err));
+  }
+}
 ```
+
+**Rationale**: 
+- **Removed automatic extraction** (was every 10 messages) - saves significant cost
+- **Added user-triggered extraction** - ChatGPT-style "remember this" detection
+- **User decides** when to save facts (manual training, explicit prompts, or learning dashboard)
+- **No migration needed** - removed automatic extraction, no timestamp column required
 
 ---
 
@@ -1090,17 +1159,18 @@ loadStyleAnchors();
 ## Part 4: Final checklist
 
 ### Backend (Week 1)
-- [ ] A.1 Create `llmClient.ts` with Groq support
-- [ ] A.2 Add `GROQ_API_KEY` to `env.ts`
-- [ ] A.3 Replace OpenAI in `twinService.ts` (10 methods)
-- [ ] A.4 Replace OpenAI in `memoryService.ts` (3 methods)
-- [ ] A.5 Replace OpenAI in `systemPromptUpdater.ts` (1 method)
-- [ ] A.6 Replace OpenAI in `privateChatController.ts` (2 methods)
-- [ ] A.7 Replace OpenAI in `styleCritic.ts` (2 methods, optional)
-- [ ] B Disable `learningScheduler` in app.ts
-- [ ] C Reduce memory limits in `promptBuilder.ts` (10→5, 3→2)
-- [ ] D Optimize fact extraction in `chatSharedUtils.ts`
-- [ ] D.1 Add migration for `lastFactExtraction` column
+- [x] A.1 Create `llmClient.ts` with Groq support ✅ DONE
+- [x] A.2 Add `GROQ_API_KEY` to `env.ts` ✅ DONE
+- [x] A.3 Replace OpenAI in `twinService.ts` (10 methods) ✅ DONE
+- [x] A.4 Replace OpenAI in `memoryService.ts` (3 methods) ✅ DONE
+- [x] A.5 Replace OpenAI in `systemPromptUpdater.ts` (1 method) ✅ DONE
+- [x] A.6 Replace OpenAI in `privateChatController.ts` (2 methods) ✅ DONE
+- [x] A.7 Replace OpenAI in `styleCritic.ts` (2 methods, optional) ✅ DONE
+- [x] B Optimize `learningScheduler` interval (6h → 12h) ✅ DONE
+- [x] C Optimize memory limits in `promptBuilder.ts` (10→7, 5→4, style patterns kept at 3) ✅ DONE
+- [x] D Remove automatic fact extraction + Add user-triggered extraction ✅ DONE
+- [x] D.1 Add "Remember this" detection in `privateChatController.ts` ✅ DONE
+- [x] D.2 Add "Remember this" detection in `publicChatController.ts` ✅ DONE
 
 ### Backend (Week 2)
 - [ ] E.1 Create `responseCache.ts`
@@ -1186,24 +1256,30 @@ Ready to implement? Start with Task A.1 (llmClient.ts) and proceed sequentially.
 
 | File | Action | Lines | Priority |
 |------|--------|-------|----------|
-| `backend/src/services/llmClient.ts` | CREATE | NEW | P0 |
-| `backend/src/config/env.ts` | UPDATE | 20 | P0 |
-| `backend/src/modules/twin/twinService.ts` | UPDATE | 1-7, 62, 101, 137, 189, 365, 529, 721, 777 | P0 |
-| `backend/src/services/memoryService.ts` | UPDATE | 4-8, 494, 530, 568 | P0 |
-| `backend/src/services/systemPromptUpdater.ts` | UPDATE | 5-8, 158 | P0 |
-| `backend/src/modules/chat/privateChatController.ts` | UPDATE | 920, 1332 | P0 |
-| `backend/src/utils/styleCritic.ts` | UPDATE | 6-10, 72, 177 | P0 (optional) |
-| `backend/src/app.ts` | UPDATE | 51-53 | P0 |
-| `backend/src/services/promptBuilder.ts` | UPDATE | 236, 239, 263 | P0 |
-| `backend/src/modules/chat/chatSharedUtils.ts` | UPDATE | 478-487 | P0 |
-| `backend/migrations/021_add_last_fact_extraction.sql` | CREATE | NEW | P0 |
+| `backend/src/services/llmClient.ts` | CREATE | NEW | P0 ✅ DONE |
+| `backend/src/config/env.ts` | UPDATE | 20 | P0 ✅ DONE |
+| `backend/src/modules/twin/twinService.ts` | UPDATE | 1-7, 62, 101, 137, 189, 365, 529, 721, 777 | P0 ✅ DONE |
+| `backend/src/services/memoryService.ts` | UPDATE | 4-8, 494, 530, 568 | P0 ✅ DONE |
+| `backend/src/services/systemPromptUpdater.ts` | UPDATE | 5-8, 158 | P0 ✅ DONE |
+| `backend/src/modules/chat/privateChatController.ts` | UPDATE | 920, 1332, 866-905 | P0 ✅ DONE |
+| `backend/src/utils/styleCritic.ts` | UPDATE | 6-10, 72, 177 | P0 ✅ DONE |
+| `backend/src/services/learningScheduler.ts` | UPDATE | 22 | P0 ✅ DONE |
+| `backend/src/services/promptBuilder.ts` | UPDATE | 237, 240, 266 | P0 ✅ DONE |
+| `backend/src/modules/chat/chatSharedUtils.ts` | UPDATE | 478-483 | P0 ✅ DONE |
+| `backend/src/modules/chat/publicChatController.ts` | UPDATE | 287-317 | P0 ✅ DONE |
 | `backend/src/services/responseCache.ts` | CREATE | NEW | P1 |
 | `backend/src/server.ts` | UPDATE | NEW function | P1 |
 | `frontend/src/views/dashboard.ejs` | UPDATE | After 150 | P1 |
 | `frontend/src/views/memory-management.ejs` | UPDATE | After 200 | P1 |
 | `frontend/src/views/style-customize.ejs` | UPDATE | After controls | P1 |
 
-Total: 16 files to modify/create, 18 OpenAI calls to replace, 3 memory limits to optimize, 1 scheduler to disable
+**Status Summary**:
+- ✅ Task A (Groq Integration): DONE - All 18 OpenAI calls replaced
+- ✅ Task B (Background Learning): DONE - Optimized (6h → 12h)
+- ✅ Task C (Memory Limits): DONE - Optimized (10→7, 5→4, style patterns kept at 3)
+- ✅ Task D (Fact Extraction): DONE - Removed automatic, added user-triggered
+- ⚠️ Task E (Response Caching): PENDING
+- ⚠️ Task F (Pre-warm): PENDING
 
 ---
 

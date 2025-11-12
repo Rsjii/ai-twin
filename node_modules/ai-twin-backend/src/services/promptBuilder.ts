@@ -232,17 +232,18 @@ export class PromptBuilder {
     
     try {
       if (userQuery && userQuery.trim().length > 0) {
-        // Use smart hybrid retrieval
-        return await memoryService.getRelevantLongTermMemories(twinId, userQuery, 10);
+        // ✅ Use smart hybrid retrieval - gets MOST RELEVANT memories
+        // Reduced from 10 to 7 (still good quality, 30% token savings)
+        return await memoryService.getRelevantLongTermMemories(twinId, userQuery, 7);
       } else {
-        // Get common memories only
-        return await memoryService.getLongTermMemories(twinId, undefined, 5);
+        // ✅ Get common memories only (reduced from 5 to 4)
+        return await memoryService.getLongTermMemories(twinId, undefined, 4);
       }
     } catch (error) {
       logger.warn('Failed to retrieve long-term memories:', error);
       // Fallback: Get at least common memories
       try {
-        return await memoryService.getLongTermMemories(twinId, undefined, 5);
+        return await memoryService.getLongTermMemories(twinId, undefined, 4);
       } catch (e) {
         logger.error('Fallback long-term memory retrieval failed:', e);
         return [];
@@ -260,6 +261,8 @@ export class PromptBuilder {
     if (!twinId || !userQuery || userQuery.trim().length === 0) return [];
     
     try {
+      // ✅ Keep 3 style patterns (necessary for user-like responses)
+      // Don't reduce - style patterns are critical for quality
       return await memoryService.getRelevantStylePatterns(twinId, userQuery, 3);
     } catch (error) {
       logger.warn('Failed to retrieve style patterns:', error);

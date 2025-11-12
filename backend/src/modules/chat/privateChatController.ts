@@ -862,6 +862,47 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
 
         // Update session memory
         await chatUtils.updateSessionMemory(chat.id, chat.twinId);
+
+        // ✅ Check if user wants to save something (ChatGPT-style "remember this")
+        const rememberPatterns = [
+          /remember\s+(?:that|this|my|i|me|my\s+name)/i,
+          /save\s+(?:this|it|that|my\s+name)/i,
+          /don'?t\s+forget/i,
+          /keep\s+in\s+mind/i,
+          /memorize/i,
+          /store\s+(?:this|it|that)/i,
+          /isko\s+yaad\s+rakho/i,
+          /yaad\s+rakhna/i
+        ];
+
+        const shouldExtractFacts = rememberPatterns.some(pattern => pattern.test(message));
+
+        if (shouldExtractFacts && chat.twinId) {
+          logger.info('✅ User requested to remember something - extracting facts');
+          
+          // ✅ Get session memory summary for context
+          const sessionMem = await chatUtils.getSessionMemoryForContext(chat.id);
+          if (sessionMem?.summary) {
+            // Extract facts from summary (async, don't block response)
+            const { memoryService } = await import('../../services/memoryService');
+            memoryService.extractLongTermFacts(chat.twinId, sessionMem.summary)
+              .then(() => {
+                logger.info(`✅ Facts extracted from user's "remember this" request for twin ${chat.twinId}`);
+              })
+              .catch(err => logger.error('Fact extraction failed:', err));
+          } else {
+            // ✅ If no summary yet, extract from current message + recent context
+            const recentMessages = await chatUtils.getRecentMessages(chat.id, 'Message', 5);
+            const contextText = recentMessages.map(m => m.content).join('\n');
+            
+            const { memoryService } = await import('../../services/memoryService');
+            memoryService.extractLongTermFacts(chat.twinId, contextText)
+              .then(() => {
+                logger.info(`✅ Facts extracted from recent context for twin ${chat.twinId}`);
+              })
+              .catch(err => logger.error('Fact extraction failed:', err));
+          }
+        }
       } catch (error) {
         logger.error('Post-response cleanup failed:', error);
       }

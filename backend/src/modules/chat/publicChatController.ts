@@ -284,6 +284,38 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
       updatedAtField: 'lastActivity'
     });
 
+    // ✅ Check if user wants to save something (ChatGPT-style "remember this")
+    if (chat.twinId) {
+      const rememberPatterns = [
+        /remember\s+(?:that|this|my|i|me|my\s+name)/i,
+        /save\s+(?:this|it|that|my\s+name)/i,
+        /don'?t\s+forget/i,
+        /keep\s+in\s+mind/i,
+        /memorize/i,
+        /store\s+(?:this|it|that)/i,
+        /isko\s+yaad\s+rakho/i,
+        /yaad\s+rakhna/i
+      ];
+
+      const shouldExtractFacts = rememberPatterns.some(pattern => pattern.test(message));
+
+      if (shouldExtractFacts) {
+        logger.info('✅ User requested to remember something - extracting facts');
+        
+        // ✅ Get recent messages for context
+        const recentMessages = await chatUtils.getRecentMessages(chatId, 'PublicMessage', 5);
+        const contextText = recentMessages.map(m => m.content).join('\n');
+        
+        // Extract facts from context (async, don't block response)
+        const { memoryService } = await import('../../services/memoryService');
+        memoryService.extractLongTermFacts(chat.twinId, contextText)
+          .then(() => {
+            logger.info(`✅ Facts extracted from user's "remember this" request for twin ${chat.twinId}`);
+          })
+          .catch(err => logger.error('Fact extraction failed:', err));
+      }
+    }
+
     // ✅ Send response
     res.json({
       success: true,

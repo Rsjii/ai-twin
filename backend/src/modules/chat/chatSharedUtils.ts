@@ -475,16 +475,12 @@ export async function updateSessionMemory(
     await memoryService.createOrUpdateSessionMemory(chatId, allMessages);
     logger.info(`Session memory updated for chat ${chatId} with ${allMessages.length} messages`);
 
-    // Extract long-term facts if summary is significant (10+ messages or every 10 messages)
-    if (allMessages.length >= 10 && allMessages.length % 10 === 0) {
-      const sessionMem = await memoryService.getSessionMemory(chatId);
-      if (sessionMem?.summary) {
-        // Long-term facts extraction (async, don't block)
-        memoryService.extractLongTermFacts(twinId, sessionMem.summary)
-          .then(() => logger.info(`Long-term facts extracted for twin ${twinId}`))
-          .catch(err => logger.error('Long-term facts extraction failed:', err));
-      }
-    }
+    // ✅ REMOVED: Automatic fact extraction (har 10 messages)
+    // Facts will be extracted only when:
+    // 1. User explicitly says "remember this" / "save it" in chat (ChatGPT-style)
+    // 2. User manually trains via learning dashboard
+    // 3. User extracts from learning dashboard summary (feature to be added)
+    // This saves cost while maintaining quality - facts extracted on-demand
   } catch (error) {
     logger.error('Session memory update failed:', error);
     // Don't fail - response already sent
