@@ -44,13 +44,17 @@ export class LLMClient {
     messages: LLMMessage[],
     options: any
   ): Promise<LLMResponse> {
-    // ✅ List of supported Groq models (try in order if one fails)
+    // ✅ All models with HIGHEST limits (14.4K req/day each) + fallback
     const supportedModels = [
-      'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant',
-      'llama-3.1-70b-versatile',
-      'llama-3-groq-70b-tool-use'
+      'llama-3.1-8b-instant',                    // ✅ 14.4K req/day, 500K tokens/day
+      'meta-llama/llama-guard-4-12b',            // ✅ 14.4K req/day, 500K tokens/day
+      'meta-llama/llama-prompt-guard-2-22m',     // ✅ 14.4K req/day, 500K tokens/day
+      'meta-llama/llama-prompt-guard-2-86m',     // ✅ 14.4K req/day, 500K tokens/day
+      'llama-2-7b',                              // ✅ 7K req/day, 500K tokens/day
+      'llama-3.3-70b-versatile'                  // ⚠️ LAST RESORT: 1K req/day (better quality)
     ];
+    
+    // Total potential: 14.4K × 4 + 7K = 64.6K requests/day! 🚀
     
     const modelToUse = options.model || supportedModels[0];
     let lastError: Error | null = null;
@@ -70,7 +74,6 @@ export class LLMClient {
             messages: messages.map(m => ({ role: m.role, content: m.content })),
             max_tokens: options.maxTokens || 512,
             temperature: options.temperature || 0.7,
-            // ✅ FIX: Convert responseFormat to response_format for Groq API (OpenAI-compatible)
             ...(options.responseFormat ? { response_format: options.responseFormat } : {})
           })
         });
@@ -84,11 +87,28 @@ export class LLMClient {
             // If JSON parse fails, use error text as is
           }
           
-          // If model is decommissioned, try next model
-          if (errorData.error?.code === 'model_decommissioned' || errorText.includes('decommissioned')) {
-            logger.warn(`⚠️ Model ${model} is decommissioned, trying next model...`);
-            lastError = new Error(`Model ${model} decommissioned`);
-            continue; // Try next model
+          // ✅ Check for rate limit/quota errors (429 = Too Many Requests)
+          const isRateLimit = response.status === 429 || 
+                             errorData.error?.code === 'rate_limit_exceeded' ||
+                             errorData.error?.message?.toLowerCase().includes('rate limit') ||
+                             errorData.error?.message?.toLowerCase().includes('quota exceeded') ||
+                             errorData.error?.message?.toLowerCase().includes('requests per day') ||
+                             errorData.error?.message?.toLowerCase().includes('tokens per day') ||
+                             errorText.toLowerCase().includes('rate limit') ||
+                             errorText.toLowerCase().includes('quota exceeded') ||
+                             errorText.toLowerCase().includes('requests per day') ||
+                             errorText.toLowerCase().includes('tokens per day');
+          
+          // ✅ Check for model decommissioned
+          const isDecommissioned = errorData.error?.code === 'model_decommissioned' || 
+                                  errorText.includes('decommissioned');
+          
+          // ✅ If rate limit or decommissioned, try next model (each has separate quota)
+          if (isRateLimit || isDecommissioned) {
+            const errorType = isRateLimit ? 'rate limit/quota exceeded' : 'decommissioned';
+            logger.warn(`⚠️ Model ${model} ${errorType}, trying next model with separate quota...`);
+            lastError = new Error(`Model ${model} ${errorType}`);
+            continue; // Try next model (each has its own quota)
           }
           
           logger.error(`Groq API error: ${response.status} ${errorText}`);
@@ -110,9 +130,21 @@ export class LLMClient {
         }
         return responseObj;
       } catch (error: any) {
-        // If it's a model decommissioned error, try next model
-        if (error.message?.includes('decommissioned') || error.message?.includes('model_decommissioned')) {
-          logger.warn(`⚠️ Model ${model} failed, trying next model...`);
+        // ✅ Check for rate limit in error message
+        const isRateLimit = error.message?.toLowerCase().includes('rate limit') ||
+                           error.message?.toLowerCase().includes('quota exceeded') ||
+                           error.message?.toLowerCase().includes('429') ||
+                           error.message?.toLowerCase().includes('requests per day') ||
+                           error.message?.toLowerCase().includes('tokens per day');
+        
+        // ✅ Check for decommissioned
+        const isDecommissioned = error.message?.includes('decommissioned') || 
+                                error.message?.includes('model_decommissioned');
+        
+        // ✅ If rate limit or decommissioned, try next model
+        if (isRateLimit || isDecommissioned) {
+          const errorType = isRateLimit ? 'rate limit exceeded' : 'decommissioned';
+          logger.warn(`⚠️ Model ${model} ${errorType}, trying next model...`);
           lastError = error;
           continue;
         }
@@ -122,7 +154,7 @@ export class LLMClient {
     }
 
     // If all models failed
-    logger.error('❌ All Groq models failed');
+    logger.error('❌ All Groq models failed (rate limits or errors)');
     throw lastError || new Error('All Groq models failed. Please check Groq API status.');
   }
 }
