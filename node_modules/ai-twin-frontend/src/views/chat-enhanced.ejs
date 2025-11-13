@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -19,20 +20,29 @@
             }
         }
     </script>
+    <script>
+        // ✅ IMMEDIATE theme application (prevents flash)
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen font-inter">
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen font-inter">
     <div class="flex h-screen">
         <!-- Mobile Header -->
-        <div class="lg:hidden bg-white/80 backdrop-blur-xl border-b border-white/20 px-4 py-3 flex items-center justify-between shadow-md">
+        <div class="lg:hidden bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700 px-4 py-3 flex items-center justify-between shadow-md">
             <div class="flex items-center space-x-3">
-                <a href="/dashboard" class="text-gray-600 hover:text-gray-900">
+                <a href="/dashboard" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
                 </a>
-                <h1 class="text-lg font-semibold text-gray-900">Enhanced Chat</h1>
+                <h1 class="text-lg font-semibold text-gray-900 dark:text-white">Enhanced Chat</h1>
             </div>
-            <button id="mobile-chat-menu-btn" class="p-2 text-gray-600 hover:text-gray-900">
+            <button id="mobile-chat-menu-btn" class="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                 </svg>
@@ -40,10 +50,10 @@
         </div>
 
         <!-- Mobile Chat Sidebar -->
-        <div id="mobile-chat-sidebar" class="fixed top-0 right-0 h-full w-80 bg-white/95 backdrop-blur-xl shadow-xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out lg:hidden border-l border-white/20">
+        <div id="mobile-chat-sidebar" class="fixed top-0 right-0 h-full w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out lg:hidden border-l border-white/20 dark:border-gray-700">
             <div class="p-6">
                 <!-- Close Button -->
-                <button id="mobile-chat-close-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                <button id="mobile-chat-close-btn" class="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -51,7 +61,7 @@
                 
                 <!-- Chat History -->
                 <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Chat History</h3>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Chat History</h3>
                     <div id="mobile-chat-history" class="space-y-2 max-h-64 overflow-y-auto">
                         <!-- Chat history items will be populated here -->
                     </div>
@@ -59,22 +69,22 @@
                 
                 <!-- Quick Actions -->
                 <div class="space-y-3">
-                    <button id="mobile-new-chat-btn" class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button id="mobile-new-chat-btn" class="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                         <div class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                             </svg>
-                            <span class="text-gray-700">New Chat</span>
+                            <span class="text-gray-700 dark:text-gray-300">New Chat</span>
                         </div>
                     </button>
                     
-                    <button id="mobile-settings-btn" class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button id="mobile-settings-btn" class="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                         <div class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                             </svg>
-                            <span class="text-gray-700">Settings</span>
+                            <span class="text-gray-700 dark:text-gray-300">Settings</span>
                         </div>
                     </button>
                 </div>
@@ -82,12 +92,12 @@
         </div>
 
         <!-- Desktop Sidebar -->
-        <div class="hidden lg:block w-64 bg-white/80 backdrop-blur-xl border-r border-white/20 shadow-xl overflow-x-hidden">
-            <div class="p-4 border-b border-white/20">
-                <h2 class="text-lg font-semibold text-gray-900">AI Twin Chat</h2>
-                <p class="text-sm text-gray-600">Enhanced with style learning</p>
+        <div class="hidden lg:block w-64 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900 overflow-x-hidden">
+            <div class="p-4 border-b dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">AI Twin Chat</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-300">Enhanced with style learning</p>
                 <!-- ADD NEW CHAT BUTTON -->
-                <button id="newChatBtn" class="w-full mt-2 bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
+                <button id="newChatBtn" class="w-full mt-2 bg-blue-600 dark:bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors">
                     + New Chat
                 </button>
             </div>
@@ -99,26 +109,26 @@
                 <!-- ✅ ADD: Empty state for chat history -->
                 <div id="chatHistoryEmptyState" class="hidden text-center py-8">
                     <div class="w-16 h-16 bg-gradient-to-r from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-8 h-8 text-primary dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-sm font-medium text-gray-900 mb-2">No chats yet</h3>
-                    <p class="text-xs text-gray-500 mb-4">Start a conversation to see it here</p>
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">No chats yet</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Start a conversation to see it here</p>
                 </div>
             </div>
             
             <!-- Style Settings -->
-            <div class="p-4 border-b border-white/20">
-                <h3 class="text-sm font-medium text-gray-700 mb-3">Quick Style</h3>
+            <div class="p-4 border-b dark:border-gray-700">
+                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Style</h3>
                 <div class="flex space-x-2">
-                    <button id="casualBtn" class="px-3 py-1 bg-primary/20 text-primary rounded-lg text-sm hover:bg-primary/30 transition-colors border border-primary/30">
+                    <button id="casualBtn" class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-colors">
                         Casual
                     </button>
-                    <button id="formalBtn" class="px-3 py-1 bg-accent/20 text-accent rounded-lg text-sm hover:bg-accent/30 transition-colors border border-accent/30">
+                    <button id="formalBtn" class="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-sm hover:bg-purple-200 dark:hover:bg-purple-900/40 transition-colors">
                         Formal
                     </button>
-                    <button id="toggleStyleBtn" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors">
+                    <button id="toggleStyleBtn" class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                         Auto
                     </button>
                 </div>
@@ -126,15 +136,15 @@
 
             <!-- Quick Actions -->
             <div class="p-4">
-                <h3 class="text-sm font-medium text-gray-700 mb-3">Actions</h3>
+                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Actions</h3>
                 <div class="space-y-2">
-                    <button id="styleCustomizeBtn" class="w-full text-left px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
+                    <button id="styleCustomizeBtn" class="w-full text-left px-3 py-2 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
                         🎨 Style Settings
                     </button>
-                    <button id="learningBtn" class="w-full text-left px-3 py-2 text-sm bg-green-50 text-green-700 rounded hover:bg-green-100">
+                    <button id="learningBtn" class="w-full text-left px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
                         📊 Learning Dashboard
                     </button>
-                    <button id="analyticsBtn" class="w-full text-left px-3 py-2 text-sm bg-purple-50 text-purple-700 rounded hover:bg-purple-100">
+                    <button id="analyticsBtn" class="w-full text-left px-3 py-2 text-sm bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
                         📈 Analytics
                     </button>
                 </div>
@@ -144,22 +154,22 @@
         <!-- Main Chat Area -->
         <div class="flex-1 flex flex-col">
             <!-- Desktop Chat Header -->
-            <div class="hidden lg:block bg-white border-b px-6 py-4">
+            <div class="hidden lg:block bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-4">
                 <div class="flex justify-between items-center">
                     <div>
                         <div class="flex items-center space-x-3">
-                            <a href="/dashboard" class="text-blue-600 hover:text-blue-800 text-sm">← Back to Dashboard</a>
+                            <a href="/dashboard" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm">← Back to Dashboard</a>
                             <div>
-                                <h1 class="text-xl font-semibold">Enhanced Chat</h1>
-                                <p class="text-sm text-gray-600">AI responses with style learning and corrections</p>
+                                <h1 class="text-xl font-semibold dark:text-white">Enhanced Chat</h1>
+                                <p class="text-sm text-gray-600 dark:text-gray-300">AI responses with style learning and corrections</p>
                             </div>
                         </div>
                     </div>
                     <div class="flex items-center space-x-4">
-                        <div class="text-sm text-gray-600">
+                        <div class="text-sm text-gray-600 dark:text-gray-300">
                             <span id="intentDisplay">Intent: -</span>
                         </div>
-                        <div class="text-sm text-gray-600">
+                        <div class="text-sm text-gray-600 dark:text-gray-300">
                             <span id="criticScore">Score: -</span>
                         </div>
                     </div>
@@ -167,38 +177,38 @@
             </div>
 
             <!-- Chat Messages -->
-            <div class="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4" id="chatMessages">
+            <div class="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4 bg-gray-50 dark:bg-gray-900" id="chatMessages">
                 <!-- Messages will be loaded here -->
                 
                 <!-- ✅ FIX: Generating indicator (initially hidden) -->
                 <div id="generatingIndicator" class="hidden justify-start">
-                    <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-blue-50 border border-blue-200">
+                    <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
                         <div class="flex items-center space-x-2">
-                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                            <span class="text-sm text-blue-700">Generating response...</span>
+                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 dark:border-blue-400"></div>
+                            <span class="text-sm text-blue-700 dark:text-blue-300">Generating response...</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-<!-- Chat Input -->
-<div class="bg-white p-4 border-t">
+            <!-- Chat Input -->
+<div class="bg-white dark:bg-gray-800 p-4 border-t dark:border-gray-700 shadow-lg dark:shadow-gray-900">
     <form id="messageForm" class="flex space-x-4">
         <textarea 
             id="messageInput" 
             name="message"
             placeholder="Type your message here..."
-            class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mobile-form"
+            class="flex-1 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mobile-form text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
             rows="2"
             maxlength="300"
             required
         ></textarea>
-        <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+        <button type="submit" class="bg-blue-600 dark:bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold">
             Send
         </button>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     </form>
-    <div class="mt-2 text-sm text-gray-500 text-right">
+    <div class="mt-2 text-sm text-gray-500 dark:text-gray-400 text-right">
         <span id="charCount">0</span> / 300 characters
     </div>
 </div>        </div>
@@ -208,20 +218,20 @@
 <!-- Enhanced Response Feedback Modal -->
 <div id="responseActionsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
     <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
-            <div class="px-6 py-4 border-b">
-                <h3 class="text-lg font-medium">Response Feedback</h3>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-gray-900 max-w-lg w-full">
+            <div class="px-6 py-4 border-b dark:border-gray-700">
+                <h3 class="text-lg font-medium dark:text-white">Response Feedback</h3>
             </div>
             
             <div class="p-6">
                 <!-- Rating Section -->
                 <div class="mb-6">
-                    <h4 class="text-sm font-medium text-gray-700 mb-3">Rate this response</h4>
+                    <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Rate this response</h4>
                     <div class="flex space-x-4">
-                        <button id="thumbsUpBtn" class="flex-1 px-4 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-center">
+                        <button id="thumbsUpBtn" class="flex-1 px-4 py-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/40 text-center">
                             👍 Good Response
                         </button>
-                        <button id="thumbsDownBtn" class="flex-1 px-4 py-3 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-center">
+                        <button id="thumbsDownBtn" class="flex-1 px-4 py-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/40 text-center">
                             👎 Needs Improvement
                         </button>
                     </div>
@@ -229,22 +239,22 @@
                 
                 <!-- Suggestion Input (shown when downvoted) -->
                 <div id="suggestionSection" class="mb-6 hidden">
-                    <h4 class="text-sm font-medium text-gray-700 mb-2">What could be better?</h4>
+                    <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">What could be better?</h4>
                     <textarea id="suggestionInput" placeholder="Tell us how to improve this response..." 
-                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3"></textarea>
+                              class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" rows="3"></textarea>
                 </div>
                 
                 <!-- Tone Adjustment -->
                 <div class="mb-6">
-                    <h4 class="text-sm font-medium text-gray-700 mb-3">Adjust tone for next response</h4>
+                    <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Adjust tone for next response</h4>
                     <div class="flex space-x-2">
-                        <button onclick="setTonePreference('more_casual')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                        <button onclick="setTonePreference('more_casual')" class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-sm hover:bg-blue-200 dark:hover:bg-blue-900/40">
                             More Casual
                         </button>
-                        <button onclick="setTonePreference('more_formal')" class="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200">
+                        <button onclick="setTonePreference('more_formal')" class="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-sm hover:bg-purple-200 dark:hover:bg-purple-900/40">
                             More Formal
                         </button>
-                        <button onclick="setTonePreference('more_helpful')" class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">
+                        <button onclick="setTonePreference('more_helpful')" class="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-sm hover:bg-green-200 dark:hover:bg-green-900/40">
                             More Helpful
                         </button>
                     </div>
@@ -252,29 +262,29 @@
                 
                 <!-- Quick Actions -->
                 <div class="mb-6">
-                    <h4 class="text-sm font-medium text-gray-700 mb-3">Quick Actions</h4>
+                    <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Actions</h4>
                     <div class="grid grid-cols-2 gap-2">
-                        <button id="regenerateBtn" class="px-3 py-2 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                        <button id="regenerateBtn" class="px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-sm hover:bg-blue-200 dark:hover:bg-blue-900/40">
                             🔄 Regenerate
                         </button>
-                        <button id="copyBtn" class="px-3 py-2 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200">
+                        <button id="copyBtn" class="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-200 dark:hover:bg-gray-600">
                             📋 Copy
                         </button>
-                        <button id="shareBtn" class="px-3 py-2 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200">
+                        <button id="shareBtn" class="px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-sm hover:bg-purple-200 dark:hover:bg-purple-900/40">
                             📤 Share
                         </button>
-                        <button id="saveBtn" class="px-3 py-2 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">
+                        <button id="saveBtn" class="px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-sm hover:bg-green-200 dark:hover:bg-green-900/40">
                             💾 Save
                         </button>
                     </div>
                 </div>
             </div>
             
-            <div class="px-6 py-4 border-t flex justify-between">
-                <button id="closeModalBtn" class="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200">
+            <div class="px-6 py-4 border-t dark:border-gray-700 flex justify-between">
+                <button id="closeModalBtn" class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600">
                     Close
                 </button>
-                <button id="submitFeedbackBtn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                <button id="submitFeedbackBtn" class="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600">
                     Submit Feedback
                 </button>
             </div>
@@ -572,13 +582,13 @@ function setStyleMode(mode) {
     // Update UI to show current mode
     document.querySelectorAll('#casualBtn, #formalBtn, #toggleStyleBtn').forEach(btn => {
         btn.classList.remove('bg-blue-600', 'text-white');
-        btn.classList.add('bg-gray-100', 'text-gray-700');
+        btn.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
     });
     
     const activeBtn = document.getElementById(mode + 'Btn') || document.getElementById('toggleStyleBtn');
     if (activeBtn) {
-        activeBtn.classList.remove('bg-gray-100', 'text-gray-700');
-        activeBtn.classList.add('bg-blue-600', 'text-white');
+        activeBtn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        activeBtn.classList.add('bg-blue-600', 'dark:bg-blue-500', 'text-white');
     }
     
     showNotification(`Style mode: ${mode}`, 'info');
@@ -646,8 +656,8 @@ function addMessageToChat(sender, content, isTyping = false, metadata = null) {
     const messageContent = document.createElement('div');
     messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
         sender === 'user' 
-            ? 'bg-blue-600 text-white' 
-            : 'bg-white border border-gray-200'
+            ? 'bg-blue-600 dark:bg-blue-500 text-white' 
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white'
     }`;
     
     // ✅ Create actions container for AI messages (so buttons can be added later)
@@ -658,13 +668,13 @@ function addMessageToChat(sender, content, isTyping = false, metadata = null) {
     if (isTyping) {
         messageContent.innerHTML = `
             <div class="flex items-center space-x-2">
-                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 dark:border-gray-400"></div>
                 <span>${content}</span>
             </div>
         `;
     } else {
     messageContent.innerHTML = `
-        <p class="text-sm">${content}</p>
+                <p class="text-sm dark:text-white">${content}</p>
     `;
     }
     
@@ -703,8 +713,8 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
     const messageContent = document.createElement('div');
     messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
         sender === 'user' 
-            ? 'bg-blue-600 text-white' 
-            : 'bg-white border border-gray-200'
+            ? 'bg-blue-600 dark:bg-blue-500 text-white' 
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white'
     }`;
     
     // ✅ FIX: Create actions container OUTSIDE messageContent (so it doesn't get wiped)
@@ -730,7 +740,7 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
             
             // Show text with blinking cursor
             messageContent.innerHTML = `
-                <p class="text-sm">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
+                <p class="text-sm dark:text-white">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
             `;
             
             currentWordIndex++;
@@ -746,13 +756,13 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
         } else {
             // Typing complete - show final text with timestamp
             messageContent.innerHTML = `
-                <p class="text-sm">${fullText}</p>
+                <p class="text-sm dark:text-white">${fullText}</p>
             `;
             
             // Add metadata display if provided
             if (metadata && (metadata.intent || metadata.criticScore !== undefined)) {
                 const metadataDiv = document.createElement('div');
-                metadataDiv.className = 'mt-2 text-xs text-gray-500';
+                metadataDiv.className = 'mt-2 text-xs text-gray-500 dark:text-gray-400';
                 if (metadata.intent) {
                     metadataDiv.innerHTML += `<span class="mr-2">Intent: ${metadata.intent}</span>`;
                 }
@@ -803,21 +813,21 @@ function addResponseActionsButton(responseId) {
         const actionsDiv = document.createElement('div');
         actionsDiv.className = 'flex space-x-2 text-xs';
         actionsDiv.innerHTML = `
-            <button id="copyBtn_${responseId}" class="text-gray-600 hover:text-gray-800 px-2 py-1 rounded hover:bg-gray-100">
+            <button id="copyBtn_${responseId}" class="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
                 📋 Copy
             </button>
             <div id="feedbackSection_${responseId}" class="flex space-x-2">
-                <button id="upvoteBtn_${responseId}" class="text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50">
+                <button id="upvoteBtn_${responseId}" class="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 px-2 py-1 rounded hover:bg-green-50 dark:hover:bg-green-900/30">
                     👍 Good
                 </button>
-                <button id="downvoteBtn_${responseId}" class="text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50">
+                <button id="downvoteBtn_${responseId}" class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30">
                     👎 Bad
                 </button>
             </div>
-            <button id="regenerateBtn_${responseId}" class="text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50">
+            <button id="regenerateBtn_${responseId}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30">
                 🔄 Regenerate
             </button>
-            <button id="shareBtn_${responseId}" class="text-purple-600 hover:text-purple-800 px-2 py-1 rounded hover:bg-purple-50">
+            <button id="shareBtn_${responseId}" class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 px-2 py-1 rounded hover:bg-purple-50 dark:hover:bg-purple-900/30">
                 📤 Share
             </button>
         `;
@@ -961,7 +971,7 @@ function updateSidebarImmediately(aiResponse, userMessage) {
         console.log('✅ Found chat item, updating...');
         
         // ✅ Update last message only (count will be updated by loadChatHistory)
-        const lastMessageSpan = currentChatItem.querySelector('p.text-xs.text-gray-500');
+        const lastMessageSpan = currentChatItem.querySelector('p.text-xs.text-gray-500, p.text-xs.dark\\:text-gray-400');
         if (lastMessageSpan) {
             const truncated = aiResponse.length > 50 ? aiResponse.substring(0, 50) + '...' : aiResponse;
             lastMessageSpan.textContent = truncated;
@@ -1035,8 +1045,8 @@ async function loadCurrentChatMessages() {
     const messageContent = document.createElement('div');
     messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
         sender === 'user' 
-            ? 'bg-blue-600 text-white' 
-            : 'bg-white border border-gray-200'
+            ? 'bg-blue-600 dark:bg-blue-500 text-white' 
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white'
     }`;
     
     // ✅ Create actions container for AI messages
@@ -1205,29 +1215,29 @@ function displayChatHistory(chats) {
 
     // Remove the old text-only empty state if it exists
     container.innerHTML = chats.map(chat => `
-        <div class="chat-item p-3 border-b cursor-pointer hover:bg-gray-50 rounded-lg relative group ${chat.id === currentChatId ? 'bg-blue-50 border-blue-200' : ''}" data-chat-id="${chat.id}">
+        <div class="chat-item p-3 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg relative group ${chat.id === currentChatId ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : ''}" data-chat-id="${chat.id}">
             <div class="flex justify-between items-start min-w-0">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between gap-2 mb-1 min-w-0">
-                        <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.id === currentChatId ? 'text-blue-700' : ''}" id="chat-title-${chat.id}">${chat.title || 'Untitled Chat'}</h4>
+                        <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.id === currentChatId ? 'text-blue-700 dark:text-blue-400' : 'text-gray-900 dark:text-white'}" id="chat-title-${chat.id}">${chat.title || 'Untitled Chat'}</h4>
                         <div class="flex items-center gap-1 flex-shrink-0">
-                            <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50 pointer-events-auto" data-chat-id="${chat.id}" title="Edit title">
+                            <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 pointer-events-auto" data-chat-id="${chat.id}" title="Edit title">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                 </svg>
                             </button>
-                            <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 pointer-events-auto" data-chat-id="${chat.id}" title="Delete chat">
+                            <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.id}" title="Delete chat">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                 </svg>
                             </button>
                         </div>
                     </div>
-                    <p class="text-xs text-gray-500 truncate">${chat.lastMessage ? (chat.lastMessage.length > 50 ? chat.lastMessage.substring(0, 50) + '...' : chat.lastMessage) : 'No messages yet'}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${chat.lastMessage ? (chat.lastMessage.length > 50 ? chat.lastMessage.substring(0, 50) + '...' : chat.lastMessage) : 'No messages yet'}</p>
                 </div>
             </div>
             <div class="flex items-center justify-between mt-2">
-                <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">${chat.messageCount || 0} messages</span>
+                <span class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded">${chat.messageCount || 0} messages</span>
             </div>
         </div>
     `).join('');
@@ -1358,7 +1368,7 @@ async function deleteChat(chatId) {
                 currentChatId = null;
                 const messagesContainer = document.getElementById('messages');
                 if (messagesContainer) {
-                    messagesContainer.innerHTML = '<div class="text-center py-8 text-gray-500">No chats available. Create a new chat to get started.</div>';
+                    messagesContainer.innerHTML = '<div class="text-center py-8 text-gray-500 dark:text-gray-400">No chats available. Create a new chat to get started.</div>';
                 }
             }
         } else {

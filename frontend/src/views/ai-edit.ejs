@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -19,14 +20,23 @@
             }
         }
     </script>
+    <script>
+        // ✅ IMMEDIATE theme application (prevents flash)
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
     <script> window.csrfToken = '<%= csrfToken %>';</script>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen font-inter">
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen font-inter">
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">AI Edit</h1>
-            <p class="text-gray-600">Edit your AI twin's personality, prompts, and memory like GPT custom instructions</p>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">AI Edit</h1>
+            <p class="text-gray-600 dark:text-gray-300">Edit your AI twin's personality, prompts, and memory like GPT custom instructions</p>
         </div>
 
         <!-- Navigation Breadcrumbs -->
@@ -62,14 +72,14 @@
           </svg>
         </li>
         <li>
-          <span class="text-gray-900 font-medium">AI Edit</span>
+          <span class="text-gray-900 dark:text-white font-medium">AI Edit</span>
         </li>
       </ol>
     </nav>
   </div>
   
   <!-- Quick Actions -->
-  <div class="mb-6 bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-md">
+  <div class="mb-6 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 dark:border-gray-700 shadow-md dark:shadow-gray-900">
     <div class="flex items-center justify-between">
       <div class="flex items-center space-x-4">
         <a href="/twin/<%= twinId %>/learning-dashboard" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md flex items-center">
@@ -89,77 +99,77 @@
   </div>
 
         <!-- Recent Memories Preview (Read-Only) -->
-        <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 mb-8 border border-white/20">
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-6 mb-8 border border-white/20 dark:border-gray-700">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold">Recent Memories</h2>
-                <a href="/twin/<%= twinId %>/memory-management" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                <h2 class="text-xl font-semibold dark:text-white">Recent Memories</h2>
+                <a href="/twin/<%= twinId %>/memory-management" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
                     Manage All Memories →
                 </a>
             </div>
             <div id="recentMemoriesPreview" class="space-y-2 max-h-[200px] overflow-y-auto">
-                <p class="text-gray-500 text-sm">Loading recent memories...</p>
+                <p class="text-gray-500 dark:text-gray-400 text-sm">Loading recent memories...</p>
             </div>
         </div>
 
         <!-- Enhanced Personality & Persona -->
-        <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 mb-8 border border-white/20">
-            <h2 class="text-xl font-semibold mb-4">Personality & Persona</h2>
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-6 mb-8 border border-white/20 dark:border-gray-700">
+            <h2 class="text-xl font-semibold mb-4 dark:text-white">Personality & Persona</h2>
             
             <!-- Basic Information -->
             <div class="mb-6">
-                <h3 class="text-lg font-medium mb-3 text-gray-700">Basic Information</h3>
+                <h3 class="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">Basic Information</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
                     <input type="text" id="fullName" placeholder="Your full name" 
-                           class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                           class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
                 </div>
                 <div class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700">Username</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Username</label>
                         <input type="text" id="username" placeholder="Your username" 
-                               class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                               class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
                     </div>
                     <div class="space-y-2 md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700">Bio</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
                     <textarea id="bio" placeholder="Tell us about yourself" rows="3"
-                              class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md"></textarea>
+                              class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"></textarea>
                 </div>
                     <div class="space-y-2 md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700">Primary Use Case</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Primary Use Case</label>
                         <input type="text" id="primaryUseCase" placeholder="What will you use this AI twin for?" 
-                               class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                               class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
                     </div>
                 </div>
             </div>
             
             <!-- Communication Style -->
-            <div class="mb-6 border-t pt-6">
-                <h3 class="text-lg font-medium mb-3 text-gray-700">Communication Style</h3>
+            <div class="mb-6 border-t dark:border-gray-700 pt-6">
+                <h3 class="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">Communication Style</h3>
                 
                 <!-- Tone Sliders -->
                 <div class="mb-4">
-                    <h4 class="text-sm font-medium mb-3 text-gray-600">Tone Preferences</h4>
+                    <h4 class="text-sm font-medium mb-3 text-gray-600 dark:text-gray-400">Tone Preferences</h4>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Formal ↔ Casual: <span id="formalCasual-value">50</span>
                             </label>
                             <input type="range" id="formalCasual" min="0" max="100" value="50" 
-                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                   class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Serious ↔ Playful: <span id="seriousPlayful-value">50</span>
                             </label>
                             <input type="range" id="seriousPlayful" min="0" max="100" value="50" 
-                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                   class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Direct ↔ Diplomatic: <span id="directDiplomatic-value">50</span>
                             </label>
                             <input type="range" id="directDiplomatic" min="0" max="100" value="50" 
-                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                   class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
                         </div>
                     </div>
                 </div>
@@ -167,18 +177,18 @@
                 <!-- Language Preferences -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700">Greeting Style</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Greeting Style</label>
                         <input type="text" id="greetingStyle" placeholder="e.g., Hey, Hi, Hello" 
-                               class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                               class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
                     </div>
                     <div class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700">Closing Style</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Closing Style</label>
                         <input type="text" id="closingStyle" placeholder="e.g., Thanks, Cheers, Best" 
-                               class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                               class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
                     </div>
                     <div class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700">Emoji Usage</label>
-                        <select id="emojiUsage" class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Emoji Usage</label>
+                        <select id="emojiUsage" class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white">
                             <option value="none">None</option>
                             <option value="minimal">Minimal</option>
                             <option value="moderate" selected>Moderate</option>
@@ -186,39 +196,39 @@
                         </select>
                     </div>
                     <div class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700">Response Length</label>
-                        <select id="responseLength" class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Response Length</label>
+                        <select id="responseLength" class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white">
                             <option value="brief">Brief</option>
                             <option value="detailed" selected>Detailed</option>
                             <option value="comprehensive">Comprehensive</option>
                         </select>
                     </div>
                     <div class="space-y-2 md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700">Common Phrases</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Common Phrases</label>
                         <textarea id="commonPhrases" placeholder="Phrases you commonly use..." rows="2"
-                                  class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md"></textarea>
+                                  class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"></textarea>
                     </div>
                 </div>
             </div>
             
             <!-- Context -->
-            <div class="mb-6 border-t pt-6">
-                <h3 class="text-lg font-medium mb-3 text-gray-700">Context & Interests</h3>
+            <div class="mb-6 border-t dark:border-gray-700 pt-6">
+                <h3 class="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">Context & Interests</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-2 md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700">Interests (comma-separated)</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Interests (comma-separated)</label>
                     <input type="text" id="interests" placeholder="technology, music, travel" 
-                           class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                           class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
                     </div>
                     <div class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700">Target Audience</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Target Audience</label>
                         <input type="text" id="targetAudience" placeholder="Who are you communicating with?" 
-                               class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                               class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
                     </div>
                     <div class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700">Topics to Avoid</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Topics to Avoid</label>
                         <input type="text" id="topicsToAvoid" placeholder="Topics you prefer not to discuss" 
-                               class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md">
+                               class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
                     </div>
                 </div>
             </div>
@@ -230,7 +240,7 @@
                 Preview Changes
             </button>
             <div class="space-x-4">
-                <button id="resetChangesBtn" class="bg-white/80 backdrop-blur-sm text-gray-700 px-6 py-2 rounded-xl hover:bg-white border border-white/20 transition-all font-medium shadow-md">
+                <button id="resetChangesBtn" class="bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-6 py-2 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md">
                     Reset
                 </button>
                 <button id="saveChangesBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
@@ -392,10 +402,10 @@
                     const date = memory.createdAt ? new Date(memory.createdAt).toLocaleDateString() : '';
                     
                     return `
-                        <div class="flex items-start p-2 bg-gray-50 rounded-lg text-sm">
+                        <div class="flex items-start p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm">
                             <div class="flex-1">
-                                <p class="text-gray-900">${safeValue}</p>
-                                <p class="text-xs text-gray-500 mt-1">${category} • ${date}</p>
+                                <p class="text-gray-900 dark:text-white">${safeValue}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${category} • ${date}</p>
                             </div>
                         </div>
                     `;

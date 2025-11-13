@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -44,11 +45,24 @@
             }
         }
     </script>
+    <script>
+        // ✅ IMMEDIATE theme application (prevents flash)
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
     <style>
         .glass-effect {
             background: rgba(255, 255, 255, 0.25);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .dark .glass-effect {
+            background: rgba(31, 41, 55, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.3);
         }
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -61,7 +75,7 @@
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen font-inter">
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen font-inter">
     <!-- Modern Navigation -->
     <nav class="glass-effect sticky top-0 z-50 border-b border-white/20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -92,15 +106,15 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                         </svg>
                     </div>
-                    <h1 class="text-3xl font-bold gradient-text mb-2">Welcome to AI Twin</h1>
-                    <p class="text-gray-600">Create your digital twin with AI technology</p>
+                    <h1 class="text-3xl font-bold gradient-text dark:text-white mb-2">Welcome to AI Twin</h1>
+                    <p class="text-gray-600 dark:text-gray-300">Create your digital twin with AI technology</p>
                 </div>
 
                 <!-- Toggle Switch -->
                 <div class="flex justify-center mb-8">
-                    <div class="bg-white/50 rounded-2xl p-1 flex backdrop-blur-sm">
+                    <div class="bg-white/50 dark:bg-gray-800/50 rounded-2xl p-1 flex backdrop-blur-sm">
                         <button id="loginTab" class="px-8 py-3 rounded-xl font-semibold transition-all duration-300 bg-gradient-to-r from-primary to-accent text-white shadow-lg">Login</button>
-                        <button id="signupTab" class="px-8 py-3 rounded-xl font-semibold transition-all duration-300 text-gray-600 hover:text-primary hover:bg-white/50">Signup</button>
+                        <button id="signupTab" class="px-8 py-3 rounded-xl font-semibold transition-all duration-300 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 hover:bg-white/50 dark:hover:bg-gray-700/50">Signup</button>
                     </div>
                 </div>
                 
@@ -111,25 +125,25 @@
                 <div id="loginForm" class="auth-form">
                     <form id="loginFormElement">
                         <div class="mb-6">
-                            <label for="loginEmail" class="block text-sm font-semibold text-gray-700 mb-3">Email Address</label>
+                            <label for="loginEmail" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Email Address</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
                                     </svg>
                                 </div>
-                                <input type="email" id="loginEmail" name="email" placeholder="Enter your email" class="w-full pl-12 pr-4 py-4 bg-white/80 border border-white/30 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent backdrop-blur-sm transition-all duration-200" required>
+                                <input type="email" id="loginEmail" name="email" placeholder="Enter your email" class="w-full pl-12 pr-4 py-4 bg-white/80 dark:bg-gray-800/80 border border-white/30 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent backdrop-blur-sm transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
                             </div>
                         </div>
                         <div class="mb-6">
-                            <label for="loginPassword" class="block text-sm font-semibold text-gray-700 mb-3">Password</label>
+                            <label for="loginPassword" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Password</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                     </svg>
                                 </div>
-                                <input type="password" id="loginPassword" name="password" placeholder="Enter your password" class="w-full pl-12 pr-4 py-4 bg-white/80 border border-white/30 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent backdrop-blur-sm transition-all duration-200" required>
+                                <input type="password" id="loginPassword" name="password" placeholder="Enter your password" class="w-full pl-12 pr-4 py-4 bg-white/80 dark:bg-gray-800/80 border border-white/30 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent backdrop-blur-sm transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
                             </div>
                         </div>
                         <button type="submit" class="w-full bg-gradient-to-r from-primary to-accent text-white py-4 px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold mb-6 transform hover:scale-[1.02]">Login</button>
@@ -141,12 +155,12 @@
                                     <div class="w-full border-t border-white/30"></div>
                                 </div>
                                 <div class="relative flex justify-center text-sm">
-                                    <span class="px-3 bg-white/80 backdrop-blur-sm text-gray-600 rounded-full">Or continue with</span>
+                                    <span class="px-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-600 dark:text-gray-300 rounded-full">Or continue with</span>
                                 </div>
                             </div>
                         </div>
 
-                        <a href="/api/auth/google" class="w-full flex items-center justify-center gap-3 bg-white/90 backdrop-blur-sm border border-white/30 text-gray-700 py-4 px-6 rounded-xl hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:border-primary/30 hover:shadow-lg transition-all duration-300 font-semibold mb-6 transform hover:scale-[1.02]" style="display: flex; text-decoration: none;">
+                        <a href="/api/auth/google" class="w-full flex items-center justify-center gap-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-white/30 dark:border-gray-700 text-gray-700 dark:text-gray-300 py-4 px-6 rounded-xl hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 dark:hover:from-primary/20 dark:hover:to-accent/20 hover:border-primary/30 hover:shadow-lg transition-all duration-300 font-semibold mb-6 transform hover:scale-[1.02]" style="display: flex; text-decoration: none;">
                             <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -157,7 +171,7 @@
                         </a>
                         
                         <div class="text-center">
-                            <button type="button" id="forgotPasswordBtn" class="text-sm text-gray-600 hover:text-primary transition-colors duration-200 font-medium">Forgot Password?</button>
+                            <button type="button" id="forgotPasswordBtn" class="text-sm text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200 font-medium">Forgot Password?</button>
                         </div>
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     </form>
@@ -167,25 +181,25 @@
                 <div id="signupForm" class="auth-form" style="display: none;">
                     <form id="signupFormElement">
                         <div class="mb-6">
-                            <label for="signupEmail" class="block text-sm font-semibold text-gray-700 mb-3">Email Address</label>
+                            <label for="signupEmail" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Email Address</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
                                     </svg>
                                 </div>
-                                <input type="email" id="signupEmail" name="email" placeholder="Enter your email" class="w-full pl-12 pr-4 py-4 bg-white/80 border border-white/30 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent backdrop-blur-sm transition-all duration-200" required>
+                                <input type="email" id="signupEmail" name="email" placeholder="Enter your email" class="w-full pl-12 pr-4 py-4 bg-white/80 dark:bg-gray-800/80 border border-white/30 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent backdrop-blur-sm transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
                             </div>
                         </div>
                         <div class="mb-6">
-                            <label for="signupPassword" class="block text-sm font-semibold text-gray-700 mb-3">Password</label>
+                            <label for="signupPassword" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Password</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                     </svg>
                                 </div>
-                                <input type="password" id="signupPassword" name="password" placeholder="Create a password (min 6 characters)" class="w-full pl-12 pr-4 py-4 bg-white/80 border border-white/30 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent backdrop-blur-sm transition-all duration-200" required>
+                                <input type="password" id="signupPassword" name="password" placeholder="Create a password (min 6 characters)" class="w-full pl-12 pr-4 py-4 bg-white/80 dark:bg-gray-800/80 border border-white/30 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent backdrop-blur-sm transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
                             </div>
                         </div>
                         <button type="submit" class="w-full bg-gradient-to-r from-primary to-accent text-white py-4 px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold mb-6 transform hover:scale-[1.02]">Create Account</button>
@@ -197,12 +211,12 @@
                                     <div class="w-full border-t border-white/30"></div>
                                 </div>
                                 <div class="relative flex justify-center text-sm">
-                                    <span class="px-3 bg-white/80 backdrop-blur-sm text-gray-600 rounded-full">Or continue with</span>
+                                    <span class="px-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-600 dark:text-gray-300 rounded-full">Or continue with</span>
                                 </div>
                             </div>
                         </div>
 
-                        <a href="/api/auth/google" class="w-full flex items-center justify-center gap-3 bg-white/90 backdrop-blur-sm border border-white/30 text-gray-700 py-4 px-6 rounded-xl hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:border-primary/30 hover:shadow-lg transition-all duration-300 font-semibold transform hover:scale-[1.02]" style="display: flex; text-decoration: none;">
+                        <a href="/api/auth/google" class="w-full flex items-center justify-center gap-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-white/30 dark:border-gray-700 text-gray-700 dark:text-gray-300 py-4 px-6 rounded-xl hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 dark:hover:from-primary/20 dark:hover:to-accent/20 hover:border-primary/30 hover:shadow-lg transition-all duration-300 font-semibold transform hover:scale-[1.02]" style="display: flex; text-decoration: none;">
                             <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -217,15 +231,15 @@
 
                 <!-- Forgot Password Form -->
                 <div id="forgotPasswordForm" class="auth-form" style="display: none;">
-                    <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Reset Password</h1>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">Reset Password</h1>
                     <form id="forgotPasswordFormElement">
                         <div class="mb-4">
-                            <label for="forgotEmail" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            <label for="forgotEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
                             <input type="email" id="forgotEmail" name="email" placeholder="Enter your email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
                         </div>
                         <button type="submit" class="w-full bg-primary text-white py-3 px-6 rounded-lg hover:bg-secondary transition-colors font-semibold mb-4">Send Reset Code</button>
                         <div class="text-center">
-                            <button type="button" id="backToLoginBtn" class="text-sm text-gray-600 hover:text-primary">← Back to login</button>
+                            <button type="button" id="backToLoginBtn" class="text-sm text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400">← Back to login</button>
                         </div>
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     </form>

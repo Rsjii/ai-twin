@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -19,14 +20,23 @@
             }
         }
     </script>
+    <script>
+        // ✅ IMMEDIATE theme application (prevents flash)
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
     <script> window.csrfToken = '<%= csrfToken %>';</script>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen font-inter">
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen font-inter">
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Style Customize</h1>
-            <p class="text-gray-600">Customize your AI twin's communication style and personality</p>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Style Customize</h1>
+            <p class="text-gray-600 dark:text-gray-300">Customize your AI twin's communication style and personality</p>
         </div>
 
         <!-- Navigation Breadcrumbs -->
@@ -34,42 +44,42 @@
     <nav class="flex" aria-label="Breadcrumb">
       <ol class="flex items-center space-x-2">
         <li>
-          <a href="/dashboard" class="text-gray-500 hover:text-gray-700 transition-colors">
+          <a href="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
             </svg>
           </a>
         </li>
         <li>
+          <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </li>
+        <li>
+          <a href="/my-twins" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">My Twins</a>
+        </li>
+        <li>
+          <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </li>
+        <li>
+          <a href="/twin/<%= twinId %>/learning-dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Learning Dashboard</a>
+        </li>
+        <li>
           <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
           </svg>
         </li>
         <li>
-          <a href="/my-twins" class="text-gray-500 hover:text-gray-700 transition-colors">My Twins</a>
-        </li>
-        <li>
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-          </svg>
-        </li>
-        <li>
-          <a href="/twin/<%= twinId %>/learning-dashboard" class="text-gray-500 hover:text-gray-700 transition-colors">Learning Dashboard</a>
-        </li>
-        <li>
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-          </svg>
-        </li>
-        <li>
-          <span class="text-gray-900 font-medium">Style Customize</span>
+          <span class="text-gray-900 dark:text-white font-medium">Style Customize</span>
         </li>
       </ol>
     </nav>
   </div>
   
   <!-- Quick Actions -->
-  <div class="mb-6 bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-md">
+  <div class="mb-6 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 dark:border-gray-700 shadow-md dark:shadow-gray-900">
     <div class="flex items-center justify-between">
       <div class="flex items-center space-x-4">
         <a href="/twin/<%= twinId %>/learning-dashboard" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md flex items-center">
@@ -85,23 +95,23 @@
                         Memory Management
                     </a>
       </div>
-      <div class="text-sm text-gray-600">
+      <div class="text-sm text-gray-600 dark:text-gray-300">
         <span class="font-medium">Twin ID:</span> <%= twinId %>
       </div>
     </div>
   </div>
 
         <!-- Style Controls -->
-        <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 mb-8 border border-white/20">
-            <h2 class="text-xl font-semibold mb-4">Communication Style</h2>
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-6 mb-8 border border-white/20 dark:border-gray-700">
+            <h2 class="text-xl font-semibold mb-4 dark:text-white">Communication Style</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 <!-- Formality Level -->
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Formality Level</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Formality Level</label>
                     <input type="range" id="formality" min="0" max="1" step="0.1" value="0.5" 
-                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                    <div class="flex justify-between text-xs text-gray-500">
+                           class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                         <span>Casual</span>
                         <span id="formality-value">0.5</span>
                         <span>Formal</span>
@@ -110,10 +120,10 @@
 
                 <!-- Emoji Usage -->
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Emoji Usage</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Emoji Usage</label>
                     <input type="range" id="emoji_usage" min="0" max="1" step="0.1" value="0.3" 
-                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                    <div class="flex justify-between text-xs text-gray-500">
+                           class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                         <span>None</span>
                         <span id="emoji-value">0.3</span>
                         <span>Frequent</span>
@@ -122,8 +132,8 @@
 
                 <!-- Humor Style -->
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Humor Style</label>
-                    <select id="humor_style" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Humor Style</label>
+                    <select id="humor_style" class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white">
                         <option value="none">None</option>
                         <option value="light" selected>Light</option>
                         <option value="moderate">Moderate</option>
@@ -133,10 +143,10 @@
 
                 <!-- Question Frequency -->
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Question Frequency</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Question Frequency</label>
                     <input type="range" id="question_frequency" min="0" max="1" step="0.1" value="0.4" 
-                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                    <div class="flex justify-between text-xs text-gray-500">
+                           class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                         <span>Rare</span>
                         <span id="question-value">0.4</span>
                         <span>Frequent</span>
@@ -145,8 +155,8 @@
 
                 <!-- Response Length -->
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Response Length</label>
-                    <select id="response_length_preference" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Response Length</label>
+                    <select id="response_length_preference" class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white">
                         <option value="brief">Brief</option>
                         <option value="detailed" selected>Detailed</option>
                         <option value="comprehensive">Comprehensive</option>
@@ -155,8 +165,8 @@
 
                 <!-- Tone -->
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Tone</label>
-                    <select id="tone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tone</label>
+                    <select id="tone" class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white">
                         <option value="casual" selected>Casual</option>
                         <option value="witty">Witty</option>
                         <option value="serious">Serious</option>
@@ -168,20 +178,20 @@
         </div>
 
         <!-- Style Anchors Preview Section -->
-        <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 mb-8 border border-white/20">
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-6 mb-8 border border-white/20 dark:border-gray-700">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold">Style Anchors</h2>
-                <a href="/twin/<%= twinId %>/memory-management" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                <h2 class="text-xl font-semibold dark:text-white">Style Anchors</h2>
+                <a href="/twin/<%= twinId %>/memory-management" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
                     Manage All Style Anchors →
                 </a>
             </div>
 
             <!-- Tabs -->
-            <div class="flex space-x-2 mb-4 border-b border-gray-200">
-                <button id="tab-phrases" data-tab="phrases" class="px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600 style-anchor-tab">
+            <div class="flex space-x-2 mb-4 border-b border-gray-200 dark:border-gray-700">
+                <button id="tab-phrases" data-tab="phrases" class="px-4 py-2 font-medium text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 style-anchor-tab">
                     Phrases
                 </button>
-                <button id="tab-interactions" data-tab="interactions" class="px-4 py-2 font-medium text-gray-600 hover:text-blue-600 style-anchor-tab">
+                <button id="tab-interactions" data-tab="interactions" class="px-4 py-2 font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 style-anchor-tab">
                     Interactions
                 </button>
             </div>
@@ -207,10 +217,10 @@
             </div>
 
             <!-- Stats -->
-            <div class="mt-4 pt-4 border-t border-gray-200">
-                <div class="flex justify-between text-sm text-gray-600">
-                    <span>Total Phrases: <span id="totalPhrases" class="font-medium text-gray-900">0</span></span>
-                    <span>Total Interactions: <span id="totalInteractions" class="font-medium text-gray-900">0</span></span>
+            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                    <span>Total Phrases: <span id="totalPhrases" class="font-medium text-gray-900 dark:text-white">0</span></span>
+                    <span>Total Interactions: <span id="totalInteractions" class="font-medium text-gray-900 dark:text-white">0</span></span>
                 </div>
             </div>
         </div>
@@ -222,7 +232,7 @@
                 Preview Changes
             </button>
             <div class="space-x-4">
-                <button id="resetChangesBtn" class="bg-white/80 backdrop-blur-sm text-gray-700 px-6 py-2 rounded-xl hover:bg-white border border-white/20 transition-all font-medium shadow-md">
+                <button id="resetChangesBtn" class="bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-6 py-2 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md">
                     Reset
                 </button>
                 <button id="saveChangesBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
@@ -422,15 +432,15 @@
                     const phrase = anchor.phrase || '';
                     const tags = anchor.tags || [];
                     const date = anchor.created_at ? new Date(anchor.created_at).toLocaleDateString() : '';
-                    const tagsDisplay = tags.length > 0 ? tags.map(tag => `<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">${escapeHtml(tag)}</span>`).join(' ') : '';
+                    const tagsDisplay = tags.length > 0 ? tags.map(tag => `<span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded">${escapeHtml(tag)}</span>`).join(' ') : '';
                     
                     return `
-                        <div class="flex justify-between items-start p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div class="flex justify-between items-start p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <div class="flex-1">
-                                <p class="text-sm text-gray-900 font-medium">${escapeHtml(phrase)}</p>
+                                <p class="text-sm text-gray-900 dark:text-white font-medium">${escapeHtml(phrase)}</p>
                                 <div class="flex items-center space-x-2 mt-1">
                                     ${tagsDisplay}
-                                    <span class="text-xs text-gray-500">${date}</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">${date}</span>
                                 </div>
                             </div>
                         </div>
@@ -438,7 +448,7 @@
                 }).join('');
                 phrasesListEl.innerHTML = phrasesHTML;
             } else {
-                phrasesListEl.innerHTML = `<p class="text-gray-500 text-center py-4">No phrases yet. <a href="/twin/${twinId}/memory-management" class="text-blue-600 hover:text-blue-800">Add your first one here</a>!</p>`;
+                phrasesListEl.innerHTML = `<p class="text-gray-500 dark:text-gray-400 text-center py-4">No phrases yet. <a href="/twin/${twinId}/memory-management" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">Add your first one here</a>!</p>`;
             }
         } catch (error) {
             console.error('Error loading phrases:', error);
@@ -465,28 +475,28 @@
                     const idealReply = anchor.ideal_reply || '';
                     const tags = anchor.tags || [];
                     const date = anchor.created_at ? new Date(anchor.created_at).toLocaleDateString() : '';
-                    const tagsDisplay = tags.length > 0 ? tags.map(tag => `<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">${escapeHtml(tag)}</span>`).join(' ') : '';
+                    const tagsDisplay = tags.length > 0 ? tags.map(tag => `<span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded">${escapeHtml(tag)}</span>`).join(' ') : '';
                     
                     return `
-                        <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <div class="mb-2">
-                                <p class="text-xs text-gray-500 mb-1">User:</p>
-                                <p class="text-sm text-gray-700">${escapeHtml(userUtterance)}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">User:</p>
+                                <p class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(userUtterance)}</p>
                             </div>
                             <div class="mb-2">
-                                <p class="text-xs text-gray-500 mb-1">Ideal Reply:</p>
-                                <p class="text-sm text-gray-900 font-medium">${escapeHtml(idealReply)}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Ideal Reply:</p>
+                                <p class="text-sm text-gray-900 dark:text-white font-medium">${escapeHtml(idealReply)}</p>
                             </div>
                             <div class="flex items-center space-x-2">
                                 ${tagsDisplay}
-                                <span class="text-xs text-gray-500">${date}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">${date}</span>
                             </div>
                         </div>
                     `;
                 }).join('');
                 interactionsListEl.innerHTML = interactionsHTML;
             } else {
-                interactionsListEl.innerHTML = `<p class="text-gray-500 text-center py-4">No interactions yet. <a href="/twin/${twinId}/memory-management" class="text-blue-600 hover:text-blue-800">Add your first one here</a>!</p>`;
+                interactionsListEl.innerHTML = `<p class="text-gray-500 dark:text-gray-400 text-center py-4">No interactions yet. <a href="/twin/${twinId}/memory-management" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">Add your first one here</a>!</p>`;
             }
         } catch (error) {
             console.error('Error loading interactions:', error);

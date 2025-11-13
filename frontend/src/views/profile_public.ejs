@@ -4,7 +4,7 @@
         <div id="profileContainer">
             <div class="text-center">
                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p class="mt-2 text-gray-600">Loading profile...</p>
+                <p class="mt-2 text-gray-600 dark:text-gray-300">Loading profile...</p>
             </div>
         </div>
     </div>
@@ -43,41 +43,41 @@ function displayProfile(data) {
     const container = document.getElementById('profileContainer');
     
     container.innerHTML = `
-        <div class="bg-white rounded-lg shadow-lg p-8">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-8">
             <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">@${data.user.handle}</h1>
-                <p class="text-gray-600">AI Twin Profile</p>
-                <div class="mt-4 inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">@${data.user.handle}</h1>
+                <p class="text-gray-600 dark:text-gray-300">AI Twin Profile</p>
+                <div class="mt-4 inline-block bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm font-medium">
                     AI-generated • Private Alpha
                 </div>
             </div>
             
             <div class="grid md:grid-cols-2 gap-8">
                 <div>
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Style Analysis</h2>
-                    <div class="bg-gray-50 rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Style Analysis</h2>
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
                         <div class="space-y-3">
                             <div>
-                                <span class="font-medium text-gray-700">Tone:</span>
-                                <span class="ml-2 capitalize">${data.twin.styleVector.tone}</span>
+                                <span class="font-medium text-gray-700 dark:text-gray-200">Tone:</span>
+                                <span class="ml-2 capitalize dark:text-gray-300">${data.twin.styleVector.tone}</span>
                             </div>
                             <div>
-                                <span class="font-medium text-gray-700">Emoji Usage:</span>
-                                <span class="ml-2">${Math.round(data.twin.styleVector.emoji_usage * 100)}%</span>
+                                <span class="font-medium text-gray-700 dark:text-gray-200">Emoji Usage:</span>
+                                <span class="ml-2 dark:text-gray-300">${Math.round(data.twin.styleVector.emoji_usage * 100)}%</span>
                             </div>
                             <div>
-                                <span class="font-medium text-gray-700">Hinglish Ratio:</span>
-                                <span class="ml-2">${Math.round(data.twin.styleVector.hinglish_ratio * 100)}%</span>
+                                <span class="font-medium text-gray-700 dark:text-gray-200">Hinglish Ratio:</span>
+                                <span class="ml-2 dark:text-gray-300">${Math.round(data.twin.styleVector.hinglish_ratio * 100)}%</span>
                             </div>
                             <div>
-                                <span class="font-medium text-gray-700">Sentence Length:</span>
-                                <span class="ml-2 capitalize">${data.twin.styleVector.sentence_length}</span>
+                                <span class="font-medium text-gray-700 dark:text-gray-200">Sentence Length:</span>
+                                <span class="ml-2 capitalize dark:text-gray-300">${data.twin.styleVector.sentence_length}</span>
                             </div>
                             <div>
-                                <span class="font-medium text-gray-700">Signature Patterns:</span>
+                                <span class="font-medium text-gray-700 dark:text-gray-200">Signature Patterns:</span>
                                 <div class="mt-1">
                                     ${data.twin.styleVector.signature_patterns.map(pattern => 
-                                        `<span class="inline-block bg-blue-200 text-blue-800 px-2 py-1 rounded text-sm mr-1 mb-1">${pattern}</span>`
+                                        `<span class="inline-block bg-blue-200 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-sm mr-1 mb-1">${pattern}</span>`
                                     ).join('')}
                                 </div>
                             </div>
@@ -86,12 +86,12 @@ function displayProfile(data) {
                 </div>
                 
                 <div>
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Sample Reply</h2>
-                    <div class="bg-blue-50 rounded-lg p-6">
-                        <div class="bg-white rounded-lg p-4 border-l-4 border-blue-500">
-                            <p class="text-gray-800 italic">"${data.twin.sampleReply}"</p>
+                    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Sample Reply</h2>
+                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6">
+                        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-l-4 border-blue-500 dark:border-blue-400">
+                            <p class="text-gray-800 dark:text-gray-200 italic">"${data.twin.sampleReply}"</p>
                         </div>
-                        <p class="text-sm text-gray-600 mt-2 text-center">AI-generated response in user's style</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mt-2 text-center">AI-generated response in user's style</p>
                     </div>
                 </div>
             </div>
@@ -102,7 +102,7 @@ function displayProfile(data) {
                 </button>
             </div>
             
-            <div class="mt-6 text-center text-sm text-gray-500">
+            <div class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
                 <p>This profile was created using AI Twin technology</p>
                 <p>All content is AI-generated and clearly labeled</p>
             </div>
@@ -113,10 +113,10 @@ function displayProfile(data) {
 function showError(message) {
     const container = document.getElementById('profileContainer');
     container.innerHTML = `
-        <div class="bg-white rounded-lg shadow-lg p-8 text-center">
-            <div class="text-red-500 text-6xl mb-4">⚠️</div>
-            <h2 class="text-2xl font-bold text-gray-900 mb-4">Profile Not Available</h2>
-            <p class="text-gray-600 mb-6">${message}</p>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-8 text-center">
+            <div class="text-red-500 dark:text-red-400 text-6xl mb-4">⚠️</div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Profile Not Available</h2>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">${message}</p>
             <a href="/" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-secondary transition-colors font-semibold">
                 Go Home
             </a>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -24,6 +25,15 @@
                 }
             }
         }
+    </script>
+    <script>
+        // ✅ IMMEDIATE theme application (prevents flash)
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+        })();
     </script>
     <style>
         .gradient-text {
@@ -80,9 +90,9 @@
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen font-inter">
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen font-inter">
     <!-- Header -->
-    <header class="bg-white/80 backdrop-blur-xl border-b border-white/20 sticky top-0 z-40">
+    <header class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700 sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
@@ -97,7 +107,7 @@
                 </div>
                 
                 <div class="hidden md:flex items-center space-x-2">
-                    <span class="text-sm text-gray-600">Step <span id="currentStepNumber">1</span> of 5</span>
+                    <span class="text-sm text-gray-600 dark:text-gray-300">Step <span id="currentStepNumber">1</span> of 5</span>
                     <div class="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
                         <div id="progressBar" class="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500" style="width: 20%"></div>
                     </div>
@@ -139,15 +149,15 @@
             </div>
 
             <!-- Main Content -->
-            <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 p-8">
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-8">
                 <form id="onboardingForm">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     
                     <!-- Step 1: Basic Information -->
                     <div id="step1-content" class="step-content fade-in">
                         <div class="mb-8">
-                            <h1 class="text-3xl font-bold text-gray-900 mb-2">Let's Get Started!</h1>
-                            <p class="text-gray-600">Tell us about yourself to create your perfect AI twin.</p>
+                            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Let's Get Started!</h1>
+                            <p class="text-gray-600 dark:text-gray-300">Tell us about yourself to create your perfect AI twin.</p>
                         </div>
 
                         <div class="space-y-6">
@@ -192,14 +202,14 @@
                     <!-- Step 2: Communication Style -->
                     <div id="step2-content" class="step-content hidden">
                         <div class="mb-8">
-                            <h1 class="text-3xl font-bold text-gray-900 mb-2">Communication Style</h1>
-                            <p class="text-gray-600">How should your AI twin communicate? Adjust these settings to match your style.</p>
+                            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Communication Style</h1>
+                            <p class="text-gray-600 dark:text-gray-300">How should your AI twin communicate? Adjust these settings to match your style.</p>
                         </div>
 
                         <div class="space-y-8">
                             <!-- Tone Sliders -->
                             <div class="bg-gray-50 rounded-xl p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Tone Preferences</h3>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tone Preferences</h3>
                                 
                                 <div class="space-y-6">
                                     <div class="tone-slider-group">

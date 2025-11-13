@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -18,16 +19,25 @@
             }
         }
     </script>
+    <script>
+        // ✅ IMMEDIATE theme application (prevents flash)
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
     <script> window.csrfToken = '<%= csrfToken %>';</script>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen font-inter">
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen font-inter">
     <div class="min-h-screen">
         <!-- Header -->
-        <div class="bg-white/80 backdrop-blur-xl border-b border-white/20 shadow-lg">
+        <div class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700 shadow-lg dark:shadow-gray-900">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center py-4">
                     <div class="flex items-center">
-                        <a href="/dashboard" class="text-gray-600 hover:text-gray-900">
+                        <a href="/dashboard" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
                             ← Back to Dashboard
                         </a>
                     </div>
@@ -36,7 +46,7 @@
                         <nav class="flex" aria-label="Breadcrumb">
                             <ol class="flex items-center space-x-2">
                                 <li>
-                                    <a href="/dashboard" class="text-gray-500 hover:text-gray-700 transition-colors">
+                                    <a href="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                                         </svg>
@@ -48,7 +58,7 @@
                                     </svg>
                                 </li>
                                 <li>
-                                    <a href="/my-twins" class="text-gray-500 hover:text-gray-700 transition-colors">My Twins</a>
+                                    <a href="/my-twins" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">My Twins</a>
                                 </li>
                                 <li>
                                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,7 +66,7 @@
                                     </svg>
                                 </li>
                                 <li>
-                                    <a href="/twin/<%= twinId %>/learning-dashboard" class="text-gray-500 hover:text-gray-700 transition-colors">Learning Dashboard</a>
+                                    <a href="/twin/<%= twinId %>/learning-dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Learning Dashboard</a>
                                 </li>
                                 <li>
                                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,14 +74,14 @@
                                     </svg>
                                 </li>
                                 <li>
-                                    <span class="text-gray-900 font-medium">Memory Management</span>
+                                    <span class="text-gray-900 dark:text-white font-medium">Memory Management</span>
                                 </li>
                             </ol>
                         </nav>
                     </div>
                     
                     <!-- Quick Actions -->
-                    <div class="mb-6 bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-md">
+                    <div class="mb-6 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 dark:border-gray-700 shadow-md dark:shadow-gray-900">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-4">
                                 <a href="/twin/<%= twinId %>/learning-dashboard" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md flex items-center">
@@ -87,14 +97,14 @@
                                     Style Customize
                                 </a>
                             </div>
-                            <div class="text-sm text-gray-600">
+                            <div class="text-sm text-gray-600 dark:text-gray-300">
                                 <span class="font-medium">Twin ID:</span> <%= twinId %>
                             </div>
                         </div>
                     </div>
 
                     <div class="flex justify-between items-center w-full">
-                        <h1 class="text-2xl font-bold text-gray-900">Memory Management</h1>
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Memory Management</h1>
                         <button id="ingestBtn" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
                             Ingest Memory
                         </button>
@@ -107,84 +117,84 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <!-- Enhanced Memory Statistics -->
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
-                <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-4 border border-white/20">
-                    <h3 class="text-sm font-medium text-gray-600 mb-1">Total</h3>
+                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 border border-white/20 dark:border-gray-700">
+                    <h3 class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total</h3>
                     <p class="text-2xl font-bold text-blue-600" id="totalMemories">-</p>
                 </div>
-                <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-4 border border-white/20">
+                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 border border-white/20 dark:border-gray-700">
                     <h3 class="text-sm font-medium text-gray-600 mb-1">Facts</h3>
                     <p class="text-2xl font-bold text-green-600" id="factsCount">-</p>
                 </div>
-                <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-4 border border-white/20">
+                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 border border-white/20 dark:border-gray-700">
                     <h3 class="text-sm font-medium text-gray-600 mb-1">Preferences</h3>
                     <p class="text-2xl font-bold text-yellow-600" id="preferencesCount">-</p>
                 </div>
-                <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-4 border border-white/20">
+                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 border border-white/20 dark:border-gray-700">
                     <h3 class="text-sm font-medium text-gray-600 mb-1">Interests</h3>
                     <p class="text-2xl font-bold text-orange-600" id="interestsCount">-</p>
                 </div>
-                <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-4 border border-white/20">
+                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 border border-white/20 dark:border-gray-700">
                     <h3 class="text-sm font-medium text-gray-600 mb-1">Relationships</h3>
                     <p class="text-2xl font-bold text-pink-600" id="relationshipsCount">-</p>
                 </div>
-                <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-4 border border-white/20">
+                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 border border-white/20 dark:border-gray-700">
                     <h3 class="text-sm font-medium text-gray-600 mb-1">Phrases</h3>
                     <p class="text-2xl font-bold text-purple-600" id="phrasesCount">-</p>
                 </div>
-                <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-4 border border-white/20">
+                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 border border-white/20 dark:border-gray-700">
                     <h3 class="text-sm font-medium text-gray-600 mb-1">Interactions</h3>
                     <p class="text-2xl font-bold text-indigo-600" id="interactionsCount">-</p>
                 </div>
             </div>
 
             <!-- Memory Categories Section -->
-            <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-white/20 mb-8">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-medium text-gray-900">Memory Categories</h2>
-                    <p class="text-sm text-gray-600">Manage all types of memories</p>
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 mb-8">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-white">Memory Categories</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">Manage all types of memories</p>
                 </div>
 
                 <!-- Category Tabs -->
                 <div class="px-6 pt-4">
-                    <div class="flex space-x-2 border-b border-gray-200">
-                        <button data-category="fact" id="tab-fact" class="memory-category-tab px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600">
+                    <div class="flex space-x-2 border-b border-gray-200 dark:border-gray-700">
+                        <button data-category="fact" id="tab-fact" class="memory-category-tab px-4 py-2 font-medium text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400">
                             Facts
                         </button>
-                        <button data-category="preference" id="tab-preference" class="memory-category-tab px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
+                        <button data-category="preference" id="tab-preference" class="memory-category-tab px-4 py-2 font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
                             Preferences
                         </button>
-                        <button data-category="interest" id="tab-interest" class="memory-category-tab px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
+                        <button data-category="interest" id="tab-interest" class="memory-category-tab px-4 py-2 font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
                             Interests
                         </button>
-                        <button data-category="relationship" id="tab-relationship" class="memory-category-tab px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
+                        <button data-category="relationship" id="tab-relationship" class="memory-category-tab px-4 py-2 font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
                             Relationships
                         </button>
-                        <button data-category="context" id="tab-context" class="memory-category-tab px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
+                        <button data-category="context" id="tab-context" class="memory-category-tab px-4 py-2 font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
                             Context
                         </button>
                     </div>
                 </div>
 
                 <!-- Search Box -->
-                <div class="px-6 py-4 border-b border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <input type="text" id="memorySearch" placeholder="Search memories..." 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
                 </div>
 
                 <!-- Memory List -->
                 <div id="memoryList" class="p-6 min-h-[300px]">
-                    <div class="text-center text-gray-500 py-8">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto"></div>
                         <p class="mt-2">Loading memories...</p>
                     </div>
                 </div>
 
                 <!-- Add Memory Form -->
-                <div class="px-6 pb-6 border-t border-gray-200 pt-4">
+                <div class="px-6 pb-6 border-t border-gray-200 dark:border-gray-700 pt-4">
                     <div class="flex space-x-4">
                         <input type="text" id="newMemory" placeholder="Add new memory..." 
-                               class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button id="addMemoryBtn" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                               class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
+                        <button id="addMemoryBtn" class="bg-blue-500 dark:bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
                             Add Memory
                         </button>
                     </div>
@@ -192,28 +202,28 @@
             </div>
 
             <!-- Style Anchors Section -->
-            <div class="bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-white/20">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-medium text-gray-900">Style Anchors</h2>
-                    <p class="text-sm text-gray-600">Manage phrases and interaction patterns</p>
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-white">Style Anchors</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">Manage phrases and interaction patterns</p>
                 </div>
 
                 <!-- Style Anchor Tabs -->
                 <div class="px-6 pt-4">
-                    <div class="flex space-x-2 border-b border-gray-200">
-                        <button data-anchor-type="phrase" id="tab-phrase" class="style-anchor-tab px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600">
+                    <div class="flex space-x-2 border-b border-gray-200 dark:border-gray-700">
+                        <button data-anchor-type="phrase" id="tab-phrase" class="style-anchor-tab px-4 py-2 font-medium text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400">
                             Phrases
                         </button>
-                        <button data-anchor-type="interaction" id="tab-interaction" class="style-anchor-tab px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
+                        <button data-anchor-type="interaction" id="tab-interaction" class="style-anchor-tab px-4 py-2 font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
                             Interactions
                         </button>
                     </div>
                 </div>
 
                 <!-- Search Box -->
-                <div class="px-6 py-4 border-b border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <input type="text" id="anchorSearch" placeholder="Search style anchors..." 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
                 </div>
 
                 <!-- Style Anchor List -->
@@ -254,9 +264,9 @@
     <!-- Enhanced Ingest Modal -->
     <div id="ingestModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50">
         <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white/90 backdrop-blur-xl rounded-xl shadow-2xl max-w-2xl w-full border border-white/20">
+            <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-xl shadow-2xl dark:shadow-gray-900 max-w-2xl w-full border border-white/20 dark:border-gray-700">
                 <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                    <h3 class="text-lg font-medium text-gray-900">Ingest Memory</h3>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">Ingest Memory</h3>
                     <button onclick="hideIngestModal()" class="text-gray-400 hover:text-gray-600">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -269,7 +279,7 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Memory Type
                         </label>
-                        <select id="memoryType" name="memoryType" class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md" required>
+                        <select id="memoryType" name="memoryType" class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md dark:shadow-gray-900 text-gray-900 dark:text-white" required>
                             <option value="longterm">MemoryLongTerm (Facts, Preferences, etc.)</option>
                             <option value="style_anchor">StyleAnchor (Phrases, Interactions)</option>
                         </select>
@@ -280,7 +290,7 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Category
                         </label>
-                        <select id="memoryCategory" name="memoryCategory" class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md" required>
+                        <select id="memoryCategory" name="memoryCategory" class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md dark:shadow-gray-900 text-gray-900 dark:text-white" required>
                             <option value="fact">Fact</option>
                             <option value="preference">Preference</option>
                             <option value="interest">Interest</option>
@@ -294,7 +304,7 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Type
                         </label>
-                        <select id="anchorType" name="anchorType" class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md" required>
+                        <select id="anchorType" name="anchorType" class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md dark:shadow-gray-900 text-gray-900 dark:text-white" required>
                             <option value="phrase">Phrase</option>
                             <option value="interaction">Interaction</option>
                         </select>
@@ -308,14 +318,14 @@
                             id="memoryText" 
                             name="text"
                             rows="6"
-                            class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md"
+                            class="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md dark:shadow-gray-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                             placeholder="Paste your text samples here..."
                             required
                         ></textarea>
                     </div>
                     
                     <div class="flex justify-end space-x-3">
-                        <button type="button" onclick="hideIngestModal()" class="px-4 py-2 text-gray-700 bg-white/80 backdrop-blur-sm rounded-xl hover:bg-white border border-white/20 transition-all font-medium shadow-md">
+                        <button type="button" onclick="hideIngestModal()" class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md dark:shadow-gray-900">
                             Cancel
                         </button>
                         <button type="submit" class="px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
@@ -435,10 +445,10 @@
                 const date = new Date(memory.createdAt || memory.created_at || Date.now()).toLocaleDateString();
                 
                 return `
-                    <div class="mb-3 p-3 bg-white/60 backdrop-blur-sm rounded-xl border border-white/20 hover:bg-white/80 transition-colors">
+                    <div class="mb-3 p-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-gray-700 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
-                                <p class="text-gray-900">${safeValue}</p>
+                                <p class="text-gray-900 dark:text-white">${safeValue}</p>
                                 <p class="text-xs text-gray-500 mt-1">${date}</p>
                             </div>
                             <div class="flex space-x-2 ml-4">
@@ -500,10 +510,10 @@
                     const safePhrase = escapeHtml(phrase);
                     const safePhraseAttr = escapeForAttribute(phrase);
                     return `
-                        <div class="mb-3 p-3 bg-white/60 backdrop-blur-sm rounded-xl border border-white/20 hover:bg-white/80 transition-colors">
+                        <div class="mb-3 p-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-gray-700 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
-                                    <p class="text-gray-900 font-medium">${safePhrase}</p>
+                                    <p class="text-gray-900 dark:text-white font-medium">${safePhrase}</p>
                                     <p class="text-xs text-gray-500 mt-1">${date}</p>
                                 </div>
                                 <div class="flex space-x-2 ml-4">
@@ -528,13 +538,13 @@
                     const safeUtteranceAttr = escapeForAttribute(userUtterance);
                     const safeReplyAttr = escapeForAttribute(idealReply);
                     return `
-                        <div class="mb-3 p-3 bg-white/60 backdrop-blur-sm rounded-xl border border-white/20 hover:bg-white/80 transition-colors">
+                        <div class="mb-3 p-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-gray-700 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
                                     <p class="text-xs text-gray-500 mb-1">User:</p>
                                     <p class="text-sm text-gray-700 mb-2">${safeUtterance}</p>
                                     <p class="text-xs text-gray-500 mb-1">Ideal Reply:</p>
-                                    <p class="text-sm text-gray-900 font-medium">${safeReply}</p>
+                                    <p class="text-sm text-gray-900 dark:text-white font-medium">${safeReply}</p>
                                     <p class="text-xs text-gray-500 mt-1">${date}</p>
                                 </div>
                                 <div class="flex space-x-2 ml-4">

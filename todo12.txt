@@ -257,7 +257,7 @@ Issues (from todo9.txt):
 
 | Priority | Task | Impact | Effort | Files |
 |----------|------|--------|--------|-------|
-| **E** | **Response Caching** | 🟢 Nice-to-have | Medium | `responseCache.ts` (NEW), `twinService.ts` |
+| **E** | **Response Caching** | 🟢 Nice-to-have | Medium | `responseCache.ts` (NEW), `twinService.ts` | LATER
 | **F** | **Pre-warm Groq API** | 🟢 Nice-to-have | Low | `server.ts` |
 | **G** | **Analytics Cards** | 🟡 Medium | Medium | `dashboard.ejs` |
 | **H** | **Memory Categories** | 🟡 Medium | Medium | `memory-management.ejs`, `ai-edit.ejs` |
