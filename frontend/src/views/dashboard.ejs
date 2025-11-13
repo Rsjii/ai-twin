@@ -706,17 +706,13 @@
                     <!-- Top Navigation Links -->
                     <div class="flex items-center space-x-6">
                         <!-- Discover Link - Always Visible -->
-                        <a href="/discover" class="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium text-base">
-                            Discover
-                        </a>
+                        <a href="/discover" class="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800/50">Discover</a>
                         
                         <!-- Dashboard Link - Only if logged in -->
                         <% if (typeof user !== 'undefined' && user) { %>
-                            <a href="/dashboard" class="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium text-base">
-                                Dashboard
-                            </a>
+                            <a href="/dashboard" class="text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800/50 px-3 py-2 rounded-lg font-medium">Dashboard</a>
                         <% } %>
-                    </div>
+                    </div>                    
                 </div>
 
                 <!-- Right: User Menu -->                
@@ -756,11 +752,9 @@
                                     <div class="text-sm font-semibold text-gray-900 dark:text-white"><%= user.handle || user.email %></div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400"><%= user.email %></div>
                                 </div>
-                                <div id="arrowButton" class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200 cursor-pointer">
-                                    <svg id="arrowIcon" class="w-4 h-4 text-primary transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg id="arrowIcon" class="w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     </svg>
-                                </div>
                             </button>
                             
                             <!-- Dropdown Menu -->
@@ -786,88 +780,41 @@
                                 
                                 <!-- Navigation Items -->
                                 <div class="py-2">
-                                    <a href="/dashboard" class="flex items-center px-6 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-primary/10 dark:hover:from-primary/20 hover:to-accent/10 dark:hover:to-accent/20 hover:text-primary dark:hover:text-blue-400 transition-all duration-200 group">
-                                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
-                                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"></path>
+                                    <a href="/profile" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
+                                        <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                             </svg>
-                                        </div>
-                                        <span class="font-medium">Dashboard</span>
+                                        Profile Settings
                                     </a>
-                                    
-                                    <a href="/profile" class="flex items-center px-6 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-primary/10 dark:hover:from-primary/20 hover:to-accent/10 dark:hover:to-accent/20 hover:text-primary dark:hover:text-blue-400 transition-all duration-200 group">
-                                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
-                                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                            </svg>
-                                        </div>
-                                        <span class="font-medium">Profile Settings</span>
-                                    </a>
-                                    
-                                    <% if (hasTwins && twinId) { %>
-                                    <a href="/twin/manage" class="flex items-center px-6 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-primary/10 dark:hover:from-primary/20 hover:to-accent/10 dark:hover:to-accent/20 hover:text-primary dark:hover:text-blue-400 transition-all duration-200 group">
-                                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
-                                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <% if (typeof hasTwins !== 'undefined' && hasTwins && typeof twinId !== 'undefined' && twinId) { %>
+                                        <a href="/twin/manage" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
+                                            <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                                             </svg>
-                                        </div>
-                                        <span class="font-medium">My Twin</span>
+                                            My Twin
                                     </a>
                                     <% } %>
-                                    
-                                    <a href="/analytics" class="flex items-center px-6 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-primary/10 dark:hover:from-primary/20 hover:to-accent/10 dark:hover:to-accent/20 hover:text-primary dark:hover:text-blue-400 transition-all duration-200 group">
-                                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
-                                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <a href="/analytics" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
+                                        <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                                             </svg>
-                                        </div>
-                                        <span class="font-medium">Analytics</span>
+                                        Analytics
                                     </a>
-                                    
-                                    <!-- Divider -->
-                                    <div class="border-t border-gray-100/50 dark:border-gray-700/50 my-3"></div>
-                                    
-                                    <!-- Settings -->
-                                    <a href="/profile?tab=settings" class="flex items-center px-6 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-primary/10 dark:hover:from-primary/20 hover:to-accent/10 dark:hover:to-accent/20 hover:text-primary dark:hover:text-blue-400 transition-all duration-200 group">
-                                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
-                                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <a href="/profile?tab=settings" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
+                                        <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                             </svg>
+                                        Settings
+                                    </a>
                                         </div>
-                                        <span class="font-medium">Settings</span>
-                                    </a>                                    
-                                    
-                                    <!-- Divider -->
-                                    <div class="border-t border-gray-100/50 dark:border-gray-700/50 my-3"></div>
-                                    
-                                    <!-- ✅ Dark Mode Toggle Button -->
-                                    <button id="darkModeToggle" class="flex items-center w-full px-6 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-primary/10 dark:hover:from-primary/20 hover:to-accent/10 dark:hover:to-accent/20 hover:text-primary dark:hover:text-blue-400 transition-all duration-200 group">
-                                        <div class="w-8 h-8 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-primary/30 group-hover:to-accent/30 transition-all duration-200">
-                                            <!-- Moon icon (dark mode) -->
-                                            <svg id="moonIcon" class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-                                            </svg>
-                                            <!-- Sun icon (light mode) -->
-                                            <svg id="sunIcon" class="w-4 h-4 text-primary hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                                            </svg>
-                                        </div>
-                                        <span id="darkModeText" class="font-medium">Change to Dark Mode</span>
-                                    </button>
-                                    
-                                    <!-- Divider -->
-                                    <div class="border-t border-gray-100/50 dark:border-gray-700/50 my-3"></div>
-                                    
-                                    <!-- Logout Button -->
-                                    <button onclick="logout()" class="flex items-center w-full px-6 py-3 text-sm text-danger hover:bg-gradient-to-r hover:from-danger/10 hover:to-red-500/10 hover:text-danger transition-all duration-200 group">
-                                        <div class="w-8 h-8 bg-gradient-to-r from-danger/20 to-red-500/20 rounded-lg flex items-center justify-center mr-3 group-hover:from-danger/30 group-hover:to-red-500/30 transition-all duration-200">
-                                            <svg class="w-4 h-4 text-danger" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                
+                                <div class="border-t border-gray-100/50 dark:border-gray-700/50 pt-2">
+                                    <button onclick="logout()" class="flex items-center w-full px-6 py-3 text-red-600 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/20 transition-colors">
+                                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                                             </svg>
-                                        </div>
-                                        <span class="font-medium">Logout</span>
+                                        Sign Out
                                     </button>
                                 </div>
                             </div>
@@ -2041,43 +1988,43 @@ setTimeout(() => {
         }
 
         // Dropdown functionality
-        function toggleDropdown() {
-            console.log('Dropdown toggle clicked!');
-            
+document.addEventListener('DOMContentLoaded', function() {
             const dropdown = document.getElementById('userDropdown');
+    const button = document.getElementById('dropdownButton');
             const menu = document.getElementById('dropdownMenu');
-            const arrowIcon = document.getElementById('arrowIcon');
+    const arrow = document.getElementById('arrowIcon');
+
+    if (button && menu) {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
             const isOpen = dropdown.getAttribute('data-open') === 'true';
             
-            console.log('Current state:', isOpen ? 'open' : 'closed');
-            
             if (isOpen) {
-                // Close dropdown
-                menu.classList.add('hidden', 'opacity-0', 'scale-95');
+                menu.classList.add('hidden');
                 menu.classList.remove('opacity-100', 'scale-100');
-                arrowIcon.classList.remove('rotate-180');
+                menu.classList.add('opacity-0', 'scale-95');
+                arrow.style.transform = 'rotate(0deg)';
                 dropdown.setAttribute('data-open', 'false');
-                console.log('Dropdown closed');
             } else {
-                // Open dropdown
-                menu.classList.remove('hidden', 'opacity-0', 'scale-95');
+                menu.classList.remove('hidden');
+                menu.classList.remove('opacity-0', 'scale-95');
                 menu.classList.add('opacity-100', 'scale-100');
-                arrowIcon.classList.add('rotate-180');
+                arrow.style.transform = 'rotate(180deg)';
                 dropdown.setAttribute('data-open', 'true');
-                console.log('Dropdown opened');
             }
-        }
+        });
 
-        function closeDropdown() {
-            const dropdown = document.getElementById('userDropdown');
-            const menu = document.getElementById('dropdownMenu');
-            const arrowIcon = document.getElementById('arrowIcon');
-            
-            menu.classList.add('hidden', 'opacity-0', 'scale-95');
+        document.addEventListener('click', function(e) {
+            if (!dropdown.contains(e.target)) {
+                menu.classList.add('hidden');
             menu.classList.remove('opacity-100', 'scale-100');
-            arrowIcon.classList.remove('rotate-180');
+                menu.classList.add('opacity-0', 'scale-95');
+                arrow.style.transform = 'rotate(0deg)';
             dropdown.setAttribute('data-open', 'false');
         }
+        });
+    }
+});
 
         // Flash message handling
         function showFlashMessage(message, type = 'success') {
@@ -2122,59 +2069,6 @@ setTimeout(() => {
             // Touch gesture event listeners
             document.addEventListener('touchstart', handleTouchStart, { passive: true });
             document.addEventListener('touchend', handleTouchEnd, { passive: true });
-            
-            // Setup dropdown functionality
-            const dropdownButton = document.getElementById('dropdownButton');
-            const arrowButton = document.getElementById('arrowButton');
-            const dropdown = document.getElementById('userDropdown');
-            
-            if (dropdownButton && arrowButton && dropdown) {
-                console.log('Dropdown elements found, setting up listeners');
-                
-                // Click on main button
-                dropdownButton.addEventListener('click', function(e) {
-                    console.log('Main dropdown button clicked');
-                    e.preventDefault();
-                    toggleDropdown();
-                });
-                
-                // Click on arrow button specifically
-                arrowButton.addEventListener('click', function(e) {
-                    console.log('Arrow button clicked');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleDropdown();
-                });
-                
-                // Hover to open
-                dropdown.addEventListener('mouseenter', function() {
-                    console.log('Mouse entered dropdown area');
-                    const isOpen = dropdown.getAttribute('data-open') === 'true';
-                    if (!isOpen) {
-                        toggleDropdown();
-                    }
-                });
-                
-                // Mouse leave to close
-                dropdown.addEventListener('mouseleave', function() {
-                    console.log('Mouse left dropdown area');
-                    closeDropdown();
-                });
-                
-                // Click outside to close
-                document.addEventListener('click', function(e) {
-                    if (!dropdown.contains(e.target)) {
-                        closeDropdown();
-                    }
-                });
-                
-            } else {
-                console.error('Dropdown elements not found:', {
-                    dropdownButton: !!dropdownButton,
-                    arrowButton: !!arrowButton,
-                    dropdown: !!dropdown
-                });
-            }
             
             // Setup logout button
             const logoutBtn = document.querySelector('button[onclick="logout()"]');

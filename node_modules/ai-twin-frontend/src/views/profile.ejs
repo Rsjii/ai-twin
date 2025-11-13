@@ -67,13 +67,13 @@
                 </div>
                 
                 <!-- Navigation -->
-                <nav class="hidden md:flex space-x-8">
-                    <a href="/dashboard" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium">Dashboard</a>
-                    <a href="/profile" class="text-primary dark:text-blue-400 font-semibold">Profile</a>
+                <nav class="hidden md:flex items-center space-x-6">
+                    <a href="/dashboard" class="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800/50">Dashboard</a>
+                    <a href="/profile" class="text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800/50 px-3 py-2 rounded-lg font-medium">Profile</a>
                     <% if (!hasTwins) { %>
-                        <a href="/onboarding" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium">Create Twin</a>
+                        <a href="/onboarding" class="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800/50">Create Twin</a>
                     <% } %>
-                </nav>
+                </nav>                
 
                 <!-- User Menu -->
                 <div class="flex items-center space-x-4">
@@ -92,11 +92,9 @@
                                     <div class="text-sm font-semibold text-gray-900 dark:text-white"><%= user.handle || user.email %></div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400"><%= user.email %></div>
                                 </div>
-                                <div class="ml-2">
-                                    <svg id="arrowIcon" class="w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                    </svg>
-                                </div>
+                                <svg id="arrowIcon" class="w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>                                
                             </button>
                             
                             <!-- Dropdown Menu -->
@@ -121,27 +119,27 @@
                                 
                                 <!-- Menu Items -->
                                 <div class="py-2">
-                                    <a href="/profile" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
+                                    <a href="/discover" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
                                         <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                         </svg>
-                                        Profile Settings
+                                        Discover Twins
                                     </a>
-                                    <a href="/dashboard" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
-                                        <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
-                                        </svg>
-                                        Dashboard
-                                    </a>
-                                    <% if (!hasTwins) { %>
-                                        <a href="/onboarding" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
+                                    <% if (typeof hasTwins !== 'undefined' && hasTwins && typeof twinId !== 'undefined' && twinId) { %>
+                                        <a href="/twin/manage" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
                                             <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                                             </svg>
-                                            Create Twin
+                                            My Twin
                                         </a>
-                                    <% } %>                                    
-                                </div>
+                                    <% } %>
+                                    <a href="/analytics" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
+                                        <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                        </svg>
+                                        Analytics
+                                    </a>
+                                </div>                                
                                 
                                 <!-- Logout -->
                                 <div class="border-t border-gray-100/50 dark:border-gray-700/50 pt-2">
@@ -847,37 +845,44 @@
             }, 3000);
         }
     
-        // Dropdown functionality (existing code)
-        function toggleDropdown() {
-            const dropdown = document.getElementById('userDropdown');
-            const menu = document.getElementById('dropdownMenu');
-            const arrowIcon = document.getElementById('arrowIcon');
+// Dropdown functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const dropdown = document.getElementById('userDropdown');
+    const button = document.getElementById('dropdownButton');
+    const menu = document.getElementById('dropdownMenu');
+    const arrow = document.getElementById('arrowIcon');
+
+    if (button && menu) {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
             const isOpen = dropdown.getAttribute('data-open') === 'true';
             
             if (isOpen) {
-                menu.classList.add('hidden', 'opacity-0', 'scale-95');
+                menu.classList.add('hidden');
                 menu.classList.remove('opacity-100', 'scale-100');
-                arrowIcon.classList.remove('rotate-180');
+                menu.classList.add('opacity-0', 'scale-95');
+                arrow.style.transform = 'rotate(0deg)';
                 dropdown.setAttribute('data-open', 'false');
             } else {
-                menu.classList.remove('hidden', 'opacity-0', 'scale-95');
+                menu.classList.remove('hidden');
+                menu.classList.remove('opacity-0', 'scale-95');
                 menu.classList.add('opacity-100', 'scale-100');
-                arrowIcon.classList.add('rotate-180');
+                arrow.style.transform = 'rotate(180deg)';
                 dropdown.setAttribute('data-open', 'true');
             }
-        }
-    
-        function closeDropdown() {
-            const dropdown = document.getElementById('userDropdown');
-            const menu = document.getElementById('dropdownMenu');
-            const arrowIcon = document.getElementById('arrowIcon');
-            
-            menu.classList.add('hidden', 'opacity-0', 'scale-95');
-            menu.classList.remove('opacity-100', 'scale-100');
-            arrowIcon.classList.remove('rotate-180');
-            dropdown.setAttribute('data-open', 'false');
-        }
-    
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!dropdown.contains(e.target)) {
+                menu.classList.add('hidden');
+                menu.classList.remove('opacity-100', 'scale-100');
+                menu.classList.add('opacity-0', 'scale-95');
+                arrow.style.transform = 'rotate(0deg)';
+                dropdown.setAttribute('data-open', 'false');
+            }
+        });
+    }
+});        
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
             const editBtn = document.getElementById('editProfileBtn');
@@ -907,34 +912,6 @@
                         window.copyPublicLink();
                     } else {
                         console.error('copyPublicLink function not found');
-                    }
-                });
-            }
-            
-            // Dropdown functionality
-            const dropdownButton = document.getElementById('dropdownButton');
-            const dropdown = document.getElementById('userDropdown');
-            
-            if (dropdownButton && dropdown) {
-                dropdownButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    toggleDropdown();
-                });
-                
-                dropdown.addEventListener('mouseenter', function() {
-                    const isOpen = dropdown.getAttribute('data-open') === 'true';
-                    if (!isOpen) {
-                        toggleDropdown();
-                    }
-                });
-                
-                dropdown.addEventListener('mouseleave', function() {
-                    closeDropdown();
-                });
-                
-                document.addEventListener('click', function(e) {
-                    if (!dropdown.contains(e.target)) {
-                        closeDropdown();
                     }
                 });
             }
