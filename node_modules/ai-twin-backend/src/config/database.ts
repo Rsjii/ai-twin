@@ -353,6 +353,26 @@ export const twinQueries = {
   findById: async (twinId: string) => {
     const result = await db.query('SELECT * FROM "Twin" WHERE id = $1', [twinId]);
     return result.rows[0];
+  },
+
+  delete: async (twinId: string, userId: string) => {
+    // Verify ownership before deletion
+    const verifyResult = await db.query(
+      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
+      [twinId, userId]
+    );
+    
+    if (verifyResult.rows.length === 0) {
+      throw new Error('Twin not found or not owned by user');
+    }
+    
+    // Delete twin (CASCADE will handle related data)
+    const result = await db.query(
+      'DELETE FROM "Twin" WHERE id = $1 AND "userId" = $2 RETURNING *',
+      [twinId, userId]
+    );
+    
+    return result.rows[0];
   }
 };
 

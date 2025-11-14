@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createTwin, getUserTwins, getTwinById } from './twinController';
+import { createTwin, getUserTwins, getTwinById, deleteTwin } from './twinController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import { generateCSRFToken } from '../../middleware/csrf';
 import { getTwinEditData, updateTwinStyle, updateTwinPersona, previewStyleChanges } from './twinEditController';
@@ -51,6 +51,7 @@ router.use(generateCSRFToken);
 router.post('/create', requireJWTFromCookie, createTwin);
 router.get('/', getUserTwins);
 router.get('/:id', getTwinById);
+router.delete('/:id', deleteTwin);
 
 // Twin edit endpoints
 router.get('/:id/edit-data', getTwinEditData);

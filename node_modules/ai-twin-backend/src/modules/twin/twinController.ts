@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { db } from '../../config/database';
+import { db, twinQueries } from '../../config/database';
 import { TwinService } from './twinService';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
@@ -229,5 +229,48 @@ export const getTwinById = async (req: Request, res: Response, next: NextFunctio
       throw error;
     }
     throw createError.internal('Failed to get twin', error);
+  }
+};
+
+/**
+ * Delete Twin
+ * DELETE /api/twin/:id
+ */
+export const deleteTwin = async (req: any, res: Response) => {
+  try {
+    const { id: twinId } = req.params;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Verify twin exists and belongs to user
+    const twin = await twinQueries.findById(twinId);
+    if (!twin) {
+      return res.status(404).json({ error: 'Twin not found' });
+    }
+
+    if (twin.userId !== userId) {
+      return res.status(403).json({ error: 'You do not have permission to delete this twin' });
+    }
+
+    // Delete twin (CASCADE will handle all related data)
+    await twinQueries.delete(twinId, userId);
+
+    logger.info(`Twin ${twinId} deleted by user ${userId}`);
+
+    res.json({
+      success: true,
+      message: 'Twin deleted successfully'
+    });
+  } catch (error: any) {
+    logger.error('Delete twin error:', error);
+    
+    if (error.message?.includes('not found') || error.message?.includes('not owned')) {
+      return res.status(404).json({ error: error.message });
+    }
+    
+    res.status(500).json({ error: 'Failed to delete twin' });
   }
 };
