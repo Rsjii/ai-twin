@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { db, twinQueries } from '../config/database';
+import { db, twinQueries, userQueries } from '../config/database';
 import { logger } from '../config/logger';
 import { AppError, createError } from '../utils/errors';
 
@@ -123,9 +123,24 @@ export async function getTwinManage(req: any, res: Response) {
       learningGoals: parseInt(row.goals || '0', 10)
     };
 
+    // Fetch full user data from database (like getDiscover)
+    let user = null;
+    if (req.user) {
+      const fullUser = await userQueries.findByEmail(req.user.email);
+      if (fullUser) {
+        user = {
+          id: fullUser.id,
+          email: fullUser.email,
+          handle: fullUser.handle,
+          name: fullUser.name,
+          profileImage: fullUser.profileImage,
+        };
+      }
+    }
+
     res.render('twin-manage', {
       title: 'My Twin - Manage',
-      user: req.user || null,
+      user: user,
       twin: twin,
       twinId: twinId,
       stats: stats,
@@ -133,7 +148,7 @@ export async function getTwinManage(req: any, res: Response) {
       recentChats: recentChats,
       hasTwins: true,
       csrfToken: res.locals['csrfToken']
-    });
+    });    
   } catch (error) {
     logger.error('Twin manage page error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -142,19 +157,19 @@ export async function getTwinManage(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('error', {
+      return res.status(error.statusCode).render('404', {
         title: 'Error',
         message: error.message,
-        errorCode: error.errorCode,
+        csrfToken: res.locals['csrfToken'],
         user: req.user || null
       });
     }
     
     const appError = createError.internal('Failed to load twin management page', error);
-    return res.status(appError.statusCode).render('error', {
+    return res.status(appError.statusCode).render('404', {
       title: 'Error',
       message: appError.message,
-      errorCode: appError.errorCode,
+      csrfToken: res.locals['csrfToken'],
       user: req.user || null
     });
   }

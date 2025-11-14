@@ -64,10 +64,25 @@ export function getOnboarding(req: any, res: Response) {
 /**
  * Memory Management page
  */
-export function getMemoryManagement(req: any, res: Response) {
+export async function getMemoryManagement(req: any, res: Response) {
+  // Fetch full user data from database (like getDiscover)
+  let user = null;
+  if (req.user) {
+    const fullUser = await userQueries.findByEmail(req.user.email);
+    if (fullUser) {
+      user = {
+        id: fullUser.id,
+        email: fullUser.email,
+        handle: fullUser.handle,
+        name: fullUser.name,
+        profileImage: fullUser.profileImage,
+      };
+    }
+  }
+  
   res.render('memory-management', { 
     title: 'Memory Management - AI Twin',
-    user: req.user || null,
+    user: user,
     twinId: req.query.twinId || 'default',
     csrfToken: res.locals['csrfToken']
   });

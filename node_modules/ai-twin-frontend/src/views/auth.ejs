@@ -477,5 +477,19 @@
             console.log('All event listeners set up');
         });
     </script>
+
+<script>
+    (function() {
+        // Check if redirected from logout
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('logout')) {
+            // Prevent back button after logout
+            window.history.pushState(null, null, window.location.href);
+            window.onpopstate = function() {
+                window.history.go(1);
+            };
+        }
+    })();
+</script>
 </body>
 </html>

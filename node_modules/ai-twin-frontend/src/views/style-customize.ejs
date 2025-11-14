@@ -653,53 +653,7 @@
     window.resetChanges = resetChanges;
     window.saveChanges = saveChanges;
     </script>
-
-<script>
-    // Dropdown functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        const dropdown = document.getElementById('userDropdown');
-        const button = document.getElementById('dropdownButton');
-        const menu = document.getElementById('dropdownMenu');
-        const arrow = document.getElementById('arrowIcon');
-        
-        if (button && menu) {
-            button.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const isOpen = dropdown.getAttribute('data-open') === 'true';
-                if (isOpen) {
-                    menu.classList.add('hidden');
-                    menu.classList.remove('opacity-100', 'scale-100');
-                    menu.classList.add('opacity-0', 'scale-95');
-                    arrow.style.transform = 'rotate(0deg)';
-                    dropdown.setAttribute('data-open', 'false');
-                } else {
-                    menu.classList.remove('hidden');
-                    menu.classList.remove('opacity-0', 'scale-95');
-                    menu.classList.add('opacity-100', 'scale-100');
-                    arrow.style.transform = 'rotate(180deg)';
-                    dropdown.setAttribute('data-open', 'true');
-                }
-            });
-            
-            document.addEventListener('click', function(e) {
-                if (!dropdown.contains(e.target)) {
-                    menu.classList.add('hidden');
-                    menu.classList.remove('opacity-100', 'scale-100');
-                    menu.classList.add('opacity-0', 'scale-95');
-                    arrow.style.transform = 'rotate(0deg)';
-                    dropdown.setAttribute('data-open', 'false');
-                }
-            });
-        }
-    });
     
-    // Logout function
-    function logout() {
-        if (confirm('Are you sure you want to sign out?')) {
-            window.location.href = '/api/auth/logout';
-        }
-    }
-</script>
 <!--Footer-->
 <%- include('footer') %>
 </body>

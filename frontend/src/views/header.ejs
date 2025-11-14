@@ -320,11 +320,17 @@
                     document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
                 });
 
-                 // Clear browser history for protected pages (prevent back button)
-                // Replace current history entry with auth page
-                window.history.replaceState(null, '', '/auth');
+                // ✅ PROPER FIX: Use history.go(1) method (from research)
+                // Push current state to history
+                window.history.pushState(null, null, window.location.href);
                 
-                // Force redirect with cache busting (like dashboard)
+                // Override popstate to prevent back navigation
+                window.onpopstate = function() {
+                    // Force forward navigation (prevents going back)
+                    window.history.go(1);
+                };
+                
+                // Force redirect with cache busting
                 const timestamp = new Date().getTime();
                 window.location.replace('/auth?logout=' + timestamp);
                 
@@ -352,8 +358,7 @@
             
             alert('Network error. Please try again.');
         }
-    }
-    
+    }    
     // Attach to window for extra safety
     window.logout = logout;
     

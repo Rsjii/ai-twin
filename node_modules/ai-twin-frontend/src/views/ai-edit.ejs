@@ -571,18 +571,8 @@ async function saveChanges() {
     window.saveChanges = saveChanges;
     window.resetChanges = resetChanges;
     window.previewChanges = previewChanges;
-
     </script>
 
-<script>
-
-    // Logout function
-    function logout() {
-        if (confirm('Are you sure you want to sign out?')) {
-            window.location.href = '/api/auth/logout';
-        }
-    }
-</script>
     <!--Footer-->
     <%- include('footer') %>
 </body>
