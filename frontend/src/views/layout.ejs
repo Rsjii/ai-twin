@@ -56,11 +56,6 @@
         })();
     </script>
     <style>
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.25);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-        }
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
@@ -591,7 +586,37 @@
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen font-inter">
-    <!-- Mobile Menu Button -->
+    <!-- IMMEDIATE Auth Check (for protected pages using layout.ejs) -->
+    <script>
+        (function() {
+            // Only check if this is a protected page (has requireJWTFromCookie)
+            // For public pages, skip this check
+            const isAuthenticated = <%= typeof user !== 'undefined' && user !== null && typeof user === 'object' && user.id !== undefined && user.id !== null ? 'true' : 'false' %>;
+            const hasAuthToken = localStorage.getItem('jwtToken') || localStorage.getItem('user');
+            
+            // Only redirect if page expects authentication but user is not authenticated
+            // This prevents public pages (like privacy, terms) from redirecting
+            // Check if current path is a protected route
+            const protectedPaths = ['/analytics', '/admin'];
+            const currentPath = window.location.pathname;
+            const isProtectedPage = protectedPaths.some(path => currentPath.startsWith(path));
+            
+            if (isProtectedPage) {
+                if (!isAuthenticated && !hasAuthToken) {
+                    console.log('Protected page: User not authenticated, redirecting to /auth');
+                    window.location.replace('/auth');
+                    return;
+                }
+                
+                if (!isAuthenticated) {
+                    console.log('Protected page: Authentication check failed, redirecting to /auth');
+                    window.location.replace('/auth');
+                }
+            }
+        })();
+    </script>
+    
+    <!-- Mobile Menu Button -->     
     <button id="mobile-menu-btn" class="fixed top-4 left-4 z-50 lg:hidden bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 border border-gray-200 dark:border-gray-700">
         <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -662,159 +687,18 @@
         </div>
     </div>
 
-    <!-- Modern Navigation -->
-    <nav class="glass-effect sticky top-0 z-50 border-b border-white/20 dark:bg-gray-900/80 dark:border-gray-700">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <!-- Logo -->
-                <div class="flex items-center space-x-3">
-                    <% if (typeof user !== 'undefined' && user) { %>
-                        <a href="/dashboard" class="flex items-center space-x-3 group">
-                            <div class="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                </svg>
-                            </div>
-                            <span class="text-2xl font-bold gradient-text dark:text-white">TwinOS</span>
-                        </a>
-                    <% } else { %>
-                        <a href="/" class="flex items-center space-x-3 group">
-                            <div class="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                </svg>
-                            </div>
-                            <span class="text-2xl font-bold gradient-text dark:text-white">TwinOS</span>
-                        </a>
-                    <% } %>
-                </div>
+    <!-- Robust Authentication Check -->
+    <% 
+      // Robust authentication check - handles all edge cases
+      const isAuthenticated = typeof user !== 'undefined' && 
+                              user !== null && 
+                              typeof user === 'object' &&
+                              user.id !== undefined && 
+                              user.id !== null;
+    %>
 
-            <!-- Top Navigation Links (NEW) -->
-            <% if (typeof user !== 'undefined' && user) { %>
-            <nav class="hidden md:flex items-center space-x-6 mr-4">
-                <a href="/dashboard" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 <%= typeof title !== 'undefined' && title.includes('Dashboard') ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
-                    Dashboard
-                </a>
-                <a href="/discover" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 <%= typeof title !== 'undefined' && title.includes('Discover') ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
-                    Discover
-                </a>
-                <a href="/chat-enhanced" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 <%= typeof title !== 'undefined' && title.includes('Chat') ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
-                    Chat
-                </a>
-            </nav>
-            <% } %>
-
-                <!-- User Menu -->
-                <div class="flex items-center space-x-4">
-                    <!-- ✅ Dark Mode Toggle Button (Visible in Navbar - for all users) -->
-                    <button 
-                        id="darkModeToggleNavbar" 
-                        class="p-2 rounded-lg bg-white/10 dark:bg-gray-800/80 backdrop-blur-lg hover:bg-white/20 dark:hover:bg-gray-700 transition-all border border-white/20 dark:border-gray-700"
-                        aria-label="Toggle dark mode"
-                        title="Toggle Dark Mode"
-                    >
-                        <!-- Sun icon (light mode) -->
-                        <svg id="sunIconNavbar" class="w-5 h-5 text-gray-700 dark:text-yellow-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                        </svg>
-                        <!-- Moon icon (dark mode) -->
-                        <svg id="moonIconNavbar" class="w-5 h-5 text-gray-700 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-                        </svg>
-                    </button>
-                    <% if (typeof user !== 'undefined' && user) { %>
-                        <!-- Modern User Dropdown -->
-                        <div class="relative" id="userDropdown" data-open="false">
-                            <button id="dropdownButton" class="flex items-center space-x-3 px-4 py-2 rounded-xl bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 shadow-lg hover:shadow-xl border border-white/20 dark:border-gray-700 group">
-                                <% if (user.profileImage) { %>
-                                    <img src="<%= user.profileImage %>" alt="Profile" class="w-10 h-10 rounded-full object-cover shadow-lg">
-                                <% } else { %>
-                                    <div class="w-10 h-10 bg-gradient-to-r from-primary via-accent to-purple-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
-                                        <%= (user.handle || user.email).charAt(0).toUpperCase() %>
-                                    </div>
-                                <% } %>
-                                <div class="hidden sm:block text-left">
-                                    <div class="text-sm font-semibold text-gray-900 dark:text-white"><%= user.handle || user.email %></div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400"><%= user.email %></div>
-                                </div>
-                                <svg id="arrowIcon" class="w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>                                
-                            </button>
-                            
-                            <!-- Dropdown Menu -->
-                            <div id="dropdownMenu" class="absolute right-0 mt-3 w-72 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700 py-3 z-50 hidden transition-all duration-200 opacity-0 scale-95">
-                                
-                                <!-- User Info Header -->
-                                <div class="px-6 py-4 border-b border-gray-100/50 dark:border-gray-700/50">
-                                    <div class="flex items-center space-x-4">
-                                        <% if (user.profileImage) { %>
-                                            <img src="<%= user.profileImage %>" alt="Profile" class="w-14 h-14 rounded-2xl object-cover shadow-lg">
-                                        <% } else { %>
-                                            <div class="w-14 h-14 bg-gradient-to-r from-primary via-accent to-purple-500 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg">
-                                                <%= (user.handle || user.email).charAt(0).toUpperCase() %>
-                                            </div>
-                                        <% } %>
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-lg font-semibold text-gray-900 dark:text-white truncate"><%= user.name || user.handle || 'User' %></p>
-                                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate"><%= user.email %></p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Navigation Items -->
-                                <div class="py-2">
-                                    <a href="/profile" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
-                                        <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                        </svg>
-                                        Profile Settings
-                                    </a>
-                                    <% if (typeof hasTwins !== 'undefined' && hasTwins && typeof twinId !== 'undefined' && twinId) { %>
-                                        <a href="/twin/manage" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
-                                            <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                            </svg>
-                                            My Twin
-                                        </a>
-                                    <% } %>
-                                    <a href="/analytics" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
-                                        <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                                        </svg>
-                                        Analytics
-                                    </a>
-                                    <a href="/profile?tab=settings" class="flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors">
-                                        <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        </svg>
-                                        Settings
-                                    </a>
-                                </div>
-                                
-                                <div class="border-t border-gray-100/50 dark:border-gray-700/50 pt-2">
-                                    <button onclick="logout()" class="flex items-center w-full px-6 py-3 text-red-600 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/20 transition-colors">
-                                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                                        </svg>
-                                        Sign Out
-                                    </button>
-                                </div>                                
-                            </div>
-                        </div>
-                    <% } else { %>
-                        <a href="/discover" class="px-6 py-3 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium mr-4">
-                            Discover Twins
-                        </a>
-                        <a href="/auth" class="px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all duration-300 font-medium">
-                            Login / Signup
-                        </a>
-                    <% } %>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <!--Header-->
+    <%- include('header') %>   
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
@@ -988,110 +872,6 @@
             }, 30000);
         }
         
-        // Logout function
-        async function logout() {
-            console.log('Logout button clicked!');
-            
-            // Get the logout button element
-            const logoutBtn = document.querySelector('button[onclick="logout()"]');
-            if (!logoutBtn) {
-                console.error('Logout button not found!');
-                return;
-            }
-            
-            // Show loading state
-            const originalText = logoutBtn.textContent;
-            logoutBtn.textContent = 'Logging out...';
-            logoutBtn.disabled = true;
-            
-            try {
-                const response = await fetch('/api/auth/logout', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': window.csrfToken
-                    }
-                });
-                
-                console.log('Logout response:', response.status);
-                
-                if (response.ok) {
-                    console.log('Logout successful, clearing all data...');
-                    
-                    // Clear localStorage
-                    localStorage.removeItem('jwtToken');
-                    localStorage.removeItem('user');
-                    
-                    // Clear sessionStorage
-                    sessionStorage.clear();
-                    
-                    // Clear all cookies
-                    document.cookie.split(";").forEach(function(c) { 
-                        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-                    });
-                    
-                    // Force redirect with cache busting
-                    const timestamp = new Date().getTime();
-                    window.location.replace('/auth?logout=' + timestamp);
-                    
-                } else {
-                    console.log('Logout failed:', response.status);
-                    const errorData = await response.text();
-                    console.log('Error response:', errorData);
-                    showFlashMessage('Logout failed. Please try again.', 'error');
-                    
-                    // Restore button state
-                    logoutBtn.textContent = originalText;
-                    logoutBtn.disabled = false;
-                }
-            } catch (error) {
-                console.error('Logout error:', error);
-                showFlashMessage('Network error. Please try again.', 'error');
-                
-                // Restore button state
-                logoutBtn.textContent = originalText;
-                logoutBtn.disabled = false;
-            }
-        }
-
-        // Dropdown functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const dropdown = document.getElementById('userDropdown');
-    const button = document.getElementById('dropdownButton');
-    const menu = document.getElementById('dropdownMenu');
-    const arrow = document.getElementById('arrowIcon');
-
-    if (button && menu) {
-        button.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const isOpen = dropdown.getAttribute('data-open') === 'true';
-            
-            if (isOpen) {
-                menu.classList.add('hidden');
-                menu.classList.remove('opacity-100', 'scale-100');
-                menu.classList.add('opacity-0', 'scale-95');
-                arrow.style.transform = 'rotate(0deg)';
-                dropdown.setAttribute('data-open', 'false');
-            } else {
-                menu.classList.remove('hidden');
-                menu.classList.remove('opacity-0', 'scale-95');
-                menu.classList.add('opacity-100', 'scale-100');
-                arrow.style.transform = 'rotate(180deg)';
-                dropdown.setAttribute('data-open', 'true');
-            }
-        });
-
-        document.addEventListener('click', function(e) {
-            if (!dropdown.contains(e.target)) {
-                menu.classList.add('hidden');
-                menu.classList.remove('opacity-100', 'scale-100');
-                menu.classList.add('opacity-0', 'scale-95');
-                arrow.style.transform = 'rotate(0deg)';
-                dropdown.setAttribute('data-open', 'false');
-            }
-        });
-    }
-});        
         // Flash message handling
         function showFlashMessage(message, type = 'success') {
             const flashDiv = document.createElement('div');
@@ -1135,99 +915,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Touch gesture event listeners
             document.addEventListener('touchstart', handleTouchStart, { passive: true });
             document.addEventListener('touchend', handleTouchEnd, { passive: true });
-                        
-            // Setup logout button
-            const logoutBtn = document.querySelector('button[onclick="logout()"]');
-            if (logoutBtn) {
-                console.log('Logout button found, adding click listener');
-                logoutBtn.addEventListener('click', function(e) {
-                    console.log('Logout button clicked via event listener');
-                    e.preventDefault();
-                    logout();
-                });
-            } else {
-                console.error('Logout button not found on page load');
-            }
             
-            // ✅ Dark Mode Toggle Functionality (GLOBAL)
-            const htmlRoot = document.documentElement;
-            const darkModeToggle = document.getElementById('darkModeToggle');
-            const darkModeToggleNavbar = document.getElementById('darkModeToggleNavbar');
-            const sunIcon = document.getElementById('sunIcon');
-            const moonIcon = document.getElementById('moonIcon');
-            const sunIconNavbar = document.getElementById('sunIconNavbar');
-            const moonIconNavbar = document.getElementById('moonIconNavbar');
-            const darkModeText = document.getElementById('darkModeText');
-            
-            // Load saved theme preference
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            const isDark = savedTheme === 'dark';
-            
-            // Apply theme on page load (GLOBAL)
-            function applyTheme(dark) {
-                if (dark) {
-                    htmlRoot.classList.add('dark');
-                    // Update dropdown icons
-                    document.querySelectorAll('#sunIcon').forEach(el => el?.classList.remove('hidden'));
-                    document.querySelectorAll('#moonIcon').forEach(el => el?.classList.add('hidden'));
-                    // Update navbar icons
-                    document.querySelectorAll('#sunIconNavbar').forEach(el => el?.classList.remove('hidden'));
-                    document.querySelectorAll('#moonIconNavbar').forEach(el => el?.classList.add('hidden'));
-                    // Update text
-                    const textEl = document.getElementById('darkModeText');
-                    if (textEl) textEl.textContent = 'Change to Light Mode';
-                } else {
-                    htmlRoot.classList.remove('dark');
-                    // Update dropdown icons
-                    document.querySelectorAll('#sunIcon').forEach(el => el?.classList.add('hidden'));
-                    document.querySelectorAll('#moonIcon').forEach(el => el?.classList.remove('hidden'));
-                    // Update navbar icons
-                    document.querySelectorAll('#sunIconNavbar').forEach(el => el?.classList.add('hidden'));
-                    document.querySelectorAll('#moonIconNavbar').forEach(el => el?.classList.remove('hidden'));
-                    // Update text
-                    const textEl = document.getElementById('darkModeText');
-                    if (textEl) textEl.textContent = 'Change to Dark Mode';
-                }
-            }
-            
-            // Apply initial theme
-            applyTheme(isDark);
-            
-            // Toggle function (GLOBAL - works across all pages)
-            function toggleDarkMode() {
-                const isCurrentlyDark = htmlRoot.classList.contains('dark');
-                const newTheme = isCurrentlyDark ? 'light' : 'dark';
-                
-                // Save to localStorage (GLOBAL)
-                localStorage.setItem('theme', newTheme);
-                
-                // Apply theme
-                applyTheme(newTheme === 'dark');
-                
-                // Dispatch event for other pages (if needed)
-                window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: newTheme } }));
-            }
-            
-            // Add event listeners to both buttons
-            if (darkModeToggle) {
-                darkModeToggle.addEventListener('click', toggleDarkMode);
-            }
-            if (darkModeToggleNavbar) {
-                darkModeToggleNavbar.addEventListener('click', toggleDarkMode);
-            }
-            
-            // Listen for theme changes from other tabs/pages (GLOBAL SYNC)
-            window.addEventListener('storage', (e) => {
-                if (e.key === 'theme') {
-                    applyTheme(e.newValue === 'dark');
-                }
-            });
-            
-            // Listen for custom theme change events
-            window.addEventListener('themechange', (e) => {
-                applyTheme(e.detail.theme === 'dark');
-            });
-        });
     </script>
+    <!--Footer-->
+    <%- include('footer') %>
 </body>
 </html>

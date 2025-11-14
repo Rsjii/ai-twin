@@ -8,7 +8,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 export function getPublicChatHistoryPage(req: AuthenticatedRequest, res: Response) {
   res.render('public-chat-history', {
     title: 'Your Chat History - AI Twin',
-    user: req.user,
+    user: req.user || null,
     csrfToken: res.locals['csrfToken'] || ''
   });
 }

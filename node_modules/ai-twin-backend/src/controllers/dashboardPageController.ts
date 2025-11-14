@@ -15,6 +15,13 @@ export async function getDashboard(req: any, res: Response) {
     if (!req.user) {
       return res.redirect('/auth');
     }
+
+     // Set no-cache headers to prevent browser from caching protected pages
+     res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     
     // Fetch full user data from database
     const fullUser = await userQueries.findByEmail(req.user.email);

@@ -14,7 +14,7 @@ export function getLanding(req: any, res: Response) {
 
   res.render('landing', {
     title: 'AI Twin - Create Your Digital Twin',
-    user: req.user,
+    user: req.user || null,  // Always pass, even if null
     csrfToken: res.locals['csrfToken']
   });
 }
@@ -49,6 +49,7 @@ export async function getPublicProfile(req: any, res: Response) {
     // Render public profile page
     res.render('public-profile', {
       title: `@${handle} - AI Twin`,
+      user: req.user || null,
       twin: {
         id: twin.id,
         publicHandle: twin.publicHandle,
@@ -102,6 +103,7 @@ export async function getPublicProfile(req: any, res: Response) {
 export function getPublicProfileAlt(req: any, res: Response) {
   res.render('profile_public', {
     title: `Profile - ${req.params.handle}`,
+    user: req.user || null,  // Always pass, even if null
     handle: req.params.handle,
     token: req.query['t'],
     csrfToken: res.locals['csrfToken'],

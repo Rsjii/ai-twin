@@ -81,7 +81,7 @@ export function getChat(req: any, res: Response) {
     
     res.render('chat-simple', {
       title: 'Chat - AI Twin',
-      user: req.user,
+      user: req.user || null,
       chatId: req.params.id,
       csrfToken: res.locals['csrfToken'],
     });
@@ -118,7 +118,7 @@ export function getChat(req: any, res: Response) {
 export function getChatHistory(req: any, res: Response) {
   res.render('chat-history', {
     title: 'Chat History - AI Twin',
-    user: req.user,
+    user: req.user || null,
     csrfToken: res.locals['csrfToken'],
   });
 }
@@ -129,6 +129,13 @@ export function getChatHistory(req: any, res: Response) {
 export async function getChatEnhanced(req: any, res: Response) {
   try {
     if (!req.user) {
+      return res.redirect('/auth');
+    }
+
+    // ✅ FIX: Fetch full user with profileImage
+    const { userQueries } = await import('../config/database');
+    const fullUser = await userQueries.findByEmail(req.user.email);
+    if (!fullUser) {
       return res.redirect('/auth');
     }
 
@@ -159,10 +166,8 @@ export async function getChatEnhanced(req: any, res: Response) {
       `, [requestedChatId, req.user.id]);
       
       if (chatResult.rows.length > 0) {
-        // Chat exists and belongs to user - use it
         chat = chatResult.rows[0];
       } else {
-        // Chat doesn't exist or doesn't belong to user - fall back to latest
         logger.warn('Requested chat not found or unauthorized', {
           requestedChatId,
           userId: req.user.id
@@ -190,7 +195,6 @@ export async function getChatEnhanced(req: any, res: Response) {
         }
       }
     } else {
-      // No chatId provided - get or create latest chat
       const chats = await db.query(`
         SELECT id, "userId", "twinId", "createdAt"
         FROM "Chat"
@@ -213,9 +217,18 @@ export async function getChatEnhanced(req: any, res: Response) {
       }
     }
 
+    // ✅ FIX: Pass full user with profileImage
+    const user = {
+      id: fullUser.id,
+      email: fullUser.email,
+      handle: fullUser.handle,
+      name: fullUser.name,
+      profileImage: fullUser.profileImage,
+    };
+
     res.render('chat-enhanced', { 
       title: 'Enhanced Chat - AI Twin',
-      user: req.user,
+      user: user,
       chatId: chat.id,
       twinId: latestTwin.id,
       csrfToken: res.locals['csrfToken']
@@ -240,4 +253,3 @@ export async function getChatEnhanced(req: any, res: Response) {
     res.redirect('/dashboard');
   }
 }
-

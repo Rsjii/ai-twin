@@ -9,7 +9,7 @@ export function getAuth(req: any, res: Response) {
   }
   res.render('auth', {
     title: 'Login / Signup - AI Twin',
-    user: req.user,
+    user: null,
     csrfToken: res.locals['csrfToken'],
   });
 }
@@ -41,7 +41,7 @@ export function getLoginVerify(req: any, res: Response) {
   const email = req.query['email'] as string;
   res.render('login-verify', {
     title: 'Verify OTP - AI Twin',
-    user: req.user,
+    user: null,
     csrfToken: res.locals['csrfToken'],
     email: email
   });
@@ -57,7 +57,7 @@ export function getVerifyOtp(req: any, res: Response) {
   
   res.render('verify-otp', {
     title: 'Verify OTP - AI Twin',
-    user: req.user,
+    user: null,
     csrfToken: res.locals['csrfToken'],
     email: email,
     type: type,
@@ -73,7 +73,7 @@ export function getSignupProfile(req: any, res: Response) {
   
   res.render('signup-profile', {
     title: 'Complete Profile - AI Twin',
-    user: req.user,
+    user: null,
     csrfToken: res.locals['csrfToken'],
     email: email
   });
@@ -85,7 +85,7 @@ export function getSignupProfile(req: any, res: Response) {
 export function getForgotPassword(req: any, res: Response) {
   res.render('forgot-password', {
     title: 'Forgot Password - AI Twin',
-    user: req.user,
+    user: null,
     csrfToken: res.locals['csrfToken']
   });
 }
@@ -98,7 +98,7 @@ export function getForgotPasswordVerify(req: any, res: Response) {
   
   res.render('forgot-password-verify', {
     title: 'Verify Reset Code - AI Twin',
-    user: req.user,
+    user: null,
     csrfToken: res.locals['csrfToken'],
     email: email
   });
@@ -112,7 +112,7 @@ export function getResetPassword(req: any, res: Response) {
   
   res.render('reset-password', {
     title: 'Reset Password - AI Twin',
-    user: req.user,
+    user: null,
     csrfToken: res.locals['csrfToken'],
     email: email
   });

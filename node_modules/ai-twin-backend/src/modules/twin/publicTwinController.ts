@@ -5,6 +5,7 @@ import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
+import { title } from 'process';
 
 // Validation schemas
 const makePublicSchema = z.object({
@@ -384,6 +385,8 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
     
     // Render with twin data and optional initial chatId
     res.render('public-chat', { 
+      title: 'Public Chat - AI Twin',
+      user: req.user || null,
       twin, 
       initialChatId,
       csrfToken: req.csrfToken?.() || ''

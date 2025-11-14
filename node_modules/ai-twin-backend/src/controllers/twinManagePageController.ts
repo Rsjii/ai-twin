@@ -125,7 +125,7 @@ export async function getTwinManage(req: any, res: Response) {
 
     res.render('twin-manage', {
       title: 'My Twin - Manage',
-      user: req.user,
+      user: req.user || null,
       twin: twin,
       twinId: twinId,
       stats: stats,

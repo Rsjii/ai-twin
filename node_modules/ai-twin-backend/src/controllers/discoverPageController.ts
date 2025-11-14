@@ -33,7 +33,7 @@ export async function getDiscover(req: any, res: Response) {
     
     res.render('discover', {
       title: 'Discover AI Twins - Twinverse',
-      user: user,
+      user: user || null,
       hasTwins: hasTwins,
       twinId: twinId,
       csrfToken: res.locals['csrfToken']
@@ -56,7 +56,7 @@ export async function getDiscover(req: any, res: Response) {
 export function getOnboarding(req: any, res: Response) {
   res.render('onboarding', { 
     title: 'Create Your AI Twin - Enhanced Onboarding',
-    user: req.user,
+    user: req.user || null,
     csrfToken: res.locals['csrfToken']
   });
 }
@@ -67,7 +67,7 @@ export function getOnboarding(req: any, res: Response) {
 export function getMemoryManagement(req: any, res: Response) {
   res.render('memory-management', { 
     title: 'Memory Management - AI Twin',
-    user: req.user,
+    user: req.user || null,
     twinId: req.query.twinId || 'default',
     csrfToken: res.locals['csrfToken']
   });
