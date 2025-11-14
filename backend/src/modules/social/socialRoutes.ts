@@ -10,12 +10,12 @@ import {
   toggleLike,
   toggleFollow
 } from './socialController';
-import { requireJWTFromCookie } from '../../middleware/jwtCookie';
+import { requireJWTFromCookie, extractJWTFromCookie } from '../../middleware/jwtCookie';
 
 const router = Router();
 
-// Public routes (no authentication required)
-router.get('/stats/:twinId', getTwinStats);
+// Public routes (no authentication required, but extract JWT if available)
+router.get('/stats/:twinId', extractJWTFromCookie, getTwinStats);
 
 // Protected routes (authentication required)
 router.post('/like', requireJWTFromCookie, likeTwin);
