@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../../middleware/auth';
-import { db, publicTwinQueries } from '../../config/database';
+import { db, publicTwinQueries, userQueries } from '../../config/database';
 import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
@@ -383,14 +383,30 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
       logger.info('Using chatId without userId validation:', { chatId });
     }
     
+    // Fetch full user data from database (like getDiscover)
+    let user = null;
+    if (req.user) {
+      const fullUser = await userQueries.findByEmail(req.user.email);
+      if (fullUser) {
+        user = {
+          id: fullUser.id,
+          email: fullUser.email,
+          handle: fullUser.handle,
+          name: fullUser.name,
+          profileImage: fullUser.profileImage,
+        };
+      }
+    }
+    
     // Render with twin data and optional initial chatId
     res.render('public-chat', { 
       title: 'Public Chat - AI Twin',
-      user: req.user || null,
+      user: user,
       twin, 
       initialChatId,
       csrfToken: req.csrfToken?.() || ''
     });
+    
   } catch (error) {
     if (error instanceof AppError) {
       throw error;

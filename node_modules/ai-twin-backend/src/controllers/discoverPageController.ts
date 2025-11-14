@@ -53,7 +53,16 @@ export async function getDiscover(req: any, res: Response) {
 /**
  * Onboarding page
  */
-export function getOnboarding(req: any, res: Response) {
+export async function getOnboarding(req: any, res: Response) {
+  // Check if user already has a twin - redirect if exists
+  if (req.user?.id) {
+    const userTwins = await twinQueries.findByUserId(req.user.id);
+    if (userTwins.length > 0) {
+      // User already has twin, redirect to twin management
+      return res.redirect('/twin/manage');
+    }
+  }
+  
   res.render('onboarding', { 
     title: 'Create Your AI Twin - Enhanced Onboarding',
     user: req.user || null,

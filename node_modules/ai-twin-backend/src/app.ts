@@ -5,7 +5,7 @@ import express from 'express';
 import session from 'express-session';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
+import rateLimit from 'express-rate-limit'; 
 import cookieParser from 'cookie-parser';
 import { config } from './config/env';
 import { logger } from './config/logger';
@@ -105,6 +105,21 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
   },
 }));
+
+// After session middleware, before routes
+app.use((req, res, next) => {
+  // Set no-cache headers for all protected pages
+  const protectedPaths = ['/dashboard', '/chat', '/learning-dashboard', '/profile', '/twin', '/onboarding', '/analytics', '/admin'];
+  const isProtected = protectedPaths.some(path => req.path.startsWith(path));
+  
+  if (isProtected) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  
+  next();
+});
 
 // Initialize Passport (must be after session middleware)
 app.use(passport.initialize());
