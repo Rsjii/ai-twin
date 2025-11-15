@@ -35,7 +35,19 @@ export const likeTwin = async (req: Request, res: Response) => {
 
     const twin = twinResult.rows[0];
 
-    // ✅ PHASE 2: Check if likes are allowed
+    // ✅ PHASE 4: Check if user is trying to like their own twin
+    const twinOwnerCheck = await db.query(`
+      SELECT "userId" FROM "Twin" WHERE id = $1
+    `, [twinId]);
+    
+    if (twinOwnerCheck.rows.length > 0 && twinOwnerCheck.rows[0].userId === req.user.id) {
+      return res.status(403).json({
+        error: 'You cannot like your own twin',
+        errorCode: 'OWN_TWIN_INTERACTION'
+      });
+    }
+
+    // ✅ PHASE 2: Check if likes are allowed    
     if (twin.allowLikes === false) {
       return res.status(403).json({ 
         error: 'Likes are disabled for this twin',
@@ -177,7 +189,19 @@ export const followTwin = async (req: Request, res: Response) => {
 
     const twin = twinResult.rows[0];
 
-    // ✅ PHASE 2: Check if follows are allowed
+    // ✅ PHASE 4: Check if user is trying to follow their own twin
+    const twinOwnerCheck = await db.query(`
+      SELECT "userId" FROM "Twin" WHERE id = $1
+    `, [twinId]);
+    
+    if (twinOwnerCheck.rows.length > 0 && twinOwnerCheck.rows[0].userId === req.user.id) {
+      return res.status(403).json({
+        error: 'You cannot follow your own twin',
+        errorCode: 'OWN_TWIN_INTERACTION'
+      });
+    }
+
+    // ✅ PHASE 2: Check if follows are allowed    
     if (twin.allowFollows === false) {
       return res.status(403).json({ 
         error: 'Follows are disabled for this twin',
@@ -428,7 +452,19 @@ export const toggleLike = async (req: Request, res: Response) => {
 
     const twin = twinResult.rows[0];
 
-    // ✅ PHASE 2: Check if likes are allowed
+    // ✅ PHASE 4: Check if user is trying to like their own twin
+    const twinOwnerCheck = await db.query(`
+      SELECT "userId" FROM "Twin" WHERE id = $1
+    `, [twinId]);
+    
+    if (twinOwnerCheck.rows.length > 0 && twinOwnerCheck.rows[0].userId === req.user.id) {
+      return res.status(403).json({
+        error: 'You cannot like your own twin',
+        errorCode: 'OWN_TWIN_INTERACTION'
+      });
+    }
+
+    // ✅ PHASE 2: Check if likes are allowed    
     if (twin.allowLikes === false) {
       return res.status(403).json({ 
         error: 'Likes are disabled for this twin',
@@ -509,7 +545,19 @@ export const toggleFollow = async (req: Request, res: Response) => {
 
     const twin = twinResult.rows[0];
 
-    // ✅ PHASE 2: Check if follows are allowed
+    // ✅ PHASE 4: Check if user is trying to follow their own twin
+    const twinOwnerCheck = await db.query(`
+      SELECT "userId" FROM "Twin" WHERE id = $1
+    `, [twinId]);
+    
+    if (twinOwnerCheck.rows.length > 0 && twinOwnerCheck.rows[0].userId === req.user.id) {
+      return res.status(403).json({
+        error: 'You cannot follow your own twin',
+        errorCode: 'OWN_TWIN_INTERACTION'
+      });
+    }
+
+    // ✅ PHASE 2: Check if follows are allowed    
     if (twin.allowFollows === false) {
       return res.status(403).json({ 
         error: 'Follows are disabled for this twin',
