@@ -24,7 +24,7 @@ const signupVerifySchema = z.object({
 const completeProfileSchema = z.object({
   email: z.string().email('Invalid email format'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  handle: z.string().min(3, 'Handle must be at least 3 characters').optional(),
+  handle: z.string().min(3, 'Handle must be at least 3 characters').max(30, 'Handle must be less than 30 characters'),
   dob: z.string().optional(),
   phone: z.string().optional(),
   bio: z.string().optional(),
