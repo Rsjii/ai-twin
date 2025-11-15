@@ -67,12 +67,18 @@
         
         <!-- Main Chat Area -->
         <div class="flex-1 flex flex-col">
-            <!-- Chat Header -->
-            <div class="bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700">
-                <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Chat with @<%= twin.publicHandle %></h1>
-                <p class="text-sm text-gray-600 dark:text-gray-300">You can chat with this AI twin without logging in!</p>
-            </div>
-            
+<!-- Chat Header -->
+<div class="bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700">
+    <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Chat with @<%= twin.publicHandle %></h1>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+        <% if (typeof requiresLogin !== 'undefined' && requiresLogin) { %>
+            Login required to chat with this twin.
+        <% } else { %>
+            You can chat with this AI twin without logging in!
+        <% } %>
+    </p>
+</div>            
+
             <!-- Chat Messages -->
             <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
                 <!-- ✅ ADD: Initial loading state -->
@@ -120,6 +126,56 @@
         let currentTwinId = '<%= twin.id %>';
         let visitorId = null;
         let isChatting = false;
+    
+// ✅ NEW: Check if login is required on page load - SIMPLE MESSAGE
+<% if (typeof requiresLogin !== 'undefined' && requiresLogin) { %>
+document.addEventListener('DOMContentLoaded', function() {
+    // Hide loading state
+    const initialLoading = document.getElementById('initialLoadingState');
+    if (initialLoading) initialLoading.classList.add('hidden');
+    
+    // Show simple message in chat area
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) {
+        chatMessages.innerHTML = `
+            <div class="text-center py-12">
+                <div class="w-16 h-16 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Login Required</h3>
+                <p class="text-gray-600 dark:text-gray-300 mb-4">You need to login to chat with this twin.</p>
+                <a href="/auth?redirect=/public-twin/chat/<%= twin.id %>" class="inline-block bg-blue-600 dark:bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold">
+                    Go to Login
+                </a>
+            </div>
+        `;
+    }
+    
+    // Disable chat input and buttons
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendMessageBtn');
+    const newChatBtn = document.getElementById('newPublicChatBtn');
+    if (messageInput) messageInput.disabled = true;
+    if (sendBtn) sendBtn.disabled = true;
+    if (newChatBtn) newChatBtn.disabled = true;
+    
+    // Hide chat history loading
+    const chatHistoryLoading = document.getElementById('chatHistoryLoadingState');
+    if (chatHistoryLoading) chatHistoryLoading.classList.add('hidden');
+    
+    // Show empty state for chat history
+    const chatHistoryEmpty = document.getElementById('chatHistoryEmptyState');
+    if (chatHistoryEmpty) {
+        chatHistoryEmpty.classList.remove('hidden');
+        chatHistoryEmpty.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-sm">Login required to view chat history</p>';
+    }
+    
+    // Don't load chat history or create new chat
+    return;
+});
+<% } %>
 
         // Initialize visitor ID
         function initializeVisitorId() {
@@ -271,20 +327,44 @@
                 if (initialLoading) initialLoading.classList.add('hidden');
                 
                 // Load chat messages
-                const response = await fetch(`/api/public-chat/${chatId}/history`);
+                const response = await fetch(`/api/public-chat/${chatId}/history`, {
+                    credentials: 'include'
+                });
                 const data = await response.json();
                 
                 if (data.success) {
-                    displayMessages(data.messages);
-                    await loadPublicChatHistory(); // Refresh sidebar
-                    
-                    // ✅ Show empty state if no messages
-                    if (data.messages.length === 0) {
-                        if (emptyState) emptyState.classList.remove('hidden');
-                    } else {
-                        if (emptyState) emptyState.classList.add('hidden');
-                    }
-                }
+            // ✅ FIX: Check if history is hidden (empty messages but chat exists)
+            if (data.messages.length === 0 && data.chat && data.chat.twinId) {
+                // Show message that history is hidden
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="w-16 h-16 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Chat History Hidden</h3>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">The twin owner has hidden chat history. You can still send new messages.</p>
+                    </div>
+                `;
+                if (emptyState) emptyState.classList.add('hidden');
+            } else if (data.messages.length === 0) {
+                // No messages yet (new chat)
+                displayMessages([]);
+                if (emptyState) emptyState.classList.remove('hidden');
+            } else {
+                // Has messages
+                displayMessages(data.messages);
+                if (emptyState) emptyState.classList.add('hidden');
+            }
+            
+            await loadPublicChatHistory(); // Refresh sidebar
+        } else {
+            // Error loading chat
+            if (emptyState) emptyState.classList.remove('hidden');
+        }
+
             } catch (error) {
                 console.error('Error switching to chat:', error);
             }
@@ -461,31 +541,46 @@
             });
         }
 
-        // Create new public chat
-        async function createNewPublicChat() {
-            try {
-                const response = await fetch('/api/public-chat/create', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        twinId: currentTwinId,
-                        visitorId: visitorId
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    currentChatId = data.chatId;
-                    document.getElementById('chatMessages').innerHTML = '';
-                    await loadPublicChatHistory();
+// Find createNewPublicChat function and add error handling
+async function createNewPublicChat() {
+    try {
+        const response = await fetch(`/api/public-chat/start`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                twinId: currentTwinId,
+                visitorId: visitorId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            // ✅ PHASE 2: Handle requireLogin error
+            if (data.errorCode === 'LOGIN_REQUIRED') {
+                alert('You are logged out. Please login to continue chatting with this twin.');
+                if (confirm('Please login to continue chatting with this twin. Would you like to go to login page?')) {
+                    window.location.href = '/auth';
                 }
-            } catch (error) {
-                console.error('Error creating new chat:', error);
+                return;
             }
+            
+            alert('Error: ' + (data.error || 'Failed to start chat'));
+            return;
         }
+        
+        if (data.success) {
+            currentChatId = data.chatId;
+            // Continue with chat...
+        }
+    } catch (error) {
+        console.error('Error creating chat:', error);
+        alert('Network error. Please try again.');
+    }
+}
 
         // Start public chat (load existing or create new)
         async function startPublicChat() {
@@ -659,6 +754,19 @@
                 
                 // Remove typing indicator
                 removeMessage(typingId);
+
+                // ✅ FIX: Handle LOGIN_REQUIRED error
+if (!response.ok && data.errorCode === 'LOGIN_REQUIRED') {
+    alert('You are logged out. Please login to send messages to this twin.');
+    if (confirm('Would you like to go to login page?')) {
+        window.location.href = '/auth';
+    }
+    // Remove the user message that was added
+    const chatMessages = document.getElementById('chatMessages');
+    const lastMessage = chatMessages.lastElementChild;
+    if (lastMessage) lastMessage.remove();
+    return;
+}
                 
                 if (data.success && data.messages) {
                     // Find the AI message (sender: 'twin')

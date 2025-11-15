@@ -267,7 +267,25 @@
 
 // Chat modal functionality
 document.getElementById('chatNowBtn').addEventListener('click', function() {
-    window.location.href = '<% if (twin.isOwner) { %>/chat-enhanced?twinId=<%= twin.id %><% } else { %>/public-twin/chat/<%= twin.id %><% } %>';
+    // ✅ Check if login is required and user is not logged in
+    const requireLogin = <%= twin.requireLogin ? 'true' : 'false' %>;
+    const isLoggedIn = <%= user ? 'true' : 'false' %>;
+    
+    if (requireLogin && !isLoggedIn) {
+        // Show confirmation dialog on profile page
+        const shouldLogin = confirm('You need to login to chat with this twin. Do you want to continue to login?');
+        
+        if (shouldLogin) {
+            // User clicked Yes -> go to auth
+            window.location.href = '/auth?redirect=/public-twin/chat/<%= twin.id %>&message=Please login to chat with this twin';
+        } else {
+            // User clicked Cancel -> stay on profile page (do nothing)
+            return;
+        }
+    } else {
+        // User is logged in OR login not required -> proceed to chat
+        window.location.href = '<% if (twin.isOwner) { %>/chat-enhanced?twinId=<%= twin.id %><% } else { %>/public-twin/chat/<%= twin.id %><% } %>';
+    }
 });
 
         document.getElementById('closeChatBtn').addEventListener('click', function() {
@@ -722,43 +740,77 @@ function displayMessages(messages) {
         }
 
         // Share functionality
-        async function shareTwin(platform) {
-            try {
-                const shareUrl = window.location.href;
-                const title = `Check out @<%= twin.publicHandle %> on Twinverse!`;
-                const text = `<%= twin.bio || 'AI Twin' %> - Chat with this AI twin!`;
-                
-                let shareWindow = '';
-                
-                switch (platform) {
-                    case 'twitter':
-                        shareWindow = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
-                        break;
-                    case 'facebook':
-                        shareWindow = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
-                        break;
-                    case 'linkedin':
-                        shareWindow = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
-                        break;
-                    case 'whatsapp':
-                        shareWindow = `https://wa.me/?text=${encodeURIComponent(text + ' ' + shareUrl)}`;
-                        break;
-                    case 'telegram':
-                        shareWindow = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
-                        break;
-                }
-                
-                if (shareWindow) {
-                    window.open(shareWindow, '_blank', 'width=600,height=400');
-                }
-            } catch (error) {
-                console.error('Share error:', error);
-                alert('Failed to share. Please try again.');
-            }
+async function shareTwin(platform) {
+    try {
+        // ✅ FIX: Check allowShares BEFORE making API call
+        // Get allowShares from twin data (should be available from page load)
+        const twinAllowShares = <%= twin.allowShares !== false ? 'true' : 'false' %>;
+        
+        if (twinAllowShares === false) {
+            alert('Shares are disabled for this twin. You cannot share this profile.');
+            return;
         }
+        
+        // ✅ PHASE 2: Double-check with API (for security)
+        const response = await fetch(`/api/share/content/<%= twin.publicHandle %>?platform=${platform}`, {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            if (data.errorCode === 'SHARES_DISABLED') {
+                alert('Shares are disabled for this twin. You cannot share this profile.');
+                return;
+            }
+            alert('Error: ' + (data.error || 'Failed to share'));
+            return;
+        }
+
+        const shareUrl = window.location.href;
+        const title = `Check out @<%= twin.publicHandle %> on Twinverse!`;
+        const text = `<%= twin.bio || 'AI Twin' %> - Chat with this AI twin!`;
+        
+        let shareWindow = '';
+        
+        switch (platform) {
+            case 'twitter':
+                shareWindow = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
+                break;
+            case 'facebook':
+                shareWindow = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+                break;
+            case 'linkedin':
+                shareWindow = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+                break;
+            case 'whatsapp':
+                shareWindow = `https://wa.me/?text=${encodeURIComponent(text + ' ' + shareUrl)}`;
+                break;
+            case 'telegram':
+                shareWindow = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
+                break;
+        }
+        
+        if (shareWindow) {
+            window.open(shareWindow, '_blank', 'width=600,height=400');
+        }
+    } catch (error) {
+        console.error('Share error:', error);
+        alert('Failed to share. Please try again.');
+    }
+}
 
         async function copyShareLink() {
             try {
+
+                // ✅ FIX: Check allowShares BEFORE copying
+        const twinAllowShares = <%= twin.allowShares !== false ? 'true' : 'false' %>;
+        
+        if (twinAllowShares === false) {
+            alert('Shares are disabled for this twin. You cannot share this profile.');
+            return;
+        }
+
                 const shareUrl = window.location.href;
                 await navigator.clipboard.writeText(shareUrl);
                 alert('Link copied to clipboard!');

@@ -27,7 +27,7 @@ export const generateShareLink = async (req: Request, res: Response) => {
 
     // Verify twin belongs to user and is public
     const twinResult = await db.query(`
-      SELECT id, "publicHandle", "isPublic", "likeCount", "followCount", "chatCount"
+      SELECT id, "publicHandle", "isPublic", "likeCount", "followCount", "chatCount", "allowShares"
       FROM "Twin"
       WHERE id = $1 AND "userId" = $2 AND "isPublic" = true
     `, [twinId, req.user.id]);
@@ -37,6 +37,15 @@ export const generateShareLink = async (req: Request, res: Response) => {
     }
 
     const twin = twinResult.rows[0];
+
+    // ✅ PHASE 2: Check if shares are allowed
+    if (twin.allowShares === false) {
+      return res.status(403).json({ 
+        error: 'Shares are disabled for this twin',
+        errorCode: 'SHARES_DISABLED'
+      });
+    }
+
     const shareUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/@${twin.publicHandle}`;
 
     // Generate share content based on platform
@@ -270,7 +279,7 @@ export const getShareableContent = async (req: Request, res: Response) => {
 
     // Get public twin by handle
     const twinResult = await db.query(`
-      SELECT t.id, t."publicHandle", t."bio", t."likeCount", t."followCount", t."chatCount",
+      SELECT t.id, t."publicHandle", t."bio", t."likeCount", t."followCount", t."chatCount", t."allowShares",
              u.handle as "userHandle", u.name as "userName"
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
@@ -282,6 +291,15 @@ export const getShareableContent = async (req: Request, res: Response) => {
     }
 
     const twin = twinResult.rows[0];
+
+    // ✅ PHASE 2: Check if shares are allowed
+    if (twin.allowShares === false) {
+      return res.status(403).json({ 
+        error: 'Shares are disabled for this twin',
+        errorCode: 'SHARES_DISABLED'
+      });
+    }
+
     const shareUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/@${twin.publicHandle}`;
 
     // Generate content for different platforms

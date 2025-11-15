@@ -352,7 +352,7 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
     
     // Get twin details (existing code)
     const twinResult = await db.query(`
-      SELECT id, "publicHandle", "sampleReply", "isPublic", "profileImage", bio
+      SELECT id, "publicHandle", "sampleReply", "isPublic", "profileImage", bio, "requireLogin"
       FROM "Twin"
       WHERE id = $1 AND "isPublic" = true
     `, [twinId]);
@@ -404,6 +404,7 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
       user: user,
       twin, 
       initialChatId,
+      requiresLogin: twin.requireLogin && !userId,
       csrfToken: req.csrfToken?.() || ''
     });
     

@@ -449,74 +449,98 @@
         }
 
         // Share functionality for discover page
-        async function shareTwinFromDiscover(twinId, publicHandle) {
-            try {
-                const shareUrl = `${window.location.origin}/@${publicHandle}`;
+async function shareTwinFromDiscover(twinId, publicHandle) {
+    try {
+        // ✅ FIX: Check allowShares BEFORE showing prompt
+        const response = await fetch(`/api/share/content/${publicHandle}?platform=copy`, {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            if (data.errorCode === 'SHARES_DISABLED') {
+                alert('Shares are disabled for this twin. You cannot share this profile.');
+                return;
+            }
+            alert('Error: ' + (data.error || 'Failed to check share availability'));
+            return;
+        }
+        
+        // Now show share options (only if shares are allowed)
+        const shareUrl = `${window.location.origin}/@${publicHandle}`;
+        
+        const platform = prompt('Choose platform to share:\n1. Twitter\n2. Facebook\n3. LinkedIn\n4. WhatsApp\n5. Telegram\n6. Copy Link\n\nEnter number (1-6):');
+        
+        if (!platform) return;
+        
+        const platforms = {
+            '1': 'twitter',
+            '2': 'facebook', 
+            '3': 'linkedin',
+            '4': 'whatsapp',
+            '5': 'telegram',
+            '6': 'copy'
+        };
+        
+        const selectedPlatform = platforms[platform];
+        if (!selectedPlatform) {
+            alert('Invalid selection');
+            return;
+        }
+        
+        if (selectedPlatform === 'copy') {
+            await navigator.clipboard.writeText(shareUrl);
+            alert('Link copied to clipboard!');
+        } else {
+            // Get share content for specific platform
+            const platformResponse = await fetch(`/api/share/content/${publicHandle}?platform=${selectedPlatform}`, {
+                credentials: 'include'
+            });
+            const platformData = await platformResponse.json();
+            
+            if (platformData.success) {
+                const content = platformData.content;
+                let shareWindow = '';
                 
-                // Show share options
-                const platform = prompt('Choose platform to share:\n1. Twitter\n2. Facebook\n3. LinkedIn\n4. WhatsApp\n5. Telegram\n6. Copy Link\n\nEnter number (1-6):');
-                
-                if (!platform) return;
-                
-                const platforms = {
-                    '1': 'twitter',
-                    '2': 'facebook', 
-                    '3': 'linkedin',
-                    '4': 'whatsapp',
-                    '5': 'telegram',
-                    '6': 'copy'
-                };
-                
-                const selectedPlatform = platforms[platform];
-                if (!selectedPlatform) {
-                    alert('Invalid selection');
-                    return;
+                switch (selectedPlatform) {
+                    case 'twitter':
+                        shareWindow = `https://twitter.com/intent/tweet?text=${encodeURIComponent(content.text)}&url=${encodeURIComponent(shareUrl)}`;
+                        break;
+                    case 'facebook':
+                        shareWindow = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(content.description)}`;
+                        break;
+                    case 'linkedin':
+                        shareWindow = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(content.title)}&summary=${encodeURIComponent(content.summary)}`;
+                        break;
+                    case 'whatsapp':
+                        shareWindow = `https://wa.me/?text=${encodeURIComponent(content.text)}`;
+                        break;
+                    case 'telegram':
+                        shareWindow = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(content.text)}`;
+                        break;
                 }
                 
-                if (selectedPlatform === 'copy') {
-                    await navigator.clipboard.writeText(shareUrl);
-                    alert('Link copied to clipboard!');
+                if (shareWindow) {
+                    window.open(shareWindow, '_blank', 'width=600,height=400');
+                }
+            } else {
+                if (platformData.errorCode === 'SHARES_DISABLED') {
+                    alert('Shares are disabled for this twin. You cannot share this profile.');
                 } else {
-                    // Get share content
-                    const response = await fetch(`/api/share/content/${publicHandle}?platform=${selectedPlatform}`);
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        const content = data.content;
-                        let shareWindow = '';
-                        
-                        switch (selectedPlatform) {
-                            case 'twitter':
-                                shareWindow = `https://twitter.com/intent/tweet?text=${encodeURIComponent(content.text)}&url=${encodeURIComponent(shareUrl)}`;
-                                break;
-                            case 'facebook':
-                                shareWindow = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(content.description)}`;
-                                break;
-                            case 'linkedin':
-                                shareWindow = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(content.title)}&summary=${encodeURIComponent(content.summary)}`;
-                                break;
-                            case 'whatsapp':
-                                shareWindow = `https://wa.me/?text=${encodeURIComponent(content.text)}`;
-                                break;
-                            case 'telegram':
-                                shareWindow = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(content.text)}`;
-                                break;
-                        }
-                        
-                        if (shareWindow) {
-                            window.open(shareWindow, '_blank', 'width=600,height=400');
-                        }
-                    }
+                    alert('Error: ' + (platformData.error || 'Failed to share'));
                 }
-                
-                // Track share event
-                trackShareEvent(twinId, selectedPlatform);
-                
-            } catch (error) {
-                console.error('Share error:', error);
-                alert('Failed to share. Please try again.');
             }
         }
+        
+        // Track share event
+        trackShareEvent(twinId, selectedPlatform);
+        
+    } catch (error) {
+        console.error('Share error:', error);
+        alert('Failed to share. Please try again.');
+    }
+}
 
         async function trackShareEvent(twinId, platform) {
             try {

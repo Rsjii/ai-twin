@@ -264,102 +264,337 @@
                                 
                 <!-- Tab Content: Settings -->
                 <div id="content-settings" class="tab-content <%= activeTab === 'settings' ? '' : 'hidden' %>">
-                    <div class="space-y-8">
-                        <!-- Change Password Section -->
-                        <div class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
-                            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6 flex items-center">
-                                <svg class="w-6 h-6 mr-3 text-primary dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                </svg>
-                                Change Password
-                            </h2>
-                            <form id="changePasswordForm" class="space-y-6">
-                                <div>
-                                    <label for="currentPassword" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Current Password</label>
-                                    <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password" class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
+                    <!-- Settings Tabs Navigation -->
+                    <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+                        <nav class="flex space-x-1" aria-label="Settings Tabs">
+                            <button 
+                                data-settings-tab="account"
+                                class="settings-tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                            >
+                                Account & Security
+                            </button>
+                            <% if (hasTwins && twin) { %>
+                            <button 
+                                data-settings-tab="twin"
+                                class="settings-tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                            >
+                                Twin Visibility
+                            </button>
+                            <button 
+                                data-settings-tab="privacy"
+                                class="settings-tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                            >
+                                Privacy & Interactions
+                            </button>
+                            <% } %>
+                            <button 
+                                data-settings-tab="appearance"
+                                class="settings-tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                            >
+                                Appearance
+                            </button>
+                        </nav>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <!-- ========== TAB 1: ACCOUNT & SECURITY ========== -->
+                        <div id="settings-tab-account" class="settings-tab-content">
+                            <div class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+                                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                                        <svg class="w-6 h-6 mr-3 text-primary dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                        </svg>
+                                        Account & Security
+                                    </h2>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Manage your account security and password</p>
                                 </div>
                                 
-                                <div>
-                                    <label for="newPassword" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">New Password</label>
-                                    <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password" class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
+                                <div class="p-6 space-y-6">
+                                    <!-- Change Password -->
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Change Password</h3>
+                                        <form id="changePasswordForm" class="space-y-4">
+                                            <div>
+                                                <label for="currentPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Password</label>
+                                                <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password" class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
+                                            </div>
+                                            
+                                            <div>
+                                                <label for="newPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password</label>
+                                                <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password" class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
+                                            </div>
+                                            
+                                            <div>
+                                                <label for="confirmPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm New Password</label>
+                                                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password" class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
+                                            </div>
+                                            
+                                            <button type="submit" class="w-full bg-gradient-to-r from-primary to-accent text-white py-3 px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">
+                                                Update Password
+                                            </button>
+                                        </form>
+                                    </div>
+                                    
+                                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Account Management</h3>
+                                        <div class="space-y-3">
+                                            <button id="exportDataBtn" class="w-full flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg transition-all font-medium border border-blue-200 dark:border-blue-800">
+                                                <div class="flex items-center">
+                                                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                    </svg>
+                                                    <span>Export My Data</span>
+                                                </div>
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                                </svg>
+                                            </button>
+                                            <button id="deleteAccountBtn" class="w-full flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg transition-all font-medium border border-red-200 dark:border-red-800">
+                                                <div class="flex items-center">
+                                                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                    </svg>
+                                                    <span>Delete Account</span>
+                                                </div>
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                                
-                                <div>
-                                    <label for="confirmPassword" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Confirm New Password</label>
-                                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password" class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
-                                </div>
-                                
-                                <button type="submit" class="bg-gradient-to-r from-primary to-accent text-white py-3 px-8 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">
-                                    Change Password
-                                </button>
-                            </form>
+                            </div>
                         </div>
                         
-                        <!-- Privacy Settings -->
-                        <div class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
-                            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6 flex items-center">
-                                <svg class="w-6 h-6 mr-3 text-primary dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                </svg>
-                                Privacy Settings
-                            </h2>
-                            
-                            <% if (hasTwins && twin) { %>
-                                <div class="space-y-6">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <h3 class="font-semibold text-gray-900 dark:text-white">Allow Public Chat</h3>
-                                            <p class="text-sm text-gray-600 dark:text-gray-300">Let others chat with your twin publicly</p>
-                                        </div>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" id="allowPublicChat" <%= twin.allowPublicChat ? 'checked' : '' %> class="sr-only peer">
-                                            <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-blue-500"></div>
-                                        </label>
-                                    </div>
-                                    
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <h3 class="font-semibold text-gray-900 dark:text-white">Show Chat History</h3>
-                                            <p class="text-sm text-gray-600 dark:text-gray-300">Make previous chats visible to others</p>
-                                        </div>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" id="showChatHistory" <%= twin.showChatHistory ? 'checked' : '' %> class="sr-only peer">
-                                            <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-blue-500"></div>
-                                        </label>
-                                    </div>
-                                    
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <h3 class="font-semibold text-gray-900 dark:text-white">Allow Likes</h3>
-                                            <p class="text-sm text-gray-600 dark:text-gray-300">Let others like your twin</p>
-                                        </div>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" id="allowLikes" <%= twin.allowLikes ? 'checked' : '' %> class="sr-only peer">
-                                            <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-blue-500"></div>
-                                        </label>
-                                    </div>
-                                    
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <h3 class="font-semibold text-gray-900 dark:text-white">Allow Follows</h3>
-                                            <p class="text-sm text-gray-600 dark:text-gray-300">Let others follow your twin</p>
-                                        </div>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" id="allowFollows" <%= twin.allowFollows ? 'checked' : '' %> class="sr-only peer">
-                                            <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-blue-500"></div>
-                                        </label>
-                                    </div>
-                                    
-                                    <button onclick="savePrivacySettings()" class="mt-4 bg-gradient-to-r from-primary to-accent text-white py-3 px-8 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">
-                                        Save Privacy Settings
-                                    </button>
+                        <% if (hasTwins && twin) { %>
+                        <!-- ========== TAB 2: TWIN VISIBILITY ========== -->
+                        <div id="settings-tab-twin" class="settings-tab-content hidden">
+                            <div class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+                                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                                        <svg class="w-6 h-6 mr-3 text-primary dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        Twin Visibility
+                                    </h2>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Control who can discover and interact with your twin</p>
                                 </div>
-                            <% } else { %>
-                                <p class="text-gray-600 dark:text-gray-300">Create a twin to manage privacy settings.</p>
-                            <% } %>
-                        </div>                        
+                                
+                                <div class="p-6">
+                                    <div class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 border-2 border-blue-200 dark:border-blue-800">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <div class="flex-1">
+                                                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center">
+                                                    <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                    Make Twin Public
+                                                </h3>
+                                                <p class="text-sm text-gray-600 dark:text-gray-300">
+                                                    <% if (twin.isPublic) { %>
+                                                        Your twin is currently <span class="font-semibold text-green-600 dark:text-green-400">PUBLIC</span>. Others can discover and chat with it.
+                                                    <% } else { %>
+                                                        Your twin is currently <span class="font-semibold text-gray-600 dark:text-gray-400">PRIVATE</span>. Make it public to let others discover and chat with it.
+                                                    <% } %>
+                                                </p>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer ml-4">
+                                                <input type="checkbox" id="isPublicToggle" <%= twin.isPublic ? 'checked' : '' %> class="sr-only peer">
+                                                <div class="w-14 h-7 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500 dark:peer-checked:bg-green-600"></div>
+                                            </label>
+                                        </div>
+                                        
+                                        <% if (!twin.isPublic) { %>
+                                            <div id="makePublicForm" class="mt-4 space-y-4 p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700">
+                                                <div>
+                                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Public Handle <span class="text-red-500">*</span></label>
+                                                    <input type="text" id="publicHandle" placeholder="e.g., coolcompanion240" class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white" pattern="[a-zA-Z0-9_-]+" minlength="3" maxlength="30">
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">3-30 characters, letters, numbers, hyphens, underscores only</p>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Bio (Optional)</label>
+                                                    <textarea id="publicBio" rows="3" placeholder="Describe your AI twin..." maxlength="500" class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white"></textarea>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><span id="bioCharCount">0</span>/500 characters</p>
+                                                </div>
+                                                <button id="makeTwinPublicBtn" class="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2 px-4 rounded-lg hover:shadow-lg transition-all font-semibold">
+                                                    Make Twin Public
+                                                </button>
+                                            </div>
+                                        <% } else { %>
+                                            <div class="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Public Profile URL:</span>
+                                                    <button id="copyPublicLinkBtn" class="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                                                        Copy Link
+                                                    </button>
+                                                </div>
+                                                <input type="text" id="publicLinkInput" value="/public-twin/<%= twin.publicHandle %>" readonly class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white">
+                                                <button id="makeTwinPrivateBtn" class="mt-3 w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-all font-semibold">
+                                                    Make Twin Private
+                                                </button>
+                                            </div>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- ========== TAB 3: PRIVACY & INTERACTIONS ========== -->
+                        <div id="settings-tab-privacy" class="settings-tab-content hidden">
+                            <div class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+                                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                                        <svg class="w-6 h-6 mr-3 text-primary dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                        </svg>
+                                        Privacy & Interactions
+                                    </h2>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Control how others interact with your twin</p>
+                                </div>
+                                
+                                <div class="p-6 space-y-6">
+                                    <!-- Chat Settings Sub-section -->
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                                            <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                            </svg>
+                                            Chat Settings
+                                        </h3>
+                                        <div class="space-y-4 pl-7">
+                                            
+                                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                                <div class="flex-1">
+                                                    <h4 class="font-semibold text-gray-900 dark:text-white">Show Chat History</h4>
+                                                    <p class="text-sm text-gray-600 dark:text-gray-300">Make previous chats visible to others</p>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="showChatHistory" <%= (twin.showChatHistory !== false) ? 'checked' : '' %> class="privacy-toggle sr-only peer">
+                                                    <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-blue-500"></div>
+                                                </label>
+                                            </div>
+                                                                                        
+                                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                                <div class="flex-1">
+                                                    <h4 class="font-semibold text-gray-900 dark:text-white">Require Login</h4>
+                                                    <p class="text-sm text-gray-600 dark:text-gray-300">Force users to log in before chatting</p>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="requireLogin" <%= (twin.requireLogin === true) ? 'checked' : '' %> class="privacy-toggle sr-only peer">
+                                                    <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-blue-500"></div>
+                                                </label>
+                                            </div>
+                                            
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Social Interactions Sub-section -->
+                                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                                            <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                            </svg>
+                                            Social Interactions
+                                        </h3>
+                                        <div class="space-y-4 pl-7">
+                                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                                <div class="flex-1">
+                                                    <h4 class="font-semibold text-gray-900 dark:text-white">Allow Likes</h4>
+                                                    <p class="text-sm text-gray-600 dark:text-gray-300">Let others like your twin</p>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="allowLikes" <%= (twin.allowLikes !== false) ? 'checked' : '' %> class="privacy-toggle sr-only peer">
+                                                    <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-blue-500"></div>
+                                                </label>
+                                            </div>
+                                            
+                                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                                <div class="flex-1">
+                                                    <h4 class="font-semibold text-gray-900 dark:text-white">Allow Follows</h4>
+                                                    <p class="text-sm text-gray-600 dark:text-gray-300">Let others follow your twin</p>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="allowFollows" <%= (twin.allowFollows !== false) ? 'checked' : '' %> class="privacy-toggle sr-only peer">
+                                                    <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-blue-500"></div>
+                                                </label>
+                                            </div>
+                                            
+                                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                                <div class="flex-1">
+                                                    <h4 class="font-semibold text-gray-900 dark:text-white">Allow Shares</h4>
+                                                    <p class="text-sm text-gray-600 dark:text-gray-300">Let others share your twin profile</p>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="allowShares" <%= (twin.allowShares !== false) ? 'checked' : '' %> class="privacy-toggle sr-only peer">
+                                                    <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-blue-500"></div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Blocked Users Sub-section -->
+                                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                                                <svg class="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                                                </svg>
+                                                Blocked Users
+                                            </h3>
+                                            <button id="blockUserBtn" class="text-sm bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all font-medium">
+                                                + Block User
+                                            </button>
+                                        </div>
+                                        <div id="blockedUsersList" class="pl-7 space-y-2 min-h-[50px]">
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Loading blocked users...</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                                        <button id="savePrivacySettingsBtn" class="w-full bg-gradient-to-r from-primary to-accent text-white py-3 px-8 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">
+                                            Save Privacy Settings
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <% } %>
+                        
+                        <!-- ========== TAB 4: APPEARANCE ========== -->
+                        <div id="settings-tab-appearance" class="settings-tab-content hidden">
+                            <div class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20">
+                                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                                        <svg class="w-6 h-6 mr-3 text-primary dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                                        </svg>
+                                        Appearance
+                                    </h2>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Customize how the interface looks</p>
+                                </div>
+                                
+                                <div class="p-6">
+                                    <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                        <div class="flex-1">
+                                            <h3 class="font-semibold text-gray-900 dark:text-white">Theme</h3>
+                                            <p class="text-sm text-gray-600 dark:text-gray-300">Choose light or dark mode</p>
+                                        </div>
+                                        <button id="themeToggleBtn" class="p-3 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-all">
+                                            <svg id="themeIconSun" class="w-6 h-6 text-yellow-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                            </svg>
+                                            <svg id="themeIconMoon" class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                     </div>
-                </div>
+                </div>                           
             </div>
         </div>
     </div>
@@ -375,7 +610,6 @@
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.add('hidden');
-                console.log('Hidden content:', content.id);
             });
             
             // Remove active state from all tabs
@@ -387,26 +621,18 @@
             // Show selected tab content
             const contentId = `content-${tabName}`;
             const content = document.getElementById(contentId);
-            console.log('Looking for content with ID:', contentId, 'Found:', !!content);
             
             if (content) {
                 content.classList.remove('hidden');
-                console.log('✅ Showing content:', contentId);
-            } else {
-                console.error('❌ Content not found:', contentId);
             }
             
             // Activate selected tab button
             const tabId = `tab-${tabName}`;
             const tabButton = document.getElementById(tabId);
-            console.log('Looking for button with ID:', tabId, 'Found:', !!tabButton);
             
             if (tabButton) {
                 tabButton.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
                 tabButton.classList.add('border-primary', 'dark:border-blue-400', 'text-primary', 'dark:text-blue-400');
-                console.log('✅ Activated button:', tabId);
-            } else {
-                console.error('❌ Button not found:', tabId);
             }
             
             // Update URL without reload
@@ -414,104 +640,56 @@
             window.history.pushState({}, '', newUrl);
         };
         
-        // Initialize tab on page load and setup event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('📋 DOM Loaded, activeTab:', activeTab);
-            console.log('🔍 Available tab contents:', document.querySelectorAll('.tab-content').length);
-            console.log('🔍 Available tab buttons:', document.querySelectorAll('.tab-button').length);
+        // Settings Tabs Switching
+        function switchSettingsTab(tabName) {
+            // Hide all settings tab contents
+            document.querySelectorAll('.settings-tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
             
-            // Setup click event listeners for all tab buttons (backup to onclick)
-            const tabButtons = document.querySelectorAll('.tab-button');
-            tabButtons.forEach(button => {
+            // Remove active state from all settings tab buttons
+            document.querySelectorAll('.settings-tab-btn').forEach(button => {
+                button.classList.remove('border-primary', 'text-primary', 'dark:text-blue-400');
+                button.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            });
+            
+            // Show selected settings tab content
+            const contentId = `settings-tab-${tabName}`;
+            const content = document.getElementById(contentId);
+            if (content) {
+                content.classList.remove('hidden');
+            }
+            
+            // Activate selected settings tab button
+            const button = document.querySelector(`[data-settings-tab="${tabName}"]`);
+            if (button) {
+                button.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+                button.classList.add('border-primary', 'text-primary', 'dark:text-blue-400');
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Main tabs
+            if (typeof window.switchTab === 'function') {
+                switchTab(activeTab);
+            }
+            
+            // Settings tabs - default to first tab
+            switchSettingsTab('account');
+            
+            // Setup settings tab button listeners
+            document.querySelectorAll('.settings-tab-btn').forEach(button => {
                 button.addEventListener('click', function(e) {
                     e.preventDefault();
-                    e.stopPropagation();
-                    // Extract tab name from button ID (format: tab-profile, tab-twin, tab-settings)
-                    const buttonId = this.getAttribute('id');
-                    if (buttonId && buttonId.startsWith('tab-')) {
-                        const tabName = buttonId.replace('tab-', '');
-                        console.log('🖱️ Tab button clicked via event listener:', tabName);
-                        if (typeof window.switchTab === 'function') {
-                            window.switchTab(tabName);
-                        }
+                    const tabName = this.getAttribute('data-settings-tab');
+                    if (tabName) {
+                        switchSettingsTab(tabName);
                     }
                 });
             });
             
-            // Ensure switchTab is available before calling
-            if (typeof window.switchTab === 'function') {
-                switchTab(activeTab);
-            } else {
-                console.error('❌ switchTab function not found!');
-            }
-        });
-        
-        // Profile edit functionality (existing code)
-        function toggleEditMode() {
-            console.log('Edit mode toggled!');
-            
-            const form = document.getElementById('profileForm');
-            const inputs = form.querySelectorAll('input, textarea');
-            const editBtn = document.getElementById('editProfileBtn');
-            const cancelBtn = document.getElementById('cancelBtn');
-            const saveBtn = document.getElementById('saveBtn');
-            const profileImageFile = document.getElementById('profileImageFile');
-            
-            // Enable all inputs except email
-            inputs.forEach(input => {
-                if (input.id !== 'email') {
-                    input.removeAttribute('readonly');
-                    input.classList.remove('bg-white/50', 'bg-gray-100');
-                    input.classList.add('bg-white', 'border-primary/30');
-                }
-            });
-            
-            // Enable file input
-            if (profileImageFile) {
-                profileImageFile.removeAttribute('readonly');
-                profileImageFile.classList.remove('bg-white/50');
-                profileImageFile.classList.add('bg-white', 'border-primary/30');
-            }
-            
-            // Show/hide buttons
-            if (editBtn) editBtn.classList.add('hidden');
-            if (cancelBtn) cancelBtn.classList.remove('hidden');
-            if (saveBtn) saveBtn.classList.remove('hidden');
-        }
-    
-        function cancelEdit() {
-            const form = document.getElementById('profileForm');
-            const inputs = form.querySelectorAll('input, textarea');
-            const editBtn = document.getElementById('editProfileBtn');
-            const cancelBtn = document.getElementById('cancelBtn');
-            const saveBtn = document.getElementById('saveBtn');
-            const profileImageFile = document.getElementById('profileImageFile');
-        
-            // Disable all inputs
-            inputs.forEach(input => {
-                if (input.id !== 'email') {
-                    input.setAttribute('readonly', 'true');
-                    input.classList.add('bg-white/50', 'border-gray-200');
-                    input.classList.remove('bg-white', 'border-primary/30');
-                }
-            });
-            
-            // Disable file input
-            if (profileImageFile) {
-                profileImageFile.setAttribute('readonly', 'true');
-                profileImageFile.classList.add('bg-white/50', 'border-gray-200');
-                profileImageFile.classList.remove('bg-white', 'border-primary/30');
-                profileImageFile.value = '';
-            }
-            
-            // Show/hide buttons
-            if (editBtn) editBtn.classList.remove('hidden');
-            if (cancelBtn) cancelBtn.classList.add('hidden');
-            if (saveBtn) saveBtn.classList.add('hidden');
-        }
-    
-        // Profile form submission (existing code)
-        document.addEventListener('DOMContentLoaded', function() {
+            // Profile form submission
             const profileForm = document.getElementById('profileForm');
             if (profileForm) {
                 profileForm.addEventListener('submit', async function(e) {
@@ -525,7 +703,7 @@
                     formData.append('dob', document.getElementById('dob').value);
                     formData.append('bio', document.getElementById('bio').value);
                     
-                    if (profileImageFile.files.length > 0) {
+                    if (profileImageFile && profileImageFile.files.length > 0) {
                         formData.append('profileImageFile', profileImageFile.files[0]);
                     }
                     
@@ -553,7 +731,7 @@
                 });
             }
             
-            // Change password form submission
+            // Change password form
             const changePasswordForm = document.getElementById('changePasswordForm');
             if (changePasswordForm) {
                 changePasswordForm.addEventListener('submit', async function(e) {
@@ -593,43 +771,272 @@
                     }
                 });
             }
-        });
-    
-        // Helper functions
-        // Make copyPublicLink globally accessible
-        window.copyPublicLink = function() {
-            try {
-                const input = document.getElementById('publicLinkInput');
-                if (!input) {
-                    console.error('Input element not found');
-                    showNotification('Failed to copy link', 'error');
-                    return;
-                }
-                
-                const url = window.location.origin + input.value;
-                console.log('Copying URL:', url);
-                
-                // Modern clipboard API
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(url).then(() => {
-                        console.log('Successfully copied to clipboard');
-                        showNotification('Public link copied to clipboard!', 'success');
-                    }).catch(err => {
-                        console.error('Clipboard API failed:', err);
-                        // Fallback method
-                        fallbackCopyTextToClipboard(url);
-                    });
-                } else {
-                    // Fallback for older browsers
-                    fallbackCopyTextToClipboard(url);
-                }
-            } catch (error) {
-                console.error('Copy function error:', error);
-                showNotification('Failed to copy link', 'error');
+            
+            // Account Management Buttons
+            const exportDataBtn = document.getElementById('exportDataBtn');
+            if (exportDataBtn) {
+                exportDataBtn.addEventListener('click', function() {
+                    showNotification('Data export feature coming soon', 'info');
+                });
             }
-        };
+            
+            const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+            if (deleteAccountBtn) {
+                deleteAccountBtn.addEventListener('click', function() {
+                    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+                        showNotification('Account deletion feature coming soon', 'info');
+                    }
+                });
+            }
+            
+            // Twin Visibility Buttons
+            <% if (hasTwins && twin) { %>
+            const makeTwinPublicBtn = document.getElementById('makeTwinPublicBtn');
+            if (makeTwinPublicBtn) {
+                makeTwinPublicBtn.addEventListener('click', async function() {
+                    const publicHandle = document.getElementById('publicHandle')?.value.trim();
+                    const publicBio = document.getElementById('publicBio')?.value.trim();
+                    
+                    if (!publicHandle) {
+                        showNotification('Public handle is required', 'error');
+                        return;
+                    }
+                    
+                    if (!/^[a-zA-Z0-9_-]+$/.test(publicHandle)) {
+                        showNotification('Handle can only contain letters, numbers, hyphens, and underscores', 'error');
+                        return;
+                    }
+                    
+                    if (publicHandle.length < 3 || publicHandle.length > 30) {
+                        showNotification('Handle must be between 3 and 30 characters', 'error');
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch('/api/public-twin/make-public', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': '<%= csrfToken %>'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                twinId: '<%= twin?.id || '' %>',
+                                publicHandle: publicHandle,
+                                bio: publicBio || undefined
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            showNotification('Twin is now public!', 'success');
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            showNotification(result.error || 'Failed to make twin public', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Make twin public error:', error);
+                        showNotification('Network error. Please try again.', 'error');
+                    }
+                });
+            }
+            
+            const makeTwinPrivateBtn = document.getElementById('makeTwinPrivateBtn');
+            if (makeTwinPrivateBtn) {
+                makeTwinPrivateBtn.addEventListener('click', async function() {
+                    if (!confirm('Are you sure you want to make your twin private? Others will no longer be able to discover it.')) {
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch('/api/public-twin/make-private', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': '<%= csrfToken %>'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                twinId: '<%= twin?.id || '' %>'
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            showNotification('Twin is now private', 'success');
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            showNotification(result.error || 'Failed to make twin private', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Make twin private error:', error);
+                        showNotification('Network error. Please try again.', 'error');
+                    }
+                });
+            }
+            
+            const copyPublicLinkBtn = document.getElementById('copyPublicLinkBtn');
+            if (copyPublicLinkBtn) {
+                copyPublicLinkBtn.addEventListener('click', function() {
+                    const input = document.getElementById('publicLinkInput');
+                    if (!input) {
+                        showNotification('Failed to copy link', 'error');
+                        return;
+                    }
+                    
+                    const url = window.location.origin + input.value;
+                    
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(url).then(() => {
+                            showNotification('Public link copied to clipboard!', 'success');
+                        }).catch(err => {
+                            console.error('Clipboard API failed:', err);
+                            fallbackCopyTextToClipboard(url);
+                        });
+                    } else {
+                        fallbackCopyTextToClipboard(url);
+                    }
+                });
+            }
+            
+            // Save Privacy Settings Button
+            const savePrivacySettingsBtn = document.getElementById('savePrivacySettingsBtn');
+            if (savePrivacySettingsBtn) {
+                savePrivacySettingsBtn.addEventListener('click', function() {
+                    savePrivacySettings();
+                });
+            }
+            
+            // Block User Button
+            const blockUserBtn = document.getElementById('blockUserBtn');
+            if (blockUserBtn) {
+                blockUserBtn.addEventListener('click', function() {
+                    const handle = prompt('Enter user handle to block:');
+                    if (handle && handle.trim()) {
+                        blockUser(handle.trim());
+                    }
+                });
+            }
+            
+            // Load blocked users
+            loadBlockedUsers();
+            
+            // Bio character counter
+            const publicBio = document.getElementById('publicBio');
+            if (publicBio) {
+                const bioCharCount = document.getElementById('bioCharCount');
+                publicBio.addEventListener('input', function() {
+                    if (bioCharCount) {
+                        bioCharCount.textContent = this.value.length;
+                    }
+                });
+            }
+            <% } %>
+            
+            // Theme Toggle
+            const themeToggleBtn = document.getElementById('themeToggleBtn');
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', function() {
+                    toggleThemeInSettings();
+                });
+            }
+            
+            // Initialize theme icon state
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            const themeIconSun = document.getElementById('themeIconSun');
+            const themeIconMoon = document.getElementById('themeIconMoon');
+            
+            if (themeIconSun && themeIconMoon) {
+                if (currentTheme === 'dark') {
+                    themeIconSun.classList.remove('hidden');
+                    themeIconMoon.classList.add('hidden');
+                } else {
+                    themeIconSun.classList.add('hidden');
+                    themeIconMoon.classList.remove('hidden');
+                }
+            }
+            
+            // Profile edit buttons
+            const editBtn = document.getElementById('editProfileBtn');
+            if (editBtn) {
+                editBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    toggleEditMode();
+                });
+            }
+            
+            const cancelBtn = document.getElementById('cancelBtn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    cancelEdit();
+                });
+            }
+        });
         
-        // Fallback copy method for older browsers
+        // Profile edit functionality
+        function toggleEditMode() {
+            const form = document.getElementById('profileForm');
+            const inputs = form.querySelectorAll('input, textarea');
+            const editBtn = document.getElementById('editProfileBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const profileImageFile = document.getElementById('profileImageFile');
+            
+            inputs.forEach(input => {
+                if (input.id !== 'email') {
+                    input.removeAttribute('readonly');
+                    input.classList.remove('bg-white/50', 'bg-gray-100');
+                    input.classList.add('bg-white', 'border-primary/30');
+                }
+            });
+            
+            if (profileImageFile) {
+                profileImageFile.removeAttribute('readonly');
+                profileImageFile.classList.remove('bg-white/50');
+                profileImageFile.classList.add('bg-white', 'border-primary/30');
+            }
+            
+            if (editBtn) editBtn.classList.add('hidden');
+            if (cancelBtn) cancelBtn.classList.remove('hidden');
+            if (saveBtn) saveBtn.classList.remove('hidden');
+        }
+    
+        function cancelEdit() {
+            const form = document.getElementById('profileForm');
+            const inputs = form.querySelectorAll('input, textarea');
+            const editBtn = document.getElementById('editProfileBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const profileImageFile = document.getElementById('profileImageFile');
+        
+            inputs.forEach(input => {
+                if (input.id !== 'email') {
+                    input.setAttribute('readonly', 'true');
+                    input.classList.add('bg-white/50', 'border-gray-200');
+                    input.classList.remove('bg-white', 'border-primary/30');
+                }
+            });
+            
+            if (profileImageFile) {
+                profileImageFile.setAttribute('readonly', 'true');
+                profileImageFile.classList.add('bg-white/50', 'border-gray-200');
+                profileImageFile.classList.remove('bg-white', 'border-primary/30');
+                profileImageFile.value = '';
+            }
+            
+            if (editBtn) editBtn.classList.remove('hidden');
+            if (cancelBtn) cancelBtn.classList.add('hidden');
+            if (saveBtn) saveBtn.classList.add('hidden');
+        }
+        
+        // Fallback copy method
         function fallbackCopyTextToClipboard(text) {
             const textArea = document.createElement('textarea');
             textArea.value = text;
@@ -653,30 +1060,33 @@
             } finally {
                 document.body.removeChild(textArea);
             }
-        }        
+        }
                 
         async function savePrivacySettings() {
-            <% if (!hasTwins) { %>
+            <% if (!hasTwins || !twin) { %>
                 showNotification('No twin found', 'error');
                 return;
             <% } %>
             
-            const settings = {
-                allowPublicChat: document.getElementById('allowPublicChat').checked,
-                showChatHistory: document.getElementById('showChatHistory').checked,
-                allowLikes: document.getElementById('allowLikes').checked,
-                allowFollows: document.getElementById('allowFollows').checked,
-            };
-            
+const settings = {
+  showChatHistory: document.getElementById('showChatHistory')?.checked ?? true,
+  requireLogin: document.getElementById('requireLogin')?.checked ?? false,
+  allowLikes: document.getElementById('allowLikes')?.checked ?? true,
+  allowFollows: document.getElementById('allowFollows')?.checked ?? true,
+  allowShares: document.getElementById('allowShares')?.checked ?? true,
+};            
             try {
-                const response = await fetch(`/api/twin/<%= twin?.id || '' %>/privacy`, {
+                const response = await fetch('/api/privacy/settings', {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': '<%= csrfToken %>'
                     },
                     credentials: 'include',
-                    body: JSON.stringify({ settings })
+                    body: JSON.stringify({ 
+                        twinId: '<%= twin?.id || '' %>',
+                        settings: settings
+                    })
                 });
                 
                 const result = await response.json();
@@ -691,27 +1101,146 @@
                 showNotification('Network error. Please try again.', 'error');
             }
         }
-        
-        async function makeTwinPublic(twinId) {
-            // This would call an API to make twin public
-            showNotification('Feature coming soon', 'info');
-        }
-    
-        function logout() {
-            fetch('/api/auth/logout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include'
-            })
-            .then(response => {
-                if (response.ok) {
-                    window.location.href = '/auth';
+
+        // Load blocked users
+        async function loadBlockedUsers() {
+            <% if (!hasTwins || !twin) { %>
+                return;
+            <% } %>
+            
+            try {
+                const response = await fetch(`/api/privacy/settings/<%= twin?.id || '' %>`, {
+                    credentials: 'include'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.settings && result.settings.blockedUsers) {
+                    const blockedUsersList = document.getElementById('blockedUsersList');
+                    const blockedUsers = result.settings.blockedUsers;
+                    
+                    if (blockedUsers.length === 0) {
+                        blockedUsersList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No blocked users</p>';
+                    } else {
+                        blockedUsersList.innerHTML = blockedUsers.map(user => `
+                            <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-white">${user.name || user.handle || 'Unknown'}</span>
+                                    <span class="text-sm text-gray-500 dark:text-gray-400 ml-2">@${user.handle}</span>
+                                </div>
+                                <button data-unblock-user="${user.id}" class="unblock-user-btn text-sm bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600">
+                                    Unblock
+                                </button>
+                            </div>
+                        `).join('');
+                        
+                        // Add event listeners to unblock buttons
+                        document.querySelectorAll('.unblock-user-btn').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const userId = this.getAttribute('data-unblock-user');
+                                if (userId) {
+                                    unblockUser(userId);
+                                }
+                            });
+                        });
+                    }
                 }
-            })
-            .catch(error => {
-                console.error('Logout error:', error);
-                window.location.href = '/auth';
-            });
+            } catch (error) {
+                console.error('Error loading blocked users:', error);
+            }
+        }
+        
+        async function blockUser(userHandle) {
+            <% if (!hasTwins || !twin) { %>
+                showNotification('No twin found', 'error');
+                return;
+            <% } %>
+            
+            try {
+                const response = await fetch('/api/privacy/block', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '<%= csrfToken %>'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        twinId: '<%= twin?.id || '' %>',
+                        userHandle: userHandle
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showNotification('User blocked successfully', 'success');
+                    loadBlockedUsers();
+                } else {
+                    showNotification(result.error || 'Failed to block user', 'error');
+                }
+            } catch (error) {
+                console.error('Block user error:', error);
+                showNotification('Network error. Please try again.', 'error');
+            }
+        }
+        
+        async function unblockUser(userId) {
+            <% if (!hasTwins || !twin) { %>
+                showNotification('No twin found', 'error');
+                return;
+            <% } %>
+            
+            try {
+                const response = await fetch('/api/privacy/unblock', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '<%= csrfToken %>'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        twinId: '<%= twin?.id || '' %>',
+                        userId: userId
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showNotification('User unblocked successfully', 'success');
+                    loadBlockedUsers();
+                } else {
+                    showNotification(result.error || 'Failed to unblock user', 'error');
+                }
+            } catch (error) {
+                console.error('Unblock user error:', error);
+                showNotification('Network error. Please try again.', 'error');
+            }
+        }
+        
+        function toggleThemeInSettings() {
+            const html = document.documentElement;
+            const isDark = html.classList.contains('dark');
+            const newTheme = isDark ? 'light' : 'dark';
+            
+            localStorage.setItem('theme', newTheme);
+            
+            if (newTheme === 'dark') {
+                html.classList.add('dark');
+                const themeIconSun = document.getElementById('themeIconSun');
+                const themeIconMoon = document.getElementById('themeIconMoon');
+                if (themeIconSun) themeIconSun.classList.remove('hidden');
+                if (themeIconMoon) themeIconMoon.classList.add('hidden');
+            } else {
+                html.classList.remove('dark');
+                const themeIconSun = document.getElementById('themeIconSun');
+                const themeIconMoon = document.getElementById('themeIconMoon');
+                if (themeIconSun) themeIconSun.classList.add('hidden');
+                if (themeIconMoon) themeIconMoon.classList.remove('hidden');
+            }
+            
+            // Trigger theme change event for header
+            window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: newTheme } }));
         }
     
         function showNotification(message, type = 'success') {
@@ -751,40 +1280,6 @@
                 }, 300);
             }, 3000);
         }
-    
-        // Event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            const editBtn = document.getElementById('editProfileBtn');
-            if (editBtn) {
-                editBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    toggleEditMode();
-                });
-            }
-            
-            const cancelBtn = document.getElementById('cancelBtn');
-            if (cancelBtn) {
-                cancelBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    cancelEdit();
-                });
-            }
-            
-            // Copy Public Link button event listener (backup to onclick)
-            const copyPublicLinkBtn = document.getElementById('copyPublicLinkBtn');
-            if (copyPublicLinkBtn) {
-                copyPublicLinkBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Copy button clicked via event listener');
-                    if (typeof window.copyPublicLink === 'function') {
-                        window.copyPublicLink();
-                    } else {
-                        console.error('copyPublicLink function not found');
-                    }
-                });
-            }
-        });
     </script>
 
     <!--Footer-->

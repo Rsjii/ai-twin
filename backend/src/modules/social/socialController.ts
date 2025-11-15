@@ -24,7 +24,7 @@ export const likeTwin = async (req: Request, res: Response) => {
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
-      SELECT id, "isPublic", "likeCount"
+      SELECT id, "isPublic", "likeCount", "allowLikes"
       FROM "Twin"
       WHERE id = $1 AND "isPublic" = true
     `, [twinId]);
@@ -34,6 +34,14 @@ export const likeTwin = async (req: Request, res: Response) => {
     }
 
     const twin = twinResult.rows[0];
+
+    // ✅ PHASE 2: Check if likes are allowed
+    if (twin.allowLikes === false) {
+      return res.status(403).json({ 
+        error: 'Likes are disabled for this twin',
+        errorCode: 'LIKES_DISABLED'
+      });
+    }
 
     // Check if user already liked this twin
     const existingLike = await twinLikeQueries.findByTwinAndUser(twinId, req.user.id);
@@ -84,6 +92,27 @@ export const unlikeTwin = async (req: Request, res: Response) => {
     }
 
     const { twinId } = likeTwinSchema.parse(req.body);
+
+    // ✅ PHASE 2: Check if twin exists and likes are allowed (for consistency)
+    const twinResult = await db.query(`
+      SELECT id, "isPublic", "allowLikes"
+      FROM "Twin"
+      WHERE id = $1 AND "isPublic" = true
+    `, [twinId]);
+
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Public twin not found' });
+    }
+
+    const twin = twinResult.rows[0];
+
+    // ✅ PHASE 2: Check if likes are allowed
+    if (twin.allowLikes === false) {
+      return res.status(403).json({ 
+        error: 'Likes are disabled for this twin',
+        errorCode: 'LIKES_DISABLED'
+      });
+    }
 
     // Check if user has liked this twin
     const existingLike = await twinLikeQueries.findByTwinAndUser(twinId, req.user.id);
@@ -137,7 +166,7 @@ export const followTwin = async (req: Request, res: Response) => {
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
-      SELECT id, "isPublic", "followCount"
+      SELECT id, "isPublic", "followCount", "allowFollows"
       FROM "Twin"
       WHERE id = $1 AND "isPublic" = true
     `, [twinId]);
@@ -147,6 +176,14 @@ export const followTwin = async (req: Request, res: Response) => {
     }
 
     const twin = twinResult.rows[0];
+
+    // ✅ PHASE 2: Check if follows are allowed
+    if (twin.allowFollows === false) {
+      return res.status(403).json({ 
+        error: 'Follows are disabled for this twin',
+        errorCode: 'FOLLOWS_DISABLED'
+      });
+    }
 
     // Check if user already follows this twin
     const existingFollow = await twinFollowQueries.findByTwinAndUser(twinId, req.user.id);
@@ -197,6 +234,27 @@ export const unfollowTwin = async (req: Request, res: Response) => {
     }
 
     const { twinId } = followTwinSchema.parse(req.body);
+
+    // ✅ PHASE 2: Check if twin exists and follows are allowed (for consistency)
+    const twinResult = await db.query(`
+      SELECT id, "isPublic", "allowFollows"
+      FROM "Twin"
+      WHERE id = $1 AND "isPublic" = true
+    `, [twinId]);
+
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Public twin not found' });
+    }
+
+    const twin = twinResult.rows[0];
+
+    // ✅ PHASE 2: Check if follows are allowed
+    if (twin.allowFollows === false) {
+      return res.status(403).json({ 
+        error: 'Follows are disabled for this twin',
+        errorCode: 'FOLLOWS_DISABLED'
+      });
+    }
 
     // Check if user follows this twin
     const existingFollow = await twinFollowQueries.findByTwinAndUser(twinId, req.user.id);
@@ -359,13 +417,23 @@ export const toggleLike = async (req: Request, res: Response) => {
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
-      SELECT id, "isPublic"
+      SELECT id, "isPublic", "allowLikes"
       FROM "Twin"
       WHERE id = $1 AND "isPublic" = true
     `, [twinId]);
 
     if (twinResult.rows.length === 0) {
       return res.status(404).json({ error: 'Public twin not found' });
+    }
+
+    const twin = twinResult.rows[0];
+
+    // ✅ PHASE 2: Check if likes are allowed
+    if (twin.allowLikes === false) {
+      return res.status(403).json({ 
+        error: 'Likes are disabled for this twin',
+        errorCode: 'LIKES_DISABLED'
+      });
     }
 
     // Check if user already liked this twin
@@ -430,13 +498,23 @@ export const toggleFollow = async (req: Request, res: Response) => {
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
-      SELECT id, "isPublic"
+      SELECT id, "isPublic", "allowFollows"
       FROM "Twin"
       WHERE id = $1 AND "isPublic" = true
     `, [twinId]);
 
     if (twinResult.rows.length === 0) {
       return res.status(404).json({ error: 'Public twin not found' });
+    }
+
+    const twin = twinResult.rows[0];
+
+    // ✅ PHASE 2: Check if follows are allowed
+    if (twin.allowFollows === false) {
+      return res.status(403).json({ 
+        error: 'Follows are disabled for this twin',
+        errorCode: 'FOLLOWS_DISABLED'
+      });
     }
 
     // Check if user already follows this twin

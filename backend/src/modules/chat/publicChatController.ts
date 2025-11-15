@@ -39,7 +39,7 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
 
     // Check if twin exists and is public (allow even if twin doesn't exist - public chat should work)
     const twinResult = await db.query(`
-      SELECT id, "isPublic", "styleVector", "sampleReply", "requireApproval"
+      SELECT id, "isPublic", "styleVector", "sampleReply", "requireApproval", "requireLogin"
       FROM "Twin"
       WHERE id = $1 AND "isPublic" = true
     `, [twinId]);
@@ -53,7 +53,8 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
         isPublic: true,
         styleVector: null,
         sampleReply: null,
-        requireApproval: false
+        requireApproval: false,
+        requireLogin: false
       };
       // Create chat anyway
       const publicChat = await publicChatQueries.create(twinId, finalVisitorId || undefined, userId || undefined);
@@ -69,6 +70,31 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
     }
 
     const twin = twinResult.rows[0];
+
+    // ✅ PHASE 2: Check requireLogin
+    if (twin.requireLogin && !userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Login required to chat with this twin',
+        errorCode: 'LOGIN_REQUIRED'
+      });
+    }
+
+    // ✅ PHASE 2: Check if user is blocked (only if logged in)
+    if (userId) {
+      const blockedCheck = await db.query(`
+        SELECT id FROM "TwinBlockedUsers"
+        WHERE "twinId" = $1 AND "userId" = $2
+      `, [twinId, userId]);
+
+      if (blockedCheck.rows.length > 0) {
+        return res.status(403).json({
+          success: false,
+          error: 'You are blocked from chatting with this twin',
+          errorCode: 'USER_BLOCKED'
+        });
+      }
+    }
 
     // Check for existing public chat or create new one
     // If user is logged in, search by userId; otherwise by visitorId
@@ -157,7 +183,7 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
     // Get public chat with twin information
     const chatResult = await db.query(`
       SELECT pc.id, pc."twinId", pc."visitorId", pc."messageCount", pc."userId", pc."title",
-             t."styleVector", t."sampleReply", t."personaData", t."systemPrompt", t."tokenLimit"
+             t."styleVector", t."sampleReply", t."personaData", t."systemPrompt", t."tokenLimit", t."requireLogin"
       FROM "PublicChat" pc
       LEFT JOIN "Twin" t ON pc."twinId" = t.id
       WHERE pc.id = $1
@@ -173,6 +199,32 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
 
     const chat = chatResult.rows[0];
 
+    // ✅ FIX: Check requireLogin before sending message
+const userId = req.user?.id;
+if (chat.requireLogin && !userId) {
+  return res.status(401).json({
+    success: false,
+    error: 'Login required to send messages to this twin',
+    errorCode: 'LOGIN_REQUIRED'
+  });
+}
+
+    // ✅ PHASE 2: Check if user is blocked (only if logged in)
+    if (chat.userId) {
+      const blockedCheck = await db.query(`
+        SELECT id FROM "TwinBlockedUsers"
+        WHERE "twinId" = $1 AND "userId" = $2
+      `, [chat.twinId, chat.userId]);
+    
+      if (blockedCheck.rows.length > 0) {
+        return res.status(403).json({
+          success: false,
+          error: 'You are blocked from chatting with this twin',
+          errorCode: 'USER_BLOCKED'
+        });
+      }
+    }
+    
     // Get twin info for requireApproval check
     let twinInfo = { requireApproval: false };
     try {
@@ -358,11 +410,12 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
 export const getPublicChatHistory = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { chatId } = req.params;
+    const userId = req.user?.id; //Get userId if logged in
 
     // Get public chat (LEFT JOIN so it works even if twin doesn't exist)
     const chatResult = await db.query(`
-      SELECT pc.id, pc."twinId", pc."visitorId", pc."messageCount",
-             t."publicHandle", t."sampleReply"
+      SELECT pc.id, pc."twinId", pc."visitorId", pc."messageCount", pc."userId",
+             t."publicHandle", t."sampleReply", t."showChatHistory"
       FROM "PublicChat" pc
       LEFT JOIN "Twin" t ON pc."twinId" = t.id
       WHERE pc.id = $1
@@ -378,13 +431,23 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
 
     const chat = chatResult.rows[0];
 
-    // Get chat messages
-    const messagesResult = await db.query(`
-      SELECT id, content, sender, "createdAt"
-      FROM "PublicMessage"
-      WHERE "chatId" = $1
-      ORDER BY "createdAt" ASC
-    `, [chatId]);
+    // ✅ PHASE 2: Check showChatHistory setting
+    // If showChatHistory is false, only show messages to the chat owner
+    const canViewHistory = chat.showChatHistory !== false || chat.userId === userId;
+
+    // Get chat messages (filter based on showChatHistory)
+    let messagesResult;
+    if (canViewHistory) {
+      messagesResult = await db.query(`
+        SELECT id, content, sender, "createdAt"
+        FROM "PublicMessage"
+        WHERE "chatId" = $1
+        ORDER BY "createdAt" ASC
+      `, [chatId]);
+    } else {
+      // Only return empty array if history is hidden and user is not the owner
+      messagesResult = { rows: [] };
+    }
 
     res.json({
       success: true,
@@ -490,7 +553,7 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
-      SELECT id, "isPublic", "publicHandle", "sampleReply"
+      SELECT id, "isPublic", "publicHandle", "sampleReply", "showChatHistory", "userId"
       FROM "Twin"
       WHERE id = $1 AND "isPublic" = true
     `, [twinId]);
@@ -501,26 +564,56 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
 
     const twin = twinResult.rows[0];
 
+    // ✅ PHASE 2: Check showChatHistory setting
+    // If showChatHistory is false, only return latest chat (not all previous chats)
+    const shouldFilterHistory = twin.showChatHistory === false && twin.userId !== userId;
+
     // Get all chats for this visitor with this twin
-    const chatsResult = await db.query(`
-      SELECT pc.id, pc."messageCount", pc."createdAt", pc."lastActivity", pc."title",
-             m.content as last_message, m."createdAt" as last_message_time
-      FROM "PublicChat" pc
-      LEFT JOIN LATERAL (
-        SELECT content, "createdAt"
-        FROM "PublicMessage" 
-        WHERE "chatId" = pc.id 
-        ORDER BY "createdAt" DESC 
+    let chatsResult;
+    if (shouldFilterHistory) {
+      // Only get the latest chat if history is hidden
+      chatsResult = await db.query(`
+        SELECT pc.id, pc."messageCount", pc."createdAt", pc."lastActivity", pc."title", pc."userId",
+               m.content as last_message, m."createdAt" as last_message_time
+        FROM "PublicChat" pc
+        LEFT JOIN LATERAL (
+          SELECT content, "createdAt"
+          FROM "PublicMessage" 
+          WHERE "chatId" = pc.id 
+          ORDER BY "createdAt" DESC 
+          LIMIT 1
+        ) m ON true
+        WHERE pc."twinId" = $1 
+          AND (
+            (pc."userId" = $2 AND $2 IS NOT NULL) 
+            OR 
+            (pc."visitorId" = $3 AND $2 IS NULL AND $3 IS NOT NULL)
+          )
+        ORDER BY pc."lastActivity" DESC, pc."createdAt" DESC
         LIMIT 1
-      ) m ON true
-      WHERE pc."twinId" = $1 
-        AND (
-          (pc."userId" = $2 AND $2 IS NOT NULL) 
-          OR 
-          (pc."visitorId" = $3 AND $2 IS NULL AND $3 IS NOT NULL)
-        )
-      ORDER BY pc."lastActivity" DESC, pc."createdAt" DESC
-    `, [twinId, userId || null, visitorId as string || null]);
+      `, [twinId, userId || null, visitorId as string || null]);
+    } else {
+      // Show all chats if history is enabled or user is owner
+      chatsResult = await db.query(`
+        SELECT pc.id, pc."messageCount", pc."createdAt", pc."lastActivity", pc."title",
+               m.content as last_message, m."createdAt" as last_message_time
+        FROM "PublicChat" pc
+        LEFT JOIN LATERAL (
+          SELECT content, "createdAt"
+          FROM "PublicMessage" 
+          WHERE "chatId" = pc.id 
+          ORDER BY "createdAt" DESC 
+          LIMIT 1
+        ) m ON true
+        WHERE pc."twinId" = $1 
+          AND (
+            (pc."userId" = $2 AND $2 IS NOT NULL) 
+            OR 
+            (pc."visitorId" = $3 AND $2 IS NULL AND $3 IS NOT NULL)
+          )
+        ORDER BY pc."lastActivity" DESC, pc."createdAt" DESC
+      `, [twinId, userId || null, visitorId as string || null]);
+    }
 
     const chats = chatsResult.rows.map(chat => ({
       id: chat.id,
@@ -551,7 +644,6 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
     throw createError.internal('Failed to get public chats by twin', error);
   }
 };
-
 
 // Create new public chat
 export const createNewPublicChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

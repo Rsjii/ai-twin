@@ -171,6 +171,23 @@ const sendPublicMessage = async (req, res, next) => {
             });
         }
         const chat = chatResult.rows[0];
+
+         // ✅ PHASE 2: Check if user is blocked (only if logged in)
+    if (chat.userId) {
+        const blockedCheck = await db.query(`
+          SELECT id FROM "TwinBlockedUsers"
+          WHERE "twinId" = $1 AND "userId" = $2
+        `, [chat.twinId, chat.userId]);
+  
+        if (blockedCheck.rows.length > 0) {
+          return res.status(403).json({
+            success: false,
+            error: 'You are blocked from chatting with this twin',
+            errorCode: 'USER_BLOCKED'
+          });
+        }
+      }
+
         let twinInfo = { requireApproval: false };
         try {
             const twinInfoResult = await database_1.db.query(`
@@ -290,13 +307,17 @@ exports.sendPublicMessage = sendPublicMessage;
 const getPublicChatHistory = async (req, res, next) => {
     try {
         const { chatId } = req.params;
+        const userId = req.user?.id; //Get userId if logged in
+
+        //Get public chat (LEFT JOIN so it works even if twin doesn't exist)
         const chatResult = await database_1.db.query(`
-      SELECT pc.id, pc."twinId", pc."visitorId", pc."messageCount",
-             t."publicHandle", t."sampleReply"
+      SELECT pc.id, pc."twinId", pc."visitorId", pc."messageCount", pc."userId",
+             t."publicHandle", t."sampleReply", t."showChatHistory"
       FROM "PublicChat" pc
       LEFT JOIN "Twin" t ON pc."twinId" = t.id
       WHERE pc.id = $1
     `, [chatId]);
+
         if (chatResult.rows.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -305,12 +326,27 @@ const getPublicChatHistory = async (req, res, next) => {
             });
         }
         const chat = chatResult.rows[0];
-        const messagesResult = await database_1.db.query(`
+
+        // ✅ PHASE 2: Check showChatHistory setting
+        // If showChatHistory is false, only show messages to the chat owner
+        const canViewHistory = chat.showChatHistory !== false || chat.userId === userId;
+
+    // Get chat messages (filter based on showChatHistory)
+      let messagesResult;
+      if (canViewHistory) {
+      messagesResult = await database_1.db.query(`
       SELECT id, content, sender, "createdAt"
       FROM "PublicMessage"
       WHERE "chatId" = $1
       ORDER BY "createdAt" ASC
     `, [chatId]);
+      } 
+      else 
+      {
+        // Only return empty array if history is hidden and user is not the owner
+        messagesResult = { rows: [] };
+      }
+      
         res.json({
             success: true,
             chat: {

@@ -10,14 +10,13 @@ import {
   deletePublicChat,
   updatePublicChatTitle
 } from './publicChatController';
-import { optionalJWT } from '../../middleware/jwtAuth';
 import { requireJWTFromCookie, extractJWTFromCookie } from '../../middleware/jwtCookie';
 import { publicChatRateLimit, publicChatRateLimitAuthenticated } from '../../middleware/rateLimit';
 
 const router = Router();
 
 // Public chat routes (no authentication required for basic functionality)
-router.post('/start', startPublicChat);
+router.post('/start', extractJWTFromCookie, startPublicChat);
 
 // Apply rate limiting: anonymous users get strict limit, authenticated get higher limit
 router.post('/:chatId/message',
@@ -27,7 +26,7 @@ router.post('/:chatId/message',
   sendPublicMessage
 );
 
-router.get('/:chatId/history', getPublicChatHistory);
+router.get('/:chatId/history', extractJWTFromCookie, getPublicChatHistory);
 router.get('/twin/:twinId', getPublicChatByTwin);
 
 router.get('/twin/:twinId/chats', extractJWTFromCookie, getPublicChatsByTwin); // Get all chats (optional JWT)

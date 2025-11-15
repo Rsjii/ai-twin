@@ -31,6 +31,7 @@ export async function getPublicProfile(req: any, res: Response) {
       SELECT 
         t.id, t."userId", t."publicHandle", t.bio, t."profileImage", t.verified, 
         t."likeCount", t."followCount", t."chatCount", t."sampleReply", t."createdAt",
+        t."allowShares", t."requireLogin",
         u.id as "userId", u.handle as "userHandle", u.name as "userName"
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
@@ -67,6 +68,8 @@ export async function getPublicProfile(req: any, res: Response) {
         chatCount: twin.chatCount,
         sampleReply: twin.sampleReply,
         createdAt: twin.createdAt,
+        allowShares: twin.allowShares ?? true, // ✅ PHASE 2: Check if shares are allowed
+        requireLogin: twin.requireLogin ?? false, // ✅ PHASE 2: Check if require login
         userHandle: twin.userHandle || 'Unknown',
         userName: twin.userName || twin.userHandle || 'Unknown',
         isOwner: isOwner

@@ -6,38 +6,33 @@ import { z } from 'zod';
 
 // Privacy settings interface
 export interface TwinPrivacySettings {
-  allowPublicChat: boolean;
   showChatHistory: boolean;
-  allowAnonymousChat: boolean;
   requireLogin: boolean;
   allowLikes: boolean;
   allowFollows: boolean;
   allowShares: boolean;
-  moderateMessages: boolean;
   blockSpecificUsers: string[];
-  allowDirectMessages: boolean;
 }
 
 // Validation schemas
 const updatePrivacySettingsSchema = z.object({
   twinId: z.string().min(1, 'Twin ID is required'),
   settings: z.object({
-    allowPublicChat: z.boolean().optional(),
     showChatHistory: z.boolean().optional(),
-    allowAnonymousChat: z.boolean().optional(),
     requireLogin: z.boolean().optional(),
     allowLikes: z.boolean().optional(),
     allowFollows: z.boolean().optional(),
     allowShares: z.boolean().optional(),
-    moderateMessages: z.boolean().optional(),
     blockSpecificUsers: z.array(z.string()).optional(),
-    allowDirectMessages: z.boolean().optional()
   })
 });
 
 const blockUserSchema = z.object({
   twinId: z.string().min(1, 'Twin ID is required'),
-  userId: z.string().min(1, 'User ID is required')
+  userId: z.string().min(1, 'User ID is required').optional(),
+  userHandle: z.string().min(1, 'User handle is required').optional()
+}).refine(data => data.userId || data.userHandle, {
+  message: 'Either userId or userHandle must be provided'
 });
 
 // Update privacy settings for a twin
@@ -65,21 +60,9 @@ export const updatePrivacySettings = async (req: Request, res: Response) => {
     const updateValues = [];
     let paramIndex = 1;
 
-    if (settings.allowPublicChat !== undefined) {
-      updateFields.push(`"allowPublicChat" = $${paramIndex}`);
-      updateValues.push(settings.allowPublicChat);
-      paramIndex++;
-    }
-
     if (settings.showChatHistory !== undefined) {
       updateFields.push(`"showChatHistory" = $${paramIndex}`);
       updateValues.push(settings.showChatHistory);
-      paramIndex++;
-    }
-
-    if (settings.allowAnonymousChat !== undefined) {
-      updateFields.push(`"allowAnonymousChat" = $${paramIndex}`);
-      updateValues.push(settings.allowAnonymousChat);
       paramIndex++;
     }
 
@@ -104,18 +87,6 @@ export const updatePrivacySettings = async (req: Request, res: Response) => {
     if (settings.allowShares !== undefined) {
       updateFields.push(`"allowShares" = $${paramIndex}`);
       updateValues.push(settings.allowShares);
-      paramIndex++;
-    }
-
-    if (settings.moderateMessages !== undefined) {
-      updateFields.push(`"moderateMessages" = $${paramIndex}`);
-      updateValues.push(settings.moderateMessages);
-      paramIndex++;
-    }
-
-    if (settings.allowDirectMessages !== undefined) {
-      updateFields.push(`"allowDirectMessages" = $${paramIndex}`);
-      updateValues.push(settings.allowDirectMessages);
       paramIndex++;
     }
 
@@ -201,9 +172,8 @@ export const getPrivacySettings = async (req: Request, res: Response) => {
 
     // Verify twin belongs to user
     const twinResult = await db.query(`
-      SELECT id, "userId", "allowPublicChat", "showChatHistory", "allowAnonymousChat",
-             "requireLogin", "allowLikes", "allowFollows", "allowShares", 
-             "moderateMessages", "allowDirectMessages"
+SELECT id, "userId", "showChatHistory", "requireLogin", 
+       "allowLikes", "allowFollows", "allowShares"             
       FROM "Twin"
       WHERE id = $1 AND "userId" = $2
     `, [twinId, req.user.id]);
@@ -226,18 +196,14 @@ export const getPrivacySettings = async (req: Request, res: Response) => {
     res.json({
       success: true,
       settings: {
-        allowPublicChat: twin.allowPublicChat ?? true,
         showChatHistory: twin.showChatHistory ?? true,
-        allowAnonymousChat: twin.allowAnonymousChat ?? true,
         requireLogin: twin.requireLogin ?? false,
         allowLikes: twin.allowLikes ?? true,
         allowFollows: twin.allowFollows ?? true,
         allowShares: twin.allowShares ?? true,
-        moderateMessages: twin.moderateMessages ?? false,
-        allowDirectMessages: twin.allowDirectMessages ?? true,
         blockedUsers: blockedUsers
       }
-    });
+    });    
 
   } catch (error) {
     logger.error('Get privacy settings error:', error);
@@ -252,7 +218,34 @@ export const blockUser = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const { twinId, userId } = blockUserSchema.parse(req.body);
+    const { twinId, userId, userHandle } = blockUserSchema.parse(req.body);
+
+    // ✅ PHASE 2: Convert userHandle to userId if provided
+    let targetUserId = userId;
+
+    if(userHandle && !userId) {
+      const userResult = await db.query(`
+        SELECT id FROM "User"
+        WHERE handle = $1 or email = $1
+      `, [userHandle]);
+
+      if(userResult.rows.length === 0) {
+        return res.status(404).json({ 
+          error: 'User not found',
+          errorCode: 'USER_NOT_FOUND',
+          details: `No user found with handle or email: ${userHandle}`
+        });
+      }
+      targetUserId = userResult.rows[0].id;
+    }
+
+    if(!targetUserId) {
+      return res.status(400).json({ 
+        error: 'User ID is required',
+        errorCode: 'MISSING_USER_ID',
+        details: 'Either userId or userHandle must be provided'
+      });
+    }
 
     // Verify twin belongs to user
     const twinResult = await db.query(`
@@ -269,7 +262,7 @@ export const blockUser = async (req: Request, res: Response) => {
     const existingBlock = await db.query(`
       SELECT id FROM "TwinBlockedUsers"
       WHERE "twinId" = $1 AND "userId" = $2
-    `, [twinId, userId]);
+    `, [twinId, targetUserId]);
 
     if (existingBlock.rows.length > 0) {
       return res.status(400).json({ error: 'User is already blocked' });
@@ -282,13 +275,13 @@ export const blockUser = async (req: Request, res: Response) => {
     `, [
       `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       twinId,
-      userId
+      targetUserId
     ]);
 
     // Log block event
     await EventLogger.logUserEvent(req.user.id, 'user_blocked', {
       twinId,
-      blockedUserId: userId
+      blockedUserId: targetUserId
     });
 
     res.json({
