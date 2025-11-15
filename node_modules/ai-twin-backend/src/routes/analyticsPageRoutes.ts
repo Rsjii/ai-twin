@@ -14,5 +14,8 @@ router.get('/admin/analytics', requireJWTFromCookie, generateCSRFToken, analytic
 // Admin Analytics detailed pages
 router.get('/admin/analytics/page/:type', requireJWTFromCookie, generateCSRFToken, analyticsPageController.getAdminAnalyticsPage);
 
+// Analytics details
+router.get('/analytics/details', requireJWTFromCookie, generateCSRFToken, analyticsPageController.getAnalyticsDetails);
+
 export default router;
 

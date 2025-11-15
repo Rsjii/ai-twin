@@ -1,3 +1,6 @@
+<%
+const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId : '';
+%>
 <%- include('layout', { title: title, user: user, csrfToken: csrfToken, body: `
     <div class="px-4 py-6 sm:px-0">
         <div class="max-w-7xl mx-auto">
@@ -60,7 +63,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>            
             
             <!-- Charts Section -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -237,9 +240,45 @@
             }
         }
         
-        // Load analytics on page load
+        // Load analytics on page load and add click handlers
         document.addEventListener('DOMContentLoaded', () => {
             loadAnalytics();
+            
+            // Get twinId from global variable (set by script tag outside template string)
+            const twinIdValue = window.twinIdValue || '';
+            
+            // Set data attributes on cards and add click handlers
+            const cards = [
+                { element: document.getElementById('totalLikes').closest('.bg-white'), type: 'likers' },
+                { element: document.getElementById('totalFollowers').closest('.bg-white'), type: 'followers' },
+                { element: document.getElementById('totalChats').closest('.bg-white'), type: 'chatters' }
+            ];
+            
+            cards.forEach(card => {
+                if (card.element) {
+                    card.element.classList.add('cursor-pointer', 'hover:shadow-xl', 'transition-all');
+                    card.element.setAttribute('data-twin-id', twinIdValue);
+                    card.element.setAttribute('data-list-type', card.type);
+                    card.element.setAttribute('data-show-details', 'true');
+                    
+                    card.element.addEventListener('click', function() {
+                        const twinId = this.getAttribute('data-twin-id');
+                        const listType = this.getAttribute('data-list-type');
+                        const showDetails = this.getAttribute('data-show-details') === 'true';
+                        if (twinId && typeof showSocialList === 'function') {
+                            showSocialList(twinId, listType, showDetails);
+                        }
+                    });
+                }
+            });
         });
     </script>
 ` }) %>
+
+<script>
+    // Set twinId from server-side variable (outside template string, so EJS works)
+    window.twinIdValue = '<%- twinIdValue %>';
+</script>
+
+<!-- Social List Modal -->
+<%- include('shared/social-list-modal') %>

@@ -667,3 +667,56 @@ export const getTwinFollowers = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+/**
+ * Get users who chatted with a specific twin
+ * GET /api/social/twin/:twinId/chatters
+ */
+export const getTwinChatters = async (req: Request, res: Response) => {
+  try {
+    const { twinId } = req.params;
+    
+    // Verify twin exists and user owns it
+    const twinResult = await db.query(
+      'SELECT id, "userId" FROM "Twin" WHERE id = $1',
+      [twinId]
+    );
+    
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Twin not found' });
+    }
+    
+    // Get users who have chatted with this twin
+    const chattersResult = await db.query(
+      `SELECT DISTINCT
+        u.id,
+        u.name,
+        u.handle,
+        u."profileImage",
+        MAX(c."createdAt") as "lastChatAt",
+        COUNT(DISTINCT c.id) as "chatCount"
+       FROM "Chat" c
+       JOIN "User" u ON c."userId" = u.id
+       WHERE c."twinId" = $1
+       GROUP BY u.id, u.name, u.handle, u."profileImage"
+       ORDER BY "lastChatAt" DESC
+       LIMIT 100`,
+      [twinId]
+    );
+    
+    res.json({
+      success: true,
+      chatters: chattersResult.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        handle: row.handle,
+        profileImage: row.profileImage,
+        lastChatAt: row.lastChatAt,
+        chatCount: parseInt(row.chatCount) || 0
+      }))
+    });
+  } catch (error) {
+    logger.error('Get twin chatters error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

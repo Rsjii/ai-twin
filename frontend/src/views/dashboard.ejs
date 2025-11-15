@@ -834,19 +834,19 @@
                     </div>
                 </div>
                 <div class="grid grid-cols-3 gap-4 mt-4">
-                    <div class="text-center">
+                    <div class="text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-colors" data-twin-id="<%= twin.id %>" data-list-type="likers" id="likersCard">
                         <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats?.totalLikes || 0 %></p>
                         <p class="text-sm text-gray-600 dark:text-gray-300">Likes</p>
                     </div>
-                    <div class="text-center">
+                    <div class="text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-colors" data-twin-id="<%= twin.id %>" data-list-type="followers" id="followersCard">
                         <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats?.totalFollowers || 0 %></p>
                         <p class="text-sm text-gray-600 dark:text-gray-300">Followers</p>
                     </div>
-                    <div class="text-center">
+                    <div class="text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-colors" data-twin-id="<%= twin.id %>" data-list-type="chatters" id="chattersCard">
                         <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats?.totalChats || 0 %></p>
                         <p class="text-sm text-gray-600 dark:text-gray-300">Chats</p>
-                    </div>
-                </div>
+                    </div>                    
+                </div>                
             </div>
             
             <!-- Quick Actions (Simplified - Only 2 Cards) -->
@@ -1979,6 +1979,30 @@ setTimeout(() => {
         } else {
             loadAnalytics();
         }
-    </script>
+        
+        // Add click handlers for social list cards (like analytics page)
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = [
+                { element: document.getElementById('likersCard'), type: 'likers' },
+                { element: document.getElementById('followersCard'), type: 'followers' },
+                { element: document.getElementById('chattersCard'), type: 'chatters' }
+            ];
+            
+            cards.forEach(card => {
+                if (card.element) {
+                    card.element.addEventListener('click', function() {
+                        const twinId = this.getAttribute('data-twin-id');
+                        const listType = this.getAttribute('data-list-type');
+                        if (twinId && typeof window.showSocialList === 'function') {
+                            window.showSocialList(twinId, listType, false);
+                        }
+                    });
+                }
+            });
+        });
+    </script>    
+
+<!-- Social List Modal -->
+<%- include('shared/social-list-modal') %>
 </body>
 </html>

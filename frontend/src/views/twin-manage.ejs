@@ -79,12 +79,12 @@
 
         <!-- Quick Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6">
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinId %>" data-list-type="chatters" id="twinManageChattersCard">                
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Chats</p>
                         <p class="text-3xl font-bold text-gray-900 dark:text-white"><%= stats.totalChats %></p>
-                    </div>
+                    </div>                    
                     <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
                         <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
@@ -93,12 +93,14 @@
                 </div>
             </div>
 
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6">
+    <!-- ... Views card (not clickable, no API for views) ... -->
+
+    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinId %>" data-list-type="likers" id="twinManageLikersCard">                
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Views</p>
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white"><%= stats.totalViews %></p>
-                    </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Likes</p>
+                        <p class="text-3xl font-bold text-gray-900 dark:text-white"><%= stats.totalLikes %></p>
+                    </div>                    
                     <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
                         <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -108,11 +110,11 @@
                 </div>
             </div>
 
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6">
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinId %>" data-list-type="followers" id="twinManageFollowersCard">                
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Likes</p>
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white"><%= stats.totalLikes %></p>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Followers</p>
+                        <p class="text-3xl font-bold text-gray-900 dark:text-white"><%= stats.totalFollowers %></p>
                     </div>
                     <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
                         <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -337,9 +339,33 @@
             });
         }
     });
-    </script>
+    
+    // Add click handlers for social list cards (like analytics page)
+    document.addEventListener('DOMContentLoaded', () => {
+        const cards = [
+            { element: document.getElementById('twinManageChattersCard'), type: 'chatters' },
+            { element: document.getElementById('twinManageLikersCard'), type: 'likers' },
+            { element: document.getElementById('twinManageFollowersCard'), type: 'followers' }
+        ];
+        
+        cards.forEach(card => {
+            if (card.element) {
+                card.element.addEventListener('click', function() {
+                    const twinId = this.getAttribute('data-twin-id');
+                    const listType = this.getAttribute('data-list-type');
+                    if (twinId && typeof window.showSocialList === 'function') {
+                        window.showSocialList(twinId, listType, false);
+                    }
+                });
+            }
+        });
+    });
+    </script>    
 
     <!--Footer-->
     <%- include('footer') %>
+
+    <!-- Social List Modal -->
+    <%- include('shared/social-list-modal') %>
 </body>
 </html>

@@ -1,0 +1,161 @@
+<div class="px-4 py-6 sm:px-0">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                        <%= analyticsTypeValue === 'likers' ? 'Likes' : analyticsTypeValue === 'followers' ? 'Followers' : 'Chat Participants' %> Details
+                    </h1>
+                    <p class="text-gray-600 dark:text-gray-300">Detailed analytics for your twin's <%= analyticsTypeValue %></p>
+                </div>
+                <a href="/analytics" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    ← Back to Analytics
+                </a>
+            </div>
+        </div>
+
+        <!-- Search and Filters -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-6 mb-6">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Search by name or handle..." 
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                </div>
+                <button 
+                    id="searchBtn"
+                    class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors font-medium"
+                >
+                    Search
+                </button>
+                <button 
+                    id="clearBtn"
+                    class="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                    Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Count -->
+        <div class="mb-4">
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+                Showing <span id="resultsCount"><%= analyticsDataLength %></span> of <span id="totalCount"><%= analyticsTotal %></span> results
+            </p>
+        </div>
+
+        <!-- Data List -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 overflow-hidden">
+            <div id="dataList" class="divide-y divide-gray-200 dark:divide-gray-700">
+                <% if (data && data.length > 0) { %>
+                    <% data.forEach((item, index) => { %>
+                        <div class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                                        <% if (item.profileImage) { %>
+                                            <img src="<%= item.profileImage %>" alt="<%= item.name || 'User' %>" class="w-12 h-12 rounded-full object-cover">
+                                        <% } else { %>
+                                            <span><%= (item.name || item.handle || 'U').charAt(0).toUpperCase() %></span>
+                                        <% } %>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-900 dark:text-white"><%= item.name || 'Anonymous' %></p>
+                                        <% if (item.handle) { %>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">@<%= item.handle %></p>
+                                        <% } %>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                        <%= analyticsTypeValue === 'chatters' && item.chatCount ? item.chatCount + ' chats' : '' %>
+                                    </p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                        <% 
+                                        const dateValue = item.likedAt || item.followedAt || item.lastChatAt;
+                                        let formattedDate = '';
+                                        if (dateValue) {
+                                          const date = new Date(dateValue);
+                                          const now = new Date();
+                                          const diff = now - date;
+                                          
+                                          if (diff < 60000) {
+                                            formattedDate = 'Just now';
+                                          } else if (diff < 3600000) {
+                                            formattedDate = Math.floor(diff / 60000) + 'm ago';
+                                          } else if (diff < 86400000) {
+                                            formattedDate = Math.floor(diff / 3600000) + 'h ago';
+                                          } else if (diff < 604800000) {
+                                            formattedDate = Math.floor(diff / 86400000) + 'd ago';
+                                          } else {
+                                            formattedDate = date.toLocaleDateString();
+                                          }
+                                        }
+                                      %>
+                                      <%= formattedDate %>                                            
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <div class="p-12 text-center">
+                        <svg class="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        <p class="text-gray-500 dark:text-gray-400 text-lg mb-2">No <%= analyticsTypeValue %> found</p>
+                        <p class="text-gray-400 dark:text-gray-500 text-sm">Try adjusting your search or filters</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="mt-8 flex justify-center items-center space-x-2">
+            <% 
+            const currentPage = parseInt(analyticsPageValue);
+            const totalPages = Math.ceil(analyticsTotal / analyticsLimit);
+            const maxPages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+            let endPage = Math.min(totalPages, startPage + maxPages - 1);
+            if (endPage - startPage < maxPages - 1) {
+                startPage = Math.max(1, endPage - maxPages + 1);
+            }
+            %>
+            
+            <% if (totalPages > 1) { %>
+                <!-- Previous Button -->
+                <button 
+                    data-page="<%= currentPage - 1 %>"
+                    class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors <%= currentPage === 1 ? 'opacity-50 cursor-not-allowed' : '' %>"
+                    <%= currentPage === 1 ? 'disabled' : '' %>
+                >
+                    Previous
+                </button>
+
+                <!-- Page Numbers -->
+                <% for (let i = startPage; i <= endPage; i++) { %>
+                    <button 
+                        data-page="<%= i %>"
+                        class="px-4 py-2 rounded-lg transition-colors <%= i === currentPage ? 'bg-primary text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700' %>"
+                    >
+                        <%= i %>
+                    </button>
+                <% } %>
+
+                <!-- Next Button -->
+                <button 
+                    data-page="<%= currentPage + 1 %>"
+                    class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors <%= currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : '' %>"
+                    <%= currentPage === totalPages ? 'disabled' : '' %>
+                >
+                    Next
+                </button>
+            <% } %>
+        </div>
+    </div>
+</div>
