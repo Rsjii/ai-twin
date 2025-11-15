@@ -4,7 +4,8 @@ import {
   makeTwinPrivate, 
   updateTwinProfile, 
   getPublicTwinProfile,
-  getMyTwinProfile
+  getMyTwinProfile,
+  checkTwinOwner
   // getPublicChatPage removed - moved to page routes
 } from './publicTwinController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
@@ -20,5 +21,6 @@ router.post('/make-public', requireJWTFromCookie, makeTwinPublic);
 router.post('/make-private', requireJWTFromCookie, makeTwinPrivate);
 router.put('/profile', requireJWTFromCookie, updateTwinProfile);
 router.get('/my-profile', requireJWTFromCookie, getMyTwinProfile);
+router.get('/check-owner/:twinId', requireJWTFromCookie, checkTwinOwner);
 
 export default router;

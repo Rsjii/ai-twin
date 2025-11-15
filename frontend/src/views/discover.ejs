@@ -402,14 +402,41 @@
     const followBtn = clone.querySelector('.twin-follow-btn');
     const shareBtn = clone.querySelector('.twin-share-btn');
     
-    // ✅ PHASE 1: Fix click behavior
-    // Chat button → direct to chat
-    chatBtn.addEventListener('click', (e) => {
+    // ✅ PHASE 2: Fix click behavior - Check own twin before redirecting
+    chatBtn.addEventListener('click', async (e) => {
         e.stopPropagation(); // Prevent card click
         e.preventDefault();
+        
+        // ✅ Check if user is logged in
+        const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
+        
+        if (isLoggedIn) {
+            // Check if this is user's own twin
+            try {
+                const response = await fetch(`/api/public-twin/check-owner/${twin.id}`, {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to check twin owner');
+                }
+                
+                const data = await response.json();
+                
+                if (data.isOwner) {
+                    // Own twin - redirect to enhanced chat directly
+                    window.location.replace(`/chat-enhanced?twinId=${twin.id}&message=${encodeURIComponent('You cannot chat with your own twin in public chat. Use Enhanced Chat instead.')}`);
+                    return;
+                }
+            } catch (error) {
+                console.error('Error checking own twin:', error);
+                // On error, proceed to public chat
+            }
+        }
+        
+        // Not own twin or not logged in - proceed to public chat
         window.location.href = `/public-twin/chat/${twin.id}`;
-    });
-    
+    });    
     // Card click → navigate to profile (except when clicking buttons)
     const card = clone.querySelector('.twin-card');
     card.addEventListener('click', (e) => {

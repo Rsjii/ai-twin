@@ -415,3 +415,37 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
     throw createError.internal('Failed to load public chat page', error);
   }
 };
+
+// ✅ PHASE 2: Check if twin belongs to current user
+export const checkTwinOwner = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) {
+      return res.json({
+        isOwner: false
+      });
+    }
+
+    const { twinId } = req.params;
+    
+    const twinResult = await db.query(`
+      SELECT "userId" FROM "Twin" WHERE id = $1
+    `, [twinId]);
+
+    if (twinResult.rows.length === 0) {
+      return res.json({
+        isOwner: false
+      });
+    }
+
+    const isOwner = twinResult.rows[0].userId === req.user.id;
+
+    res.json({
+      isOwner
+    });
+  } catch (error) {
+    logger.error('Check twin owner error:', error);
+    res.json({
+      isOwner: false
+    });
+  }
+};

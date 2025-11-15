@@ -51,7 +51,27 @@
     </script>
     
     <!--Header-->
-    <%- include('header') %>    
+    <%- include('header') %>
+    
+    <!-- ✅ PHASE 2: Message Banner (for redirect messages) -->
+    <div id="redirectMessageBanner" class="hidden fixed top-16 left-0 right-0 z-50 bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p id="redirectMessageText" class="font-semibold text-sm md:text-base"></p>
+                </div>
+                <button id="closeMessageBanner" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>    
+
     <div class="flex w-full h-screen">        
         <!-- Mobile Chat Sidebar -->
         <div id="mobile-chat-sidebar" class="fixed top-0 right-0 h-full w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out lg:hidden border-l border-white/20 dark:border-gray-700">
@@ -1506,13 +1526,50 @@ async function createNewChat() {
 }
 
 
-
-// Initialize chat
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get chat ID from EJS variable
-            currentChatId = '<%= chatId %>';
-            console.log('Enhanced chat initialized with chatId:', currentChatId);
+//Initialize chat
+document.addEventListener('DOMContentLoaded', function() {
+    // ✅ PHASE 2: Check for redirect message in URL (run FIRST)
+    const urlParams = new URLSearchParams(window.location.search);
+    const message = urlParams.get('message');
+    
+    if (message) {
+        // Show banner with message
+        const banner = document.getElementById('redirectMessageBanner');
+        const messageText = document.getElementById('redirectMessageText');
+        const closeBtn = document.getElementById('closeMessageBanner');
+        
+        if (banner && messageText) {
+            messageText.textContent = decodeURIComponent(message);
+            banner.classList.remove('hidden');
             
+            // Close button functionality
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    banner.classList.add('hidden');
+                    // Remove message from URL without reload
+                    const newUrl = window.location.pathname + (urlParams.get('twinId') ? `?twinId=${urlParams.get('twinId')}` : '');
+                    window.history.replaceState({}, '', newUrl);
+                });
+            }
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                if (banner && !banner.classList.contains('hidden')) {
+                    banner.classList.add('hidden');
+                    // Remove message from URL
+                    const newUrl = window.location.pathname + (urlParams.get('twinId') ? `?twinId=${urlParams.get('twinId')}` : '');
+                    window.history.replaceState({}, '', newUrl);
+                }
+            }, 5000);
+        } else {
+            console.error('Banner elements not found');
+        }
+    }
+    
+    // Get chat ID from EJS variable
+    currentChatId = '<%= chatId %>';
+    console.log('Enhanced chat initialized with chatId:', currentChatId);
+                
             // Mobile event listeners
             const mobileChatMenuBtn = document.getElementById('mobile-chat-menu-btn');
             const mobileChatCloseBtn = document.getElementById('mobile-chat-close-btn');

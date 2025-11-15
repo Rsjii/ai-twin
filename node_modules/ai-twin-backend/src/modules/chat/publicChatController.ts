@@ -104,7 +104,23 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
       }
     }
 
-    // ✅ For lazy creation: Always create new chat (don't check for existing)
+    // ✅ PHASE 2: Check if user is trying to chat with their own twin
+    if (userId) {
+      const twinOwnerCheck = await db.query(`
+        SELECT "userId" FROM "Twin" WHERE id = $1
+      `, [twinId]);
+      
+      if (twinOwnerCheck.rows.length > 0 && twinOwnerCheck.rows[0].userId === userId) {
+        return res.status(403).json({
+          success: false,
+          error: 'You cannot chat with your own twin in public chat. Please use Enhanced Chat.',
+          errorCode: 'OWN_TWIN_CHAT',
+          redirectUrl: `/chat-enhanced?twinId=${twinId}`
+        });
+      }
+    }
+
+    // ✅ For lazy creation: Always create new chat (don't check for existing)    
     // This ensures each draft chat gets a fresh chat when first message is sent
     logger.info(`[startPublicChat] Creating new chat - TwinId: ${twinId}, UserId: ${userId || 'null'}, VisitorId: ${finalVisitorId || 'null'}`);
     
@@ -266,7 +282,23 @@ if (chat.requireLogin && !userId) {
   });
 }
 
-    // ✅ PHASE 2: Check if user is blocked (only if logged in)
+    // ✅ PHASE 2: Check if user is trying to chat with their own twin
+    if (userId) {
+      const twinOwnerCheck = await db.query(`
+        SELECT "userId" FROM "Twin" WHERE id = $1
+      `, [chat.twinId]);
+      
+      if (twinOwnerCheck.rows.length > 0 && twinOwnerCheck.rows[0].userId === userId) {
+        return res.status(403).json({
+          success: false,
+          error: 'You cannot chat with your own twin in public chat. Please use Enhanced Chat.',
+          errorCode: 'OWN_TWIN_CHAT',
+          redirectUrl: `/chat-enhanced?twinId=${chat.twinId}`
+        });
+      }
+    }
+
+    // ✅ PHASE 2: Check if user is blocked (only if logged in)    
     if (chat.userId) {
       const blockedCheck = await db.query(`
         SELECT id FROM "TwinBlockedUsers"
