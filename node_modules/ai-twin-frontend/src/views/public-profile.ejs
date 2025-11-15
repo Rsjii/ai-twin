@@ -382,10 +382,19 @@ function updateFollowButton(followed) {
 
 // Initialize visitor ID
 function initializeVisitorId() {
-    visitorId = localStorage.getItem('visitorId');
-    if (!visitorId) {
-        visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.setItem('visitorId', visitorId);
+    const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
+    
+    if (!isLoggedIn) {
+        // ✅ Use sessionStorage instead of localStorage for logged out users
+        visitorId = sessionStorage.getItem('visitorId');
+        if (!visitorId) {
+            visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            sessionStorage.setItem('visitorId', visitorId);
+        }
+        // Clear old localStorage if exists
+        localStorage.removeItem('visitorId');
+    } else {
+        visitorId = null;
     }
 }
 

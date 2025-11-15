@@ -13,7 +13,7 @@ import * as chatUtils from './chatSharedUtils';
 // Validation schemas
 const startPublicChatSchema = z.object({
   twinId: z.string().min(1, 'Twin ID is required'),
-  visitorId: z.string().optional()
+  visitorId: z.string().nullish()
 });
 
 const sendPublicMessageSchema = z.object({
@@ -27,15 +27,23 @@ const twinService = new TwinService();
 
 // Start public chat session
 export const startPublicChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  // ✅ Declare variables outside try block for error logging
+  let twinId: string | undefined;
+  let visitorId: string | undefined;
+  let userId: string | undefined;
+  let finalVisitorId: string | null | undefined;
+
   try {
-    const { twinId, visitorId } = startPublicChatSchema.parse(req.body);
+    const parsed = startPublicChatSchema.parse(req.body);
+    twinId = parsed.twinId;
+    visitorId = parsed.visitorId;
 
     // Get userId if user is logged in
-    const userId = req.user?.id;
+    userId = req.user?.id;
     logger.info(`[startPublicChat] Twin: ${twinId}, UserId: ${userId || 'anonymous'}, VisitorId: ${visitorId || 'none'}`);
 
     // Generate visitor ID if not provided and user not logged in
-    const finalVisitorId = userId ? null : (visitorId || `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+    finalVisitorId = userId ? null : (visitorId || `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
     // Check if twin exists and is public (allow even if twin doesn't exist - public chat should work)
     const twinResult = await db.query(`
@@ -96,42 +104,62 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
       }
     }
 
-    // Check for existing public chat or create new one
-    // If user is logged in, search by userId; otherwise by visitorId
+    // ✅ For lazy creation: Always create new chat (don't check for existing)
+    // This ensures each draft chat gets a fresh chat when first message is sent
+    logger.info(`[startPublicChat] Creating new chat - TwinId: ${twinId}, UserId: ${userId || 'null'}, VisitorId: ${finalVisitorId || 'null'}`);
+    
     let publicChat;
-    if (userId) {
-      const chatsByUser = await db.query(
-        'SELECT * FROM "PublicChat" WHERE "twinId" = $1 AND "userId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
-        [twinId, userId]
-      );
-      publicChat = chatsByUser.rows.length > 0 ? chatsByUser.rows[0] : null;
-    } else {
-      publicChat = await publicChatQueries.findByTwinAndVisitor(twinId, finalVisitorId);
-      if (publicChat && Array.isArray(publicChat)) {
-        publicChat = publicChat.length > 0 ? publicChat[0] : null;
-      }
-    }
-
-    if (!publicChat) {
-      // Create new public chat with userId if logged in
-      logger.info(`[startPublicChat] Creating new chat - TwinId: ${twinId}, UserId: ${userId || 'null'}, VisitorId: ${finalVisitorId || 'null'}`);
+    try {
       publicChat = await publicChatQueries.create(twinId, finalVisitorId || undefined, userId || undefined);
       logger.info(`[startPublicChat] Chat created successfully - ChatId: ${publicChat.id}, UserId set: ${publicChat.userId || 'null'}`);
-    } else {
-      logger.info(`[startPublicChat] Existing chat found - ChatId: ${publicChat.id}, UserId: ${publicChat.userId || 'null'}`);
+    } catch (createError: any) {
+      // ✅ More detailed error logging
+      const createErrorMessage = createError?.message || String(createError) || 'Unknown create error';
+      logger.error('[startPublicChat] Failed to create chat:', {
+        error: createErrorMessage,
+        errorType: createError?.constructor?.name,
+        errorCode: createError?.code,
+        errorDetail: createError?.detail,
+        errorConstraint: createError?.constraint,
+        stack: createError?.stack,
+        twinId,
+        userId: userId || 'null',
+        visitorId: finalVisitorId || 'null',
+        // ✅ Log full error object
+        fullError: JSON.stringify(createError, Object.getOwnPropertyNames(createError))
+      });
+      
+      // ✅ Console log for immediate debugging
+      console.error('[startPublicChat] Create error details:', {
+        message: createErrorMessage,
+        error: createError,
+        twinId,
+        userId,
+        visitorId: finalVisitorId
+      });
+      
+      throw createError; // Re-throw to be caught by outer catch
     }
 
-    // Log event
+    // Log event (don't fail if this fails)
     if (userId) {
-      await EventLogger.logUserEvent(userId, 'public_chat_started', {
-        twinId,
-        chatId: publicChat.id
-      });
+      try {
+        await EventLogger.logUserEvent(userId, 'public_chat_started', {
+          twinId,
+          chatId: publicChat.id
+        });
+      } catch (eventError) {
+        logger.warn('[startPublicChat] Failed to log event:', eventError);
+      }
     } else if (finalVisitorId && !finalVisitorId.startsWith('visitor_')) {
-      await EventLogger.logUserEvent(finalVisitorId, 'public_chat_started', {
-        twinId,
-        chatId: publicChat.id
-      });
+      try {
+        await EventLogger.logUserEvent(finalVisitorId, 'public_chat_started', {
+          twinId,
+          chatId: publicChat.id
+        });
+      } catch (eventError) {
+        logger.warn('[startPublicChat] Failed to log event:', eventError);
+      }
     }
 
     res.json({
@@ -144,7 +172,30 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
     });
 
   } catch (error: any) {
-    logger.error('startPublicChat error:', error);
+    // ✅ Better error logging with proper serialization
+    const errorMessage = error?.message || String(error) || 'Unknown error';
+    const errorStack = error?.stack || 'No stack trace';
+    
+    logger.error('startPublicChat error:', {
+      message: errorMessage,
+      stack: errorStack,
+      name: error?.name,
+      code: error?.code,
+      twinId: twinId || 'undefined',
+      userId: userId || 'undefined',
+      visitorId: visitorId || 'undefined',
+      finalVisitorId: finalVisitorId || 'undefined',
+      body: req.body,
+      // ✅ Log the actual error as string
+      errorString: String(error),
+      errorJSON: JSON.stringify(error, Object.getOwnPropertyNames(error))
+    });
+    
+    // ✅ Also log directly to console for debugging
+    console.error('[startPublicChat] Full error:', error);
+    console.error('[startPublicChat] Error message:', errorMessage);
+    console.error('[startPublicChat] Error stack:', errorStack);
+    
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -152,9 +203,15 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
         errorCode: error.errorCode
       });
     }
+    
+    // ✅ Return more detailed error in development
+    const errorMessageToReturn = process.env.NODE_ENV === 'development' 
+      ? errorMessage
+      : 'Failed to start public chat';
+    
     return res.status(500).json({
       success: false,
-      error: 'Failed to start public chat',
+      error: errorMessageToReturn,
       errorCode: 'INTERNAL_ERROR'
     });
   }

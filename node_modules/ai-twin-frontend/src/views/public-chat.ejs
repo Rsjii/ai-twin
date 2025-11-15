@@ -179,17 +179,45 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Initialize visitor ID
         function initializeVisitorId() {
-            visitorId = localStorage.getItem('visitorId');
-            if (!visitorId) {
-                visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                localStorage.setItem('visitorId', visitorId);
+            const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
+            
+            if (!isLoggedIn) {
+                // ✅ Use sessionStorage - automatically clears on tab close
+                visitorId = sessionStorage.getItem('visitorId');
+                if (!visitorId) {
+                    // Fresh session - generate new visitorId
+                    visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    sessionStorage.setItem('visitorId', visitorId);
+                }
+                // Clear old localStorage if exists
+                localStorage.removeItem('visitorId');
+            } else {
+                visitorId = null;
             }
         }
 
         // Load all chats for this twin
         async function loadPublicChatHistory() {
             try {
-                // ✅ Show loading state
+                const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
+                
+                // ✅ For logged out users: Don't load chat history at all
+                if (!isLoggedIn) {
+                    // Hide loading, show empty state
+                    const emptyState = document.getElementById('chatHistoryEmptyState');
+                    const loadingState = document.getElementById('chatHistoryLoadingState');
+                    if (loadingState) loadingState.classList.add('hidden');
+                    if (emptyState) emptyState.classList.remove('hidden');
+                    
+                    // Clear chat history list
+                    const container = document.getElementById('publicChatHistoryList');
+                    if (container) {
+                        container.innerHTML = '';
+                    }
+                    return; // No API call for logged out users
+                }
+                
+                // ✅ Show loading state (only for logged in users)
                 const loadingState = document.getElementById('chatHistoryLoadingState');
                 const emptyState = document.getElementById('chatHistoryEmptyState');
                 if (loadingState) loadingState.classList.remove('hidden');
@@ -197,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Build query params - backend will use userId from JWT cookie if available
                 const params = new URLSearchParams();
-                if (visitorId && !localStorage.getItem('userId')) {
+                if (visitorId && !isLoggedIn) {
                     params.append('visitorId', visitorId);
                 }
                 
@@ -227,14 +255,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             await switchToPublicChat(currentChatId);
                         }
                     } else if (data.chats.length === 0 && !currentChatId) {
-                        // No chats exist, create new one on page load
+                        // No chats exist, create draft instead
                         await createNewPublicChat();
                     }
                 }
             } catch (error) {
                 console.error('Error loading public chat history:', error);
             }
-        }
+        }        
 
         // Display chat history
         function displayPublicChatHistory(chats) {
@@ -544,53 +572,76 @@ document.addEventListener('DOMContentLoaded', function() {
 // Find createNewPublicChat function and add error handling
 async function createNewPublicChat() {
     try {
-        const response = await fetch(`/api/public-chat/start`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                twinId: currentTwinId,
-                visitorId: visitorId
-            })
-        });
+        // ✅ Don't create chat immediately - store as draft
+        // Generate a temporary draft chat ID
+        const draftChatId = `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         
-        const data = await response.json();
+        // Store draft chat info in sessionStorage
+        sessionStorage.setItem('draftPublicChat', JSON.stringify({
+            chatId: draftChatId,
+            twinId: currentTwinId,
+            visitorId: visitorId,
+            createdAt: Date.now()
+        }));
         
-        if (!response.ok) {
-            // ✅ PHASE 2: Handle requireLogin error
-            if (data.errorCode === 'LOGIN_REQUIRED') {
-                alert('You are logged out. Please login to continue chatting with this twin.');
-                if (confirm('Please login to continue chatting with this twin. Would you like to go to login page?')) {
-                    window.location.href = '/auth';
-                }
-                return;
-            }
-            
-            alert('Error: ' + (data.error || 'Failed to start chat'));
-            return;
-        }
+        // Set current chat to draft
+        currentChatId = draftChatId;
         
-        if (data.success) {
-            currentChatId = data.chatId;
-            // Continue with chat...
-        }
+        // Clear chat messages UI
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) chatMessages.innerHTML = '';
+        
+        // Show empty state
+        const emptyState = document.getElementById('emptyChatState');
+        if (emptyState) emptyState.classList.remove('hidden');
+        
+        // Disable "New Chat" button until first message is sent
+        const newChatBtn = document.getElementById('newPublicChatBtn');
+        if (newChatBtn) newChatBtn.disabled = true;
+        
+        console.log('Draft chat created:', draftChatId);
     } catch (error) {
-        console.error('Error creating chat:', error);
+        console.error('Error creating draft chat:', error);
         alert('Network error. Please try again.');
     }
 }
 
-        // Start public chat (load existing or create new)
+        // Start public chat (load existing or create new one)
         async function startPublicChat() {
             try {
-                // First load existing chats
+                const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
+                
+                // ✅ For logged out users: Just create draft, no API calls
+                if (!isLoggedIn) {
+                    if (!currentChatId) {
+                        // Check if there's a draft chat
+                        const draftData = sessionStorage.getItem('draftPublicChat');
+                        if (draftData) {
+                            const draft = JSON.parse(draftData);
+                            currentChatId = draft.chatId;
+                        } else {
+                            // Create draft chat (not saved to DB yet)
+                            await createNewPublicChat();
+                        }
+                    }
+                    return; // Exit - no history loading for logged out users
+                }
+                
+                // For logged in users: Load chat history
                 await loadPublicChatHistory();
                 
-                // If no existing chat, create new one
+                // ✅ Don't auto-create chat - let user send first message
+                // If no existing chat, create draft instead
                 if (!currentChatId) {
-                    await createNewPublicChat();
+                    // Check if there's a draft chat
+                    const draftData = sessionStorage.getItem('draftPublicChat');
+                    if (draftData) {
+                        const draft = JSON.parse(draftData);
+                        currentChatId = draft.chatId;
+                    } else {
+                        // Create draft chat (not saved to DB yet)
+                        await createNewPublicChat();
+                    }
                 }
             } catch (error) {
                 console.error('Error starting chat:', error);
@@ -735,6 +786,52 @@ async function createNewPublicChat() {
             // ✅ Hide empty state
             const emptyState = document.getElementById('emptyChatState');
             if (emptyState) emptyState.classList.add('hidden');
+
+             // ✅ Check if this is a draft chat - create it now
+             let actualChatId = currentChatId;
+            if (currentChatId && currentChatId.startsWith('draft_')) {
+                // This is a draft chat - create it now
+                try {
+                    const draftData = sessionStorage.getItem('draftPublicChat');
+                    if (draftData) {
+                        const draft = JSON.parse(draftData);
+                        const response = await fetch(`/api/public-chat/start`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                twinId: draft.twinId,
+                                visitorId: draft.visitorId
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success && data.chatId) {
+                            actualChatId = data.chatId;
+                            currentChatId = actualChatId;
+                            // Clear draft
+                            sessionStorage.removeItem('draftPublicChat');
+                            // Enable "New Chat" button
+                            const newChatBtn = document.getElementById('newPublicChatBtn');
+                            if (newChatBtn) newChatBtn.disabled = false;
+                        } else {
+                            throw new Error(data.error || 'Failed to create chat');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error creating chat:', error);
+                    alert('Failed to create chat. Please try again.');
+                    isChatting = false;
+                    if (messageInput) messageInput.disabled = false;
+                    if (sendBtn) {
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = 'Send';
+                    }
+                    return;
+                }
+            }
             
             // ✅ FIX: Add user message and create typing indicator
             addMessageToChat(message, 'human');
@@ -742,7 +839,7 @@ async function createNewPublicChat() {
             messageInput.value = '';
             
             try {
-                const response = await fetch(`/api/public-chat/${currentChatId}/message`, {
+                const response = await fetch(`/api/public-chat/${actualChatId}/message`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -856,6 +953,36 @@ if (!response.ok && data.errorCode === 'LOGIN_REQUIRED') {
         document.addEventListener('DOMContentLoaded', async function() {
             initializeVisitorId();
             
+            const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
+            
+            // ✅ For logged out users: Hide all loading states immediately
+            if (!isLoggedIn) {
+                // Hide initial loading state
+                const initialLoading = document.getElementById('initialLoadingState');
+                if (initialLoading) initialLoading.classList.add('hidden');
+                
+                // Hide chat history loading state
+                const chatHistoryLoading = document.getElementById('chatHistoryLoadingState');
+                if (chatHistoryLoading) chatHistoryLoading.classList.add('hidden');
+                
+                // Show empty states
+                const emptyChatState = document.getElementById('emptyChatState');
+                const emptyHistoryState = document.getElementById('chatHistoryEmptyState');
+                if (emptyChatState) emptyChatState.classList.remove('hidden');
+                if (emptyHistoryState) emptyHistoryState.classList.remove('hidden');
+                
+                // Clear chat history list
+                const container = document.getElementById('publicChatHistoryList');
+                if (container) {
+                    container.innerHTML = '';
+                }
+                
+                // Don't load any history - just show empty state
+                // User can start chatting and it will create draft chat
+                return; // Exit early - no API calls for logged out users
+            }
+            
+            // For logged in users: Load chat history
             // If initialChatId provided, load that chat
             if ('<%= initialChatId || "" %>') {
                 currentChatId = '<%= initialChatId %>';
