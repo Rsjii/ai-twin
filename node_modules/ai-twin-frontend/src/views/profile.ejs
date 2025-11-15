@@ -311,30 +311,47 @@
                                 </div>
                                 
                                 <div class="p-6 space-y-6">
-                                    <!-- Change Password -->
-                                    <div>
-                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Change Password</h3>
-                                        <form id="changePasswordForm" class="space-y-4">
-                                            <div>
-                                                <label for="currentPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Password</label>
-                                                <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password" class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
-                                            </div>
-                                            
-                                            <div>
-                                                <label for="newPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password</label>
-                                                <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password" class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
-                                            </div>
-                                            
-                                            <div>
-                                                <label for="confirmPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm New Password</label>
-                                                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password" class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
-                                            </div>
-                                            
-                                            <button type="submit" class="w-full bg-gradient-to-r from-primary to-accent text-white py-3 px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">
-                                                Update Password
-                                            </button>
-                                        </form>
-                                    </div>
+<!-- Replace the existing Change Password section (lines 314-337) -->
+<div>
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Change Password</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Update your account password</p>
+        </div>
+        <button id="showChangePasswordBtn" type="button" class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg transition-colors font-medium">
+            Change Password
+        </button>
+    </div>
+    
+    <!-- Password form (hidden by default) -->
+    <div id="changePasswordFormContainer" class="hidden mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+        <form id="changePasswordForm" class="space-y-4">
+            <div>
+                <label for="currentPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Password</label>
+                <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password" class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
+            </div>
+            
+            <div>
+                <label for="newPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password</label>
+                <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password" class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
+            </div>
+            
+            <div>
+                <label for="confirmPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm New Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password" class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
+            </div>
+            
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 bg-gradient-to-r from-primary to-accent text-white py-3 px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">
+                    Update Password
+                </button>
+                <button type="button" id="cancelChangePasswordBtn" class="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>                                    
                                     
                                     <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
                                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Account Management</h3>
@@ -603,7 +620,7 @@
         // Tab switching functionality - Make it globally accessible
         const activeTab = '<%= activeTab %>' || 'profile';
         
-        // Make switchTab globally accessible
+        // Make switchTab globally accessible (define it immediately, not in DOMContentLoaded)
         window.switchTab = function(tabName) {
             console.log('🔵 switchTab called with:', tabName);
             
@@ -624,6 +641,8 @@
             
             if (content) {
                 content.classList.remove('hidden');
+            } else {
+                console.error('Tab content not found:', contentId);
             }
             
             // Activate selected tab button
@@ -633,6 +652,8 @@
             if (tabButton) {
                 tabButton.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
                 tabButton.classList.add('border-primary', 'dark:border-blue-400', 'text-primary', 'dark:text-blue-400');
+            } else {
+                console.error('Tab button not found:', tabId);
             }
             
             // Update URL without reload
@@ -670,7 +691,25 @@
         
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Main tabs
+            // Main tabs - Add event listeners as backup (in addition to inline onclick)
+            const tabProfileBtn = document.getElementById('tab-profile');
+            const tabSettingsBtn = document.getElementById('tab-settings');
+            
+            if (tabProfileBtn) {
+                tabProfileBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    switchTab('profile');
+                });
+            }
+            
+            if (tabSettingsBtn) {
+                tabSettingsBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    switchTab('settings');
+                });
+            }
+            
+            // Initialize active tab on page load
             if (typeof window.switchTab === 'function') {
                 switchTab(activeTab);
             }
@@ -730,6 +769,36 @@
                     }
                 });
             }
+
+// Add this before the existing changePasswordForm event listener
+
+// Show/hide change password form
+const showChangePasswordBtn = document.getElementById('showChangePasswordBtn');
+const changePasswordFormContainer = document.getElementById('changePasswordFormContainer');
+const cancelChangePasswordBtn = document.getElementById('cancelChangePasswordBtn');
+
+if (showChangePasswordBtn && changePasswordFormContainer) {
+    showChangePasswordBtn.addEventListener('click', function() {
+        changePasswordFormContainer.classList.remove('hidden');
+        showChangePasswordBtn.classList.add('hidden');
+        // Focus on first input
+        document.getElementById('currentPassword')?.focus();
+    });
+}
+
+if (cancelChangePasswordBtn && changePasswordFormContainer) {
+    cancelChangePasswordBtn.addEventListener('click', function() {
+        changePasswordFormContainer.classList.add('hidden');
+        showChangePasswordBtn.classList.remove('hidden');
+        // Reset form
+        document.getElementById('changePasswordForm')?.reset();
+    });
+}
+
+// Just update the success handler to hide form:
+// After successful password change:
+// changePasswordFormContainer.classList.add('hidden');
+// showChangePasswordBtn.classList.remove('hidden');
             
             // Change password form
             const changePasswordForm = document.getElementById('changePasswordForm');
@@ -740,11 +809,28 @@
                     const currentPassword = document.getElementById('currentPassword').value;
                     const newPassword = document.getElementById('newPassword').value;
                     const confirmPassword = document.getElementById('confirmPassword').value;
-                    
+
+                     // Validation
+                    if (!currentPassword || !newPassword || !confirmPassword) {
+                        showNotification('Please fill in all fields', 'error');
+                        return;
+                    }
+
+                    if (newPassword.length < 6) {
+                        showNotification('New password must be at least 6 characters', 'error');
+                        return;
+                    }
+
                     if (newPassword !== confirmPassword) {
                         showNotification('New passwords do not match', 'error');
                         return;
                     }
+
+                    // Disable submit button
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Updating...';                
                     
                     try {
                         const response = await fetch('/api/auth/change-password', {
@@ -759,9 +845,12 @@
                         
                         const result = await response.json();
                         
-                        if (response.ok) {
+                        if (response.ok && result.success) {
                             showNotification('Password changed successfully!', 'success');
                             changePasswordForm.reset();
+                            // Hide form and show button again
+                            changePasswordFormContainer.classList.add('hidden');
+                            showChangePasswordBtn.classList.remove('hidden');
                         } else {
                             showNotification(result.error || 'Failed to change password', 'error');
                         }
@@ -769,23 +858,97 @@
                         console.error('Change password error:', error);
                         showNotification('Network error. Please try again.', 'error');
                     }
+                    finally {
+                        // Re-Enable submit button
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    }
                 });
             }
             
             // Account Management Buttons
             const exportDataBtn = document.getElementById('exportDataBtn');
             if (exportDataBtn) {
-                exportDataBtn.addEventListener('click', function() {
-                    showNotification('Data export feature coming soon', 'info');
+    exportDataBtn.addEventListener('click', async function() {
+        if (!confirm('This will download all your account data as a JSON file. Continue?')) {
+            return;
+        }
+        
+        try {
+            showNotification('Preparing your data export...', 'info');
+            
+            const response = await fetch('/api/user/export-data', {
+                method: 'GET',
+                headers: {
+                    'X-CSRF-Token': '<%= csrfToken %>'
+                },
+                credentials: 'include'
+            });
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `user-data-${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showNotification('Data exported successfully!', 'success');
+            } else {
+                const result = await response.json();
+                showNotification(result.error || 'Failed to export data', 'error');
+            }
+        } catch (error) {
+            console.error('Export data error:', error);
+            showNotification('Network error. Please try again.', 'error');
+        }
                 });
             }
             
             const deleteAccountBtn = document.getElementById('deleteAccountBtn');
             if (deleteAccountBtn) {
-                deleteAccountBtn.addEventListener('click', function() {
-                    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                        showNotification('Account deletion feature coming soon', 'info');
-                    }
+    deleteAccountBtn.addEventListener('click', async function() {
+        // Show confirmation modal
+        const password = prompt('Enter your password to confirm account deletion:\n\n⚠️ WARNING: This action cannot be undone. All your data will be permanently deleted.');
+        
+        if (!password) {
+            return; // User cancelled
+        }
+        
+        if (!confirm('Are you absolutely sure? This will permanently delete:\n\n• Your account\n• All your twins\n• All chat history\n• All data\n\nThis cannot be undone!')) {
+            return;
+        }
+        
+        try {
+            showNotification('Deleting account...', 'info');
+            
+            const response = await fetch('/api/user/account', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': '<%= csrfToken %>'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ password })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                showNotification('Account deleted successfully', 'success');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } else {
+                showNotification(result.error || 'Failed to delete account', 'error');
+            }
+        } catch (error) {
+            console.error('Delete account error:', error);
+            showNotification('Network error. Please try again.', 'error');
+        }
                 });
             }
             

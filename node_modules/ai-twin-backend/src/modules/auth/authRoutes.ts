@@ -25,7 +25,7 @@ router.post('/forgot-password/verify', sanitizeInput, forgotPasswordVerify);
 router.post('/reset-password', sanitizeInput, resetPassword);
 
 // Change password route (requires authentication)
-router.post('/change-password', requireJWTFromCookie, sanitizeInput, changePassword);
+router.post('/change-password', requireJWTFromCookie, sanitizeInput, validateCSRF, changePassword);
 
 // Logout
 router.post('/logout', logout);

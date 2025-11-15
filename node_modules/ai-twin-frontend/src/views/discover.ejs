@@ -151,11 +151,25 @@
                     </p>
                 </div>
 
-                <!-- Stats -->
                 <div class="flex justify-between text-sm text-gray-600 dark:text-gray-300 mb-4">
-                    <span class="flex items-center"><svg class="w-4 h-4 text-red-500 dark:text-red-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg> <span class="like-count">0</span></span>
-                    <span class="flex items-center"><svg class="w-4 h-4 text-blue-500 dark:text-blue-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> <span class="follow-count">0</span></span>
-                    <span class="flex items-center"><svg class="w-4 h-4 text-green-500 dark:text-green-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg> <span class="chat-count">0</span></span>
+                    <span class="flex items-center">
+                        <svg class="w-4 h-4 text-red-500 dark:text-red-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                        </svg> 
+                        <span class="like-count">0</span>
+                    </span>
+                    <span class="flex items-center">
+                        <svg class="w-4 h-4 text-blue-500 dark:text-blue-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg> 
+                        <span class="follow-count">0</span>
+                    </span>
+                    <span class="flex items-center">
+                        <svg class="w-4 h-4 text-green-500 dark:text-green-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg> 
+                        <span class="chat-count">0</span>
+                    </span>
                 </div>
 
                 <!-- Actions -->
@@ -282,56 +296,56 @@
         }
 
         function addTwinCard(twin) {
-            const template = document.getElementById('twinCardTemplate');
-            const clone = template.content.cloneNode(true);
-            
-            // Update twin data
-            clone.querySelector('.twin-handle').textContent = twin.publicHandle;
-            clone.querySelector('.creator-name').textContent = twin.userName || twin.userHandle;
-            clone.querySelector('.twin-bio').textContent = twin.bio || 'No bio available';
-            clone.querySelector('.like-count').textContent = twin.likeCount || 0;
-            clone.querySelector('.follow-count').textContent = twin.followCount || 0;
-            clone.querySelector('.chat-count').textContent = twin.chatCount || 0;
-            
-            // Show verified badge if applicable
-            if (twin.verified) {
-                clone.querySelector('.twin-verified').classList.remove('hidden');
-            }
-            
-            // Show sample reply if available
-            if (twin.sampleReply) {
-                clone.querySelector('.twin-sample-reply').classList.remove('hidden');
-                clone.querySelector('.sample-text').textContent = twin.sampleReply;
-            }
-            
-            // Set initial letter for avatar
-            const initial = twin.publicHandle.charAt(0).toUpperCase();
-            clone.querySelector('.twin-initial').textContent = initial;
-            
-            // Add event listeners
-            const chatBtn = clone.querySelector('.twin-chat-btn');
-            const likeBtn = clone.querySelector('.twin-like-btn');
-            const followBtn = clone.querySelector('.twin-follow-btn');
-            const shareBtn = clone.querySelector('.twin-share-btn');
-            
-            chatBtn.addEventListener('click', () => {
-                window.location.href = `/@${twin.publicHandle}`;
-            });
-            
-            likeBtn.addEventListener('click', () => {
-                toggleLike(twin.id, likeBtn);
-            });
-            
-            followBtn.addEventListener('click', () => {
-                toggleFollow(twin.id, followBtn);
-            });
-            
-            shareBtn.addEventListener('click', () => {
-                shareTwinFromDiscover(twin.id, twin.publicHandle);
-            });
-            
-            document.getElementById('twinsGrid').appendChild(clone);
-        }
+    const template = document.getElementById('twinCardTemplate');
+    const clone = template.content.cloneNode(true);
+    
+    // Update twin data
+    clone.querySelector('.twin-handle').textContent = twin.publicHandle;
+    clone.querySelector('.creator-name').textContent = twin.userName || twin.userHandle;
+    clone.querySelector('.twin-bio').textContent = twin.bio || 'No bio available';
+    clone.querySelector('.like-count').textContent = twin.likeCount || 0;
+    clone.querySelector('.follow-count').textContent = twin.followCount || 0;
+    clone.querySelector('.chat-count').textContent = twin.chatCount || 0;
+    
+    // Show verified badge if applicable
+    if (twin.verified) {
+        clone.querySelector('.twin-verified').classList.remove('hidden');
+    }
+    
+    // Show sample reply if available
+    if (twin.sampleReply) {
+        clone.querySelector('.twin-sample-reply').classList.remove('hidden');
+        clone.querySelector('.sample-text').textContent = twin.sampleReply;
+    }
+    
+    // Set initial letter for avatar
+    const initial = twin.publicHandle.charAt(0).toUpperCase();
+    clone.querySelector('.twin-initial').textContent = initial;
+    
+    // Add event listeners for buttons (NOT for counts - they're not clickable on public pages)
+    const chatBtn = clone.querySelector('.twin-chat-btn');
+    const likeBtn = clone.querySelector('.twin-like-btn');
+    const followBtn = clone.querySelector('.twin-follow-btn');
+    const shareBtn = clone.querySelector('.twin-share-btn');
+    
+    chatBtn.addEventListener('click', () => {
+        window.location.href = `/@${twin.publicHandle}`;
+    });
+    
+    likeBtn.addEventListener('click', () => {
+        toggleLike(twin.id, likeBtn);
+    });
+    
+    followBtn.addEventListener('click', () => {
+        toggleFollow(twin.id, followBtn);
+    });
+    
+    shareBtn.addEventListener('click', () => {
+        shareTwinFromDiscover(twin.id, twin.publicHandle);
+    });
+    
+    document.getElementById('twinsGrid').appendChild(clone);
+}
 
         async function toggleLike(twinId, button) {
             try {

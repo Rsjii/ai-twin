@@ -8,7 +8,9 @@ import {
   getUserLikedTwins,
   getUserFollowedTwins,
   toggleLike,
-  toggleFollow
+  toggleFollow,
+  getTwinLikers,
+  getTwinFollowers
 } from './socialController';
 import { requireJWTFromCookie, extractJWTFromCookie } from '../../middleware/jwtCookie';
 
@@ -26,5 +28,7 @@ router.post('/toggle-like', requireJWTFromCookie, toggleLike);
 router.post('/toggle-follow', requireJWTFromCookie, toggleFollow);
 router.get('/my-likes', requireJWTFromCookie, getUserLikedTwins);
 router.get('/my-follows', requireJWTFromCookie, getUserFollowedTwins);
+router.get('/twin/:twinId/likers', extractJWTFromCookie, getTwinLikers);
+router.get('/twin/:twinId/followers', extractJWTFromCookie, getTwinFollowers);
 
 export default router;

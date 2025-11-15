@@ -554,19 +554,37 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response, n
     
     // Check if user is logged in
     if (!req.user) {
-      throw createError.unauthorized();
+      return res.status(401).json({
+        error: 'Authentication required',
+        errorCode: ErrorCodes.UNAUTHORIZED
+      });
     }
     
     // Find user
     const user = await userQueries.findByEmail(req.user.email);
     if (!user || !user.passwordHash) {
-      throw createError.notFound('User not found or no password set', ErrorCodes.USER_NOT_FOUND);
+      return res.status(404).json({
+        error: 'User not found or no password set',
+        errorCode: ErrorCodes.USER_NOT_FOUND
+      });
     }
     
     // Verify current password
     const isValidPassword = await verifyPassword(currentPassword, user.passwordHash);
     if (!isValidPassword) {
-      throw createError.validation('Current password is incorrect');
+      return res.status(400).json({
+        error: 'Current password is incorrect',
+        errorCode: ErrorCodes.VALIDATION_ERROR
+      });
+    }
+    
+    // Check if new password is same as current password
+    const isSamePassword = await verifyPassword(newPassword, user.passwordHash);
+    if (isSamePassword) {
+      return res.status(400).json({
+        error: 'New password must be different from current password',
+        errorCode: ErrorCodes.VALIDATION_ERROR
+      });
     }
     
     // Hash new password
@@ -575,12 +593,37 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response, n
     // Update password
     await userQueries.updatePassword(user.email, passwordHash);
     
-    res.json({ message: 'Password changed successfully' });
+    logger.info(`Password changed for user: ${user.email}`);
+    
+    return res.json({ 
+      success: true,
+      message: 'Password changed successfully' 
+    });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
+    logger.error('Change password error:', error);
+    
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: error.errors[0]?.message || 'Validation failed',
+        errorCode: ErrorCodes.VALIDATION_ERROR,
+        details: error.errors
+      });
     }
-    throw createError.internal('Failed to change password', error);
+    
+    // Handle AppError
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        errorCode: error.errorCode
+      });
+    }
+    
+    // Handle unexpected errors
+    return res.status(500).json({
+      error: 'Failed to change password. Please try again.',
+      errorCode: ErrorCodes.INTERNAL_ERROR
+    });
   }
 };
 

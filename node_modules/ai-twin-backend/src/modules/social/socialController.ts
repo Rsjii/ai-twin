@@ -567,3 +567,103 @@ export const toggleFollow = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+/**
+ * Get users who liked a specific twin
+ * GET /api/social/twin/:twinId/likers
+ */
+export const getTwinLikers = async (req: Request, res: Response) => {
+  try {
+    const { twinId } = req.params;
+
+    // Verify twin exists and is public
+    const twinResult = await db.query(
+      'SELECT id, "isPublic" FROM "Twin" WHERE id = $1',
+      [twinId]
+    );
+
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Twin not found' });
+    }
+
+    // Get users who liked this twin
+    const likersResult = await db.query(
+      `SELECT 
+        u.id,
+        u.name,
+        u.handle,
+        u.email,
+        tl."createdAt" as likedAt
+       FROM "TwinLike" tl
+       JOIN "User" u ON tl."userId" = u.id
+       WHERE tl."twinId" = $1
+       ORDER BY tl."createdAt" DESC
+       LIMIT 100`,
+      [twinId]
+    );
+
+    res.json({
+      success: true,
+      likers: likersResult.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        handle: row.handle,
+        likedAt: row.likedAt
+        // Don't expose email for privacy
+      }))
+    });
+
+  } catch (error) {
+    logger.error('Get twin likers error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+/**
+ * Get users who followed a specific twin
+ * GET /api/social/twin/:twinId/followers
+ */
+export const getTwinFollowers = async (req: Request, res: Response) => {
+  try {
+    const { twinId } = req.params;
+
+    // Verify twin exists
+    const twinResult = await db.query(
+      'SELECT id, "isPublic" FROM "Twin" WHERE id = $1',
+      [twinId]
+    );
+
+    if (twinResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Twin not found' });
+    }
+
+    // Get users who followed this twin
+    const followersResult = await db.query(
+      `SELECT 
+        u.id,
+        u.name,
+        u.handle,
+        tf."createdAt" as followedAt
+       FROM "TwinFollow" tf
+       JOIN "User" u ON tf."userId" = u.id
+       WHERE tf."twinId" = $1
+       ORDER BY tf."createdAt" DESC
+       LIMIT 100`,
+      [twinId]
+    );
+
+    res.json({
+      success: true,
+      followers: followersResult.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        handle: row.handle,
+        followedAt: row.followedAt
+      }))
+    });
+
+  } catch (error) {
+    logger.error('Get twin followers error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

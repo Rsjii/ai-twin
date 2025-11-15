@@ -121,18 +121,18 @@
                                 <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
                             </svg>
                         </div>
-                        <div class="text-2xl font-bold text-gray-900 dark:text-white like-count mb-1"><%= twin.likeCount %></div>
+                        <div class="text-2xl font-bold text-gray-900 dark:text-white mb-1"><%= twin.likeCount || 0 %></div>
                         <div class="text-xs font-medium text-gray-600 dark:text-gray-400">Likes</div>
-                    </div>
+                    </div>                    
                     <div class="text-center p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
                         <div class="w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center shadow-lg">
                             <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
                             </svg>
                         </div>
-                        <div class="text-2xl font-bold text-gray-900 dark:text-white follow-count mb-1"><%= twin.followCount %></div>
+                        <div class="text-2xl font-bold text-gray-900 dark:text-white mb-1"><%= twin.followCount || 0 %></div>
                         <div class="text-xs font-medium text-gray-600 dark:text-gray-400">Followers</div>
-                    </div>
+                    </div>                    
                     <div class="text-center p-4 rounded-xl bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 border border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
                         <div class="w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-purple-500 to-violet-500 rounded-lg flex items-center justify-center shadow-lg">
                             <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">

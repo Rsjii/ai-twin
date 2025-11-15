@@ -33,6 +33,7 @@ import { getTwinPerformance } from './modules/analytics/analyticsController';
 import adminAnalyticsRoutes from './modules/analytics/adminAnalyticsRoutes';
 import onboardingRoutes from './modules/onboarding/onboardingRoutes';
 import memoryRoutes from './modules/memory/memoryRoutes';
+import userRoutes from './modules/user/userRoutes';
 
 // Import page routes (HTML rendering)
 import pageRoutes from './routes';
@@ -173,6 +174,7 @@ app.use('/api/metrics', analyticsRoutes);
 app.use('/api/admin/analytics', adminAnalyticsRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/memory', memoryRoutes);
+app.use('/api/user', userRoutes);
 
 // Style anchor routes moved to twinRoutes.ts for consistency
 // All style anchor endpoints are now available via /api/twin/:id/style-anchors
