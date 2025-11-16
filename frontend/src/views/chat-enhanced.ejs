@@ -1344,7 +1344,7 @@ async function switchToChat(chatId) {
         
         // Update URL without page reload (only if not draft)
         if (!chatId.startsWith('draft_')) {
-            window.history.pushState({}, '', `/chat-enhanced?chatId=${chatId}`);
+        window.history.pushState({}, '', `/chat-enhanced?chatId=${chatId}`);
         }
         
         // ✅ FIX: For draft chats, just show empty state
@@ -1766,61 +1766,61 @@ if (messageForm) {
             typingId = addMessageToChat('ai', 'Thinking...', true);
 
             // ✅ Check if draft chat, convert to actual chat first
-            let actualChatId = currentChatId;
-            if (currentChatId && currentChatId.startsWith('draft_')) {
-                try {
-                    const draftData = sessionStorage.getItem('draftEnhancedChat');
-                    if (draftData) {
-                        const draft = JSON.parse(draftData);
-                        const response = await fetch('/api/chats/new', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-Token': '<%= csrfToken %>'
-                            },
-                            credentials: 'include',
-                            body: JSON.stringify({ twinId: draft.twinId })
-                        });
+let actualChatId = currentChatId;
+if (currentChatId && currentChatId.startsWith('draft_')) {
+    try {
+        const draftData = sessionStorage.getItem('draftEnhancedChat');
+        if (draftData) {
+            const draft = JSON.parse(draftData);
+            const response = await fetch('/api/chats/new', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': '<%= csrfToken %>'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ twinId: draft.twinId })
+            });
                         
                         if (!response.ok) {
                             const errorData = await response.json();
                             throw new Error(errorData.error || 'Failed to create chat');
                         }
-                        
-                        const data = await response.json();
+            
+            const data = await response.json();
                         
                         // ✅ FIX: Use data.chat.id (backend returns chat object, not chatId directly)
                         if (data.success && data.chat && data.chat.id) {
                             actualChatId = data.chat.id;  // ✅ Use data.chat.id instead of data.chatId
-                            currentChatId = actualChatId;
-                            
-                            // Remove draft from sidebar
-                            removeDraftFromSidebar(draft.chatId);
-                            
-                            // Reload chat history to show actual chat
-                            await loadChatHistory();
-                            
-                            // Clear draft
-                            sessionStorage.removeItem('draftEnhancedChat');
-                            
-                            // Enable "New Chat" button
-                            const newChatBtn = document.getElementById('newChatBtn');
-                            if (newChatBtn) newChatBtn.disabled = false;
-                        } else {
+                currentChatId = actualChatId;
+                
+                // Remove draft from sidebar
+                removeDraftFromSidebar(draft.chatId);
+                
+                // Reload chat history to show actual chat
+                await loadChatHistory();
+                
+                // Clear draft
+                sessionStorage.removeItem('draftEnhancedChat');
+                
+                // Enable "New Chat" button
+                const newChatBtn = document.getElementById('newChatBtn');
+                if (newChatBtn) newChatBtn.disabled = false;
+            } else {
                             console.error('Failed to create chat:', data);
-                            showNotification('Failed to create chat', 'error');
-                            return;
-                        }
+                showNotification('Failed to create chat', 'error');
+                return;
+            }
                     } else {
                         showNotification('Draft data not found', 'error');
                         return;
-                    }
-                } catch (error) {
-                    console.error('Error creating chat from draft:', error);
+        }
+    } catch (error) {
+        console.error('Error creating chat from draft:', error);
                     showNotification(error.message || 'Error creating chat', 'error');
-                    return;
-                }
-            }
+        return;
+    }
+}
             
             // FIRST: Save user message to database
             await fetch(`/api/chat/${actualChatId}/send`, {

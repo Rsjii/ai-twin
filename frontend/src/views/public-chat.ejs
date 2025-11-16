@@ -832,7 +832,8 @@ async function createNewPublicChat() {
         }
 
         // Send message (updated with typing effect)
-        async function sendMessage() {
+
+async function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const message = messageInput?.value.trim();
             
@@ -852,53 +853,151 @@ async function createNewPublicChat() {
             const emptyState = document.getElementById('emptyChatState');
             if (emptyState) emptyState.classList.add('hidden');
 
-             // ✅ Check if this is a draft chat - create it now
+             // ✅ FIX: Handle null or draft chatId - create chat first
              let actualChatId = currentChatId;
-            if (currentChatId && currentChatId.startsWith('draft_')) {
-                // This is a draft chat - create it now
-                try {
-                    const draftData = sessionStorage.getItem('draftPublicChat');
-                    if (draftData) {
-                        const draft = JSON.parse(draftData);
-                        const response = await fetch(`/api/public-chat/start`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            credentials: 'include',
-                            body: JSON.stringify({
-                                twinId: draft.twinId,
-                                visitorId: draft.visitorId
-                            })
-                        });
-                        
-                        const data = await response.json();
-                        if (data.success && data.chatId) {
-                            actualChatId = data.chatId;
-                            currentChatId = actualChatId;
-                            // Clear draft
-                            sessionStorage.removeItem('draftPublicChat');
-                            // Enable "New Chat" button
-                            const newChatBtn = document.getElementById('newPublicChatBtn');
-                            if (newChatBtn) newChatBtn.disabled = false;
-                        } else {
-                            throw new Error(data.error || 'Failed to create chat');
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error creating chat:', error);
-                    alert('Failed to create chat. Please try again.');
-                    isChatting = false;
-                    if (messageInput) messageInput.disabled = false;
-                    if (sendBtn) {
-                        sendBtn.disabled = false;
-                        sendBtn.textContent = 'Send';
-                    }
-                    return;
-                }
-            }
+             
+             // Case 1: chatId is null or empty (logged out user, no draft)
+             if (!actualChatId || actualChatId === 'null' || actualChatId === '') {
+                 try {
+                     // Get twinId from already defined currentTwinId variable
+                     const twinId = currentTwinId;
+                     if (!twinId) {
+                         throw new Error('Twin ID not found');
+                     }
+                     
+                     // Get or create visitorId (use sessionStorage for logged out users)
+                     let visitorIdToUse = visitorId || sessionStorage.getItem('visitorId');
+                     if (!visitorIdToUse) {
+                         visitorIdToUse = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                         sessionStorage.setItem('visitorId', visitorIdToUse);
+                         visitorId = visitorIdToUse;
+                     }
+                     
+                     // Create new chat
+                     const response = await fetch(`/api/public-chat/start`, {
+                         method: 'POST',
+                         headers: {
+                             'Content-Type': 'application/json',
+                         },
+                         credentials: 'include',
+                         body: JSON.stringify({
+                             twinId: twinId,
+                             visitorId: visitorIdToUse
+                         })
+                     });
+                     
+                     const data = await response.json();
+                     if (data.success && data.chatId) {
+                         actualChatId = data.chatId;
+                         currentChatId = actualChatId;
+                         // Clear any draft
+                         sessionStorage.removeItem('draftPublicChat');
+                         // Enable "New Chat" button
+                         const newChatBtn = document.getElementById('newPublicChatBtn');
+                         if (newChatBtn) newChatBtn.disabled = false;
+                     } else {
+                         throw new Error(data.error || 'Failed to create chat');
+                     }
+                 } catch (error) {
+                     console.error('Error creating chat:', error);
+                     alert('Failed to create chat. Please try again.');
+                     isChatting = false;
+                     if (messageInput) messageInput.disabled = false;
+                     if (sendBtn) {
+                         sendBtn.disabled = false;
+                         sendBtn.textContent = 'Send';
+                     }
+                     return;
+                 }
+             }
+             // Case 2: chatId is draft (starts with 'draft_')
+             else if (actualChatId && actualChatId.startsWith('draft_')) {
+                 // This is a draft chat - create it now
+                 try {
+                     const draftData = sessionStorage.getItem('draftPublicChat');
+                     if (draftData) {
+                         const draft = JSON.parse(draftData);
+                         const response = await fetch(`/api/public-chat/start`, {
+                             method: 'POST',
+                             headers: {
+                                 'Content-Type': 'application/json',
+                             },
+                             credentials: 'include',
+                             body: JSON.stringify({
+                                 twinId: draft.twinId,
+                                 visitorId: draft.visitorId
+                             })
+                         });
+                         
+                         const data = await response.json();
+                         if (data.success && data.chatId) {
+                             actualChatId = data.chatId;
+                             currentChatId = actualChatId;
+                             // Clear draft
+                             sessionStorage.removeItem('draftPublicChat');
+                             // Enable "New Chat" button
+                             const newChatBtn = document.getElementById('newPublicChatBtn');
+                             if (newChatBtn) newChatBtn.disabled = false;
+                         } else {
+                             throw new Error(data.error || 'Failed to create chat');
+                         }
+                     } else {
+                         // No draft data, create new chat
+                         const twinId = currentTwinId;
+                         let visitorIdToUse = visitorId || sessionStorage.getItem('visitorId');
+                         if (!visitorIdToUse) {
+                             visitorIdToUse = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                             sessionStorage.setItem('visitorId', visitorIdToUse);
+                             visitorId = visitorIdToUse;
+                         }
+                         
+                         const response = await fetch(`/api/public-chat/start`, {
+                             method: 'POST',
+                             headers: {
+                                 'Content-Type': 'application/json',
+                             },
+                             credentials: 'include',
+                             body: JSON.stringify({
+                                 twinId: twinId,
+                                 visitorId: visitorIdToUse
+                             })
+                         });
+                         
+                         const data = await response.json();
+                         if (data.success && data.chatId) {
+                             actualChatId = data.chatId;
+                             currentChatId = actualChatId;
+                         } else {
+                             throw new Error(data.error || 'Failed to create chat');
+                         }
+                     }
+                 } catch (error) {
+                     console.error('Error creating chat:', error);
+                     alert('Failed to create chat. Please try again.');
+                     isChatting = false;
+                     if (messageInput) messageInput.disabled = false;
+                     if (sendBtn) {
+                         sendBtn.disabled = false;
+                         sendBtn.textContent = 'Send';
+                     }
+                     return;
+                 }
+             }
+             
+             // ✅ Validate actualChatId before sending
+             if (!actualChatId || actualChatId === 'null' || actualChatId === '') {
+                 console.error('Invalid chatId:', actualChatId);
+                 alert('Chat ID is invalid. Please refresh the page and try again.');
+                 isChatting = false;
+                 if (messageInput) messageInput.disabled = false;
+                 if (sendBtn) {
+                     sendBtn.disabled = false;
+                     sendBtn.textContent = 'Send';
+                 }
+                 return;
+             }
             
-            // ✅ FIX: Add user message and create typing indicator
+            // ✅ Add user message and create typing indicator
             addMessageToChat(message, 'human');
             const typingId = addMessageToChat('Thinking...', 'ai', true);
             messageInput.value = '';
@@ -919,17 +1018,84 @@ async function createNewPublicChat() {
 
                 // ✅ FIX: Handle LOGIN_REQUIRED error
                 if (!response.ok && data.errorCode === 'LOGIN_REQUIRED') {
-    alert('You are logged out. Please login to send messages to this twin.');
-    if (confirm('Would you like to go to login page?')) {
-        window.location.href = '/auth';
-    }
-    // Remove the user message that was added
-    const chatMessages = document.getElementById('chatMessages');
-    const lastMessage = chatMessages.lastElementChild;
-    if (lastMessage) lastMessage.remove();
-    return;
-}
+                    alert('You are logged out. Please login to send messages to this twin.');
+                    if (confirm('Would you like to go to login page?')) {
+                        window.location.href = '/auth';
+                    }
+                    // Remove the user message that was added
+                    const chatMessages = document.getElementById('chatMessages');
+                    const lastMessage = chatMessages.lastElementChild;
+                    if (lastMessage) lastMessage.remove();
+                    isChatting = false;
+                    if (messageInput) messageInput.disabled = false;
+                    if (sendBtn) {
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = 'Send';
+                    }
+                    return;
+                }
 
+                // ✅ Handle CHAT_NOT_FOUND error
+                if (!response.ok && data.errorCode === 'CHAT_NOT_FOUND') {
+                    console.error('Chat not found, creating new chat...');
+                    // Try to create chat again
+                    const twinId = currentTwinId;
+                    let visitorIdToUse = visitorId || sessionStorage.getItem('visitorId');
+                    if (!visitorIdToUse) {
+                        visitorIdToUse = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                        sessionStorage.setItem('visitorId', visitorIdToUse);
+                        visitorId = visitorIdToUse;
+                    }
+                    
+                    const createResponse = await fetch(`/api/public-chat/start`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            twinId: twinId,
+                            visitorId: visitorIdToUse
+                        })
+                     });
+                    
+                    const createData = await createResponse.json();
+                    if (createData.success && createData.chatId) {
+                        actualChatId = createData.chatId;
+                        currentChatId = actualChatId;
+                        // Retry sending message
+                        const retryResponse = await fetch(`/api/public-chat/${actualChatId}/message`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ message })
+                        });
+                        const retryData = await retryResponse.json();
+                        if (retryData.success && retryData.messages) {
+                            const aiMessage = retryData.messages.find(m => m.sender === 'twin');
+                            if (aiMessage) {
+                                displayWithTypingEffect('ai', aiMessage.content, {
+                                    timestamp: aiMessage.createdAt
+                                }, () => {
+                                    loadPublicChatHistory();
+                                });
+                            }
+                        } else {
+                            addMessageToChat('Sorry, I encountered an error. Please try again.', 'ai');
+                        }
+                    } else {
+                        addMessageToChat('Sorry, I encountered an error. Please try again.', 'ai');
+                    }
+                    isChatting = false;
+                    if (messageInput) messageInput.disabled = false;
+                    if (sendBtn) {
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = 'Send';
+                    }
+                    return;
+                }
+                
                 // ✅ PHASE 2: Handle OWN_TWIN_CHAT error
                 if (!response.ok && data.errorCode === 'OWN_TWIN_CHAT') {
                     alert(data.error || 'You cannot chat with your own twin in public chat.');
@@ -937,6 +1103,12 @@ async function createNewPublicChat() {
                         window.location.href = data.redirectUrl;
                     } else {
                         window.location.href = `/chat-enhanced?twinId=${currentTwinId}`;
+                    }
+                    isChatting = false;
+                    if (messageInput) messageInput.disabled = false;
+                    if (sendBtn) {
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = 'Send';
                     }
                     return;
                 }
@@ -973,7 +1145,6 @@ async function createNewPublicChat() {
                 }
             }
         }
-
 
         // Show notification function
         function showNotification(message, type = 'info') {

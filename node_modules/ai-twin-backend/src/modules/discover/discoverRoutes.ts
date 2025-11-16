@@ -9,20 +9,22 @@ import {
   getPopularTwins,
   getDiscoverFeed
 } from './discoverController';
-import { optionalJWT } from '../../middleware/jwtAuth';
+// ✅ Use extractJWTFromCookie instead of optionalJWT (cookie-based auth)
+import { extractJWTFromCookie } from '../../middleware/jwtCookie';
 
 const router = Router();
 
-// Public routes (no authentication required)
-router.get('/trending', getTrendingTwins);
-router.get('/search', searchTwins);
-router.get('/recent', getRecentTwins);
-router.get('/popular', getPopularTwins);
-router.get('/most-liked', getMostLikedTwins);
-router.get('/most-followed', getMostFollowedTwins);
-router.get('/feed', getDiscoverFeed);
+// ✅ Add JWT middleware to all routes (optional - doesn't require auth, but extracts user if available)
+// Public routes (authentication optional for blocked user filtering)
+router.get('/trending', extractJWTFromCookie, getTrendingTwins);
+router.get('/search', extractJWTFromCookie, searchTwins);
+router.get('/recent', extractJWTFromCookie, getRecentTwins);
+router.get('/popular', extractJWTFromCookie, getPopularTwins);
+router.get('/most-liked', extractJWTFromCookie, getMostLikedTwins);
+router.get('/most-followed', extractJWTFromCookie, getMostFollowedTwins);
+router.get('/feed', extractJWTFromCookie, getDiscoverFeed);
 
 // Personalized routes (authentication optional for better recommendations)
-router.get('/recommended', optionalJWT, getRecommendedTwins);
+router.get('/recommended', extractJWTFromCookie, getRecommendedTwins);
 
 export default router;

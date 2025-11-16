@@ -247,7 +247,7 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
             // Get twinId from global variable (set by script tag outside template string)
             const twinIdValue = window.twinIdValue || '';
             
-            // Set data attributes on cards and add click handlers
+  // Set data attributes on cards and add click handlers
             const cards = [
                 { element: document.getElementById('totalLikes').closest('.bg-white'), type: 'likers' },
                 { element: document.getElementById('totalFollowers').closest('.bg-white'), type: 'followers' },
@@ -259,16 +259,16 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                     card.element.classList.add('cursor-pointer', 'hover:shadow-xl', 'transition-all');
                     card.element.setAttribute('data-twin-id', twinIdValue);
                     card.element.setAttribute('data-list-type', card.type);
-                    card.element.setAttribute('data-show-details', 'true');
                     
+                // ✅ Direct redirect to analytics/details (NO popup)
                     card.element.addEventListener('click', function() {
                         const twinId = this.getAttribute('data-twin-id');
                         const listType = this.getAttribute('data-list-type');
-                        const showDetails = this.getAttribute('data-show-details') === 'true';
-                        if (twinId && typeof showSocialList === 'function') {
-                            showSocialList(twinId, listType, showDetails);
-                        }
-                    });
+                        if (twinId && listType) {
+                            // Direct redirect to details page (use string concatenation instead of template literal)
+                            window.location.href = '/analytics/details?type=' + listType + '&twinId=' + twinId;
+                        }                            
+                    });                    
                 }
             });
         });

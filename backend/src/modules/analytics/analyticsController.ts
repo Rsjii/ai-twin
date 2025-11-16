@@ -549,3 +549,52 @@ export const getReferralStats = async (req: any, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+
+// Get chatters statistics
+export const getChattersStats = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { twinId } = req.query;
+    
+    if (!twinId) {
+      return res.status(400).json({ error: 'Twin ID is required' });
+    }
+
+    // Verify user owns the twin
+    const twinCheck = await db.query(
+      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
+      [twinId, req.user.id]
+    );
+
+    if (twinCheck.rows.length === 0) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Get stats
+    const stats = await db.query(`
+      SELECT 
+        COUNT(DISTINCT c."userId") as "totalChatters",
+        COUNT(DISTINCT c.id) as "totalChats",
+        COUNT(DISTINCT CASE 
+          WHEN c."createdAt" >= NOW() - INTERVAL '7 days' THEN c."userId" 
+        END) as "activeThisWeek"
+      FROM "Chat" c
+      WHERE c."twinId" = $1
+    `, [twinId]);
+
+    res.json({
+      success: true,
+      totalChatters: parseInt(stats.rows[0].totalChatters) || 0,
+      totalChats: parseInt(stats.rows[0].totalChats) || 0,
+      activeThisWeek: parseInt(stats.rows[0].activeThisWeek) || 0
+    });
+
+  } catch (error) {
+    logger.error('Get chatters stats error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

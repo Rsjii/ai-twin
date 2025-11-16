@@ -46,6 +46,21 @@ export async function getPublicProfile(req: any, res: Response) {
     }
 
     const twin = publicTwin.rows[0];
+
+    // ✅ Check if viewer is blocked (only if logged in)
+    if (req.user) {
+      const blockedCheck = await db.query(`
+        SELECT id FROM "TwinBlockedUsers"
+        WHERE "twinId" = $1 AND "userId" = $2
+      `, [twin.id, req.user.id]);
+      
+      if (blockedCheck.rows.length > 0) {
+        return res.status(404).render('404', {
+          title: 'Profile Not Available',
+          message: 'This profile is not available'
+        });
+      }
+    }
     
     // Check if viewer is the owner
     const isOwner = req.user && req.user.id === twin.userId;

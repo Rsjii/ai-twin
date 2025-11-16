@@ -47,6 +47,19 @@ export const likeTwin = async (req: Request, res: Response) => {
       });
     }
 
+     // ✅ Check if user is blocked
+     const blockedCheck = await db.query(`
+      SELECT id FROM "TwinBlockedUsers"
+      WHERE "twinId" = $1 AND "userId" = $2
+    `, [twinId, req.user.id]);
+    
+    if (blockedCheck.rows.length > 0) {
+      return res.status(403).json({
+        error: 'You are blocked from interacting with this twin',
+        errorCode: 'USER_BLOCKED'
+      });
+    }
+
     // ✅ PHASE 2: Check if likes are allowed    
     if (twin.allowLikes === false) {
       return res.status(403).json({ 
@@ -198,6 +211,19 @@ export const followTwin = async (req: Request, res: Response) => {
       return res.status(403).json({
         error: 'You cannot follow your own twin',
         errorCode: 'OWN_TWIN_INTERACTION'
+      });
+    }
+
+    // ✅ Check if user is blocked
+    const blockedCheck = await db.query(`
+      SELECT id FROM "TwinBlockedUsers"
+      WHERE "twinId" = $1 AND "userId" = $2
+    `, [twinId, req.user.id]);
+    
+    if (blockedCheck.rows.length > 0) {
+      return res.status(403).json({
+        error: 'You are blocked from interacting with this twin',
+        errorCode: 'USER_BLOCKED'
       });
     }
 

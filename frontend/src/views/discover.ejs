@@ -325,6 +325,11 @@
                 const searchQuery = document.getElementById('searchInput').value.trim();
                 let url = `/api/discover/${currentFilter}?limit=12&offset=${currentPage * 12}`;
                 
+                // ✅ Add timeframe parameter for trending
+                if (currentFilter === 'trending') {
+                    url += '&timeframe=all';
+                }
+                
                 if (searchQuery) {
                     url = `/api/discover/search?query=${encodeURIComponent(searchQuery)}&limit=12&offset=${currentPage * 12}`;
                 }

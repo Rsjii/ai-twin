@@ -38,6 +38,21 @@ export const generateShareLink = async (req: Request, res: Response) => {
 
     const twin = twinResult.rows[0];
 
+     // ✅ Check if user is blocked
+     if (req.user) {
+      const blockedCheck = await db.query(`
+        SELECT id FROM "TwinBlockedUsers"
+        WHERE "twinId" = $1 AND "userId" = $2
+      `, [twinId, req.user.id]);
+      
+      if (blockedCheck.rows.length > 0) {
+        return res.status(403).json({
+          error: 'You are blocked from interacting with this twin',
+          errorCode: 'USER_BLOCKED'
+        });
+      }
+    }
+
     // ✅ PHASE 2: Check if shares are allowed
     if (twin.allowShares === false) {
       return res.status(403).json({ 

@@ -7,7 +7,7 @@
             <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h3 id="socialListModalTitle" class="text-lg font-semibold text-gray-900 dark:text-white"></h3>
-                    <button id="closeSocialListModal" class="text-gray-400 hover:text-gray-500">
+                    <button id="closeSocialListModal" class="text-gray-400 hover:text-gray-500 transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -71,7 +71,9 @@
                 const viewDetailsBtn = document.getElementById('viewDetailsBtn');
                 if (viewDetailsBtn) {
                     viewDetailsBtn.onclick = () => {
-                        window.location.href = `/analytics/details?type=${type}&twinId=${twinId}`;
+                        // ✅ Simple: Always redirect to analytics page first
+                        // User can then click on the card to see details
+                        window.location.href = `/analytics`;
                     };
                 }
             } else if (detailsBtnContainer) {
@@ -158,23 +160,36 @@
     
     // Setup close handlers using event delegation (works even if modal is added dynamically)
     function setupModalHandlers() {
-        // Use event delegation on document to catch clicks even if modal is added later
-        document.addEventListener('click', function(e) {
-            // Check if click is on close button
-            if (e.target && (e.target.id === 'closeSocialListModal' || e.target.closest('#closeSocialListModal'))) {
+        // Close button handler
+        const closeBtn = document.getElementById('closeSocialListModal');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 closeSocialListModal();
-                return;
-            }
-            
-            // Check if click is on backdrop
-            if (e.target && e.target.id === 'socialListModalBackdrop') {
-                closeSocialListModal();
-                return;
+            });
+        }
+        
+        // Backdrop click handler
+        const backdrop = document.getElementById('socialListModalBackdrop');
+        if (backdrop) {
+            backdrop.addEventListener('click', function(e) {
+                if (e.target === backdrop) {
+                    closeSocialListModal();
+                }
+            });
+        }
+        
+        // ESC key handler
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('socialListModal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    closeSocialListModal();
+                }
             }
         });
-    }
+    }   
     
     // Setup handlers when DOM is ready
     if (document.readyState === 'loading') {

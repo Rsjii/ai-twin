@@ -340,8 +340,8 @@
         }
     });
     
-    // Add click handlers for social list cards (like analytics page)
-    document.addEventListener('DOMContentLoaded', () => {
+// Add click handlers for social list cards
+document.addEventListener('DOMContentLoaded', () => {
         const cards = [
             { element: document.getElementById('twinManageChattersCard'), type: 'chatters' },
             { element: document.getElementById('twinManageLikersCard'), type: 'likers' },
@@ -353,15 +353,15 @@
                 card.element.addEventListener('click', function() {
                     const twinId = this.getAttribute('data-twin-id');
                     const listType = this.getAttribute('data-list-type');
+                    // ✅ Show view details button for twin/manage
                     if (twinId && typeof window.showSocialList === 'function') {
-                        window.showSocialList(twinId, listType, false);
+                        window.showSocialList(twinId, listType, true); // ✅ Changed to true
                     }
                 });
             }
         });
     });
-    </script>    
-
+</script>
     <!--Footer-->
     <%- include('footer') %>
 

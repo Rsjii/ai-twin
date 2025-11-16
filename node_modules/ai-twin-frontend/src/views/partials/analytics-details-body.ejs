@@ -53,52 +53,45 @@
             <div id="dataList" class="divide-y divide-gray-200 dark:divide-gray-700">
                 <% if (data && data.length > 0) { %>
                     <% data.forEach((item, index) => { %>
-                        <div class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer group user-profile-item"
-                        data-user-handle="<%= item.handle || item.id %>">
-                       <div class="flex items-center justify-between">                                             
-                                <div class="flex items-center space-x-4">
-                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                                        <% if (item.profileImage) { %>
-                                            <img src="<%= item.profileImage %>" alt="<%= item.name || 'User' %>" class="w-12 h-12 rounded-full object-cover">
-                                        <% } else { %>
-                                            <span><%= (item.name || item.handle || 'U').charAt(0).toUpperCase() %></span>
-                                        <% } %>
+                        <div class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer group"
+                             data-user-handle="<%= item.handle %>">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-4 flex-1">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                        <%= item.profileImage ? `<img src="${item.profileImage}" class="w-full h-full rounded-full object-cover" alt="${item.name}">` : (item.name ? item.name.charAt(0).toUpperCase() : 'U') %>
                                     </div>
-                                    <div>
-                                        <p class="font-semibold text-gray-900 dark:text-white"><%= item.name || 'Anonymous' %></p>
-                                        <% if (item.handle) { %>
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">@<%= item.handle %></p>
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="font-semibold text-gray-900 dark:text-white truncate">
+                                            <%= item.name || item.handle %>
+                                        </h3>
+                                        <p class="text-sm text-gray-600 dark:text-gray-300 truncate">
+                                            @<%= item.handle %>
+                                        </p>
+                                        <% if (type === 'chatters') { %>
+                                        <div class="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                            <span>📊 <strong><%= item.chatCount || 0 %></strong> chats</span>
+                                            <% if (item.messageCount) { %>
+                                            <span>💬 <strong><%= item.messageCount %></strong> messages</span>
+                                            <% } %>
+                                            <% if (item.firstChatAt) { %>
+                                            <span>📅 First: <%= new Date(item.firstChatAt).toLocaleDateString() %></span>
+                                            <% } %>
+                                        </div>
+                                        <% } else if (type === 'likers') { %>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            Liked on <%= new Date(item.likedAt).toLocaleDateString() %>
+                                        </p>
+                                        <% } else if (type === 'followers') { %>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            Followed on <%= new Date(item.followedAt).toLocaleDateString() %>
+                                        </p>
                                         <% } %>
                                     </div>
                                 </div>
-                                <div class="text-right">
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                                        <%= analyticsTypeValue === 'chatters' && item.chatCount ? item.chatCount + ' chats' : '' %>
-                                    </p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                                        <% 
-                                        const dateValue = item.likedAt || item.followedAt || item.lastChatAt;
-                                        let formattedDate = '';
-                                        if (dateValue) {
-                                          const date = new Date(dateValue);
-                                          const now = new Date();
-                                          const diff = now - date;
-                                          
-                                          if (diff < 60000) {
-                                            formattedDate = 'Just now';
-                                          } else if (diff < 3600000) {
-                                            formattedDate = Math.floor(diff / 60000) + 'm ago';
-                                          } else if (diff < 86400000) {
-                                            formattedDate = Math.floor(diff / 3600000) + 'h ago';
-                                          } else if (diff < 604800000) {
-                                            formattedDate = Math.floor(diff / 86400000) + 'd ago';
-                                          } else {
-                                            formattedDate = date.toLocaleDateString();
-                                          }
-                                        }
-                                      %>
-                                      <%= formattedDate %>                                            
-                                    </p>
+                                <div class="flex items-center space-x-2">
+                                    <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium">
+                                        View Profile
+                                    </button>
                                 </div>
                             </div>
                         </div>

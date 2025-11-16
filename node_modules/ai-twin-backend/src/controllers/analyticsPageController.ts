@@ -261,9 +261,12 @@ export async function getAnalyticsDetails(req: any, res: Response) {
       u.handle,
       u."profileImage",
       MAX(c."createdAt") as "lastChatAt",
-      COUNT(DISTINCT c.id) as "chatCount"
+      MIN(c."createdAt") as "firstChatAt",
+      COUNT(DISTINCT c.id) as "chatCount",
+      COUNT(DISTINCT m.id) as "messageCount"
      FROM "Chat" c
      JOIN "User" u ON c."userId" = u.id
+     LEFT JOIN "Message" m ON c.id = m."chatId"
      WHERE c."twinId" = ANY($1::text[])
      ${search ? `AND (u.name ILIKE $2 OR u.handle ILIKE $2)` : ''}
      GROUP BY u.id, u.name, u.handle, u."profileImage"
