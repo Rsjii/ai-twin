@@ -1030,7 +1030,7 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
     const { twinId } = req.params;
     const userId = req.user?.id;
     const page = parseInt(req.query.page as string) || 1;
-    const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+    const limit = Math.min(parseInt(req.query.limit as string) || 5, 50);
     const offset = (page - 1) * limit;
 
     if (!userId) {

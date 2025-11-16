@@ -7,7 +7,7 @@ class Pagination {
     this.currentPage = options.currentPage || 1;
     this.totalPages = options.totalPages || 1;
     this.totalItems = options.totalItems || 0;
-    this.itemsPerPage = options.itemsPerPage || 10;
+    this.itemsPerPage = options.itemsPerPage || 5;
     this.onPageChange = options.onPageChange || (() => {});
     this.container = options.container || null;
     this.maxVisiblePages = options.maxVisiblePages || 7;

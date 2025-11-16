@@ -53,51 +53,39 @@
         </div>
 
         <!-- Pagination -->
-        <div id="paginationContainer" class="mt-8"></div>
+        <%- include('shared/pagination', {
+            containerId: 'paginationContainer',
+            loadFunction: 'loadPublicChatHistory',
+            scrollToTop: true,
+            className: 'mt-8'
+        }) %>
     </main>
 
     <%- include('footer') %>
 
-    <!-- Pagination Script -->
-    <script src="/utils/pagination.js"></script>
-    
     <script>
         const twinId = '<%= twinId %>';
         let currentPage = 1;
-        let pagination = null;
 
         // Load public chat history
         async function loadPublicChatHistory(page = 1) {
             try {
-                const response = await fetch(`/api/public-chat/twin/${twinId}/all-chats?page=${page}&limit=20`, {
+                const response = await fetch(`/api/public-chat/twin/${twinId}/all-chats?page=${page}&limit=5`, {
                     credentials: 'include'
                 });
                 
                 const data = await response.json();
+                console.log('Data:', data);
+                console.log('Pagination data:', data.pagination); // ✅ Debug log
+                console.log('Total pages:', data.pagination?.totalPages);
+                console.log('Total items:', data.pagination?.totalItems);
 
                 if (data.success) {
                     displayChats(data.chats);
                     
-                    // Initialize or update pagination
-                    if (!pagination) {
-                        pagination = new Pagination({
-                            container: document.getElementById('paginationContainer'),
-                            currentPage: data.pagination.currentPage,
-                            totalPages: data.pagination.totalPages,
-                            totalItems: data.pagination.totalItems,
-                            itemsPerPage: data.pagination.itemsPerPage,
-                            onPageChange: (page) => {
-                                currentPage = page;
-                                loadPublicChatHistory(page);
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }
-                        });
-                    } else {
-                        pagination.update({
-                            currentPage: data.pagination.currentPage,
-                            totalPages: data.pagination.totalPages,
-                            totalItems: data.pagination.totalItems
-                        });
+                    // ✅ Initialize pagination using shared component helper
+                    if (typeof window.initPaginationContainerPagination === 'function') {
+                        window.initPaginationContainerPagination(data);
                     }
                 } else {
                     showError(data.error || 'Failed to load public chats');
