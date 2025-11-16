@@ -35,6 +35,7 @@ export async function getAnalytics(req: any, res: Response) {
     res.render('analytics', {
       title: 'Analytics Dashboard - AI Twin',
       user: user,
+      pathname: '/analytics',
       userTwinId: userTwinId,
       csrfToken: res.locals['csrfToken']
     });

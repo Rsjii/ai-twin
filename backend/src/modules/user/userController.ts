@@ -18,141 +18,179 @@ export const exportUserData = async (req: AuthenticatedRequest, res: Response) =
 
     const userId = req.user.id;
 
-    // Gather all user data
+    // New structured format
     const userData = {
-      exportDate: new Date().toISOString(),
-      user: {},
+      exportInfo: {
+        exportDate: new Date().toISOString(),
+        formatVersion: "2.0",
+        userId: userId
+      },
+      
+      // 1. Profile Information
+      profile: {
+        basicInfo: {},
+        accountInfo: {}
+      },
+      
+      // 2. AI Twins
       twins: [],
-      chats: [],
-      publicChats: [],
-      likes: { given: [], received: [] },
-      follows: { given: [], received: [] },
-      events: [],
-      referrals: { code: null, referrals: [] }
+      
+      // 3. Activity Summary
+      activitySummary: {
+        totalChats: 0,
+        totalPublicChats: 0,
+        totalLikesGiven: 0,
+        totalLikesReceived: 0,
+        totalFollowsGiven: 0,
+        totalFollowsReceived: 0
+      },
+      
+      // 4. Recent Activity (last 30 days)
+      recentActivity: {
+        chats: [],
+        publicChats: [],
+        likes: { given: [], received: [] },
+        follows: { given: [], received: [] }
+      },
+      
+      // 5. Preferences (if any)
+      preferences: {}
     };
 
-    // 1. User profile data
+    // 1. User profile data (only essential)
     const userResult = await db.query(
-      'SELECT id, email, handle, name, dob, phone, bio, "referralCode", "createdAt" FROM "User" WHERE id = $1',
+      'SELECT email, handle, name, bio, "createdAt" FROM "User" WHERE id = $1',
       [userId]
     );
     if (userResult.rows[0]) {
-      userData.user = userResult.rows[0];
+      userData.profile.basicInfo = {
+        email: userResult.rows[0].email,
+        handle: userResult.rows[0].handle,
+        name: userResult.rows[0].name,
+        bio: userResult.rows[0].bio
+      };
+      userData.profile.accountInfo = {
+        createdAt: userResult.rows[0].createdAt,
+        referralCode: userResult.rows[0].referralCode || null
+      };
     }
 
-    // 2. Twin data
+    // 2. Twin data (remove sensitive/internal data)
     const twinsResult = await db.query(
-      `SELECT id, "styleVector", "sampleReply", "isPublic", "publicHandle", bio, 
+      `SELECT id, "isPublic", "publicHandle", bio, 
               "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt"
        FROM "Twin" WHERE "userId" = $1`,
       [userId]
     );
-    userData.twins = twinsResult.rows;
+    userData.twins = twinsResult.rows.map(twin => ({
+      id: twin.id,
+      publicHandle: twin.publicHandle,
+      isPublic: twin.isPublic,
+      bio: twin.bio,
+      profileImage: twin.profileImage,
+      verified: twin.verified,
+      stats: {
+        likes: twin.likeCount || 0,
+        followers: twin.followCount || 0,
+        chats: twin.chatCount || 0
+      },
+      createdAt: twin.createdAt
+      // Removed: styleVector, sampleReply (internal data)
+    }));
 
-    // 3. Private chats with messages
-    const chatsResult = await db.query(
-      `SELECT c.id, c."twinId", c."createdAt",
-              (SELECT json_agg(
-                json_build_object(
-                  'id', m.id,
-                  'sender', m.sender,
-                  'content', m.content,
-                  'approved', m.approved,
-                  'createdAt', m."createdAt"
-                ) ORDER BY m."createdAt"
-              )
-              FROM "Message" m WHERE m."chatId" = c.id) as messages
-       FROM "Chat" c WHERE c."userId" = $1`,
+    // 3. Activity Summary
+    const [chatsCount, publicChatsCount, likesGivenCount, likesReceivedCount, 
+           followsGivenCount, followsReceivedCount] = await Promise.all([
+      db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [userId]),
+      db.query('SELECT COUNT(*) as count FROM "PublicChat" WHERE "userId" = $1', [userId]),
+      db.query('SELECT COUNT(*) as count FROM "TwinLike" WHERE "userId" = $1', [userId]),
+      db.query(`SELECT COUNT(*) as count FROM "TwinLike" tl 
+                JOIN "Twin" t ON tl."twinId" = t.id WHERE t."userId" = $1`, [userId]),
+      db.query('SELECT COUNT(*) as count FROM "TwinFollow" WHERE "userId" = $1', [userId]),
+      db.query(`SELECT COUNT(*) as count FROM "TwinFollow" tf 
+                JOIN "Twin" t ON tf."twinId" = t.id WHERE t."userId" = $1`, [userId])
+    ]);
+    
+    userData.activitySummary = {
+      totalChats: parseInt(chatsCount.rows[0]?.count || '0', 10),
+      totalPublicChats: parseInt(publicChatsCount.rows[0]?.count || '0', 10),
+      totalLikesGiven: parseInt(likesGivenCount.rows[0]?.count || '0', 10),
+      totalLikesReceived: parseInt(likesReceivedCount.rows[0]?.count || '0', 10),
+      totalFollowsGiven: parseInt(followsGivenCount.rows[0]?.count || '0', 10),
+      totalFollowsReceived: parseInt(followsReceivedCount.rows[0]?.count || '0', 10)
+    };
+
+    // 4. Recent Activity (last 30 days only)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    // Recent chats (last 10)
+    const recentChatsResult = await db.query(
+      `SELECT c.id, c."createdAt", 
+              (SELECT COUNT(*) FROM "Message" m WHERE m."chatId" = c.id) as messageCount
+       FROM "Chat" c WHERE c."userId" = $1 
+       ORDER BY c."createdAt" DESC LIMIT 10`,
       [userId]
     );
-    userData.chats = chatsResult.rows;
-
-    // 4. Public chats with messages
-    const publicChatsResult = await db.query(
-      `SELECT pc.id, pc."twinId", pc."visitorId", pc."messageCount", pc."createdAt", pc."lastActivity",
-              (SELECT json_agg(
-                json_build_object(
-                  'id', pm.id,
-                  'sender', pm.sender,
-                  'content', pm.content,
-                  'approved', pm.approved,
-                  'createdAt', pm."createdAt"
-                ) ORDER BY pm."createdAt"
-              )
-              FROM "PublicMessage" pm WHERE pm."chatId" = pc.id) as messages
-       FROM "PublicChat" pc 
-       WHERE pc."userId" = $1 OR pc."twinId" IN (SELECT id FROM "Twin" WHERE "userId" = $1)`,
+    userData.recentActivity.chats = recentChatsResult.rows;
+    
+    // Recent public chats (last 10)
+    const recentPublicChatsResult = await db.query(
+      `SELECT pc.id, pc."createdAt", pc."messageCount"
+       FROM "PublicChat" pc WHERE pc."userId" = $1 
+       ORDER BY pc."createdAt" DESC LIMIT 10`,
       [userId]
     );
-    userData.publicChats = publicChatsResult.rows;
-
-    // 5. Likes given
-    const likesGivenResult = await db.query(
-      `SELECT tl.id, tl."twinId", tl."createdAt",
-              t."publicHandle" as twinHandle
+    userData.recentActivity.publicChats = recentPublicChatsResult.rows;
+    
+    // Recent likes given (last 20)
+    const recentLikesGivenResult = await db.query(
+      `SELECT tl.id, tl."twinId", tl."createdAt", t."publicHandle" as twinHandle
        FROM "TwinLike" tl
        JOIN "Twin" t ON tl."twinId" = t.id
-       WHERE tl."userId" = $1`,
+       WHERE tl."userId" = $1
+       ORDER BY tl."createdAt" DESC LIMIT 20`,
       [userId]
     );
-    userData.likes.given = likesGivenResult.rows;
-
-    // 6. Likes received (on user's twins)
-    const likesReceivedResult = await db.query(
+    userData.recentActivity.likes.given = recentLikesGivenResult.rows;
+    
+    // Recent likes received (last 20)
+    const recentLikesReceivedResult = await db.query(
       `SELECT tl.id, tl."twinId", tl."userId", tl."createdAt",
-              u.name as userName, u.handle as userHandle
+              u.handle as userHandle, u.name as userName
        FROM "TwinLike" tl
        JOIN "Twin" t ON tl."twinId" = t.id
        JOIN "User" u ON tl."userId" = u.id
-       WHERE t."userId" = $1`,
+       WHERE t."userId" = $1
+       ORDER BY tl."createdAt" DESC LIMIT 20`,
       [userId]
     );
-    userData.likes.received = likesReceivedResult.rows;
-
-    // 7. Follows given
-    const followsGivenResult = await db.query(
-      `SELECT tf.id, tf."twinId", tf."createdAt",
-              t."publicHandle" as twinHandle
+    userData.recentActivity.likes.received = recentLikesReceivedResult.rows;
+    
+    // Recent follows given (last 20)
+    const recentFollowsGivenResult = await db.query(
+      `SELECT tf.id, tf."twinId", tf."createdAt", t."publicHandle" as twinHandle
        FROM "TwinFollow" tf
        JOIN "Twin" t ON tf."twinId" = t.id
-       WHERE tf."userId" = $1`,
+       WHERE tf."userId" = $1
+       ORDER BY tf."createdAt" DESC LIMIT 20`,
       [userId]
     );
-    userData.follows.given = followsGivenResult.rows;
-
-    // 8. Follows received
-    const followsReceivedResult = await db.query(
+    userData.recentActivity.follows.given = recentFollowsGivenResult.rows;
+    
+    // Recent follows received (last 20)
+    const recentFollowsReceivedResult = await db.query(
       `SELECT tf.id, tf."twinId", tf."userId", tf."createdAt",
-              u.name as userName, u.handle as userHandle
+              u.handle as userHandle, u.name as userName
        FROM "TwinFollow" tf
        JOIN "Twin" t ON tf."twinId" = t.id
        JOIN "User" u ON tf."userId" = u.id
-       WHERE t."userId" = $1`,
+       WHERE t."userId" = $1
+       ORDER BY tf."createdAt" DESC LIMIT 20`,
       [userId]
     );
-    userData.follows.received = followsReceivedResult.rows;
+    userData.recentActivity.follows.received = recentFollowsReceivedResult.rows;
 
-    // 9. Events/Activity log
-    const eventsResult = await db.query(
-      `SELECT id, type, meta, "createdAt"
-       FROM "Event" WHERE "userId" = $1
-       ORDER BY "createdAt" DESC
-       LIMIT 1000`,
-      [userId]
-    );
-    userData.events = eventsResult.rows;
-
-    // 10. Referral data
-    if (userData.user.referralCode) {
-      const referralsResult = await db.query(
-        `SELECT id, email, handle, name, "createdAt"
-         FROM "User" WHERE "referralCode" = $1 AND id != $2`,
-        [userData.user.referralCode, userId]
-      );
-      userData.referrals.referrals = referralsResult.rows;
-    }
-
-    // Set response headers for JSON download
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="user-data-${userId}-${Date.now()}.json"`);
     

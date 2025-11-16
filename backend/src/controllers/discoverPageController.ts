@@ -34,6 +34,7 @@ export async function getDiscover(req: any, res: Response) {
     res.render('discover', {
       title: 'Discover AI Twins - Twinverse',
       user: user || null,
+      pathname: '/discover',
       hasTwins: hasTwins,
       twinId: twinId,
       csrfToken: res.locals['csrfToken']

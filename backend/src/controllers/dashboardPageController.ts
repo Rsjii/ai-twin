@@ -118,6 +118,7 @@ export async function getDashboard(req: any, res: Response) {
     res.render('dashboard', {
       title: 'Dashboard - AI Twin',
       user: user,
+      pathname: '/dashboard',
       hasTwins: hasTwins,
       twin: twin, // Single twin instead of array
       twinId: twinId, // Use safe twinId variable

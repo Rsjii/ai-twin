@@ -229,6 +229,7 @@ export async function getChatEnhanced(req: any, res: Response) {
     res.render('chat-enhanced', { 
       title: 'Enhanced Chat - AI Twin',
       user: user,
+      pathname: '/chat-enhanced',
       chatId: chat.id,
       twinId: latestTwin.id,
       csrfToken: res.locals['csrfToken']

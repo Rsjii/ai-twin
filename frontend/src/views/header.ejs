@@ -57,19 +57,32 @@
                 </div>
 
                 <!-- Main Navigation Links (ONLY for authenticated users) -->
-                <% if (isAuthenticated) { %>
-                    <nav class="hidden md:flex items-center space-x-1">
-                        <a href="/dashboard" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-4 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 <%= typeof title !== 'undefined' && title.includes('Dashboard') ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
-                            Dashboard
-                        </a>
-                        <a href="/discover" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-4 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 <%= typeof title !== 'undefined' && title.includes('Discover') ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
-                            Discover
-                        </a>
-                        <a href="/chat-enhanced" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-4 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 <%= typeof title !== 'undefined' && (title.includes('Chat') || title.includes('chat')) ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
-                            Chat
-                        </a>
-                    </nav>
-                <% } %>
+                <%
+                // Get current pathname
+                const currentPath = typeof pathname !== 'undefined' ? pathname : '';
+                
+                // Exact path matching
+                const isDashboard = currentPath === '/dashboard';
+                const isDiscover = currentPath === '/discover';
+                const isChat = currentPath === '/chat-enhanced' || currentPath.startsWith('/chat/');
+              %>
+              
+              <% if (isAuthenticated) { %>
+                  <nav class="hidden md:flex items-center space-x-1">
+                      <a href="/dashboard" 
+                         class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-4 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 <%= isDashboard ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
+                          Dashboard
+                      </a>
+                      <a href="/discover" 
+                         class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-4 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 <%= isDiscover ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
+                          Discover
+                      </a>
+                      <a href="/chat-enhanced" 
+                         class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-4 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 <%= isChat ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
+                          Chat
+                      </a>
+                  </nav>
+              <% } %>                
             </div>
 
             <!-- RIGHT SECTION: Theme Toggle + User Menu -->
@@ -373,5 +386,28 @@
                 logout();
             });
         }
+    });
+</script>
+<script>
+    // Fallback: If pathname not set, use JavaScript
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('nav a[href]');
+        
+        navLinks.forEach(link => {
+            const linkPath = new URL(link.href).pathname;
+            const isActive = 
+                (linkPath === '/dashboard' && currentPath === '/dashboard') ||
+                (linkPath === '/discover' && currentPath === '/discover') ||
+                (linkPath === '/chat-enhanced' && (currentPath === '/chat-enhanced' || currentPath.startsWith('/chat/')));
+            
+            if (isActive) {
+                link.classList.add('text-primary', 'dark:text-blue-400', 'bg-white/50', 'dark:bg-gray-800');
+                link.classList.remove('text-gray-600', 'dark:text-gray-300');
+            } else {
+                link.classList.remove('text-primary', 'dark:text-blue-400', 'bg-white/50', 'dark:bg-gray-800');
+                link.classList.add('text-gray-600', 'dark:text-gray-300');
+            }
+        });
     });
 </script>

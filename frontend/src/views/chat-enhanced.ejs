@@ -1005,6 +1005,12 @@ function updateSidebarImmediately(aiResponse, userMessage) {
 }
 
 async function loadFeedbackStatus(chatId) {
+    // ✅ FIX: Skip API call for draft chats
+    if (chatId && chatId.startsWith('draft_')) {
+        console.log('Skipping feedback status for draft chat:', chatId);
+        return {};
+    }
+    
     try {
         const response = await fetch(`/api/enhanced-chat/${chatId}/feedback-status`, {
             headers: {
@@ -1027,6 +1033,17 @@ async function loadFeedbackStatus(chatId) {
 async function loadCurrentChatMessages() {
     try {
         console.log('Loading chat history for chatId:', currentChatId);
+        
+        // ✅ FIX: Check if draft chat - skip database call
+        if (currentChatId && currentChatId.startsWith('draft_')) {
+            console.log('Draft chat detected, showing empty state');
+            const messagesContainer = document.getElementById('chatMessages');
+            if (messagesContainer) messagesContainer.innerHTML = '';
+            
+            // Show welcome message for draft
+            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            return;
+        }
         
         // Clear existing messages
         const messagesContainer = document.getElementById('chatMessages');
@@ -1117,6 +1134,17 @@ async function loadCurrentChatMessages() {
 async function loadChatMessages() {
     try {
         console.log('Loading messages for chatId:', currentChatId);
+        
+        // ✅ FIX: Check if draft chat - skip database call
+        if (currentChatId && currentChatId.startsWith('draft_')) {
+            console.log('Draft chat detected, showing empty state');
+            const messagesContainer = document.getElementById('chatMessages');
+            if (messagesContainer) messagesContainer.innerHTML = '';
+            
+            // Show welcome message for draft
+            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            return;
+        }
         
         // Clear existing messages
         const messagesContainer = document.getElementById('chatMessages');
@@ -1314,10 +1342,21 @@ async function switchToChat(chatId) {
         // Update current chat ID
         currentChatId = chatId;
         
-        // Update URL without page reload
-        window.history.pushState({}, '', `/chat-enhanced?chatId=${chatId}`);
+        // Update URL without page reload (only if not draft)
+        if (!chatId.startsWith('draft_')) {
+            window.history.pushState({}, '', `/chat-enhanced?chatId=${chatId}`);
+        }
         
-        // Load chat messages
+        // ✅ FIX: For draft chats, just show empty state
+        if (chatId && chatId.startsWith('draft_')) {
+            console.log('Switching to draft chat, showing empty state');
+            const messagesContainer = document.getElementById('chatMessages');
+            if (messagesContainer) messagesContainer.innerHTML = '';
+            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            return;
+        }
+        
+        // Load chat messages (only for real chats)
         await loadChatMessages();
 
         await loadChatHistory();
@@ -1329,6 +1368,7 @@ async function switchToChat(chatId) {
         showNotification('Error switching to chat', 'error');
     }
 }
+
 
 // Delete chat function
 async function deleteChat(chatId) {
@@ -1505,28 +1545,77 @@ async function editChatTitle(chatId) {
 // Create new chat
 async function createNewChat() {
     try {
-        const response = await fetch('/api/chats/new', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': '<%= csrfToken %>',
-                credentials: 'include'
-            },
-            body: JSON.stringify({ twinId: getCurrentTwinId() })
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            // Redirect to new chat
-            window.location.href = data.redirect;
+        // Check if draft already exists
+        const draftData = sessionStorage.getItem('draftEnhancedChat');
+        if (draftData) {
+            const draft = JSON.parse(draftData);
+            // Switch to existing draft
+            switchToChat(draft.chatId);
+            return;
         }
+        
+        // Create draft chat (not in DB)
+        const draftChatId = `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const twinId = getCurrentTwinId();
+        
+        sessionStorage.setItem('draftEnhancedChat', JSON.stringify({
+            chatId: draftChatId,
+            twinId: twinId,
+            createdAt: Date.now()
+        }));
+        
+        // Add draft to sidebar immediately
+        addDraftChatToSidebar(draftChatId, 'New Chat');
+        
+        // Set as current chat
+        currentChatId = draftChatId;
+        
+        // Clear messages area
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) chatMessages.innerHTML = '';
+        
+        // Show empty state
+        const emptyState = document.getElementById('emptyChatState');
+        if (emptyState) emptyState.classList.remove('hidden');
+        
+        // Disable "New Chat" button
+        const newChatBtn = document.getElementById('newChatBtn');
+        if (newChatBtn) newChatBtn.disabled = true;
+        
+        console.log('Draft chat created:', draftChatId);
     } catch (error) {
-        console.error('Error creating new chat:', error);
+        console.error('Error creating draft chat:', error);
     }
 }
 
+function addDraftChatToSidebar(chatId, title) {
+    const sidebar = document.getElementById('chatHistoryList');
+    if (!sidebar) return;
+    
+    const draftItem = document.createElement('div');
+    draftItem.className = 'chat-item draft';
+    draftItem.dataset.chatId = chatId;
+    draftItem.innerHTML = `
+        <div class="flex items-center space-x-2">
+            <span class="text-gray-400">💬</span>
+            <span class="text-sm text-gray-600 dark:text-gray-300">${title}</span>
+        </div>
+    `;
+    
+    // Add click handler
+    draftItem.addEventListener('click', () => {
+        switchToChat(chatId);
+    });
+    
+    // Insert at top
+    sidebar.insertBefore(draftItem, sidebar.firstChild);
+}
 
-//Initialize chat
+function removeDraftFromSidebar(chatId) {
+    const draftItem = document.querySelector(`[data-chat-id="${chatId}"]`);
+    if (draftItem) draftItem.remove();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // ✅ PHASE 2: Check for redirect message in URL (run FIRST)
     const urlParams = new URLSearchParams(window.location.search);
@@ -1675,9 +1764,66 @@ if (messageForm) {
             
             // ✅ FIX: Create typing indicator
             typingId = addMessageToChat('ai', 'Thinking...', true);
+
+            // ✅ Check if draft chat, convert to actual chat first
+            let actualChatId = currentChatId;
+            if (currentChatId && currentChatId.startsWith('draft_')) {
+                try {
+                    const draftData = sessionStorage.getItem('draftEnhancedChat');
+                    if (draftData) {
+                        const draft = JSON.parse(draftData);
+                        const response = await fetch('/api/chats/new', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': '<%= csrfToken %>'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({ twinId: draft.twinId })
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error || 'Failed to create chat');
+                        }
+                        
+                        const data = await response.json();
+                        
+                        // ✅ FIX: Use data.chat.id (backend returns chat object, not chatId directly)
+                        if (data.success && data.chat && data.chat.id) {
+                            actualChatId = data.chat.id;  // ✅ Use data.chat.id instead of data.chatId
+                            currentChatId = actualChatId;
+                            
+                            // Remove draft from sidebar
+                            removeDraftFromSidebar(draft.chatId);
+                            
+                            // Reload chat history to show actual chat
+                            await loadChatHistory();
+                            
+                            // Clear draft
+                            sessionStorage.removeItem('draftEnhancedChat');
+                            
+                            // Enable "New Chat" button
+                            const newChatBtn = document.getElementById('newChatBtn');
+                            if (newChatBtn) newChatBtn.disabled = false;
+                        } else {
+                            console.error('Failed to create chat:', data);
+                            showNotification('Failed to create chat', 'error');
+                            return;
+                        }
+                    } else {
+                        showNotification('Draft data not found', 'error');
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error creating chat from draft:', error);
+                    showNotification(error.message || 'Error creating chat', 'error');
+                    return;
+                }
+            }
             
             // FIRST: Save user message to database
-            await fetch(`/api/chat/${currentChatId}/send`, {
+            await fetch(`/api/chat/${actualChatId}/send`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1696,7 +1842,7 @@ if (messageForm) {
             console.log('📡 Sending request to:', `/api/enhanced-chat/${currentChatId}/enhanced-reply`);
             console.log('Request body:', { message, strictStyle });
             
-            const response = await fetch(`/api/enhanced-chat/${currentChatId}/enhanced-reply`, {
+            const response = await fetch(`/api/enhanced-chat/${actualChatId}/enhanced-reply`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
