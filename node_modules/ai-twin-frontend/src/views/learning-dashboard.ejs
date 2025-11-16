@@ -471,7 +471,7 @@
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Learning Dashboard</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Learning Dashboard</h1>
             <p class="text-gray-600 dark:text-gray-300">Track how your AI twin is learning and improving over time</p>
         </div>
 
@@ -507,31 +507,31 @@
   </div>
   
   <!-- Quick Navigation -->
-  <div class="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
+  <div class="mb-6 sm:mb-8 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-4 sm:p-6 border border-blue-200 dark:border-blue-800">
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Navigation</h3>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 quick-nav-grid">
-      <a href="/twin/<%= twinId %>/ai-edit" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02]">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 quick-nav-grid">
+      <a href="/twin/<%= twinId %>/ai-edit" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02] min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="AI Edit">
         <div class="text-center">
           <div class="text-2xl mb-2">🤖</div>
           <h4 class="text-sm font-medium text-gray-900 dark:text-white">AI Edit</h4>
           <p class="text-xs text-gray-600 dark:text-gray-300">Edit system prompt & persona</p>
         </div>
       </a>
-      <a href="/twin/<%= twinId %>/style-customize" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02]">
+      <a href="/twin/<%= twinId %>/style-customize" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02] min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="Style Customize">
         <div class="text-center">
           <div class="text-2xl mb-2">🎨</div>
           <h4 class="text-sm font-medium text-gray-900 dark:text-white">Style Customize</h4>
           <p class="text-xs text-gray-600 dark:text-gray-300">Customize communication style</p>
         </div>
       </a>
-      <a href="/memory-management?twinId=<%= twinId %>" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02]">
+      <a href="/memory-management?twinId=<%= twinId %>" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02] min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="Memory Management">
         <div class="text-center">
           <div class="text-2xl mb-2">🧠</div>
           <h4 class="text-sm font-medium text-gray-900 dark:text-white">Memory Management</h4>
           <p class="text-xs text-gray-600 dark:text-gray-300">Manage twin memories</p>
         </div>
       </a>
-      <a href="/analytics" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02]">
+      <a href="/analytics" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02] min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="Analytics">
         <div class="text-center">
           <div class="text-2xl mb-2">📊</div>
           <h4 class="text-sm font-medium text-gray-900 dark:text-white">Analytics</h4>
@@ -542,28 +542,28 @@
   </div>
 
         <!-- Learning Progress Overview -->
-        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 mb-8 section">
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 mb-6 sm:mb-8 section">
             <h2 class="text-xl font-semibold mb-4 dark:text-white">Learning Progress</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 learning-progress-grid">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 learning-progress-grid">
                 <div class="text-center learning-progress-item">
-                    <div class="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2" id="totalInteractions">0</div>
+                    <div class="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2" id="totalInteractions">0</div>
                     <div class="text-sm text-gray-600 dark:text-gray-300">Total Interactions</div>
                 </div>
                 <div class="text-center learning-progress-item">
-                    <div class="text-3xl font-bold text-green-600 dark:text-green-400 mb-2" id="learningScore">0%</div>
+                    <div class="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400 mb-2" id="learningScore">0%</div>
                     <div class="text-sm text-gray-600 dark:text-gray-300">Learning Score</div>
                 </div>
                 <div class="text-center learning-progress-item">
-                    <div class="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2" id="styleAccuracy">0%</div>
+                    <div class="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2" id="styleAccuracy">0%</div>
                     <div class="text-sm text-gray-600 dark:text-gray-300">Style Accuracy</div>
                 </div>
             </div>
         </div>
 
         <!-- Learning Analytics -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 analytics-grid">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 mb-6 sm:mb-8 analytics-grid">
             <!-- Style Learning Chart -->
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 section">
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 section">
                 <h3 class="text-lg font-semibold mb-4 dark:text-white">Style Learning Progress</h3>
                 <div class="h-64 analytics-chart">
                     <canvas id="styleChart"></canvas>
@@ -571,7 +571,7 @@
             </div>
 
             <!-- Recent Learning Events -->
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 section">
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 section">
                 <h3 class="text-lg font-semibold mb-4 dark:text-white">Recent Learning Events</h3>
                 <div id="learningEvents" class="space-y-3 list-container scrollable">
                     <p class="text-gray-500 dark:text-gray-400">Loading learning events...</p>
@@ -580,7 +580,7 @@
         </div>
 
         <!-- Chat History Section -->
-<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 mb-8 section">
+<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 mb-6 sm:mb-8 section">
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Previous Chats</h3>
     <div class="mb-4">
       <p class="text-sm text-gray-600 dark:text-gray-300">Select chats to convert messages into training examples</p>
@@ -602,7 +602,7 @@
   </div>
 
         <!-- Learning Settings -->
-        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 mb-8 section">
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 mb-6 sm:mb-8 section">
             <h2 class="text-xl font-semibold mb-4 dark:text-white">Learning Settings</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 form-grid">
                 <div>

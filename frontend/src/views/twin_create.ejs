@@ -68,7 +68,7 @@
                     <% if (typeof user !== 'undefined' && user) { %>
                         <div class="flex items-center space-x-3">
                             <% if (user.profileImage) { %>
-                                <img src="<%= user.profileImage %>" alt="Profile" class="w-10 h-10 rounded-full object-cover shadow-lg">
+                                <img src="<%= user.profileImage %>" alt="Profile" class="w-10 h-10 rounded-full object-cover shadow-lg" loading="lazy">
                             <% } else { %>
                                 <div class="w-10 h-10 bg-gradient-to-r from-primary via-accent to-purple-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
                                     <%= (user.handle || user.email).charAt(0).toUpperCase() %>
@@ -87,57 +87,57 @@
 
     <div class="px-4 py-8 sm:px-0">
     <div class="max-w-4xl mx-auto">
-            <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 p-8">
-                <div class="mb-8">
-                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Create Your AI Twin</h1>
-                    <p class="text-gray-600">Complete our enhanced onboarding to create an AI version of yourself with comprehensive personality analysis and communication style.</p>
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 lg:p-8">
+                <div class="mb-6 sm:mb-8">
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Create Your AI Twin</h1>
+                    <p class="text-gray-600 dark:text-gray-300">Complete our enhanced onboarding to create an AI version of yourself with comprehensive personality analysis and communication style.</p>
                 </div>
 
                 <!-- Enhanced Onboarding Steps -->
-                <div class="mb-8">
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="mb-6 sm:mb-8">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-center">
                         <div class="flex flex-col items-center">
                             <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold mb-2">1</div>
-                            <span class="text-sm font-medium text-gray-700">Basic Info</span>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Basic Info</span>
                         </div>
                         <div class="flex flex-col items-center">
                             <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold mb-2">2</div>
-                            <span class="text-sm font-medium text-gray-700">Personality</span>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Personality</span>
                         </div>
                         <div class="flex flex-col items-center">
                             <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold mb-2">3</div>
-                            <span class="text-sm font-medium text-gray-700">Tone & Style</span>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Tone & Style</span>
                         </div>
                         <div class="flex flex-col items-center">
                             <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold mb-2">4</div>
-                            <span class="text-sm font-medium text-gray-700">Create Twin</span>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Create Twin</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Enhanced Onboarding Description -->
-                <div class="bg-white rounded-lg shadow-lg p-8">
-                    <div class="text-center mb-8">
-                        <h2 class="text-2xl font-bold text-gray-900 mb-4">Enhanced AI Twin Creation</h2>
-                        <p class="text-gray-600 mb-6">Our new onboarding process creates a more accurate and personalized AI twin by analyzing your personality, communication style, and preferences.</p>
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-4 sm:p-6 lg:p-8">
+                    <div class="text-center mb-6 sm:mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Enhanced AI Twin Creation</h2>
+                        <p class="text-gray-600 dark:text-gray-300 mb-6">Our new onboarding process creates a more accurate and personalized AI twin by analyzing your personality, communication style, and preferences.</p>
                     </div>
 
-                    <div class="grid md:grid-cols-2 gap-6 mb-8">
-                        <div class="bg-blue-50 rounded-lg p-6">
-                            <h3 class="text-lg font-semibold text-blue-900 mb-3">🎯 Personality Analysis</h3>
-                            <p class="text-blue-800">Complete OCEAN Big Five personality assessment to understand your core traits and communication patterns.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 sm:p-6">
+                            <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3">🎯 Personality Analysis</h3>
+                            <p class="text-blue-800 dark:text-blue-200">Complete OCEAN Big Five personality assessment to understand your core traits and communication patterns.</p>
                         </div>
-                        <div class="bg-green-50 rounded-lg p-6">
-                            <h3 class="text-lg font-semibold text-green-900 mb-3">💬 Communication Style</h3>
-                            <p class="text-green-800">Fine-tune your AI twin's tone, formality level, humor style, and language preferences.</p>
+                        <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 sm:p-6">
+                            <h3 class="text-lg font-semibold text-green-900 dark:text-green-100 mb-3">💬 Communication Style</h3>
+                            <p class="text-green-800 dark:text-green-200">Fine-tune your AI twin's tone, formality level, humor style, and language preferences.</p>
                         </div>
-                        <div class="bg-purple-50 rounded-lg p-6">
-                            <h3 class="text-lg font-semibold text-purple-900 mb-3">📝 Writing Patterns</h3>
-                            <p class="text-purple-800">Customize greetings, closings, punctuation style, and vocabulary level to match your writing.</p>
+                        <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 sm:p-6">
+                            <h3 class="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-3">📝 Writing Patterns</h3>
+                            <p class="text-purple-800 dark:text-purple-200">Customize greetings, closings, punctuation style, and vocabulary level to match your writing.</p>
                         </div>
-                        <div class="bg-orange-50 rounded-lg p-6">
-                            <h3 class="text-lg font-semibold text-orange-900 mb-3">🎨 Context & Interests</h3>
-                            <p class="text-orange-800">Provide background information, interests, and use cases to make your AI twin more contextual.</p>
+                        <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 sm:p-6">
+                            <h3 class="text-lg font-semibold text-orange-900 dark:text-orange-100 mb-3">🎨 Context & Interests</h3>
+                            <p class="text-orange-800 dark:text-orange-200">Provide background information, interests, and use cases to make your AI twin more contextual.</p>
                         </div>
                     </div>
 
@@ -145,11 +145,12 @@
                     <div class="text-center">
                         <a 
                             href="/onboarding"
-                            class="inline-block bg-primary text-white px-8 py-3 rounded-lg hover:bg-secondary transition-colors font-semibold text-lg"
+                            class="inline-block bg-primary text-white px-8 py-3 rounded-lg hover:bg-secondary transition-colors font-semibold text-lg min-h-[48px] sm:min-h-[44px] touch-manipulation text-base"
+                            aria-label="Start Enhanced Onboarding"
                         >
                             Start Enhanced Onboarding
                         </a>
-                        <p class="text-sm text-gray-500 mt-3">Takes about 5-10 minutes to complete</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-3">Takes about 5-10 minutes to complete</p>
                     </div>
                 </div>
         </div>

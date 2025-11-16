@@ -43,16 +43,16 @@ function displayProfile(data) {
     const container = document.getElementById('profileContainer');
     
     container.innerHTML = `
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-8">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">@${data.user.handle}</h1>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-4 sm:p-6 lg:p-8">
+            <div class="text-center mb-6 sm:mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">@${data.user.handle}</h1>
                 <p class="text-gray-600 dark:text-gray-300">AI Twin Profile</p>
                 <div class="mt-4 inline-block bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm font-medium">
                     AI-generated • Private Alpha
                 </div>
             </div>
             
-            <div class="grid md:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Style Analysis</h2>
                     <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
@@ -97,7 +97,7 @@ function displayProfile(data) {
             </div>
             
             <div class="mt-8 text-center">
-                <button onclick="copyProfileLink()" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-secondary transition-colors font-semibold">
+                <button onclick="copyProfileLink()" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-secondary transition-colors font-semibold min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Copy Profile Link">
                     Copy Profile Link
                 </button>
             </div>
@@ -113,7 +113,7 @@ function displayProfile(data) {
 function showError(message) {
     const container = document.getElementById('profileContainer');
     container.innerHTML = `
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-8 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-4 sm:p-6 lg:p-8 text-center">
             <div class="text-red-500 dark:text-red-400 text-6xl mb-4">⚠️</div>
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Profile Not Available</h2>
             <p class="text-gray-600 dark:text-gray-300 mb-6">${message}</p>

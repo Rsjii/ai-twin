@@ -73,17 +73,17 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Page Header -->
         <div class="mb-8">
-            <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">My Twin Management</h1>
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">My Twin Management</h1>
             <p class="text-gray-600 dark:text-gray-300">Manage your AI twin's settings, training, and analytics</p>
         </div>
 
         <!-- Quick Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinId %>" data-list-type="chatters" id="twinManageChattersCard">                
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinId %>" data-list-type="chatters" id="twinManageChattersCard">                
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Chats</p>
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white"><%= stats.totalChats %></p>
+                        <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white"><%= stats.totalChats %></p>
                     </div>                    
                     <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
                         <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,11 +95,11 @@
 
     <!-- ... Views card (not clickable, no API for views) ... -->
 
-    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinId %>" data-list-type="likers" id="twinManageLikersCard">                
+    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinId %>" data-list-type="likers" id="twinManageLikersCard">                
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Likes</p>
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white"><%= stats.totalLikes %></p>
+                        <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white"><%= stats.totalLikes %></p>
                     </div>                    
                     <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
                         <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,11 +110,11 @@
                 </div>
             </div>
 
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinId %>" data-list-type="followers" id="twinManageFollowersCard">                
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinId %>" data-list-type="followers" id="twinManageFollowersCard">                
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Followers</p>
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white"><%= stats.totalFollowers %></p>
+                        <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white"><%= stats.totalFollowers %></p>
                     </div>
                     <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
                         <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,23 +126,23 @@
         </div>
 
         <!-- Twin Info Card -->
-        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-8 mb-8">
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Twin Information</h2>
-                <div class="flex space-x-3">
-                    <a href="/twin/<%= twinId %>/ai-edit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors">
+                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    <a href="/twin/<%= twinId %>/ai-edit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base flex items-center justify-center">
                         AI Edit
                     </a>
-                    <a href="/twin/<%= twinId %>/style-customize" class="px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
+                    <a href="/twin/<%= twinId %>/style-customize" class="px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base flex items-center justify-center">
                         Style Customize
                     </a>
-                    <a href="/twin/<%= twinId %>/learning-dashboard" class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-purple-600 transition-colors">
+                    <a href="/twin/<%= twinId %>/learning-dashboard" class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-purple-600 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base flex items-center justify-center">
                         Learning Dashboard
                     </a>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                     <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Created</p>
                     <p class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -153,8 +153,8 @@
                     <div>
                         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Public Handle</p>
                         <div class="flex items-center space-x-2">
-                            <input type="text" readonly value="/@<%= publicTwin.handle %>" id="publicLinkInput" class="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                            <button id="copyPublicLinkBtn" onclick="copyPublicLink()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors">
+                            <input type="text" readonly value="/@<%= publicTwin.handle %>" id="publicLinkInput" class="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-base">
+                            <button id="copyPublicLinkBtn" onclick="copyPublicLink()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base">
                                 Copy
                             </button>
                         </div>
@@ -164,23 +164,23 @@
         </div>
 
         <!-- Training Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
                 <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">Memory Chunks</p>
                 <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats.memoryChunks %></p>
             </div>
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6">
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
                 <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">Style Corrections</p>
                 <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats.styleCorrections %></p>
             </div>
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6">
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
                 <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">Learning Goals</p>
                 <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats.learningGoals %></p>
             </div>
         </div>
 
         <!-- Recent Chats -->
-        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-8">
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 lg:p-8">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Recent Chats</h2>
                 <a href="/twin/<%= twinId %>/public-chat-history" class="text-sm text-primary hover:text-secondary font-medium">
@@ -223,14 +223,14 @@
         </div>
 
         <!-- Danger Zone (Moved to bottom) -->
-        <div class="mt-8 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
+        <div class="mt-8 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6">
             <h2 class="text-xl font-bold text-red-900 dark:text-red-300 mb-4">⚠️ Danger Zone</h2>
             <p class="text-gray-700 dark:text-gray-300 mb-4">
                 Once you delete your twin, all data including chats, memories, and training will be permanently removed. This action cannot be undone.
             </p>
             <button 
                 id="deleteTwinBtn" 
-                class="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold hover:scale-105"
+                class="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold hover:scale-105 min-h-[48px] sm:min-h-[44px] touch-manipulation text-base"
             >
                 <span class="flex items-center">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

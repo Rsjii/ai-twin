@@ -35,13 +35,13 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">Messages Analytics</h1>
-            <p class="text-gray-600 mt-2">Detailed messages analytics and management</p>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Messages Analytics</h1>
+            <p class="text-gray-600 dark:text-gray-300 mt-2">Detailed messages analytics and management</p>
         </div>
 
         <!-- Summary Cards -->
-        <div id="summaryCards" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow-sm p-6">
+        <div id="summaryCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
                 <div class="flex items-center">
                     <div class="p-2 bg-orange-100 rounded-lg">
                         <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,7 +55,7 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
                 <div class="flex items-center">
                     <div class="p-2 bg-blue-100 rounded-lg">
                         <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +69,7 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
                 <div class="flex items-center">
                     <div class="p-2 bg-green-100 rounded-lg">
                         <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,7 +83,7 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
                 <div class="flex items-center">
                     <div class="p-2 bg-purple-100 rounded-lg">
                         <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,7 +125,7 @@
                 <h3 class="text-lg font-semibold text-gray-900">Messages List</h3>
             </div>
             <div id="messagesList" class="divide-y divide-gray-200">
-                <div class="p-8 text-center">
+                <div class="p-4 sm:p-6 lg:p-8 text-center">
                     <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
                     <p class="text-gray-600 mt-4">Loading messages...</p>
                 </div>
@@ -223,7 +223,7 @@
                     </div>
                 `).join('');
             } else {
-                messagesList.innerHTML = '<div class="p-8 text-center text-gray-500">No messages found</div>';
+                messagesList.innerHTML = '<div class="p-4 sm:p-6 lg:p-8 text-center text-gray-500 dark:text-gray-400">No messages found</div>';
             }
         }
 
@@ -357,7 +357,7 @@
         // Show error
         function showError(message) {
             const messagesList = document.getElementById('messagesList');
-            messagesList.innerHTML = `<div class="p-8 text-center text-red-600">${message}</div>`;
+            messagesList.innerHTML = `<div class="p-4 sm:p-6 lg:p-8 text-center text-red-600 dark:text-red-400">${message}</div>`;
         }
 
         // Event listeners

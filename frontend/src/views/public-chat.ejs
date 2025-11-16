@@ -2,7 +2,7 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">    
     <title>Chat with <%= twin.publicHandle %></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -33,9 +33,9 @@
     <!--Header-->
     <%- include('header') %>
 
-    <div class="flex h-screen">
+    <div class="flex flex-col md:flex-row h-screen">
         <!-- Chat Sidebar -->
-        <div class="w-64 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900 overflow-x-hidden">
+        <div id="chatSidebar" class="hidden md:flex md:w-64 flex-col bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900 overflow-x-hidden">            
             <div class="p-4 border-b dark:border-gray-700">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Chat with <%= twin.publicHandle %></h2>
                 <button id="newPublicChatBtn" class="w-full mt-2 bg-blue-600 dark:bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors">
@@ -66,7 +66,7 @@
         </div>
         
         <!-- Main Chat Area -->
-        <div class="flex-1 flex flex-col">
+        <div class="flex-1 flex flex-col w-full md:w-auto">            
             <!-- Chat Header -->
             <div class="bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex items-center gap-3">
                 <a href="/@<%= twin.publicHandle %>" class="flex-shrink-0 hover:opacity-80 transition-opacity" title="View @<%= twin.publicHandle %> profile">
@@ -109,24 +109,131 @@
             </div>
             
             <!-- Chat Input -->
-            <div class="bg-white dark:bg-gray-800 p-4 border-t dark:border-gray-700 shadow-lg dark:shadow-gray-900">
-                <form id="chatForm" class="flex space-x-4">
+            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-t dark:border-gray-700 shadow-lg dark:shadow-gray-900">
+                <form id="chatForm" class="flex gap-2 sm:gap-4">
                     <textarea 
                         type="text" 
                         id="messageInput" 
                         placeholder="Type your message..." 
-                        class="flex-1 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                        rows="2"
+                        class="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none"
+                        rows="1"
                         maxlength="1000"
                         required
+                        style="font-size: 16px; min-height: 44px;"
                     ></textarea>
-                    <button type="submit" id="sendMessageBtn" class="bg-blue-600 dark:bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold">
+                    <button type="submit" id="sendMessageBtn" class="bg-blue-600 dark:bg-blue-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold min-h-[44px] min-w-[60px]">
                         Send
                     </button>
                 </form>
-            </div>
+            </div>            
         </div>
     </div>
+
+    <!-- Mobile Bottom Sheet for Chat History - Enhanced UX -->
+    <div id="mobileChatHistory" class="md:hidden fixed inset-0 z-50 pointer-events-none">
+        <!-- Backdrop -->
+        <div id="mobileChatHistoryBackdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-300 pointer-events-auto"></div>
+        
+        <!-- Bottom Sheet -->
+        <div id="mobileChatHistorySheet" class="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-300 max-h-[85vh] flex flex-col pointer-events-auto">
+            <!-- Drag Handle -->
+            <div class="flex justify-center pt-3 pb-2">
+                <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+            </div>
+            
+            <!-- Header -->
+            <div class="px-4 pb-4 border-b dark:border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Chat History</h2>
+                    <button id="closeMobileHistory" class="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation">
+                        <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <button id="newPublicChatBtnMobile" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-600 text-white py-3 px-4 rounded-xl hover:shadow-lg transition-all font-semibold min-h-[48px] touch-manipulation shadow-md">
+                    <span class="flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        New Chat
+                    </span>
+                </button>
+            </div>
+            
+            <!-- Chat List -->
+            <div id="publicChatHistoryListMobile" class="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+                <!-- Chat items will be loaded here -->
+            </div>
+        </div>
+    </div>    
+    
+    <!-- Mobile Chat History Toggle Button -->
+    <button id="mobileHistoryToggle" class="md:hidden fixed bottom-20 right-4 bg-blue-600 dark:bg-blue-500 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors z-40">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+    </button>
+
+    // Mobile chat history toggle - Enhanced with backdrop
+    const mobileHistoryToggle = document.getElementById('mobileHistoryToggle');
+    const mobileChatHistory = document.getElementById('mobileChatHistory');
+    const mobileChatHistorySheet = document.getElementById('mobileChatHistorySheet');
+    const mobileChatHistoryBackdrop = document.getElementById('mobileChatHistoryBackdrop');
+    const closeMobileHistory = document.getElementById('closeMobileHistory');
+    
+    function openMobileHistory() {
+        if (mobileChatHistory && mobileChatHistorySheet && mobileChatHistoryBackdrop) {
+            mobileChatHistory.classList.remove('pointer-events-none');
+            mobileChatHistorySheet.classList.remove('translate-y-full');
+            mobileChatHistoryBackdrop.classList.remove('opacity-0');
+            mobileChatHistoryBackdrop.classList.add('opacity-100');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    function closeMobileHistory() {
+        if (mobileChatHistory && mobileChatHistorySheet && mobileChatHistoryBackdrop) {
+            mobileChatHistorySheet.classList.add('translate-y-full');
+            mobileChatHistoryBackdrop.classList.remove('opacity-100');
+            mobileChatHistoryBackdrop.classList.add('opacity-0');
+            setTimeout(() => {
+                mobileChatHistory.classList.add('pointer-events-none');
+                document.body.style.overflow = '';
+            }, 300);
+        }
+    }
+    
+    if (mobileHistoryToggle) {
+        mobileHistoryToggle.addEventListener('click', openMobileHistory);
+    }
+    
+    if (closeMobileHistory) {
+        closeMobileHistory.addEventListener('click', closeMobileHistory);
+    }
+    
+    // Close on backdrop click
+    if (mobileChatHistoryBackdrop) {
+        mobileChatHistoryBackdrop.addEventListener('click', closeMobileHistory);
+    }
+    
+    // Swipe down to close (optional enhancement)
+    let touchStartY = 0;
+    let touchEndY = 0;
+    
+    if (mobileChatHistorySheet) {
+        mobileChatHistorySheet.addEventListener('touchstart', (e) => {
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+        
+        mobileChatHistorySheet.addEventListener('touchend', (e) => {
+            touchEndY = e.changedTouches[0].screenY;
+            const swipeDistance = touchStartY - touchEndY;
+            if (swipeDistance < -100) { // Swipe down
+                closeMobileHistory();
+            }
+        }, { passive: true });
+    }    
 
     <script>
         let currentChatId = null;

@@ -4,11 +4,11 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
 <%- include('layout', { title: title, user: user, csrfToken: csrfToken, body: `
     <div class="px-4 py-6 sm:px-0">
         <div class="max-w-7xl mx-auto">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">Analytics Dashboard</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6 sm:mb-8">Analytics Dashboard</h1>
             
             <!-- Overview Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
                     <div class="flex items-center">
                         <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                             <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -17,12 +17,12 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Views</p>
-                            <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="totalViews">-</p>
+                            <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white" id="totalViews">-</p>
                         </div>
                     </div>
                 </div>
                 
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-6">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
                     <div class="flex items-center">
                         <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
                             <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,12 +31,12 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Likes</p>
-                            <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="totalLikes">-</p>
+                            <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white" id="totalLikes">-</p>
                         </div>
                     </div>
                 </div>
                 
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-6">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
                     <div class="flex items-center">
                         <div class="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                             <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,12 +45,12 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Followers</p>
-                            <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="totalFollowers">-</p>
+                            <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white" id="totalFollowers">-</p>
                         </div>
                     </div>
                 </div>
                 
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-6">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
                     <div class="flex items-center">
                         <div class="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
                             <svg class="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,22 +59,22 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Chats</p>
-                            <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="totalChats">-</p>
+                            <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white" id="totalChats">-</p>
                         </div>
                     </div>
                 </div>
             </div>            
             
             <!-- Charts Section -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 mb-6 sm:mb-8">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Engagement Over Time</h3>
                     <div id="engagementChart" class="h-64 flex items-center justify-center text-gray-500">
                         <p>Chart will be loaded here</p>
                     </div>
                 </div>
                 
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-6">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top Performing Content</h3>
                     <div id="topContent" class="space-y-3">
                         <p class="text-gray-500">Loading...</p>
@@ -83,19 +83,19 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
             </div>
 
             <!-- Feedback Analytics Section -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-6 mb-8">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6 mb-6 sm:mb-8">
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Feedback Analytics</h3>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <div class="text-center">
-            <p class="text-2xl font-bold text-green-600 dark:text-green-400" id="positiveFeedback">-</p>
+            <p class="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400" id="positiveFeedback">-</p>
             <p class="text-sm text-gray-600 dark:text-gray-300">Positive Feedback</p>
         </div>
         <div class="text-center">
-            <p class="text-2xl font-bold text-red-600 dark:text-red-400" id="negativeFeedback">-</p>
+            <p class="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400" id="negativeFeedback">-</p>
             <p class="text-sm text-gray-600 dark:text-gray-300">Negative Feedback</p>
         </div>
         <div class="text-center">
-            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="satisfactionScore">-</p>
+            <p class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400" id="satisfactionScore">-</p>
             <p class="text-sm text-gray-600 dark:text-gray-300">Satisfaction Score</p>
         </div>
     </div>

@@ -1,8 +1,8 @@
 <%- include('layout', { title: 'Contact Us - AI Twin', body: `
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-2xl mx-auto">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl dark:shadow-gray-900 p-8 md:p-12">
-            <h1 class="text-4xl font-bold gradient-text mb-4 text-center">Contact Us</h1>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl dark:shadow-gray-900 p-4 sm:p-6 lg:p-8 xl:p-12">
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text mb-4 text-center">Contact Us</h1>
             <p class="text-gray-600 dark:text-gray-300 text-center mb-8">We're here to help! Get in touch with our support team.</p>
             
             <div class="space-y-6">
@@ -11,21 +11,21 @@
                     <div>
                         <label for="name" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Your Name</label>
                         <input type="text" id="name" name="name" required
-                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
-                            placeholder="Enter your name">
+                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent text-base min-h-[44px]"
+                            placeholder="Enter your name" aria-label="Your Name">
                     </div>
                     
                     <div>
                         <label for="email" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
                         <input type="email" id="email" name="email" required
-                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
-                            placeholder="your.email@example.com">
+                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent text-base min-h-[44px]"
+                            placeholder="your.email@example.com" aria-label="Email Address">
                     </div>
                     
                     <div>
                         <label for="subject" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Subject</label>
                         <select id="subject" name="subject" required
-                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent text-base min-h-[44px]" aria-label="Subject">
                             <option value="">Select a subject</option>
                             <option value="general">General Inquiry</option>
                             <option value="technical">Technical Support</option>
@@ -39,12 +39,12 @@
                     <div>
                         <label for="message" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Message</label>
                         <textarea id="message" name="message" rows="6" required
-                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                            placeholder="Tell us how we can help..."></textarea>
+                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent resize-none text-base"
+                            placeholder="Tell us how we can help..." aria-label="Message"></textarea>
                     </div>
                     
                     <button type="submit" 
-                        class="w-full bg-gradient-to-r from-primary to-accent text-white py-4 px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold transform hover:scale-[1.02]">
+                        class="w-full bg-gradient-to-r from-primary to-accent text-white py-4 px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold transform hover:scale-[1.02] min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Send Message">
                         Send Message
                     </button>
                 </form>

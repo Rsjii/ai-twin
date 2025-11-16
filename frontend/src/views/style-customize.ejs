@@ -55,7 +55,7 @@
     <div class="container mx-auto px-4 py-8">
         <!-- Page Title Section -->
         <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Style Customize</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Style Customize</h1>
             <p class="text-gray-600 dark:text-gray-300">Customize your AI twin's communication style and personality</p>
         </div>
 
@@ -102,16 +102,16 @@
   <div class="mb-6 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 dark:border-gray-700 shadow-md dark:shadow-gray-900">
     <div class="flex items-center justify-between">
       <div class="flex items-center space-x-4">
-        <a href="/twin/<%= twinId %>/learning-dashboard" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md flex items-center">
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="/twin/<%= twinId %>/learning-dashboard" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md flex items-center min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Back to Learning Dashboard">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
           </svg>
           Back to Learning Dashboard
         </a>
-        <a href="/twin/<%= twinId %>/ai-edit" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
+        <a href="/twin/<%= twinId %>/ai-edit" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="AI Edit">
           AI Edit
         </a>
-                    <a href="/twin/<%= twinId %>/memory-management" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
+                    <a href="/twin/<%= twinId %>/memory-management" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Memory Management">
                         Memory Management
                     </a>
       </div>
@@ -122,15 +122,15 @@
   </div>
 
         <!-- Style Controls -->
-        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-6 mb-8 border border-white/20 dark:border-gray-700">
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 mb-6 sm:mb-8 border border-white/20 dark:border-gray-700">
             <h2 class="text-xl font-semibold mb-4 dark:text-white">Communication Style</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 
                 <!-- Formality Level -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Formality Level</label>
                     <input type="range" id="formality" min="0" max="1" step="0.1" value="0.5" 
-                           class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                           class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer min-h-[44px] touch-manipulation" aria-label="Formality Level">
                     <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                         <span>Casual</span>
                         <span id="formality-value">0.5</span>
@@ -142,7 +142,7 @@
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Emoji Usage</label>
                     <input type="range" id="emoji_usage" min="0" max="1" step="0.1" value="0.3" 
-                           class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                           class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer min-h-[44px] touch-manipulation" aria-label="Emoji Usage">
                     <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                         <span>None</span>
                         <span id="emoji-value">0.3</span>
@@ -165,7 +165,7 @@
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Question Frequency</label>
                     <input type="range" id="question_frequency" min="0" max="1" step="0.1" value="0.4" 
-                           class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                           class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer min-h-[44px] touch-manipulation" aria-label="Question Frequency">
                     <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                         <span>Rare</span>
                         <span id="question-value">0.4</span>
@@ -198,7 +198,7 @@
         </div>
 
         <!-- Style Anchors Preview Section -->
-        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-6 mb-8 border border-white/20 dark:border-gray-700">
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 mb-6 sm:mb-8 border border-white/20 dark:border-gray-700">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold dark:text-white">Style Anchors</h2>
                 <a href="/twin/<%= twinId %>/memory-management" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
@@ -208,10 +208,10 @@
 
             <!-- Tabs -->
             <div class="flex space-x-2 mb-4 border-b border-gray-200 dark:border-gray-700">
-                <button id="tab-phrases" data-tab="phrases" class="px-4 py-2 font-medium text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 style-anchor-tab">
+                <button id="tab-phrases" data-tab="phrases" class="px-4 py-2 font-medium text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 style-anchor-tab min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Phrases tab">
                     Phrases
                 </button>
-                <button id="tab-interactions" data-tab="interactions" class="px-4 py-2 font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 style-anchor-tab">
+                <button id="tab-interactions" data-tab="interactions" class="px-4 py-2 font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 style-anchor-tab min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Interactions tab">
                     Interactions
                 </button>
             </div>
@@ -248,23 +248,23 @@
 
         <!-- Action Buttons -->
         <div class="flex justify-between items-center">
-            <button id="previewChangesBtn" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
+            <button id="previewChangesBtn" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Preview Changes">
                 Preview Changes
             </button>
             <div class="space-x-4">
-                <button id="resetChangesBtn" class="bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-6 py-2 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md">
+                <button id="resetChangesBtn" class="bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-6 py-2 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Reset Changes">
                     Reset
                 </button>
-                <button id="saveChangesBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
+                <button id="saveChangesBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Save Changes">
                     Save Changes
                 </button>
             </div>
         </div>
 
         <!-- Preview Section -->
-        <div id="preview-section" class="mt-8 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg p-6 border border-white/20" style="display: none;">
-            <h3 class="text-lg font-semibold mb-4">Preview Your Changes</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div id="preview-section" class="mt-6 sm:mt-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 border border-white/20 dark:border-gray-700" style="display: none;">
+            <h3 class="text-lg font-semibold mb-4 dark:text-white">Preview Your Changes</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                     <h4 class="font-medium mb-2">Current Response:</h4>
                     <div id="original-text" class="p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-white/20"></div>

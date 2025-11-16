@@ -29,7 +29,7 @@
 <!-- Modern Navigation -->
 <nav class="glass-effect sticky top-0 z-50 border-b border-white/20 dark:border-gray-700">    
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-20">
+        <div class="flex justify-between items-center h-16 sm:h-20">
             
             <!-- LEFT SECTION: Logo + Main Navigation -->
             <div class="flex items-center space-x-8">
@@ -42,7 +42,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                                 </svg>
                             </div>
-                            <span class="text-2xl font-bold gradient-text dark:text-white">TwinOS</span>
+                            <span class="text-xl sm:text-2xl font-bold gradient-text dark:text-white">TwinOS</span>                            
                         </a>
                     <% } else { %>
                         <a href="/" class="flex items-center space-x-3 group">
@@ -51,7 +51,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                                 </svg>
                             </div>
-                            <span class="text-2xl font-bold gradient-text dark:text-white">TwinOS</span>
+                            <span class="text-xl sm:text-2xl font-bold gradient-text dark:text-white">TwinOS</span>                            
                         </a>
                     <% } %>
                 </div>
@@ -109,7 +109,7 @@
                     <!-- Profile Photo Dropdown (ONLY when logged in) -->
                     <div class="relative" id="userDropdown" data-open="false">
                         <!-- Profile Photo Button (WITH name/email like dashboard) -->
-                        <button id="dropdownButton" class="flex items-center space-x-3 px-4 py-2 rounded-xl bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 shadow-lg hover:shadow-xl border border-white/20 dark:border-gray-700 group focus:outline-none focus:ring-2 focus:ring-primary">
+                        <button id="dropdownButton" class="flex items-center space-x-2 sm:space-x-3 px-2 sm:px-4 py-2 rounded-xl bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 shadow-lg hover:shadow-xl border border-white/20 dark:border-gray-700 group focus:outline-none focus:ring-2 focus:ring-primary">                            
                             <% if (user.profileImage) { %>
                                 <img src="<%= user.profileImage %>" alt="Profile" class="w-10 h-10 rounded-full object-cover shadow-lg ring-2 ring-white dark:ring-gray-700">
                             <% } else { %>
@@ -117,7 +117,7 @@
                                     <%= (user.handle || user.email || 'U').charAt(0).toUpperCase() %>
                                 </div>
                             <% } %>
-                            <div class="hidden sm:block text-left">
+                            <div class="hidden md:block text-left">
                                 <div class="text-sm font-semibold text-gray-900 dark:text-white"><%= user.handle || user.email || 'User' %></div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400"><%= user.email %></div>
                             </div>

@@ -1,25 +1,25 @@
 <%- include('layout', { title: title, user: user, csrfToken: csrfToken, body: `
     <div class="px-4 py-6 sm:px-0">
         <div class="max-w-md mx-auto">
-            <div class="bg-white rounded-lg shadow-lg p-8">
-                <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Verify Your Email</h1>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-4 sm:p-6 lg:p-8">
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">Verify Your Email</h1>
                 
-                <div id="errorMessage" class="hidden mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded"></div>
-                <div id="successMessage" class="hidden mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded"></div>
+                <div id="errorMessage" class="hidden mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 rounded"></div>
+                <div id="successMessage" class="hidden mb-4 p-3 bg-green-100 dark:bg-green-900/20 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 rounded"></div>
                 
                 <div class="mb-4 text-center">
-                    <p class="text-sm text-gray-600 mb-2">
+                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">
                         We sent a 6-digit code to:
                     </p>
-                    <p class="font-medium text-gray-900"><%= email || 'your email' %></p>
-                    <div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+                    <p class="font-medium text-gray-900 dark:text-white"><%= email || 'your email' %></p>
+                    <div class="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-600 rounded text-sm text-blue-800 dark:text-blue-300">
                         <strong>Development Mode:</strong> Check the server console for your OTP code
                     </div>
                 </div>
                 
                 <form id="verifyForm">
                     <div class="mb-4">
-                        <label for="code" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="code" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Enter Verification Code
                         </label>
                         <input 
@@ -29,15 +29,17 @@
                             required
                             maxlength="6"
                             pattern="[0-9]{6}"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl tracking-widest"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl tracking-widest text-base min-h-[44px]"
                             placeholder="123456"
+                            aria-label="Verification Code"
                         >
                     </div>
                     
                     <button 
                         type="submit"
                         id="verifyBtn"
-                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors font-semibold"
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors font-semibold min-h-[48px] sm:min-h-[44px] touch-manipulation text-base"
+                        aria-label="Verify Code"
                     >
                         Verify Code
                     </button>
@@ -46,9 +48,9 @@
                 </form>
                 
                 <div class="mt-6 text-center">
-                    <p class="text-sm text-gray-600">
+                    <p class="text-sm text-gray-600 dark:text-gray-300">
                         Didn't receive the code? 
-                        <a href="/login" class="text-blue-600 hover:text-blue-800">Try again</a>
+                        <a href="/login" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">Try again</a>
                     </p>
                 </div>
             </div>

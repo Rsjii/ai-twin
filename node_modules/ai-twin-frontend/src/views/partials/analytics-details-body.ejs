@@ -1,40 +1,43 @@
 <div class="px-4 py-6 sm:px-0">
     <div class="max-w-7xl mx-auto">
         <!-- Header -->
-        <div class="mb-8">
+        <div class="mb-6 sm:mb-8">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
                         <%= analyticsTypeValue === 'likers' ? 'Likes' : analyticsTypeValue === 'followers' ? 'Followers' : 'Chat Participants' %> Details
                     </h1>
                     <p class="text-gray-600 dark:text-gray-300">Detailed analytics for your twin's <%= analyticsTypeValue %></p>
                 </div>
-                <a href="/analytics" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                <a href="/analytics" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Back to Analytics">
                     ← Back to Analytics
                 </a>
             </div>
         </div>
 
         <!-- Search and Filters -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-6 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6 mb-4 sm:mb-6">
             <div class="flex flex-col md:flex-row gap-4">
                 <div class="flex-1">
                     <input 
                         type="text" 
                         id="searchInput" 
                         placeholder="Search by name or handle..." 
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent text-base min-h-[44px]"
+                        aria-label="Search by name or handle"
                     >
                 </div>
                 <button 
                     id="searchBtn"
-                    class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors font-medium"
+                    class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors font-medium min-h-[48px] sm:min-h-[44px] touch-manipulation text-base"
+                    aria-label="Search"
                 >
                     Search
                 </button>
                 <button 
                     id="clearBtn"
-                    class="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                    class="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base"
+                    aria-label="Clear search"
                 >
                     Clear
                 </button>
@@ -53,12 +56,16 @@
             <div id="dataList" class="divide-y divide-gray-200 dark:divide-gray-700">
                 <% if (data && data.length > 0) { %>
                     <% data.forEach((item, index) => { %>
-                        <div class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer group"
+                        <div class="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer group"
                              data-user-handle="<%= item.handle %>">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-4 flex-1">
-                                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                                        <%= item.profileImage ? `<img src="${item.profileImage}" class="w-full h-full rounded-full object-cover" alt="${item.name}">` : (item.name ? item.name.charAt(0).toUpperCase() : 'U') %>
+                                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden">
+                                        <% if (item.profileImage) { %>
+                                            <img src="<%= item.profileImage %>" alt="<%= item.name || item.handle || 'User' %>" class="w-full h-full rounded-full object-cover">
+                                        <% } else { %>
+                                            <span><%= item.name ? item.name.charAt(0).toUpperCase() : (item.handle ? item.handle.charAt(0).toUpperCase() : 'U') %></span>
+                                        <% } %>
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <h3 class="font-semibold text-gray-900 dark:text-white truncate">
@@ -89,7 +96,7 @@
                                     </div>
                                 </div>
                                 <div class="flex items-center space-x-2">
-                                    <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium">
+                                    <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="View Profile">
                                         View Profile
                                     </button>
                                 </div>
@@ -97,7 +104,7 @@
                         </div>
                     <% }); %>
                 <% } else { %>
-                    <div class="p-12 text-center">
+                    <div class="p-6 sm:p-8 lg:p-12 text-center">
                         <svg class="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
@@ -125,8 +132,9 @@
                 <!-- Previous Button -->
                 <button 
                     data-page="<%= currentPage - 1 %>"
-                    class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors <%= currentPage === 1 ? 'opacity-50 cursor-not-allowed' : '' %>"
+                    class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base <%= currentPage === 1 ? 'opacity-50 cursor-not-allowed' : '' %>"
                     <%= currentPage === 1 ? 'disabled' : '' %>
+                    aria-label="Previous page"
                 >
                     Previous
                 </button>
@@ -135,7 +143,8 @@
                 <% for (let i = startPage; i <= endPage; i++) { %>
                     <button 
                         data-page="<%= i %>"
-                        class="px-4 py-2 rounded-lg transition-colors <%= i === currentPage ? 'bg-primary text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700' %>"
+                        class="px-4 py-2 rounded-lg transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base <%= i === currentPage ? 'bg-primary text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700' %>"
+                        aria-label="Page <%= i %>"
                     >
                         <%= i %>
                     </button>
@@ -144,8 +153,9 @@
                 <!-- Next Button -->
                 <button 
                     data-page="<%= currentPage + 1 %>"
-                    class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors <%= currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : '' %>"
+                    class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base <%= currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : '' %>"
                     <%= currentPage === totalPages ? 'disabled' : '' %>
+                    aria-label="Next page"
                 >
                     Next
                 </button>

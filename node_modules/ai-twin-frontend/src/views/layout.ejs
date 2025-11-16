@@ -2,7 +2,13 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="description" content="Create your AI twin that communicates in your unique style, tone, and personality">
+    <meta name="theme-color" content="#6366f1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+    <link rel="dns-prefetch" href="https://unpkg.com">
     <title><%= title %></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -65,29 +71,167 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
+
+        /* ✅ PHASE 1: COMPLETE DARK THEME COLOR SYSTEM */
         
-        /* ✅ Dark Mode Support */
-        .dark .glass-effect {
-            background: rgba(17, 24, 39, 0.8);
-            border: 1px solid rgba(55, 65, 81, 0.5);
+        /* Dark Theme CSS Variables */
+        :root {
+            /* Light theme colors (existing) */
+            --light-bg-primary: #ffffff;
+            --light-bg-secondary: #f8fafc;
+            --light-text-primary: #1f2937;
+            --light-text-secondary: #6b7280;
         }
         
+        .dark {
+            /* Dark Theme Backgrounds */
+            --dark-bg-primary: #0f172a;      /* Slate 900 - Main background */
+            --dark-bg-secondary: #1e293b;   /* Slate 800 - Cards, sections */
+            --dark-bg-tertiary: #334155;     /* Slate 700 - Hover states */
+            --dark-bg-elevated: #1e293b;     /* Elevated surfaces */
+            
+            /* Dark Theme Text */
+            --dark-text-primary: #f1f5f9;    /* Slate 100 - Primary text */
+            --dark-text-secondary: #cbd5e1;  /* Slate 300 - Secondary text */
+            --dark-text-tertiary: #94a3b8;   /* Slate 400 - Tertiary text */
+            --dark-text-muted: #64748b;      /* Slate 500 - Muted text */
+            
+            /* Dark Theme Accents - Vibrant & Glowing */
+            --dark-accent-primary: #3b82f6;      /* Blue 500 */
+            --dark-accent-primary-hover: #2563eb; /* Blue 600 */
+            --dark-accent-secondary: #8b5cf6;    /* Purple 500 */
+            --dark-accent-success: #10b981;       /* Emerald 500 */
+            --dark-accent-warning: #f59e0b;      /* Amber 500 */
+            --dark-accent-danger: #ef4444;        /* Red 500 */
+            --dark-accent-info: #06b6d4;         /* Cyan 500 */
+            
+            /* Dark Theme Borders */
+            --dark-border-primary: rgba(51, 65, 85, 0.5);
+            --dark-border-secondary: rgba(71, 85, 105, 0.3);
+            --dark-border-accent: rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Dark Theme Buttons - Enhanced with Glow */
+        .dark .btn-primary,
+        .dark button.bg-gradient-to-r.from-primary,
+        .dark a.bg-gradient-to-r.from-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+            color: white !important;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.4) !important;
+            border: none !important;
+        }
+        
+        .dark .btn-primary:hover,
+        .dark button.bg-gradient-to-r.from-primary:hover,
+        .dark a.bg-gradient-to-r.from-primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+            box-shadow: 0 6px 20px 0 rgba(59, 130, 246, 0.6) !important;
+        }
+        
+        .dark .btn-secondary,
+        .dark button.bg-gradient-to-r.from-accent,
+        .dark a.bg-gradient-to-r.from-accent {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
+            color: white !important;
+            box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.4) !important;
+        }
+        
+        .dark .btn-secondary:hover,
+        .dark button.bg-gradient-to-r.from-accent:hover,
+        .dark a.bg-gradient-to-r.from-accent:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+            box-shadow: 0 6px 20px 0 rgba(139, 92, 246, 0.6) !important;
+        }
+        
+        /* Dark Theme Cards */
+        .dark .bg-white\/50,
+        .dark .bg-white\/80,
+        .dark .bg-white {
+            background: rgba(30, 41, 59, 0.8) !important;
+            border-color: rgba(51, 65, 85, 0.5) !important;
+        }
+        
+        .dark .bg-white\/50:hover,
+        .dark .bg-white\/80:hover {
+            background: rgba(30, 41, 59, 0.95) !important;
+            border-color: rgba(59, 130, 246, 0.3) !important;
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.2) !important;
+        }
+        
+        /* Dark Theme Inputs */
+        .dark input,
+        .dark textarea,
+        .dark select {
+            background: #1e293b !important;
+            border-color: rgba(51, 65, 85, 0.5) !important;
+            color: #f1f5f9 !important;
+        }
+        
+        .dark input:focus,
+        .dark textarea:focus,
+        .dark select:focus {
+            border-color: rgba(59, 130, 246, 0.5) !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+        
+        /* Dark Theme Links */
+        .dark a.text-primary,
+        .dark a.hover\:text-primary:hover {
+            color: #3b82f6 !important;
+        }
+        
+        .dark a.text-primary:hover,
+        .dark a.hover\:text-primary:hover {
+            color: #60a5fa !important;
+            text-decoration: underline;
+        }
+        
+        /* Enhanced Dark Mode Glass Effect */
+        .dark .glass-effect {
+            background: rgba(17, 24, 39, 0.85) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(55, 65, 81, 0.5) !important;
+        }
+        
+        /* Dark Mode Mobile Glass */
+        .dark .mobile-glass {
+            background: rgba(17, 24, 39, 0.9) !important;
+        }
+        
+        /* Dark Mode Mobile Nav */
+        .dark .mobile-nav {
+            background: #1e293b !important;
+            border-bottom: 1px solid #334155 !important;
+        }
+
+        /* ✅ Dark Mode Support - Consolidated */
         .dark .gradient-text {
             -webkit-text-fill-color: white;
             color: white;
         }
-        
-        .dark .mobile-nav {
-            background: #1f2937;
-            border-bottom: 1px solid #374151;
-        }
-        
-        .dark .mobile-glass {
-            background: rgba(17, 24, 39, 0.9);
-        }
+
         
         /* Mobile-specific styles */
-        @media (max-width: 768px) {
+        /* ✅ PHASE 1: Enhanced Responsive Breakpoints */
+        @media (max-width: 640px) {
+            /* Mobile - Small screens */
+        }
+        
+        @media (min-width: 641px) and (max-width: 768px) {
+            /* Tablet Portrait */
+        }
+        
+        @media (min-width: 769px) and (max-width: 1024px) {
+            /* Tablet Landscape */
+        }
+        
+        @media (min-width: 1025px) {
+            /* Desktop */
+        }
+        
+        /* Main mobile styles */
+        @media (max-width: 768px) {            
             /* Touch targets */
             button, a, input, select, textarea {
                 min-height: 44px;
@@ -671,8 +815,8 @@
     <%- include('header') %>   
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
-        <div class="animate-fade-in bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 lg:p-8 shadow-lg dark:shadow-gray-900 border border-white/30 dark:border-gray-700/50">
+    <main class="max-w-7xl mx-auto py-4 px-4 sm:p">
+        <div class="animate-fade-in bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 shadow-lg dark:shadow-gray-900 border border-white/30 dark:border-gray-700/50">            
             <%- body %>
         </div>
     </main>
