@@ -129,4 +129,88 @@ export function getSimple(req: any, res: Response) {
     csrfToken: 'test-token',
   });
 }
-
+/**
+ * User Profile page - View user's basic info + their twins
+ */
+export async function getUserProfile(req: any, res: Response) {
+  try {
+    const { handle } = req.params;
+    
+    // Get user basic info
+    const userResult = await db.query(`
+      SELECT id, handle, name, "profileImage", bio, "createdAt"
+      FROM "User"
+      WHERE handle = $1
+    `, [handle]);
+    
+    if (userResult.rows.length === 0) {
+      return res.status(404).render('404', { 
+        title: 'User Not Found',
+        message: 'This user does not exist'
+      });
+    }
+    
+    const user = userResult.rows[0];
+    
+    // Get user's public twins
+    const twinsResult = await db.query(`
+      SELECT 
+        t.id, t."publicHandle", t.bio, t."profileImage", t.verified, 
+        t."likeCount", t."followCount", t."chatCount", t."sampleReply", t."createdAt",
+        t."allowShares", t."requireLogin"
+      FROM "Twin" t
+      WHERE t."userId" = $1 AND t."isPublic" = true
+      ORDER BY t."createdAt" DESC
+    `, [user.id]);
+    
+    const twins = twinsResult.rows;
+    
+    // Check if viewer is the owner
+    const isOwner = req.user && req.user.id === user.id;
+    
+    // Render user profile page
+    res.render('user-profile', {
+      title: `@${handle} - User Profile`,
+      user: req.user || null,
+      profileUser: {
+        id: user.id,
+        handle: user.handle,
+        name: user.name || user.handle,
+        profileImage: user.profileImage,
+        bio: user.bio,
+        createdAt: user.createdAt,
+        isOwner: isOwner
+      },
+      twins: twins,
+      hasTwins: twins.length > 0,
+      viewer: req.user ? {
+        id: req.user.id,
+        handle: req.user.handle
+      } : null
+    });
+    
+  } catch (error) {
+    logger.error('User profile error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      handle: req.params.handle,
+      path: req.path
+    });
+    
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).render('error', {
+        title: 'Error',
+        message: error.message,
+        errorCode: error.errorCode,
+        user: req.user || null
+      });
+    }
+    
+    const appError = createError.internal('Failed to load user profile', error);
+    return res.status(appError.statusCode).render('error', {
+      title: 'Error',
+      message: appError.message,
+      errorCode: appError.errorCode,
+      user: req.user || null
+    });
+  }
+}

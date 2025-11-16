@@ -832,7 +832,7 @@
                 <!-- Quick Actions (4 Buttons in 2x2 Grid) -->
                 <div class="grid grid-cols-2 gap-4">
                     <!-- Start Chat -->
-                    <a href="/chat-enhanced" class="flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium shadow-lg group">
+                    <a href="/chat-enhanced" class="flex items-center justify-center space-x-2 px-4 py-3 bg-white/80 dark:bg-gray-700/80 backdrop-blur-xl text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 hover:text-white dark:hover:text-white hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium border border-white/20 dark:border-gray-600 group">
                         <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                         </svg>
@@ -840,7 +840,7 @@
                     </a>
                     
                     <!-- Analytics -->
-                    <a href="/analytics" class="flex items-center justify-center space-x-2 px-4 py-3 bg-white/80 dark:bg-gray-700/80 backdrop-blur-xl text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white dark:hover:text-white hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium border border-white/20 dark:border-gray-600 group">
+                    <a href="/analytics" class="flex items-center justify-center space-x-2 px-4 py-3 bg-white/80 dark:bg-gray-700/80 backdrop-blur-xl text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 hover:text-white dark:hover:text-white hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium border border-white/20 dark:border-gray-600 group">
                         <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
@@ -848,7 +848,7 @@
                     </a>
                     
                     <!-- Manage Twin -->
-                    <a href="/twin/manage" class="flex items-center justify-center space-x-2 px-4 py-3 bg-white/80 dark:bg-gray-700/80 backdrop-blur-xl text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white dark:hover:text-white hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium border border-white/20 dark:border-gray-600 group">
+                    <a href="/twin/manage" class="flex items-center justify-center space-x-2 px-4 py-3 bg-white/80 dark:bg-gray-700/80 backdrop-blur-xl text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 hover:text-white dark:hover:text-white hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium border border-white/20 dark:border-gray-600 group">
                         <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -857,13 +857,13 @@
                     </a>
                     
                     <!-- Learning Dashboard -->
-                    <a href="/twin/<%= twin.id %>/learning-dashboard" class="flex items-center justify-center space-x-2 px-4 py-3 bg-white/80 dark:bg-gray-700/80 backdrop-blur-xl text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white dark:hover:text-white hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium border border-white/20 dark:border-gray-600 group">
+                    <a href="/twin/<%= twin.id %>/learning-dashboard" class="flex items-center justify-center space-x-2 px-4 py-3 bg-white/80 dark:bg-gray-700/80 backdrop-blur-xl text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 hover:text-white dark:hover:text-white hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium border border-white/20 dark:border-gray-600 group">
                         <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
                         <span class="group-hover:font-semibold transition-all">Learning Dashboard</span>
                     </a>
-                </div>
+                </div>                
             </div>
         <% } else { %>
             <!-- Welcome State (No Twin) -->
@@ -1823,7 +1823,9 @@ setTimeout(() => {
                 console.error('Logout button not found on page load');
             }
             
-            // ✅ Dark Mode Toggle Functionality (GLOBAL)
+// REPLACE lines 1826-1904 with improved theme toggle that handles header conflict:
+
+            // ✅ Dark Mode Toggle Functionality (GLOBAL) - Fixed for header conflict
             const htmlRoot = document.documentElement;
             const darkModeToggle = document.getElementById('darkModeToggle');
             const darkModeToggleNavbar = document.getElementById('darkModeToggleNavbar');
@@ -1882,12 +1884,27 @@ setTimeout(() => {
                 window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: newTheme } }));
             }
             
-            // Add event listeners to both buttons
-            if (darkModeToggle) {
-                darkModeToggle.addEventListener('click', toggleDarkMode);
-            }
+            // ✅ FIX: Remove existing listeners and re-initialize to avoid conflicts
             if (darkModeToggleNavbar) {
-                darkModeToggleNavbar.addEventListener('click', toggleDarkMode);
+                // Clone button to remove all event listeners
+                const newButton = darkModeToggleNavbar.cloneNode(true);
+                darkModeToggleNavbar.parentNode.replaceChild(newButton, darkModeToggleNavbar);
+                
+                // Add fresh listener
+                newButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleDarkMode();
+                });
+            }
+            
+            // Add event listener to settings toggle (if exists)
+            if (darkModeToggle) {
+                darkModeToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleDarkMode();
+                });
             }
             
             // Listen for theme changes from other tabs/pages (GLOBAL SYNC)
@@ -1901,7 +1918,7 @@ setTimeout(() => {
             window.addEventListener('themechange', (e) => {
                 applyTheme(e.detail.theme === 'dark');
             });
-        });
+        });        
 
         // ✅ NEW: Load analytics data for Twin Analytics Cards
         async function loadAnalytics() {

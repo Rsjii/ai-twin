@@ -108,6 +108,22 @@ const analyticsLimit = typeof pagination !== 'undefined' && pagination.limit ? p
         }
     }
 
+    // ✅ View user profile function
+    function viewUserProfile(handleOrId) {
+        if (!handleOrId) {
+            alert('User information not available');
+            return;
+        }
+        
+        // If it's a handle (doesn't start with user_ or usr_), navigate directly
+        if (handleOrId && !handleOrId.startsWith('user_') && !handleOrId.startsWith('usr_')) {
+            window.location.href = `/user/${handleOrId}`;
+        } else {
+            // If it's an ID, we need to get handle first
+            alert('Unable to view profile. User handle not available.');
+        }
+    }
+
     // Add event listeners for buttons
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('searchInput');
@@ -141,5 +157,20 @@ const analyticsLimit = typeof pagination !== 'undefined' && pagination.limit ? p
                 }
             });
         });
+        
+        // ✅ FIX: Event delegation for user profile clicks
+        const dataList = document.getElementById('dataList');
+        if (dataList) {
+            dataList.addEventListener('click', function(e) {
+                // Find the closest user profile item
+                const userItem = e.target.closest('.user-profile-item');
+                if (userItem) {
+                    const handle = userItem.getAttribute('data-user-handle');
+                    if (handle) {
+                        viewUserProfile(handle);
+                    }
+                }
+            });
+        }
     });
 </script>

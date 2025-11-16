@@ -53,8 +53,9 @@
             <div id="dataList" class="divide-y divide-gray-200 dark:divide-gray-700">
                 <% if (data && data.length > 0) { %>
                     <% data.forEach((item, index) => { %>
-                        <div class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                            <div class="flex items-center justify-between">
+                        <div class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer group user-profile-item"
+                        data-user-handle="<%= item.handle || item.id %>">
+                       <div class="flex items-center justify-between">                                             
                                 <div class="flex items-center space-x-4">
                                     <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
                                         <% if (item.profileImage) { %>

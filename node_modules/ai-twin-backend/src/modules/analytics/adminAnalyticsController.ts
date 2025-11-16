@@ -927,3 +927,74 @@ export const getSystemHealth = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// ADD this function to get event analytics:
+
+export const getEventAnalytics = async (req: Request, res: Response) => {
+  try {
+    const { period = 'week' } = req.query;
+    
+    let timeFilter = '';
+    if (period === 'today') {
+      timeFilter = `WHERE DATE("createdAt") = CURRENT_DATE`;
+    } else if (period === 'week') {
+      timeFilter = `WHERE "createdAt" >= NOW() - INTERVAL '7 days'`;
+    } else if (period === 'month') {
+      timeFilter = `WHERE "createdAt" >= NOW() - INTERVAL '30 days'`;
+    }
+    
+    // Get event breakdown
+    const [
+      eventTypesResult,
+      hourlyResult,
+      dailyResult,
+      topUsersResult
+    ] = await Promise.all([
+      db.query(`
+        SELECT type, COUNT(*) as count
+        FROM "Event"
+        ${timeFilter}
+        GROUP BY type
+        ORDER BY count DESC
+      `),
+      db.query(`
+        SELECT EXTRACT(HOUR FROM "createdAt") as hour, COUNT(*) as count
+        FROM "Event"
+        ${timeFilter}
+        GROUP BY EXTRACT(HOUR FROM "createdAt")
+        ORDER BY hour
+      `),
+      db.query(`
+        SELECT DATE("createdAt") as date, COUNT(*) as count
+        FROM "Event"
+        ${timeFilter}
+        GROUP BY DATE("createdAt")
+        ORDER BY date DESC
+        LIMIT 30
+      `),
+      db.query(`
+        SELECT u.id, u.handle, u.name, COUNT(e.id) as eventCount
+        FROM "User" u
+        JOIN "Event" e ON u.id = e."userId"
+        ${timeFilter}
+        GROUP BY u.id, u.handle, u.name
+        ORDER BY eventCount DESC
+        LIMIT 10
+      `)
+    ]);
+    
+    res.json({
+      success: true,
+      analytics: {
+        eventTypes: eventTypesResult.rows,
+        hourly: hourlyResult.rows,
+        daily: dailyResult.rows,
+        topUsers: topUsersResult.rows,
+        period
+      }
+    });
+  } catch (error) {
+    logger.error('Event analytics error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

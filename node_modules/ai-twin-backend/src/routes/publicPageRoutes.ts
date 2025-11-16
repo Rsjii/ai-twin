@@ -25,5 +25,7 @@ router.get('/public-twin/chat/:twinId', extractJWTFromCookie, generateCSRFToken,
 // Public Chat History page
 router.get('/public-chat/history', extractJWTFromCookie, generateCSRFToken, getPublicChatHistoryPage);
 
+router.get('/user/:handle', extractJWTFromCookie, generateCSRFToken, publicPageController.getUserProfile);
+
 export default router;
 
