@@ -542,6 +542,17 @@
                                                 </label>
                                             </div>
                                             
+                                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                                <div class="flex-1">
+                                                    <h4 class="font-semibold text-gray-900 dark:text-white">Block Non-Logged Users</h4>
+                                                    <p class="text-sm text-gray-600 dark:text-gray-300">Hide your twin from users who are not logged in</p>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="blockNonLoggedUsers" <%= (twin.blockNonLoggedUsers === true) ? 'checked' : '' %> class="privacy-toggle sr-only peer">
+                                                    <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-blue-500"></div>
+                                                </label>
+                                            </div>
+                                            
                                         </div>
                                     </div>
                                     
@@ -589,8 +600,15 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Blocked Users Sub-section -->
+                                    <!-- Save Button (moved before Blocked Users) -->
                                     <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                                        <button id="savePrivacySettingsBtn" class="w-full bg-gray-400 text-white py-3 px-8 rounded-xl cursor-not-allowed transition-all duration-300 font-semibold">
+                                            Save Privacy Settings
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Blocked Users Sub-section (moved below Save button) -->
+                                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
                                         <div class="flex items-center justify-between mb-4">
                                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                                                 <svg class="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -606,15 +624,9 @@
                                             <p class="text-sm text-gray-500 dark:text-gray-400">Loading blocked users...</p>
                                         </div>
                                     </div>
-                                    
-                                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                                        <button id="savePrivacySettingsBtn" class="w-full bg-gradient-to-r from-primary to-accent text-white py-3 px-8 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">
-                                            Save Privacy Settings
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </div>                        
                         <% } %>
                         
                         <!-- ========== TAB 4: APPEARANCE ========== -->
@@ -1324,6 +1336,61 @@ if (cancelChangePasswordBtn && changePasswordFormContainer) {
                 document.body.removeChild(textArea);
             }
         }
+
+        // Track original settings for change detection
+        let originalSettings = {
+            showChatHistory: document.getElementById('showChatHistory')?.checked ?? true,
+            requireLogin: document.getElementById('requireLogin')?.checked ?? false,
+            blockNonLoggedUsers: document.getElementById('blockNonLoggedUsers')?.checked ?? false,
+            allowLikes: document.getElementById('allowLikes')?.checked ?? true,
+            allowFollows: document.getElementById('allowFollows')?.checked ?? true,
+            allowShares: document.getElementById('allowShares')?.checked ?? true,
+        };
+
+        // Check if settings changed
+        function hasSettingsChanged() {
+            const current = {
+                showChatHistory: document.getElementById('showChatHistory')?.checked ?? true,
+                requireLogin: document.getElementById('requireLogin')?.checked ?? false,
+                blockNonLoggedUsers: document.getElementById('blockNonLoggedUsers')?.checked ?? false,
+                allowLikes: document.getElementById('allowLikes')?.checked ?? true,
+                allowFollows: document.getElementById('allowFollows')?.checked ?? true,
+                allowShares: document.getElementById('allowShares')?.checked ?? true,
+            };
+            
+            return (
+                current.showChatHistory !== originalSettings.showChatHistory ||
+                current.requireLogin !== originalSettings.requireLogin ||
+                current.blockNonLoggedUsers !== originalSettings.blockNonLoggedUsers ||
+                current.allowLikes !== originalSettings.allowLikes ||
+                current.allowFollows !== originalSettings.allowFollows ||
+                current.allowShares !== originalSettings.allowShares
+            );
+        }
+
+        // Update button style based on changes
+        function updateSaveButtonStyle() {
+            const btn = document.getElementById('savePrivacySettingsBtn');
+            if (!btn) return;
+            
+            if (hasSettingsChanged()) {
+                btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                btn.classList.add('bg-gradient-to-r', 'from-primary', 'to-accent', 'cursor-pointer', 'hover:shadow-lg');
+                btn.disabled = false;
+            } else {
+                btn.classList.remove('bg-gradient-to-r', 'from-primary', 'to-accent', 'hover:shadow-lg', 'cursor-pointer');
+                btn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                btn.disabled = true;
+            }
+        }
+
+        // Add listeners to all privacy toggles
+        document.querySelectorAll('.privacy-toggle').forEach(toggle => {
+            toggle.addEventListener('change', updateSaveButtonStyle);
+        });
+
+        // Initialize button state on page load
+        updateSaveButtonStyle();
                 
         async function savePrivacySettings() {
             <% if (!hasTwins || !twin) { %>
@@ -1331,13 +1398,15 @@ if (cancelChangePasswordBtn && changePasswordFormContainer) {
                 return;
             <% } %>
             
-const settings = {
-  showChatHistory: document.getElementById('showChatHistory')?.checked ?? true,
-  requireLogin: document.getElementById('requireLogin')?.checked ?? false,
-  allowLikes: document.getElementById('allowLikes')?.checked ?? true,
-  allowFollows: document.getElementById('allowFollows')?.checked ?? true,
-  allowShares: document.getElementById('allowShares')?.checked ?? true,
-};            
+            const settings = {
+                showChatHistory: document.getElementById('showChatHistory')?.checked ?? true,
+                requireLogin: document.getElementById('requireLogin')?.checked ?? false,
+                blockNonLoggedUsers: document.getElementById('blockNonLoggedUsers')?.checked ?? false,
+                allowLikes: document.getElementById('allowLikes')?.checked ?? true,
+                allowFollows: document.getElementById('allowFollows')?.checked ?? true,
+                allowShares: document.getElementById('allowShares')?.checked ?? true,
+            };
+            
             try {
                 const response = await fetch('/api/privacy/settings', {
                     method: 'PUT',
@@ -1356,6 +1425,9 @@ const settings = {
                 
                 if (response.ok) {
                     showNotification('Privacy settings updated!', 'success');
+                    // Update original settings after successful save
+                    originalSettings = { ...settings };
+                    updateSaveButtonStyle();
                 } else {
                     showNotification(result.error || 'Failed to update settings', 'error');
                 }

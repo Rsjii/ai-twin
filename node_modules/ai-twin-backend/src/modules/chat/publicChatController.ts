@@ -574,12 +574,13 @@ export const getPublicChatByTwin = async (req: Request, res: Response, next: Nex
     const { twinId } = req.params;
     const { visitorId } = req.query;
 
-    // Check if twin exists and is public
-    const twinResult = await db.query(`
-      SELECT id, "isPublic", "publicHandle", "sampleReply"
-      FROM "Twin"
-      WHERE id = $1 AND "isPublic" = true
-    `, [twinId]);
+// Allow access to public chat - blockNonLoggedUsers only affects discover visibility
+const twinResult = await db.query(`
+  SELECT id, "isPublic", "publicHandle", "sampleReply"
+  FROM "Twin" t
+  WHERE t.id = $1 
+    AND t."isPublic" = true
+`, [twinId]);    
 
     if (twinResult.rows.length === 0) {
       throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);

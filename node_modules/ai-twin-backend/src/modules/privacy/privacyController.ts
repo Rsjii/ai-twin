@@ -8,6 +8,7 @@ import { z } from 'zod';
 export interface TwinPrivacySettings {
   showChatHistory: boolean;
   requireLogin: boolean;
+  blockNonLoggedUsers?: boolean;
   allowLikes: boolean;
   allowFollows: boolean;
   allowShares: boolean;
@@ -20,6 +21,7 @@ const updatePrivacySettingsSchema = z.object({
   settings: z.object({
     showChatHistory: z.boolean().optional(),
     requireLogin: z.boolean().optional(),
+    blockNonLoggedUsers: z.boolean().optional(),
     allowLikes: z.boolean().optional(),
     allowFollows: z.boolean().optional(),
     allowShares: z.boolean().optional(),
@@ -69,6 +71,13 @@ export const updatePrivacySettings = async (req: Request, res: Response) => {
     if (settings.requireLogin !== undefined) {
       updateFields.push(`"requireLogin" = $${paramIndex}`);
       updateValues.push(settings.requireLogin);
+      paramIndex++;
+    }
+
+    // Update updatePrivacySettings function (add after line 73)
+    if (settings.blockNonLoggedUsers !== undefined) {
+      updateFields.push(`"blockNonLoggedUsers" = $${paramIndex}`);
+      updateValues.push(settings.blockNonLoggedUsers);
       paramIndex++;
     }
 
@@ -172,8 +181,8 @@ export const getPrivacySettings = async (req: Request, res: Response) => {
 
     // Verify twin belongs to user
     const twinResult = await db.query(`
-SELECT id, "userId", "showChatHistory", "requireLogin", 
-       "allowLikes", "allowFollows", "allowShares"             
+    SELECT id, "userId", "showChatHistory", "requireLogin", 
+       "blockNonLoggedUsers", "allowLikes", "allowFollows", "allowShares"             
       FROM "Twin"
       WHERE id = $1 AND "userId" = $2
     `, [twinId, req.user.id]);
@@ -198,6 +207,7 @@ SELECT id, "userId", "showChatHistory", "requireLogin",
       settings: {
         showChatHistory: twin.showChatHistory ?? true,
         requireLogin: twin.requireLogin ?? false,
+        blockNonLoggedUsers: twin.blockNonLoggedUsers ?? false,
         allowLikes: twin.allowLikes ?? true,
         allowFollows: twin.allowFollows ?? true,
         allowShares: twin.allowShares ?? true,

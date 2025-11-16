@@ -452,11 +452,16 @@ export const publicTwinQueries = {
 
   findByPublicHandle: async (publicHandle: string) => {
     const result = await db.query(
-      'SELECT t.*, u.handle as userHandle, u.name as userName FROM "Twin" t JOIN "User" u ON t."userId" = u.id WHERE t."publicHandle" = $1 AND t."isPublic" = true',
+      `SELECT t.*, u.handle as userHandle, u.name as userName 
+       FROM "Twin" t 
+       JOIN "User" u ON t."userId" = u.id 
+       WHERE t."publicHandle" = $1 
+         AND t."isPublic" = true
+         AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)`,
       [publicHandle]
     );
     return result.rows[0];
-  },
+  },  
 
   getPublicTwins: async (limit = 20, offset = 0) => {
     const result = await db.query(
@@ -464,6 +469,7 @@ export const publicTwinQueries = {
        FROM "Twin" t 
        JOIN "User" u ON t."userId" = u.id 
        WHERE t."isPublic" = true 
+         AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)       
        ORDER BY t."likeCount" DESC, t."chatCount" DESC, t."createdAt" DESC 
        LIMIT $1 OFFSET $2`,
       [limit, offset]

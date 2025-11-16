@@ -56,6 +56,16 @@ function buildBlockedFilter(blockedIds: string[], paramOffset: number): { sql: s
   };
 }
 
+// Helper function to build blockNonLoggedUsers filter (only for non-logged users)
+function buildBlockNonLoggedUsersFilter(hasUser: boolean): string {
+  if (hasUser) {
+    // Logged-in users can see all twins (blockNonLoggedUsers doesn't apply to them)
+    return '';
+  }
+  // Non-logged users: hide twins where blockNonLoggedUsers = true
+  return `AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)`;
+}
+
 // Get trending twins based on engagement
 export const getTrendingTwins = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -81,24 +91,33 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
     }
 
  // ✅ Get blocked twin IDs for logged-in user
+ const hasUser = !!(req.user && req.user.id);
  let blockedTwinIds: string[] = [];
- if (req.user && req.user.id) {
-   console.log('[Discover] Getting blocked twins for user:', req.user.id);
+ 
+ if (hasUser) {
+   console.log('[Discover] User logged in:', req.user.id);
    const blockedResult = await db.query(`
      SELECT "twinId" FROM "TwinBlockedUsers" WHERE "userId" = $1
    `, [req.user.id]);
    blockedTwinIds = blockedResult.rows.map(row => row.twinId);
    console.log('[Discover] Blocked twin IDs:', blockedTwinIds);
  } else {
-   console.log('[Discover] No user in request, skipping blocked filter');
+   console.log('[Discover] No user (non-logged), will filter blockNonLoggedUsers');
  }
 
- // Build blocked filter
+ // Build filters
  const blockedFilter = blockedTwinIds.length > 0 
    ? `AND t.id NOT IN (${blockedTwinIds.map((_, i) => `$${i + 3}`).join(', ')})`
    : '';
  
- console.log('[Discover] Blocked filter SQL:', blockedFilter);      
+ const blockNonLoggedFilter = buildBlockNonLoggedUsersFilter(hasUser);
+ 
+ console.log('[Discover] Filters:', { 
+   hasUser, 
+   blockedFilter, 
+   blockNonLoggedFilter,
+   blockedTwinIdsCount: blockedTwinIds.length 
+ });      
 
     // Get trending twins with engagement score
     const trendingTwins = await db.query(`
@@ -130,7 +149,8 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
       LEFT JOIN "TwinPerformance" tp ON t.id = tp."twinId"
-      WHERE t."isPublic" = true
+      WHERE t."isPublic" = true 
+      ${blockNonLoggedFilter}
       ${timeFilter}
       AND (t."likeCount" > 0 OR t."followCount" > 0 OR t."chatCount" > 0)
       ${blockedFilter}
@@ -159,7 +179,8 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
           0 as engagement_score
         FROM "Twin" t
         JOIN "User" u ON t."userId" = u.id
-        WHERE t."isPublic" = true
+        WHERE t."isPublic" = true 
+        ${blockNonLoggedFilter}
         ${blockedFilter}
         ORDER BY t."createdAt" DESC
         LIMIT $1
@@ -203,8 +224,10 @@ export const searchTwins = async (req: Request, res: Response, next: NextFunctio
     const { query, limit, offset } = searchSchema.parse(req.query);
 
     // ✅ Get blocked twin IDs
+    const hasUser = !!(req.user && req.user.id);
     const blockedTwinIds = await getBlockedTwinIds(req.user?.id);
     const blockedFilter = buildBlockedFilter(blockedTwinIds, 4);
+    const blockNonLoggedFilter = buildBlockNonLoggedUsersFilter(hasUser);
 
     // Search twins by handle, bio, or user name
     const searchResults = await db.query(`
@@ -246,7 +269,8 @@ export const searchTwins = async (req: Request, res: Response, next: NextFunctio
         ) as relevance_score
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
-      WHERE t."isPublic" = true
+      WHERE t."isPublic" = true 
+      ${blockNonLoggedFilter}
       ${blockedFilter.sql}
       AND (
         LOWER(t."publicHandle") LIKE LOWER($1) OR
@@ -283,8 +307,10 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
     const { limit, offset } = trendingSchema.parse(req.query);
 
     // ✅ Get blocked twin IDs
+    const hasUser = !!(req.user && req.user.id);
     const blockedTwinIds = await getBlockedTwinIds(req.user?.id);
     const blockedFilter = buildBlockedFilter(blockedTwinIds, 2);
+    const blockNonLoggedFilter = buildBlockNonLoggedUsersFilter(hasUser);
 
     let recommendations = [];
 
@@ -322,7 +348,8 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
             u.name as "userName"
           FROM "Twin" t
           JOIN "User" u ON t."userId" = u.id
-          WHERE t."isPublic" = true
+          WHERE t."isPublic" = true 
+          ${blockNonLoggedFilter}
           AND t.id NOT IN (${likedTwinIds.map((_, i) => `$${i + 2}`).join(', ')})
           AND t."userId" != $1
           ${blockedFilterForLiked.sql}
@@ -350,7 +377,8 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
           u.name as "userName"
         FROM "Twin" t
         JOIN "User" u ON t."userId" = u.id
-        WHERE t."isPublic" = true
+        WHERE t."isPublic" = true 
+        ${blockNonLoggedFilter}
         ${blockedFilter.sql}
         ORDER BY t."likeCount" DESC, t."chatCount" DESC, t."createdAt" DESC
         LIMIT $1 OFFSET $2
@@ -387,8 +415,10 @@ export const getRecentTwins = async (req: Request, res: Response, next: NextFunc
     const { limit, offset } = trendingSchema.parse(req.query);
 
     // ✅ Get blocked twin IDs
+    const hasUser = !!(req.user && req.user.id);
     const blockedTwinIds = await getBlockedTwinIds(req.user?.id);
     const blockedFilter = buildBlockedFilter(blockedTwinIds, 2);
+    const blockNonLoggedFilter = buildBlockNonLoggedUsersFilter(hasUser);
 
     const recentTwins = await db.query(`
       SELECT 
@@ -406,7 +436,8 @@ export const getRecentTwins = async (req: Request, res: Response, next: NextFunc
         u.name as "userName"
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
-      WHERE t."isPublic" = true
+      WHERE t."isPublic" = true 
+      ${blockNonLoggedFilter}
       ${blockedFilter.sql}
       ORDER BY t."createdAt" DESC
       LIMIT $1 OFFSET $2
@@ -442,8 +473,10 @@ export const getMostLikedTwins = async (req: Request, res: Response, next: NextF
     const { limit, offset } = trendingSchema.parse(req.query);
 
     // ✅ Get blocked twin IDs
+    const hasUser = !!(req.user && req.user.id);
     const blockedTwinIds = await getBlockedTwinIds(req.user?.id);
     const blockedFilter = buildBlockedFilter(blockedTwinIds, 2);    
+    const blockNonLoggedFilter = buildBlockNonLoggedUsersFilter(hasUser);
 
     const mostLikedTwins = await db.query(`
       SELECT 
@@ -461,7 +494,8 @@ export const getMostLikedTwins = async (req: Request, res: Response, next: NextF
         u.name as "userName"
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
-      WHERE t."isPublic" = true
+      WHERE t."isPublic" = true 
+      ${blockNonLoggedFilter}
       ${blockedFilter.sql}
       ORDER BY t."likeCount" DESC, t."createdAt" DESC
       LIMIT $1 OFFSET $2
@@ -497,8 +531,10 @@ export const getMostFollowedTwins = async (req: Request, res: Response, next: Ne
     const { limit, offset } = trendingSchema.parse(req.query);
 
     // ✅ Get blocked twin IDs
+    const hasUser = !!(req.user && req.user.id);
     const blockedTwinIds = await getBlockedTwinIds(req.user?.id);
     const blockedFilter = buildBlockedFilter(blockedTwinIds, 2);    
+    const blockNonLoggedFilter = buildBlockNonLoggedUsersFilter(hasUser);
 
     const mostFollowedTwins = await db.query(`
       SELECT 
@@ -516,7 +552,8 @@ export const getMostFollowedTwins = async (req: Request, res: Response, next: Ne
         u.name as "userName"
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
-      WHERE t."isPublic" = true
+      WHERE t."isPublic" = true 
+      ${blockNonLoggedFilter}
       ${blockedFilter.sql}
       ORDER BY t."followCount" DESC, t."likeCount" DESC, t."createdAt" DESC
       LIMIT $1 OFFSET $2
@@ -552,8 +589,10 @@ export const getPopularTwins = async (req: Request, res: Response, next: NextFun
     const { limit, offset } = trendingSchema.parse(req.query);
 
     // ✅ Get blocked twin IDs
+    const hasUser = !!(req.user && req.user.id);
     const blockedTwinIds = await getBlockedTwinIds(req.user?.id);
     const blockedFilter = buildBlockedFilter(blockedTwinIds, 2);    
+    const blockNonLoggedFilter = buildBlockNonLoggedUsersFilter(hasUser);
 
     // Get popular twins based on combined engagement
     const popularTwins = await db.query(`
@@ -582,7 +621,8 @@ export const getPopularTwins = async (req: Request, res: Response, next: NextFun
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
       LEFT JOIN "TwinPerformance" tp ON t.id = tp."twinId"
-      WHERE t."isPublic" = true
+      WHERE t."isPublic" = true 
+      ${blockNonLoggedFilter}
       ${blockedFilter.sql}
       ORDER BY popularity_score DESC, t."createdAt" DESC
       LIMIT $1 OFFSET $2
@@ -618,8 +658,10 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
     const { limit, offset } = trendingSchema.parse(req.query);
 
     // ✅ Get blocked twin IDs
+    const hasUser = !!(req.user && req.user.id);
     const blockedTwinIds = await getBlockedTwinIds(req.user?.id);
     const blockedFilter = buildBlockedFilter(blockedTwinIds, 1);
+    const blockNonLoggedFilter = buildBlockNonLoggedUsersFilter(hasUser);
 
     // Get mixed content: trending, recent, and popular
     const [trending, recent, popular] = await Promise.all([
@@ -641,7 +683,8 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
         FROM "Twin" t
         JOIN "User" u ON t."userId" = u.id
         LEFT JOIN "TwinPerformance" tp ON t.id = tp."twinId"
-        WHERE t."isPublic" = true
+        WHERE t."isPublic" = true 
+        ${blockNonLoggedFilter}
         ${blockedFilter.sql}
         ORDER BY COALESCE(tp."engagementScore", 
           (t."likeCount" * 0.3 + t."followCount" * 0.4 + t."chatCount" * 0.3)
@@ -666,7 +709,8 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
           'recent' as feed_type
         FROM "Twin" t
         JOIN "User" u ON t."userId" = u.id
-        WHERE t."isPublic" = true
+        WHERE t."isPublic" = true 
+        ${blockNonLoggedFilter}
         ${blockedFilter.sql}
         ORDER BY t."createdAt" DESC
         LIMIT $1
@@ -689,7 +733,8 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
           'popular' as feed_type
         FROM "Twin" t
         JOIN "User" u ON t."userId" = u.id
-        WHERE t."isPublic" = true
+        WHERE t."isPublic" = true 
+        ${blockNonLoggedFilter}
         ${blockedFilter.sql}
         ORDER BY t."likeCount" DESC, t."chatCount" DESC
         LIMIT $1

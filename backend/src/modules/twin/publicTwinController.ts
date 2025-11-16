@@ -350,19 +350,43 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
     
     logger.info('getPublicChatPage:', { twinId, chatId, userId });
     
-    // Get twin details (existing code)
-    const twinResult = await db.query(`
-      SELECT id, "publicHandle", "sampleReply", "isPublic", "profileImage", bio, "requireLogin"
-      FROM "Twin"
-      WHERE id = $1 AND "isPublic" = true
-    `, [twinId]);
-    
-    if (twinResult.rows.length === 0) {
-      throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
-    }
-    
-    const twin = twinResult.rows[0];
-    
+// First, check if twin exists and get basic info
+const twinCheck = await db.query(`
+  SELECT id, "isPublic", "blockNonLoggedUsers", "publicHandle"
+  FROM "Twin" t
+  WHERE t.id = $1
+`, [twinId]);
+
+if (twinCheck.rows.length === 0) {
+  logger.warn('getPublicChatPage: Twin not found', { twinId, userId });
+  throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
+}
+
+const twinInfo = twinCheck.rows[0];
+
+// Check if twin is public
+if (!twinInfo.isPublic) {
+  logger.warn('getPublicChatPage: Twin is not public', { twinId, userId, isPublic: twinInfo.isPublic });
+  throw createError.notFound('Twin is not public', ErrorCodes.TWIN_NOT_FOUND);
+}
+
+// Note: blockNonLoggedUsers only affects discover page visibility, not direct access
+// Non-logged users can still access public chat pages directly via URL
+
+// Get full twin details (we know it exists and is accessible)
+const twinResult = await db.query(`
+  SELECT id, "publicHandle", "sampleReply", "isPublic", "profileImage", bio, "requireLogin"
+  FROM "Twin" t
+  WHERE t.id = $1
+`, [twinId]);
+
+if (twinResult.rows.length === 0) {
+  logger.error('getPublicChatPage: Unexpected error - twin disappeared', { twinId, userId });
+  throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
+}
+
+const twin = twinResult.rows[0];    
+
     // If chatId provided, validate it belongs to user
     let initialChatId = null;
     if (chatId && userId) {

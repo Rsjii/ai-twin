@@ -147,6 +147,7 @@ app.set('views', '../frontend/src/views');
 // Static files
 app.use(express.static('../frontend/src/public'));
 app.use('/uploads', express.static('public/uploads'));
+app.use('/utils', express.static('../frontend/src/utils')); // ADD THIS LINE for pagination.js
 
 // Apply custom middleware
 app.use(generateCSRFToken);

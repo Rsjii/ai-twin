@@ -50,36 +50,61 @@ export async function getTwinManage(req: any, res: Response) {
       }
     };
     
-    // Fetch twin analytics - optimized single query instead of 8 separate queries
+    // Fetch twin analytics - using CORRECT table names that exist
     const analyticsResult = await fastQuery(`
       SELECT 
-        (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1) as chats,
-        (SELECT COUNT(*) FROM "PublicTwinView" WHERE "twinId" = $1) as views,
-        (SELECT COUNT(*) FROM "PublicTwinLike" WHERE "twinId" = $1) as likes,
-        (SELECT COUNT(*) FROM "PublicTwinFollow" WHERE "twinId" = $1) as followers,
+        -- Total chats: both PublicChat and private Chat
+        (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1) + 
+        (SELECT COUNT(*) FROM "Chat" WHERE "twinId" = $1 AND "userId" = $2) as chats,
+        -- Views: not tracked, return 0
+        0 as views,
+        -- Likes: from TwinLike table (used everywhere in codebase)
+        (SELECT COUNT(*) FROM "TwinLike" WHERE "twinId" = $1) as likes,
+        -- Follows: from TwinFollow table (used everywhere in codebase)
+        (SELECT COUNT(*) FROM "TwinFollow" WHERE "twinId" = $1) as followers,
+        -- Memory chunks: from MemoryLongTerm and style_anchors
         (SELECT COUNT(*) FROM "MemoryLongTerm" WHERE "twinId" = $1) + 
         (SELECT COUNT(*) FROM "style_anchors" WHERE twin_id = $1) as memories,        
-        (SELECT COUNT(*) FROM "StyleCorrection" WHERE "twinId" = $1) as corrections,
-        (SELECT COUNT(*) FROM "AIRun" WHERE "twinId" = $1) as aiRuns,
-        (SELECT COUNT(*) FROM "LearningGoal" WHERE "twinId" = $1) as goals
-    `, [twinId]);
+        -- Style corrections: from style_corrections table (lowercase, snake_case - used in database.ts, performanceService.ts, etc.)
+        (SELECT COUNT(*) FROM "style_corrections" WHERE twin_id = $1) as corrections,
+        -- AI runs: from ai_runs table (lowercase, snake_case - used in database.ts, performanceService.ts, etc.)
+        (SELECT COUNT(*) FROM "ai_runs" WHERE twin_id = $1) as aiRuns,
+        -- Learning goals: table doesn't exist, return 0
+        0 as goals
+    `, [twinId, userId]);
 
-    // Fetch recent activity (last 5 chats) - fast query
+    // Fetch recent activity (last 5 chats) - include both PublicChat and private Chat
     let recentChats: any[] = [];
     try {
       const recentChatsResult = await fastQuery(`
-        SELECT 
-          pc.id,
-          pc.title,
-          pc."createdAt",
-          COUNT(pm.id) as message_count
-        FROM "PublicChat" pc
-        LEFT JOIN "PublicMessage" pm ON pc.id = pm."chatId"
-        WHERE pc."twinId" = $1
-        GROUP BY pc.id, pc.title, pc."createdAt"
-        ORDER BY pc."createdAt" DESC
+        (
+          SELECT 
+            pc.id,
+            pc.title,
+            pc."createdAt",
+            COUNT(pm.id) as message_count,
+            'public' as chat_type
+          FROM "PublicChat" pc
+          LEFT JOIN "PublicMessage" pm ON pc.id = pm."chatId"
+          WHERE pc."twinId" = $1
+          GROUP BY pc.id, pc.title, pc."createdAt"
+        )
+        UNION ALL
+        (
+          SELECT 
+            c.id,
+            NULL as title,
+            c."createdAt",
+            COUNT(m.id) as message_count,
+            'private' as chat_type
+          FROM "Chat" c
+          LEFT JOIN "Message" m ON c.id = m."chatId"
+          WHERE c."twinId" = $1 AND c."userId" = $2
+          GROUP BY c.id, c."createdAt"
+        )
+        ORDER BY "createdAt" DESC
         LIMIT 5
-      `, [twinId]);
+      `, [twinId, userId]);
       recentChats = recentChatsResult.rows || [];
     } catch (error) {
       logger.warn('Error fetching recent chats:', {
@@ -89,17 +114,17 @@ export async function getTwinManage(req: any, res: Response) {
       recentChats = [];
     }
 
-    // Fetch public status - fast query
+    // Fetch public status - query from Twin table (used everywhere, no separate PublicTwin table)
     let publicTwin = null;
     try {
       const publicTwinResult = await fastQuery(`
         SELECT 
           id,
-          handle,
-          is_public,
-          created_at
-        FROM "PublicTwin" 
-        WHERE twin_id = $1
+          "publicHandle" as handle,
+          "isPublic" as is_public,
+          "createdAt" as created_at
+        FROM "Twin" 
+        WHERE id = $1 AND "isPublic" = true
       `, [twinId]);
       publicTwin = publicTwinResult.rows.length > 0 ? publicTwinResult.rows[0] : null;
     } catch (error) {

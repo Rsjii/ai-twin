@@ -131,153 +131,165 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
             </div>
         </div>
     </div>
-    
-    <script>
-        // Debug function to check user data
-        async function debugUserData() {
-            try {
-                console.log('=== DEBUGGING USER DATA ===');
-                const response = await fetch('/api/metrics/debug');
-                const data = await response.json();
-                console.log('Debug data:', data);
-                
-                if (data.success) {
-                    alert(\`Debug Info:\\nUser: \${data.user?.email || 'No user'}\\nTwins: \${data.counts?.twins || 0}\\nChats: \${data.counts?.chats || 0}\\nEvents: \${data.counts?.events || 0}\`);
-                } else {
-                    alert('Debug failed: ' + data.error);
-                }
-            } catch (error) {
-                console.error('Debug error:', error);
-                alert('Debug error: ' + error.message);
-            }
-        }
-        
-        // Create sample data function
-        async function createSampleData() {
-            try {
-                console.log('Creating sample data...');
-                const response = await fetch('/api/metrics/create-sample', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                const data = await response.json();
-                console.log('Sample data response:', data);
-                
-                if (data.success) {
-                    alert('Sample data created successfully! Refreshing analytics...');
-                    loadAnalytics();
-                } else {
-                    alert('Failed to create sample data: ' + data.error);
-                }
-            } catch (error) {
-                console.error('Create sample data error:', error);
-                alert('Error creating sample data: ' + error.message);
-            }
-        }
-        
-        // Load analytics data
-        async function loadAnalytics() {
-            try {
-                console.log('Loading analytics data...');
-                
-                // Load user analytics
-                const response = await fetch('/api/metrics/user');
-                const data = await response.json();
-
-                        // Load feedback analytics
-        const feedbackResponse = await fetch('/api/analytics/feedback');
-        const feedbackData = await feedbackResponse.json();
-        
-        if (feedbackData.success) {
-            document.getElementById('positiveFeedback').textContent = feedbackData.analytics.positiveFeedback;
-            document.getElementById('negativeFeedback').textContent = feedbackData.analytics.negativeFeedback;
-            document.getElementById('satisfactionScore').textContent = feedbackData.analytics.satisfactionScore + '%';
-        }
-                
-                console.log('Raw analytics response:', data);
-                
-                if (data.success) {
-                    console.log('Analytics data:', data);
-                    
-                    // Update overview cards
-                    document.getElementById('totalViews').textContent = data.analytics?.totalViews || 0;
-                    document.getElementById('totalLikes').textContent = data.analytics?.totalLikes || 0;
-                    document.getElementById('totalFollowers').textContent = data.analytics?.totalFollowers || 0;
-                    document.getElementById('totalChats').textContent = data.analytics?.totalChats || 0;
-                    
-                    // Update recent activity
-                    const activityContainer = document.getElementById('recentActivity');
-                    if (data.analytics?.recentActivity && data.analytics.recentActivity.length > 0) {
-                        activityContainer.innerHTML = data.analytics.recentActivity.map(activity => \`
-                            <div class="flex items-center space-x-3">
-                                <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                <div class="flex-1">
-                                    <p class="text-sm text-gray-900 dark:text-white">\${activity.description}</p>
-                                    <p class="text-xs text-gray-500">\${new Date(activity.timestamp).toLocaleString()}</p>
-                                </div>
-                            </div>
-                        \`).join('');
-                    } else {
-                        activityContainer.innerHTML = '<p class="text-gray-500">No recent activity</p>';
-                    }
-                } else {
-                    console.error('Failed to load analytics:', data.error);
-                    // Show error message to user
-                    document.getElementById('totalViews').textContent = 'Error';
-                    document.getElementById('totalLikes').textContent = 'Error';
-                    document.getElementById('totalFollowers').textContent = 'Error';
-                    document.getElementById('totalChats').textContent = 'Error';
-                }
-            } catch (error) {
-                console.error('Analytics loading error:', error);
-                // Show error message to user
-                document.getElementById('totalViews').textContent = 'Error';
-                document.getElementById('totalLikes').textContent = 'Error';
-                document.getElementById('totalFollowers').textContent = 'Error';
-                document.getElementById('totalChats').textContent = 'Error';
-            }
-        }
-        
-        // Load analytics on page load and add click handlers
-        document.addEventListener('DOMContentLoaded', () => {
-            loadAnalytics();
-            
-            // Get twinId from global variable (set by script tag outside template string)
-            const twinIdValue = window.twinIdValue || '';
-            
-  // Set data attributes on cards and add click handlers
-            const cards = [
-                { element: document.getElementById('totalLikes').closest('.bg-white'), type: 'likers' },
-                { element: document.getElementById('totalFollowers').closest('.bg-white'), type: 'followers' },
-                { element: document.getElementById('totalChats').closest('.bg-white'), type: 'chatters' }
-            ];
-            
-            cards.forEach(card => {
-                if (card.element) {
-                    card.element.classList.add('cursor-pointer', 'hover:shadow-xl', 'transition-all');
-                    card.element.setAttribute('data-twin-id', twinIdValue);
-                    card.element.setAttribute('data-list-type', card.type);
-                    
-                // ✅ Direct redirect to analytics/details (NO popup)
-                    card.element.addEventListener('click', function() {
-                        const twinId = this.getAttribute('data-twin-id');
-                        const listType = this.getAttribute('data-list-type');
-                        if (twinId && listType) {
-                            // Direct redirect to details page (use string concatenation instead of template literal)
-                            window.location.href = '/analytics/details?type=' + listType + '&twinId=' + twinId;
-                        }                            
-                    });                    
-                }
-            });
-        });
-    </script>
 ` }) %>
 
 <script>
     // Set twinId from server-side variable (outside template string, so EJS works)
     window.twinIdValue = '<%- twinIdValue %>';
+    
+    // Debug function to check user data
+    async function debugUserData() {
+        try {
+            console.log('=== DEBUGGING USER DATA ===');
+            const response = await fetch('/api/metrics/debug');
+            const data = await response.json();
+            console.log('Debug data:', data);
+            
+            if (data.success) {
+                alert('Debug Info:\\nUser: ' + (data.user?.email || 'No user') + '\\nTwins: ' + (data.counts?.twins || 0) + '\\nChats: ' + (data.counts?.chats || 0) + '\\nEvents: ' + (data.counts?.events || 0));
+            } else {
+                alert('Debug failed: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Debug error:', error);
+            alert('Debug error: ' + error.message);
+        }
+    }
+    
+    // Create sample data function
+    async function createSampleData() {
+        try {
+            console.log('Creating sample data...');
+            const response = await fetch('/api/metrics/create-sample', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            const data = await response.json();
+            console.log('Sample data response:', data);
+            
+            if (data.success) {
+                alert('Sample data created successfully! Refreshing analytics...');
+                loadAnalytics();
+            } else {
+                alert('Failed to create sample data: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Create sample data error:', error);
+            alert('Error creating sample data: ' + error.message);
+        }
+    }
+    
+    // Load analytics data
+    async function loadAnalytics() {
+        try {
+            console.log('Loading analytics data...');
+            
+            // Load user analytics
+            const response = await fetch('/api/metrics/user');
+            const data = await response.json();
+
+            // Load feedback analytics
+            const feedbackResponse = await fetch('/api/analytics/feedback');
+            const feedbackData = await feedbackResponse.json();
+            
+            if (feedbackData.success && feedbackData.analytics) {
+                const pos = Number.isInteger(feedbackData.analytics.positiveFeedback) 
+                    ? feedbackData.analytics.positiveFeedback : 0;
+                const neg = Number.isInteger(feedbackData.analytics.negativeFeedback) 
+                    ? feedbackData.analytics.negativeFeedback : 0;
+                const score = Number.isFinite(feedbackData.analytics.satisfactionScore) 
+                    ? Math.round(feedbackData.analytics.satisfactionScore) : 0;
+                
+                document.getElementById('positiveFeedback').textContent = pos;
+                document.getElementById('negativeFeedback').textContent = neg;
+                document.getElementById('satisfactionScore').textContent = score + '%';
+            } else {
+                document.getElementById('positiveFeedback').textContent = '0';
+                document.getElementById('negativeFeedback').textContent = '0';
+                document.getElementById('satisfactionScore').textContent = '0%';
+            }
+            
+            console.log('Raw analytics response:', data);
+            
+            if (data.success && data.analytics) {
+                console.log('Analytics data:', data);
+                
+                // Validate and update overview cards
+                const views = Number.isInteger(data.analytics.totalViews) ? data.analytics.totalViews : 0;
+                const likes = Number.isInteger(data.analytics.totalLikes) ? data.analytics.totalLikes : 0;
+                const followers = Number.isInteger(data.analytics.totalFollowers) ? data.analytics.totalFollowers : 0;
+                const chats = Number.isInteger(data.analytics.totalChats) ? data.analytics.totalChats : 0;
+                
+                document.getElementById('totalViews').textContent = views;
+                document.getElementById('totalLikes').textContent = likes;
+                document.getElementById('totalFollowers').textContent = followers;
+                document.getElementById('totalChats').textContent = chats;
+                
+                // Update recent activity with validation
+                const activityContainer = document.getElementById('recentActivity');
+                if (data.analytics?.recentActivity && Array.isArray(data.analytics.recentActivity) && data.analytics.recentActivity.length > 0) {
+                    activityContainer.innerHTML = data.analytics.recentActivity.map(activity => {
+                        if (!activity || !activity.description) return '';
+                        const timestamp = activity.timestamp ? new Date(activity.timestamp).toLocaleString() : 'Unknown time';
+                        return '<div class="flex items-center space-x-3"><div class="w-2 h-2 bg-blue-500 rounded-full"></div><div class="flex-1"><p class="text-sm text-gray-900 dark:text-white">' + activity.description + '</p><p class="text-xs text-gray-500">' + timestamp + '</p></div></div>';
+                    }).filter(html => html !== '').join('');
+                } else {
+                    activityContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No recent activity</p>';
+                }
+            } else {
+                console.error('Failed to load analytics:', data.error);
+                // Show error message to user
+                document.getElementById('totalViews').textContent = '0';
+                document.getElementById('totalLikes').textContent = '0';
+                document.getElementById('totalFollowers').textContent = '0';
+                document.getElementById('totalChats').textContent = '0';
+                document.getElementById('recentActivity').innerHTML = '<p class="text-gray-500 dark:text-gray-400">Error loading activity</p>';
+            }
+        } catch (error) {
+            console.error('Analytics loading error:', error);
+            // Show error message to user
+            document.getElementById('totalViews').textContent = '0';
+            document.getElementById('totalLikes').textContent = '0';
+            document.getElementById('totalFollowers').textContent = '0';
+            document.getElementById('totalChats').textContent = '0';
+            document.getElementById('recentActivity').innerHTML = '<p class="text-red-500">Error loading analytics</p>';
+        }
+    }            
+    
+    // Load analytics on page load and add click handlers
+    document.addEventListener('DOMContentLoaded', () => {
+        loadAnalytics();
+        
+        // Get twinId from global variable (set by script tag outside template string)
+        const twinIdValue = window.twinIdValue || '';
+        
+        // Set data attributes on cards and add click handlers
+        const cards = [
+            { element: document.getElementById('totalLikes')?.closest('[class*="bg-white"]'), type: 'likers' },
+            { element: document.getElementById('totalFollowers')?.closest('[class*="bg-white"]'), type: 'followers' },
+            { element: document.getElementById('totalChats')?.closest('[class*="bg-white"]'), type: 'chatters' }
+        ];
+        
+        cards.forEach(card => {
+            if (card.element) {
+                card.element.classList.add('cursor-pointer', 'hover:shadow-xl', 'transition-all');
+                card.element.setAttribute('data-twin-id', twinIdValue);
+                card.element.setAttribute('data-list-type', card.type);
+                
+                // Direct redirect to analytics/details (NO popup)
+                card.element.addEventListener('click', function() {
+                    const twinId = this.getAttribute('data-twin-id');
+                    const listType = this.getAttribute('data-list-type');
+                    if (twinId && listType) {
+                        // Direct redirect to details page (use string concatenation instead of template literal)
+                        window.location.href = '/analytics/details?type=' + listType + '&twinId=' + twinId;
+                    }                            
+                });                    
+            }
+        });
+    });
 </script>
 
 <!-- Social List Modal -->

@@ -35,8 +35,10 @@ export async function getPublicProfile(req: any, res: Response) {
         u.id as "userId", u.handle as "userHandle", u.name as "userName"
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
-      WHERE t."publicHandle" = $1 AND t."isPublic" = true
-    `, [handle]);    
+      WHERE t."publicHandle" = $1 
+        AND t."isPublic" = true
+        AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL OR $2 IS NOT NULL)
+    `, [handle, req.user?.id || null]);     
 
     if (publicTwin.rows.length === 0) {
       return res.status(404).render('404', { 
@@ -174,9 +176,11 @@ export async function getUserProfile(req: any, res: Response) {
         t."likeCount", t."followCount", t."chatCount", t."sampleReply", t."createdAt",
         t."allowShares", t."requireLogin"
       FROM "Twin" t
-      WHERE t."userId" = $1 AND t."isPublic" = true
+      WHERE t."userId" = $1 
+        AND t."isPublic" = true
+        AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL OR $2 IS NOT NULL)
       ORDER BY t."createdAt" DESC
-    `, [user.id]);
+    `, [user.id, req.user?.id || null]);    
     
     const twins = twinsResult.rows;
     
