@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Chat History</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#4f46e5',
+                        accent: '#8b5cf6',
+                    },
+                }
+            }
+        }
+    </script>
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen">
+    <%- include('header') %>
+    
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">Chat History</h1>
+                    <p class="text-gray-600 dark:text-gray-300">Read-only view of public chat</p>
+                </div>
+                <a href="/twin/manage" class="px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
+                    Back to Manage
+                </a>
+            </div>
+        </div>
+
+        <!-- Chat Info -->
+        <div id="chatInfo" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 mb-6">
+            <div class="text-center py-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p class="mt-4 text-gray-600 dark:text-gray-400">Loading chat...</p>
+            </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="chatMessages" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6">
+            <!-- Messages will be loaded here -->
+        </div>
+    </main>
+
+    <%- include('footer') %>
+    
+    <script>
+        const chatId = '<%= chatId %>';
+        
+        async function loadChatHistory() {
+            try {
+                const response = await fetch(`/api/public-chat/${chatId}/view-history`, {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayChatInfo(data.chat);
+                    displayMessages(data.messages);
+                } else {
+                    showError(data.error || 'Failed to load chat history');
+                }
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+                showError('Network error. Please try again.');
+            }
+        }
+        
+        function displayChatInfo(chat) {
+            const container = document.getElementById('chatInfo');
+            container.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        ${chat.user ? `
+                            <a href="/user/${chat.user.handle}" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                                ${chat.user.profileImage ? `
+                                    <img src="${escapeHtml(chat.user.profileImage)}" alt="${escapeHtml(chat.user.name || chat.user.handle)}" class="w-12 h-12 rounded-full">
+                                ` : `
+                                    <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                                        <span class="text-primary font-semibold">${escapeHtml((chat.user.name || chat.user.handle || 'U').charAt(0).toUpperCase())}</span>
+                                    </div>
+                                `}
+                                <div>
+                                    <h3 class="font-semibold text-gray-900 dark:text-white">${escapeHtml(chat.user.name || chat.user.handle || 'Unknown User')}</h3>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">@${escapeHtml(chat.user.handle || 'unknown')}</p>
+                                </div>
+                            </a>
+                        ` : `
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                                    <span class="text-gray-600 dark:text-gray-300 font-semibold">?</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-gray-900 dark:text-white">Anonymous User</h3>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Visitor ID: ${escapeHtml(chat.visitorId?.substring(0, 8) || 'unknown')}</p>
+                                </div>
+                            </div>
+                        `}
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-gray-600 dark:text-gray-400">${chat.messageCount} messages</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-500">${new Date(chat.createdAt).toLocaleDateString()}</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function displayMessages(messages) {
+            const container = document.getElementById('chatMessages');
+            
+            if (messages.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <p class="text-gray-600 dark:text-gray-400">No messages in this chat</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = messages.map(msg => `
+                <div class="flex ${msg.sender === 'human' ? 'justify-end' : 'justify-start'} mb-4">
+                    <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                        msg.sender === 'human' 
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border dark:border-gray-700'
+                    }">
+                        <p class="text-sm">${escapeHtml(msg.content)}</p>
+                        <p class="text-xs mt-1 opacity-70">${new Date(msg.createdAt).toLocaleString()}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function showError(message) {
+            const container = document.getElementById('chatInfo');
+            container.innerHTML = `
+                <div class="text-center py-12">
+                    <p class="text-red-500">${escapeHtml(message)}</p>
+                </div>
+            `;
+        }
+        
+        // Load on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadChatHistory();
+        });
+    </script>
+</body>
+</html>

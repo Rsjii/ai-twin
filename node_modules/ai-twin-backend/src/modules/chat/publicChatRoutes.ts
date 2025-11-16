@@ -8,7 +8,9 @@ import {
   createNewPublicChat,
   getUserPublicChats,
   deletePublicChat,
-  updatePublicChatTitle
+  updatePublicChatTitle,
+  getAllPublicChatsForTwin,
+  viewPublicChatHistory
 } from './publicChatController';
 import { requireJWTFromCookie, extractJWTFromCookie } from '../../middleware/jwtCookie';
 import { publicChatRateLimit, publicChatRateLimitAuthenticated } from '../../middleware/rateLimit';
@@ -32,6 +34,9 @@ router.get('/twin/:twinId', getPublicChatByTwin);
 router.get('/twin/:twinId/chats', extractJWTFromCookie, getPublicChatsByTwin); // Get all chats (optional JWT)
 router.post('/create', extractJWTFromCookie, createNewPublicChat); // Create new chat (optional JWT)
 
+// Add new route for twin owner to see all public chats
+router.get('/twin/:twinId/all-chats', requireJWTFromCookie, getAllPublicChatsForTwin);
+
 // Authenticated route - Get user's public chats
 router.get('/user/my-chats', requireJWTFromCookie, getUserPublicChats);
 
@@ -40,5 +45,8 @@ router.delete('/:chatId', deletePublicChat);
 
 // Update public chat title endpoint (no authentication required)
 router.put('/:chatId/title', updatePublicChatTitle);
+
+// View public chat history endpoint
+router.get('/:chatId/view-history', requireJWTFromCookie, viewPublicChatHistory);
 
 export default router;

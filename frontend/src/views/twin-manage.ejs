@@ -181,7 +181,12 @@
 
         <!-- Recent Chats -->
         <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-8">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Recent Chats</h2>
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Recent Chats</h2>
+                <a href="/twin/<%= twinId %>/public-chat-history" class="text-sm text-primary hover:text-secondary font-medium">
+                    View All Public Chats →
+                </a>            
+            </div>
             <% if (recentChats && recentChats.length > 0) { %>
                 <div class="space-y-4">
                     <% recentChats.forEach(chat => { %>
@@ -201,7 +206,7 @@
                                 </p>
                             </div>
                             <% if (chat.chat_type === 'public') { %>
-                                <a href="/chat-public?chatId=<%= chat.id %>" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors">
+                                <a href="/twin/<%= twinId %>/view-chat-history/<%= chat.id %>" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors">
                                     Open
                                 </a>
                             <% } else { %>

@@ -343,12 +343,25 @@ export const getMyTwinProfile = async (req: Request, res: Response, next: NextFu
 export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { twinId } = req.params;
-    // Get chatId from query params - handle both string and array
+    // ✅ ADD: Extract chatId from query params
     const chatIdParam = req.query.chatId;
     const chatId = Array.isArray(chatIdParam) ? chatIdParam[0] : (chatIdParam as string);
-    const userId = req.user?.id; // Get userId if logged in
-    
+    const userId = req.user?.id;
     logger.info('getPublicChatPage:', { twinId, chatId, userId });
+    
+    // ✅ FIRST: Check if this is user's own twin - redirect immediately
+    if (userId) {
+      const ownTwinCheck = await db.query(`
+        SELECT id, "userId" FROM "Twin" WHERE id = $1 AND "userId" = $2
+      `, [twinId, userId]);
+      
+      if (ownTwinCheck.rows.length > 0) {
+        // Own twin detected - redirect to enhanced chat immediately with message
+        logger.info('Own twin detected, redirecting to enhanced chat:', { twinId, userId });
+        const message = encodeURIComponent('You cannot chat with your own twin in public chat. Use Enhanced Chat for interactive conversations.');
+        return res.redirect(`/chat-enhanced?twinId=${twinId}&message=${message}`);
+      }
+    }    
     
 // First, check if twin exists and get basic info
 const twinCheck = await db.query(`
@@ -387,24 +400,46 @@ if (twinResult.rows.length === 0) {
 
 const twin = twinResult.rows[0];    
 
-    // If chatId provided, validate it belongs to user
+    // If chatId provided, validate it belongs to twin (not just user)
     let initialChatId = null;
-    if (chatId && userId) {
+    if (chatId) {
+      // Check if chat exists and belongs to this twin
       const chatResult = await db.query(`
-        SELECT id FROM "PublicChat" 
-        WHERE id = $1 AND "twinId" = $2 AND "userId" = $3
-      `, [chatId, twinId, userId]);
+        SELECT id, "userId", "visitorId" 
+        FROM "PublicChat" 
+        WHERE id = $1 AND "twinId" = $2
+      `, [chatId, twinId]);
       
       if (chatResult && chatResult.rows && chatResult.rows.length > 0) {
-        initialChatId = chatId;
-        logger.info('Valid chatId found:', { chatId, twinId, userId });
+        const chat = chatResult.rows[0];
+        
+        // If user is logged in, check if they own the chat OR if they own the twin
+        if (userId) {
+          // Check if user owns the chat
+          const ownsChat = chat.userId === userId;
+          
+          // Check if user owns the twin
+          const twinOwnerResult = await db.query(`
+            SELECT "userId" FROM "Twin" WHERE id = $1 AND "userId" = $2
+          `, [twinId, userId]);
+          const ownsTwin = twinOwnerResult.rows.length > 0;
+          
+          if (ownsChat || ownsTwin) {
+            initialChatId = chatId;
+            logger.info('Valid chatId found:', { chatId, twinId, userId, ownsChat, ownsTwin });
+          } else {
+            logger.warn('ChatId not found or access denied:', { chatId, twinId, userId });
+          }
+        } else {
+          // For anonymous users, allow if chat has visitorId (anonymous chat)
+          if (chat.visitorId) {
+            initialChatId = chatId;
+            logger.info('Using anonymous chatId:', { chatId });
+          }
+        }
       } else {
-        logger.warn('ChatId not found or not owned by user:', { chatId, twinId, userId });
+        logger.warn('ChatId not found for twin:', { chatId, twinId });
       }
-    } else if (chatId && !userId) {
-      // If no userId but chatId provided, still try to use it (for anonymous users)
-      initialChatId = chatId;
-      logger.info('Using chatId without userId validation:', { chatId });
     }
     
     // Fetch full user data from database (like getDiscover)

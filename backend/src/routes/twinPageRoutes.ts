@@ -4,6 +4,7 @@ import { generateCSRFToken } from '../middleware/csrf';
 import { optionalAuth } from '../middleware/auth';
 import * as twinPageController from '../controllers/twinPageController';
 import * as twinManagePageController from '../controllers/twinManagePageController';
+import { getTwinPublicChatHistoryPage ,getViewPublicChatHistoryPage} from '../controllers/twinPublicChatHistoryPageController';
 
 const router = Router();
 
@@ -25,4 +26,9 @@ router.get('/twin/:id/learning-dashboard', requireJWTFromCookie, generateCSRFTok
 // Twin Management page
 router.get('/twin/manage', requireJWTFromCookie, generateCSRFToken, twinManagePageController.getTwinManage);
 
+// Twin Public Chat History page
+router.get('/twin/:id/public-chat-history', requireJWTFromCookie, generateCSRFToken, getTwinPublicChatHistoryPage);
+
+// Twin View Chat History page
+router.get('/twin/:twinId/view-chat-history/:chatId', requireJWTFromCookie, generateCSRFToken, getViewPublicChatHistoryPage);
 export default router;

@@ -1491,31 +1491,55 @@ if (cancelChangePasswordBtn && changePasswordFormContainer) {
                 return;
             <% } %>
             
+            if (!userHandle || !userHandle.trim()) {
+                showNotification('Please enter a user handle', 'error');
+                return;
+            }
+            
             try {
+                const csrfToken = '<%= csrfToken %>' || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                
+                if (!csrfToken) {
+                    showNotification('CSRF token missing. Please refresh the page.', 'error');
+                    return;
+                }
+                
                 const response = await fetch('/api/privacy/block', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-Token': '<%= csrfToken %>'
+                        'X-CSRF-Token': csrfToken
                     },
                     credentials: 'include',
                     body: JSON.stringify({
                         twinId: '<%= twin?.id || '' %>',
-                        userHandle: userHandle
+                        userHandle: userHandle.trim()
                     })
                 });
                 
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+                
                 const result = await response.json();
                 
-                if (response.ok) {
+                if (result.success) {
                     showNotification('User blocked successfully', 'success');
                     loadBlockedUsers();
+                    // Clear input
+                    const blockInput = document.getElementById('blockUserInput');
+                    if (blockInput) blockInput.value = '';
                 } else {
                     showNotification(result.error || 'Failed to block user', 'error');
                 }
             } catch (error) {
                 console.error('Block user error:', error);
-                showNotification('Network error. Please try again.', 'error');
+                if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
+                    showNotification('Cannot connect to server. Please check if the server is running.', 'error');
+                } else {
+                    showNotification(error.message || 'Network error. Please try again.', 'error');
+                }
             }
         }
         
@@ -1525,12 +1549,25 @@ if (cancelChangePasswordBtn && changePasswordFormContainer) {
                 return;
             <% } %>
             
+            if (!userId) {
+                showNotification('User ID is required', 'error');
+                return;
+            }
+            
             try {
+                // Ensure CSRF token is available
+                const csrfToken = '<%= csrfToken %>' || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                
+                if (!csrfToken) {
+                    showNotification('CSRF token missing. Please refresh the page.', 'error');
+                    return;
+                }
+                
                 const response = await fetch('/api/privacy/unblock', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-Token': '<%= csrfToken %>'
+                        'X-CSRF-Token': csrfToken
                     },
                     credentials: 'include',
                     body: JSON.stringify({
@@ -1539,9 +1576,14 @@ if (cancelChangePasswordBtn && changePasswordFormContainer) {
                     })
                 });
                 
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+                
                 const result = await response.json();
                 
-                if (response.ok) {
+                if (result.success) {
                     showNotification('User unblocked successfully', 'success');
                     loadBlockedUsers();
                 } else {
@@ -1549,7 +1591,11 @@ if (cancelChangePasswordBtn && changePasswordFormContainer) {
                 }
             } catch (error) {
                 console.error('Unblock user error:', error);
-                showNotification('Network error. Please try again.', 'error');
+                if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
+                    showNotification('Cannot connect to server. Please check if the server is running.', 'error');
+                } else {
+                    showNotification(error.message || 'Network error. Please try again.', 'error');
+                }
             }
         }
         

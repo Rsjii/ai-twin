@@ -633,6 +633,13 @@ export const publicChatQueries = {
     if (result && result.rows && result.rows[0]) {
       logger.info(`[publicChatQueries.create] Chat created - Result userId: ${result.rows[0].userId || 'null'}`);
     }
+    
+    // ✅ Cleanup old anonymous chats for this twin (keep only last 100)
+    if (!userId && visitorId) {
+      // This is an anonymous chat - cleanup old ones
+      await publicChatQueries.cleanupOldAnonymousChats(twinId, 100);
+    }
+    
     // Update chat count
     await db.query('UPDATE "Twin" SET "chatCount" = "chatCount" + 1 WHERE id = $1', [twinId]);
     
@@ -643,7 +650,54 @@ export const publicChatQueries = {
     );
     
     return result?.rows?.[0];
-  },  
+  },
+  
+  // ✅ NEW: Cleanup old anonymous chats (keep only last N)
+  cleanupOldAnonymousChats: async (twinId: string, keepCount: number = 100) => {
+    try {
+      // Get IDs of anonymous chats to keep (most recent N)
+      const keepResult = await db.query(`
+        SELECT id
+        FROM "PublicChat"
+        WHERE "twinId" = $1 
+          AND "userId" IS NULL 
+          AND "visitorId" IS NOT NULL
+        ORDER BY "lastActivity" DESC, "createdAt" DESC
+        LIMIT $2
+      `, [twinId, keepCount]);
+      
+      const keepIds = keepResult.rows.map(row => row.id);
+      
+      if (keepIds.length === 0) {
+        return; // No anonymous chats to cleanup
+      }
+      
+      // Delete old anonymous chats (not in keep list)
+      // Note: CASCADE will automatically delete related PublicMessage records
+      const deleteResult = await db.query(`
+        DELETE FROM "PublicChat"
+        WHERE "twinId" = $1 
+          AND "userId" IS NULL 
+          AND "visitorId" IS NOT NULL
+          AND id NOT IN (${keepIds.map((_, i) => `$${i + 2}`).join(', ')})
+      `, [twinId, ...keepIds]);
+      
+      const deletedCount = deleteResult.rowCount || 0;
+      if (deletedCount > 0) {
+        logger.info(`[cleanupOldAnonymousChats] Cleaned up ${deletedCount} old anonymous chats for twin ${twinId}`);
+        
+        // Update chat count (subtract deleted chats)
+        await db.query(`
+          UPDATE "Twin" 
+          SET "chatCount" = GREATEST(0, "chatCount" - $1) 
+          WHERE id = $2
+        `, [deletedCount, twinId]);
+      }
+    } catch (error) {
+      logger.error('Error cleaning up old anonymous chats:', error);
+      // Don't throw - cleanup failure shouldn't break chat creation
+    }
+  },
   
   updateMessageCount: async (chatId: string) => {
     const result = await db.query(
@@ -653,22 +707,21 @@ export const publicChatQueries = {
     return result.rows[0];
   },
 
-findByTwinAndVisitor: async (twinId: string, visitorId?: string) => {
-  const result = await db.query(
-    'SELECT * FROM "PublicChat" WHERE "twinId" = $1 AND ("visitorId" = $2 OR ("visitorId" IS NULL AND $2 IS NULL)) ORDER BY "createdAt" DESC',
-    [twinId, visitorId || null]
-  );
-  return result.rows; // Return all chats, not just one
-},
+  findByTwinAndVisitor: async (twinId: string, visitorId?: string) => {
+    const result = await db.query(
+      'SELECT * FROM "PublicChat" WHERE "twinId" = $1 AND ("visitorId" = $2 OR ("visitorId" IS NULL AND $2 IS NULL)) ORDER BY "createdAt" DESC',
+      [twinId, visitorId || null]
+    );
+    return result.rows; // Return all chats, not just one
+  },
 
-// ADD after line 582 (before the closing }):
-findAllByTwinAndVisitor: async (twinId: string, visitorId?: string) => {
-  const result = await db.query(
-    'SELECT * FROM "PublicChat" WHERE "twinId" = $1 AND ("visitorId" = $2 OR ("visitorId" IS NULL AND $2 IS NULL)) ORDER BY "createdAt" DESC',
-    [twinId, visitorId || null]
-  );
-  return result.rows;
-}
+  findAllByTwinAndVisitor: async (twinId: string, visitorId?: string) => {
+    const result = await db.query(
+      'SELECT * FROM "PublicChat" WHERE "twinId" = $1 AND ("visitorId" = $2 OR ("visitorId" IS NULL AND $2 IS NULL)) ORDER BY "createdAt" DESC',
+      [twinId, visitorId || null]
+    );
+    return result.rows;
+  }
 };
 
 // Add PublicMessage queries after the existing publicChatQueries

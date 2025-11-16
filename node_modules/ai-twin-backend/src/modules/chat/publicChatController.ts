@@ -504,7 +504,7 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
     // Get public chat (LEFT JOIN so it works even if twin doesn't exist)
     const chatResult = await db.query(`
       SELECT pc.id, pc."twinId", pc."visitorId", pc."messageCount", pc."userId",
-             t."publicHandle", t."sampleReply", t."showChatHistory"
+             t."publicHandle", t."sampleReply", t."showChatHistory", t."userId" as twin_owner_id
       FROM "PublicChat" pc
       LEFT JOIN "Twin" t ON pc."twinId" = t.id
       WHERE pc.id = $1
@@ -519,10 +519,14 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
     }
 
     const chat = chatResult.rows[0];
-
+    
+    // ✅ Allow twin owner to view any chat for their twin
+    const isTwinOwner = userId && chat.twin_owner_id === userId;
+    const isChatOwner = chat.userId === userId;
+    
     // ✅ PHASE 2: Check showChatHistory setting
-    // If showChatHistory is false, only show messages to the chat owner
-    const canViewHistory = chat.showChatHistory !== false || chat.userId === userId;
+    // If showChatHistory is false, only show messages to the chat owner OR twin owner
+    const canViewHistory = isTwinOwner || isChatOwner || (chat.showChatHistory !== false);
 
     // Get chat messages (filter based on showChatHistory)
     let messagesResult;
@@ -546,7 +550,8 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
         visitorId: chat.visitorId,
         messageCount: chat.messageCount,
         twinHandle: chat.publicHandle,
-        sampleReply: chat.sampleReply
+        sampleReply: chat.sampleReply,
+        isTwinOwner: isTwinOwner // ✅ Add flag for frontend
       },
       messages: messagesResult.rows
     });
@@ -1014,5 +1019,220 @@ export const updatePublicChatTitle = async (req: Request, res: Response, next: N
       error: 'Failed to update chat title',
       errorCode: 'INTERNAL_ERROR'
     });
+  }
+};
+
+/**
+ * Get all public chats for a twin (for twin owner to see all chats with their twin)
+ */
+export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { twinId } = req.params;
+    const userId = req.user?.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+    const offset = (page - 1) * limit;
+
+    if (!userId) {
+      throw createError.unauthorized('Authentication required');
+    }
+
+    // Verify twin ownership
+    const twinResult = await db.query(`
+      SELECT id, "publicHandle", "isPublic", "userId"
+      FROM "Twin"
+      WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+
+    if (twinResult.rows.length === 0) {
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
+    }
+
+    const twin = twinResult.rows[0];
+
+    // Get total count of all public chats for this twin
+    const totalResult = await db.query(`
+      SELECT COUNT(*) as total
+      FROM "PublicChat"
+      WHERE "twinId" = $1
+    `, [twinId]);
+
+    const total = parseInt(totalResult.rows[0]?.total || '0', 10);
+
+    // Get all public chats with user/visitor info and message counts
+    const chatsResult = await db.query(`
+      SELECT 
+        pc.id,
+        pc."twinId",
+        pc."userId",
+        pc."visitorId",
+        pc."messageCount",
+        pc."title",
+        pc."createdAt",
+        pc."lastActivity",
+        u.id as user_id,
+        u.handle as user_handle,
+        u.name as user_name,
+        u."profileImage" as user_profile_image,
+        (
+          SELECT content 
+          FROM "PublicMessage" 
+          WHERE "chatId" = pc.id 
+          ORDER BY "createdAt" DESC 
+          LIMIT 1
+        ) as last_message_content,
+        (
+          SELECT "createdAt" 
+          FROM "PublicMessage" 
+          WHERE "chatId" = pc.id 
+          ORDER BY "createdAt" DESC 
+          LIMIT 1
+        ) as last_message_time
+FROM "PublicChat" pc
+  LEFT JOIN "User" u ON pc."userId" = u.id
+  WHERE pc."twinId" = $1
+    AND (
+      pc."userId" IS NOT NULL  -- All logged-in user chats
+      OR pc.id IN (  -- OR last 50 anonymous chats
+        SELECT id FROM "PublicChat"
+        WHERE "twinId" = $1 AND "userId" IS NULL AND "visitorId" IS NOT NULL
+        ORDER BY "lastActivity" DESC, "createdAt" DESC
+        LIMIT 50
+      )
+    )
+  ORDER BY 
+    CASE WHEN pc."userId" IS NOT NULL THEN 0 ELSE 1 END,  -- Logged-in users first
+    pc."lastActivity" DESC, 
+    pc."createdAt" DESC
+  LIMIT $2 OFFSET $3
+`, [twinId, limit, offset]);    
+
+    const chats = chatsResult.rows.map(chat => ({
+      id: chat.id,
+      twinId: chat.twinId,
+      userId: chat.userId,
+      visitorId: chat.visitorId || null,
+      messageCount: chat.messageCount || 0,
+      title: chat.title || 'Untitled Chat',
+      createdAt: chat.createdAt,
+      lastActivity: chat.lastActivity,
+      user: chat.user_id ? {
+        id: chat.user_id,
+        handle: chat.user_handle,
+        name: chat.user_name,
+        profileImage: chat.user_profile_image
+      } : null,
+      isAnonymous: !chat.userId && (chat.visitorId!==null && chat.visitorId!==undefined),
+      lastMessage: chat.last_message_content ? {
+        content: chat.last_message_content,
+        createdAt: chat.last_message_time
+      } : null
+    }));
+
+    res.json({
+      success: true,
+      chats: chats,
+      twin: {
+        id: twin.id,
+        publicHandle: twin.publicHandle
+      },
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        itemsPerPage: limit
+      }
+    });
+
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get public chats for twin', error);
+  }
+};
+
+// ✅ NEW: Get public chat history for viewing (read-only, for twin owners)
+export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { chatId } = req.params;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      throw createError.unauthorized('Authentication required');
+    }
+
+    // Get chat with twin info
+    const chatResult = await db.query(`
+      SELECT 
+        pc.id, 
+        pc."twinId", 
+        pc."visitorId", 
+        pc."messageCount", 
+        pc."userId",
+        pc."title",
+        pc."createdAt",
+        pc."lastActivity",
+        t."publicHandle", 
+        t."sampleReply", 
+        t."showChatHistory",
+        t."userId" as twin_owner_id,
+        u.id as user_id,
+        u.handle as user_handle,
+        u.name as user_name,
+        u."profileImage" as user_profile_image
+      FROM "PublicChat" pc
+      LEFT JOIN "Twin" t ON pc."twinId" = t.id
+      LEFT JOIN "User" u ON pc."userId" = u.id
+      WHERE pc.id = $1
+    `, [chatId]);
+
+    if (chatResult.rows.length === 0) {
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
+    }
+
+    const chat = chatResult.rows[0];
+    
+    // ✅ Verify twin ownership
+    const isTwinOwner = chat.twin_owner_id === userId;
+    if (!isTwinOwner) {
+      throw createError.forbidden('Access denied. Only twin owner can view this chat.', ErrorCodes.ACCESS_DENIED);
+    }
+
+    // Get all messages
+    const messagesResult = await db.query(`
+      SELECT id, content, sender, "createdAt"
+      FROM "PublicMessage"
+      WHERE "chatId" = $1
+      ORDER BY "createdAt" ASC
+    `, [chatId]);
+
+    res.json({
+      success: true,
+      chat: {
+        id: chat.id,
+        twinId: chat.twinId,
+        twinHandle: chat.publicHandle,
+        title: chat.title || 'Untitled Chat',
+        messageCount: chat.messageCount || 0,
+        createdAt: chat.createdAt,
+        lastActivity: chat.lastActivity,
+        user: chat.user_id ? {
+          id: chat.user_id,
+          handle: chat.user_handle,
+          name: chat.user_name,
+          profileImage: chat.user_profile_image
+        } : null,
+        isAnonymous: !chat.userId && !!chat.visitorId,
+        visitorId: chat.visitorId
+      },
+      messages: messagesResult.rows
+    });
+
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to get chat history', error);
   }
 };

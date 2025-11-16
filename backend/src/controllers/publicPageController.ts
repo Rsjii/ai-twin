@@ -25,47 +25,75 @@ export function getLanding(req: any, res: Response) {
 export async function getPublicProfile(req: any, res: Response) {
   try {
     const { handle } = req.params;
+    const userId = req.user?.id || null;
     
-    // Get public twin profile
-    const publicTwin = await db.query(`
-      SELECT 
-        t.id, t."userId", t."publicHandle", t.bio, t."profileImage", t.verified, 
-        t."likeCount", t."followCount", t."chatCount", t."sampleReply", t."createdAt",
-        t."allowShares", t."requireLogin",
-        u.id as "userId", u.handle as "userHandle", u.name as "userName"
-      FROM "Twin" t
-      JOIN "User" u ON t."userId" = u.id
-      WHERE t."publicHandle" = $1 
-        AND t."isPublic" = true
-        AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL OR $2 IS NOT NULL)
-    `, [handle, req.user?.id || null]);     
+    // Build query conditionally to avoid PostgreSQL type inference issue
+    let query: string;
+    let params: any[];
+    
+    if (userId) {
+      // Logged in user - can see all twins (blockNonLoggedUsers doesn't apply)
+      query = `
+        SELECT 
+          t.id, t."userId", t."publicHandle", t.bio, t."profileImage", t.verified, 
+          t."likeCount", t."followCount", t."chatCount", t."sampleReply", t."createdAt",
+          t."allowShares", t."requireLogin",
+          u.id as "userId", u.handle as "userHandle", u.name as "userName"
+        FROM "Twin" t
+        JOIN "User" u ON t."userId" = u.id
+        WHERE t."publicHandle" = $1 
+          AND t."isPublic" = true
+      `;
+      params = [handle];
+    } else {
+      // Non-logged user - hide twins where blockNonLoggedUsers = true
+      query = `
+        SELECT 
+          t.id, t."userId", t."publicHandle", t.bio, t."profileImage", t.verified, 
+          t."likeCount", t."followCount", t."chatCount", t."sampleReply", t."createdAt",
+          t."allowShares", t."requireLogin",
+          u.id as "userId", u.handle as "userHandle", u.name as "userName"
+        FROM "Twin" t
+        JOIN "User" u ON t."userId" = u.id
+        WHERE t."publicHandle" = $1 
+          AND t."isPublic" = true
+          AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)
+      `;
+      params = [handle];
+    }
+    
+    const publicTwin = await db.query(query, params);
 
     if (publicTwin.rows.length === 0) {
       return res.status(404).render('404', { 
         title: 'Twin Not Found',
-        message: 'This twin profile is not public or does not exist'
+        message: 'This twin profile is not public or does not exist',
+        csrfToken: res.locals['csrfToken'],
+        user: req.user || null
       });
     }
 
     const twin = publicTwin.rows[0];
 
     // ✅ Check if viewer is blocked (only if logged in)
-    if (req.user) {
+    if (userId) {
       const blockedCheck = await db.query(`
         SELECT id FROM "TwinBlockedUsers"
         WHERE "twinId" = $1 AND "userId" = $2
-      `, [twin.id, req.user.id]);
+      `, [twin.id, userId]);
       
       if (blockedCheck.rows.length > 0) {
         return res.status(404).render('404', {
           title: 'Profile Not Available',
-          message: 'This profile is not available'
+          message: 'This profile is not available',
+          csrfToken: res.locals['csrfToken'],
+          user: req.user || null
         });
       }
     }
     
     // Check if viewer is the owner
-    const isOwner = req.user && req.user.id === twin.userId;
+    const isOwner = userId && userId === twin.userId;
     
     // Ensure userName and userHandle are available
     const creatorName = twin.userName || twin.userHandle || 'Unknown';
@@ -85,8 +113,8 @@ export async function getPublicProfile(req: any, res: Response) {
         chatCount: twin.chatCount,
         sampleReply: twin.sampleReply,
         createdAt: twin.createdAt,
-        allowShares: twin.allowShares ?? true, // ✅ PHASE 2: Check if shares are allowed
-        requireLogin: twin.requireLogin ?? false, // ✅ PHASE 2: Check if require login
+        allowShares: twin.allowShares ?? true,
+        requireLogin: twin.requireLogin ?? false,
         userHandle: twin.userHandle || 'Unknown',
         userName: twin.userName || twin.userHandle || 'Unknown',
         isOwner: isOwner
@@ -94,7 +122,8 @@ export async function getPublicProfile(req: any, res: Response) {
       viewer: req.user ? {
         id: req.user.id,
         handle: req.user.handle
-      } : null // ADD THIS
+      } : null,
+      csrfToken: res.locals['csrfToken']
     });
 
   } catch (error) {
@@ -105,19 +134,21 @@ export async function getPublicProfile(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('error', {
+      return res.status(error.statusCode).render('404', {
         title: 'Error',
         message: error.message,
         errorCode: error.errorCode,
+        csrfToken: res.locals['csrfToken'],
         user: req.user || null
       });
     }
     
     const appError = createError.internal('Failed to load public profile', error);
-    return res.status(appError.statusCode).render('error', {
+    return res.status(appError.statusCode).render('404', {
       title: 'Error',
       message: appError.message,
       errorCode: appError.errorCode,
+      csrfToken: res.locals['csrfToken'],
       user: req.user || null
     });
   }
@@ -152,6 +183,7 @@ export function getSimple(req: any, res: Response) {
 export async function getUserProfile(req: any, res: Response) {
   try {
     const { handle } = req.params;
+    const userId = req.user?.id || null;
     
     // Get user basic info
     const userResult = await db.query(`
@@ -163,29 +195,52 @@ export async function getUserProfile(req: any, res: Response) {
     if (userResult.rows.length === 0) {
       return res.status(404).render('404', { 
         title: 'User Not Found',
-        message: 'This user does not exist'
+        message: 'This user does not exist',
+        csrfToken: res.locals['csrfToken'],
+        user: req.user || null
       });
     }
     
     const user = userResult.rows[0];
     
-    // Get user's public twins
-    const twinsResult = await db.query(`
-      SELECT 
-        t.id, t."publicHandle", t.bio, t."profileImage", t.verified, 
-        t."likeCount", t."followCount", t."chatCount", t."sampleReply", t."createdAt",
-        t."allowShares", t."requireLogin"
-      FROM "Twin" t
-      WHERE t."userId" = $1 
-        AND t."isPublic" = true
-        AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL OR $2 IS NOT NULL)
-      ORDER BY t."createdAt" DESC
-    `, [user.id, req.user?.id || null]);    
+    // Build query conditionally to avoid PostgreSQL type inference issue
+    let twinsQuery: string;
+    let twinsParams: any[];
     
+    if (userId) {
+      // Logged in user - can see all twins
+      twinsQuery = `
+        SELECT 
+          t.id, t."publicHandle", t.bio, t."profileImage", t.verified, 
+          t."likeCount", t."followCount", t."chatCount", t."sampleReply", t."createdAt",
+          t."allowShares", t."requireLogin"
+        FROM "Twin" t
+        WHERE t."userId" = $1 
+          AND t."isPublic" = true
+        ORDER BY t."createdAt" DESC
+      `;
+      twinsParams = [user.id];
+    } else {
+      // Non-logged user - hide twins where blockNonLoggedUsers = true
+      twinsQuery = `
+        SELECT 
+          t.id, t."publicHandle", t.bio, t."profileImage", t.verified, 
+          t."likeCount", t."followCount", t."chatCount", t."sampleReply", t."createdAt",
+          t."allowShares", t."requireLogin"
+        FROM "Twin" t
+        WHERE t."userId" = $1 
+          AND t."isPublic" = true
+          AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)
+        ORDER BY t."createdAt" DESC
+      `;
+      twinsParams = [user.id];
+    }
+    
+    const twinsResult = await db.query(twinsQuery, twinsParams);
     const twins = twinsResult.rows;
     
     // Check if viewer is the owner
-    const isOwner = req.user && req.user.id === user.id;
+    const isOwner = userId && userId === user.id;
     
     // Render user profile page
     res.render('user-profile', {
@@ -205,7 +260,8 @@ export async function getUserProfile(req: any, res: Response) {
       viewer: req.user ? {
         id: req.user.id,
         handle: req.user.handle
-      } : null
+      } : null,
+      csrfToken: res.locals['csrfToken']
     });
     
   } catch (error) {
@@ -216,19 +272,21 @@ export async function getUserProfile(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('error', {
+      return res.status(error.statusCode).render('404', {
         title: 'Error',
         message: error.message,
         errorCode: error.errorCode,
+        csrfToken: res.locals['csrfToken'],
         user: req.user || null
       });
     }
     
     const appError = createError.internal('Failed to load user profile', error);
-    return res.status(appError.statusCode).render('error', {
+    return res.status(appError.statusCode).render('404', {
       title: 'Error',
       message: appError.message,
       errorCode: appError.errorCode,
+      csrfToken: res.locals['csrfToken'],
       user: req.user || null
     });
   }
