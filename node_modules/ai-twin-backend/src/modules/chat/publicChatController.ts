@@ -520,26 +520,66 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
 
     const chat = chatResult.rows[0];
     
-    // ✅ Allow twin owner to view any chat for their twin
+    // ✅ Allow twin owner to view any chat for their twin (always show all)
     const isTwinOwner = userId && chat.twin_owner_id === userId;
     const isChatOwner = chat.userId === userId;
     
-    // ✅ PHASE 2: Check showChatHistory setting
-    // If showChatHistory is false, only show messages to the chat owner OR twin owner
-    const canViewHistory = isTwinOwner || isChatOwner || (chat.showChatHistory !== false);
+    // ✅ FIX: Get showChatHistory value explicitly (handle PostgreSQL boolean type)
+    // PostgreSQL returns boolean as true/false, but we need to handle null/undefined
+    const showChatHistoryValue = chat.showChatHistory;
+    const isHistoryEnabled = showChatHistoryValue === true || showChatHistoryValue === null || showChatHistoryValue === undefined;
+    const isHistoryDisabled = showChatHistoryValue === false;
+    
+    logger.info(`[getPublicChatHistory] ChatId: ${chatId}, showChatHistory: ${showChatHistoryValue} (type: ${typeof showChatHistoryValue}), isTwinOwner: ${isTwinOwner}, isChatOwner: ${isChatOwner}, isHistoryEnabled: ${isHistoryEnabled}`);
+    
+    // ✅ FIX: Logic for showChatHistory
+    // 1. If showChatHistory is true (enabled) OR null/undefined → show all messages to everyone
+    // 2. If showChatHistory is false (disabled) → only show latest chat to non-owners
+    // 3. Twin owner always sees all chats and messages
+    
+    let canViewMessages = false;
+    
+    if (isTwinOwner || isChatOwner) {
+      // Twin owner or chat owner can always view all messages
+      canViewMessages = true;
+      logger.info(`[getPublicChatHistory] Allowing access - Owner (twin: ${isTwinOwner}, chat: ${isChatOwner})`);
+    } else if (isHistoryEnabled) {
+      // ✅ FIX: If history is ENABLED (true or null/undefined), show all messages - NO isLatestChat check
+      canViewMessages = true;
+      logger.info(`[getPublicChatHistory] Allowing access - History enabled (value: ${showChatHistoryValue})`);
+    } else if (isHistoryDisabled) {
+      // ✅ FIX: If history is DISABLED, only show if this is the latest chat
+      const latestChatResult = await db.query(`
+        SELECT id FROM "PublicChat"
+        WHERE "twinId" = $1
+          AND (
+            ("userId" = $2 AND $2 IS NOT NULL)
+            OR
+            ("visitorId" = $3 AND $2 IS NULL AND $3 IS NOT NULL)
+          )
+        ORDER BY "lastActivity" DESC NULLS LAST, "createdAt" DESC
+        LIMIT 1
+      `, [chat.twinId, userId || null, chat.visitorId || null]);
+      
+      const isLatestChat = latestChatResult && latestChatResult.rows.length > 0 && latestChatResult.rows[0].id === chatId;
+      canViewMessages = isLatestChat;
+      logger.info(`[getPublicChatHistory] History disabled - isLatestChat: ${isLatestChat}, latestChatId: ${latestChatResult?.rows[0]?.id || 'none'}`);
+    }
 
-    // Get chat messages (filter based on showChatHistory)
+    // Get chat messages
     let messagesResult;
-    if (canViewHistory) {
+    if (canViewMessages) {
       messagesResult = await db.query(`
         SELECT id, content, sender, "createdAt"
         FROM "PublicMessage"
         WHERE "chatId" = $1
         ORDER BY "createdAt" ASC
       `, [chatId]);
+      logger.info(`[getPublicChatHistory] Returning ${messagesResult.rows.length} messages for chatId: ${chatId}`);
     } else {
       // Only return empty array if history is hidden and user is not the owner
       messagesResult = { rows: [] };
+      logger.info(`[getPublicChatHistory] Returning empty messages - access denied for chatId: ${chatId}`);
     }
 
     res.json({
@@ -551,7 +591,8 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
         messageCount: chat.messageCount,
         twinHandle: chat.publicHandle,
         sampleReply: chat.sampleReply,
-        isTwinOwner: isTwinOwner // ✅ Add flag for frontend
+        isTwinOwner: isTwinOwner,
+        showChatHistory: chat.showChatHistory
       },
       messages: messagesResult.rows
     });
@@ -659,14 +700,26 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
 
     const twin = twinResult.rows[0];
 
-    // ✅ PHASE 2: Check showChatHistory setting
-    // If showChatHistory is false, only return latest chat (not all previous chats)
-    const shouldFilterHistory = twin.showChatHistory === false && twin.userId !== userId;
+    // ✅ FIX: Check showChatHistory setting
+    // Twin owner can always see all chats
+    const isTwinOwner = userId && twin.userId === userId;
+    
+    // ✅ FIX: Get showChatHistory value explicitly (handle PostgreSQL boolean type)
+    const showChatHistoryValue = twin.showChatHistory;
+    const isHistoryEnabled = showChatHistoryValue === true || showChatHistoryValue === null || showChatHistoryValue === undefined;
+    const isHistoryDisabled = showChatHistoryValue === false;
+    
+    logger.info(`[getPublicChatsByTwin] TwinId: ${twinId}, showChatHistory: ${showChatHistoryValue} (type: ${typeof showChatHistoryValue}), isTwinOwner: ${isTwinOwner}, isHistoryEnabled: ${isHistoryEnabled}`);
+    
+    // ✅ FIX: Only filter history if showChatHistory is EXPLICITLY false AND user is not owner
+    // If showChatHistory is true OR null/undefined, show all chats
+    const shouldFilterHistory = isHistoryDisabled && !isTwinOwner;
 
     // Get all chats for this visitor with this twin
     let chatsResult;
     if (shouldFilterHistory) {
-      // Only get the latest chat if history is hidden
+      // ✅ Only get the LATEST/MOST RECENT chat if history is disabled
+      logger.info(`[getPublicChatsByTwin] Filtering - showing only latest chat (history disabled)`);
       chatsResult = await db.query(`
         SELECT pc.id, pc."messageCount", pc."createdAt", pc."lastActivity", pc."title", pc."userId",
                m.content as last_message, m."createdAt" as last_message_time
@@ -684,11 +737,12 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
             OR 
             (pc."visitorId" = $3 AND $2 IS NULL AND $3 IS NOT NULL)
           )
-        ORDER BY pc."lastActivity" DESC, pc."createdAt" DESC
+        ORDER BY pc."lastActivity" DESC NULLS LAST, pc."createdAt" DESC
         LIMIT 1
       `, [twinId, userId || null, visitorId as string || null]);
     } else {
-      // Show all chats if history is enabled or user is owner
+      // ✅ FIX: Show ALL chats if history is enabled (true) OR user is owner OR null/undefined
+      logger.info(`[getPublicChatsByTwin] Showing all chats (history enabled: ${isHistoryEnabled} or owner: ${isTwinOwner})`);
       chatsResult = await db.query(`
         SELECT pc.id, pc."messageCount", pc."createdAt", pc."lastActivity", pc."title",
                m.content as last_message, m."createdAt" as last_message_time
@@ -706,7 +760,7 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
             OR 
             (pc."visitorId" = $3 AND $2 IS NULL AND $3 IS NOT NULL)
           )
-        ORDER BY pc."lastActivity" DESC, pc."createdAt" DESC
+        ORDER BY pc."lastActivity" DESC NULLS LAST, pc."createdAt" DESC
       `, [twinId, userId || null, visitorId as string || null]);
     }
 
@@ -722,15 +776,23 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
       } : null
     }));
 
-    res.json({
+    logger.info(`[getPublicChatsByTwin] Returning ${chats.length} chats for twinId: ${twinId}`);
+    logger.info(`[getPublicChatsByTwin] First chat sample:`, chats[0] ? JSON.stringify(chats[0]) : 'no chats');
+
+    const responseData = {
       success: true,
       twin: {
         id: twin.id,
         publicHandle: twin.publicHandle,
-        sampleReply: twin.sampleReply
+        sampleReply: twin.sampleReply,
+        showChatHistory: twin.showChatHistory
       },
       chats
-    });
+    };
+
+    logger.info(`[getPublicChatsByTwin] Sending response with ${responseData.chats.length} chats`);
+    
+    res.json(responseData);
 
   } catch (error) {
     if (error instanceof AppError) {
