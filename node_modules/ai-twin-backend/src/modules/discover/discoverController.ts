@@ -66,6 +66,37 @@ function buildBlockNonLoggedUsersFilter(hasUser: boolean): string {
   return `AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)`;
 }
 
+// Add after line 60, before getTrendingTwins
+async function enrichTwinsWithUserInteraction(twins: any[], userId?: string) {
+  if (!userId || twins.length === 0) {
+    return twins.map(twin => ({ ...twin, hasLiked: false, hasFollowed: false }));
+  }
+
+  const twinIds = twins.map(t => t.id);
+  if (twinIds.length === 0) return twins;
+
+  // Get user's likes and follows for all twins in one query
+  const [likes, follows] = await Promise.all([
+    db.query(`
+      SELECT "twinId" FROM "TwinLike" 
+      WHERE "twinId" = ANY($1::text[]) AND "userId" = $2
+    `, [twinIds, userId]),
+    db.query(`
+      SELECT "twinId" FROM "TwinFollow" 
+      WHERE "twinId" = ANY($1::text[]) AND "userId" = $2
+    `, [twinIds, userId])
+  ]);
+
+  const likedTwinIds = new Set(likes.rows.map(r => r.twinId));
+  const followedTwinIds = new Set(follows.rows.map(r => r.twinId));
+
+  return twins.map(twin => ({
+    ...twin,
+    hasLiked: likedTwinIds.has(twin.id),
+    hasFollowed: followedTwinIds.has(twin.id)
+  }));
+}
+
 // Get trending twins based on engagement
 export const getTrendingTwins = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -200,13 +231,18 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
       });
     }
 
+    const enrichedTwins = await enrichTwinsWithUserInteraction(
+      trendingTwins.rows,
+      req.user?.id
+    );
+
     res.json({
       success: true,
-      twins: trendingTwins.rows,
+      twins: enrichedTwins,
       pagination: {
         limit,
         offset,
-        total: trendingTwins.rows.length
+        total: enrichedTwins.length
       }
     });
 
@@ -282,14 +318,19 @@ export const searchTwins = async (req: Request, res: Response, next: NextFunctio
       LIMIT $3 OFFSET $4
     `, [`%${query}%`, `%${query}%`, limit, offset, ...blockedFilter.params]);
 
+    const enrichedTwins = await enrichTwinsWithUserInteraction(
+      searchResults.rows,
+      req.user?.id
+    );
+
     res.json({
       success: true,
       query,
-      twins: searchResults.rows,
+      twins: enrichedTwins,
       pagination: {
         limit,
         offset,
-        total: searchResults.rows.length
+        total: enrichedTwins.length
       }
     });
 
@@ -385,13 +426,18 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
       `, [limit, offset, ...blockedFilter.params]);
     }
 
+    const enrichedTwins = await enrichTwinsWithUserInteraction(
+      recommendations.rows || [],
+      req.user?.id
+    );
+
     res.json({
       success: true,
-      twins: recommendations.rows || [],
+      twins: enrichedTwins,
       pagination: {
         limit,
         offset,
-        total: recommendations.rows?.length || 0
+        total: enrichedTwins.length
       }
     });
 
@@ -443,13 +489,18 @@ export const getRecentTwins = async (req: Request, res: Response, next: NextFunc
       LIMIT $1 OFFSET $2
     `, [limit, offset, ...blockedFilter.params]);
 
+    const enrichedTwins = await enrichTwinsWithUserInteraction(
+      recentTwins.rows,
+      req.user?.id
+    );
+
     res.json({
       success: true,
-      twins: recentTwins.rows,
+      twins: enrichedTwins,
       pagination: {
         limit,
         offset,
-        total: recentTwins.rows.length
+        total: enrichedTwins.length
       }
     });
 
@@ -501,13 +552,18 @@ export const getMostLikedTwins = async (req: Request, res: Response, next: NextF
       LIMIT $1 OFFSET $2
     `, [limit, offset, ...blockedFilter.params]);
 
+    const enrichedTwins = await enrichTwinsWithUserInteraction(
+      mostLikedTwins.rows,
+      req.user?.id
+    );
+
     res.json({
       success: true,
-      twins: mostLikedTwins.rows,
+      twins: enrichedTwins,
       pagination: {
         limit,
         offset,
-        total: mostLikedTwins.rows.length
+        total: enrichedTwins.length
       }
     });
 
@@ -559,13 +615,18 @@ export const getMostFollowedTwins = async (req: Request, res: Response, next: Ne
       LIMIT $1 OFFSET $2
     `, [limit, offset, ...blockedFilter.params]);
 
+    const enrichedTwins = await enrichTwinsWithUserInteraction(
+      mostFollowedTwins.rows,
+      req.user?.id
+    );
+
     res.json({
       success: true,
-      twins: mostFollowedTwins.rows,
+      twins: enrichedTwins,
       pagination: {
         limit,
         offset,
-        total: mostFollowedTwins.rows.length
+        total: enrichedTwins.length
       }
     });
 
@@ -628,13 +689,18 @@ export const getPopularTwins = async (req: Request, res: Response, next: NextFun
       LIMIT $1 OFFSET $2
     `, [limit, offset, ...blockedFilter.params]);    
 
+    const enrichedTwins = await enrichTwinsWithUserInteraction(
+      popularTwins.rows,
+      req.user?.id
+    );
+
     res.json({
       success: true,
-      twins: popularTwins.rows,
+      twins: enrichedTwins,
       pagination: {
         limit,
         offset,
-        total: popularTwins.rows.length
+        total: enrichedTwins.length
       }
     });
 
@@ -754,13 +820,18 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
     // Limit to requested amount
     const limitedFeed = mixedFeed.slice(0, limit);
 
+    const enrichedTwins = await enrichTwinsWithUserInteraction(
+      limitedFeed,
+      req.user?.id
+    );
+
     res.json({
       success: true,
-      twins: limitedFeed,
+      twins: enrichedTwins,
       pagination: {
         limit,
         offset,
-        total: limitedFeed.length
+        total: enrichedTwins.length
       }
     });
 

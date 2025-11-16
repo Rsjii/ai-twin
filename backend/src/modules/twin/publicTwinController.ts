@@ -377,6 +377,35 @@ if (twinCheck.rows.length === 0) {
 
 const twinInfo = twinCheck.rows[0];
 
+// ✅ Check blockNonLoggedUsers for non-logged users
+if (!userId && twinInfo.blockNonLoggedUsers === true) {
+  logger.warn('getPublicChatPage: Non-logged user blocked', { twinId });
+  return res.status(403).render('404', {
+    title: 'Access Denied',
+    message: 'This twin requires you to be logged in to access',
+    csrfToken: res.locals['csrfToken'],
+    user: null
+  });
+}
+
+// ✅ Check if user is blocked (only if logged in)
+if (userId) {
+  const blockedCheck = await db.query(`
+    SELECT id FROM "TwinBlockedUsers"
+    WHERE "twinId" = $1 AND "userId" = $2
+  `, [twinId, userId]);
+  
+  if (blockedCheck.rows.length > 0) {
+    logger.warn('getPublicChatPage: Blocked user tried to access', { twinId, userId });
+    return res.status(403).render('404', {
+      title: 'Access Denied',
+      message: 'You are blocked from accessing this twin',
+      csrfToken: res.locals['csrfToken'],
+      user: req.user || null
+    });
+  }
+}
+
 // Check if twin is public
 if (!twinInfo.isPublic) {
   logger.warn('getPublicChatPage: Twin is not public', { twinId, userId, isPublic: twinInfo.isPublic });

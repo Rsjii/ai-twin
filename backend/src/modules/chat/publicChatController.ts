@@ -909,6 +909,7 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
 export const deletePublicChat = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { chatId } = req.params;
+    const userId = req.user?.id; // ✅ FIX: Get userId from req.user
 
     if (!chatId) {
       return res.status(400).json({
@@ -920,7 +921,7 @@ export const deletePublicChat = async (req: Request, res: Response, next: NextFu
 
     // Check if chat exists
     const chatResult = await db.query(`
-      SELECT id FROM "PublicChat" WHERE id = $1
+      SELECT id, "userId", "visitorId", "twinId" FROM "PublicChat" WHERE id = $1
     `, [chatId]);
     
     if (!chatResult || chatResult.rows.length === 0) {
@@ -930,13 +931,41 @@ export const deletePublicChat = async (req: Request, res: Response, next: NextFu
         errorCode: ErrorCodes.CHAT_NOT_FOUND
       });
     }
+
+    const chat = chatResult.rows[0];
     
-    // Delete chat (CASCADE will automatically delete all messages)
+    // ✅ FIX: Check ownership
+    if (userId) {
+      // Check if user owns the chat
+      if (chat.userId !== userId) {
+        // Check if user owns the twin
+        const twinCheck = await db.query(`
+          SELECT "userId" FROM "Twin" WHERE id = $1
+        `, [chat.twinId]);
+        
+        if (twinCheck.rows.length === 0 || twinCheck.rows[0].userId !== userId) {
+          return res.status(403).json({
+            success: false,
+            error: 'You do not have permission to delete this chat',
+            errorCode: 'UNAUTHORIZED'
+          });
+        }
+      }
+    } else {
+      // For anonymous users, require authentication
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required to delete chat',
+        errorCode: 'AUTH_REQUIRED'
+      });
+    }
+    
+    // ✅ FIX: Actually delete the chat (CASCADE will delete messages)
     await db.query(`
       DELETE FROM "PublicChat" WHERE id = $1
     `, [chatId]);
     
-    logger.info('Public chat deleted successfully:', { chatId });
+    logger.info('Public chat deleted successfully:', { chatId, userId });
     
     res.json({
       success: true,

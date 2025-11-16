@@ -611,147 +611,177 @@ function displayMessages(messages) {
             sendMessage();
         });
 
-        // Like and Follow buttons functionality
-        document.getElementById('likeBtn').addEventListener('click', function() {
-            toggleLike();
+// Toggle like functionality (exactly like discover.ejs)
+async function toggleLike(twinId, button) {
+    try {
+        const response = await fetch('/api/social/toggle-like', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({ twinId })
         });
 
-        document.getElementById('followBtn').addEventListener('click', function() {
-            toggleFollow();
-        });
-
-        // Toggle like functionality
-        async function toggleLike() {
-            // Store previous state in case we need to revert
-            const previousState = hasLiked;
-            const previousCount = parseInt(document.querySelector('.like-count').textContent) || 0;
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update button state
+            if (data.action === 'liked') {
+                button.classList.remove('bg-gradient-to-r', 'from-pink-500', 'to-rose-500', 'text-white');
+                button.classList.add('bg-red-100', 'text-red-600', 'dark:bg-red-900/30', 'dark:text-red-400');
+                button.innerHTML = `
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Liked</span>
+                `;
+                
+                // ✅ Show notification
+                showNotification(`❤️ You liked @<%= twin.publicHandle %>`, 'success');
+            } else {
+                button.classList.remove('bg-red-100', 'text-red-600', 'dark:bg-red-900/30', 'dark:text-red-400');
+                button.classList.add('bg-gradient-to-r', 'from-pink-500', 'to-rose-500', 'text-white');
+                button.innerHTML = `
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Like</span>
+                `;
+                
+                // ✅ Show notification
+                showNotification(`💔 You unliked @<%= twin.publicHandle %>`, 'info');
+            }
             
-            // IMMEDIATE update (optimistic UI)
-            hasLiked = !hasLiked;
-            updateLikeButton(hasLiked);
-            
-            // Update count immediately (optimistic)
+            // Update like count
             const likeCountElement = document.querySelector('.like-count');
             if (likeCountElement) {
-                likeCountElement.textContent = hasLiked ? previousCount + 1 : previousCount - 1;
+                likeCountElement.textContent = data.likeCount;
             }
             
-            try {
-                const response = await fetch('/api/social/toggle-like', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        twinId: '<%= twin.id %>'
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Update with actual server response
-                    const likeCountElement = document.querySelector('.like-count');
-                    if (likeCountElement) {
-                        likeCountElement.textContent = data.likeCount;
-                    }
-                    
-                    // Update button state with actual server response
-                    hasLiked = data.action === 'liked';
-                    updateLikeButton(hasLiked);
-                } else {
-                    // Revert on error
-                    hasLiked = previousState;
-                    updateLikeButton(hasLiked);
-                    if (likeCountElement) {
-                        likeCountElement.textContent = previousCount;
-                    }
-                    
-                    if (data.error === 'Authentication required') {
-                        alert('Please log in to like this twin!');
-                    } else {
-                        alert('Error: ' + data.error);
-                    }
-                }
-            } catch (error) {
-                // Revert on error
-                hasLiked = previousState;
-                updateLikeButton(hasLiked);
-                if (likeCountElement) {
-                    likeCountElement.textContent = previousCount;
-                }
-                console.error('Error toggling like:', error);
+            // Update global state
+            hasLiked = data.action === 'liked';
+        } else {
+            if (data.error === 'Authentication required') {
                 alert('Please log in to like this twin!');
+            } else {
+                alert('Error: ' + data.error);
             }
         }
+    } catch (error) {
+        console.error('Error toggling like:', error);
+        alert('Please log in to like this twin!');
+    }
+}        
+        
+// Toggle follow functionality (exactly like discover.ejs)
+async function toggleFollow(twinId, button) {
+    try {
+        const response = await fetch('/api/social/toggle-follow', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({ twinId })
+        });
 
-        // Toggle follow functionality
-        async function toggleFollow() {
-            // Store previous state in case we need to revert
-            const previousState = hasFollowed;
-            const previousCount = parseInt(document.querySelector('.follow-count').textContent) || 0;
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update button state
+            if (data.action === 'followed') {
+                button.classList.remove('bg-gradient-to-r', 'from-blue-500', 'to-indigo-500', 'text-white');
+                button.classList.add('bg-blue-100', 'text-blue-600', 'dark:bg-blue-900/30', 'dark:text-blue-400');
+                button.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>Following</span>
+                `;
+                
+                // ✅ Show notification
+                showNotification(`👥 You are now following @<%= twin.publicHandle %>`, 'success');
+            } else {
+                button.classList.remove('bg-blue-100', 'text-blue-600', 'dark:bg-blue-900/30', 'dark:text-blue-400');
+                button.classList.add('bg-gradient-to-r', 'from-blue-500', 'to-indigo-500', 'text-white');
+                button.innerHTML = `
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                    </svg>
+                    <span>Follow</span>
+                `;
+                
+                // ✅ Show notification
+                showNotification(`👋 You unfollowed @<%= twin.publicHandle %>`, 'info');
+            }
             
-            // IMMEDIATE update (optimistic UI)
-            hasFollowed = !hasFollowed;
-            updateFollowButton(hasFollowed);
-            
-            // Update count immediately (optimistic)
+            // Update follow count
             const followCountElement = document.querySelector('.follow-count');
             if (followCountElement) {
-                followCountElement.textContent = hasFollowed ? previousCount + 1 : previousCount - 1;
+                followCountElement.textContent = data.followCount;
             }
             
-            try {
-                const response = await fetch('/api/social/toggle-follow', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        twinId: '<%= twin.id %>'
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Update with actual server response
-                    const followCountElement = document.querySelector('.follow-count');
-                    if (followCountElement) {
-                        followCountElement.textContent = data.followCount;
-                    }
-                    
-                    // Update button state with actual server response
-                    hasFollowed = data.action === 'followed';
-                    updateFollowButton(hasFollowed);
-                } else {
-                    // Revert on error
-                    hasFollowed = previousState;
-                    updateFollowButton(hasFollowed);
-                    if (followCountElement) {
-                        followCountElement.textContent = previousCount;
-                    }
-                    
-                    if (data.error === 'Authentication required') {
-                        alert('Please log in to follow this twin!');
-                    } else {
-                        alert('Error: ' + data.error);
-                    }
-                }
-            } catch (error) {
-                // Revert on error
-                hasFollowed = previousState;
-                updateFollowButton(hasFollowed);
-                if (followCountElement) {
-                    followCountElement.textContent = previousCount;
-                }
-                console.error('Error toggling follow:', error);
+            // Update global state
+            hasFollowed = data.action === 'followed';
+        } else {
+            if (data.error === 'Authentication required') {
                 alert('Please log in to follow this twin!');
+            } else {
+                alert('Error: ' + data.error);
             }
         }
+    } catch (error) {
+        console.error('Error toggling follow:', error);
+        alert('Please log in to follow this twin!');
+    }
+}
 
+function showNotification(message, type = 'success') {
+    // Remove existing notification if any
+    const existing = document.getElementById('twin-notification');
+    if (existing) {
+        existing.remove();
+    }
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.id = 'twin-notification';
+    notification.className = `fixed top-20 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 transform translate-x-0 ${
+        type === 'success' 
+            ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
+            : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
+    }`;
+    
+    // Add icon based on type
+    const icon = type === 'success' ? '✅' : 'ℹ️';
+    notification.innerHTML = `
+        <div class="flex items-center gap-3">
+            <span class="text-xl">${icon}</span>
+            <span class="font-semibold">${message}</span>
+        </div>
+    `;
+    
+    // Add to body
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}        
         // Share functionality
 async function shareTwin(platform) {
     try {
@@ -855,6 +885,26 @@ async function shareTwin(platform) {
 document.addEventListener('DOMContentLoaded', function() {
     checkInitialStatus();
     
+    // ✅ FIX: Like and Follow buttons functionality (exactly like discover.ejs)
+    const likeBtn = document.getElementById('likeBtn');
+    const followBtn = document.getElementById('followBtn');
+    
+    if (likeBtn) {
+        likeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            toggleLike(currentTwinId, likeBtn);
+        });
+    }
+    
+    if (followBtn) {
+        followBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            toggleFollow(currentTwinId, followBtn);
+        });
+    }
+    
     // Share button event listeners
     document.querySelectorAll('[data-share-platform]').forEach(button => {
         button.addEventListener('click', function() {
@@ -864,9 +914,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Copy link button event listener
-    document.querySelector('[data-share-action="copy"]').addEventListener('click', function() {
-        copyShareLink();
-    });
+    const copyBtn = document.querySelector('[data-share-action="copy"]');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            copyShareLink();
+        });
+    }
 });
 </script>        
 </body>

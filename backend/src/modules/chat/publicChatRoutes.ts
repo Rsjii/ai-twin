@@ -40,8 +40,8 @@ router.get('/twin/:twinId/all-chats', requireJWTFromCookie, getAllPublicChatsFor
 // Authenticated route - Get user's public chats
 router.get('/user/my-chats', requireJWTFromCookie, getUserPublicChats);
 
-// Delete public chat endpoint (no authentication required)
-router.delete('/:chatId', deletePublicChat);
+// Delete public chat endpoint (with authentication)
+router.delete('/:chatId', extractJWTFromCookie, deletePublicChat);
 
 // Update public chat title endpoint (no authentication required)
 router.put('/:chatId/title', updatePublicChatTitle);

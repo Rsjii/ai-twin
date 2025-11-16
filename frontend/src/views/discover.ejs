@@ -401,22 +401,31 @@
     const initial = twin.publicHandle.charAt(0).toUpperCase();
     clone.querySelector('.twin-initial').textContent = initial;
     
-    // Add event listeners for buttons (NOT for counts - they're not clickable on public pages)
+    // ✅ FIX: Get buttons FIRST before using them
     const chatBtn = clone.querySelector('.twin-chat-btn');
     const likeBtn = clone.querySelector('.twin-like-btn');
     const followBtn = clone.querySelector('.twin-follow-btn');
     const shareBtn = clone.querySelector('.twin-share-btn');
     
-    // ✅ PHASE 2: Fix click behavior - Check own twin before redirecting
+    // ✅ FIX: Set initial button states AFTER buttons are defined
+    if (twin.hasLiked) {
+        likeBtn.classList.add('bg-red-100', 'text-red-600', 'dark:bg-red-900/30', 'dark:text-red-400');
+        likeBtn.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>';
+    }
+    
+    if (twin.hasFollowed) {
+        followBtn.classList.add('bg-blue-100', 'text-blue-600', 'dark:bg-blue-900/30', 'dark:text-blue-400');
+        followBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+    }
+    
+    // Add event listeners for buttons
     chatBtn.addEventListener('click', async (e) => {
-        e.stopPropagation(); // Prevent card click
+        e.stopPropagation();
         e.preventDefault();
         
-        // ✅ Check if user is logged in
         const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
         
         if (isLoggedIn) {
-            // Check if this is user's own twin
             try {
                 const response = await fetch(`/api/public-twin/check-owner/${twin.id}`, {
                     credentials: 'include'
@@ -429,23 +438,20 @@
                 const data = await response.json();
                 
                 if (data.isOwner) {
-                    // Own twin - redirect to enhanced chat directly
                     window.location.replace(`/chat-enhanced?twinId=${twin.id}&message=${encodeURIComponent('You cannot chat with your own twin in public chat. Use Enhanced Chat instead.')}`);
                     return;
                 }
             } catch (error) {
                 console.error('Error checking own twin:', error);
-                // On error, proceed to public chat
             }
         }
         
-        // Not own twin or not logged in - proceed to public chat
         window.location.href = `/public-twin/chat/${twin.id}`;
-    });    
-    // Card click → navigate to profile (except when clicking buttons)
+    });
+    
+    // Card click → navigate to profile
     const card = clone.querySelector('.twin-card');
     card.addEventListener('click', (e) => {
-        // Don't trigger if clicking buttons or links
         if (e.target.closest('button') || e.target.closest('a')) {
             return;
         }
@@ -465,8 +471,8 @@
     shareBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         shareTwinFromDiscover(twin.id, twin.publicHandle);
-    });    
-        
+    });
+    
     document.getElementById('twinsGrid').appendChild(clone);
 }
 
