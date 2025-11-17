@@ -200,6 +200,11 @@
             <!-- Chat Messages -->
             <div class="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 bg-gray-50 dark:bg-gray-900 w-full" id="chatMessages">                
                 <!-- Messages will be loaded here -->
+
+                                <!-- Initial Loading State -->
+                                <div id="initialLoadingState" class="hidden">
+                                    <%- include('components/loading-skeleton', { type: 'list', count: 6 }) %>
+                                </div>
                 
                 <!-- ✅ FIX: Generating indicator (initially hidden) -->
                 <div id="generatingIndicator" class="hidden justify-start">
@@ -210,6 +215,15 @@
                         </div>
                     </div>
                 </div>
+
+                                <!-- Error State -->
+                                <div id="errorState" class="hidden">
+                                    <%- include('components/error-state', { 
+                                        title: 'Failed to load chat',
+                                        message: 'We encountered an error while loading messages. Please try again.',
+                                        retryFunction: 'location.reload()'
+                                    }) %>
+                                </div>
             </div>
 
             <!-- Chat Input -->
@@ -1031,6 +1045,13 @@ async function loadFeedbackStatus(chatId) {
 }
 
 async function loadCurrentChatMessages() {
+    // Show loading on initial load
+    const initialLoading = document.getElementById('initialLoadingState');
+    if (initialLoading) initialLoading.classList.remove('hidden');
+
+    // Hide error state
+    const errorState = document.getElementById('errorState');
+    if (errorState) errorState.classList.add('hidden');
     try {
         console.log('Loading chat history for chatId:', currentChatId);
         
@@ -1064,9 +1085,13 @@ async function loadCurrentChatMessages() {
             const data = await response.json();
             console.log('Chat data loaded:', data);
             
-            if (data.chat && data.chat.messages && data.chat.messages.length > 0) {
-                // Display existing messages (both user and AI)
-                data.chat.messages.forEach(msg => {
+    if (data.chat && data.chat.messages && data.chat.messages.length > 0) {
+    
+    // Hide loading state
+    if (initialLoading) initialLoading.classList.add('hidden');
+
+    // Display existing messages (both user and AI)
+    data.chat.messages.forEach(msg => {
     const sender = msg.sender === 'human' ? 'user' : 'ai';
     
     // Use the original message ID from database instead of generating new one
@@ -1127,6 +1152,9 @@ async function loadCurrentChatMessages() {
         console.error('Error loading chat history:', error);
         // Show welcome message if error
         addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+        // Hide loading, show error
+        if (initialLoading) initialLoading.classList.add('hidden');
+        if (errorState) errorState.classList.remove('hidden');
     }
 }
 

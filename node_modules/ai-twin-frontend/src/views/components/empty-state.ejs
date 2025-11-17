@@ -1,0 +1,35 @@
+<!-- Empty State Component -->
+<div class="empty-state text-center <%= typeof compact !== 'undefined' && compact ? 'py-4 sm:py-6' : 'py-8 sm:py-12' %>">
+    <div class="empty-icon mb-4">
+        <% if (typeof icon !== 'undefined' && icon) { %>
+            <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-full flex items-center justify-center">
+                <span class="text-3xl sm:text-4xl"><%= icon %></span>
+            </div>
+        <% } else if (typeof svgIcon !== 'undefined' && svgIcon) { %>
+            <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto text-gray-300 dark:text-gray-600">
+                <%- svgIcon %>
+            </div>
+        <% } else { %>
+            <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                </svg>
+            </div>
+        <% } %>
+    </div>
+    <h3 class="empty-title text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        <%= typeof title !== 'undefined' ? title : 'No items found' %>
+    </h3>
+    <p class="empty-description text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-4 max-w-md mx-auto">
+        <%= typeof description !== 'undefined' ? description : 'Try adjusting your search or filters' %>
+    </p>
+    <% if (typeof actionText !== 'undefined' && actionText && typeof actionUrl !== 'undefined' && actionUrl) { %>
+        <a href="<%= actionUrl %>" class="inline-block px-6 py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors font-medium min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="<%= actionText %>">
+            <%= actionText %>
+        </a>
+    <% } else if (typeof actionText !== 'undefined' && actionText && typeof actionOnClick !== 'undefined' && actionOnClick) { %>
+        <button onclick="<%= actionOnClick %>" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors font-medium min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="<%= actionText %>">
+            <%= actionText %>
+        </button>
+    <% } %>
+</div>

@@ -62,7 +62,7 @@
                                 <div class="flex items-center space-x-4 flex-1">
                                     <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden">
                                         <% if (item.profileImage) { %>
-                                            <img src="<%= item.profileImage %>" alt="<%= item.name || item.handle || 'User' %>" class="w-full h-full rounded-full object-cover">
+                                            <img src="<%= item.profileImage %>" alt="<%= item.name || item.handle || 'User' %>" class="w-full h-full rounded-full object-cover" loading="lazy">                                            
                                         <% } else { %>
                                             <span><%= item.name ? item.name.charAt(0).toUpperCase() : (item.handle ? item.handle.charAt(0).toUpperCase() : 'U') %></span>
                                         <% } %>

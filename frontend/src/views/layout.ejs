@@ -10,6 +10,29 @@
     <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
     <link rel="dns-prefetch" href="https://unpkg.com">
     <title><%= title %></title>
+    <!-- SEO Meta Tags -->
+<% if (typeof metaDescription !== 'undefined' && metaDescription) { %>
+    <meta name="description" content="<%= metaDescription %>">
+<% } else { %>
+    <meta name="description" content="Create your AI twin that communicates in your unique style, tone, and personality">
+<% } %>
+
+<!-- Open Graph Tags -->
+<meta property="og:title" content="<%= typeof ogTitle !== 'undefined' ? ogTitle : title %>">
+<meta property="og:description" content="<%= typeof ogDescription !== 'undefined' ? ogDescription : (typeof metaDescription !== 'undefined' ? metaDescription : 'Create your AI twin that communicates in your unique style') %>">
+<meta property="og:type" content="<%= typeof ogType !== 'undefined' ? ogType : 'website' %>">
+<% if (typeof ogImage !== 'undefined' && ogImage) { %>
+    <meta property="og:image" content="<%= ogImage %>">
+<% } %>
+<meta property="og:url" content="<%= typeof ogUrl !== 'undefined' ? ogUrl : (typeof baseUrl !== 'undefined' ? baseUrl + req.path : '') %>">
+
+<!-- Twitter Card Tags -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<%= typeof ogTitle !== 'undefined' ? ogTitle : title %>">
+<meta name="twitter:description" content="<%= typeof ogDescription !== 'undefined' ? ogDescription : (typeof metaDescription !== 'undefined' ? metaDescription : 'Create your AI twin') %>">
+<% if (typeof ogImage !== 'undefined' && ogImage) { %>
+    <meta name="twitter:image" content="<%= ogImage %>">
+<% } %>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -210,6 +233,45 @@
             -webkit-text-fill-color: white;
             color: white;
         }
+
+        /* Skeleton Loader Styles */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+.dark .skeleton {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+    background-size: 200% 100%;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.skeleton-text {
+    height: 1rem;
+    width: 100%;
+}
+
+.skeleton-title {
+    height: 1.5rem;
+    width: 60%;
+}
+
+.skeleton-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+}
+
+.skeleton-card {
+    height: 200px;
+    border-radius: 8px;
+}
 
         
         /* Mobile-specific styles */
@@ -729,9 +791,14 @@
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen font-inter">    
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen font-inter"> 
+    <!-- Skip to content link for accessibility -->
+<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-white focus:rounded-lg">
+    Skip to main content
+</a>
+
     <!-- Mobile Menu Button -->     
-    <button id="mobile-menu-btn" class="fixed top-4 left-4 z-50 lg:hidden bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 border border-gray-200 dark:border-gray-700">
+    <button id="mobile-menu-btn" class="fixed top-4 left-4 z-50 lg:hidden bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 border border-gray-200 dark:border-gray-700" aria-label="Open mobile menu">
         <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
         </svg>
@@ -744,7 +811,7 @@
     <div id="mobile-sidebar" class="fixed top-0 left-0 h-full w-80 bg-white dark:bg-gray-900 shadow-xl z-50 transform -translate-x-full transition-transform duration-300 ease-in-out lg:hidden">
         <div class="p-6">
             <!-- Close Button -->
-            <button id="mobile-close-btn" class="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+            <button id="mobile-close-btn" class="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" aria-label="Close mobile menu">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
@@ -794,7 +861,7 @@
                         <p class="text-xs text-gray-500 dark:text-gray-400">user@example.com</p>
                     </div>
                 </div>
-                <button class="mt-4 w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                <button class="mt-4 w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" aria-label="Sign out">
                     Sign Out
                 </button>
             </div>
@@ -815,7 +882,7 @@
     <%- include('header') %>   
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-4 px-4 sm:p">
+    <main id="main-content" class="max-w-7xl mx-auto py-4 px-4 sm:p"> 
         <div class="animate-fade-in bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 shadow-lg dark:shadow-gray-900 border border-white/30 dark:border-gray-700/50">            
             <%- body %>
         </div>
@@ -861,22 +928,22 @@
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Links</h3>
                     <ul class="space-y-3">
-                        <li><a href="/dashboard" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200">Dashboard</a></li>
-                        <li><a href="/profile" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200">Profile</a></li>
-                        <li><a href="/onboarding" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200">Create Twin</a></li>
-                        <li><a href="/auth" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200">Login</a></li>
-                    </ul>
+                        <li><a href="/dashboard" class="..." aria-label="Go to dashboard">Dashboard</a></li>
+                        <li><a href="/profile" class="..." aria-label="Go to profile">Profile</a></li>
+                        <li><a href="/onboarding" class="..." aria-label="Create new AI twin">Create Twin</a></li>
+                        <li><a href="/auth" class="..." aria-label="Go to login page">Login</a></li>
+                    </ul>                    
                 </div>
                 
                 <!-- Support -->
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Support</h3>
                     <ul class="space-y-3">
-                        <li><a href="/help-center" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200">Help Center</a></li>
-                        <li><a href="/contact" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200">Contact Us</a></li>
-                        <li><a href="/privacy" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200">Privacy Policy</a></li>
-                        <li><a href="/terms" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200">Terms of Service</a></li>
-                    </ul>
+                        <li><a href="/help-center" class="..." aria-label="Go to help center">Help Center</a></li>
+                        <li><a href="/contact" class="..." aria-label="Contact us">Contact Us</a></li>
+                        <li><a href="/privacy" class="..." aria-label="View privacy policy">Privacy Policy</a></li>
+                        <li><a href="/terms" class="..." aria-label="View terms of service">Terms of Service</a></li>
+                    </ul>                    
                 </div>
             </div>
             

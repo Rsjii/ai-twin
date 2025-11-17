@@ -63,10 +63,9 @@
         </div>
 
         <!-- Loading State -->
-        <div id="loadingState" class="text-center py-12">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p class="text-gray-600 dark:text-gray-300">Loading your chat history...</p>
-        </div>
+        <div id="loadingState" class="hidden">
+            <%- include('components/loading-skeleton', { type: 'twin-card', count: 8 }) %>
+        </div>        
 
         <!-- Empty State (hidden by default) -->
         <div id="emptyState" class="hidden text-center py-16">
@@ -84,6 +83,14 @@
                 </a>
             </div>
         </div>
+
+                <!-- Error State -->
+                <div id="errorState" class="hidden">
+                    <%- include('components/error-state', { 
+                        title: 'Failed to load chat history',
+                        message: 'We encountered an error while loading your chats. Please try again.'
+                    }) %>
+                </div>
 
         <!-- Twin Cards Grid -->
         <div id="twinsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 hidden">
@@ -166,8 +173,10 @@
             } catch (error) {
                 console.error('Error loading chat history:', error);
                 loadingState.classList.add('hidden');
-                emptyState.classList.remove('hidden');
-                statsCards.innerHTML = '';
+                emptyState.classList.add('hidden');  // Hide empty
+                const errorState = document.getElementById('errorState');
+                if (errorState) errorState.classList.remove('hidden');  // Show error
+                statsCards.innerHTML = '';                
             }
         }
 

@@ -206,31 +206,11 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
-    // Check if user exists in database
-    let userExists;
-    try {
-      const userResult = await db.query('SELECT id FROM "User" WHERE id = $1', [userId]);
-      userExists = userResult.rows[0];
-    } catch (dbError) {
-      logger.error('Database error checking user:', dbError);
-      return res.status(500).json({ success: false, error: 'Database connection error' });
-    }
-
-    if (!userExists) {
-      try {
-        // Create a basic user record if it doesn't exist
-        await db.query(
-          'INSERT INTO "User" (id, email, handle, active) VALUES ($1, $2, $3, $4)',
-          [userId, req.user?.email || 'unknown@example.com', req.user?.handle || 'unknown', true]
-        );
-      } catch (createError) {
-        logger.error('Error creating user record:', createError);
-        return res.status(500).json({ success: false, error: 'Failed to create user record' });
-      }
-    }
-
-    // Get user's analytics - using same pattern as debugUserData
+    // User already authenticated via JWT middleware - skip redundant user check
+    // Get user's analytics - ALL QUERIES IN PARALLEL (FAST)
     let userTwins = 0, userChats = 0, userMessages = 0, userInvitesSent = 0, userInvitesReceived = 0, userEvents = 0;
+    let userEventBreakdown: Record<string, number> = {};
+    let formattedActivity: Array<{description: string, timestamp: Date, metadata: any}> = [];
     
     try {
       const [
@@ -239,7 +219,9 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
         messagesResult,
         invitesSentResult,
         invitesReceivedResult,
-        eventsResult
+        eventsResult,
+        userEventTypesResult,
+        recentActivityResult
       ] = await Promise.all([
         db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "userId" = $1', [userId]),
         db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [userId]),
@@ -247,49 +229,34 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
         db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "inviterId" = $1', [userId]),
         db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "acceptedBy" = $1', [userId]),
         db.query('SELECT COUNT(*) as count FROM "Event" WHERE "userId" = $1', [userId]),
+        // ADD THESE 2 QUERIES TO PARALLEL (was sequential before)
+        db.query('SELECT type, COUNT(*) as count FROM "Event" WHERE "userId" = $1 GROUP BY type', [userId]),
+        db.query('SELECT type, "createdAt", meta FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 10', [userId])
       ]);
 
-      // Use same parsing pattern as debugUserData - PostgreSQL COUNT always returns a row
+      // Parse all results
       userTwins = parseInt(twinsResult.rows[0].count);
       userChats = parseInt(chatsResult.rows[0].count);
       userMessages = parseInt(messagesResult.rows[0].count);
       userInvitesSent = parseInt(invitesSentResult.rows[0].count);
       userInvitesReceived = parseInt(invitesReceivedResult.rows[0].count);
       userEvents = parseInt(eventsResult.rows[0].count);
-    } catch (analyticsError) {
-      logger.error('Error fetching analytics data:', analyticsError);
-      return res.status(500).json({ success: false, error: 'Failed to fetch analytics data' });
-    }
 
-    // Get user's event breakdown
-    let userEventBreakdown: Record<string, number> = {};
-    let formattedActivity: Array<{description: string, timestamp: Date, metadata: any}> = [];
-    
-    try {
-      const userEventTypesResult = await db.query(
-        'SELECT type, COUNT(*) as count FROM "Event" WHERE "userId" = $1 GROUP BY type',
-        [userId]
-      );
-
+      // Process event breakdown (now from parallel query)
       userEventBreakdown = userEventTypesResult.rows.reduce((acc, event) => {
         acc[event.type] = parseInt(event.count);
         return acc;
       }, {} as Record<string, number>);
 
-      // Get recent activity (last 10 events)
-      const recentActivityResult = await db.query(
-        'SELECT type, "createdAt", meta FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 10',
-        [userId]
-      );
-
+      // Process recent activity (now from parallel query)
       formattedActivity = recentActivityResult.rows.map(event => ({
         description: `${event.type} activity`,
         timestamp: event.createdAt,
         metadata: event.meta,
       }));
-    } catch (eventError) {
-      logger.error('Error fetching event data:', eventError);
-      // Continue with empty data rather than failing completely
+    } catch (analyticsError) {
+      logger.error('Error fetching analytics data:', analyticsError);
+      return res.status(500).json({ success: false, error: 'Failed to fetch analytics data' });
     }
 
     const responseData = {

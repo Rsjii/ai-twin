@@ -1,149 +1,82 @@
 <%
 const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId : '';
 %>
-<%- include('layout', { title: title, user: user, csrfToken: csrfToken, body: `
-    <div class="px-4 py-6 sm:px-0">
-        <div class="max-w-7xl mx-auto">
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6 sm:mb-8">Analytics Dashboard</h1>
-            
-            <!-- Overview Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Views</p>
-                            <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white" id="totalViews">-</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                            <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Likes</p>
-                            <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white" id="totalLikes">-</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                            <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Followers</p>
-                            <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white" id="totalFollowers">-</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                            <svg class="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Chats</p>
-                            <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white" id="totalChats">-</p>
-                        </div>
-                    </div>
-                </div>
-            </div>            
-            
-            <!-- Charts Section -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 mb-6 sm:mb-8">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Engagement Over Time</h3>
-                    <div id="engagementChart" class="h-64 flex items-center justify-center text-gray-500">
-                        <p>Chart will be loaded here</p>
-                    </div>
-                </div>
-                
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top Performing Content</h3>
-                    <div id="topContent" class="space-y-3">
-                        <p class="text-gray-500">Loading...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Feedback Analytics Section -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6 mb-6 sm:mb-8">
-    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Feedback Analytics</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <div class="text-center">
-            <p class="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400" id="positiveFeedback">-</p>
-            <p class="text-sm text-gray-600 dark:text-gray-300">Positive Feedback</p>
-        </div>
-        <div class="text-center">
-            <p class="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400" id="negativeFeedback">-</p>
-            <p class="text-sm text-gray-600 dark:text-gray-300">Negative Feedback</p>
-        </div>
-        <div class="text-center">
-            <p class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400" id="satisfactionScore">-</p>
-            <p class="text-sm text-gray-600 dark:text-gray-300">Satisfaction Score</p>
-        </div>
-    </div>
-</div>
-            
-            <!-- Recent Activity -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900">
-                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
-                </div>
-                <div class="p-6">
-                    <div id="recentActivity" class="space-y-4">
-                        <p class="text-gray-500 dark:text-gray-400">Loading recent activity...</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Debug Section -->
-            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mt-6">
-                <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-2">Debug Tools</h3>
-                <p class="text-sm text-yellow-700 dark:text-yellow-300 mb-4">Use these tools to debug analytics data</p>
-                <div class="flex space-x-3">
-                    <button onclick="debugUserData()" class="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-semibold text-sm">                        
-                        Debug User Data
-                    </button>
-                    <button onclick="createSampleData()" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-semibold text-sm">                        
-                        Create Sample Data
-                    </button>
-                    <button onclick="loadAnalytics()" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-semibold text-sm">                        
-                        Refresh Analytics
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-` }) %>
+<%- include('layout', { 
+    title: title, 
+    user: user, 
+    csrfToken: csrfToken, 
+    body: include('partials/analytics-body')
+}) %>
 
 <script>
     // Set twinId from server-side variable (outside template string, so EJS works)
     window.twinIdValue = '<%- twinIdValue %>';
     
+    // Simplified loading state functions
+    function showLoading(section) {
+        const loadingEl = document.getElementById(`${section}LoadingState`);
+        const containerEl = document.getElementById(`${section}Container`) || document.getElementById(section);
+        const emptyEl = document.getElementById(`${section}EmptyState`);
+        const errorEl = document.getElementById(`${section}ErrorState`);
+        
+        if (loadingEl) loadingEl.classList.remove('hidden');
+        if (containerEl) containerEl.classList.add('hidden');
+        if (emptyEl) emptyEl.classList.add('hidden');
+        if (errorEl) errorEl.classList.add('hidden');
+    }
+    
+    function hideLoading(section) {
+        const loadingEl = document.getElementById(`${section}LoadingState`);
+        if (loadingEl) loadingEl.classList.add('hidden');
+    }
+    
+    function showEmpty(section) {
+        const emptyEl = document.getElementById(`${section}EmptyState`);
+        const containerEl = document.getElementById(`${section}Container`) || document.getElementById(section);
+        const loadingEl = document.getElementById(`${section}LoadingState`);
+        
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        if (containerEl) containerEl.classList.add('hidden');
+        if (loadingEl) loadingEl.classList.add('hidden');
+    }
+    
+    function showError(section) {
+        const errorEl = document.getElementById(`${section}ErrorState`);
+        const containerEl = document.getElementById(`${section}Container`) || document.getElementById(section);
+        const loadingEl = document.getElementById(`${section}LoadingState`);
+        
+        if (errorEl) errorEl.classList.remove('hidden');
+        if (containerEl) containerEl.classList.add('hidden');
+        if (loadingEl) loadingEl.classList.add('hidden');
+    }
+    
+    // Legacy function names for compatibility
+    function showOverviewLoading() { showLoading('overview'); }
+    function hideOverviewLoading() { hideLoading('overview'); }
+    function showOverviewEmpty() { showEmpty('overview'); }
+    function showOverviewError() { showError('overview'); }
+    function hideOverviewError() { document.getElementById('overviewErrorState')?.classList.add('hidden'); }
+    
+    function showChartLoading() { showLoading('chart'); }
+    function hideChartLoading() { hideLoading('chart'); }
+    function showChartEmpty() { showEmpty('chart'); }
+    function showChartError() { showError('chart'); }
+    
+    function showTopContentLoading() { showLoading('topContent'); }
+    function hideTopContentLoading() { hideLoading('topContent'); }
+    function showTopContentEmpty() { showEmpty('topContent'); }
+    function showTopContentError() { showError('topContent'); }
+    
+    function showRecentActivityLoading() { showLoading('recentActivity'); }
+    function hideRecentActivityLoading() { hideLoading('recentActivity'); }
+    function showRecentActivityEmpty() { showEmpty('recentActivity'); }
+    function showRecentActivityError() { showError('recentActivity'); }
+    
     // Debug function to check user data
     async function debugUserData() {
         try {
-            console.log('=== DEBUGGING USER DATA ===');
             const response = await fetch('/api/metrics/debug');
             const data = await response.json();
-            console.log('Debug data:', data);
             
             if (data.success) {
                 alert('Debug Info:\\nUser: ' + (data.user?.email || 'No user') + '\\nTwins: ' + (data.counts?.twins || 0) + '\\nChats: ' + (data.counts?.chats || 0) + '\\nEvents: ' + (data.counts?.events || 0));
@@ -151,7 +84,6 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                 alert('Debug failed: ' + data.error);
             }
         } catch (error) {
-            console.error('Debug error:', error);
             alert('Debug error: ' + error.message);
         }
     }
@@ -159,7 +91,6 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
     // Create sample data function
     async function createSampleData() {
         try {
-            console.log('Creating sample data...');
             const response = await fetch('/api/metrics/create-sample', {
                 method: 'POST',
                 headers: {
@@ -167,7 +98,6 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                 }
             });
             const data = await response.json();
-            console.log('Sample data response:', data);
             
             if (data.success) {
                 alert('Sample data created successfully! Refreshing analytics...');
@@ -176,24 +106,71 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                 alert('Failed to create sample data: ' + data.error);
             }
         } catch (error) {
-            console.error('Create sample data error:', error);
             alert('Error creating sample data: ' + error.message);
         }
     }
     
     // Load analytics data
     async function loadAnalytics() {
+        showOverviewLoading();
+        showChartLoading();
+        showTopContentLoading();
+        showRecentActivityLoading();
+        hideOverviewError();
+        
+        // Cache DOM elements (FAST - single query batch)
+        const elements = {
+            totalViews: document.getElementById('totalViews'),
+            totalLikes: document.getElementById('totalLikes'),
+            totalFollowers: document.getElementById('totalFollowers'),
+            totalChats: document.getElementById('totalChats'),
+            positiveFeedback: document.getElementById('positiveFeedback'),
+            negativeFeedback: document.getElementById('negativeFeedback'),
+            satisfactionScore: document.getElementById('satisfactionScore'),
+            overviewContainer: document.getElementById('overviewContainer'),
+            topContent: document.getElementById('topContent'),
+            recentActivity: document.getElementById('recentActivity'),
+            chartContainer: document.getElementById('chartContainer')
+        };
+        
         try {
-            console.log('Loading analytics data...');
+            // Load user analytics and feedback analytics in parallel (FAST)
+            const [response, feedbackResponse] = await Promise.all([
+                fetch('/api/metrics/user'),
+                fetch('/api/analytics/feedback')
+            ]);
             
-            // Load user analytics
-            const response = await fetch('/api/metrics/user');
-            const data = await response.json();
-
-            // Load feedback analytics
-            const feedbackResponse = await fetch('/api/analytics/feedback');
-            const feedbackData = await feedbackResponse.json();
+            // Parse JSON in parallel (FAST)
+            const [data, feedbackData] = await Promise.all([
+                response.json(),
+                feedbackResponse.json()
+            ]);
             
+            // Update overview cards
+            if (data.success && data.analytics) {
+                hideOverviewLoading();
+                elements.overviewContainer?.classList.remove('hidden');
+                
+                const views = Number.isInteger(data.analytics.totalViews) ? data.analytics.totalViews : 0;
+                const likes = Number.isInteger(data.analytics.totalLikes) ? data.analytics.totalLikes : 0;
+                const followers = Number.isInteger(data.analytics.totalFollowers) ? data.analytics.totalFollowers : 0;
+                const chats = Number.isInteger(data.analytics.totalChats) ? data.analytics.totalChats : 0;
+                
+                // Batch DOM updates (FAST)
+                if (elements.totalViews) elements.totalViews.textContent = views;
+                if (elements.totalLikes) elements.totalLikes.textContent = likes;
+                if (elements.totalFollowers) elements.totalFollowers.textContent = followers;
+                if (elements.totalChats) elements.totalChats.textContent = chats;
+                
+                // Check if all are zero
+                if (views === 0 && likes === 0 && followers === 0 && chats === 0) {
+                    showOverviewEmpty();
+                }
+            } else {
+                showOverviewError();
+            }
+            
+            // Update feedback analytics
             if (feedbackData.success && feedbackData.analytics) {
                 const pos = Number.isInteger(feedbackData.analytics.positiveFeedback) 
                     ? feedbackData.analytics.positiveFeedback : 0;
@@ -202,59 +179,66 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                 const score = Number.isFinite(feedbackData.analytics.satisfactionScore) 
                     ? Math.round(feedbackData.analytics.satisfactionScore) : 0;
                 
-                document.getElementById('positiveFeedback').textContent = pos;
-                document.getElementById('negativeFeedback').textContent = neg;
-                document.getElementById('satisfactionScore').textContent = score + '%';
+                if (elements.positiveFeedback) elements.positiveFeedback.textContent = pos;
+                if (elements.negativeFeedback) elements.negativeFeedback.textContent = neg;
+                if (elements.satisfactionScore) elements.satisfactionScore.textContent = score + '%';
             } else {
-                document.getElementById('positiveFeedback').textContent = '0';
-                document.getElementById('negativeFeedback').textContent = '0';
-                document.getElementById('satisfactionScore').textContent = '0%';
+                if (elements.positiveFeedback) elements.positiveFeedback.textContent = '0';
+                if (elements.negativeFeedback) elements.negativeFeedback.textContent = '0';
+                if (elements.satisfactionScore) elements.satisfactionScore.textContent = '0%';
             }
             
-            console.log('Raw analytics response:', data);
+            // Update chart
+            hideChartLoading();
+            if (elements.chartContainer) {
+                elements.chartContainer.classList.remove('hidden');
+            }
             
-            if (data.success && data.analytics) {
-                console.log('Analytics data:', data);
-                
-                // Validate and update overview cards
-                const views = Number.isInteger(data.analytics.totalViews) ? data.analytics.totalViews : 0;
-                const likes = Number.isInteger(data.analytics.totalLikes) ? data.analytics.totalLikes : 0;
-                const followers = Number.isInteger(data.analytics.totalFollowers) ? data.analytics.totalFollowers : 0;
-                const chats = Number.isInteger(data.analytics.totalChats) ? data.analytics.totalChats : 0;
-                
-                document.getElementById('totalViews').textContent = views;
-                document.getElementById('totalLikes').textContent = likes;
-                document.getElementById('totalFollowers').textContent = followers;
-                document.getElementById('totalChats').textContent = chats;
-                
-                // Update recent activity with validation
-                const activityContainer = document.getElementById('recentActivity');
-                if (data.analytics?.recentActivity && Array.isArray(data.analytics.recentActivity) && data.analytics.recentActivity.length > 0) {
-                    activityContainer.innerHTML = data.analytics.recentActivity.map(activity => {
-                        if (!activity || !activity.description) return '';
-                        const timestamp = activity.timestamp ? new Date(activity.timestamp).toLocaleString() : 'Unknown time';
-                        return '<div class="flex items-center space-x-3"><div class="w-2 h-2 bg-blue-500 rounded-full"></div><div class="flex-1"><p class="text-sm text-gray-900 dark:text-white">' + activity.description + '</p><p class="text-xs text-gray-500">' + timestamp + '</p></div></div>';
-                    }).filter(html => html !== '').join('');
+            // Update top content (FAST - DocumentFragment)
+            hideTopContentLoading();
+            if (elements.topContent) {
+                elements.topContent.classList.remove('hidden');
+                if (data.analytics?.topContent && data.analytics.topContent.length > 0) {
+                    const fragment = document.createDocumentFragment();
+                    data.analytics.topContent.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'p-3 bg-gray-50 dark:bg-gray-700 rounded-lg';
+                        div.innerHTML = `<p class="text-sm font-medium text-gray-900 dark:text-white">${item.title || 'Content'}</p><p class="text-xs text-gray-500 dark:text-gray-400">${item.views || 0} views</p>`;
+                        fragment.appendChild(div);
+                    });
+                    elements.topContent.innerHTML = '';
+                    elements.topContent.appendChild(fragment);
                 } else {
-                    activityContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No recent activity</p>';
+                    showTopContentEmpty();
                 }
-            } else {
-                console.error('Failed to load analytics:', data.error);
-                // Show error message to user
-                document.getElementById('totalViews').textContent = '0';
-                document.getElementById('totalLikes').textContent = '0';
-                document.getElementById('totalFollowers').textContent = '0';
-                document.getElementById('totalChats').textContent = '0';
-                document.getElementById('recentActivity').innerHTML = '<p class="text-gray-500 dark:text-gray-400">Error loading activity</p>';
             }
+            
+            // Update recent activity (FAST - DocumentFragment)
+            hideRecentActivityLoading();
+            if (elements.recentActivity) {
+                elements.recentActivity.classList.remove('hidden');
+                if (data.analytics?.recentActivity && Array.isArray(data.analytics.recentActivity) && data.analytics.recentActivity.length > 0) {
+                    const fragment = document.createDocumentFragment();
+                    data.analytics.recentActivity.forEach(activity => {
+                        if (!activity || !activity.description) return;
+                        const timestamp = activity.timestamp ? new Date(activity.timestamp).toLocaleString() : 'Unknown time';
+                        const div = document.createElement('div');
+                        div.className = 'flex items-center space-x-3';
+                        div.innerHTML = `<div class="w-2 h-2 bg-blue-500 rounded-full"></div><div class="flex-1"><p class="text-sm text-gray-900 dark:text-white">${activity.description}</p><p class="text-xs text-gray-500 dark:text-gray-400">${timestamp}</p></div>`;
+                        fragment.appendChild(div);
+                    });
+                    elements.recentActivity.innerHTML = '';
+                    elements.recentActivity.appendChild(fragment);
+                } else {
+                    showRecentActivityEmpty();
+                }
+            }
+            
         } catch (error) {
-            console.error('Analytics loading error:', error);
-            // Show error message to user
-            document.getElementById('totalViews').textContent = '0';
-            document.getElementById('totalLikes').textContent = '0';
-            document.getElementById('totalFollowers').textContent = '0';
-            document.getElementById('totalChats').textContent = '0';
-            document.getElementById('recentActivity').innerHTML = '<p class="text-red-500">Error loading analytics</p>';
+            showOverviewError();
+            showChartError();
+            showTopContentError();
+            showRecentActivityError();
         }
     }            
     

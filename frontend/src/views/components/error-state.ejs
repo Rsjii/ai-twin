@@ -1,0 +1,28 @@
+<!-- Error State Component -->
+<div class="error-state text-center py-8 sm:py-12">
+    <div class="error-icon mb-4">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+            <svg class="w-8 h-8 sm:w-10 sm:h-10 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+    </div>
+    <h3 class="error-title text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        <%= typeof title !== 'undefined' ? title : 'Something went wrong' %>
+    </h3>
+    <p class="error-description text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-6 max-w-md mx-auto">
+        <%= typeof message !== 'undefined' ? message : 'We encountered an error while loading this content. Please try again.' %>
+    </p>
+    <div class="mt-4">
+        <% if (typeof retryFunction !== 'undefined' && retryFunction) { %>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+                Please <a href="javascript:location.reload()" class="text-primary hover:text-secondary underline font-medium cursor-pointer">reload the page</a> to try again.
+            </p>
+        <% } %>
+        <% if (typeof homeUrl !== 'undefined' && homeUrl) { %>
+            <a href="<%= homeUrl %>" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium min-h-[48px] sm:min-h-[44px] touch-manipulation text-base inline-block mt-2" aria-label="Go Home">
+                Go Home
+            </a>
+        <% } %>
+    </div>    
+</div>

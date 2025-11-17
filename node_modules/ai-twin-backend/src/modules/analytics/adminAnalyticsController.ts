@@ -5,7 +5,7 @@ import { logger } from '../../config/logger';
 // Admin authentication middleware
 export const requireAdminAuth = (req: Request, res: Response, next: Function) => {
   // Check if user is admin (you can modify this logic as needed)
-  const adminEmails = ['admin@aitwin.com', 'i@gmail.com']; // Add your admin emails here
+  const adminEmails = ['admin@aitwin.com', 'i@gmail.com', 'k@gmail.com']; // Add your admin emails here
   
   if (!req.user || !req.user.email || !adminEmails.includes(req.user.email)) {
     return res.status(403).json({ error: 'Admin access required' });

@@ -38,18 +38,17 @@
         <div id="chatSidebar" class="hidden md:flex md:w-64 flex-col bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900 overflow-x-hidden">            
             <div class="p-4 border-b dark:border-gray-700">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Chat with <%= twin.publicHandle %></h2>
-                <button id="newPublicChatBtn" class="w-full mt-2 bg-blue-600 dark:bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors">
+                <button id="newPublicChatBtn" class="w-full mt-2 bg-blue-600 dark:bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors" aria-label="Start new chat">
                     + New Chat
                 </button>
             </div>
             
             <!-- Chat History List -->
             <div id="publicChatHistoryList" class="p-4 space-y-2 max-h-96 overflow-y-auto overflow-x-hidden">
-                <!-- ✅ ADD: Loading state -->
-                <div id="chatHistoryLoadingState" class="text-center py-8">
-                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-2"></div>
-                    <p class="text-gray-500 dark:text-gray-400 text-sm">Loading chat history...</p>
-                </div>
+                <!-- Loading state -->
+                <div id="chatHistoryLoadingState" class="hidden">
+                    <%- include('components/loading-skeleton', { type: 'list', count: 5 }) %>
+                </div>                
                 
                 <!-- ✅ ADD: Empty state -->
                 <div id="chatHistoryEmptyState" class="hidden text-center py-8">
@@ -69,7 +68,7 @@
         <div class="flex-1 flex flex-col w-full md:w-auto">            
             <!-- Chat Header -->
             <div class="bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex items-center gap-3">
-                <a href="/@<%= twin.publicHandle %>" class="flex-shrink-0 hover:opacity-80 transition-opacity" title="View @<%= twin.publicHandle %> profile">
+                <a href="/@<%= twin.publicHandle %>" class="flex-shrink-0 hover:opacity-80 transition-opacity" title="View @<%= twin.publicHandle %> profile" aria-label="View @<%= twin.publicHandle %> profile">
                     <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all">
                         <%= twin.publicHandle ? twin.publicHandle.charAt(0).toUpperCase() : 'T' %>
                     </div>
@@ -88,11 +87,10 @@
 
             <!-- Chat Messages -->
             <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
-                <!-- ✅ ADD: Initial loading state -->
-                <div id="initialLoadingState" class="text-center py-12">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p class="text-gray-600 dark:text-gray-300">Loading chat...</p>
-                </div>
+                <!-- Initial loading state -->
+                <div id="initialLoadingState" class="hidden">
+                    <%- include('components/loading-skeleton', { type: 'list', count: 6 }) %>
+                </div>                
                 
                 <!-- ✅ ADD: Empty state -->
                 <div id="emptyChatState" class="hidden text-center py-12">
@@ -104,6 +102,15 @@
                     <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No messages yet</h3>
                     <p class="text-gray-600 dark:text-gray-300 mb-4">Start the conversation by sending a message!</p>
                 </div>
+
+                                <!-- Error State -->
+                                <div id="errorState" class="hidden">
+                                    <%- include('components/error-state', { 
+                                        title: 'Failed to load chat',
+                                        message: 'We encountered an error while loading messages. Please try again.',
+                                        retryFunction: 'location.reload()'
+                                    }) %>
+                                </div>
                 
                 <!-- Messages will be loaded here -->
             </div>
@@ -145,13 +152,13 @@
             <div class="px-4 pb-4 border-b dark:border-gray-700">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white">Chat History</h2>
-                    <button id="closeMobileHistory" class="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation">
+                    <button id="closeMobileHistory" class="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation" aria-label="Close chat history">
                         <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
-                <button id="newPublicChatBtnMobile" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-600 text-white py-3 px-4 rounded-xl hover:shadow-lg transition-all font-semibold min-h-[48px] touch-manipulation shadow-md">
+                <button id="newPublicChatBtnMobile" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-600 text-white py-3 px-4 rounded-xl hover:shadow-lg transition-all font-semibold min-h-[48px] touch-manipulation shadow-md" aria-label="Start new chat">
                     <span class="flex items-center justify-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -169,18 +176,20 @@
     </div>    
     
     <!-- Mobile Chat History Toggle Button -->
-    <button id="mobileHistoryToggle" class="md:hidden fixed bottom-20 right-4 bg-blue-600 dark:bg-blue-500 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors z-40">
+    <button id="mobileHistoryToggle" class="md:hidden fixed bottom-20 right-4 bg-blue-600 dark:bg-blue-500 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors z-40" aria-label="Open chat history">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
         </svg>
     </button>
+
+    <script>
 
     // Mobile chat history toggle - Enhanced with backdrop
     const mobileHistoryToggle = document.getElementById('mobileHistoryToggle');
     const mobileChatHistory = document.getElementById('mobileChatHistory');
     const mobileChatHistorySheet = document.getElementById('mobileChatHistorySheet');
     const mobileChatHistoryBackdrop = document.getElementById('mobileChatHistoryBackdrop');
-    const closeMobileHistory = document.getElementById('closeMobileHistory');
+    const closeMobileHistoryBtn = document.getElementById('closeMobileHistory');
     
     function openMobileHistory() {
         if (mobileChatHistory && mobileChatHistorySheet && mobileChatHistoryBackdrop) {
@@ -208,8 +217,8 @@
         mobileHistoryToggle.addEventListener('click', openMobileHistory);
     }
     
-    if (closeMobileHistory) {
-        closeMobileHistory.addEventListener('click', closeMobileHistory);
+    if (closeMobileHistoryBtn) {
+        closeMobileHistoryBtn.addEventListener('click', closeMobileHistory);
     }
     
     // Close on backdrop click
@@ -235,6 +244,8 @@
         }, { passive: true });
     }    
 
+    </script>
+
     <script>
         let currentChatId = null;
         let currentTwinId = '<%= twin.id %>';
@@ -246,6 +257,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Hide loading state
     const initialLoading = document.getElementById('initialLoadingState');
+    if (initialLoading) initialLoading.classList.remove('hidden');
     if (initialLoading) initialLoading.classList.add('hidden');
     
     // Show simple message in chat area
@@ -277,6 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Hide chat history loading
     const chatHistoryLoading = document.getElementById('chatHistoryLoadingState');
+    if (chatHistoryLoading) chatHistoryLoading.classList.remove('hidden');
     if (chatHistoryLoading) chatHistoryLoading.classList.add('hidden');
     
     // Show empty state for chat history

@@ -574,7 +574,27 @@
             <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 section">
                 <h3 class="text-lg font-semibold mb-4 dark:text-white">Recent Learning Events</h3>
                 <div id="learningEvents" class="space-y-3 list-container scrollable">
-                    <p class="text-gray-500 dark:text-gray-400">Loading learning events...</p>
+                  <!-- Loading State -->
+                  <div id="learningEventsLoadingState" class="hidden">
+                    <%- include('components/loading-skeleton', { type: 'list', count: 3 }) %>
+                  </div>
+                  
+                  <!-- Empty State -->
+                  <div id="learningEventsEmptyState" class="hidden">
+                    <%- include('components/empty-state', { 
+                      icon: '📚',
+                      title: 'No learning events',
+                      description: 'Learning events will appear here as your AI twin learns from conversations.'
+                    }) %>
+                  </div>
+                  
+                  <!-- Error State -->
+                  <div id="learningEventsErrorState" class="hidden">
+                    <%- include('components/error-state', { 
+                      title: 'Failed to load learning events',
+                      message: 'We encountered an error while loading learning events. Please try again.'
+                    }) %>
+                  </div>
                 </div>
             </div>
         </div>
@@ -586,9 +606,26 @@
       <p class="text-sm text-gray-600 dark:text-gray-300">Select chats to convert messages into training examples</p>
     </div>
     <div id="chatHistoryList" class="space-y-2 max-h-96 overflow-y-auto border dark:border-gray-700 rounded-lg p-4 list-container scrollable bg-gray-50/50 dark:bg-gray-800/50">
-      <div class="text-center text-gray-500 dark:text-gray-400 py-8">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-2"></div>
-        <p>Loading chat history...</p>
+      <!-- Loading State -->
+      <div id="chatHistoryLoadingState" class="hidden">
+        <%- include('components/loading-skeleton', { type: 'list', count: 5 }) %>
+      </div>
+      
+      <!-- Empty State -->
+      <div id="chatHistoryEmptyState" class="hidden">
+        <%- include('components/empty-state', { 
+          icon: '💬',
+          title: 'No chat history',
+          description: 'Start chatting with your AI twin to see chat history here.'
+        }) %>
+      </div>
+      
+      <!-- Error State -->
+      <div id="chatHistoryErrorState" class="hidden">
+        <%- include('components/error-state', { 
+          title: 'Failed to load chat history',
+          message: 'We encountered an error while loading chat history. Please try again.'
+        }) %>
       </div>
     </div>
     <div class="mt-4 flex space-x-2 btn-group">
@@ -1053,15 +1090,45 @@
     
         // Load learning data
         async function loadLearningData() {
+            // Show loading for learning events
+            const eventsLoading = document.getElementById('learningEventsLoadingState');
+            const eventsEmpty = document.getElementById('learningEventsEmptyState');
+            const eventsError = document.getElementById('learningEventsErrorState');
+            const eventsContainer = document.getElementById('learningEvents');
+            
+            if (eventsLoading) eventsLoading.classList.remove('hidden');
+            if (eventsEmpty) eventsEmpty.classList.add('hidden');
+            if (eventsError) eventsError.classList.add('hidden');
+            
             try {
                 const response = await fetch(`/api/twin/${twinId}/learning-data`);
                 const data = await response.json();
                 
                 if (data.success) {
+                    // Hide loading
+                    if (eventsLoading) eventsLoading.classList.add('hidden');
+                    if (eventsError) eventsError.classList.add('hidden');
+                    
                     updateLearningProgress(data.learning);
+                    
+                    // Show empty if no events
+                    if (!data.learning || !data.learning.events || data.learning.events.length === 0) {
+                        if (eventsEmpty) eventsEmpty.classList.remove('hidden');
+                    } else {
+                        if (eventsEmpty) eventsEmpty.classList.add('hidden');
+                    }
+                } else {
+                    // Hide loading, show error
+                    if (eventsLoading) eventsLoading.classList.add('hidden');
+                    if (eventsEmpty) eventsEmpty.classList.add('hidden');
+                    if (eventsError) eventsError.classList.remove('hidden');
                 }
             } catch (error) {
                 console.error('Error loading learning data:', error);
+                // Hide loading, show error
+                if (eventsLoading) eventsLoading.classList.add('hidden');
+                if (eventsEmpty) eventsEmpty.classList.add('hidden');
+                if (eventsError) eventsError.classList.remove('hidden');
             }
         }
     
@@ -1138,46 +1205,112 @@
             initializeChart(learning);
             
             const eventsContainer = document.getElementById('learningEvents');
+            const eventsLoading = document.getElementById('learningEventsLoadingState');
+            const eventsEmpty = document.getElementById('learningEventsEmptyState');
+            const eventsError = document.getElementById('learningEventsErrorState');
+            
+            // Hide all states first
+            if (eventsLoading) eventsLoading.classList.add('hidden');
+            if (eventsError) eventsError.classList.add('hidden');
+            
             if (learning.events && learning.events.length > 0) {
-                eventsContainer.innerHTML = learning.events.map(event => `
-                    <div class="flex items-center space-x-3 p-2 bg-gray-50 rounded">
+                // Hide empty state, show events
+                if (eventsEmpty) eventsEmpty.classList.add('hidden');
+                // Clear container but keep state divs
+                const existingContent = eventsContainer.querySelectorAll(':not(#learningEventsLoadingState):not(#learningEventsEmptyState):not(#learningEventsErrorState)');
+                existingContent.forEach(el => el.remove());
+                
+                // Add events
+                learning.events.forEach(event => {
+                    const eventDiv = document.createElement('div');
+                    eventDiv.className = 'flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-700 rounded';
+                    eventDiv.innerHTML = `
                         <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
                         <div class="flex-1">
-                            <p class="text-sm text-gray-900">${event.description}</p>
-                            <p class="text-xs text-gray-500">${new Date(event.timestamp).toLocaleString()}</p>
+                            <p class="text-sm text-gray-900 dark:text-white">${event.description || 'Learning event'}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${new Date(event.timestamp).toLocaleString()}</p>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                    eventsContainer.appendChild(eventDiv);
+                });
             } else {
-                eventsContainer.innerHTML = '<p class="text-gray-500 text-sm">No recent learning events</p>';
+                // Show empty state
+                if (eventsEmpty) eventsEmpty.classList.remove('hidden');
+                // Clear any existing content but keep the state divs
+                const existingContent = eventsContainer.querySelectorAll(':not(#learningEventsLoadingState):not(#learningEventsEmptyState):not(#learningEventsErrorState)');
+                existingContent.forEach(el => el.remove());
             }
         }
     
         // Load chat history
         async function loadChatHistory() {
+            // Show loading, hide empty/error
+            const loadingState = document.getElementById('chatHistoryLoadingState');
+            const emptyState = document.getElementById('chatHistoryEmptyState');
+            const errorState = document.getElementById('chatHistoryErrorState');
+            const container = document.getElementById('chatHistoryList');
+            
+            if (loadingState) loadingState.classList.remove('hidden');
+            if (emptyState) emptyState.classList.add('hidden');
+            if (errorState) errorState.classList.add('hidden');
+            
             try {
                 const response = await fetch(`/api/twin/${twinId}/chat-history?limit=${pageSize}&offset=${currentChatOffset}`);
                 const data = await response.json();
                 
                 if (data.success) {
-                    displayChatHistory(data.chats);
+                    // Hide loading
+                    if (loadingState) loadingState.classList.add('hidden');
+                    if (errorState) errorState.classList.add('hidden');
+                    
+                    // Show empty state if no chats
+                    if (data.chats && data.chats.length === 0 && currentChatOffset === 0) {
+                        if (emptyState) emptyState.classList.remove('hidden');
+                    } else {
+                        if (emptyState) emptyState.classList.add('hidden');
+                        displayChatHistory(data.chats);
+                    }
+                } else {
+                    // Hide loading, show error
+                    if (loadingState) loadingState.classList.add('hidden');
+                    if (emptyState) emptyState.classList.add('hidden');
+                    if (errorState) errorState.classList.remove('hidden');
                 }
             } catch (error) {
                 console.error('Error loading chat history:', error);
+                // Hide loading, show error
+                if (loadingState) loadingState.classList.add('hidden');
+                if (emptyState) emptyState.classList.add('hidden');
+                if (errorState) errorState.classList.remove('hidden');
             }
         }
     
         // Display chat history
         function displayChatHistory(chats) {
             const container = document.getElementById('chatHistoryList');
+            const loadingState = document.getElementById('chatHistoryLoadingState');
+            const emptyState = document.getElementById('chatHistoryEmptyState');
+            const errorState = document.getElementById('chatHistoryErrorState');
+            
+            // Hide all states
+            if (loadingState) loadingState.classList.add('hidden');
+            if (errorState) errorState.classList.add('hidden');
             
             if (chats.length === 0 && currentChatOffset === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-8">No chats found</p>';
+                if (emptyState) emptyState.classList.remove('hidden');
+                // Clear any existing content but keep the state divs
+                const existingContent = container.querySelectorAll(':not(#chatHistoryLoadingState):not(#chatHistoryEmptyState):not(#chatHistoryErrorState)');
+                existingContent.forEach(el => el.remove());
                 return;
             }
             
+            // Hide empty state if we have chats
+            if (emptyState) emptyState.classList.add('hidden');
+            
             if (currentChatOffset === 0) {
-                container.innerHTML = '';
+                // Clear existing chat items but keep state divs
+                const existingChats = container.querySelectorAll('.border.dark\\:border-gray-700');
+                existingChats.forEach(el => el.remove());
             }
             
             chats.forEach(chat => {

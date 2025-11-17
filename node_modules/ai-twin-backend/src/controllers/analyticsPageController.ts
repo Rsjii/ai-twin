@@ -70,7 +70,7 @@ export async function getAnalytics(req: any, res: Response) {
  */
 export async function getAdminAnalytics(req: any, res: Response) {
   try {
-    const adminEmails = ['admin@aitwin.com', 'i@gmail.com'];
+    const adminEmails = ['admin@aitwin.com', 'i@gmail.com', 'k@gmail.com'];
     if (!req.user || !req.user.email || !adminEmails.includes(req.user.email)) {
       return res.status(403).render('403', { 
         title: 'Access Denied',
@@ -125,7 +125,7 @@ export async function getAdminAnalytics(req: any, res: Response) {
  */
 export async function getAdminAnalyticsPage(req: any, res: Response) {
   try {
-    const adminEmails = ['admin@aitwin.com', 'i@gmail.com'];
+    const adminEmails = ['admin@aitwin.com', 'i@gmail.com', 'k@gmail.com'];
     if (!req.user || !req.user.email || !adminEmails.includes(req.user.email)) {
       return res.status(403).render('403', { 
         title: 'Access Denied',

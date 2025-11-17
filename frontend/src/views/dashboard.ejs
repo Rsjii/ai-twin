@@ -702,9 +702,15 @@
     <div class="px-4 py-6 sm:px-0">    
     <div class="max-w-6xl mx-auto">
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6 sm:mb-8">Welcome, <%= user?.handle || user?.email || 'User' %>!</h1>
+
+         <!-- Loading State for Stats -->
+         <div id="statsLoadingState" class="hidden">
+            <%- include('components/loading-skeleton', { type: 'stats', count: 3 }) %>
+        </div>
+        
         
         <!-- SECTION 1: Social Engagement (Clickable Cards) - Mobile Responsive -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div id="statsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">            
             <!-- Total Chats Card -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all duration-300 cursor-pointer" 
      id="topChatsCard"
@@ -755,6 +761,23 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+          <!-- Empty State for Stats -->
+          <div id="statsEmptyState" class="hidden">
+            <%- include('components/empty-state', { 
+                icon: '📊',
+                title: 'No statistics available',
+                description: 'Statistics will appear here once you start using your twins.'
+            }) %>
+        </div>
+        
+        <!-- Error State for Stats -->
+        <div id="statsErrorState" class="hidden">
+            <%- include('components/error-state', { 
+                title: 'Failed to load statistics',
+                message: 'We encountered an error while loading statistics. Please try again.'
+            }) %>
         </div>
 
         <!-- SECTION 2: Analytics & Insights (Info Only Cards) - Mobile Responsive -->
@@ -1061,7 +1084,7 @@
         card.innerHTML = `
             <div class="flex items-center mb-4">
                 <div class="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg mr-3">
-                    ${twin.profileImage ? `<img src="${twin.profileImage}" alt="${twin.publicHandle}" class="w-12 h-12 rounded-full object-cover">` : avatarInitial}
+                    ${twin.profileImage ? `<img src="${twin.profileImage}" alt="${twin.publicHandle}" class="w-12 h-12 rounded-full object-cover" loading="lazy">` : avatarInitial}                    
                 </div>
                 <div class="flex-1">
                     <div class="flex items-center gap-2">
@@ -1214,7 +1237,7 @@ function renderRecentInteractions(chats) {
             <div class="flex items-center gap-4 mb-3">
                 <div class="relative flex-shrink-0">
                     <div class="w-14 h-14 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg group-hover:scale-110 transition-transform">
-                        ${twin.profileImage ? `<img src="${twin.profileImage}" alt="${twin.publicHandle}" class="w-14 h-14 rounded-full object-cover">` : avatarInitial}
+                        ${twin.profileImage ? `<img src="${twin.profileImage}" alt="${twin.publicHandle}" class="w-14 h-14 rounded-full object-cover" loading="lazy">` : avatarInitial}                        
                     </div>
                     <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
                 </div>
@@ -1919,6 +1942,54 @@ setTimeout(() => {
                 applyTheme(e.detail.theme === 'dark');
             });
         });
+
+                // Stats loading functions
+                function showStatsLoading() {
+            document.getElementById('statsLoadingState')?.classList.remove('hidden');
+            document.getElementById('statsContainer')?.classList.add('hidden');
+            document.getElementById('statsEmptyState')?.classList.add('hidden');
+            document.getElementById('statsErrorState')?.classList.add('hidden');
+        }
+        
+        function hideStatsLoading() {
+            document.getElementById('statsLoadingState')?.classList.add('hidden');
+        }
+        
+        function showStatsEmpty() {
+            document.getElementById('statsEmptyState')?.classList.remove('hidden');
+            document.getElementById('statsContainer')?.classList.add('hidden');
+            document.getElementById('statsLoadingState')?.classList.add('hidden');
+        }
+        
+        function showStatsError() {
+            document.getElementById('statsErrorState')?.classList.remove('hidden');
+            document.getElementById('statsContainer')?.classList.add('hidden');
+            document.getElementById('statsLoadingState')?.classList.add('hidden');
+        }
+        
+        function hideStatsError() {
+            document.getElementById('statsErrorState')?.classList.add('hidden');
+        }
+        
+        // Load stats function
+        async function loadStats() {
+            showStatsLoading();
+            hideStatsError();
+            
+            try {
+                // Stats already loaded from server, just show them
+                const statsContainer = document.getElementById('statsContainer');
+                if (statsContainer) {
+                    hideStatsLoading();
+                    statsContainer.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                showStatsError();
+            } finally {
+                hideStatsLoading();
+            }
+        }
 
         // ✅ NEW: Load analytics data for Twin Analytics Cards
         async function loadAnalytics() {

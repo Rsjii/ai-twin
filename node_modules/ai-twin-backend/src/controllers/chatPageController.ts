@@ -113,17 +113,6 @@ export function getChat(req: any, res: Response) {
 }
 
 /**
- * Chat History page
- */
-export function getChatHistory(req: any, res: Response) {
-  res.render('chat-history', {
-    title: 'Chat History - AI Twin',
-    user: req.user || null,
-    csrfToken: res.locals['csrfToken'],
-  });
-}
-
-/**
  * Enhanced Chat page
  */
 export async function getChatEnhanced(req: any, res: Response) {

@@ -77,55 +77,83 @@
             .scrollbar-hide::-webkit-scrollbar {
                 display: none;
             }
+
+            /* Screen reader only class */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+.sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+}
         </style>
 </head>
 <body class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen font-inter">    
     <!--Header-->
     <%- include('header') %>
 
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Header -->
-<!-- AFTER: -->
-<div class="mb-6 sm:mb-8">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Discover AI Twins</h1>
-            <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300">Explore trending, popular, and recommended AI twins from the community</p>
+<!-- Main Content -->
+<main id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <header class="mb-6 sm:mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Discover AI Twins</h1>
+                <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300">Explore trending, popular, and recommended AI twins from the community</p>
+            </div>
+            <a href="/public-chat/history" 
+               class="flex items-center justify-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-white/20 dark:border-gray-700 hover:shadow-lg transition-all w-full sm:w-auto"
+               aria-label="View my chat history">
+                <span>💬</span>
+                <span class="font-medium text-gray-700 dark:text-gray-300">My Chats</span>
+            </a>
         </div>
-        <a href="/public-chat/history" 
-           class="flex items-center justify-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-white/20 dark:border-gray-700 hover:shadow-lg transition-all w-full sm:w-auto">
-            <span>💬</span>
-            <span class="font-medium text-gray-700 dark:text-gray-300">My Chats</span>
-        </a>
-    </div>
-</div>   
+    </header>
 
-        <!-- Search Bar -->
-        <div class="mb-6 sm:mb-8">
-            <div class="max-w-2xl mx-auto">
-                <div class="relative">
-                    <input 
-                        type="text" 
-                        id="searchInput"
-                        placeholder="Search twins..." 
-                        class="w-full px-4 py-3 pl-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-white/20 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-lg text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                        style="font-size: 16px;"
-                    >
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                    </div>
+    <!-- Status announcements for screen readers -->
+    <div aria-live="polite" aria-atomic="true" class="sr-only" id="status-announcement"></div>
+
+    <!-- Search Section -->
+    <section aria-label="Search twins" class="mb-6 sm:mb-8">
+        <div class="max-w-2xl mx-auto">
+            <div class="relative">
+                <input 
+                    type="text" 
+                    id="searchInput"
+                    placeholder="Search twins..." 
+                    class="w-full px-4 py-3 pl-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-white/20 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-lg text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                    style="font-size: 16px;"
+                    aria-label="Search for AI twins"
+                >
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
                 </div>
             </div>
-        </div>        
+        </div>
+    </section>
 
-        <!-- Filter Tabs - Enhanced Mobile UX -->
-        <div class="mb-6 sm:mb-8">
-            <div class="relative">
-                <!-- Mobile: Scrollable container with snap -->
-                <div class="flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-indigo-50/80 via-purple-50/80 to-pink-50/80 dark:from-gray-800/80 dark:via-gray-800/80 dark:to-gray-800/80 backdrop-blur-xl p-2 sm:p-3 rounded-2xl max-w-4xl mx-auto border border-indigo-200/30 dark:border-gray-700/50 shadow-lg overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
+    <!-- Filter Section -->
+    <nav aria-label="Filter options" class="mb-6 sm:mb-8">
+        <div class="relative">
+            <!-- Mobile: Scrollable container with snap -->
+            <div class="flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-indigo-50/80 via-purple-50/80 to-pink-50/80 dark:from-gray-800/80 dark:via-gray-800/80 dark:to-gray-800/80 backdrop-blur-xl p-2 sm:p-3 rounded-2xl max-w-4xl mx-auto border border-indigo-200/30 dark:border-gray-700/50 shadow-lg overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
                     <button class="filter-tab active bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 sm:px-6 py-3 sm:py-2.5 rounded-xl font-semibold text-sm sm:text-base shadow-lg transform transition-all duration-200 border-2 border-amber-400/50 whitespace-nowrap snap-start min-w-[120px] sm:min-w-auto touch-manipulation" data-filter="trending">                    
                         <span class="mr-1.5">🔥</span>Trending
                     </button>
@@ -141,14 +169,15 @@
                     <button class="filter-tab bg-white/90 dark:bg-gray-700/90 text-gray-700 dark:text-gray-300 px-5 sm:px-6 py-3 sm:py-2.5 rounded-xl font-semibold text-sm sm:text-base shadow-sm transform transition-all duration-200 border-2 border-transparent whitespace-nowrap snap-start min-w-[120px] sm:min-w-auto touch-manipulation hover:bg-gradient-to-r hover:from-indigo-500 hover:to-purple-500 hover:text-white dark:hover:from-indigo-600 dark:hover:to-purple-600 hover:border-indigo-400/50" data-filter="most-followed">                    
                         <span class="mr-1.5">👥</span>Most Followed
                     </button>                
-                </div>
             </div>
-        </div>        
+        </div>
+    </nav>
 
+    <!-- Twins Grid Section -->
+    <section aria-label="AI twins list">
         <!-- Loading State -->
-        <div id="loadingState" class="text-center py-12">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
-            <p class="text-gray-600 dark:text-gray-300">Loading twins...</p>
+        <div id="loadingState" class="hidden">
+            <%- include('components/loading-skeleton', { type: 'twin-card', count: 8 }) %>
         </div>
 
         <!-- Twins Grid -->
@@ -157,19 +186,32 @@
         </div>
 
         <!-- Empty State -->
-        <div id="emptyState" class="text-center py-12 hidden">
-            <div class="text-gray-400 dark:text-gray-500 text-6xl mb-4">🤖</div>
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No twins found</h3>
-            <p class="text-gray-600 dark:text-gray-300">Try adjusting your search or filters</p>
+        <div id="emptyState" class="hidden">
+            <%- include('components/empty-state', { 
+                icon: '🤖',
+                title: 'No twins found',
+                description: 'Try adjusting your search or filters to find more AI twins.',
+                actionText: 'Clear Filters',
+                actionOnClick: 'clearFilters()'
+            }) %>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden">
+            <%- include('components/error-state', { 
+                title: 'Failed to load twins',
+                message: 'We encountered an error while loading twins. Please try again.'
+            }) %>
         </div>
 
         <!-- Load More Button -->
         <div id="loadMoreContainer" class="text-center mt-8 hidden">
-            <button id="loadMoreBtn" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
+            <button id="loadMoreBtn" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-medium shadow-md" aria-label="Load more twins">
                 Load More
             </button>
         </div>
-    </div>
+    </section>
+</main>    
 
     <!-- Twin Card Template -->
     <template id="twinCardTemplate">
@@ -230,16 +272,16 @@
 
                 <!-- Actions - Enhanced Mobile Touch Targets -->
                 <div class="flex items-center justify-between gap-2 sm:gap-3 w-full">
-                    <button class="twin-chat-btn flex-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white py-3 sm:py-2.5 px-4 sm:px-4 rounded-xl hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 hover:shadow-xl transition-all text-sm sm:text-xs font-semibold shadow-md transform hover:scale-105 whitespace-nowrap min-h-[48px] sm:min-h-[44px] touch-manipulation">
+                    <button class="twin-chat-btn flex-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white py-3 sm:py-2.5 px-4 sm:px-4 rounded-xl hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 hover:shadow-xl transition-all text-sm sm:text-xs font-semibold shadow-md transform hover:scale-105 whitespace-nowrap min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="Start chat">
                         <svg class="w-4 h-4 sm:w-3.5 sm:h-3.5 mr-1.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>Chat
                     </button>                    
-                    <button class="twin-like-btn bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-300 py-3 sm:py-2.5 px-3 sm:px-3 rounded-lg hover:from-red-50 hover:to-red-100 dark:hover:from-red-900/30 dark:hover:to-red-800/30 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 shadow-sm flex-shrink-0 min-w-[48px] sm:min-w-[44px] min-h-[48px] sm:min-h-[44px] touch-manipulation">
+                    <button class="twin-like-btn bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-300 py-3 sm:py-2.5 px-3 sm:px-3 rounded-lg hover:from-red-50 hover:to-red-100 dark:hover:from-red-900/30 dark:hover:to-red-800/30 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 shadow-sm flex-shrink-0 min-w-[48px] sm:min-w-[44px] min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="Like this twin">
                         <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
                     </button>
-                    <button class="twin-follow-btn bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-300 py-3 sm:py-2.5 px-3 sm:px-3 rounded-lg hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/30 dark:hover:to-blue-800/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 shadow-sm flex-shrink-0 min-w-[48px] sm:min-w-[44px] min-h-[48px] sm:min-h-[44px] touch-manipulation">
+                    <button class="twin-follow-btn bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-300 py-3 sm:py-2.5 px-3 sm:px-3 rounded-lg hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/30 dark:hover:to-blue-800/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 shadow-sm flex-shrink-0 min-w-[48px] sm:min-w-[44px] min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="Follow this twin">
                         <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
                     </button>
-                    <button class="twin-share-btn bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-300 py-3 sm:py-2.5 px-3 sm:px-3 rounded-lg hover:from-green-50 hover:to-green-100 dark:hover:from-green-900/30 dark:hover:to-green-800/30 hover:text-green-600 dark:hover:text-green-400 transition-all duration-200 shadow-sm flex-shrink-0 min-w-[48px] sm:min-w-[44px] min-h-[48px] sm:min-h-[44px] touch-manipulation">
+                    <button class="twin-share-btn bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-300 py-3 sm:py-2.5 px-3 sm:px-3 rounded-lg hover:from-green-50 hover:to-green-100 dark:hover:from-green-900/30 dark:hover:to-green-800/30 hover:text-green-600 dark:hover:text-green-400 transition-all duration-200 shadow-sm flex-shrink-0 min-w-[48px] sm:min-w-[44px] min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="Share this twin profile">
                         <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path></svg>
                     </button>                    
                 </div>                                            
@@ -329,56 +371,65 @@
         }        
 
         async function loadTwins() {
-            if (isLoading) return;
-            
-            isLoading = true;
-            showLoading();
+    if (isLoading) return;
+    
+    isLoading = true;
+    showLoading();
+    hideError(); // ✅ ADD THIS LINE - Hide any previous errors
 
-            try {
-                const searchQuery = document.getElementById('searchInput').value.trim();
-                let url = `/api/discover/${currentFilter}?limit=12&offset=${currentPage * 12}`;
-                
-                // ✅ Add timeframe parameter for trending
-                if (currentFilter === 'trending') {
-                    url += '&timeframe=all';
-                }
-                
-                if (searchQuery) {
-                    url = `/api/discover/search?query=${encodeURIComponent(searchQuery)}&limit=12&offset=${currentPage * 12}`;
-                }
-
-                const response = await fetch(url);
-                const data = await response.json();
-
-                if (data.success) {
-                    if (currentPage === 0) {
-                        clearTwinsGrid();
-                    }
-                    
-                    if (data.twins.length === 0) {
-                        showEmptyState();
-                    } else {
-                        hideEmptyState();
-                        data.twins.forEach(twin => addTwinCard(twin));
-                        
-                        if (data.twins.length < 12) {
-                            hasMore = false;
-                            hideLoadMore();
-                        } else {
-                            showLoadMore();
-                        }
-                    }
-                } else {
-                    showError(data.error || 'Failed to load twins');
-                }
-            } catch (error) {
-                console.error('Error loading twins:', error);
-                showError('Failed to load twins');
-            } finally {
-                isLoading = false;
-                hideLoading();
-            }
+    try {
+        const searchQuery = document.getElementById('searchInput').value.trim();
+        let url = `/api/discover/${currentFilter}?limit=12&offset=${currentPage * 12}`;
+        
+        // ✅ Add timeframe parameter for trending
+        if (currentFilter === 'trending') {
+            url += '&timeframe=all';
         }
+        
+        if (searchQuery) {
+            url = `/api/discover/search?query=${encodeURIComponent(searchQuery)}&limit=12&offset=${currentPage * 12}`;
+        }
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success) {
+            if (currentPage === 0) {
+                clearTwinsGrid();
+            }
+            
+            if (data.twins.length === 0) {
+                showEmptyState();
+            } else {
+                hideEmptyState();
+                hideError(); // ✅ ADD THIS - Hide error if data loads successfully
+                data.twins.forEach(twin => addTwinCard(twin));
+
+                  // ✅ ADD: Announce to screen readers
+        const statusEl = document.getElementById('status-announcement');
+        if (statusEl) {
+            statusEl.textContent = `Loaded ${data.twins.length} ${data.twins.length === 1 ? 'twin' : 'twins'}`;
+        }
+                
+                if (data.twins.length < 12) {
+                    hasMore = false;
+                    hideLoadMore();
+                } else {
+                    showLoadMore();
+                }
+            }
+        } else {
+            showError(data.error || 'Failed to load twins');
+        }
+    } catch (error) {
+        console.error('Error loading twins:', error);
+        showError('Failed to load twins');
+    } finally {
+        isLoading = false;
+        hideLoading();
+    }
+}        
+       
 
         async function loadMore() {
             if (!hasMore || isLoading) return;
@@ -399,6 +450,18 @@
     clone.querySelector('.follow-count').textContent = twin.followCount || 0;
     clone.querySelector('.chat-count').textContent = twin.chatCount || 0;
     
+    // ✅ ADD: Get buttons and update ARIA labels
+    const chatBtn = clone.querySelector('.twin-chat-btn');
+    const likeBtn = clone.querySelector('.twin-like-btn');
+    const followBtn = clone.querySelector('.twin-follow-btn');
+    const shareBtn = clone.querySelector('.twin-share-btn');
+    
+    // ✅ ADD: Set ARIA labels with actual twin handle
+    chatBtn.setAttribute('aria-label', `Start chat with @${twin.publicHandle}`);
+    likeBtn.setAttribute('aria-label', `Like @${twin.publicHandle}`);
+    followBtn.setAttribute('aria-label', `Follow @${twin.publicHandle}`);
+    shareBtn.setAttribute('aria-label', `Share @${twin.publicHandle} profile`);
+    
     // Show verified badge if applicable
     if (twin.verified) {
         clone.querySelector('.twin-verified').classList.remove('hidden');
@@ -413,12 +476,6 @@
     // Set initial letter for avatar
     const initial = twin.publicHandle.charAt(0).toUpperCase();
     clone.querySelector('.twin-initial').textContent = initial;
-    
-    // ✅ FIX: Get buttons FIRST before using them
-    const chatBtn = clone.querySelector('.twin-chat-btn');
-    const likeBtn = clone.querySelector('.twin-like-btn');
-    const followBtn = clone.querySelector('.twin-follow-btn');
-    const shareBtn = clone.querySelector('.twin-share-btn');
     
     // ✅ FIX: Set initial button states AFTER buttons are defined
     if (twin.hasLiked) {
@@ -621,8 +678,23 @@
         }
 
         function showError(message) {
-            alert('Error: ' + message);
-        }
+    document.getElementById('errorState').classList.remove('hidden');
+    document.getElementById('twinsGrid').classList.add('hidden');
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('loadingState').classList.add('hidden');
+}
+
+function hideError() {
+    document.getElementById('errorState').classList.add('hidden');
+}        
+
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    setActiveFilter('trending');
+    currentPage = 0;
+    hasMore = true;
+    loadTwins();
+}
 
         // ✅ Notification function for like/follow messages
         function showNotification(message, type = 'success') {

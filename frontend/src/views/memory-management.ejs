@@ -142,9 +142,27 @@
 
                 <!-- Memory List -->
                 <div id="memoryList" class="p-4 sm:p-6 min-h-[300px]">
-                    <div class="text-center text-gray-500 dark:text-gray-400 py-8">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto"></div>
-                        <p class="mt-2">Loading memories...</p>
+                    <!-- Loading State -->
+                    <div id="memoryLoadingState" class="hidden">
+                        <%- include('components/loading-skeleton', { type: 'list', count: 3 }) %>
+                    </div>
+                    
+                    <!-- Empty State - MOVED INSIDE -->
+                    <div id="memoryEmptyState" class="hidden">
+                        <%- include('components/empty-state', { 
+                            icon: '🧠',
+                            title: 'No memories found',
+                            description: 'Start adding memories to help your AI twin remember important information.',
+                            compact: true
+                        }) %>
+                    </div>
+                    
+                    <!-- Error State - MOVED INSIDE -->
+                    <div id="memoryErrorState" class="hidden">
+                        <%- include('components/error-state', { 
+                            title: 'Failed to load memories',
+                            message: 'We encountered an error while loading memories. Please try again.'
+                        }) %>
                     </div>
                 </div>
 
@@ -187,9 +205,27 @@
 
                 <!-- Style Anchor List -->
                 <div id="styleAnchorList" class="p-4 sm:p-6 min-h-[300px]">
-                    <div class="text-center text-gray-500 py-8">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                        <p class="mt-2">Loading style anchors...</p>
+                    <!-- Loading State -->
+                    <div id="anchorLoadingState" class="hidden">
+                        <%- include('components/loading-skeleton', { type: 'list', count: 3 }) %>
+                    </div>
+                    
+                    <!-- Empty State - MOVED INSIDE -->
+                    <div id="anchorEmptyState" class="hidden">
+                        <%- include('components/empty-state', { 
+                            icon: '🎯',
+                            title: 'No style anchors found',
+                            description: 'Add phrases and interactions to customize your AI twin\'s communication style.',
+                            compact: true
+                        }) %>
+                    </div>
+                    
+                    <!-- Error State - MOVED INSIDE -->
+                    <div id="anchorErrorState" class="hidden">
+                        <%- include('components/error-state', { 
+                            title: 'Failed to load style anchors',
+                            message: 'We encountered an error while loading style anchors. Please try again.'
+                        }) %>
                     </div>
                 </div>
 
@@ -305,6 +341,21 @@
 
         // Load memory data
         async function loadMemoryData() {
+            // Show loading states
+const memoryLoading = document.getElementById('memoryLoadingState');
+const anchorLoading = document.getElementById('anchorLoadingState');
+if (memoryLoading) memoryLoading.classList.remove('hidden');
+if (anchorLoading) anchorLoading.classList.remove('hidden');
+
+// Hide empty and error states
+const memoryEmpty = document.getElementById('memoryEmptyState');
+const memoryError = document.getElementById('memoryErrorState');
+const anchorEmpty = document.getElementById('anchorEmptyState');
+const anchorError = document.getElementById('anchorErrorState');
+if (memoryEmpty) memoryEmpty.classList.add('hidden');
+if (memoryError) memoryError.classList.add('hidden');
+if (anchorEmpty) anchorEmpty.classList.add('hidden');
+if (anchorError) anchorError.classList.add('hidden');
             try {
                 // Load all memories and anchors
                 const [longTermMemories, styleAnchors] = await Promise.all([
@@ -317,6 +368,16 @@
                 
                 allMemories = longTermData.memories || [];
                 allAnchors = anchorsData.anchors || [];
+
+                // Hide loading states
+                if (memoryLoading) memoryLoading.classList.add('hidden');
+                if (anchorLoading) anchorLoading.classList.add('hidden');
+
+                if(allMemories.length === 0 && allAnchors.length === 0) {
+                    // Show empty states
+                    if (memoryEmpty) memoryEmpty.classList.remove('hidden');
+                    if (anchorEmpty) anchorEmpty.classList.remove('hidden');
+                }
 
                 // Calculate stats
                 const stats = {
@@ -353,6 +414,12 @@
                 loadStyleAnchors(currentAnchorType);
             } catch (error) {
                 console.error('Error loading memory data:', error);
+
+                 // Hide loading, show error
+                 if (memoryLoading) memoryLoading.classList.add('hidden');
+                 if (anchorLoading) anchorLoading.classList.add('hidden');
+                 if (memoryError) memoryError.classList.remove('hidden');
+                 if (anchorError) anchorError.classList.remove('hidden');
             }
         }
 
@@ -383,145 +450,185 @@
         }
 
         function displayMemories(memories) {
-            const container = document.getElementById('memoryList');
-            const searchTerm = document.getElementById('memorySearch')?.value.toLowerCase() || '';
-            
-            const filtered = memories.filter(m => {
-                const value = (m.value || m.text || '').toLowerCase();
-                return value.includes(searchTerm);
-            });
-            
-            if (filtered.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-8">No memories found</p>';
-                return;
-            }
-            
-            container.innerHTML = filtered.map(memory => {
-                const safeKey = escapeForAttribute(memory.key);
-                const safeValue = escapeHtml(memory.value || memory.text || '');
-                const safeValueAttr = escapeForAttribute(memory.value || memory.text || '');
-                const safeCategory = escapeForAttribute(memory.category || currentMemoryCategory);
-                const date = new Date(memory.createdAt || memory.created_at || Date.now()).toLocaleDateString();
-                
-                return `
-                    <div class="mb-3 p-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-gray-700 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <p class="text-gray-900 dark:text-white">${safeValue}</p>
-                                <p class="text-xs text-gray-500 mt-1">${date}</p>
-                            </div>
-                            <div class="flex space-x-2 ml-4">
-                                <button data-memory-key="${safeKey}" data-memory-value="${safeValueAttr}" data-memory-category="${safeCategory}" class="edit-memory-btn text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded hover:bg-blue-50 cursor-pointer">
-                                    Edit
-                                </button>
-                                <button data-memory-key="${safeKey}" class="delete-memory-btn text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50 cursor-pointer">
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
+    const container = document.getElementById('memoryList');
+    if (!container) return;
+    
+    const searchTerm = document.getElementById('memorySearch')?.value.toLowerCase() || '';
+    
+    const filtered = memories.filter(m => {
+        const value = (m.value || m.text || '').toLowerCase();
+        return value.includes(searchTerm);
+    });
+    
+    const emptyState = document.getElementById('memoryEmptyState');
+    const errorState = document.getElementById('memoryErrorState');
+    const loadingState = document.getElementById('memoryLoadingState');
+    
+    // Hide loading and error states
+    if (loadingState) loadingState.classList.add('hidden');
+    if (errorState) errorState.classList.add('hidden');
+    
+    if (filtered.length === 0) {
+        // Show empty state
+        if (emptyState) emptyState.classList.remove('hidden');
+        
+        // Clear only memory items (divs with mb-3 class, not the state divs)
+        const memoryItems = container.querySelectorAll('.mb-3');
+        memoryItems.forEach(item => item.remove());
+        return;
+    }
+    
+    // Hide empty state
+    if (emptyState) emptyState.classList.add('hidden');
+    
+    // Clear only memory items (divs with mb-3 class)
+    const memoryItems = container.querySelectorAll('.mb-3');
+    memoryItems.forEach(item => item.remove());
+    
+    // Append new memory items
+    filtered.forEach(memory => {
+        const safeKey = escapeForAttribute(memory.key);
+        const safeValue = escapeHtml(memory.value || memory.text || '');
+        const safeValueAttr = escapeForAttribute(memory.value || memory.text || '');
+        const safeCategory = escapeForAttribute(memory.category || currentMemoryCategory);
+        const date = new Date(memory.createdAt || memory.created_at || Date.now()).toLocaleDateString();
+        
+        const memoryDiv = document.createElement('div');
+        memoryDiv.className = 'mb-3 p-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-gray-700 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors';
+        memoryDiv.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <p class="text-gray-900 dark:text-white">${safeValue}</p>
+                    <p class="text-xs text-gray-500 mt-1">${date}</p>
+                </div>
+                <div class="flex space-x-2 ml-4">
+                    <button data-memory-key="${safeKey}" data-memory-value="${safeValueAttr}" data-memory-category="${safeCategory}" class="edit-memory-btn text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded hover:bg-blue-50 cursor-pointer">
+                        Edit
+                    </button>
+                    <button data-memory-key="${safeKey}" class="delete-memory-btn text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50 cursor-pointer">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        `;
+        container.appendChild(memoryDiv);
+    });
+}
+
+function displayStyleAnchors(anchors, type) {
+    const container = document.getElementById('styleAnchorList');
+    if (!container) {
+        console.error('styleAnchorList container not found');
+        return;
+    }
+    
+    const searchTerm = document.getElementById('anchorSearch')?.value.toLowerCase() || '';
+    
+    const filtered = anchors.filter(a => {
+        if (type === 'phrase') {
+            const phrase = (a.phrase || '').toLowerCase();
+            return phrase.includes(searchTerm);
+        } else {
+            const utterance = (a.user_utterance || a.userUtterance || '').toLowerCase();
+            const reply = (a.ideal_reply || a.idealReply || '').toLowerCase();
+            return utterance.includes(searchTerm) || reply.includes(searchTerm);
+        }
+    });
+    
+    const emptyState = document.getElementById('anchorEmptyState');
+    const errorState = document.getElementById('anchorErrorState');
+    const loadingState = document.getElementById('anchorLoadingState');
+    
+    // Hide loading and error states
+    if (loadingState) loadingState.classList.add('hidden');
+    if (errorState) errorState.classList.add('hidden');
+    
+    if (filtered.length === 0) {
+        // Show empty state
+        if (emptyState) emptyState.classList.remove('hidden');
+        
+        // Clear only anchor items (divs with mb-3 class)
+        const anchorItems = container.querySelectorAll('.mb-3');
+        anchorItems.forEach(item => item.remove());
+        return;
+    }
+    
+    // Hide empty state
+    if (emptyState) emptyState.classList.add('hidden');
+    
+    // Clear only anchor items (divs with mb-3 class)
+    const anchorItems = container.querySelectorAll('.mb-3');
+    anchorItems.forEach(item => item.remove());
+    
+    // Append new anchor items
+    filtered.forEach(anchor => {
+        const anchorId = anchor.id || anchor.key || '';
+        if (!anchorId) {
+            console.warn('Anchor missing ID:', anchor);
+            return;
+        }
+        
+        const safeId = escapeForAttribute(anchorId);
+        const date = new Date(anchor.created_at || anchor.createdAt || Date.now()).toLocaleDateString();
+        
+        const anchorDiv = document.createElement('div');
+        anchorDiv.className = 'mb-3 p-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-gray-700 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors';
+        
+        if (type === 'phrase') {
+            const phrase = anchor.phrase || '';
+            if (!phrase || phrase.trim().length === 0) return;
+            const safePhrase = escapeHtml(phrase);
+            const safePhraseAttr = escapeForAttribute(phrase);
+            anchorDiv.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <p class="text-gray-900 dark:text-white font-medium">${safePhrase}</p>
+                        <p class="text-xs text-gray-500 mt-1">${date}</p>
                     </div>
-                `;
-            }).join('');
-
-            // Event listeners are handled via event delegation in DOMContentLoaded
-        }
-
-        function displayStyleAnchors(anchors, type) {
-            const container = document.getElementById('styleAnchorList');
-            if (!container) {
-                console.error('styleAnchorList container not found');
+                    <div class="flex space-x-2 ml-4">
+                        <button data-anchor-id="${safeId}" data-anchor-phrase="${safePhraseAttr}" class="edit-anchor-btn text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded hover:bg-blue-50 cursor-pointer">
+                            Edit
+                        </button>
+                        <button data-anchor-id="${safeId}" class="delete-anchor-btn text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50 cursor-pointer">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            const userUtterance = anchor.user_utterance || anchor.userUtterance || '';
+            const idealReply = anchor.ideal_reply || anchor.idealReply || '';
+            if (!userUtterance || !idealReply || userUtterance.trim().length === 0 || idealReply.trim().length === 0) {
                 return;
             }
-            
-            const searchTerm = document.getElementById('anchorSearch')?.value.toLowerCase() || '';
-            
-            const filtered = anchors.filter(a => {
-                if (type === 'phrase') {
-                    const phrase = (a.phrase || '').toLowerCase();
-                    return phrase.includes(searchTerm);
-                } else {
-                    const utterance = (a.user_utterance || a.userUtterance || '').toLowerCase();
-                    const reply = (a.ideal_reply || a.idealReply || '').toLowerCase();
-                    return utterance.includes(searchTerm) || reply.includes(searchTerm);
-                }
-            });
-            
-            if (filtered.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-8">No style anchors found</p>';
-                return;
-            }
-            
-            container.innerHTML = filtered.map(anchor => {
-                const anchorId = anchor.id || anchor.key || '';
-                if (!anchorId) {
-                    console.warn('Anchor missing ID:', anchor);
-                    return '';
-                }
-                
-                const safeId = escapeForAttribute(anchorId);
-                const date = new Date(anchor.created_at || anchor.createdAt || Date.now()).toLocaleDateString();
-                
-                if (type === 'phrase') {
-                    const phrase = anchor.phrase || '';
-                    if (!phrase || phrase.trim().length === 0) {
-                        return '';
-                    }
-                    const safePhrase = escapeHtml(phrase);
-                    const safePhraseAttr = escapeForAttribute(phrase);
-                    return `
-                        <div class="mb-3 p-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-gray-700 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors">
-                            <div class="flex justify-between items-start">
-                                <div class="flex-1">
-                                    <p class="text-gray-900 dark:text-white font-medium">${safePhrase}</p>
-                                    <p class="text-xs text-gray-500 mt-1">${date}</p>
-                                </div>
-                                <div class="flex space-x-2 ml-4">
-                                    <button data-anchor-id="${safeId}" data-anchor-phrase="${safePhraseAttr}" class="edit-anchor-btn text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded hover:bg-blue-50 cursor-pointer">
-                                        Edit
-                                    </button>
-                                    <button data-anchor-id="${safeId}" class="delete-anchor-btn text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50 cursor-pointer">
-                                        Delete
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    const userUtterance = anchor.user_utterance || anchor.userUtterance || '';
-                    const idealReply = anchor.ideal_reply || anchor.idealReply || '';
-                    if (!userUtterance || !idealReply || userUtterance.trim().length === 0 || idealReply.trim().length === 0) {
-                        return '';
-                    }
-                    const safeUtterance = escapeHtml(userUtterance);
-                    const safeReply = escapeHtml(idealReply);
-                    const safeUtteranceAttr = escapeForAttribute(userUtterance);
-                    const safeReplyAttr = escapeForAttribute(idealReply);
-                    return `
-                        <div class="mb-3 p-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-gray-700 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors">
-                            <div class="flex justify-between items-start">
-                                <div class="flex-1">
-                                    <p class="text-xs text-gray-500 mb-1">User:</p>
-                                    <p class="text-sm text-gray-700 mb-2">${safeUtterance}</p>
-                                    <p class="text-xs text-gray-500 mb-1">Ideal Reply:</p>
-                                    <p class="text-sm text-gray-900 dark:text-white font-medium">${safeReply}</p>
-                                    <p class="text-xs text-gray-500 mt-1">${date}</p>
-                                </div>
-                                <div class="flex space-x-2 ml-4">
-                                    <button data-anchor-id="${safeId}" data-anchor-utterance="${safeUtteranceAttr}" data-anchor-reply="${safeReplyAttr}" class="edit-interaction-btn text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded hover:bg-blue-50 cursor-pointer">
-                                        Edit
-                                    </button>
-                                    <button data-anchor-id="${safeId}" class="delete-anchor-btn text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50 cursor-pointer">
-                                        Delete
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-            }).filter(html => html.length > 0).join('');
-
-            // Event listeners are handled via event delegation in DOMContentLoaded
+            const safeUtterance = escapeHtml(userUtterance);
+            const safeReply = escapeHtml(idealReply);
+            const safeUtteranceAttr = escapeForAttribute(userUtterance);
+            const safeReplyAttr = escapeForAttribute(idealReply);
+            anchorDiv.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <p class="text-xs text-gray-500 mb-1">User:</p>
+                        <p class="text-sm text-gray-700 mb-2">${safeUtterance}</p>
+                        <p class="text-xs text-gray-500 mb-1">Ideal Reply:</p>
+                        <p class="text-sm text-gray-900 dark:text-white font-medium">${safeReply}</p>
+                        <p class="text-xs text-gray-500 mt-1">${date}</p>
+                    </div>
+                    <div class="flex space-x-2 ml-4">
+                        <button data-anchor-id="${safeId}" data-anchor-utterance="${safeUtteranceAttr}" data-anchor-reply="${safeReplyAttr}" class="edit-interaction-btn text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded hover:bg-blue-50 cursor-pointer">
+                            Edit
+                        </button>
+                        <button data-anchor-id="${safeId}" class="delete-anchor-btn text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50 cursor-pointer">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `;
         }
+        
+        container.appendChild(anchorDiv);
+    });
+}
 
         function escapeHtml(text) {
             if (!text) return '';
