@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { userQueries, twinQueries } from '../config/database';
 import { logger } from '../config/logger';
-import { AppError, createError, ErrorCodes } from '../utils/errors';
+import { AppError, createError } from '../utils/errors';
 
 /**
  * Profile page - User profile settings with tabs
@@ -46,21 +46,10 @@ export async function getProfile(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('error', {
-        title: 'Error',
-        message: error.message,
-        errorCode: error.errorCode,
-        user: req.user || null
-      });
+      throw error;
     }
     
-    const appError = createError.internal('Failed to load profile', error);
-    return res.status(appError.statusCode).render('error', {
-      title: 'Error',
-      message: appError.message,
-      errorCode: appError.errorCode,
-      user: req.user || null
-    });
+    throw createError.internal('Failed to load profile', error);
   }
 }
 

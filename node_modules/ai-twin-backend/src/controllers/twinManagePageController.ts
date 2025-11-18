@@ -182,20 +182,9 @@ export async function getTwinManage(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('404', {
-        title: 'Error',
-        message: error.message,
-        csrfToken: res.locals['csrfToken'],
-        user: req.user || null
-      });
+      throw error;
     }
     
-    const appError = createError.internal('Failed to load twin management page', error);
-    return res.status(appError.statusCode).render('404', {
-      title: 'Error',
-      message: appError.message,
-      csrfToken: res.locals['csrfToken'],
-      user: req.user || null
-    });
+    throw createError.internal('Failed to load twin management page', error);
   }
 }

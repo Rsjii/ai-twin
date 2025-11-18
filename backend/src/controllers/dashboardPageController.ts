@@ -134,20 +134,9 @@ export async function getDashboard(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('error', {
-        title: 'Error',
-        message: error.message,
-        errorCode: error.errorCode,
-        user: req.user || null
-      });
+      throw error;
     }
     
-    const appError = createError.internal('Failed to load dashboard', error);
-    return res.status(appError.statusCode).render('error', {
-      title: 'Error',
-      message: appError.message,
-      errorCode: appError.errorCode,
-      user: req.user || null
-    });
+    throw createError.internal('Failed to load dashboard', error);
   }
 }

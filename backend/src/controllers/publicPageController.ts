@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { db } from '../config/database';
 import { logger } from '../config/logger';
-import { AppError, createError, ErrorCodes } from '../utils/errors';
+import { AppError, createError } from '../utils/errors';
 
 /**
  * Landing page - Public home page
@@ -65,12 +65,7 @@ export async function getPublicProfile(req: any, res: Response) {
     const publicTwin = await db.query(query, params);
 
     if (publicTwin.rows.length === 0) {
-      return res.status(404).render('404', { 
-        title: 'Twin Not Found',
-        message: 'This twin profile is not public or does not exist',
-        csrfToken: res.locals['csrfToken'],
-        user: req.user || null
-      });
+      throw createError.notFound('This twin profile is not public or does not exist');
     }
 
     const twin = publicTwin.rows[0];
@@ -83,12 +78,7 @@ export async function getPublicProfile(req: any, res: Response) {
       `, [twin.id, userId]);
       
       if (blockedCheck.rows.length > 0) {
-        return res.status(404).render('404', {
-          title: 'Profile Not Available',
-          message: 'This profile is not available',
-          csrfToken: res.locals['csrfToken'],
-          user: req.user || null
-        });
+        throw createError.notFound('This profile is not available');
       }
     }
     
@@ -134,23 +124,10 @@ export async function getPublicProfile(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('404', {
-        title: 'Error',
-        message: error.message,
-        errorCode: error.errorCode,
-        csrfToken: res.locals['csrfToken'],
-        user: req.user || null
-      });
+      throw error;
     }
     
-    const appError = createError.internal('Failed to load public profile', error);
-    return res.status(appError.statusCode).render('404', {
-      title: 'Error',
-      message: appError.message,
-      errorCode: appError.errorCode,
-      csrfToken: res.locals['csrfToken'],
-      user: req.user || null
-    });
+    throw createError.internal('Failed to load public profile', error);
   }
 }
 
@@ -177,6 +154,7 @@ export function getSimple(req: any, res: Response) {
     csrfToken: 'test-token',
   });
 }
+
 /**
  * User Profile page - View user's basic info + their twins
  */
@@ -193,12 +171,7 @@ export async function getUserProfile(req: any, res: Response) {
     `, [handle]);
     
     if (userResult.rows.length === 0) {
-      return res.status(404).render('404', { 
-        title: 'User Not Found',
-        message: 'This user does not exist',
-        csrfToken: res.locals['csrfToken'],
-        user: req.user || null
-      });
+      throw createError.notFound('This user does not exist');
     }
     
     const user = userResult.rows[0];
@@ -272,22 +245,9 @@ export async function getUserProfile(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('404', {
-        title: 'Error',
-        message: error.message,
-        errorCode: error.errorCode,
-        csrfToken: res.locals['csrfToken'],
-        user: req.user || null
-      });
+      throw error;
     }
     
-    const appError = createError.internal('Failed to load user profile', error);
-    return res.status(appError.statusCode).render('404', {
-      title: 'Error',
-      message: appError.message,
-      errorCode: appError.errorCode,
-      csrfToken: res.locals['csrfToken'],
-      user: req.user || null
-    });
+    throw createError.internal('Failed to load user profile', error);
   }
 }

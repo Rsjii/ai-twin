@@ -85,21 +85,10 @@ export async function getTwinAiEdit(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('error', {
-        title: 'Error',
-        message: error.message,
-        errorCode: error.errorCode,
-        user: req.user || null
-      });
+      throw error;
     }
     
-    const appError = createError.internal('Failed to load AI edit page', error);
-    return res.status(appError.statusCode).render('error', {
-      title: 'Error',
-      message: appError.message,
-      errorCode: appError.errorCode,
-      user: req.user || null
-    });
+    throw createError.internal('Failed to load AI edit page', error);
   }
 }
 
@@ -160,21 +149,10 @@ export async function getTwinStyleCustomize(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('error', {
-        title: 'Error',
-        message: error.message,
-        errorCode: error.errorCode,
-        user: req.user || null
-      });
+      throw error;
     }
     
-    const appError = createError.internal('Failed to load style customize page', error);
-    return res.status(appError.statusCode).render('error', {
-      title: 'Error',
-      message: appError.message,
-      errorCode: appError.errorCode,
-      user: req.user || null
-    });
+    throw createError.internal('Failed to load style customize page', error);
   }
 }
 
@@ -235,20 +213,9 @@ export async function getTwinLearningDashboard(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('error', {
-        title: 'Error',
-        message: error.message,
-        errorCode: error.errorCode,
-        user: req.user || null
-      });
+      throw error;
     }
     
-    const appError = createError.internal('Failed to load learning dashboard', error);
-    return res.status(appError.statusCode).render('error', {
-      title: 'Error',
-      message: appError.message,
-      errorCode: appError.errorCode,
-      user: req.user || null
-    });
+    throw createError.internal('Failed to load learning dashboard', error);
   }
 }

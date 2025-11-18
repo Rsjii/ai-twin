@@ -10,7 +10,7 @@ import cookieParser from 'cookie-parser';
 import { config } from './config/env';
 import { logger } from './config/logger';
 import { db } from './config/database';
-import { errorHandler } from './utils/errors';
+import { errorHandlerMiddleware } from './middleware/errorHandler';
 import passport from 'passport';
 import googleAuthRoutes from './modules/auth/googleAuthRoutes';
 
@@ -193,7 +193,7 @@ app.use('/', testRoutes);
 
 
 // Error handling middleware (must be after all routes)
-app.use(errorHandler);
+app.use(errorHandlerMiddleware);
 
 // 404 handler
 app.use((_req, res) => {

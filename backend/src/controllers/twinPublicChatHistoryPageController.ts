@@ -20,12 +20,7 @@ export async function getTwinPublicChatHistoryPage(req: any, res: Response) {
     const twin = userTwins.find(t => t.id === twinId) || null;
 
     if (!twin) {
-      return res.status(404).render('404', {
-        title: 'Twin Not Found',
-        message: 'Twin not found or access denied',
-        csrfToken: res.locals['csrfToken'],
-        user: req.user || null
-      });
+      throw createError.notFound('Twin not found or access denied');
     }
 
     // Fetch full user data
@@ -48,21 +43,10 @@ export async function getTwinPublicChatHistoryPage(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('404', {
-        title: 'Error',
-        message: error.message,
-        csrfToken: res.locals['csrfToken'],
-        user: req.user || null
-      });
+      throw error;
     }
     
-    const appError = createError.internal('Failed to load public chat history page', error);
-    return res.status(appError.statusCode).render('404', {
-      title: 'Error',
-      message: appError.message,
-      csrfToken: res.locals['csrfToken'],
-      user: req.user || null
-    });
+    throw createError.internal('Failed to load public chat history page', error);
   }
 }
 
@@ -84,12 +68,7 @@ export async function getViewPublicChatHistoryPage(req: any, res: Response) {
     `, [chatId]);
 
     if (chatResult.rows.length === 0 || chatResult.rows[0].twin_owner_id !== userId) {
-      return res.status(404).render('404', {
-        title: 'Chat Not Found',
-        message: 'Chat not found or access denied',
-        csrfToken: res.locals['csrfToken'],
-        user: req.user || null
-      });
+      throw createError.notFound('Chat not found or access denied');
     }
 
     res.render('view-public-chat-history', {
@@ -100,11 +79,9 @@ export async function getViewPublicChatHistoryPage(req: any, res: Response) {
     });
   } catch (error) {
     logger.error('View chat history page error:', error);
-    res.status(500).render('404', {
-      title: 'Error',
-      message: 'Failed to load chat history',
-      csrfToken: res.locals['csrfToken'],
-      user: req.user || null
-    });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to load chat history', error);
   }
 }

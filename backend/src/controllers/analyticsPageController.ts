@@ -1,7 +1,8 @@
 import { Response } from 'express';
 import { db, userQueries } from '../config/database';
 import { logger } from '../config/logger';
-import { AppError, createError, ErrorCodes } from '../utils/errors';
+import { AppError, createError } from '../utils/errors';
+import { ADMIN_EMAILS } from '../config/constants';
 
 /**
  * Analytics dashboard page - User analytics
@@ -47,21 +48,10 @@ export async function getAnalytics(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('error', {
-        title: 'Error',
-        message: error.message,
-        errorCode: error.errorCode,
-        user: req.user || null
-      });
+      throw error;
     }
     
-    const appError = createError.internal('Failed to load analytics', error);
-    return res.status(appError.statusCode).render('error', {
-      title: 'Error',
-      message: appError.message,
-      errorCode: appError.errorCode,
-      user: req.user || null
-    });
+    throw createError.internal('Failed to load analytics', error);
   }
 }
 
@@ -70,12 +60,8 @@ export async function getAnalytics(req: any, res: Response) {
  */
 export async function getAdminAnalytics(req: any, res: Response) {
   try {
-    const adminEmails = ['admin@aitwin.com', 'i@gmail.com', 'k@gmail.com'];
-    if (!req.user || !req.user.email || !adminEmails.includes(req.user.email)) {
-      return res.status(403).render('403', { 
-        title: 'Access Denied',
-        message: 'Admin access required'
-      });
+    if (!req.user || !req.user.email || !ADMIN_EMAILS.includes(req.user.email)) {
+      throw createError.forbidden('Admin access required');
     }
 
     const fullUser = await userQueries.findByEmail(req.user.email);
@@ -102,21 +88,10 @@ export async function getAdminAnalytics(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('error', {
-        title: 'Error',
-        message: error.message,
-        errorCode: error.errorCode,
-        user: req.user || null
-      });
+      throw error;
     }
     
-    const appError = createError.internal('Failed to load admin analytics', error);
-    return res.status(appError.statusCode).render('error', {
-      title: 'Error',
-      message: appError.message,
-      errorCode: appError.errorCode,
-      user: req.user || null
-    });
+    throw createError.internal('Failed to load admin analytics', error);
   }
 }
 
@@ -125,22 +100,15 @@ export async function getAdminAnalytics(req: any, res: Response) {
  */
 export async function getAdminAnalyticsPage(req: any, res: Response) {
   try {
-    const adminEmails = ['admin@aitwin.com', 'i@gmail.com', 'k@gmail.com'];
-    if (!req.user || !req.user.email || !adminEmails.includes(req.user.email)) {
-      return res.status(403).render('403', { 
-        title: 'Access Denied',
-        message: 'Admin access required'
-      });
+    if (!req.user || !req.user.email || !ADMIN_EMAILS.includes(req.user.email)) {
+      throw createError.forbidden('Admin access required');
     }
 
     const { type } = req.params;
     const validTypes = ['users', 'twins', 'chats', 'messages'];
     
     if (!validTypes.includes(type)) {
-      return res.status(404).render('404', {
-        title: 'Page Not Found',
-        message: 'Invalid page type'
-      });
+      throw createError.notFound('Invalid page type');
     }
 
     const fullUser = await userQueries.findByEmail(req.user.email);
@@ -168,21 +136,10 @@ export async function getAdminAnalyticsPage(req: any, res: Response) {
     });
     
     if (error instanceof AppError) {
-      return res.status(error.statusCode).render('error', {
-        title: 'Error',
-        message: error.message,
-        errorCode: error.errorCode,
-        user: req.user || null
-      });
+      throw error;
     }
     
-    const appError = createError.internal('Failed to load admin analytics page', error);
-    return res.status(appError.statusCode).render('error', {
-      title: 'Error',
-      message: appError.message,
-      errorCode: appError.errorCode,
-      user: req.user || null
-    });
+    throw createError.internal('Failed to load admin analytics page', error);
   }
 }
 
@@ -293,10 +250,9 @@ export async function getAnalyticsDetails(req: any, res: Response) {
     });
   } catch (error) {
     logger.error('Get analytics details error:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: 'Failed to load analytics details',
-      user: req.user || null
-    });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw createError.internal('Failed to load analytics details', error);
   }
 }

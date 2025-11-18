@@ -1,13 +1,13 @@
 import { Request, Response } from 'express';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
+import { ADMIN_EMAILS } from '../../config/constants';
 
 // Admin authentication middleware
 export const requireAdminAuth = (req: Request, res: Response, next: Function) => {
   // Check if user is admin (you can modify this logic as needed)
-  const adminEmails = ['admin@aitwin.com', 'i@gmail.com', 'k@gmail.com']; // Add your admin emails here
   
-  if (!req.user || !req.user.email || !adminEmails.includes(req.user.email)) {
+  if (!req.user || !req.user.email || !ADMIN_EMAILS.includes(req.user.email)) {
     return res.status(403).json({ error: 'Admin access required' });
   }
   

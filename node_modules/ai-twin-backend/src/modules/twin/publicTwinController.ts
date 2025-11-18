@@ -380,7 +380,7 @@ const twinInfo = twinCheck.rows[0];
 // ✅ Check blockNonLoggedUsers for non-logged users
 if (!userId && twinInfo.blockNonLoggedUsers === true) {
   logger.warn('getPublicChatPage: Non-logged user blocked', { twinId });
-  return res.status(403).render('404', {
+  return res.status(403).render('403',{
     title: 'Access Denied',
     message: 'This twin requires you to be logged in to access',
     csrfToken: res.locals['csrfToken'],
@@ -397,7 +397,7 @@ if (userId) {
   
   if (blockedCheck.rows.length > 0) {
     logger.warn('getPublicChatPage: Blocked user tried to access', { twinId, userId });
-    return res.status(403).render('404', {
+    return res.status(403).render('403', {
       title: 'Access Denied',
       message: 'You are blocked from accessing this twin',
       csrfToken: res.locals['csrfToken'],
