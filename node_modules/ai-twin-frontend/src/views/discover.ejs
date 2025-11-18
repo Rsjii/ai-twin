@@ -102,12 +102,22 @@
                 <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Discover AI Twins</h1>
                 <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300">Explore trending, popular, and recommended AI twins from the community</p>
             </div>
+            <% 
+              // Robust authentication check
+              const isAuthenticated = typeof user !== 'undefined' && 
+                                      user !== null && 
+                                      typeof user === 'object' &&
+                                      user.id !== undefined && 
+                                      user.id !== null;
+            %>
+            <% if (isAuthenticated) { %>
             <a href="/public-chat/history" 
                class="flex items-center justify-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-white/20 dark:border-gray-700 hover:shadow-lg transition-all w-full sm:w-auto"
                aria-label="View my chat history">
                 <span>💬</span>
                 <span class="font-medium text-gray-700 dark:text-gray-300">My Chats</span>
             </a>
+            <% } %>            
         </div>
     </header>
 
@@ -914,7 +924,7 @@ async function shareTwinFromDiscover(twinId, publicHandle) {
             overflow: hidden;
         }
     </style>      
-    <!--Footer-->
-    <%- include('footer') %>
+    <!-- Footer - Conditional based on authentication and twin status -->
+    <%- include('footer-conditional') %>
 </body>
 </html>

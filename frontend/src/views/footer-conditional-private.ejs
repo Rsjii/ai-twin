@@ -1,0 +1,28 @@
+<!-- Reusable Footer Component - For Private Pages (Only 2 options: logged-with-twin, logged-no-twin) -->
+<% 
+  try {
+    const isAuthenticated = typeof user !== 'undefined' && 
+                            user !== null && 
+                            typeof user === 'object' &&
+                            user.id !== undefined && 
+                            user.id !== null;
+    const userHasTwin = (typeof hasTwins !== 'undefined' && hasTwins === true);
+    
+    // Private pages always have authenticated users (redirected if not)
+    if (isAuthenticated && !userHasTwin) {
+%>
+    <%- include('footer-logged-no-twin') %>
+<% 
+    } else {
+      // Default to logged-with-twin (or fallback if somehow not authenticated)
+%>
+    <%- include('footer-logged-with-twin') %>
+<% 
+    }
+  } catch (err) {
+    // Fallback to logged-with-twin footer if any error
+%>
+    <%- include('footer-logged-with-twin') %>
+<% 
+  }
+%>

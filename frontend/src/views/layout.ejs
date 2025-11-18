@@ -848,13 +848,8 @@
         </div>
     </main>
 
-    <!-- Footer - Conditional based on page type -->
-    <% if (typeof isLandingPage !== 'undefined' && isLandingPage) { %>
-        <%- include('footer-landing') %>
-    <% } else { %>
-        <%- include('footer') %>
-    <% } %>
-    
+    <!-- Footer - Conditional based on authentication and twin status -->
+    <%- include('footer-conditional') %>
     <script>
         // CSRF token for AJAX requests
         window.csrfToken = '<%= csrfToken %>';
