@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "description": "AI Twin Frontend Views & Static Assets",
   "scripts": {
-    "dev": "echo 'Frontend development server'",
-    "build": "echo 'Frontend build process'",
+    "dev": "tailwindcss -i ./src/styles/input.css -o ./src/public/css/output.css --watch",
+    "build": "tailwindcss -i ./src/styles/input.css -o ./src/public/css/output.css --minify",
+    "build:dev": "tailwindcss -i ./src/styles/input.css -o ./src/public/css/output.css",
+    "clean:css": "rm -f ./src/public/css/output.css",
     "lint": "echo 'Frontend linting'",
     "test": "echo 'Frontend testing'"
   },
@@ -12,7 +14,10 @@
     "ejs": "^3.1.9"
   },
   "devDependencies": {
-    "@types/ejs": "^3.1.4"
+    "@types/ejs": "^3.1.4",
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32"
   },
   "keywords": [
     "frontend",
