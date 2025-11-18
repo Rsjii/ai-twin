@@ -3,6 +3,7 @@ import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
+import {generateId} from '../../utils/idGenerator';
 
 // Content moderation levels
 export enum ModerationLevel {
@@ -124,7 +125,7 @@ export const reportContent = async (req: Request, res: Response) => {
       INSERT INTO "ContentReport" ("id", "contentId", "contentType", "reason", "description", "reporterId", "createdAt")
       VALUES ($1, $2, $3, $4, $5, $6, NOW())
     `, [
-      `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      generateId.report(),
       contentId,
       contentType,
       reason,

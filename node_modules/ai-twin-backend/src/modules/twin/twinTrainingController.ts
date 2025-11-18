@@ -1,6 +1,8 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { db, styleAnchorsQueries } from '../../config/database';
 import { logger } from '../../config/logger';
+import { verifyTwinOwnership } from '../../utils/twinUtils';
+import { generateId } from '../../utils/idGenerator';
 
 /**
  * Add manual training example
@@ -11,17 +13,10 @@ export const addManualTraining = async (req: any, res: Response) => {
     const userId = req.user.id;
     const { userMessage, idealReply, trainingType } = req.body;
     
-    // Verify ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(twinId, userId);
     
     // Create style anchor for manual training
-    const anchorId = `anchor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const anchorId = generateId.anchor();
     await db.query(`
       INSERT INTO "style_anchors" (id, twin_id, user_utterance, ideal_reply, tags, created_at)
       VALUES ($1, $2, $3, $4, $5, NOW())
@@ -43,13 +38,7 @@ export const getChatMessages = async (req: any, res: Response) => {
     const userId = req.user.id;
     
     // Verify ownership using raw SQL
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(twinId, userId);
     
     // Get messages for the chat using raw SQL
     const messagesResult = await db.query(`
@@ -83,13 +72,7 @@ export const convertMessagesToTraining = async (req: any, res: Response) => {
     const userId = req.user.id;
     
     // Verify ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(twinId, userId);
     
     // Get messages using raw SQL
     const placeholders = messageIds.map((_: any, i: number) => `$${i + 1}`).join(', ');
@@ -156,14 +139,7 @@ export const getTrainingEffectiveness = async (req: any, res: Response) => {
     const { id: twinId } = req.params;
     const userId = req.user.id;
     
-    // Verify ownership using raw SQL
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(twinId, userId);
     
     // Calculate effectiveness score using raw SQL
     const anchorsResult = await db.query(`
@@ -295,13 +271,7 @@ export const convertToTraining = async (req: any, res: Response) => {
     const { messageId, idealReply } = req.body;
     
     // Verify ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+    await verifyTwinOwnership(twinId, userId);
     
     // Get the original message
     const messageResult = await db.query(`
@@ -316,7 +286,7 @@ export const convertToTraining = async (req: any, res: Response) => {
     }
     
     // Create style anchor
-    const anchorId = `anchor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const anchorId = generateId.anchor();
     await db.query(`
       INSERT INTO "style_anchors" (id, twin_id, user_utterance, ideal_reply, tags, created_at)
       VALUES ($1, $2, $3, $4, $5, NOW())
@@ -338,13 +308,7 @@ export const getTrainingProgress = async (req: any, res: Response) => {
     const userId = req.user.id;
     
     // Verify ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+    await verifyTwinOwnership(twinId, userId);
     
     // Get training statistics
     const statsResult = await db.query(`

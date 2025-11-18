@@ -1,10 +1,13 @@
 import { Response } from 'express';
-import { db, chatQueries, messageQueries, twinQueries, generateId } from '../../config/database';
+import { db, chatQueries, messageQueries, twinQueries } from '../../config/database';
 import { TwinService } from '../twin/twinService';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
-import { checkBlacklist, validateMessageLength } from '../../middleware/security';
+import { checkBlacklist, validateMessageLength } from '../../utils/safety';
+import { MESSAGE_LIMITS } from '../../config/constants';
+import { logEvent } from '../../services/eventLogger';
+import { QUERY_LIMITS } from '../../config/constants';
 
 const twinService = new TwinService();
 
@@ -13,7 +16,7 @@ const startChatSchema = z.object({
 });
 
 const sendMessageSchema = z.object({
-  content: z.string().min(1, 'Message cannot be empty').max(300, 'Message too long (max 300 characters)'),
+  content: z.string().min(MESSAGE_LIMITS.MIN_LENGTH, 'Message cannot be empty').max(MESSAGE_LIMITS.MAX_LENGTH, 'Message too long (max 300 characters)'),
 });
 
 const generateDraftSchema = z.object({
@@ -41,10 +44,7 @@ export const startChat = async (req: AuthenticatedRequest, res: Response): Promi
     const chat = await chatQueries.create(req.user.id, twinId);
     
     // Log chat started event
-    await db.query(
-      'INSERT INTO "Event" (id, "userId", type, meta) VALUES ($1, $2, $3, $4)',
-      [generateId(), req.user.id, 'chat_started', JSON.stringify({ chatId: chat.id, twinId })]
-    );
+    await logEvent(req.user.id, 'chat_started', { chatId: chat.id, twinId });
     
     res.json({
       success: true,
@@ -240,10 +240,7 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response) => 
     }
 
     // Log chat continued/started event
-    await db.query(
-      'INSERT INTO "Event" (id, "userId", type, meta) VALUES ($1, $2, $3, $4)',
-      [generateId(), req.user.id, isNewChat ? 'chat_started' : 'chat_continued', JSON.stringify({ chatId: chat.id, twinId })]
-    );
+    await logEvent(req.user.id, isNewChat ? 'chat_started' : 'chat_continued', { chatId: chat.id, twinId });
 
     res.json({
       success: true,
@@ -298,10 +295,7 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response) =>
     );
     
     // Log draft generated event
-    await db.query(
-      'INSERT INTO "Event" (id, "userId", type, meta) VALUES ($1, $2, $3, $4)',
-      [generateId(), req.user.id, 'draft_generated', JSON.stringify({ chatId: chat.id, twinId: chat.twinId })]
-    );
+    await logEvent(req.user.id, 'draft_generated', { chatId: chat.id, twinId: chat.twinId });
     
     res.json({ draft });
   } catch (error) {
@@ -352,10 +346,7 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
     const message = await messageQueries.create(chat.id, 'twin', content, true);
     
     // Log message approved event
-    await db.query(
-      'INSERT INTO "Event" (id, "userId", type, meta) VALUES ($1, $2, $3, $4)',
-      [generateId(), req.user.id, 'message_approved', JSON.stringify({ chatId: chat.id, messageId: message.id })]
-    );
+    await logEvent(req.user.id, 'message_approved', { chatId: chat.id, messageId: message.id });
 
     // Update style vector based on new conversation (async, don't wait)
     updateStyleVectorAfterChat(chat.twinId, req.user.id).catch(error => {
@@ -397,7 +388,7 @@ async function updateStyleVectorAfterChat(twinId: string, userId: string) {
       JOIN "Chat" c ON m."chatId" = c.id
       WHERE c."twinId" = $1
       ORDER BY m."createdAt" DESC
-      LIMIT 10
+      LIMIT ${QUERY_LIMITS.RECENT_ITEMS}
     `, [twinId]);
 
     // Filter only human messages for style analysis

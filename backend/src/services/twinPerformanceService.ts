@@ -1,4 +1,5 @@
 import { db } from '../config/database';
+import { generateId } from '../utils/idGenerator';
 import { logger } from '../config/logger';
 
 /**
@@ -37,7 +38,7 @@ export async function updateTwinPerformanceScores(twinId: string): Promise<void>
     );
     
     // Upsert to TwinPerformance table
-    const id = `twin_perf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const id = generateId.twinPerf();
     await db.query(`
       INSERT INTO "TwinPerformance" (id, "twinId", "engagementScore", "popularityScore", "updatedAt")
       VALUES ($1, $2, $3, $4, NOW())

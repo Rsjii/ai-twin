@@ -5,8 +5,13 @@ import { logger } from '../../config/logger';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { validateMessageLength, checkBlacklist } from '../../utils/safety';
-import { AppError, createError, ErrorCodes } from '../../utils/errors';
+import { createError, ErrorCodes } from '../../utils/errors';
 import * as chatUtils from './chatSharedUtils';
+import { verifyTwinOwnership } from '../../utils/twinUtils';
+import { generateId } from '../../utils/idGenerator';
+import { handleControllerError } from '../../utils/errorHandler';
+import { logEvent } from '../../services/eventLogger';
+import { QUERY_LIMITS } from '../../config/constants';
 
 const twinService = new TwinService();
 
@@ -68,7 +73,7 @@ export const startChat = async (req: AuthenticatedRequest, res: Response, next: 
     }
     
     // Create chat
-    const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const chatId = generateId.chat();
     const chatResult = await db.query(`
       INSERT INTO "Chat" (id, "userId", "twinId", "createdAt")
       VALUES ($1, $2, $3, NOW())
@@ -77,11 +82,7 @@ export const startChat = async (req: AuthenticatedRequest, res: Response, next: 
     const chat = chatResult.rows[0];
     
     // Log chat started event
-    const eventId = `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    await db.query(`
-      INSERT INTO "Event" (id, "userId", type, meta, "createdAt")
-      VALUES ($1, $2, $3, $4, NOW())
-    `, [eventId, req.user.id, 'chat_started', JSON.stringify({ chatId: chat.id, twinId: twin.id })]);
+    await logEvent(req.user.id, 'chat_started', { chatId: chat.id, twinId: twin.id });
     
     res.json({
       success: true,
@@ -89,10 +90,7 @@ export const startChat = async (req: AuthenticatedRequest, res: Response, next: 
       redirect: `/chat/${chat.id}`,
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to start chat', error);
+    handleControllerError(error, 'Failed to start chat');
   }
 };
 
@@ -147,10 +145,7 @@ export const getChat = async (req: AuthenticatedRequest, res: Response, next: Ne
     
     res.json({ chat: chatData });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get chat', error);
+    handleControllerError(error, 'Failed to get chat');
   }
 };
 
@@ -194,10 +189,7 @@ export const getUserChats = async (req: AuthenticatedRequest, res: Response, nex
     
     res.json({ chats: formattedChats });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get chats', error);
+    handleControllerError(error, 'Failed to get chats');
   }
 };
 
@@ -265,10 +257,7 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response, n
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get chat history', error);
+    handleControllerError(error, 'Failed to get chat history');
   }
 };
 
@@ -324,10 +313,7 @@ export const getChatMessages = async (req: AuthenticatedRequest, res: Response, 
       },
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get chat messages', error);
+    handleControllerError(error, 'Failed to get chat messages');
   }
 };
 
@@ -393,23 +379,15 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response, nex
         VALUES ($1, $2, $3, NOW())
         RETURNING id, "userId", "twinId", "createdAt"
       `, [
-        `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        generateId.chat(),
         req.user.id,
         twin.id
       ]);
       chat = newChatResult.rows[0];
     }
 
-    // Log chat continued/started event using raw SQL
-    await db.query(`
-      INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
-      VALUES ($1, $2, $3, $4, NOW())
-    `, [
-      `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      req.user.id,
-      existingChat ? 'chat_continued' : 'chat_started',
-      JSON.stringify({ chatId: chat.id, twinId: twin.id })
-    ]);
+    // Log chat continued/started event
+    await logEvent(req.user.id, existingChat ? 'chat_continued' : 'chat_started', { chatId: chat.id, twinId: twin.id });
 
     res.json({
       success: true,
@@ -418,10 +396,7 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response, nex
       redirect: `/chat/${chat.id}`,
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to continue chat', error);
+    handleControllerError(error, 'Failed to continue chat');
   }
 };
 
@@ -493,23 +468,12 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response, ne
       ? draftResult.response 
       : (typeof draftResult === 'string' ? draftResult : '');
     
-    // Log draft generated event using raw SQL
-    await db.query(`
-      INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
-      VALUES ($1, $2, $3, $4, NOW())
-    `, [
-      `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      req.user.id,
-      'draft_generated',
-      JSON.stringify({ chatId: chat.id, twinId: chat.twinId })
-    ]);
+    // Log draft generated event
+      await logEvent(req.user.id, 'draft_generated', { chatId: chat.id, twinId: chat.twinId });
     
     res.json({ draft });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to generate draft', error);
+    handleControllerError(error, 'Failed to generate draft');
   }
 };
 
@@ -554,7 +518,7 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response, next
       VALUES ($1, $2, $3, $4, $5, NOW())
       RETURNING id, "chatId", sender, content, approved, "createdAt"
     `, [
-      `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      generateId.message(),
       chat.id,
       'twin',
       content,
@@ -564,15 +528,7 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response, next
     const message = messageResult.rows[0];
 
     // Log message approved event using raw SQL
-    await db.query(`
-      INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
-      VALUES ($1, $2, $3, $4, NOW())
-    `, [
-      `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      req.user.id,
-      'message_approved',
-      JSON.stringify({ chatId: chat.id, messageId: message.id })
-    ]);
+    await logEvent(req.user.id, 'message_approved', { chatId: chat.id, messageId: message.id });
 
     // Update style vector based on new conversation (async, don't wait)
     updateStyleVectorAfterChat(chat.twinId, req.user.id).catch(error => {
@@ -589,10 +545,7 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response, next
       },
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to send message', error);
+    handleControllerError(error, 'Failed to send message');
   }
 };
 
@@ -661,15 +614,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       
       // Log chat started event
       try {
-        await db.query(`
-          INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
-          VALUES ($1, $2, $3, $4, NOW())
-        `, [
-          `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          req.user.id,
-          'chat_started',
-          JSON.stringify({ chatId: newChat.id, twinId: twin.id })
-        ]);
+        await logEvent(req.user.id, 'chat_started', { chatId: newChat.id, twinId: twin.id });
         logger.info('Chat started event logged');
       } catch (error) {
         logger.error('Failed to log chat started event:', error);
@@ -834,20 +779,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
           }),
 
           // Log event
-          db.query(`
-            INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
-            VALUES ($1, $2, $3, $4, NOW())
-          `, [
-            `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            userId,
-            'chat_message',
-            JSON.stringify({ 
-              chatId: chat.id, 
-              twinId: chat.twinId,
-              userMessageId: userMessage.id,
-              aiMessageId: aiMessage.id
-            })
-          ]).catch(err => logger.warn('Event logging failed:', err)),
+          await logEvent(userId, 'chat_message', { chatId: chat.id, twinId: chat.twinId, userMessageId: userMessage.id, aiMessageId: aiMessage.id }),
 
           // Update style vector
           updateStyleVectorAfterChat(chat.twinId, userId).catch(err => 
@@ -908,10 +840,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       }
     })();
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to handle user message', error);
+    handleControllerError(error, 'Failed to handle user message');
   }
 };
 
@@ -950,7 +879,7 @@ async function updateStyleVectorAfterChat(twinId: string, userId: string) {
       JOIN "Chat" c ON m."chatId" = c.id
       WHERE c."twinId" = $1 AND c."userId" = $2
       ORDER BY m."createdAt" DESC
-      LIMIT 10
+      LIMIT ${QUERY_LIMITS.RECENT_MESSAGES}
     `, [twinId, userId]);
     
     const recentMessages = recentMessagesResult.rows;
@@ -1086,11 +1015,7 @@ export const deleteChat = async (req: AuthenticatedRequest, res: Response, next:
     
     // Log event
     try {
-      const eventId = `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      await db.query(`
-        INSERT INTO "Event" (id, "userId", type, meta, "createdAt")
-        VALUES ($1, $2, $3, $4, NOW())
-      `, [eventId, req.user.id, 'chat_deleted', JSON.stringify({ chatId: id })]);
+      await logEvent(req.user.id, 'chat_deleted', { chatId: id });
     } catch (error) {
       logger.warn('Failed to log chat deletion event:', error);
     }
@@ -1102,10 +1027,7 @@ export const deleteChat = async (req: AuthenticatedRequest, res: Response, next:
       message: 'Chat deleted successfully'
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to delete chat', error);
+    handleControllerError(error, 'Failed to delete chat');
   }
 };
 
@@ -1122,16 +1044,10 @@ export const createNewChat = async (req: AuthenticatedRequest, res: Response, ne
     const userId = req.user.id;
 
     // Verify twin belongs to user
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-
-    if (twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
-    }
+   await verifyTwinOwnership(twinId, userId);
 
     // Create new chat
-    const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const chatId = generateId.chat();
     const chatResult = await db.query(`
       INSERT INTO "Chat" (id, "userId", "twinId", "title", "messageCount", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
@@ -1141,15 +1057,8 @@ export const createNewChat = async (req: AuthenticatedRequest, res: Response, ne
     const chat = chatResult.rows[0];
 
     // Log chat creation event
-    await db.query(`
-      INSERT INTO "Event" (id, "userId", type, meta, "createdAt")
-      VALUES ($1, $2, $3, $4, NOW())
-    `, [
-      `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      userId,
-      'chat_created',
-      JSON.stringify({ chatId: chat.id, twinId: chat.twinId })
-    ]);
+    await logEvent(userId, 'chat_created', { chatId: chat.id, twinId: chat.twinId });
+
 
     res.json({
       success: true,
@@ -1164,10 +1073,7 @@ export const createNewChat = async (req: AuthenticatedRequest, res: Response, ne
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to create new chat', error);
+    handleControllerError(error, 'Failed to create new chat');
   }
 };
 
@@ -1204,10 +1110,7 @@ export const updateChatTitle = async (req: AuthenticatedRequest, res: Response, 
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to update chat title', error);
+    handleControllerError(error, 'Failed to update chat title');
   }
 };
 
@@ -1248,10 +1151,7 @@ export const generateChatTitle = async (req: AuthenticatedRequest, res: Response
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to generate chat title', error);
+    handleControllerError(error, 'Failed to generate chat title');
   }
 };
 
@@ -1284,10 +1184,7 @@ export const getChatSummary = async (req: AuthenticatedRequest, res: Response, n
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get chat summary', error);
+    handleControllerError(error, 'Failed to get chat summary');
   }
 };
 

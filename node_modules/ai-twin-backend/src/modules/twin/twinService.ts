@@ -1,9 +1,7 @@
-// COMMENTED OUT: OpenAI - Now using Groq via llmClient
-// import OpenAI from 'openai';
-import { config } from '../../config/env';
 import { logger } from '../../config/logger';
 import { checkBlacklist, sanitizeText, validateSamplesLength } from '../../utils/safety';
 import { llmClient } from '../../services/llmClient';
+import { generateId } from '../../utils/idGenerator';
 
 // COMMENTED OUT: OpenAI client initialization - Now using llmClient
 // const openai = new OpenAI({
@@ -503,7 +501,7 @@ Please respond in JSON format with "response" and "title" fields. Title should b
       if (context.twinId) {
         try {
           const { db } = await import('../../config/database');
-          const runId = `run_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const runId = generateId.run();
           await db.query(
             'INSERT INTO ai_runs (id, twin_id, mode, tokens_in, tokens_out, latency_ms) VALUES ($1, $2, $3, $4, $5, $6)',
             [
@@ -523,18 +521,26 @@ Please respond in JSON format with "response" and "title" fields. Title should b
       return result;
     } catch (error) {
       logger.error('Generate draft with context error:', error);
-      logger.error('Error details:', {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        context: {
-          styleVector: context.styleVector,
-          chatMemoryLength: context.chatMemory?.length,
-          currentMessages: context.currentMessages || []
-        }
-      });
       
       // Return a fallback response instead of throwing
       logger.error('OpenAI API failed, using fallback response');
+      
+      // ✅ FIX: If first message, return object with title
+      if (context.isFirstMessage) {
+        const fallbackResponse = this.generateFallbackResponse(
+          context.currentMessages?.[0] || 'Hello', 
+          context.personaData || {}
+        );
+        const fallbackTitle = context.currentMessages?.[0]?.trim().length > 30
+          ? context.currentMessages[0].trim().substring(0, 30) + '...'
+          : context.currentMessages?.[0]?.trim() || 'New Chat';
+        
+        return {
+          response: fallbackResponse,
+          title: fallbackTitle
+        };
+      }
+      
       return this.generateFallbackResponse(context.currentMessages?.[0] || 'Hello', context.personaData || {});
     }
   }
@@ -718,8 +724,9 @@ Please respond in JSON format with "response" and "title" fields. Title should b
         fallbackResponse = this.generateFallbackResponse(userMessage, personaData);
       }
       
-      // If first message and error occurred, return object with title for consistency
-      if (isFirstMessage && chatHistory.length === 0) {
+      // ✅ FIX: If first message and error occurred, return object with title for consistency
+      // Remove chatHistory.length === 0 check because user message is already saved
+      if (isFirstMessage) {
         // Generate simple title from user message (first 30 chars)
         const simpleTitle = userMessage.trim().length > 30
           ? userMessage.trim().substring(0, 30) + '...'

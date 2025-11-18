@@ -1,7 +1,9 @@
 import { Response } from 'express';
-import { db, twinQueries, userQueries } from '../config/database';
+import { twinQueries, userQueries } from '../config/database';
 import { logger } from '../config/logger';
 import { AppError, createError } from '../utils/errors';
+import { fastQuery } from '../utils/dbUtils';
+import { handleControllerError } from '../utils/errorHandler';
 
 /**
  * Twin Management Page - Complete twin dashboard
@@ -23,32 +25,6 @@ export async function getTwinManage(req: any, res: Response) {
     }
 
     const twinId = twin.id;
-
-    // Fast helper function - directly queries pool without retry delays for missing tables
-    const fastQuery = async (queryText: string, params: any[]): Promise<{ rows: any[] }> => {
-      try {
-        // Use pool directly to avoid retry delays
-        const client = await db.getClient();
-        try {
-          const result = await client.query(queryText, params);
-          return result || { rows: [] };
-        } finally {
-          client.release(); // Always release the client
-        }
-      } catch (error: any) {
-        // Check if it's a missing table error (42P01)
-        if (error?.code === '42P01') {
-          // Table doesn't exist - return empty immediately, no retries
-          return { rows: [{ count: '0' }] };
-        }
-        // For other errors, log and return empty
-        logger.warn('Query error (non-retry):', {
-          query: queryText.substring(0, 50),
-          error: error?.message
-        });
-        return { rows: [{ count: '0' }] };
-      }
-    };
     
     // Fetch twin analytics - using CORRECT table names that exist
     const analyticsResult = await fastQuery(`
@@ -181,10 +157,6 @@ export async function getTwinManage(req: any, res: Response) {
       path: req.path
     });
     
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    throw createError.internal('Failed to load twin management page', error);
+    handleControllerError(error, 'Failed to load twin management page');
   }
 }

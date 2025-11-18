@@ -1,12 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
-import { db, userQueries, otpQueries } from '../../config/database';
+import { userQueries, otpQueries } from '../../config/database';
 import { EmailService, generateOTP, hashOTP, verifyOTP, hashPassword, verifyPassword , generateInviteCode} from './authService';
 import { logger } from '../../config/logger';
 import { config } from '../../config/env';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { generateJWT } from '../../services/jwtService';
-import { AppError, createError, ErrorCodes } from '../../utils/errors';
+import { ErrorCodes } from '../../utils/errors';
+import { handleControllerError, handleErrorWithResponse } from '../../utils/errorHandler';
+import { logEvent } from '../../services/eventLogger';
 
 const emailService = new EmailService();
 
@@ -91,21 +93,18 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
 
 // If they were referred, link them
 if (referrerId) {
-  const { db, generateId } = await import('../../config/database');
+  const { db } = await import('../../config/database');
+  const { generateId } = await import('../../utils/idGenerator');
   
   // Create invite record linking them
-  const inviteId = generateId();
+  const inviteId = generateId.invite();
   await db.query(
     'INSERT INTO "Invite" (id, code, "inviterId", "acceptedBy") VALUES ($1, $2, $3, $4)',
     [inviteId, referralCode, referrerId, user.id]
   );
   
   // Log event
-  const eventId = generateId();
-  await db.query(
-    'INSERT INTO "Event" (id, "userId", type, meta) VALUES ($1, $2, $3, $4)',
-    [eventId, referrerId, 'invite_accepted', JSON.stringify({ referredUserId: user.id })]
-  );
+  await logEvent(referrerId, 'invite_accepted', { referredUserId: user.id });
 }    
     
   // Generate OTP
@@ -135,17 +134,7 @@ if (referrerId) {
     });
   } catch (error) {
     logger.error('Signup error:', error);
-    if (error instanceof AppError) {
-      // Don't throw, send proper error response
-      return res.status(error.statusCode).json({
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    return res.status(500).json({
-      error: 'Failed to signup. Please try again.',
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleErrorWithResponse(error, res, 'Failed to signup. Please try again.');
   }
 };
 
@@ -184,16 +173,7 @@ export const signupVerify = async (req: Request, res: Response, next: NextFuncti
     });
   } catch (error) {
     logger.error('Signup verify error:', error);
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    return res.status(500).json({
-      error: 'Failed to verify signup. Please try again.',
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleErrorWithResponse(error, res, 'Failed to verify signup. Please try again.');
   }
 };
 
@@ -243,16 +223,7 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
     });
   } catch (error) {
     logger.error('Complete profile error:', error);
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    return res.status(500).json({
-      error: 'Failed to complete profile. Please try again.',
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleErrorWithResponse(error, res, 'Failed to complete profile. Please try again.');
   }
 };
 
@@ -292,16 +263,7 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
     });
   } catch (error) {
     logger.error('Forgot password error:', error);
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    return res.status(500).json({
-      error: 'Failed to process forgot password. Please try again.',
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleErrorWithResponse(error, res, 'Failed to process forgot password. Please try again.');
   }
 };
 
@@ -337,16 +299,7 @@ export const forgotPasswordVerify = async (req: Request, res: Response, next: Ne
     });
   } catch (error) {
     logger.error('Forgot password verify error:', error);
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    return res.status(500).json({
-      error: 'Failed to verify forgot password. Please try again.',
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleErrorWithResponse(error, res, 'Failed to verify forgot password. Please try again.');
   }
 };
 
@@ -369,16 +322,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
     });
   } catch (error) {
     logger.error('Reset password error:', error);
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    return res.status(500).json({
-      error: 'Failed to reset password. Please try again.',
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleErrorWithResponse(error, res, 'Failed to reset password. Please try again.');
   }
 };
 
@@ -451,16 +395,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     });
   } catch (error) {
     logger.error('Login error:', error);
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    return res.status(500).json({
-      error: 'Failed to login. Please try again.',
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleErrorWithResponse(error, res, 'Failed to login. Please try again.');
   }
 };
 
@@ -530,16 +465,7 @@ export const loginVerify = async (req: Request, res: Response, next: NextFunctio
     });
   } catch (error) {
     logger.error('Login verify error:', error);
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    return res.status(500).json({
-      error: 'Failed to verify login. Please try again.',
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleErrorWithResponse(error, res, 'Failed to verify login. Please try again.');
   }
 };
 
@@ -611,19 +537,8 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response, n
       });
     }
     
-    // Handle AppError
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    
-    // Handle unexpected errors
-    return res.status(500).json({
-      error: 'Failed to change password. Please try again.',
-      errorCode: ErrorCodes.INTERNAL_ERROR
-    });
+    // Handle other errors
+    handleErrorWithResponse(error, res, 'Failed to change password. Please try again.');
   }
 };
 
@@ -643,9 +558,6 @@ export const logout = (req: Request, res: Response, next: NextFunction) => {
     
     res.json({ message: 'Logged out successfully', redirect: '/auth' });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to logout', error);
+    handleControllerError(error, 'Failed to logout');
   }
 };

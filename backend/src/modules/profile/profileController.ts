@@ -3,6 +3,7 @@ import { userQueries } from '../../config/database';
 import { generateProfileToken, verifyProfileToken } from '../auth/authService';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
+import { logEvent } from '../../services/eventLogger';
 
 const updateHandleSchema = z.object({
   handle: z.string().min(3, 'Handle must be at least 3 characters').max(20, 'Handle too long').regex(/^[a-zA-Z0-9_-]+$/, 'Handle can only contain letters, numbers, hyphens, and underscores'),
@@ -90,7 +91,7 @@ export const getPublicProfile = async (req: Request, res: Response) => {
     
     // Get user's latest twin
     const twinResult = await db.query(
-      'SELECT * FROM "Twin" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 1',
+      'SELECT id, "userId", "styleVector", "sampleReply", "isPublic", "publicHandle", "bio", "profileImage", "createdAt" FROM "Twin" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 1',      
       [user.id]
     );
     
@@ -235,11 +236,7 @@ export const logProfileShare = async (req: Request, res: Response): Promise<void
     }
 
     // Log profile shared event using raw SQL
-    const { db, generateId } = await import('../../config/database');
-    await db.query(
-      'INSERT INTO "Event" (id, "userId", type, meta) VALUES ($1, $2, $3, $4)',
-      [generateId(), req.session.userId, 'profile_shared', null]
-    );
+    await logEvent(req.session.userId, 'profile_shared', {});
     
     res.json({ success: true });
   } catch (error) {

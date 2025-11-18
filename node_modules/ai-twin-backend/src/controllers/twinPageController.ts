@@ -3,6 +3,7 @@ import { db } from '../config/database';
 import { logger } from '../config/logger';
 import { AppError, createError, ErrorCodes } from '../utils/errors';
 import { userQueries, twinQueries } from '../config/database';
+import { handleControllerError } from '../utils/errorHandler';
 
 /**
  * My Twins page - Redirects to twin management page
@@ -84,11 +85,7 @@ export async function getTwinAiEdit(req: any, res: Response) {
       path: req.path
     });
     
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    throw createError.internal('Failed to load AI edit page', error);
+    handleControllerError(error, 'Failed to load AI edit page');
   }
 }
 
@@ -148,11 +145,7 @@ export async function getTwinStyleCustomize(req: any, res: Response) {
       path: req.path
     });
     
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    throw createError.internal('Failed to load style customize page', error);
+    handleControllerError(error, 'Failed to load style customize page');
   }
 }
 
@@ -212,10 +205,6 @@ export async function getTwinLearningDashboard(req: any, res: Response) {
       path: req.path
     });
     
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    throw createError.internal('Failed to load learning dashboard', error);
+    handleControllerError(error, 'Failed to load learning dashboard');
   }
 }

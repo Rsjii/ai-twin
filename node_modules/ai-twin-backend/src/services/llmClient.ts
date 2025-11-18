@@ -1,5 +1,6 @@
 import { config } from '../config/env';
 import { logger } from '../config/logger';
+import OpenAI from 'openai';
 
 export interface LLMMessage {
   role: 'system' | 'user' | 'assistant';
@@ -14,14 +15,25 @@ export interface LLMResponse {
 
 export class LLMClient {
   private groqApiKey: string | null;
+  private openaiApiKey: string | null;
+  private openai: OpenAI | null;
 
   constructor() {
     this.groqApiKey = config.groqApiKey || null;
+    this.openaiApiKey = config.openaiApiKey || null;
     
-    if (!this.groqApiKey) {
-      logger.warn('⚠️ No Groq API key configured. Set GROQ_API_KEY');
+    if (this.openaiApiKey) {
+      this.openai = new OpenAI({ apiKey: this.openaiApiKey });
     } else {
-      logger.info('✅ Using Groq API for LLM calls');
+      this.openai = null;
+    }
+    
+    if (!this.groqApiKey && !this.openaiApiKey) {
+      logger.warn('⚠️ No LLM API key configured. Set GROQ_API_KEY or OPENAI_API_KEY');
+    } else if (this.groqApiKey) {
+      logger.info('✅ Using Groq API for LLM calls (OpenAI fallback available)');
+    } else {
+      logger.info('✅ Using OpenAI API for LLM calls');
     }
   }
 
@@ -34,10 +46,27 @@ export class LLMClient {
       responseFormat?: { type: 'json_object' };
     } = {}
   ): Promise<LLMResponse> {
-    if (!this.groqApiKey) {
-      throw new Error('Groq API key not configured. Set GROQ_API_KEY');
+    // ✅ Try Groq first if available
+    if (this.groqApiKey) {
+      try {
+        return await this.callGroq(messages, options);
+      } catch (error) {
+        logger.warn('⚠️ Groq API failed, falling back to OpenAI:', error instanceof Error ? error.message : String(error));
+        // Fall through to OpenAI fallback
+      }
     }
-    return this.callGroq(messages, options);
+    
+    // ✅ Fallback to OpenAI if Groq not available or failed
+    if (this.openaiApiKey && this.openai) {
+      try {
+        return await this.callOpenAI(messages, options);
+      } catch (error) {
+        logger.error('❌ OpenAI API also failed:', error instanceof Error ? error.message : String(error));
+        throw error;
+      }
+    }
+    
+    throw new Error('No LLM API key configured. Set GROQ_API_KEY or OPENAI_API_KEY');
   }
 
   private async callGroq(
@@ -103,6 +132,9 @@ export class LLMClient {
           const isDecommissioned = errorData.error?.code === 'model_decommissioned' || 
                                   errorText.includes('decommissioned');
           
+          // ✅ Check for 500/502/503 errors (server errors - should fallback to OpenAI)
+          const isServerError = response.status === 500 || response.status === 502 || response.status === 503;
+          
           // ✅ If rate limit or decommissioned, try next model (each has separate quota)
           if (isRateLimit || isDecommissioned) {
             const errorType = isRateLimit ? 'rate limit/quota exceeded' : 'decommissioned';
@@ -111,8 +143,14 @@ export class LLMClient {
             continue; // Try next model (each has its own quota)
           }
           
-          logger.error(`Groq API error: ${response.status} ${errorText}`);
-          throw new Error(`Groq API error: ${response.status} ${errorText}`);
+          // ✅ If server error (500/502/503), throw to trigger OpenAI fallback
+          if (isServerError) {
+            logger.warn(`⚠️ Groq server error (${response.status}), will fallback to OpenAI`);
+            throw new Error(`Groq API server error: ${response.status}`);
+          }
+          
+          logger.error(`Groq API error: ${response.status} ${errorText.substring(0, 200)}`);
+          throw new Error(`Groq API error: ${response.status}`);
         }
 
         const data = await response.json() as {
@@ -141,6 +179,18 @@ export class LLMClient {
         const isDecommissioned = error.message?.includes('decommissioned') || 
                                 error.message?.includes('model_decommissioned');
         
+        // ✅ Check for server errors
+        const isServerError = error.message?.includes('500') || 
+                             error.message?.includes('502') || 
+                             error.message?.includes('503') ||
+                             error.message?.includes('server error');
+        
+        // ✅ If server error, throw immediately to trigger OpenAI fallback
+        if (isServerError) {
+          logger.warn(`⚠️ Groq server error detected, will fallback to OpenAI`);
+          throw error;
+        }
+        
         // ✅ If rate limit or decommissioned, try next model
         if (isRateLimit || isDecommissioned) {
           const errorType = isRateLimit ? 'rate limit exceeded' : 'decommissioned';
@@ -148,14 +198,41 @@ export class LLMClient {
           lastError = error;
           continue;
         }
-        // For other errors, throw immediately
+        // For other errors, throw immediately to trigger OpenAI fallback
         throw error;
       }
     }
 
     // If all models failed
-    logger.error('❌ All Groq models failed (rate limits or errors)');
-    throw lastError || new Error('All Groq models failed. Please check Groq API status.');
+    logger.error('❌ All Groq models failed');
+    throw lastError || new Error('All Groq models failed');
+  }
+
+  private async callOpenAI(
+    messages: LLMMessage[],
+    options: any
+  ): Promise<LLMResponse> {
+    if (!this.openai) {
+      throw new Error('OpenAI client not initialized');
+    }
+
+    logger.info('🔄 Using OpenAI API (fallback)');
+    
+    const completion = await this.openai.chat.completions.create({
+      model: options.model || 'gpt-4o-mini',
+      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      max_tokens: options.maxTokens || 512,
+      temperature: options.temperature || 0.7,
+      ...(options.responseFormat ? { response_format: options.responseFormat } : {})
+    });
+
+    logger.info('✅ Successfully used OpenAI API');
+    
+    return {
+      content: completion.choices[0]?.message?.content?.trim() || '',
+      model: completion.model || 'gpt-4o-mini',
+      tokensUsed: completion.usage?.total_tokens
+    };
   }
 }
 

@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { db, twinQueries } from '../config/database';
 import { logger } from '../config/logger';
 import { AppError, createError } from '../utils/errors';
+import { handleControllerError } from '../utils/errorHandler';
 
 /**
  * Twin Public Chat History Page - View all public chats with twin
@@ -42,11 +43,7 @@ export async function getTwinPublicChatHistoryPage(req: any, res: Response) {
       path: req.path
     });
     
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    throw createError.internal('Failed to load public chat history page', error);
+    handleControllerError(error, 'Failed to load public chat history page');
   }
 }
 
@@ -79,9 +76,6 @@ export async function getViewPublicChatHistoryPage(req: any, res: Response) {
     });
   } catch (error) {
     logger.error('View chat history page error:', error);
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to load chat history', error);
+    handleControllerError(error, 'Failed to load chat history');
   }
 }

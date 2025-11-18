@@ -1,4 +1,6 @@
 import { logger } from '../config/logger';
+import { generateId } from '../utils/idGenerator';
+import { db } from '../config/database';
 
 export interface EventLogData {
   userId?: string | null;
@@ -19,13 +21,12 @@ export class EventLogger {
    */
   static async log(userId: string | null, type: string, meta?: any): Promise<void> {
     try {
-      const { db } = await import('../config/database');
       
       await db.query(`
         INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
         VALUES ($1, $2, $3, $4, NOW())
       `, [
-        `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        generateId.event(),
         userId || null,
         type,
         JSON.stringify(meta || {})

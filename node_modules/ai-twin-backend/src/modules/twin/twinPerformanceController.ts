@@ -1,5 +1,4 @@
 import { Response } from 'express';
-import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import {
   calculateLearningRate,
@@ -9,31 +8,13 @@ import {
   performPerformanceAnalysis,
   gatherAnalyticsData
 } from '../../services/performanceService';
+import { fastQuery } from '../../utils/dbUtils';
+import { verifyTwinOwnership } from '../../utils/twinUtils';
+import { generateId } from '../../utils/idGenerator';
 
 /**
  * Get training templates
  */
-
-// Fast query helper - avoids retry delays for missing tables/columns
-const fastQuery = async (queryText: string, params?: any[]): Promise<{ rows: any[] }> => {
-  try {
-    const client = await db.getClient();
-    try {
-      const result = await client.query(queryText, params || []);
-      return result || { rows: [] };
-    } finally {
-      client.release();
-    }
-  } catch (error: any) {
-    // Missing table/column errors - return empty immediately
-    if (error?.code === '42P01' || error?.code === '42703') {
-      return { rows: [] };
-    }
-    // Log other errors but return empty to prevent crashes
-    logger.error('Fast query error:', error?.message);
-    return { rows: [] };
-  }
-};
 
 export const getTemplates = async (req: any, res: Response) => {
   try {
@@ -45,13 +26,7 @@ export const getTemplates = async (req: any, res: Response) => {
     }
     
     // Verify twin ownership using raw SQL
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [id, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(id, userId);
     
     const templates = {
       casual: {
@@ -100,13 +75,7 @@ export const getMilestones = async (req: any, res: Response) => {
     }
     
     // Verify twin ownership using raw SQL
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [id, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(id, userId);
     
     // Get current counts using fast query (tables may not exist)
     const anchorsResult = await fastQuery(`
@@ -209,16 +178,10 @@ export const setLearningGoal = async (req: any, res: Response) => {
     }
     
     // Verify twin ownership using raw SQL
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [id, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(id, userId);
     
     // Create learning goal using fast query (table may not exist)
-    const goalId = `goal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const goalId = generateId.goal();
     const goalResult = await fastQuery(`
       INSERT INTO "learning_goals" (id, "twinId", type, target, current, completed, "createdAt")
       VALUES ($1, $2, $3, $4, 0, false, NOW())
@@ -255,13 +218,7 @@ export const getPerformanceMetrics = async (req: any, res: Response) => {
     }
     
     // Verify twin ownership using raw SQL
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [id, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(id, userId);
     
     // Calculate performance metrics using fast query (column may not exist)
     const aiRunsResult = await fastQuery(`
@@ -325,14 +282,7 @@ export const optimizeMemories = async (req: any, res: Response) => {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
     
-    // Verify twin ownership using raw SQL
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [id, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(id, userId);
     
 // Get from both systems
 const [longTermMemories, styleAnchors] = await Promise.all([
@@ -379,14 +329,7 @@ export const analyzePerformance = async (req: any, res: Response) => {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
     
-    // Verify twin ownership using raw SQL
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [id, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(id, userId);
     
     // Perform performance analysis
     const analysis = await performPerformanceAnalysis(id);
@@ -410,14 +353,7 @@ export const exportAnalytics = async (req: any, res: Response) => {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
     
-    // Verify twin ownership using raw SQL
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [id, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(id, userId);
     
     // Gather all analytics data
     const analytics = await gatherAnalyticsData(id);
@@ -441,14 +377,7 @@ export const resetPerformance = async (req: any, res: Response) => {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
     
-    // Verify twin ownership using raw SQL
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [id, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(id, userId);
     
     // Reset performance metrics using fast query (tables may not exist)
     await fastQuery(`

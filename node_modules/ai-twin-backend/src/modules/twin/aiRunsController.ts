@@ -3,6 +3,9 @@ import { z } from 'zod';
 import { db } from '../../config/database';
 import { EventLogger } from '../../services/eventLogger';
 import { logger } from '../../config/logger';
+import { QUERY_LIMITS } from '../../config/constants';
+import { verifyTwinOwnership } from '../../utils/twinUtils';
+import { generateId } from '../../utils/idGenerator';
 
 // Validation schemas
 const createRunSchema = z.object({
@@ -29,13 +32,10 @@ export const createRun = async (req: any, res: Response) => {
     const runData = createRunSchema.parse(req.body);
     const userId = req.user.id;
 
-    // Verify twin ownership - FIX THIS LINE
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
-    if (twin.rows.length === 0) {
-      return res.status(404).json({ error: 'Twin not found or access denied' });
-    }
+    // Verify twin ownership
+    await verifyTwinOwnership(twinId, userId);
 
-    const runId = `run_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const runId = generateId.run();
     
     await db.query(
       'INSERT INTO ai_runs (id, twin_id, mode, tokens_in, tokens_out, critic_score, regen, latency_ms) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
@@ -70,16 +70,13 @@ export const createRun = async (req: any, res: Response) => {
 export const getRuns = async (req: any, res: Response) => {
   try {
     const { id: twinId } = req.params;
-    const { limit = 50, offset = 0, mode } = req.query;
+    const { limit = QUERY_LIMITS.DEFAULT_PAGE_SIZE, offset = 0, mode } = req.query;
     const userId = req.user.id;
 
-    // Verify twin ownership - FIX THIS LINE
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
-    if (twin.rows.length === 0) {
-      return res.status(404).json({ error: 'Twin not found or access denied' });
-    }
+    // Verify twin ownership
+    await verifyTwinOwnership(twinId, userId);
 
-    let query = 'SELECT * FROM ai_runs WHERE twin_id = $1';
+    let query = 'SELECT id, twin_id, mode, tokens_in, tokens_out, critic_score, regen, latency_ms, ts FROM ai_runs WHERE twin_id = $1';
     const params = [twinId];
     let paramCount = 1;
 
@@ -110,11 +107,8 @@ export const updateRun = async (req: any, res: Response) => {
     const updates = updateRunSchema.parse(req.body);
     const userId = req.user.id;
 
-    // Verify twin ownership - FIX THIS LINE
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
-    if (twin.rows.length === 0) {
-      return res.status(404).json({ error: 'Twin not found or access denied' });
-    }
+    // Verify twin ownership
+    await verifyTwinOwnership(twinId, userId);
 
     // Build update query dynamically
     const updateFields = [];
@@ -149,7 +143,7 @@ export const updateRun = async (req: any, res: Response) => {
     values.push(runId, twinId);
 
     const result = await db.query(
-      `UPDATE ai_runs SET ${updateFields.join(', ')} WHERE id = $${paramCount++} AND twin_id = $${paramCount++} RETURNING *`,
+      `UPDATE ai_runs SET ${updateFields.join(', ')} WHERE id = $${paramCount++} AND twin_id = $${paramCount++} RETURNING id, twin_id, mode, tokens_in, tokens_out, critic_score, regen, latency_ms, ts`,
       values
     );
 
@@ -174,12 +168,10 @@ export const getRunStats = async (req: any, res: Response) => {
     const { days = 30 } = req.query;
     const userId = req.user.id;
 
-    // Verify twin ownership - FIX THIS LINE
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
-    if (twin.rows.length === 0) {
-      return res.status(404).json({ error: 'Twin not found or access denied' });
-    }
+    // Verify twin ownership
+    await verifyTwinOwnership(twinId, userId);
 
+    const daysValue = parseInt(days as string) || 30;
     const stats = await db.query(`
       SELECT 
         mode,
@@ -193,10 +185,10 @@ export const getRunStats = async (req: any, res: Response) => {
         SUM(tokens_out) as total_tokens_out
       FROM ai_runs 
       WHERE twin_id = $1 
-        AND ts >= NOW() - INTERVAL '${parseInt(days)} days'
+        AND ts >= NOW() - INTERVAL $2
       GROUP BY mode
       ORDER BY mode
-    `, [twinId]);
+    `, [twinId, `${daysValue} days`]);
 
     // Get quality trends
     const qualityTrends = await db.query(`
@@ -206,12 +198,12 @@ export const getRunStats = async (req: any, res: Response) => {
         COUNT(*) as run_count
       FROM ai_runs 
       WHERE twin_id = $1 
-        AND ts >= NOW() - INTERVAL '${parseInt(days)} days'
+        AND ts >= NOW() - INTERVAL $2
         AND critic_score IS NOT NULL
       GROUP BY DATE(ts)
       ORDER BY date DESC
-      LIMIT 30
-    `, [twinId]);
+      LIMIT ${QUERY_LIMITS.ANALYTICS_TIMELINE}
+    `, [twinId, `${daysValue} days`]);
 
     res.json({
       stats: stats.rows,
@@ -226,17 +218,14 @@ export const getRunStats = async (req: any, res: Response) => {
   }
 };
 
-// Get quality dashboard data - FIX THIS TOO
+// Get quality dashboard data
 export const getQualityDashboard = async (req: any, res: Response) => {
   try {
     const { id: twinId } = req.params;
     const userId = req.user.id;
 
-    // Verify twin ownership - FIX THIS LINE
-    const twin = await db.query('SELECT * FROM "Twin" WHERE id = $1 AND "userId" = $2', [twinId, userId]);
-    if (twin.rows.length === 0) {
-      return res.status(404).json({ error: 'Twin not found or access denied' });
-    }
+    // Verify twin ownership
+    await verifyTwinOwnership(twinId, userId);
 
     // Get overall quality metrics
     const qualityMetrics = await db.query(`

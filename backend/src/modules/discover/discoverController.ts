@@ -3,6 +3,7 @@ import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
 import { AppError, createError } from '../../utils/errors';
+import { handleControllerError } from '../../utils/errorHandler';
 
 // Validation schemas
 const searchSchema = z.object({
@@ -247,10 +248,7 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get trending twins', error);
+    handleControllerError(error, 'Failed to get trending twins');
   }
 };
 
@@ -335,10 +333,7 @@ export const searchTwins = async (req: Request, res: Response, next: NextFunctio
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to search twins', error);
+    handleControllerError(error, 'Failed to search twins');
   }
 };
 

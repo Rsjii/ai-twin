@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
-import { ADMIN_EMAILS } from '../../config/constants';
+import { ADMIN_EMAILS, QUERY_LIMITS } from '../../config/constants';
 
 // Admin authentication middleware
 export const requireAdminAuth = (req: Request, res: Response, next: Function) => {
@@ -116,17 +116,17 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       db.query('SELECT AVG(event_count) as avg FROM (SELECT COUNT(*) as event_count FROM "Event" GROUP BY "userId") as subquery'),
       
       // Top performing content
-      db.query('SELECT t.*, u.handle as userHandle, u.name as userName FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."likeCount" DESC, t."chatCount" DESC LIMIT 10'),
-      db.query('SELECT u.*, COUNT(e.id) as eventCount FROM "User" u LEFT JOIN "Event" e ON u.id = e."userId" GROUP BY u.id ORDER BY eventCount DESC LIMIT 10'),
+      db.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle, u.name as userName FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."likeCount" DESC, t."chatCount" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
+      db.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(e.id) as eventCount FROM "User" u LEFT JOIN "Event" e ON u.id = e."userId" GROUP BY u.id ORDER BY eventCount DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
       
       // Event breakdown
       db.query('SELECT type, COUNT(*) as count FROM "Event" GROUP BY type ORDER BY count DESC'),
       
       // Recent activity
-      db.query('SELECT * FROM "User" ORDER BY "createdAt" DESC LIMIT 10'),
-      db.query('SELECT t.*, u.handle as userHandle FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."createdAt" DESC LIMIT 10'),
-      db.query('SELECT c.*, u.handle as userHandle FROM "Chat" c JOIN "User" u ON c."userId" = u.id ORDER BY c."createdAt" DESC LIMIT 10'),
-      db.query('SELECT e.*, u.handle as userHandle FROM "Event" e LEFT JOIN "User" u ON e."userId" = u.id ORDER BY e."createdAt" DESC LIMIT 20')
+      db.query(`SELECT id, email, handle, name, "createdAt", active FROM "User" ORDER BY "createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),      
+      db.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
+      db.query(`SELECT c.id, c."userId", c."twinId", c."createdAt", u.handle as userHandle FROM "Chat" c JOIN "User" u ON c."userId" = u.id ORDER BY c."createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
+      db.query(`SELECT e.id, e."userId", e.type, e.meta, e."createdAt", u.handle as userHandle FROM "Event" e LEFT JOIN "User" u ON e."userId" = u.id ORDER BY e."createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ACTIVITY}`)
     ]);
 
     // Process results
@@ -264,12 +264,12 @@ export const getAdminUserAnalytics = async (req: Request, res: Response) => {
       userInvitesResult,
       userActivityResult
     ] = await Promise.all([
-      db.query('SELECT * FROM "User" WHERE id = $1', [userId]),
-      db.query('SELECT * FROM "Twin" WHERE "userId" = $1', [userId]),
-      db.query('SELECT * FROM "Chat" WHERE "userId" = $1', [userId]),
+      db.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [userId]),
+      db.query('SELECT id, "userId", "styleVector", "sampleReply", "instructions", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE "userId" = $1', [userId]),
+      db.query('SELECT id, "userId", "twinId", "createdAt" FROM "Chat" WHERE "userId" = $1', [userId]),
       db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [userId]),
-      db.query('SELECT * FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [userId]),
-      db.query('SELECT * FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1', [userId]),
+      db.query('SELECT id, "userId", type, meta, "createdAt" FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [userId]),
+      db.query('SELECT id, code, "inviterId", "acceptedBy", "createdAt" FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1', [userId]),
       db.query('SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC', [userId])
     ]);
 
@@ -326,15 +326,15 @@ export const getDetailedUserInfo = async (req: Request, res: Response) => {
       userEngagementResult,
       userTimelineResult
     ] = await Promise.all([
-      db.query('SELECT * FROM "User" WHERE id = $1', [userId]),
-      db.query('SELECT * FROM "Twin" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [userId]),
-      db.query('SELECT c.*, t.id as twinId FROM "Chat" c LEFT JOIN "Twin" t ON c."twinId" = t.id WHERE c."userId" = $1 ORDER BY c."createdAt" DESC', [userId]),
+      db.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [userId]),
+      db.query('SELECT id, "userId", "styleVector", "sampleReply", "instructions", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [userId]),
+      db.query('SELECT c.id, c."userId", c."twinId", c."createdAt", t.id as twinId FROM "Chat" c LEFT JOIN "Twin" t ON c."twinId" = t.id WHERE c."userId" = $1 ORDER BY c."createdAt" DESC', [userId]),
       db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [userId]),
-      db.query('SELECT * FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 50', [userId]),
-      db.query('SELECT * FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1 ORDER BY "createdAt" DESC', [userId]),
-      db.query('SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC LIMIT 30', [userId]),
+      db.query(`SELECT id, "userId", type, meta, "createdAt" FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`, [userId]),
+      db.query('SELECT id, code, "inviterId", "acceptedBy", "createdAt" FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1 ORDER BY "createdAt" DESC', [userId]),
+      db.query(`SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC LIMIT ${QUERY_LIMITS.ANALYTICS_TIMELINE}`, [userId]),
       db.query('SELECT AVG(chat_count) as avg_chats, AVG(message_count) as avg_messages FROM (SELECT COUNT(c.id) as chat_count, COUNT(m.id) as message_count FROM "Chat" c LEFT JOIN "Message" m ON c.id = m."chatId" WHERE c."userId" = $1 GROUP BY c.id) as subquery', [userId]),
-      db.query('SELECT DATE("createdAt") as date, COUNT(*) as events FROM "Event" WHERE "userId" = $1 GROUP BY DATE("createdAt") ORDER BY date DESC LIMIT 30', [userId])
+      db.query(`SELECT DATE("createdAt") as date, COUNT(*) as events FROM "Event" WHERE "userId" = $1 GROUP BY DATE("createdAt") ORDER BY date DESC LIMIT ${QUERY_LIMITS.ANALYTICS_TIMELINE}`, [userId])
     ]);
 
     const user = userResult.rows[0];
@@ -382,7 +382,7 @@ export const removeUser = async (req: Request, res: Response) => {
     }
 
     // Check if user exists
-    const userResult = await db.query('SELECT * FROM "User" WHERE id = $1', [userId]);
+    const userResult = await db.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [userId]);
     if (!userResult.rows[0]) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -447,8 +447,8 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
       db.query(`SELECT COUNT(*) as count FROM "Event" WHERE ${timeFilter}`),
       db.query(`SELECT EXTRACT(HOUR FROM "createdAt") as hour, COUNT(*) as count FROM "Event" WHERE ${timeFilter} GROUP BY EXTRACT(HOUR FROM "createdAt") ORDER BY hour`),
       db.query(`SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Event" WHERE ${timeFilter} GROUP BY DATE("createdAt") ORDER BY date`),
-      db.query(`SELECT u.*, COUNT(e.id) as eventCount FROM "User" u LEFT JOIN "Event" e ON u.id = e."userId" WHERE ${timeFilter} GROUP BY u.id ORDER BY eventCount DESC LIMIT 10`),
-      db.query(`SELECT t.*, u.handle as userHandle FROM "Twin" t JOIN "User" u ON t."userId" = u.id WHERE ${timeFilter} ORDER BY t."likeCount" DESC, t."chatCount" DESC LIMIT 10`),
+      db.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(e.id) as eventCount FROM "User" u LEFT JOIN "Event" e ON u.id = e."userId" WHERE ${timeFilter} GROUP BY u.id ORDER BY eventCount DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
+      db.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle FROM "Twin" t JOIN "User" u ON t."userId" = u.id WHERE ${timeFilter} ORDER BY t."likeCount" DESC, t."chatCount" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
       db.query(`SELECT type, COUNT(*) as count FROM "Event" WHERE ${timeFilter} GROUP BY type ORDER BY count DESC`)
     ]);
 
@@ -489,7 +489,7 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
 // Get detailed users list for admin
 export const getUsersList = async (req: Request, res: Response) => {
   try {
-    const { search, limit = 50, offset = 0 } = req.query;
+    const { search, limit = QUERY_LIMITS.DEFAULT_PAGE_SIZE, offset = 0 } = req.query;
     
     let whereClause = '';
     let queryParams: any[] = [];
@@ -500,7 +500,7 @@ export const getUsersList = async (req: Request, res: Response) => {
     }
     
     const usersResult = await db.query(`
-      SELECT u.*, 
+      SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", 
              COUNT(DISTINCT t.id) as twinCount,
              COUNT(DISTINCT c.id) as chatCount,
              COUNT(DISTINCT e.id) as eventCount,
@@ -548,7 +548,7 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
           db.query('SELECT COUNT(*) as count FROM "User"'),
           db.query('SELECT COUNT(*) as count FROM "User" WHERE "lastLoginAt" >= NOW() - INTERVAL \'24 hours\''),
           db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
-          db.query('SELECT u.*, COUNT(DISTINCT t.id) as twinCount, COUNT(DISTINCT c.id) as chatCount FROM "User" u LEFT JOIN "Twin" t ON u.id = t."userId" LEFT JOIN "Chat" c ON u.id = c."userId" GROUP BY u.id ORDER BY u."createdAt" DESC LIMIT 20')
+          db.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(DISTINCT t.id) as twinCount, COUNT(DISTINCT c.id) as chatCount FROM "User" u LEFT JOIN "Twin" t ON u.id = t."userId" LEFT JOIN "Chat" c ON u.id = c."userId" GROUP BY u.id ORDER BY u."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
         ]);
         
         data = {
@@ -562,8 +562,8 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
       case 'twins':
         const [totalTwinsResult, popularTwinsResult, recentTwinsResult] = await Promise.all([
           db.query('SELECT COUNT(*) as count FROM "Twin"'),
-          db.query('SELECT t.*, u.handle as userHandle, u.email as userEmail FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."likeCount" DESC, t."chatCount" DESC LIMIT 20'),
-          db.query('SELECT t.*, u.handle as userHandle, u.email as userEmail FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."createdAt" DESC LIMIT 20')
+          db.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle, u.email as userEmail FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."likeCount" DESC, t."chatCount" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`),
+          db.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle, u.email as userEmail FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
         ]);
         
         data = {
@@ -577,7 +577,7 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
         const [totalChatsResult, activeChatsResult, chatStatsResult] = await Promise.all([
           db.query('SELECT COUNT(*) as count FROM "Chat"'),
           db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "createdAt" >= NOW() - INTERVAL \'24 hours\''),
-          db.query('SELECT c.*, u.handle as userHandle, u.email as userEmail, t.id as twinId FROM "Chat" c JOIN "User" u ON c."userId" = u.id LEFT JOIN "Twin" t ON c."twinId" = t.id ORDER BY c."createdAt" DESC LIMIT 20')
+          db.query(`SELECT c.id, c."userId", c."twinId", c."createdAt", u.handle as userHandle, u.email as userEmail, t.id as twinId FROM "Chat" c JOIN "User" u ON c."userId" = u.id LEFT JOIN "Twin" t ON c."twinId" = t.id ORDER BY c."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
         ]);
         
         data = {
@@ -591,7 +591,7 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
         const [totalMessagesResult, recentMessagesResult, messageStatsResult] = await Promise.all([
           db.query('SELECT COUNT(*) as count FROM "Message"'),
           db.query('SELECT COUNT(*) as count FROM "Message" WHERE "createdAt" >= NOW() - INTERVAL \'24 hours\''),
-          db.query('SELECT m.*, c.id as chatId, u.handle as userHandle FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id JOIN "User" u ON c."userId" = u.id ORDER BY m."createdAt" DESC LIMIT 20')
+          db.query(`SELECT m.id, m."chatId", m.sender, m.content, m.approved, m."createdAt", u.handle as userHandle FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id JOIN "User" u ON c."userId" = u.id ORDER BY m."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
         ]);
         
         data = {
@@ -621,7 +621,7 @@ export const getDetailedUsersPage = async (req: Request, res: Response) => {
   try {
     console.log('=== GET DETAILED USERS PAGE ===');
     
-    const { page = 1, limit = 10, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
     
     let whereClause = '';
@@ -687,7 +687,7 @@ export const getDetailedTwinsPage = async (req: Request, res: Response) => {
   try {
     console.log('=== GET DETAILED TWINS PAGE ===');
     
-    const { page = 1, limit = 10, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
     
     let whereClause = '';
@@ -754,7 +754,7 @@ export const getDetailedChatsPage = async (req: Request, res: Response) => {
   try {
     console.log('=== GET DETAILED CHATS PAGE ===');
     
-    const { page = 1, limit = 10, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
     
     let whereClause = '';
@@ -822,7 +822,7 @@ export const getDetailedMessagesPage = async (req: Request, res: Response) => {
   try {
     console.log('=== GET DETAILED MESSAGES PAGE ===');
     
-    const { page = 1, limit = 10, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
     
     let whereClause = '';

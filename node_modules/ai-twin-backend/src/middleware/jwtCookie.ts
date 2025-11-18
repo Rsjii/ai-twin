@@ -44,12 +44,7 @@ export const extractJWTFromCookie = (req: Request, res: Response, next: NextFunc
 };
 
 export const requireJWTFromCookie = (req: Request, res: Response, next: NextFunction) => {
-  try {
-    console.log('=== JWT MIDDLEWARE CALLED ===');
-  console.log('Route:', req.path);
-  console.log('Method:', req.method);
-  console.log('============================');
-  
+  try {  
     // Try to get JWT from cookie first
     const tokenFromCookie = req.cookies?.['jwtToken'];
     
@@ -68,10 +63,6 @@ export const requireJWTFromCookie = (req: Request, res: Response, next: NextFunc
         id: decoded.userId // Add id field for compatibility
       };
       logger.info(`JWT verified from cookie for user: ${decoded.email}`);
-      console.log('=== JWT MIDDLEWARE DEBUG ===');
-      console.log('decoded:', decoded);
-      console.log('req.user set to xyzxyz:', req.user);
-      console.log('============================');
       next();
     } catch (error) {
       logger.warn('Invalid JWT token in cookie:', error);

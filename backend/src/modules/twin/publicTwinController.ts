@@ -5,7 +5,8 @@ import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
-import { title } from 'process';
+import { verifyTwinOwnership } from '../../utils/twinUtils';
+import { handleControllerError } from '../../utils/errorHandler';
 
 // Validation schemas
 const makePublicSchema = z.object({
@@ -37,17 +38,15 @@ export const makeTwinPublic = async (req: Request, res: Response, next: NextFunc
 
     const { twinId, publicHandle, bio, profileImage } = makePublicSchema.parse(req.body);
 
-    // Get user's twin
+    await verifyTwinOwnership(twinId, req.user.id);
+
+    // Get twin data after verification
     const twinResult = await db.query(`
       SELECT id, "isPublic", "publicHandle"
       FROM "Twin"
-      WHERE "userId" = $1 and id = $2
+      WHERE id = $1
       LIMIT 1
-    `, [req.user.id, twinId]);
-
-    if (twinResult.rows.length === 0) {
-      throw createError.notFound('No twin found. Create a twin first.', ErrorCodes.TWIN_NOT_FOUND);
-    }
+    `, [twinId]);
 
     const twin = twinResult.rows[0];
 
@@ -93,10 +92,7 @@ export const makeTwinPublic = async (req: Request, res: Response, next: NextFunc
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to make twin public', error);
+    handleControllerError(error, 'Failed to make twin public');
   }
 };
 
@@ -113,17 +109,15 @@ export const makeTwinPrivate = async (req: Request, res: Response, next: NextFun
       throw createError.validation('Twin ID is required');
     }
 
-    // Get user's specific twin
+    await verifyTwinOwnership(twinId, req.user.id);
+
+    // Get twin data after verification
     const twinResult = await db.query(`
       SELECT id, "isPublic"
       FROM "Twin"
-      WHERE "userId" = $1 and id = $2
+      WHERE id = $1
       LIMIT 1
-    `, [req.user.id, twinId]);
-
-    if (twinResult.rows.length === 0) {
-      throw createError.notFound('No twin found', ErrorCodes.TWIN_NOT_FOUND);
-    }
+    `, [twinId]);
 
     const twin = twinResult.rows[0];
 
@@ -145,10 +139,7 @@ export const makeTwinPrivate = async (req: Request, res: Response, next: NextFun
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to make twin private', error);
+    handleControllerError(error, 'Failed to make twin private');
   }
 };
 
@@ -207,10 +198,7 @@ export const updateTwinProfile = async (req: Request, res: Response, next: NextF
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to update twin profile', error);
+    handleControllerError(error, 'Failed to update twin profile');
   }
 };
 
@@ -249,10 +237,7 @@ export const getPublicTwinProfile = async (req: Request, res: Response, next: Ne
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get public twin profile', error);
+    handleControllerError(error, 'Failed to get public twin profile');
   }
 };
 
@@ -324,18 +309,7 @@ export const getMyTwinProfile = async (req: Request, res: Response, next: NextFu
 
   } catch (error: any) {
     logger.error('getMyTwinProfile error:', error);
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        success: false,
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to get twin profile',
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleControllerError(error, 'Failed to get twin profile');
   }
 };
 
@@ -351,17 +325,16 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
     
     // ✅ FIRST: Check if this is user's own twin - redirect immediately
     if (userId) {
-      const ownTwinCheck = await db.query(`
-        SELECT id, "userId" FROM "Twin" WHERE id = $1 AND "userId" = $2
-      `, [twinId, userId]);
-      
-      if (ownTwinCheck.rows.length > 0) {
-        // Own twin detected - redirect to enhanced chat immediately with message
+      try {
+        await verifyTwinOwnership(twinId, userId);
+        // Own twin detected - redirect to enhanced chat
         logger.info('Own twin detected, redirecting to enhanced chat:', { twinId, userId });
         const message = encodeURIComponent('You cannot chat with your own twin in public chat. Use Enhanced Chat for interactive conversations.');
         return res.redirect(`/chat-enhanced?twinId=${twinId}&message=${message}`);
+      } catch (error) {
+        // Not owned, continue with public chat flow
       }
-    }    
+    }
     
 // First, check if twin exists and get basic info
 const twinCheck = await db.query(`
@@ -448,10 +421,15 @@ const twin = twinResult.rows[0];
           const ownsChat = chat.userId === userId;
           
           // Check if user owns the twin
-          const twinOwnerResult = await db.query(`
-            SELECT "userId" FROM "Twin" WHERE id = $1 AND "userId" = $2
-          `, [twinId, userId]);
-          const ownsTwin = twinOwnerResult.rows.length > 0;
+          let ownsTwin = false;
+          if (userId) {
+            try {
+              await verifyTwinOwnership(twinId, userId);
+              ownsTwin = true;
+            } catch (error) {
+              ownsTwin = false;
+            }
+          }
           
           if (ownsChat || ownsTwin) {
             initialChatId = chatId;
@@ -497,10 +475,7 @@ const twin = twinResult.rows[0];
     });
     
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to load public chat page', error);
+    handleControllerError(error, 'Failed to load public chat page');
   }
 };
 

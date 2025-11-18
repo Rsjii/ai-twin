@@ -1,14 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { db, publicChatQueries } from '../../config/database';
+import { generateId } from '../../utils/idGenerator';
 import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { TwinService } from '../twin/twinService';
 import { z } from 'zod';
-import { checkBlacklist, validateMessageLength } from '../../utils/safety';
-import { AppError, createError, ErrorCodes } from '../../utils/errors';
-import { moderateContentSync, getModerationSettings } from '../moderation/moderationController';
+import { createError, ErrorCodes } from '../../utils/errors';
 import * as chatUtils from './chatSharedUtils';
+import { handleControllerError, handleErrorWithSuccessFormat } from '../../utils/errorHandler';
+import { QUERY_LIMITS } from '../../config/constants';
 
 // Validation schemas
 const startPublicChatSchema = z.object({
@@ -43,7 +44,7 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
     logger.info(`[startPublicChat] Twin: ${twinId}, UserId: ${userId || 'anonymous'}, VisitorId: ${visitorId || 'none'}`);
 
     // Generate visitor ID if not provided and user not logged in
-    finalVisitorId = userId ? null : (visitorId || `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+    finalVisitorId = userId ? null : (visitorId || generateId.visitor());
 
     // Check if twin exists and is public (allow even if twin doesn't exist - public chat should work)
     const twinResult = await db.query(`
@@ -145,15 +146,6 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
         fullError: JSON.stringify(createError, Object.getOwnPropertyNames(createError))
       });
       
-      // ✅ Console log for immediate debugging
-      console.error('[startPublicChat] Create error details:', {
-        message: createErrorMessage,
-        error: createError,
-        twinId,
-        userId,
-        visitorId: finalVisitorId
-      });
-      
       throw createError; // Re-throw to be caught by outer catch
     }
 
@@ -206,30 +198,11 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
       errorString: String(error),
       errorJSON: JSON.stringify(error, Object.getOwnPropertyNames(error))
     });
-    
-    // ✅ Also log directly to console for debugging
-    console.error('[startPublicChat] Full error:', error);
-    console.error('[startPublicChat] Error message:', errorMessage);
-    console.error('[startPublicChat] Error stack:', errorStack);
-    
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        success: false,
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    
-    // ✅ Return more detailed error in development
+        
     const errorMessageToReturn = process.env.NODE_ENV === 'development' 
       ? errorMessage
       : 'Failed to start public chat';
-    
-    return res.status(500).json({
-      success: false,
-      error: errorMessageToReturn,
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleErrorWithSuccessFormat(error, res, errorMessageToReturn);
   }
 };
 
@@ -243,14 +216,9 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
     try {
       chatUtils.validateMessage(message);
     } catch (error) {
-      if (error instanceof AppError) {
-        return res.status(error.statusCode).json({
-          success: false,
-          error: error.message,
-          errorCode: error.errorCode
-        });
-      }
-      throw error;
+      // Return early with success:false format for validation errors
+      handleErrorWithSuccessFormat(error, res, 'Message validation failed');
+      return;
     }
 
     // Get public chat with twin information
@@ -480,18 +448,7 @@ if (chat.requireLogin && !userId) {
 
   } catch (error: any) {
     logger.error('sendPublicMessage error:', error);
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        success: false,
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to send public message',
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleErrorWithSuccessFormat(error, res, 'Failed to send public message');
   }
 };
 
@@ -599,18 +556,7 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
 
   } catch (error: any) {
     logger.error('getPublicChatHistory error:', error);
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        success: false,
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to get public chat history',
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleErrorWithSuccessFormat(error, res, 'Failed to get public chat history');
   }
 };
 
@@ -671,10 +617,7 @@ const twinResult = await db.query(`
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get public chat by twin', error);
+    handleControllerError(error, 'Failed to get public chat by twin');
   }
 };
 
@@ -795,10 +738,7 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
     res.json(responseData);
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get public chats by twin', error);
+    handleControllerError(error, 'Failed to get public chats by twin');
   }
 };
 
@@ -836,10 +776,7 @@ export const createNewPublicChat = async (req: AuthenticatedRequest, res: Respon
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to create new public chat', error);
+    handleControllerError(error, 'Failed to create new public chat');
   }
 };
 
@@ -960,10 +897,7 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get user public chats', error);
+    handleControllerError(error, 'Failed to get user public chats');
   }
 };
 
@@ -1035,18 +969,7 @@ export const deletePublicChat = async (req: Request, res: Response, next: NextFu
     });
   } catch (error: any) {
     logger.error('deletePublicChat error:', error);
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        success: false,
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to delete public chat',
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleErrorWithSuccessFormat(error, res, 'Failed to delete public chat');
   }
 };
 
@@ -1098,18 +1021,7 @@ export const updatePublicChatTitle = async (req: Request, res: Response, next: N
     });
   } catch (error: any) {
     logger.error('updatePublicChatTitle error:', error);
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        success: false,
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to update chat title',
-      errorCode: 'INTERNAL_ERROR'
-    });
+    handleErrorWithSuccessFormat(error, res, 'Failed to update chat title');
   }
 };
 
@@ -1188,7 +1100,7 @@ FROM "PublicChat" pc
         SELECT id FROM "PublicChat"
         WHERE "twinId" = $1 AND "userId" IS NULL AND "visitorId" IS NOT NULL
         ORDER BY "lastActivity" DESC, "createdAt" DESC
-        LIMIT 50
+        LIMIT ${QUERY_LIMITS.DEFAULT_PAGE_SIZE}
       )
     )
   ORDER BY 
@@ -1236,10 +1148,7 @@ FROM "PublicChat" pc
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get public chats for twin', error);
+    handleControllerError(error, 'Failed to get public chats for twin');
   }
 };
 
@@ -1321,9 +1230,6 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get chat history', error);
+    handleControllerError(error, 'Failed to get chat history');
   }
 };

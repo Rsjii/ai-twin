@@ -1,5 +1,7 @@
 import { db } from './db';
 import { logger } from './logger';
+import { verifyTwinOwnership } from '../utils/twinUtils';
+import { generateId as generateBackendId } from '../utils/idGenerator';
 
 // SQL to create all tables
 const createTablesSQL = `
@@ -262,15 +264,10 @@ export async function initializeDatabase() {
   }
 }
 
-// Helper function to generate CUID-like IDs
-export function generateId(): string {
-  return 'c' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-}
-
 // Database utility functions
 export const userQueries = {
   create: async (email: string, handle?: string, passwordHash?: string, referralCode?: string) => {
-    const id = generateId();
+    const id = generateBackendId.user();
     const now = new Date();
     const result = await db.query(
       'INSERT INTO "User" (id, email, handle, "passwordHash", "referralCode", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
@@ -280,17 +277,26 @@ export const userQueries = {
   },
 
   findByEmail: async (email: string) => {
-    const result = await db.query('SELECT * FROM "User" WHERE email = $1', [email]);
+    const result = await db.query(
+      'SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE email = $1',
+      [email]
+    );
     return result.rows[0];
   },
 
   findById: async (id: string) => {
-    const result = await db.query('SELECT * FROM "User" WHERE id = $1', [id]);
+    const result = await db.query(
+      'SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1',
+      [id]
+    );
     return result.rows[0];
   },
 
   findByReferralCode: async (referralCode: string) => {
-    const result = await db.query('SELECT * FROM "User" WHERE "referralCode" = $1', [referralCode]);
+    const result = await db.query(
+      'SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE "referralCode" = $1',
+      [referralCode]
+    );
     return result.rows[0];
   },
 
@@ -321,7 +327,7 @@ export const userQueries = {
 
 export const twinQueries = {
   create: async (userId: string, styleVector: any, sampleReply?: string, instructions?: any) => {
-    const id = generateId();
+    const id = generateBackendId.twin();
     const result = await db.query(
       'INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "instructions") VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [id, userId, JSON.stringify(styleVector), sampleReply, instructions ? JSON.stringify(instructions) : null]
@@ -330,7 +336,10 @@ export const twinQueries = {
   },
 
   findByUserId: async (userId: string) => {
-    const result = await db.query('SELECT * FROM "Twin" WHERE "userId" = $1', [userId]);
+    const result = await db.query(
+      'SELECT id, "userId", "styleVector", "sampleReply", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE "userId" = $1',
+      [userId]
+    );    
     return result.rows;
   },
 
@@ -351,20 +360,16 @@ export const twinQueries = {
   },
 
   findById: async (twinId: string) => {
-    const result = await db.query('SELECT * FROM "Twin" WHERE id = $1', [twinId]);
+    const result = await db.query(
+      'SELECT id, "userId", "styleVector", "sampleReply", "instructions", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE id = $1',
+      [twinId]
+    );    
     return result.rows[0];
   },
 
   delete: async (twinId: string, userId: string) => {
     // Verify ownership before deletion
-    const verifyResult = await db.query(
-      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
-      [twinId, userId]
-    );
-    
-    if (verifyResult.rows.length === 0) {
-      throw new Error('Twin not found or not owned by user');
-    }
+    await verifyTwinOwnership(twinId, userId);
     
     // Delete twin (CASCADE will handle related data)
     const result = await db.query(
@@ -378,7 +383,7 @@ export const twinQueries = {
 
 export const chatQueries = {
   create: async (userId: string, twinId: string) => {
-    const id = generateId();
+    const id = generateBackendId.chat();
     const result = await db.query(
       'INSERT INTO "Chat" (id, "userId", "twinId") VALUES ($1, $2, $3) RETURNING *',
       [id, userId, twinId]
@@ -387,14 +392,17 @@ export const chatQueries = {
   },
 
   findByUserId: async (userId: string) => {
-    const result = await db.query('SELECT * FROM "Chat" WHERE "userId" = $1', [userId]);
+    const result = await db.query(
+      'SELECT id, "userId", "twinId", "createdAt" FROM "Chat" WHERE "userId" = $1',
+      [userId]
+    );
     return result.rows;
   }
 };
 
 export const messageQueries = {
   create: async (chatId: string, sender: 'human' | 'twin', content: string, approved = false) => {
-    const id = generateId();
+    const id = generateBackendId.message();
     const result = await db.query(
       'INSERT INTO "Message" (id, "chatId", sender, content, approved) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [id, chatId, sender, content, approved]
@@ -403,7 +411,10 @@ export const messageQueries = {
   },
 
   findByChatId: async (chatId: string) => {
-    const result = await db.query('SELECT * FROM "Message" WHERE "chatId" = $1 AND approved = true ORDER BY "createdAt" ASC', [chatId]);
+    const result = await db.query(
+      'SELECT id, "chatId", sender, content, approved, "createdAt" FROM "Message" WHERE "chatId" = $1 AND approved = true ORDER BY "createdAt" ASC',
+      [chatId]
+    );
     return result.rows;
   }
 };
@@ -413,7 +424,7 @@ export { db };
 
 export const otpQueries = {
   create: async (email: string, codeHash: string, expiresAt: Date) => {
-    const id = generateId();
+    const id = generateBackendId.otp();
     const result = await db.query(
       'INSERT INTO "OTP" (id, email, "codeHash", "expiresAt") VALUES ($1, $2, $3, $4) RETURNING *',
       [id, email, codeHash, expiresAt]
@@ -422,7 +433,10 @@ export const otpQueries = {
   },
 
   findByEmail: async (email: string) => {
-    const result = await db.query('SELECT * FROM "OTP" WHERE email = $1 ORDER BY "createdAt" DESC LIMIT 1', [email]);
+    const result = await db.query(
+      'SELECT id, email, "codeHash", "expiresAt", "createdAt", used FROM "OTP" WHERE email = $1 ORDER BY "createdAt" DESC LIMIT 1',
+      [email]
+    );    
     return result.rows[0];
   },
 
@@ -514,7 +528,7 @@ export const publicTwinQueries = {
 // Twin Like Queries
 export const twinLikeQueries = {
   create: async (twinId: string, userId: string) => {
-    const id = generateId();
+    const id = generateBackendId.like();
     const result = await db.query(
       'INSERT INTO "TwinLike" (id, "twinId", "userId") VALUES ($1, $2, $3) RETURNING *',
       [id, twinId, userId]
@@ -569,7 +583,7 @@ export const twinLikeQueries = {
 // Twin Follow Queries
 export const twinFollowQueries = {
   create: async (twinId: string, userId: string) => {
-    const id = generateId();
+    const id = generateBackendId.follow();
     const result = await db.query(
       'INSERT INTO "TwinFollow" (id, "twinId", "userId") VALUES ($1, $2, $3) RETURNING *',
       [id, twinId, userId]
@@ -624,7 +638,7 @@ export const twinFollowQueries = {
 // Public Chat Queries
 export const publicChatQueries = {
   create: async (twinId: string, visitorId?: string, userId?: string) => {
-    const id = generateId();
+    const id = generateBackendId.chat();
     logger.info(`[publicChatQueries.create] Creating chat - Id: ${id}, TwinId: ${twinId}, UserId: ${userId || 'null'}, VisitorId: ${visitorId || 'null'}`);
     const result = await db.query(
       'INSERT INTO "PublicChat" (id, "twinId", "visitorId", "userId") VALUES ($1, $2, $3, $4) RETURNING *',
@@ -727,7 +741,7 @@ export const publicChatQueries = {
 // Add PublicMessage queries after the existing publicChatQueries
 export const publicMessageQueries = {
   create: async (chatId: string, sender: 'human' | 'twin', content: string) => {
-    const id = generateId();
+    const id = generateBackendId.message();
     const result = await db.query(
       'INSERT INTO "PublicMessage" (id, "chatId", sender, content, approved) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [id, chatId, sender, content, true]
@@ -772,7 +786,7 @@ export const styleAnchorsQueries = {
     patternType?: string,
     context?: string
   ) => {
-    const id = generateId();
+    const id = generateBackendId.anchor();
     const result = await db.query(
       'INSERT INTO "style_anchors" (id, twin_id, user_utterance, ideal_reply, tags, type, phrase, pattern_type, context) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
       [id, twinId, userUtterance, idealReply, tags, type, phrase || null, patternType || null, context || null]
@@ -924,7 +938,7 @@ export const styleAnchorsQueries = {
 // Style Corrections Queries
 export const styleCorrectionsQueries = {
   create: async (twinId: string, knob: string, delta: number, source?: string) => {
-    const id = generateId();
+    const id = generateBackendId.correction();
     const result = await db.query(
       'INSERT INTO "style_corrections" (id, twin_id, knob, delta, source) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [id, twinId, knob, delta, source]
@@ -954,18 +968,18 @@ export const styleCorrectionsQueries = {
 
 // AI Runs Queries
 export const aiRunsQueries = {
-  create: async (twinId: string, mode: string, tokensIn: number, tokensOut: number, criticScore?: number, regen = false, latencyMs: number) => {
-    const id = generateId();
+  create: async (twinId: string, mode: string, tokensIn: number, tokensOut: number, latencyMs: number, criticScore?: number, regen = false) => {
+    const id = generateBackendId.run();
     const result = await db.query(
-      'INSERT INTO "ai_runs" (id, twin_id, mode, tokens_in, tokens_out, critic_score, regen, latency_ms) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [id, twinId, mode, tokensIn, tokensOut, criticScore, regen, latencyMs]
+      'INSERT INTO "ai_runs" (id, twin_id, mode, tokens_in, tokens_out, critic_score, regen, latency_ms) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, twin_id, mode, tokens_in, tokens_out, critic_score, regen, latency_ms, ts',      
+      [id, twinId, mode, tokensIn, tokensOut, criticScore || null, regen, latencyMs]
     );
     return result.rows[0];
   },
 
   findByTwinId: async (twinId: string, limit = 100, offset = 0) => {
     const result = await db.query(
-      'SELECT * FROM "ai_runs" WHERE twin_id = $1 ORDER BY ts DESC LIMIT $2 OFFSET $3',
+      'SELECT id, twin_id, mode, tokens_in, tokens_out, critic_score, regen, latency_ms, ts FROM "ai_runs" WHERE twin_id = $1 ORDER BY ts DESC LIMIT $2 OFFSET $3',      
       [twinId, limit, offset]
     );
     return result.rows;
@@ -981,16 +995,16 @@ export const aiRunsQueries = {
          AVG(tokens_in) as avg_tokens_in,
          AVG(tokens_out) as avg_tokens_out
        FROM "ai_runs" 
-       WHERE twin_id = $1 AND ts >= NOW() - INTERVAL '${days} days'`,
-      [twinId]
+       WHERE twin_id = $1 AND ts >= NOW() - INTERVAL $2`,
+      [twinId, `${days} days`]
     );
     return result.rows[0];
   },
 
   getRecentRuns: async (twinId: string, hours = 24) => {
     const result = await db.query(
-      'SELECT * FROM "ai_runs" WHERE twin_id = $1 AND ts >= NOW() - INTERVAL \'$2 hours\' ORDER BY ts DESC',
-      [twinId, hours]
+      'SELECT id, twin_id, mode, tokens_in, tokens_out, critic_score, regen, latency_ms, ts FROM "ai_runs" WHERE twin_id = $1 AND ts >= NOW() - INTERVAL $2 ORDER BY ts DESC',      
+      [twinId, `${hours} hours`]
     );
     return result.rows;
   }
@@ -999,7 +1013,7 @@ export const aiRunsQueries = {
 // Memory Session Queries
 export const memorySessionQueries = {
   create: async (chatId: string, summary: string, keyTopics: string[], vector: any) => {
-    const id = `mem_sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const id = generateBackendId.memSess();
     const result = await db.query(
       `INSERT INTO "MemorySession" (id, "chatId", summary, "keyTopics", vector, "messageCount", "lastUpdated")
        VALUES ($1, $2, $3, $4, $5, $6, NOW())
@@ -1032,7 +1046,7 @@ export const memorySessionQueries = {
 // Memory LongTerm Queries
 export const memoryLongTermQueries = {
   create: async (twinId: string, key: string, value: string, category: string, source: string = 'session') => {
-    const id = `mem_lt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const id = generateBackendId.memLt();
     const result = await db.query(
       `INSERT INTO "MemoryLongTerm" (id, "twinId", key, value, category, source, "updatedAt")
        VALUES ($1, $2, $3, $4, $5, $6, NOW())

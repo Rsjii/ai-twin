@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { userQueries, twinQueries } from '../config/database';
 import { logger } from '../config/logger';
 import { AppError, createError } from '../utils/errors';
+import { handleControllerError } from '../utils/errorHandler';
 
 /**
  * Profile page - User profile settings with tabs
@@ -45,11 +46,7 @@ export async function getProfile(req: any, res: Response) {
       path: req.path
     });
     
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    throw createError.internal('Failed to load profile', error);
+    handleControllerError(error, 'Failed to load profile');
   }
 }
 

@@ -1,6 +1,6 @@
 import { db } from '../config/database';
 import { logger } from '../config/logger';
-import { config } from '../config/env';
+import { generateId } from '../utils/idGenerator';
 // COMMENTED OUT: OpenAI - Now using Groq via llmClient
 // import OpenAI from 'openai';
 
@@ -51,7 +51,7 @@ export class MemoryService {
         logger.info(`Updated session memory for chat: ${chatId}`);
       } else {
         // Create new
-        const id = `mem_sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const id = generateId.memSess();
         await db.query(
           `INSERT INTO "MemorySession" (id, "chatId", summary, "keyTopics", vector, "messageCount", "lastUpdated")
            VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
@@ -346,7 +346,7 @@ async getRelevantLongTermMemories(
     source: string = 'session'
   ): Promise<void> {
     try {
-      const id = `mem_lt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const id = generateId.memLt();
       
       await db.query(
         `INSERT INTO "MemoryLongTerm" (id, "twinId", key, value, category, source, "updatedAt")

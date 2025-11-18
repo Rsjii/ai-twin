@@ -3,6 +3,7 @@ import { generateInviteCode } from '../auth/authService';
 import { logger } from '../../config/logger';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { db } from '../../config/database';
+import { logEvent } from '../../services/eventLogger';
 
 export const getMyReferralCode = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -177,12 +178,7 @@ export const processInviteAcceptance = async (req: AuthenticatedRequest, res: Re
     );
     
     // Log invite accepted event using raw SQL
-    const { generateId } = await import('../../config/database');
-    const eventId = generateId();
-    await db.query(
-      'INSERT INTO "Event" (id, "userId", type, meta) VALUES ($1, $2, $3, $4)',
-      [eventId, invite.inviterId, 'invite_accepted', JSON.stringify({ inviteId: invite.id, inviterId: invite.inviterId })]
-    );
+    await logEvent(invite.inviterId, 'invite_accepted', { inviteId: invite.id, inviterId: invite.inviterId });
     
     res.json({ success: true });
   } catch (error) {

@@ -11,6 +11,7 @@ import { moderateContentSync, getModerationSettings } from '../moderation/modera
 import { TwinService } from '../twin/twinService';
 import { createError, ErrorCodes } from '../../utils/errors';
 import { memoryService } from '../../services/memoryService';
+import { generateId } from '../../utils/idGenerator';
 
 const twinService = new TwinService();
 
@@ -129,7 +130,7 @@ export function getModerationRejectionResponse(moderationResult: {
  * Generate request ID for deduplication
  */
 export function createRequestId(userIdOrVisitor: string): string {
-  return `${userIdOrVisitor}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+  return `${userIdOrVisitor}_${generateId.request()}`;
 }
 
 /**
@@ -266,7 +267,7 @@ export async function saveUserMessage(params: {
   messageTable: 'Message' | 'PublicMessage';
   messageIdPrefix: string;
 }): Promise<{ id: string; content: string; sender: string; createdAt: Date }> {
-  const messageId = `${params.messageIdPrefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const messageId = `${params.messageIdPrefix}_${generateId.message()}`;
 
   const messageResult = await db.query(`
     INSERT INTO "${params.messageTable}" ("id", "chatId", "sender", "content", "approved", "requestId", "createdAt")
@@ -301,7 +302,7 @@ export async function saveAIMessage(params: {
   messageTable: 'Message' | 'PublicMessage';
   messageIdPrefix: string;
 }): Promise<{ id: string; content: string; sender: string; createdAt: Date }> {
-  const aiMessageId = `${params.messageIdPrefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const aiMessageId = `${params.messageIdPrefix}_${generateId.message()}`;
 
   const aiMessageResult = await db.query(`
     INSERT INTO "${params.messageTable}" ("id", "chatId", "sender", "content", "approved", "createdAt")
@@ -388,7 +389,11 @@ export async function updateChatMetadata(params: {
   } = params;
 
   try {
-    if (generatedTitle) {
+    const generatedTitleTrimmed = generatedTitle ? generatedTitle.trim() : '';
+    const hasValidTitle = generatedTitle && generatedTitleTrimmed.length > 0;
+
+    // ✅ FIX: Check for both null and empty string - AND ensure trimmed length > 0
+    if (hasValidTitle && generatedTitleTrimmed.length > 0) {
       const updateFields = [
         `"messageCount" = "messageCount" + 1`,
         `"title" = $1`,
@@ -396,7 +401,7 @@ export async function updateChatMetadata(params: {
         lastMessageField ? `"${lastMessageField}" = $2` : null
       ].filter(Boolean).join(', ');
 
-      const values = [generatedTitle, aiResponse].filter((_, i) => {
+      const values = [generatedTitleTrimmed, aiResponse].filter((_, i) => {
         if (i === 0) return true; // title
         if (i === 1 && lastMessageField) return true; // lastMessage
         return false;
@@ -405,11 +410,12 @@ export async function updateChatMetadata(params: {
       await db.query(`
         UPDATE "${chatTable}" SET ${updateFields} WHERE id = $${values.length + 1}
       `, [...values, chatId]);
-    } else if (isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '' || currentTitle === null)) {
+    } else if (isFirstMessage) {
+      // ✅ FIX: Always set title for first message, regardless of currentTitle
       // Fallback: use first 30 chars of message as title
       const fallbackTitle = userMessage.trim().length > 30
         ? userMessage.trim().substring(0, 30) + '...'
-        : userMessage.trim();
+        : userMessage.trim() || 'New Chat';
 
       if (fallbackTitle && fallbackTitle.trim().length > 0) {
         const updateFields = [
@@ -443,7 +449,7 @@ export async function updateChatMetadata(params: {
       `, [...values, chatId]);
     }
   } catch (error) {
-    logger.warn('Failed to update chat metadata:', error);
+    logger.error('Failed to update chat metadata:', error);
   }
 }
 

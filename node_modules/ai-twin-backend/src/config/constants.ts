@@ -47,3 +47,48 @@ export const QUERY_LIMITS = {
     DISCOVER_RESULTS: 20,
     TRENDING_LIMIT: 10,
   } as const;
+
+  // Add after line 49:
+export const MESSAGE_LIMITS = {
+  MAX_LENGTH: 300,
+  MIN_LENGTH: 1,
+} as const;
+
+export const DB_RETRY = {
+  MAX_ATTEMPTS: 3,
+  BASE_DELAY_MS: 1000,
+} as const;
+
+export const QUERY_DEFAULTS = {
+  DEFAULT_LIMIT: 50,
+  MAX_LIMIT: 100,
+  MIN_LIMIT: 10,
+  RECENT_ITEMS: 10,
+  PERFORMANCE_SAMPLES: 1000,
+  ANALYTICS_TIMELINE: 30,
+} as const;
+
+export const DB_POOL_CONFIG = {
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  acquireTimeoutMillis: 10000,
+  createTimeoutMillis: 10000,
+  retryDelayMs: 1000,
+  retryAttempts: 3,
+} as const;
+
+// Additional query limits
+export const QUERY_LIMITS_EXTENDED = {
+  MEMORY_CHUNKS_LARGE: 500,
+  CORRECTIONS_LIMIT: 1000,
+  FEEDBACK_LIMIT: 1000,
+} as const;
+
+// Time intervals for queries
+export const TIME_INTERVALS = {
+  HOUR: '1 hour',
+  DAY: '1 day',
+  WEEK: '7 days',
+  MONTH: '30 days',
+} as const;

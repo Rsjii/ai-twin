@@ -3,6 +3,7 @@ import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
+import { generateId } from '../../utils/idGenerator';
 
 // Privacy settings interface
 export interface TwinPrivacySettings {
@@ -135,7 +136,7 @@ export const updatePrivacySettings = async (req: Request, res: Response) => {
         `;
 
         const blockParams = settings.blockSpecificUsers.flatMap(userId => [
-          `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          generateId.block(),
           twinId,
           userId
         ]);
@@ -283,7 +284,7 @@ export const blockUser = async (req: Request, res: Response) => {
       INSERT INTO "TwinBlockedUsers" ("id", "twinId", "userId", "createdAt")
       VALUES ($1, $2, $3, NOW())
     `, [
-      `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      generateId.block(),
       twinId,
       targetUserId
     ]);

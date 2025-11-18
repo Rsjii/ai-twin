@@ -1,8 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import { db } from '../../config/database';
+import { Response, NextFunction } from 'express';
 import { memoryService } from '../../services/memoryService';
-import { logger } from '../../config/logger';
-import { AppError, createError, ErrorCodes } from '../../utils/errors';
+import { AppError, createError } from '../../utils/errors';
+import { verifyTwinOwnership } from '../../utils/twinUtils';
+import { generateId } from '../../utils/idGenerator';
+import { handleControllerError } from '../../utils/errorHandler';
 
 /**
  * Get all long-term memories for a twin
@@ -19,14 +20,7 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
     }
     
     // Verify ownership
-    const twinResult = await db.query(
-      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
-      [twinId, userId]
-    );
-    
-    if (twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
-    }
+   await verifyTwinOwnership(twinId, userId);
     
     // If query provided, use smart retrieval
     if (query && typeof query === 'string') {
@@ -47,10 +41,7 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
     
     res.json({ success: true, memories });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get memories', error);
+    handleControllerError(error, 'Failed to get memories');
   }
 };
 
@@ -73,17 +64,10 @@ export const addLongTermMemory = async (req: any, res: Response, next: NextFunct
     }
     
     // Verify ownership
-    const twinResult = await db.query(
-      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
-      [twinId, userId]
-    );
-    
-    if (twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
-    }
+   await verifyTwinOwnership(twinId, userId);
     
     // Auto-generate key if not provided
-    const finalKey = key || `fact_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const finalKey = key || generateId.fact();
     
     await memoryService.storeLongTermMemory(
       twinId,
@@ -99,10 +83,7 @@ export const addLongTermMemory = async (req: any, res: Response, next: NextFunct
       memory: { key: finalKey, value: value.trim(), category }
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to store memory', error);
+    handleControllerError(error, 'Failed to store memory');
   }
 };
 
@@ -124,15 +105,7 @@ export const updateLongTermMemory = async (req: any, res: Response, next: NextFu
       throw createError.validation('Value is required');
     }
     
-    // Verify ownership
-    const twinResult = await db.query(
-      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
-      [twinId, userId]
-    );
-    
-    if (twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
-    }
+   await verifyTwinOwnership(twinId, userId);
     
     // Update via storeLongTermMemory (ON CONFLICT handles update)
     await memoryService.storeLongTermMemory(
@@ -149,10 +122,7 @@ export const updateLongTermMemory = async (req: any, res: Response, next: NextFu
       memory: { key, value: value.trim(), category: category || 'fact' }
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to update memory', error);
+    handleControllerError(error, 'Failed to update memory');
   }
 };
 
@@ -170,23 +140,13 @@ export const deleteLongTermMemory = async (req: any, res: Response, next: NextFu
     }
     
     // Verify ownership
-    const twinResult = await db.query(
-      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
-      [twinId, userId]
-    );
-    
-    if (twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
-    }
+   await verifyTwinOwnership(twinId, userId);
     
     const { memoryLongTermQueries } = await import('../../config/database');
     await memoryLongTermQueries.delete(twinId, key);
     
     res.json({ success: true, message: 'Memory deleted successfully' });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to delete memory', error);
+    handleControllerError(error, 'Failed to delete memory');
   }
 };

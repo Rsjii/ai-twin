@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
+import { verifyTwinOwnership } from '../../utils/twinUtils';
+import { logEvent } from '../../services/eventLogger';
+import { QUERY_LIMITS } from '../../config/constants';
 
 export const getMetricsSummary = async (_req: Request, res: Response) => {
   try {
@@ -168,11 +171,7 @@ export const createSampleData = async (req: Request, res: Response) => {
     ];
 
     for (const event of sampleEvents) {
-      const eventId = 'c' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-      await db.query(
-        'INSERT INTO "Event" (id, "userId", type, meta) VALUES ($1, $2, $3, $4)',
-        [eventId, userId, event.type, JSON.stringify(event.meta)]
-      );
+      await logEvent(userId, event.type, event.meta);
     }
 
     res.json({
@@ -229,9 +228,8 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
         db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "inviterId" = $1', [userId]),
         db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "acceptedBy" = $1', [userId]),
         db.query('SELECT COUNT(*) as count FROM "Event" WHERE "userId" = $1', [userId]),
-        // ADD THESE 2 QUERIES TO PARALLEL (was sequential before)
         db.query('SELECT type, COUNT(*) as count FROM "Event" WHERE "userId" = $1 GROUP BY type', [userId]),
-        db.query('SELECT type, "createdAt", meta FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 10', [userId])
+        db.query('SELECT type, "createdAt", meta FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}', [userId])
       ]);
 
       // Parse all results
@@ -297,13 +295,7 @@ export const getTwinAnalytics = async (req: Request, res: Response) => {
     const userId = req.user.id;
 
     // Verify twin ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-
-    if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Twin not found or access denied' });
-    }
+   await verifyTwinOwnership(twinId, userId);
 
     // Get comprehensive analytics
     const [
@@ -374,7 +366,7 @@ async function getCriticScoreTrend(twinId: string) {
     AND ts >= NOW() - INTERVAL '30 days'
     GROUP BY DATE(ts)
     ORDER BY date DESC
-    LIMIT 30
+    LIMIT ${QUERY_LIMITS.ANALYTICS_TIMELINE}
   `, [twinId]);
   
   return result.rows;
@@ -491,7 +483,7 @@ export const getReferralStats = async (req: any, res: Response) => {
        JOIN "User" u ON i."acceptedBy" = u.id
        WHERE i."inviterId" = $1 AND i."acceptedBy" IS NOT NULL
        ORDER BY i."createdAt" DESC
-       LIMIT 10`,
+       LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`,
       [req.user.id]
     );
     
@@ -532,14 +524,7 @@ export const getChattersStats = async (req: Request, res: Response) => {
     }
 
     // Verify user owns the twin
-    const twinCheck = await db.query(
-      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
-      [twinId, req.user.id]
-    );
-
-    if (twinCheck.rows.length === 0) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
+   await verifyTwinOwnership(twinId, req.user.id);
 
     // Get stats
     const stats = await db.query(`

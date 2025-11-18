@@ -6,14 +6,14 @@
 import { Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { db } from '../../config/database';
-import { EventLogger } from '../../services/eventLogger';
 import { logger } from '../../config/logger';
 import { TwinService } from '../twin/twinService';
-import { classifyIntent, shapeByIntent } from '../../utils/intentClassification';
-import { runStyleCritic, checkBanlist, rewriteBanlist } from '../../utils/styleCritic';
+import { classifyIntent } from '../../utils/intentClassification';
 // updateChatMetadata is deprecated - title generation handled in handleUserMessage
 // Keeping import for backwards compatibility but function does nothing
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
+import { generateId } from '../../utils/idGenerator';
+import { handleControllerError } from '../../utils/errorHandler';
 
 const twinService = new TwinService();
 
@@ -124,7 +124,7 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
 
     // 5. Save user message to chat
     try {
-      const userMessageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const userMessageId = generateId.message();
       await db.query(`
         INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
         VALUES ($1, $2, $3, 'human', NOW())
@@ -136,7 +136,7 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
 
     // 6. Save AI response to chat
     try {
-      const aiMessageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const aiMessageId = generateId.message();
       await db.query(`
         INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
         VALUES ($1, $2, $3, 'twin', NOW())
@@ -173,7 +173,7 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
 
     // 7. Log AI run (optional)
     try {
-      const runId = `run_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const runId = generateId.run();
       await db.query(`
         INSERT INTO ai_runs (id, twin_id, mode, tokens_in, tokens_out, latency_ms) 
         VALUES ($1, $2, $3, $4, $5, $6)
@@ -195,10 +195,7 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to generate enhanced reply', error);
+    handleControllerError(error, 'Failed to generate enhanced reply');
   }
 };
 
@@ -250,10 +247,7 @@ export const getChatHistory = async (req: any, res: Response, next: NextFunction
     
     res.json({ chat: chatData });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get chat history', error);
+    handleControllerError(error, 'Failed to get chat history');
   }
 };
 
@@ -299,7 +293,7 @@ export const applyStyleCorrection = async (req: any, res: Response, next: NextFu
       INSERT INTO style_corrections (id, twin_id, knob, delta, source) 
       VALUES ($1, $2, $3, $4, 'manual_correction')
     `, [
-      `correction_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      generateId.correction(),
       twinId,
       knob,
       delta
@@ -319,10 +313,7 @@ export const applyStyleCorrection = async (req: any, res: Response, next: NextFu
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to apply style correction', error);
+    handleControllerError(error, 'Failed to apply style correction');
   }
 };
 
@@ -347,7 +338,7 @@ export const addToAnchors = async (req: any, res: Response, next: NextFunction) 
     const twinId = chatResult.rows[0].twinId;
 
     // Create style anchor
-    const anchorId = `anchor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const anchorId = generateId.anchor();
     await db.query(`
       INSERT INTO style_anchors (id, twin_id, user_utterance, ideal_reply, tags) 
       VALUES ($1, $2, $3, $4, $5)
@@ -360,10 +351,7 @@ export const addToAnchors = async (req: any, res: Response, next: NextFunction) 
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to add style anchor', error);
+    handleControllerError(error, 'Failed to add style anchor');
   }
 };
 
@@ -537,7 +525,7 @@ function estimateTokens(text: string): number {
 
 async function logAIRun(data: any) {
   try {
-    const runId = `run_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const runId = generateId.run();
     await db.query(`
       INSERT INTO ai_runs (id, twin_id, mode, tokens_in, tokens_out, critic_score, latency_ms) 
       VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -549,7 +537,7 @@ async function logAIRun(data: any) {
 
 async function saveResponseToChat(chatId: string, response: string) {
   try {
-    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const messageId = generateId.message();
     await db.query(`
       INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
       VALUES ($1, $2, $3, 'ai', NOW())

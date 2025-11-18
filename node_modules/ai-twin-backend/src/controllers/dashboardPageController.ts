@@ -5,6 +5,7 @@ import { userQueries, twinQueries } from '../config/database';
 import { db } from '../config/database';
 import { logger } from '../config/logger';
 import { AppError, createError } from '../utils/errors';
+import { handleControllerError } from '../utils/errorHandler';
 
 /**
  * Dashboard page - Main user dashboard
@@ -133,10 +134,6 @@ export async function getDashboard(req: any, res: Response) {
       path: req.path
     });
     
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    throw createError.internal('Failed to load dashboard', error);
+    handleControllerError(error, 'Failed to load dashboard');
   }
 }

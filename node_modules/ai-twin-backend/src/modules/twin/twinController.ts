@@ -6,7 +6,9 @@ import { z } from 'zod';
 import { EventLogger } from '../../services/eventLogger';
 import { validateTwinSamples, isContentSafe, sanitizeText } from '../../utils/safety';
 import { featureFlags } from '../../config/featureFlags';
-import { AppError, createError, ErrorCodes } from '../../utils/errors';
+import { createError, ErrorCodes } from '../../utils/errors';
+import { generateId } from '../../utils/idGenerator';
+import { handleControllerError } from '../../utils/errorHandler';
 
 const twinService = new TwinService();
 
@@ -21,45 +23,6 @@ const testSchema = z.object({
 
 export const createTwin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Add this at the very top of createTwin function
-console.log('=== MIDDLEWARE CHECK ===');
-console.log('req.user before any checks:', req.user);
-console.log('req.cookies:', req.cookies);
-console.log('========================');
-    console.log('=== DEBUGGING TWIN CREATION ===');
-    console.log('Parsed request body:', JSON.stringify(req.body, null, 2));
-    console.log('Request body type:', typeof req.body);
-    console.log('Request body samples:', req.body.samples);
-    console.log('Request body samples type:', typeof req.body.samples);
-    console.log('Request body samples isArray:', Array.isArray(req.body.samples));
-    console.log('Request body samples constructor:', req.body.samples?.constructor?.name);
-    
-    // Try to parse with simple schema first
-    try {
-      const { samples } = testSchema.parse(req.body);
-      console.log('Simple schema parsing successful, samples:', samples);
-    } catch (error) {
-      console.log('Simple schema parsing failed:', error);
-    }
-    
-    // Try to parse the full schema
-    try {
-      const { samples } = createTwinSchema.parse(req.body);
-      console.log('Full schema parsing successful, samples:', samples);
-    } catch (error) {
-      console.log('Full schema parsing failed:', error);
-      throw error;
-    }
-    
-    const { samples } = createTwinSchema.parse(req.body);
-
-    // Debug logging
-    console.log('=== AUTHENTICATION DEBUG ===');
-    console.log('req.user:', req.user);
-    console.log('req.user type:', typeof req.user);
-    console.log('req.user keys:', req.user ? Object.keys(req.user) : 'undefined');
-    console.log('============================');
-
     // Check authentication
     if (!req.user) {
        throw createError.unauthorized();
@@ -115,7 +78,7 @@ console.log('========================');
     const sampleReply = await twinService.generateSampleReply(styleVector);
     
   // Save twin to database using raw SQL
-   const twinId = `twin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+   const twinId = generateId.twin();
    const insertQuery = `
     INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "isPublic", "verified", "likeCount", "followCount", "chatCount", "createdAt")
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -172,10 +135,7 @@ console.log('========================');
       });
     }
     
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to create twin', error);
+    handleControllerError(error, 'Failed to create twin');
   }
 };
 
@@ -197,10 +157,7 @@ export const getUserTwins = async (req: Request, res: Response, next: NextFuncti
     logger.debug('Found twins:', { count: twins.rows.length });
     res.json({ twins: twins.rows });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get user twins', error);
+    handleControllerError(error, 'Failed to get user twins');
   }
 };
 
@@ -225,10 +182,7 @@ export const getTwinById = async (req: Request, res: Response, next: NextFunctio
     
     res.json({ twin });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get twin', error);
+    handleControllerError(error, 'Failed to get twin');
   }
 };
 

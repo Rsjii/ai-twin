@@ -3,6 +3,9 @@ import { z } from 'zod';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
+import { verifyTwinOwnership } from '../../utils/twinUtils';
+import { generateId } from '../../utils/idGenerator';
+import { handleControllerError } from '../../utils/errorHandler';
 
 const feedbackSchema = z.object({
   rating: z.enum(['up', 'down']),
@@ -41,7 +44,7 @@ export const submitResponseFeedback = async (req: Request, res: Response, next: 
     const twinId = chatResult.rows[0].twinId;
 
     // Store feedback as style correction using EXISTING table
-    const correctionId = `correction_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const correctionId = generateId.correction();
     const delta = rating === 'up' ? 1 : -1;
     
     // Use EXISTING style_corrections table with mapped knob
@@ -60,7 +63,7 @@ export const submitResponseFeedback = async (req: Request, res: Response, next: 
 
     // If correction text provided, create style anchor using EXISTING table
     if (correction) {
-      const anchorId = `anchor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const anchorId = generateId.anchor();
       await db.query(`
         INSERT INTO style_anchors (id, twin_id, user_utterance, ideal_reply, tags, created_at)
         VALUES ($1, $2, $3, $4, $5, NOW())
@@ -74,10 +77,7 @@ export const submitResponseFeedback = async (req: Request, res: Response, next: 
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to submit feedback', error);
+    handleControllerError(error, 'Failed to submit feedback');
   }
 };
 
@@ -90,13 +90,7 @@ export const getFeedbackStats = async (req: Request, res: Response, next: NextFu
     const userId = req.user.id;
 
     // Verify twin ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-
-    if (twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
-    }
+   await verifyTwinOwnership(twinId, userId);
 
     // Get feedback statistics from EXISTING style_corrections table
     const statsResult = await db.query(`
@@ -122,10 +116,7 @@ export const getFeedbackStats = async (req: Request, res: Response, next: NextFu
     });
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get feedback statistics', error);
+    handleControllerError(error, 'Failed to get feedback statistics');
   }
 };
 
@@ -153,10 +144,7 @@ export const submitChatFeedback = async (req: Request, res: Response, next: Next
     
     res.json({ success: true });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to submit chat feedback', error);
+    handleControllerError(error, 'Failed to submit chat feedback');
   }
 };
 
@@ -272,9 +260,6 @@ export const adjustTone = async (req: Request, res: Response, next: NextFunction
     
     res.json({ success: true, adjustedResponse });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to adjust tone', error);
+    handleControllerError(error, 'Failed to adjust tone');
   }
 };

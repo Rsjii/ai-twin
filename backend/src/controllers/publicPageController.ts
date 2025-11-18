@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { db } from '../config/database';
 import { logger } from '../config/logger';
 import { AppError, createError } from '../utils/errors';
+import { handleControllerError } from '../utils/errorHandler';
 
 /**
  * Landing page - Public home page
@@ -123,11 +124,7 @@ export async function getPublicProfile(req: any, res: Response) {
       path: req.path
     });
     
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    throw createError.internal('Failed to load public profile', error);
+    handleControllerError(error, 'Failed to load public profile');
   }
 }
 
@@ -244,10 +241,6 @@ export async function getUserProfile(req: any, res: Response) {
       path: req.path
     });
     
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    throw createError.internal('Failed to load user profile', error);
+    handleControllerError(error, 'Failed to load user profile');
   }
 }

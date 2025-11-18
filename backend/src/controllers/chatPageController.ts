@@ -2,6 +2,8 @@ import { Response } from 'express';
 import { db } from '../config/database';
 import { logger } from '../config/logger';
 import { AppError, createError } from '../utils/errors';
+import { generateId } from '../utils/idGenerator';
+import { handleControllerError } from '../utils/errorHandler';
 
 /**
  * Enhanced Chat page
@@ -62,7 +64,7 @@ export async function getChatEnhanced(req: any, res: Response) {
         `, [req.user.id, latestTwin.id]);
         
         if (chats.rows.length === 0) {
-          const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const chatId = generateId.chat();
           const newChat = await db.query(`
             INSERT INTO "Chat" ("id", "userId", "twinId", "createdAt")
             VALUES ($1, $2, $3, NOW())
@@ -84,7 +86,7 @@ export async function getChatEnhanced(req: any, res: Response) {
       `, [req.user.id, latestTwin.id]);
       
       if (chats.rows.length === 0) {
-        const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const chatId = generateId.chat();
         const newChat = await db.query(`
           INSERT INTO "Chat" ("id", "userId", "twinId", "createdAt")
           VALUES ($1, $2, $3, NOW())
@@ -121,10 +123,6 @@ export async function getChatEnhanced(req: any, res: Response) {
       path: req.path
     });
     
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    throw createError.internal('Failed to load enhanced chat', error);
+    handleControllerError(error, 'Failed to load enhanced chat');
   }
 }

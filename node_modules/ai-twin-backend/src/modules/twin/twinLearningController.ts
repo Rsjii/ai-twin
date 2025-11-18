@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { systemPromptUpdater } from '../../services/systemPromptUpdater';
+import { verifyTwinOwnership } from '../../utils/twinUtils';
 
 /**
  * Regenerate system prompt for a twin
@@ -12,13 +13,7 @@ export const regeneratePrompt = async (req: any, res: Response) => {
     const userId = req.user.id;
     
     // Verify ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(twinId, userId);
     
     // Update system prompt
     const success = await systemPromptUpdater.updateTwinSystemPrompt(twinId);
@@ -43,13 +38,7 @@ export const getLearningData = async (req: any, res: Response) => {
     const userId = req.user.id;
     
     // Verify ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(twinId, userId);
     
     // Real learning data from database
     const learningData = {
@@ -122,13 +111,7 @@ export const updateLearningSettings = async (req: any, res: Response) => {
     const { autoLearning, learningSensitivity } = req.body;
     
     // Verify ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+   await verifyTwinOwnership(twinId, userId);
     
     // Update learning settings (implement database storage later)
     res.json({ success: true, message: 'Learning settings updated successfully' });
@@ -147,14 +130,7 @@ export const getTwinChatHistory = async (req: any, res: Response) => {
     const { limit = 20, offset = 0 } = req.query;
     const userId = req.user.id;
     
-    // Verify twin ownership
-    const twinResult = await db.query(`
-      SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Twin not found' });
-    }
+    await verifyTwinOwnership(twinId, userId);
     
     // Get all chats for this twin
     const chats = await db.query(`

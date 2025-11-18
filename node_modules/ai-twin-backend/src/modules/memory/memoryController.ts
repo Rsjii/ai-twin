@@ -1,7 +1,10 @@
 import { Response, NextFunction } from 'express';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
-import { AppError, createError, ErrorCodes } from '../../utils/errors';
+import { AppError, createError } from '../../utils/errors';
+import { verifyTwinOwnership } from '../../utils/twinUtils';
+import { generateId } from '../../utils/idGenerator';
+import { handleControllerError } from '../../utils/errorHandler';
 
 /**
  * Get unified memory statistics
@@ -17,14 +20,7 @@ export const getMemoryStats = async (req: any, res: Response, next: NextFunction
     }
     
     // Verify twin ownership
-    const twinResult = await db.query(
-      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
-      [twinId, userId]
-    );
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
-    }
+    await verifyTwinOwnership(twinId, userId);
     
     // Get MemoryLongTerm stats
     const longTermResult = await db.query(`
@@ -64,10 +60,7 @@ export const getMemoryStats = async (req: any, res: Response, next: NextFunction
       ]
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to get memory statistics', error);
+    handleControllerError(error, 'Failed to get memory statistics');
   }
 };
 
@@ -86,14 +79,7 @@ export const retrieveMemories = async (req: any, res: Response, next: NextFuncti
     }
     
     // Verify twin ownership
-    const twinResult = await db.query(
-      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
-      [twinId, userId]
-    );
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
-    }
+    await verifyTwinOwnership(twinId, userId);
     
     if (bucket === 'facts') {
       // Get from MemoryLongTerm
@@ -176,10 +162,7 @@ export const retrieveMemories = async (req: any, res: Response, next: NextFuncti
       throw createError.validation('Invalid bucket. Use "facts", "voice", or "all"');
     }
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to retrieve memories', error);
+    handleControllerError(error, 'Failed to retrieve memories');
   }
 };
 
@@ -202,14 +185,7 @@ export const ingestMemories = async (req: any, res: Response, next: NextFunction
     }
     
     // Verify twin ownership
-    const twinResult = await db.query(
-      'SELECT id FROM "Twin" WHERE id = $1 AND "userId" = $2',
-      [twinId, userId]
-    );
-    
-    if (!twinResult || twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
-    }
+    await verifyTwinOwnership(twinId, userId);
     
     // Validate input
     if (!bucket || !text) {
@@ -231,7 +207,7 @@ export const ingestMemories = async (req: any, res: Response, next: NextFunction
       // Redirect to MemoryLongTerm
       const { addLongTermMemory } = await import('../twin/longTermMemoryController');
       req.params.id = twinId;
-      req.body.key = `fact_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      req.body.key = generateId.fact();
       req.body.category = 'fact';
       req.body.value = text;
       return addLongTermMemory(req, res);
@@ -251,9 +227,6 @@ export const ingestMemories = async (req: any, res: Response, next: NextFunction
     // Fallback (should never reach here)
     throw createError.validation('Invalid bucket type');
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to ingest memory', error);
+    handleControllerError(error, 'Failed to ingest memory');
   }
 };

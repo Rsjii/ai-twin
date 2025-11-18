@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { config } from './env';
+import { DB_RETRY, DB_POOL_CONFIG } from './constants';
 
 // Create a connection pool with better settings
 const pool = new Pool({
@@ -7,14 +8,7 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false
   },
-  max: 5, // Reduced connections
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000, // Increased timeout
-  acquireTimeoutMillis: 10000,
-  createTimeoutMillis: 10000,
-  // Add retry logic
-  retryDelayMs: 1000,
-  retryAttempts: 3,
+  ...DB_POOL_CONFIG
 });
 
 // Test the connection
@@ -33,7 +27,7 @@ export const db = {
   query: async (text: string, params?: any[]) => {
     const start = Date.now();
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = DB_RETRY.MAX_ATTEMPTS;
     
     while (attempts < maxAttempts) {
       try {
@@ -51,7 +45,7 @@ export const db = {
         }
         
         // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        await new Promise(resolve => setTimeout(resolve, DB_RETRY.BASE_DELAY_MS * attempts));
       }
     }
   },

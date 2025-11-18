@@ -3,6 +3,7 @@ import { db, userQueries } from '../config/database';
 import { logger } from '../config/logger';
 import { AppError, createError } from '../utils/errors';
 import { ADMIN_EMAILS } from '../config/constants';
+import { handleControllerError } from '../utils/errorHandler';
 
 /**
  * Analytics dashboard page - User analytics
@@ -46,12 +47,8 @@ export async function getAnalytics(req: any, res: Response) {
       userId: req.user?.id,
       path: req.path
     });
-    
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    throw createError.internal('Failed to load analytics', error);
+
+    handleControllerError(error, 'Failed to load analytics');
   }
 }
 
@@ -87,11 +84,7 @@ export async function getAdminAnalytics(req: any, res: Response) {
       path: req.path
     });
     
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    throw createError.internal('Failed to load admin analytics', error);
+    handleControllerError(error, 'Failed to load admin analytics');
   }
 }
 
@@ -135,11 +128,7 @@ export async function getAdminAnalyticsPage(req: any, res: Response) {
       path: req.path
     });
     
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    throw createError.internal('Failed to load admin analytics page', error);
+    handleControllerError(error, 'Failed to load admin analytics page');
   }
 }
 
@@ -250,9 +239,6 @@ export async function getAnalyticsDetails(req: any, res: Response) {
     });
   } catch (error) {
     logger.error('Get analytics details error:', error);
-    if (error instanceof AppError) {
-      throw error;
-    }
-    throw createError.internal('Failed to load analytics details', error);
+    handleControllerError(error, 'Failed to load analytics details');
   }
 }

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { EventLogger } from '../../services/eventLogger';
 import { TwinService } from '../twin/twinService';
 import { featureFlags } from '../../config/featureFlags';
+import { generateId } from '../../utils/idGenerator';
 
 const twinService = new TwinService();
 
@@ -103,7 +104,7 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
     const sampleReply = await twinService.generateSampleReply(styleVector);
 
     // Save enhanced twin to database
-    const twinId = `twin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const twinId = generateId.twin();
     
     // Check if enhanced columns exist, if not use basic insert
     let insertQuery, insertParams;

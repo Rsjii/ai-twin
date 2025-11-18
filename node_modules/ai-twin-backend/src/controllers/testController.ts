@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { db } from '../config/database';
 import { logger } from '../config/logger';
-import { AppError, createError, ErrorCodes } from '../utils/errors';
+import { createError } from '../utils/errors';
+import { handleErrorWithResponse } from '../utils/errorHandler';
 
 /**
  * Test route - Basic health check
@@ -33,19 +34,7 @@ export const testDatabase = async (_req: Request, res: Response) => {
     logger.error('Test database error:', {
       error: error instanceof Error ? error.message : 'Unknown error'
     });
-    
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    
-    const appError = createError.internal('Database error', error);
-    return res.status(appError.statusCode).json({ 
-      error: appError.message,
-      errorCode: appError.errorCode
-    });
+    handleErrorWithResponse(error, res, 'Database error');
   }
 };
 
@@ -66,19 +55,7 @@ export const testAuth = async (req: Request, res: Response) => {
     logger.error('Test auth error:', {
       error: error instanceof Error ? error.message : 'Unknown error'
     });
-    
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    
-    const appError = createError.internal('Auth error', error);
-    return res.status(appError.statusCode).json({ 
-      error: appError.message,
-      errorCode: appError.errorCode
-    });
+    handleErrorWithResponse(error, res, 'Auth error');
   }
 };
 
@@ -155,19 +132,7 @@ export const testOTP = async (req: Request, res: Response) => {
     logger.error('Test OTP error:', {
       error: error instanceof Error ? error.message : 'Unknown error'
     });
-    
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    
-    const appError = createError.internal('OTP operation error', error);
-    return res.status(appError.statusCode).json({ 
-      error: appError.message,
-      errorCode: appError.errorCode
-    });
+    handleErrorWithResponse(error, res, 'OTP operation error');
   }
 };
 
@@ -203,19 +168,7 @@ export const testProfile = async (req: any, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       userId: req.user?.id
     });
-    
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        error: error.message,
-        errorCode: error.errorCode
-      });
-    }
-    
-    const appError = createError.internal('Internal server error', error);
-    return res.status(appError.statusCode).json({ 
-      error: appError.message,
-      errorCode: appError.errorCode
-    });
+    handleErrorWithResponse(error, res, 'Internal server error');
   }
 };
 

@@ -1,3 +1,4 @@
+import { QUERY_DEFAULTS, QUERY_LIMITS, QUERY_LIMITS_EXTENDED } from '../config/constants';
 import { db } from '../config/database';
 
 /**
@@ -13,7 +14,7 @@ export async function calculateLearningRate(twinId: string): Promise<number> {
         FROM "style_corrections"
         WHERE "twin_id" = $1
         ORDER BY ts DESC
-        LIMIT 20
+        LIMIT ${QUERY_LIMITS.RECENT_ACTIVITY}
       `, [twinId]);
       
       if (!result || !result.rows || result.rows.length < 5) return 0;
@@ -48,7 +49,7 @@ export async function calculateUserSatisfaction(twinId: string): Promise<number>
         JOIN "Chat" c ON cf."chatId" = c.id
         WHERE c."twinId" = $1
         ORDER BY cf."createdAt" DESC
-        LIMIT 50
+        LIMIT ${QUERY_LIMITS.CHAT_MESSAGES}
       `, [twinId]);
       
       if (!result || !result.rows || result.rows.length === 0) return 0;
@@ -182,7 +183,7 @@ export async function gatherAnalyticsData(twinId: string): Promise<any> {
     // Gather comprehensive analytics data using raw SQL
     // Added LIMIT to prevent huge result sets (analytics typically needs recent data)
     const performanceResult = await db.query(`
-      SELECT * FROM "ai_runs" WHERE "twin_id" = $1 ORDER BY ts DESC LIMIT 1000
+       SELECT id, twin_id, mode, tokens_in, tokens_out, critic_score, regen, latency_ms, ts FROM "ai_runs" WHERE "twin_id" = $1 ORDER BY ts DESC LIMIT ${QUERY_DEFAULTS.PERFORMANCE_SAMPLES}      
     `, [twinId]);
     
 // Get from both MemoryLongTerm and StyleAnchors
@@ -192,14 +193,14 @@ const [longTermMemories, styleAnchors] = await Promise.all([
     FROM "MemoryLongTerm"
     WHERE "twinId" = $1
     ORDER BY "updatedAt" DESC
-    LIMIT 500
+    LIMIT ${QUERY_LIMITS_EXTENDED.MEMORY_CHUNKS_LARGE}
   `, [twinId]),
   db.query(`
     SELECT id, phrase as text, 'voice' as category, created_at as ts
     FROM "style_anchors"
     WHERE twin_id = $1 AND type = 'phrase'
     ORDER BY created_at DESC
-    LIMIT 500
+    LIMIT ${QUERY_LIMITS_EXTENDED.MEMORY_CHUNKS_LARGE}
   `, [twinId])
 ]);
 
@@ -211,22 +212,22 @@ const memoriesResult = {
 };    
     
 const anchorsResult = await db.query(`
-  SELECT * FROM "style_anchors" WHERE twin_id = $1 ORDER BY created_at DESC LIMIT 1000
+   SELECT id, twin_id, user_utterance, ideal_reply, type, created_at FROM "style_anchors" WHERE twin_id = $1 ORDER BY created_at DESC LIMIT ${QUERY_DEFAULTS.PERFORMANCE_SAMPLES}  
 `, [twinId]);    
     
     const correctionsResult = await db.query(`
-      SELECT * FROM "style_corrections" WHERE "twin_id" = $1 ORDER BY ts DESC LIMIT 1000
+      SELECT id, twin_id, knob, delta, source, ts FROM "style_corrections" WHERE "twin_id" = $1 ORDER BY ts DESC LIMIT ${QUERY_LIMITS_EXTENDED.CORRECTIONS_LIMIT}
     `, [twinId]);
     
     // ChatFeedback doesn't have twinId directly, need to join with Chat
     // Added LIMIT to prevent huge result sets
     const feedbackResult = await db.query(`
-      SELECT cf.*
+      SELECT cf.id, cf."chatId", cf."responseId", cf."userId", cf.rating, cf.suggestion, cf."tonePreference", cf."createdAt"
       FROM "ChatFeedback" cf
       JOIN "Chat" c ON cf."chatId" = c.id
       WHERE c."twinId" = $1
       ORDER BY cf."createdAt" DESC
-      LIMIT 1000
+      LIMIT ${QUERY_LIMITS_EXTENDED.FEEDBACK_LIMIT}
     `, [twinId]);
     
     const analytics = {
