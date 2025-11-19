@@ -44,9 +44,9 @@
         </div>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8" id="statsCards">
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-6 border border-white/20 dark:border-gray-700 shadow-lg mb-6 sm:mb-8" id="statsCards">
             <!-- Stats will be populated by JS -->
-        </div>
+        </div>        
 
         <!-- Loading State -->
         <div id="loadingState" class="hidden">
@@ -131,19 +131,15 @@
                     return;
                 }
 
-                // Calculate stats
+                // Calculate stats from API data
                 const totalTwins = data.chats.length;
                 let totalChats = 0;
                 let totalMessages = 0;
 
-                // Count total chats and messages per twin
-                // Note: API returns latest chat per twin, so we'll need to fetch detailed count
-                // For now, we'll use messageCount from latest chat as estimate
-                data.chats.forEach(({ latestChat }) => {
-                    if (latestChat) {
-                        totalChats++; // At least 1 chat per twin
-                        totalMessages += latestChat.messageCount || 0;
-                    }
+                // Use accurate counts from API
+                data.chats.forEach(({ totalChats: twinChats, totalMessages: twinMessages }) => {
+                    totalChats += twinChats || 0;
+                    totalMessages += twinMessages || 0;
                 });
 
                 // Render stats
@@ -166,29 +162,47 @@
             }
         }
 
-        // Render stats cards
+        // Render stats cards - Single line layout
         function renderStats(totalTwins, totalChats, totalMessages) {
             const statsCards = document.getElementById('statsCards');
             statsCards.innerHTML = `
-                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-6 border border-white/20 dark:border-gray-700 shadow-lg">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
-                            <span class="text-2xl">💬</span>
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
+                    <!-- Total Twins -->
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <div class="w-12 h-12 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span class="text-2xl">👥</span>
                         </div>
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">Total Twins</p>
-                            <p class="text-2xl font-bold text-gray-900 dark:text-white">${totalTwins}</p>
+                        <div class="min-w-0">
+                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Total Twins</p>
+                            <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">${totalTwins}</p>
                         </div>
                     </div>
-                </div>
-                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-6 border border-white/20 dark:border-gray-700 shadow-lg">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-lg flex items-center justify-center">
-                            <span class="text-2xl">📊</span>
+                    
+                    <!-- Divider -->
+                    <div class="hidden sm:block w-px h-12 bg-gray-200 dark:bg-gray-700"></div>
+                    
+                    <!-- Total Chats -->
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <div class="w-12 h-12 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span class="text-2xl">💬</span>
                         </div>
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">Total Messages</p>
-                            <p class="text-2xl font-bold text-gray-900 dark:text-white">${totalMessages}</p>
+                        <div class="min-w-0">
+                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Total Chats</p>
+                            <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">${totalChats}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Divider -->
+                    <div class="hidden sm:block w-px h-12 bg-gray-200 dark:bg-gray-700"></div>
+                    
+                    <!-- Total Messages -->
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <div class="w-12 h-12 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span class="text-2xl">💭</span>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Total Messages</p>
+                            <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">${totalMessages}</p>
                         </div>
                     </div>
                 </div>
@@ -200,14 +214,13 @@
             const twinsGrid = document.getElementById('twinsGrid');
             twinsGrid.innerHTML = '';
 
-            chats.forEach(({ twin, latestChat, lastMessage }) => {
+            chats.forEach(({ twin, latestChat, lastMessage, totalChats, totalMessages }) => {
                 const card = document.createElement('div');
                 card.className = 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-6 border border-white/20 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 group';
                 card.setAttribute('data-twin-id', twin.id);
 
                 // Avatar initial
                 const avatarInitial = (twin.publicHandle || 'T').charAt(0).toUpperCase();
-
 
                 // Last message preview
                 const lastMessagePreview = lastMessage?.content 
@@ -217,11 +230,11 @@
                 card.innerHTML = `
                     <div class="flex items-center gap-4 mb-4">
                         <div class="relative flex-shrink-0">
-                            <div class="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:scale-110 transition-transform">
+                            <div class="twin-avatar-clickable w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:scale-110 transition-transform cursor-pointer" data-twin-handle="${twin.publicHandle || 'twin'}" style="cursor: pointer;">
                                 ${twin.profileImage ? `<img src="${twin.profileImage}" alt="${twin.publicHandle}" class="w-16 h-16 rounded-full object-cover">` : avatarInitial}
                             </div>
                             <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 dark:bg-green-600 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center">
-                                <span class="text-xs text-white font-bold">${latestChat?.messageCount || 0}</span>
+                                <span class="text-xs text-white font-bold">${totalChats || 0}</span>
                             </div>
                         </div>
                         <div class="flex-1 min-w-0">
@@ -230,6 +243,10 @@
                                 ${twin.verified ? '<span class="text-sm text-primary dark:text-blue-400">✓</span>' : ''}
                             </div>
                             <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">${twin.bio || 'No bio available'}</p>
+                            <div class="flex items-center gap-3 mt-1">
+                                ${totalChats > 0 ? `<span class="text-xs text-gray-500 dark:text-gray-400">${totalChats} chat${totalChats > 1 ? 's' : ''}</span>` : ''}
+                                ${latestChat?.lastActivity ? `<span class="text-xs text-gray-400 dark:text-gray-500">Last: ${new Date(latestChat.lastActivity).toLocaleDateString()}</span>` : ''}
+                            </div>
                         </div>
                     </div>
                     
@@ -237,7 +254,7 @@
                         <div class="mb-4 p-3 bg-gray-50/50 dark:bg-gray-800/80 rounded-lg border border-gray-100 dark:border-gray-700">
                             <div class="flex items-center justify-between mb-2">
                                 <p class="text-xs font-medium text-gray-700 dark:text-gray-200">Latest Chat</p>
-                                <span class="text-xs bg-primary/10 dark:bg-primary/30 text-primary dark:text-blue-300 px-2 py-1 rounded-full">${latestChat.messageCount || 0} msgs</span>
+                                <span class="text-xs bg-primary/10 dark:bg-primary/30 text-primary dark:text-blue-300 px-2 py-1 rounded-full">${totalMessages || 0} total msgs</span>
                             </div>
                             <p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">${lastMessagePreview}</p>
                         </div>
@@ -249,6 +266,17 @@
                     </button>
                 `;
 
+                // Add click listener to avatar for profile
+                const avatarElement = card.querySelector('.twin-avatar-clickable');
+                if (avatarElement) {
+                    avatarElement.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const twinHandle = this.getAttribute('data-twin-handle');
+                        window.location.href = `/@${twinHandle}`;
+                    });
+                }
+
                 // Add click listener to button after innerHTML
                 const button = card.querySelector('.continue-chat-btn');
                 if (button) {
@@ -258,11 +286,19 @@
                         window.location.href = `/public-twin/chat/${twin.id}`;
                     });
                 }
+                
+                // Make card clickable for profile (except button and avatar)
+                card.style.cursor = 'pointer';
+                card.addEventListener('click', function(e) {
+                    if (e.target.closest('.continue-chat-btn') || e.target.closest('.twin-avatar-clickable')) {
+                        return;
+                    }
+                    window.location.href = `/@${twin.publicHandle || 'twin'}`;
+                });
 
                 twinsGrid.appendChild(card);
             });
-        }
-
+        }        
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {

@@ -791,104 +791,94 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
     logger.info(`[getUserPublicChats] Fetching chats for userId: ${userId}`);
 
     // Get all public chats for this user, grouped by twin
-    // For each twin, get the latest chat and message info
+    // For each twin, get the latest chat, total chats count, and total messages count
     const chatsResult = await db.query(`
-      SELECT DISTINCT ON (pc."twinId")
-        pc.id as chat_id,
-        pc."twinId",
-        pc."messageCount",
-        pc."createdAt",
-        pc."lastActivity",
-        pc."title",
-        t."publicHandle",
-        t.bio,
-        t."profileImage",
-        t."likeCount",
-        t."chatCount",
-        t."followCount",
-        t."verified",
+      WITH twin_stats AS (
+        SELECT 
+          pc."twinId",
+          COUNT(DISTINCT pc.id) as total_chats,
+          COALESCE(SUM(pc."messageCount"), 0) as total_messages,
+          MAX(pc."lastActivity") as latest_activity
+        FROM "PublicChat" pc
+        JOIN "Twin" t ON pc."twinId" = t.id
+        WHERE pc."userId" = $1 
+          AND t."isPublic" = true
+        GROUP BY pc."twinId"
+      ),
+      latest_chats AS (
+        SELECT DISTINCT ON (pc."twinId")
+          pc.id as chat_id,
+          pc."twinId",
+          pc."messageCount" as latest_chat_message_count,
+          pc."createdAt" as latest_chat_created_at,
+          pc."lastActivity" as latest_chat_last_activity,
+          pc."title" as latest_chat_title,
+          t."publicHandle",
+          t.bio,
+          t."profileImage",
+          t."likeCount",
+          t."chatCount",
+          t."followCount",
+          t."verified"
+        FROM "PublicChat" pc
+        JOIN "Twin" t ON pc."twinId" = t.id
+        WHERE pc."userId" = $1 
+          AND t."isPublic" = true
+        ORDER BY pc."twinId", pc."lastActivity" DESC
+      )
+      SELECT 
+        lc.*,
+        ts.total_chats,
+        ts.total_messages,
         (
           SELECT content 
           FROM "PublicMessage" 
-          WHERE "chatId" = pc.id 
+          WHERE "chatId" = lc.chat_id 
           ORDER BY "createdAt" DESC 
           LIMIT 1
         ) as last_message_content,
         (
           SELECT "createdAt" 
           FROM "PublicMessage" 
-          WHERE "chatId" = pc.id 
+          WHERE "chatId" = lc.chat_id 
           ORDER BY "createdAt" DESC 
           LIMIT 1
         ) as last_message_time
-      FROM "PublicChat" pc
-      JOIN "Twin" t ON pc."twinId" = t.id
-      WHERE pc."userId" = $1 
-        AND t."isPublic" = true
-      ORDER BY pc."twinId", pc."lastActivity" DESC
+      FROM latest_chats lc
+      JOIN twin_stats ts ON lc."twinId" = ts."twinId"
+      ORDER BY lc.latest_chat_last_activity DESC
     `, [userId]);
 
     logger.info(`[getUserPublicChats] Query returned ${chatsResult?.rows?.length || 0} rows`);
 
-    // Group by twin and format response
-    const twinChatsMap = new Map();
-
-    chatsResult.rows.forEach(row => {
-      const twinId = row.twinId;
-      
-      if (!twinChatsMap.has(twinId)) {
-        twinChatsMap.set(twinId, {
-          twin: {
-            id: twinId,
-            publicHandle: row.publicHandle,
-            bio: row.bio,
-            profileImage: row.profileImage,
-            likeCount: row.likeCount || 0,
-            chatCount: row.chatCount || 0,
-            followCount: row.followCount || 0,
-            verified: row.verified || false
-          },
-          latestChat: {
-            id: row.chat_id,
-            messageCount: row.messageCount || 0,
-            createdAt: row.createdAt,
-            lastActivity: row.lastActivity,
-            title: row.title
-          },
-          lastMessage: row.last_message_content ? {
-            content: row.last_message_content,
-            createdAt: row.last_message_time
-          } : null
-        });
-      } else {
-        // Update if this chat is more recent
-        const existing = twinChatsMap.get(twinId);
-        if (new Date(row.lastActivity) > new Date(existing.latestChat.lastActivity)) {
-          existing.latestChat = {
-            id: row.chat_id,
-            messageCount: row.messageCount || 0,
-            createdAt: row.createdAt,
-            lastActivity: row.lastActivity,
-            title: row.title
-          };
-          existing.lastMessage = row.last_message_content ? {
-            content: row.last_message_content,
-            createdAt: row.last_message_time
-          } : null;
-        }
-      }
-    });
-
-    // Convert map to array and sort by last activity
-    const twinChats = Array.from(twinChatsMap.values())
-      .sort((a, b) => {
-        const timeA = a.latestChat.lastActivity;
-        const timeB = b.latestChat.lastActivity;
-        return new Date(timeB).getTime() - new Date(timeA).getTime();
-      });
+    // Format response
+    const twinChats = chatsResult.rows.map(row => ({
+      twin: {
+        id: row.twinId,
+        publicHandle: row.publicHandle,
+        bio: row.bio,
+        profileImage: row.profileImage,
+        likeCount: row.likeCount || 0,
+        chatCount: row.chatCount || 0,
+        followCount: row.followCount || 0,
+        verified: row.verified || false
+      },
+      latestChat: {
+        id: row.chat_id,
+        messageCount: row.latest_chat_message_count || 0,
+        createdAt: row.latest_chat_created_at,
+        lastActivity: row.latest_chat_last_activity,
+        title: row.latest_chat_title
+      },
+      totalChats: parseInt(row.total_chats || '0', 10),
+      totalMessages: parseInt(row.total_messages || '0', 10),
+      lastMessage: row.last_message_content ? {
+        content: row.last_message_content,
+        createdAt: row.last_message_time
+      } : null
+    }));
 
     logger.info(`[getUserPublicChats] Found ${twinChats.length} unique twins with chats for userId: ${userId}`);
-    logger.debug(`[getUserPublicChats] Raw query result count: ${chatsResult.rows.length}`);
 
     res.json({
       success: true,
