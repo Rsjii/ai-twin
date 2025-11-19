@@ -4,9 +4,10 @@ import { db, publicTwinQueries, userQueries } from '../../config/database';
 import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
-import { AppError, createError, ErrorCodes } from '../../utils/errors';
+import { createError, ErrorCodes } from '../../utils/errors';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { handleControllerError } from '../../utils/errorHandler';
+import {twinQueries} from '../../config/database';
 
 // Validation schemas
 const makePublicSchema = z.object({
@@ -451,6 +452,9 @@ const twin = twinResult.rows[0];
     
     // Fetch full user data from database (like getDiscover)
     let user = null;
+    let hasTwins = false;
+    let userTwinId = null;  // ✅ Changed from twinId to userTwinId
+    
     if (req.user) {
       const fullUser = await userQueries.findByEmail(req.user.email);
       if (fullUser) {
@@ -461,6 +465,11 @@ const twin = twinResult.rows[0];
           name: fullUser.name,
           profileImage: fullUser.profileImage,
         };
+        
+        const userTwins = await twinQueries.findByUserId(fullUser.id);
+        hasTwins = userTwins.length > 0;
+        const userTwin = hasTwins ? userTwins[0] : null;
+        userTwinId = userTwin && userTwin.id ? userTwin.id : null;  // ✅ Changed to userTwinId
       }
     }
     
@@ -471,6 +480,8 @@ const twin = twinResult.rows[0];
       twin, 
       initialChatId,
       requiresLogin: twin.requireLogin && !userId,
+      hasTwins: hasTwins,
+      twinId: userTwinId,  // ✅ Changed to userTwinId
       csrfToken: req.csrfToken?.() || ''
     });
     

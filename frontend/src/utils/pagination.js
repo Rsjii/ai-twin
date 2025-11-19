@@ -39,17 +39,19 @@ class Pagination {
    * Generate pagination HTML
    */
   generateHTML() {
-    if (this.totalPages <= 1) {
-      return this.showInfo ? this.generateInfoHTML() : '';
-    }
-
     let html = '<div class="flex flex-col sm:flex-row items-center justify-between gap-4 ' + this.className + '">';
     
     // Info text (left side)
     if (this.showInfo) {
-      html += '<div class="text-sm text-gray-600 dark:text-gray-400">' + this.generateInfoHTML() + '</div>';
+      html += '<div class="text-sm text-gray-600 dark:text-gray-400">' + this.generateInfoHTML() + '</div>'; 
     }
 
+    //will show 1 button if commented
+    /*if (this.totalPages <= 1) {
+      html+='</div>';
+      return html;
+    }*/
+    
     // Pagination controls (right side)
     html += '<div class="flex items-center space-x-2">';
     

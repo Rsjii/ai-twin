@@ -199,15 +199,23 @@
                 message: 'We encountered an error while loading twins. Please try again.'
             }) %>
         </div>
+    </section>
 
-        <!-- Load More Button -->
-        <div id="loadMoreContainer" class="text-center mt-8 hidden">
-            <button id="loadMoreBtn" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-medium shadow-md" aria-label="Load more twins">
+    <!-- Infinite Scroll Sentinel -->
+    <div id="loadMoreSentinel" class="flex justify-center items-center py-8">
+        <div id="loadMoreSpinner" class="hidden">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        </div>
+        <div id="loadMoreButton" class="hidden">
+            <button onclick="loadMoreTwins()" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold">
                 Load More
             </button>
         </div>
-    </section>
-</main>    
+        <div id="noMoreTwins" class="hidden text-gray-500 dark:text-gray-400 text-sm">
+            No more twins to load
+        </div>
+    </div>    
+</main>
 
     <!-- Twin Card Template -->
     <template id="twinCardTemplate">
@@ -287,14 +295,15 @@
 
     <script>
         let currentFilter = 'trending';
-        let currentPage = 0;
+        let currentPage = 1;
         let isLoading = false;
         let hasMore = true;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            loadTwins();
+            loadTwins(1, false);
             setupEventListeners();
+            setupInfiniteScroll();
         });
 
         function setupEventListeners() {
@@ -303,9 +312,9 @@
                 tab.addEventListener('click', function() {
                     const filter = this.dataset.filter;
                     setActiveFilter(filter);
-                    currentPage = 0;
+                    currentPage = 1;
                     hasMore = true;
-                    loadTwins();
+                    loadTwins(1,false);
                 });
             });
 
@@ -314,14 +323,11 @@
             document.getElementById('searchInput').addEventListener('input', function() {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {
-                    currentPage = 0;
+                    currentPage = 1;
                     hasMore = true;
-                    loadTwins();
+                    loadTwins(1,false);
                 }, 500);
             });
-
-            // Load more button
-            document.getElementById('loadMoreBtn').addEventListener('click', loadMore);
         }
 
         function setActiveFilter(filter) {
@@ -366,75 +372,128 @@
             activeTab.classList.add('active', 'bg-gradient-to-r', 'from-amber-500', 'to-orange-500', 'text-white', 'border-amber-400/50', 'shadow-lg');
         }        
 
-        async function loadTwins() {
-    if (isLoading) return;
-    
-    isLoading = true;
-    showLoading();
-    hideError(); // ✅ ADD THIS LINE - Hide any previous errors
-
-    try {
-        const searchQuery = document.getElementById('searchInput').value.trim();
-        let url = `/api/discover/${currentFilter}?limit=12&offset=${currentPage * 12}`;
-        
-        // ✅ Add timeframe parameter for trending
-        if (currentFilter === 'trending') {
-            url += '&timeframe=all';
-        }
-        
-        if (searchQuery) {
-            url = `/api/discover/search?query=${encodeURIComponent(searchQuery)}&limit=12&offset=${currentPage * 12}`;
-        }
-
-        const response = await fetch(url);
-        const data = await response.json();
-
-        if (data.success) {
-            if (currentPage === 0) {
+        async function loadTwins(page = currentPage, append = false) {
+            if (isLoading || !hasMore) return;
+            
+            isLoading = true;
+            currentPage = page;
+            
+            if (!append) {
+                showLoading();
                 clearTwinsGrid();
+            } else {
+                showLoadMoreSpinner();
             }
             
-            if (data.twins.length === 0) {
-                showEmptyState();
-            } else {
-                hideEmptyState();
-                hideError(); // ✅ ADD THIS - Hide error if data loads successfully
-                data.twins.forEach(twin => addTwinCard(twin));
+            hideError();
 
-                  // ✅ ADD: Announce to screen readers
-        const statusEl = document.getElementById('status-announcement');
-        if (statusEl) {
-            statusEl.textContent = `Loaded ${data.twins.length} ${data.twins.length === 1 ? 'twin' : 'twins'}`;
-        }
+            try {
+                const searchQuery = document.getElementById('searchInput').value.trim();
+                const limit = 20;
+                const offset = (page - 1) * limit;
                 
-                if (data.twins.length < 12) {
-                    hasMore = false;
-                    hideLoadMore();
+                let url = `/api/discover/${currentFilter}?limit=${limit}&offset=${offset}`;
+                
+                if (currentFilter === 'trending') {
+                    url += '&timeframe=all';
+                }
+                
+                if (searchQuery) {
+                    url = `/api/discover/search?query=${encodeURIComponent(searchQuery)}&limit=${limit}&offset=${offset}`;
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.twins.length === 0) {
+                        if (!append) {
+                            showEmptyState();
+                        }
+                        hasMore = false;
+                        showNoMoreTwins();
+                    } else {
+                        if (!append) {
+                            hideEmptyState();
+                        }
+                        hideError();
+                        data.twins.forEach(twin => addTwinCard(twin));
+                        
+                        // Check if more pages exist
+                        hasMore = data.twins.length === limit;
+                        currentPage = page;
+                        
+                        // Update load more UI
+                        if (hasMore) {
+                            hideLoadMoreUI();
+                        } else {
+                            showNoMoreTwins();
+                        }
+                    }
                 } else {
-                    showLoadMore();
+                    showError(data.error || 'Failed to load twins');
+                    hasMore = false;
+                }
+            } catch (error) {
+                console.error('Error loading twins:', error);
+                showError('Failed to load twins');
+                hasMore = false;
+            } finally {
+                isLoading = false;
+                if (!append) {
+                    hideLoading();
+                } else {
+                    hideLoadMoreSpinner();
                 }
             }
-        } else {
-            showError(data.error || 'Failed to load twins');
         }
-    } catch (error) {
-        console.error('Error loading twins:', error);
-        showError('Failed to load twins');
-    } finally {
-        isLoading = false;
-        hideLoading();
+
+// Infinite Scroll Functions
+function loadMoreTwins() {
+    if (!isLoading && hasMore) {
+        loadTwins(currentPage + 1, true);
     }
-}        
-       
+}
 
-        async function loadMore() {
-            if (!hasMore || isLoading) return;
-            
-            currentPage++;
-            await loadTwins();
+function showLoadMoreSpinner() {
+    document.getElementById('loadMoreSpinner').classList.remove('hidden');
+    document.getElementById('loadMoreButton').classList.add('hidden');
+    document.getElementById('noMoreTwins').classList.add('hidden');
+}
+
+function hideLoadMoreSpinner() {
+    document.getElementById('loadMoreSpinner').classList.add('hidden');
+}
+
+function hideLoadMoreUI() {
+    document.getElementById('loadMoreSpinner').classList.add('hidden');
+    document.getElementById('loadMoreButton').classList.remove('hidden');
+    document.getElementById('noMoreTwins').classList.add('hidden');
+}
+
+function showNoMoreTwins() {
+    document.getElementById('loadMoreSpinner').classList.add('hidden');
+    document.getElementById('loadMoreButton').classList.add('hidden');
+    document.getElementById('noMoreTwins').classList.remove('hidden');
+}
+
+// Intersection Observer for auto-load
+function setupInfiniteScroll() {
+    const sentinel = document.getElementById('loadMoreSentinel');
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
+            loadMoreTwins();
         }
+    }, { 
+        rootMargin: '200px' // Start loading 200px before reaching bottom
+    });
 
-        function addTwinCard(twin) {
+    observer.observe(sentinel);
+}
+
+    function addTwinCard(twin) {
     const template = document.getElementById('twinCardTemplate');
     const clone = template.content.cloneNode(true);
     
@@ -538,6 +597,21 @@
         e.stopPropagation();
         shareTwinFromDiscover(twin.id, twin.publicHandle);
     });
+    
+    // ✅ FIX: Handle null/undefined allowShares (default is true)
+    // allowShares is true by default, only disable if explicitly false
+    if (twin.allowShares === false) {
+        shareBtn.disabled = true;
+        shareBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        shareBtn.setAttribute('title', 'Sharing is disabled for this twin');
+        shareBtn.setAttribute('aria-label', `Share disabled for @${twin.publicHandle}`);
+    } else {
+        // Enable button if allowShares is true, null, or undefined (default behavior)
+        shareBtn.disabled = false;
+        shareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        shareBtn.removeAttribute('title');
+        shareBtn.setAttribute('aria-label', `Share @${twin.publicHandle} profile`);
+    }
     
     document.getElementById('twinsGrid').appendChild(clone);
 }
@@ -653,7 +727,6 @@
         function showEmptyState() {
             document.getElementById('emptyState').classList.remove('hidden');
             document.getElementById('twinsGrid').classList.add('hidden');
-            hideLoadMore();
         }
 
         function hideEmptyState() {
@@ -663,14 +736,6 @@
 
         function clearTwinsGrid() {
             document.getElementById('twinsGrid').innerHTML = '';
-        }
-
-        function showLoadMore() {
-            document.getElementById('loadMoreContainer').classList.remove('hidden');
-        }
-
-        function hideLoadMore() {
-            document.getElementById('loadMoreContainer').classList.add('hidden');
         }
 
         function showError(message) {
@@ -687,9 +752,9 @@ function hideError() {
 function clearFilters() {
     document.getElementById('searchInput').value = '';
     setActiveFilter('trending');
-    currentPage = 0;
-    hasMore = true;
-    loadTwins();
+    currentPage = 1;
+    hasMore=true;
+    loadTwins(1, false);
 }
 
         // ✅ Notification function for like/follow messages

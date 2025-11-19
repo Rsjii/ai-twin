@@ -139,7 +139,7 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
 
  // Build filters
  const blockedFilter = blockedTwinIds.length > 0 
-   ? `AND t.id NOT IN (${blockedTwinIds.map((_, i) => `$${i + 3}`).join(', ')})`
+   ? `AND t.id NOT IN (${blockedTwinIds.map((_, i) => `$${i + 1}`).join(', ')})`
    : '';
  
  const blockNonLoggedFilter = buildBlockNonLoggedUsersFilter(hasUser);
@@ -150,6 +150,21 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
    blockNonLoggedFilter,
    blockedTwinIdsCount: blockedTwinIds.length 
  });      
+
+ const totalCountResult = await db.query(`
+  SELECT COUNT(*) as total
+  FROM "Twin" t
+  JOIN "User" u ON t."userId" = u.id
+  WHERE t."isPublic" = true 
+  ${blockNonLoggedFilter}
+  ${timeFilter}
+  AND (t."likeCount" > 0 OR t."followCount" > 0 OR t."chatCount" > 0)
+  ${blockedFilter}
+`, blockedTwinIds.length > 0 
+  ? [...blockedTwinIds]
+  : []);
+
+const totalCount = parseInt(totalCountResult.rows[0].total);
 
     // Get trending twins with engagement score
     const trendingTwins = await db.query(`
@@ -164,6 +179,7 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
         t."chatCount",
         t."sampleReply",
         t."createdAt",
+        t."allowShares",
         u.handle as "userHandle",
         u.name as "userName",
         COALESCE(
@@ -187,9 +203,9 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
       AND (t."likeCount" > 0 OR t."followCount" > 0 OR t."chatCount" > 0)
       ${blockedFilter}
       ORDER BY engagement_score DESC, t."createdAt" DESC
-      LIMIT $1 OFFSET $2
+      LIMIT $${blockedTwinIds.length + 1} OFFSET $${blockedTwinIds.length + 2}
     `, blockedTwinIds.length > 0 
-      ? [limit, offset, ...blockedTwinIds]
+      ? [...blockedTwinIds, limit, offset]
       : [limit, offset]);   
     
     // ✅ Fallback to recent if no trending results (also filter blocked)
@@ -206,6 +222,7 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
           t."chatCount",
           t."sampleReply",
           t."createdAt",
+          t."allowShares",
           u.handle as "userHandle",
           u.name as "userName",
           0 as engagement_score
@@ -215,9 +232,9 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
         ${blockNonLoggedFilter}
         ${blockedFilter}
         ORDER BY t."createdAt" DESC
-        LIMIT $1
+        LIMIT $${blockedTwinIds.length + 1}
       `, blockedTwinIds.length > 0 
-        ? [limit, ...blockedTwinIds]
+        ? [...blockedTwinIds, limit]
         : [limit]);
       
       return res.json({
@@ -243,7 +260,9 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
       pagination: {
         limit,
         offset,
-        total: enrichedTwins.length
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        currentPage: Math.floor(offset / limit) + 1
       }
     });
 
