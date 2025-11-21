@@ -279,14 +279,17 @@ export const blockUser = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'User is already blocked' });
     }
 
+    const utcTimestamp = new Date().toISOString();
+
     // Block the user
     await db.query(`
       INSERT INTO "TwinBlockedUsers" ("id", "twinId", "userId", "createdAt")
-      VALUES ($1, $2, $3, NOW())
+      VALUES ($1, $2, $3, $4::timestamptz)
     `, [
       generateId.block(),
       twinId,
-      targetUserId
+      targetUserId,
+      utcTimestamp
     ]);
 
     // Log block event

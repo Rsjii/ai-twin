@@ -42,20 +42,22 @@ export class MemoryService {
 
       if (existingResult.rows.length > 0) {
         // Update existing
+        const utcTimestamp = new Date().toISOString();
         await db.query(
           `UPDATE "MemorySession" 
-           SET summary = $1, "keyTopics" = $2, vector = $3, "messageCount" = $4, "lastUpdated" = NOW()
+           SET summary = $1, "keyTopics" = $2, vector = $3, "messageCount" = $4, "lastUpdated" = $5::timestamptz
            WHERE "chatId" = $5`,
-          [summary, keyTopics, JSON.stringify(sessionVector), messages.length, chatId]
+          [summary, keyTopics, JSON.stringify(sessionVector), messages.length, utcTimestamp, chatId]
         );
         logger.info(`Updated session memory for chat: ${chatId}`);
       } else {
         // Create new
         const id = generateId.memSess();
+        const utcTimestamp = new Date().toISOString();
         await db.query(
           `INSERT INTO "MemorySession" (id, "chatId", summary, "keyTopics", vector, "messageCount", "lastUpdated")
-           VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-          [id, chatId, summary, keyTopics, JSON.stringify(sessionVector), messages.length]
+           VALUES ($1, $2, $3, $4, $5, $6, $7::timestamptz)`,
+          [id, chatId, summary, keyTopics, JSON.stringify(sessionVector), messages.length, utcTimestamp]
         );
         logger.info(`Created session memory for chat: ${chatId}`);
       }
@@ -347,13 +349,13 @@ async getRelevantLongTermMemories(
   ): Promise<void> {
     try {
       const id = generateId.memLt();
-      
+      const utcTimestamp = new Date().toISOString();
       await db.query(
         `INSERT INTO "MemoryLongTerm" (id, "twinId", key, value, category, source, "updatedAt")
-         VALUES ($1, $2, $3, $4, $5, $6, NOW())
+         VALUES ($1, $2, $3, $4, $5, $6, $7::timestamptz)
          ON CONFLICT ("twinId", key) 
-         DO UPDATE SET value = EXCLUDED.value, category = EXCLUDED.category, "updatedAt" = NOW()`,
-        [id, twinId, key, value, category, source]
+         DO UPDATE SET value = EXCLUDED.value, category = EXCLUDED.category, "updatedAt" = $7::timestamptz)`,
+        [id, twinId, key, value, category, source, utcTimestamp]
       );
       
       logger.info(`Stored long-term memory for twin ${twinId}: ${key}`);

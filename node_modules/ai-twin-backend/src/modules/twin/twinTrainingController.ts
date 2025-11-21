@@ -17,10 +17,11 @@ export const addManualTraining = async (req: any, res: Response) => {
     
     // Create style anchor for manual training
     const anchorId = generateId.anchor();
+    const utcTimestamp = new Date().toISOString();
     await db.query(`
       INSERT INTO "style_anchors" (id, twin_id, user_utterance, ideal_reply, tags, created_at)
-      VALUES ($1, $2, $3, $4, $5, NOW())
-    `, [anchorId, twinId, userMessage, idealReply, [trainingType || 'manual']]);
+      VALUES ($1, $2, $3, $4, $5, $6::timestamptz)
+    `, [anchorId, twinId, userMessage, idealReply, [trainingType || 'manual'], utcTimestamp]);
     
     res.json({ success: true, message: 'Training example added successfully' });
   } catch (error) {
@@ -287,10 +288,11 @@ export const convertToTraining = async (req: any, res: Response) => {
     
     // Create style anchor
     const anchorId = generateId.anchor();
+    const utcTimestamp = new Date().toISOString();
     await db.query(`
       INSERT INTO "style_anchors" (id, twin_id, user_utterance, ideal_reply, tags, created_at)
-      VALUES ($1, $2, $3, $4, $5, NOW())
-    `, [anchorId, twinId, messageResult.rows[0].content, idealReply, ['chat_conversion']]);
+      VALUES ($1, $2, $3, $4, $5, $6::timestamptz)
+    `, [anchorId, twinId, messageResult.rows[0].content, idealReply, ['chat_conversion'], utcTimestamp]);
     
     res.json({ success: true, message: 'Message converted to training example' });
   } catch (error) {

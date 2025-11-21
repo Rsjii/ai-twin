@@ -65,11 +65,12 @@ export async function getChatEnhanced(req: any, res: Response) {
         
         if (chats.rows.length === 0) {
           const chatId = generateId.chat();
+          const utcTimestamp = new Date().toISOString();
           const newChat = await db.query(`
             INSERT INTO "Chat" ("id", "userId", "twinId", "createdAt")
-            VALUES ($1, $2, $3, NOW())
+            VALUES ($1, $2, $3, $4::timestamptz)
             RETURNING id
-          `, [chatId, req.user.id, latestTwin.id]);
+          `, [chatId, req.user.id, latestTwin.id, utcTimestamp]);
           
           chat = { id: newChat.rows[0].id };
         } else {
@@ -87,11 +88,12 @@ export async function getChatEnhanced(req: any, res: Response) {
       
       if (chats.rows.length === 0) {
         const chatId = generateId.chat();
+        const utcTimestamp = new Date().toISOString();
         const newChat = await db.query(`
           INSERT INTO "Chat" ("id", "userId", "twinId", "createdAt")
-          VALUES ($1, $2, $3, NOW())
+          VALUES ($1, $2, $3, $4::timestamptz)
           RETURNING id
-        `, [chatId, req.user.id, latestTwin.id]);
+        `, [chatId, req.user.id, latestTwin.id, utcTimestamp]);
         
         chat = { id: newChat.rows[0].id };
       } else {

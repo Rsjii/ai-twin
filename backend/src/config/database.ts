@@ -714,9 +714,10 @@ export const publicChatQueries = {
   },
   
   updateMessageCount: async (chatId: string) => {
+    const utcTimestamp = new Date().toISOString();
     const result = await db.query(
-      'UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "lastActivity" = NOW() WHERE id = $1 RETURNING *',
-      [chatId]
+      'UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "lastActivity" = $2::timestamptz WHERE id = $1 RETURNING *',
+      [chatId, utcTimestamp]
     );
     return result.rows[0];
   },
@@ -766,9 +767,10 @@ export const publicMessageQueries = {
   },
 
   updateMessageCount: async (chatId: string) => {
+    const utcTimestamp = new Date().toISOString();
     const result = await db.query(
-      'UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "lastActivity" = NOW() WHERE id = $1 RETURNING *',
-      [chatId]
+      'UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "lastActivity" = $2::timestamptz WHERE id = $1 RETURNING *',
+      [chatId, utcTimestamp]
     );
     return result.rows[0];
   }
@@ -1014,11 +1016,12 @@ export const aiRunsQueries = {
 export const memorySessionQueries = {
   create: async (chatId: string, summary: string, keyTopics: string[], vector: any) => {
     const id = generateBackendId.memSess();
+    const utcTimestamp = new Date().toISOString();
     const result = await db.query(
       `INSERT INTO "MemorySession" (id, "chatId", summary, "keyTopics", vector, "messageCount", "lastUpdated")
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       VALUES ($1, $2, $3, $4, $5, $6, $7::timestamptz)
        RETURNING *`,
-      [id, chatId, summary, keyTopics, JSON.stringify(vector), 0]
+      [id, chatId, summary, keyTopics, JSON.stringify(vector), 0, utcTimestamp]
     );
     return result.rows[0];
   },
@@ -1032,12 +1035,13 @@ export const memorySessionQueries = {
   },
 
   update: async (chatId: string, summary: string, keyTopics: string[], vector: any, messageCount: number) => {
+    const utcTimestamp = new Date().toISOString();
     const result = await db.query(
       `UPDATE "MemorySession" 
-       SET summary = $1, "keyTopics" = $2, vector = $3, "messageCount" = $4, "lastUpdated" = NOW()
-       WHERE "chatId" = $5
+       SET summary = $1, "keyTopics" = $2, vector = $3, "messageCount" = $4, "lastUpdated" = $5::timestamptz
+       WHERE "chatId" = $6
        RETURNING *`,
-      [summary, keyTopics, JSON.stringify(vector), messageCount, chatId]
+      [summary, keyTopics, JSON.stringify(vector), messageCount, utcTimestamp, chatId]
     );
     return result.rows[0];
   }
@@ -1047,13 +1051,14 @@ export const memorySessionQueries = {
 export const memoryLongTermQueries = {
   create: async (twinId: string, key: string, value: string, category: string, source: string = 'session') => {
     const id = generateBackendId.memLt();
+    const utcTimestamp = new Date().toISOString();
     const result = await db.query(
       `INSERT INTO "MemoryLongTerm" (id, "twinId", key, value, category, source, "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       VALUES ($1, $2, $3, $4, $5, $6, $7::timestamptz)
        ON CONFLICT ("twinId", key) 
-       DO UPDATE SET value = EXCLUDED.value, category = EXCLUDED.category, "updatedAt" = NOW()
+       DO UPDATE SET value = EXCLUDED.value, category = EXCLUDED.category, "updatedAt" = $7::timestamptz
        RETURNING *`,
-      [id, twinId, key, value, category, source]
+      [id, twinId, key, value, category, source, utcTimestamp]
     );
     return result.rows[0];
   },

@@ -97,11 +97,12 @@ const anchorsResult = await db.query(`
       );
 
       // Update twin with new system prompt
+      const utcTimestamp = new Date().toISOString();
       await db.query(`
         UPDATE "Twin" 
-        SET "systemPrompt" = $1, "last_updated" = NOW()
-        WHERE id = $2
-      `, [enhancedPrompt, twinId]);
+        SET "systemPrompt" = $1, "last_updated" = $2::timestamptz
+        WHERE id = $3
+      `, [enhancedPrompt, utcTimestamp, twinId]);
 
       logger.info(`System prompt updated for twin ${twinId}`);
       return true;

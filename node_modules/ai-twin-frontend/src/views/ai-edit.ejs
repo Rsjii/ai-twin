@@ -6,6 +6,7 @@
     <title>AI Edit - AI Twin</title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="/utils/timeUtils.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -405,8 +406,8 @@
                 const memoriesHTML = data.memories.map(memory => {
                     const safeValue = escapeHtml(memory.value || memory.text || '');
                     const category = memory.category || 'fact';
-                    const date = memory.createdAt ? new Date(memory.createdAt).toLocaleDateString() : '';
-                    
+                    const date = memory.createdAt ? TimeUtils.formatDateOnly(memory.createdAt) : '';                    
+
                     return `
                         <div class="flex items-start p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm">
                             <div class="flex-1">

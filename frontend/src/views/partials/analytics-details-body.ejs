@@ -81,16 +81,16 @@
                                             <span>💬 <strong><%= item.messageCount %></strong> messages</span>
                                             <% } %>
                                             <% if (item.firstChatAt) { %>
-                                            <span>📅 First: <%= new Date(item.firstChatAt).toLocaleDateString() %></span>
+                                            <span>📅 First: <span class="analytics-date" data-timestamp="<%= item.firstChatAt %>"></span></span>
                                             <% } %>
                                         </div>
                                         <% } else if (type === 'likers') { %>
                                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                            Liked on <%= new Date(item.likedAt).toLocaleDateString() %>
+                                            Liked on <span class="analytics-date" data-timestamp="<%= item.likedAt %>"></span>
                                         </p>
                                         <% } else if (type === 'followers') { %>
                                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                            Followed on <%= new Date(item.followedAt).toLocaleDateString() %>
+                                            Followed on <span class="analytics-date" data-timestamp="<%= item.followedAt %>"></span>
                                         </p>
                                         <% } %>
                                     </div>
@@ -163,3 +163,15 @@
         </div>
     </div>
 </div>
+
+<script>
+// Format analytics dates using TimeUtils
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.analytics-date').forEach(el => {
+        if (el.dataset.timestamp) {
+            el.textContent = TimeUtils.formatDateOnly(el.dataset.timestamp);
+            el.title = TimeUtils.formatFullDateTime(el.dataset.timestamp);
+        }
+    });
+});
+</script>

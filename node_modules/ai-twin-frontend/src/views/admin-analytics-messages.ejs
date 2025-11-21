@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title><%= title %></title>
     <link rel="stylesheet" href="/css/output.css">
+    <script src="/utils/timeUtils.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">    
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -203,7 +204,7 @@
                                         <div class="flex items-center space-x-4 text-xs text-gray-500">
                                             <span>Chat ID: ${message.chatId}</span>
                                             <span>Twin: ${message.twinName || 'N/A'}</span>
-                                            <span>${new Date(message.createdAt).toLocaleString()}</span>
+                                            <span class="timestamp-display" data-timestamp="${message.createdAt}" data-format="context"></span>                                      
                                         </div>
                                     </div>
                                 </div>
@@ -222,6 +223,30 @@
                         </div>
                     </div>
                 `).join('');
+                
+                // ✅ Format timestamps client-side after rendering
+                if (window.TimeUtils) {
+                    messagesList.querySelectorAll('.timestamp-display').forEach(el => {
+                        const timestamp = el.dataset.timestamp;
+                        const format = el.dataset.format || 'context';
+                        if (timestamp) {
+                            try {
+                                let displayTime, fullTime;
+                                if (format === 'context') {
+                                    displayTime = window.TimeUtils.formatTimeWithContext(timestamp);
+                                    fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                                } else {
+                                    displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                                    fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                                }
+                                el.textContent = displayTime;
+                                el.title = fullTime;
+                            } catch (e) {
+                                console.error('Error formatting timestamp:', e);
+                            }
+                        }
+                    });
+                }
             } else {
                 messagesList.innerHTML = '<div class="p-4 sm:p-6 lg:p-8 text-center text-gray-500 dark:text-gray-400">No messages found</div>';
             }

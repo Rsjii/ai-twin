@@ -14,6 +14,7 @@ import { classifyIntent } from '../../utils/intentClassification';
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
 import { generateId } from '../../utils/idGenerator';
 import { handleControllerError } from '../../utils/errorHandler';
+import { normalizeTimestamp, formatRelativeTime } from '../../utils/timestampUtils';
 
 const twinService = new TwinService();
 
@@ -125,10 +126,11 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     // 5. Save user message to chat
     try {
       const userMessageId = generateId.message();
+      const utcTimestamp = new Date().toISOString();
       await db.query(`
         INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
-        VALUES ($1, $2, $3, 'human', NOW())
-      `, [userMessageId, chatId, message]);
+        VALUES ($1, $2, $3, 'human', $4::timestamptz)
+      `, [userMessageId, chatId, message, utcTimestamp]);
       logger.info('✅ User message saved');
     } catch (error) {
       logger.warn('⚠️ Failed to save user message:', error);
@@ -137,10 +139,11 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     // 6. Save AI response to chat
     try {
       const aiMessageId = generateId.message();
+      const utcTimestamp = new Date().toISOString();
       await db.query(`
         INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
-        VALUES ($1, $2, $3, 'twin', NOW())
-      `, [aiMessageId, chatId, response]);
+        VALUES ($1, $2, $3, 'twin', $4::timestamptz)
+      `, [aiMessageId, chatId, response, utcTimestamp]);
       logger.info('✅ AI response saved');
     } catch (error) {
       logger.warn('⚠️ Failed to save AI response:', error);
@@ -148,10 +151,11 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
 
     // Update chat metadata and title
     try {
+      const utcTimestamp = new Date().toISOString();
       if (generatedTitle) {
         await db.query(`
-          UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "title" = $2, "updatedAt" = NOW() WHERE id = $3
-        `, [response, generatedTitle, chatId]);
+          UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "title" = $2, "updatedAt" = $3::timestamptz WHERE id = $4
+        `, [response, generatedTitle, utcTimestamp, chatId]);
       } else if (isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '')) {
         // Fallback: use first 30 chars of message as title
         const fallbackTitle = message.trim().length > 30 
@@ -159,13 +163,13 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
           : message.trim();
         if (fallbackTitle && fallbackTitle.trim().length > 0) {
           await db.query(`
-            UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "title" = $2, "updatedAt" = NOW() WHERE id = $3
-          `, [response, fallbackTitle.trim(), chatId]);
+            UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "title" = $2, "updatedAt" = $3::timestamptz WHERE id = $4
+          `, [response, fallbackTitle.trim(), utcTimestamp, chatId]);
         }
       } else {
         await db.query(`
-          UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = NOW() WHERE id = $2
-        `, [response, chatId]);
+          UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = $2::timestamptz WHERE id = $3
+        `, [response, utcTimestamp, chatId]);
       }
     } catch (error) {
       logger.warn('Failed to update chat metadata:', error);
@@ -191,7 +195,9 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
       criticScore: null,
       latency: 1000,
       generatedTitle: generatedTitle || null,
-      isFirstMessage: isFirstMessage
+      isFirstMessage: isFirstMessage,
+      timestamp: new Date().toISOString(), // ✅ ADD: Timestamp for new message
+      serverTime: new Date().toISOString() // ✅ ADD: Server time for relative time calculation
     });
 
   } catch (error) {
@@ -236,16 +242,27 @@ export const getChatHistory = async (req: any, res: Response, next: NextFunction
       id: chat.id,
       userId: chat.userId,
       twinId: chat.twinId,
-      createdAt: chat.createdAt,
+      createdAt: normalizeTimestamp(chat.createdAt),
       twin: {
         id: chat.twin_id,
         styleVector: chat.styleVector,
         sampleReply: chat.sampleReply,
       },
-      messages: messagesResult.rows
+      messages: messagesResult.rows.map(msg => ({
+        id: msg.id,
+        chatId: msg.chatId,
+        sender: msg.sender,
+        content: msg.content,
+        approved: msg.approved,
+        createdAt: normalizeTimestamp(msg.createdAt),
+        relativeTime: formatRelativeTime(msg.createdAt) // ✅ ADD: Relative time
+      }))
     };
     
-    res.json({ chat: chatData });
+    res.json({ 
+      chat: chatData,
+      serverTime: new Date().toISOString() // ✅ ADD: Server time
+    });
   } catch (error) {
     handleControllerError(error, 'Failed to get chat history');
   }
@@ -538,10 +555,11 @@ async function logAIRun(data: any) {
 async function saveResponseToChat(chatId: string, response: string) {
   try {
     const messageId = generateId.message();
+    const utcTimestamp = new Date().toISOString();
     await db.query(`
       INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
-      VALUES ($1, $2, $3, 'ai', NOW())
-    `, [messageId, chatId, response]);
+      VALUES ($1, $2, $3, 'ai', $4::timestamptz)
+    `, [messageId, chatId, response, utcTimestamp]);
   } catch (error) {
     logger.error('Failed to save response:', error);
   }

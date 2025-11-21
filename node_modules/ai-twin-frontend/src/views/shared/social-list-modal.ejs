@@ -32,19 +32,19 @@
     (function() {
         'use strict';
         
-        // Format date helper
-        function formatDate(dateString) {
-            if (!dateString) return '';
-            const date = new Date(dateString);
-            const now = new Date();
-            const diff = now - date;
-            
+        // Format date helper - uses TimeUtils if available
+        function formatTime(date) {
+            if (!date) return 'N/A';
+            if (window.TimeUtils) {
+                return window.TimeUtils.formatTimeWithContext(date);
+            }
+            const d = new Date(date);
+            const diff = Date.now() - d.getTime();
             if (diff < 60000) return 'Just now';
             if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
             if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-            return date.toLocaleDateString();
+            return window.TimeUtils ? window.TimeUtils.formatDateOnly(date) : d.toLocaleDateString();
         }
-        
         // Main function - make it global immediately
         window.showSocialList = async function(twinId, type, showDetailsBtn = false) {
             console.log('showSocialList called:', twinId, type, showDetailsBtn); // Debug

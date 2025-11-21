@@ -12,6 +12,7 @@ import { generateId } from '../../utils/idGenerator';
 import { handleControllerError } from '../../utils/errorHandler';
 import { logEvent } from '../../services/eventLogger';
 import { QUERY_LIMITS } from '../../config/constants';
+import { normalizeTimestamp, formatRelativeTime } from '../../utils/timestampUtils';
 
 const twinService = new TwinService();
 
@@ -74,11 +75,12 @@ export const startChat = async (req: AuthenticatedRequest, res: Response, next: 
     
     // Create chat
     const chatId = generateId.chat();
+    const utcTimestamp = new Date().toISOString();
     const chatResult = await db.query(`
       INSERT INTO "Chat" (id, "userId", "twinId", "createdAt")
-      VALUES ($1, $2, $3, NOW())
+      VALUES ($1, $2, $3, $4::timestamptz)
       RETURNING *
-    `, [chatId, req.user.id, twin.id]);
+    `, [chatId, req.user.id, twin.id, utcTimestamp]);
     const chat = chatResult.rows[0];
     
     // Log chat started event
@@ -218,9 +220,17 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response, n
         c."messageCount",
         c."createdAt",
         c."updatedAt",
-        t."sampleReply" as twinName
+        t."sampleReply" as twinName,
+        m."createdAt" as last_message_time
       FROM "Chat" c
       JOIN "Twin" t ON c."twinId" = t.id
+      LEFT JOIN LATERAL (
+        SELECT "createdAt"
+        FROM "Message" 
+        WHERE "chatId" = c.id 
+        ORDER BY "createdAt" DESC 
+        LIMIT 1
+      ) m ON true
       WHERE c."userId" = $1
       ORDER BY c."updatedAt" DESC, c."createdAt" DESC
       LIMIT $2 OFFSET $3
@@ -238,10 +248,14 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response, n
       twinId: chat.twinId,
       title: chat.title || 'New Chat',
       summary: chat.summary || '',
-      lastMessage: chat.lastMessage || '',
+      lastMessage: chat.lastMessage ? {
+        content: chat.lastMessage,
+        createdAt: normalizeTimestamp(chat.last_message_time),
+        relativeTime: chat.last_message_time ? formatRelativeTime(chat.last_message_time) : null
+      } : null,
       messageCount: chat.messageCount || 0,
-      createdAt: chat.createdAt,
-      updatedAt: chat.updatedAt,
+      createdAt: normalizeTimestamp(chat.createdAt),
+      updatedAt: normalizeTimestamp(chat.updatedAt),
       twinName: chat.twinName || 'AI Twin'
     }));
 
@@ -374,14 +388,16 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response, nex
       chat = existingChat;
     } else {
       // Create new chat using raw SQL
+      const utcTimestamp = new Date().toISOString();
       const newChatResult = await db.query(`
         INSERT INTO "Chat" ("id", "userId", "twinId", "createdAt")
-        VALUES ($1, $2, $3, NOW())
+        VALUES ($1, $2, $3, $4::timestamptz)
         RETURNING id, "userId", "twinId", "createdAt"
       `, [
         generateId.chat(),
         req.user.id,
-        twin.id
+        twin.id,
+        utcTimestamp
       ]);
       chat = newChatResult.rows[0];
     }
@@ -513,16 +529,18 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response, next
     const chat = chatResult.rows[0];
     
     // Save message using raw SQL
+    const utcTimestamp = new Date().toISOString();
     const messageResult = await db.query(`
       INSERT INTO "Message" ("id", "chatId", sender, content, approved, "createdAt")
-      VALUES ($1, $2, $3, $4, $5, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6::timestamptz)
       RETURNING id, "chatId", sender, content, approved, "createdAt"
     `, [
       generateId.message(),
       chat.id,
       'twin',
       content,
-      true
+      true,
+      utcTimestamp
     ]);
     
     const message = messageResult.rows[0];
@@ -598,11 +616,12 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       logger.info('Found twin for new chat:', twin.id);
       
       // Create new chat
+      const utcTimestamp = new Date().toISOString();
       const newChatResult = await db.query(`
         INSERT INTO "Chat" ("id", "userId", "twinId", "createdAt")
-        VALUES ($1, $2, $3, NOW())
+        VALUES ($1, $2, $3, $4::timestamptz)
         RETURNING id, "userId", "twinId", "createdAt"
-      `, [id, req.user.id, twin.id]);
+      `, [id, req.user.id, twin.id, utcTimestamp]);
       
       if (newChatResult.rows.length === 0) {
         logger.error('Failed to create new chat');
@@ -967,11 +986,12 @@ async function updateChatVectorAfterMessage(chatId: string, newMessages: Array<{
     }
 
     // Save updated chat vector to database
+    const utcTimestamp = new Date().toISOString();
     await db.query(`
       UPDATE "Chat"
-      SET "chatVector" = $1, "updatedAt" = NOW()
-      WHERE id = $2
-    `, [JSON.stringify(updatedChatVector), chatId]);
+      SET "chatVector" = $1, "updatedAt" = $2::timestamptz
+      WHERE id = $3
+    `, [JSON.stringify(updatedChatVector), utcTimestamp, chatId]);
 
     logger.info('Chat vector updated successfully for chat:', chatId);
   } catch (error) {
@@ -1048,11 +1068,12 @@ export const createNewChat = async (req: AuthenticatedRequest, res: Response, ne
 
     // Create new chat
     const chatId = generateId.chat();
+    const utcTimestamp = new Date().toISOString();
     const chatResult = await db.query(`
       INSERT INTO "Chat" (id, "userId", "twinId", "title", "messageCount", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      VALUES ($1, $2, $3, $4, $5, $6::timestamptz, $6::timestamptz)
       RETURNING id, "twinId", "title", "messageCount", "createdAt"
-    `, [chatId, userId, twinId, 'New Chat', 0]);
+    `, [chatId, userId, twinId, 'New Chat', 0, utcTimestamp]);
 
     const chat = chatResult.rows[0];
 
@@ -1100,9 +1121,10 @@ export const updateChatTitle = async (req: AuthenticatedRequest, res: Response, 
     }
 
     // Update chat title
+    const utcTimestamp = new Date().toISOString();
     await db.query(`
-      UPDATE "Chat" SET "title" = $1, "updatedAt" = NOW() WHERE id = $2
-    `, [title, chatId]);
+      UPDATE "Chat" SET "title" = $1, "updatedAt" = $2::timestamptz WHERE id = $3
+    `, [title, utcTimestamp, chatId]);
 
     res.json({
       success: true,
@@ -1140,9 +1162,10 @@ export const generateChatTitle = async (req: AuthenticatedRequest, res: Response
     const title = await generateTitleFromMessage(firstMessage);
 
     // Update chat title
+    const utcTimestamp = new Date().toISOString();
     await db.query(`
-      UPDATE "Chat" SET "title" = $1, "updatedAt" = NOW() WHERE id = $2
-    `, [title, chatId]);
+      UPDATE "Chat" SET "title" = $1, "updatedAt" = $2::timestamptz WHERE id = $3
+    `, [title, utcTimestamp, chatId]);
 
     res.json({
       success: true,

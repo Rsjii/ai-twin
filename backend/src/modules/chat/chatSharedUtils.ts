@@ -9,7 +9,7 @@ import { logger } from '../../config/logger';
 import { checkBlacklist, validateMessageLength } from '../../utils/safety';
 import { moderateContentSync, getModerationSettings } from '../moderation/moderationController';
 import { TwinService } from '../twin/twinService';
-import { createError, ErrorCodes } from '../../utils/errors';
+import { createError } from '../../utils/errors';
 import { memoryService } from '../../services/memoryService';
 import { generateId } from '../../utils/idGenerator';
 
@@ -203,7 +203,7 @@ export function buildChatContext(params: {
     systemPrompt: params.systemPrompt,
     tokenLimit: params.tokenLimit,
     chatVector: params.chatVector,
-    sessionMemory: params.sessionMemory,
+    sessionMemory: params.sessionMemory ?? null,
     chatMemory: params.chatMemory,
     currentMessages: params.currentMessages,
     twinId: params.twinId,
@@ -269,9 +269,14 @@ export async function saveUserMessage(params: {
 }): Promise<{ id: string; content: string; sender: string; createdAt: Date }> {
   const messageId = `${params.messageIdPrefix}_${generateId.message()}`;
 
+  // Always use UTC ISO string
+  const utcIso = new Date().toISOString();
+
+  console.log('[SAVE MESSAGE] BEFORE DB INSERT: iso =', utcIso);
+
   const messageResult = await db.query(`
     INSERT INTO "${params.messageTable}" ("id", "chatId", "sender", "content", "approved", "requestId", "createdAt")
-    VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    VALUES ($1, $2, $3, $4, $5, $6, $7::timestamptz)
     RETURNING id, "chatId", sender, content, approved, "createdAt"
   `, [
     messageId,
@@ -279,11 +284,13 @@ export async function saveUserMessage(params: {
     'human',
     params.message.trim(),
     params.approved,
-    params.requestId
+    params.requestId,
+    utcIso
   ]);
 
   const userMessage = messageResult.rows[0];
-  logger.info('User message saved successfully:', userMessage.id);
+
+  console.log('[SAVE MESSAGE] AFTER DB RETURN: DB createdAt ISO =', new Date(userMessage.createdAt).toISOString());
 
   return {
     id: userMessage.id,
@@ -304,20 +311,26 @@ export async function saveAIMessage(params: {
 }): Promise<{ id: string; content: string; sender: string; createdAt: Date }> {
   const aiMessageId = `${params.messageIdPrefix}_${generateId.message()}`;
 
+  const utcIso = new Date().toISOString();
+
+  console.log('[SAVE AI MESSAGE] BEFORE DB INSERT: iso =', utcIso);
+
   const aiMessageResult = await db.query(`
     INSERT INTO "${params.messageTable}" ("id", "chatId", "sender", "content", "approved", "createdAt")
-    VALUES ($1, $2, $3, $4, $5, NOW())
+    VALUES ($1, $2, $3, $4, $5, $6::timestamptz)
     RETURNING id, "chatId", sender, content, approved, "createdAt"
   `, [
     aiMessageId,
     params.chatId,
     'twin',
     params.aiResponse,
-    true
+    true,
+    utcIso
   ]);
 
   const aiMessage = aiMessageResult.rows[0];
-  logger.info('AI message saved successfully:', aiMessage.id);
+
+  console.log('[SAVE AI MESSAGE] AFTER DB RETURN: DB createdAt ISO =', new Date(aiMessage.createdAt).toISOString());
 
   return {
     id: aiMessage.id,
@@ -394,22 +407,35 @@ export async function updateChatMetadata(params: {
 
     // ✅ FIX: Check for both null and empty string - AND ensure trimmed length > 0
     if (hasValidTitle && generatedTitleTrimmed.length > 0) {
-      const updateFields = [
+      // ✅ FIX: Use JavaScript Date for UTC timestamp
+      const utcTimestamp = new Date().toISOString();
+      
+      const values: any[] = [generatedTitleTrimmed];
+      let paramIndex = 2;
+      
+      const updateFields: string[] = [
         `"messageCount" = "messageCount" + 1`,
-        `"title" = $1`,
-        updatedAtField ? `"${updatedAtField}" = NOW()` : null,
-        lastMessageField ? `"${lastMessageField}" = $2` : null
-      ].filter(Boolean).join(', ');
-
-      const values = [generatedTitleTrimmed, aiResponse].filter((_, i) => {
-        if (i === 0) return true; // title
-        if (i === 1 && lastMessageField) return true; // lastMessage
-        return false;
-      });
+        `"title" = $1`
+      ];
+      
+      if (lastMessageField) {
+        updateFields.push(`"${lastMessageField}" = $${paramIndex}`);
+        values.push(aiResponse);
+        paramIndex++;
+      }
+      
+      if (updatedAtField) {
+        updateFields.push(`"${updatedAtField}" = $${paramIndex}::timestamptz`);
+        values.push(utcTimestamp);
+        paramIndex++;
+      }
+      
+      values.push(chatId);
+      const whereParam = paramIndex;
 
       await db.query(`
-        UPDATE "${chatTable}" SET ${updateFields} WHERE id = $${values.length + 1}
-      `, [...values, chatId]);
+        UPDATE "${chatTable}" SET ${updateFields.join(', ')} WHERE id = $${whereParam}
+      `, values);
     } else if (isFirstMessage) {
       // ✅ FIX: Always set title for first message, regardless of currentTitle
       // Fallback: use first 30 chars of message as title
@@ -418,35 +444,65 @@ export async function updateChatMetadata(params: {
         : userMessage.trim() || 'New Chat';
 
       if (fallbackTitle && fallbackTitle.trim().length > 0) {
-        const updateFields = [
+        // ✅ FIX: Use JavaScript Date for UTC timestamp
+        const utcTimestamp = new Date().toISOString();
+        
+        const values: any[] = [fallbackTitle.trim()];
+        let paramIndex = 2;
+        
+        const updateFields: string[] = [
           `"messageCount" = "messageCount" + 1`,
-          `"title" = $1`,
-          updatedAtField ? `"${updatedAtField}" = NOW()` : null,
-          lastMessageField ? `"${lastMessageField}" = $2` : null
-        ].filter(Boolean).join(', ');
-
-        const values = [fallbackTitle.trim(), aiResponse].filter((_, i) => {
-          if (i === 0) return true; // title
-          if (i === 1 && lastMessageField) return true; // lastMessage
-          return false;
-        });
+          `"title" = $1`
+        ];
+        
+        if (lastMessageField) {
+          updateFields.push(`"${lastMessageField}" = $${paramIndex}`);
+          values.push(aiResponse);
+          paramIndex++;
+        }
+        
+        if (updatedAtField) {
+          updateFields.push(`"${updatedAtField}" = $${paramIndex}::timestamptz`);
+          values.push(utcTimestamp);
+          paramIndex++;
+        }
+        
+        values.push(chatId);
+        const whereParam = paramIndex;
 
         await db.query(`
-          UPDATE "${chatTable}" SET ${updateFields} WHERE id = $${values.length + 1}
-        `, [...values, chatId]);
+          UPDATE "${chatTable}" SET ${updateFields.join(', ')} WHERE id = $${whereParam}
+        `, values);
       }
     } else {
-      const updateFields = [
-        `"messageCount" = "messageCount" + 1`,
-        updatedAtField ? `"${updatedAtField}" = NOW()` : null,
-        lastMessageField ? `"${lastMessageField}" = $1` : null
-      ].filter(Boolean).join(', ');
-
-      const values = lastMessageField ? [aiResponse] : [];
+      // ✅ FIX: Use JavaScript Date for UTC timestamp
+      const utcTimestamp = new Date().toISOString();
+      
+      const values: any[] = [];
+      let paramIndex = 1;
+      
+      const updateFields: string[] = [
+        `"messageCount" = "messageCount" + 1`
+      ];
+      
+      if (lastMessageField) {
+        updateFields.push(`"${lastMessageField}" = $${paramIndex}`);
+        values.push(aiResponse);
+        paramIndex++;
+      }
+      
+      if (updatedAtField) {
+        updateFields.push(`"${updatedAtField}" = $${paramIndex}::timestamptz`);
+        values.push(utcTimestamp);
+        paramIndex++;
+      }
+      
+      values.push(chatId);
+      const whereParam = paramIndex;
 
       await db.query(`
-        UPDATE "${chatTable}" SET ${updateFields} WHERE id = $${values.length + 1}
-      `, [...values, chatId]);
+        UPDATE "${chatTable}" SET ${updateFields.join(', ')} WHERE id = $${whereParam}
+      `, values);
     }
   } catch (error) {
     logger.error('Failed to update chat metadata:', error);

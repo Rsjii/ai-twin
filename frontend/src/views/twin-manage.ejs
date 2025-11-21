@@ -6,6 +6,7 @@
     <title><%= title %></title>
     <link rel="stylesheet" href="/css/output.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="/utils/timeUtils.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -124,9 +125,12 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Created</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Last Updated</p>
                     <p class="text-lg font-semibold text-gray-900 dark:text-white">
-                        <%= new Date(twin.createdAt || twin.created_at).toLocaleDateString() %>
+                        <span class="timestamp-display" 
+                              data-timestamp="<%= twin.updatedAt || twin.updated_at %>" 
+                              data-format="smart">
+                        </span>
                     </p>
                 </div>
                 <% if (publicTwin) { %>
@@ -182,7 +186,7 @@
                                 </p>
                                 <p class="text-sm text-gray-600 dark:text-gray-300">
                                     <%= chat.message_count || 0 %> messages • 
-                                    <%= new Date(chat.createdAt || chat.created_at).toLocaleDateString() %>
+                                    <span class="chat-date" data-timestamp="<%= chat.updatedAt || chat.lastActivity || chat.createdAt || chat.created_at %>"></span>                                
                                 </p>
                             </div>
                             <% if (chat.chat_type === 'public') { %>
@@ -345,6 +349,47 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+// Add after existing scripts
+document.addEventListener('DOMContentLoaded', () => {
+    // Format twin created date
+    const dateEl = document.getElementById('twin-created-date');
+    if (dateEl && dateEl.dataset.timestamp) {
+        dateEl.textContent = TimeUtils.formatDateOnly(dateEl.dataset.timestamp);
+        dateEl.title = TimeUtils.formatFullDateTime(dateEl.dataset.timestamp);
+    }
+    
+    // ✅ FIX: Format all timestamp-display elements (including Last Updated)
+    document.querySelectorAll('.timestamp-display').forEach(el => {
+        const timestamp = el.dataset.timestamp;
+        const format = el.dataset.format || 'smart';
+        if (timestamp && window.TimeUtils) {
+            try {
+                let displayTime, fullTime;
+                if (format === 'smart') {
+                    displayTime = window.TimeUtils.formatRelativeTime(timestamp);
+                } else {
+                    displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                }
+                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                el.textContent = displayTime;
+                el.title = fullTime;
+            } catch (e) {
+                console.error('Error formatting timestamp:', e);
+            }
+        }
+    });
+});
+
+// ✅ FIX: Change Recent Chats from absolute date to relative time
+document.querySelectorAll('.chat-date').forEach(el => {
+    if (el.dataset.timestamp && window.TimeUtils) {
+        // Use relative time instead of absolute date
+        el.textContent = window.TimeUtils.formatRelativeTime(el.dataset.timestamp);
+        el.title = window.TimeUtils.formatFullDateTime(el.dataset.timestamp);
+    }
+});
+
 </script>
     <!--Footer-->
     <%- include('footer/footer-conditional-private') %>

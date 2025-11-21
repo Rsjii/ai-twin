@@ -63,8 +63,8 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
     },
@@ -141,8 +141,12 @@ app.post('/api/chats/:id/generate-title', requireJWTFromCookie, generateChatTitl
 app.set('view engine', 'ejs');
 app.set('views', '../frontend/src/views');
 
-// Static files
-app.use(express.static('../frontend/src/public'));
+// Static files with cache headers
+app.use(express.static('../frontend/src/public', {
+  maxAge: '1y',
+  etag: true,
+  lastModified: true,
+}));
 app.use('/uploads', express.static('public/uploads'));
 app.use('/utils', express.static('../frontend/src/utils')); // ADD THIS LINE for pagination.js
 

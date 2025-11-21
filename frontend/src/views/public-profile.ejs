@@ -6,6 +6,7 @@
     <title><%= title %></title>
     <link rel="stylesheet" href="/css/output.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/utils/timeUtils.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -394,7 +395,39 @@ async function loadPublicChatHistory() {
         const response = await fetch(`/api/public-chat/twin/${currentTwinId}/chats?visitorId=${visitorId}`);
         const data = await response.json();
         
+        console.log('[loadPublicChatHistory] Response received:', data);
+        console.log('[loadPublicChatHistory] data.serverTime:', data.serverTime);
+        console.log('[loadPublicChatHistory] window.TimeUtils exists:', !!window.TimeUtils);
+        console.log('[loadPublicChatHistory] window.TimeUtils.setServerTime exists:', !!(window.TimeUtils && window.TimeUtils.setServerTime));
+        
+        // ✅ CRITICAL FIX: Set server time IMMEDIATELY after receiving response
+        // Must be done BEFORE any time formatting functions are called
+        if (data.serverTime) {
+            // Try multiple ways to set server time
+            if (window.TimeUtils && typeof window.TimeUtils.setServerTime === 'function') {
+                window.TimeUtils.setServerTime(data.serverTime);
+                console.log('[loadPublicChatHistory] ✅ Server time set via TimeUtils.setServerTime:', data.serverTime);
+            } else if (window.TimeUtils && window.TimeUtils.setServerTime) {
+                window.TimeUtils.setServerTime(data.serverTime);
+                console.log('[loadPublicChatHistory] ✅ Server time set (fallback method):', data.serverTime);
+            } else {
+                console.error('[loadPublicChatHistory] ❌ TimeUtils.setServerTime not available!');
+                console.error('[loadPublicChatHistory] window.TimeUtils:', window.TimeUtils);
+                console.error('[loadPublicChatHistory] typeof window.TimeUtils:', typeof window.TimeUtils);
+            }
+        } else {
+            console.warn('[loadPublicChatHistory] ⚠️ No serverTime in response');
+        }
+        
+        // ✅ Verify server time was set
+        if (window.TimeUtils && window.TimeUtils.globalServerTime) {
+            console.log('[loadPublicChatHistory] ✅ Verified globalServerTime:', window.TimeUtils.globalServerTime);
+        } else {
+            console.warn('[loadPublicChatHistory] ⚠️ globalServerTime not accessible after setting');
+        }
+        
         if (data.success) {
+            // ✅ Call display function AFTER setting server time
             displayPublicChatHistory(data.chats);
         }
     } catch (error) {
@@ -418,13 +451,37 @@ function displayPublicChatHistory(chats) {
                     <h4 class="font-medium text-sm ${chat.id === currentChatId ? 'text-blue-700' : ''}">Chat #${chat.id.slice(-6)}</h4>
                     <p class="text-xs text-gray-500 truncate">${chat.lastMessage ? chat.lastMessage.content : 'No messages yet'}</p>
                 </div>
-                <div class="text-xs text-gray-400">${formatTime(chat.createdAt)}</div>
+<div class="text-xs text-gray-400 timestamp-display" data-timestamp="${chat.createdAt}" data-format="smart"></div>                
             </div>
             <div class="flex items-center mt-1">
                 <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">${chat.messageCount || 0} messages</span>
             </div>
         </div>
     `).join('');
+
+    // ✅ Format timestamps client-side after rendering
+    if (window.TimeUtils) {
+        container.querySelectorAll('.timestamp-display').forEach(el => {
+            const timestamp = el.dataset.timestamp;
+            const format = el.dataset.format || 'smart';
+            if (timestamp) {
+                try {
+                    let displayTime, fullTime;
+                    if (format === 'smart') {
+                        displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                        fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                    } else {
+                        displayTime = window.TimeUtils.formatDateOnly(timestamp);
+                        fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                    }
+                    el.textContent = displayTime;
+                    el.title = fullTime;
+                } catch (e) {
+                    console.error('Error formatting timestamp:', e);
+                }
+            }
+        });
+    }
 
     // Add click listeners
     container.querySelectorAll('.chat-item').forEach(item => {
@@ -445,6 +502,11 @@ async function switchToPublicChat(chatId) {
         // Load chat messages
         const response = await fetch(`/api/public-chat/${chatId}/history`);
         const data = await response.json();
+        
+        // ✅ FIX: Update global server time from API response
+        if (data.serverTime && window.TimeUtils && window.TimeUtils.setServerTime) {
+            window.TimeUtils.setServerTime(data.serverTime);
+        }
         
         if (data.success) {
             displayMessages(data.messages);
@@ -490,25 +552,13 @@ async function startPublicChat() {
     }
 }
 
-// Format time helper
-function formatTime(timestamp) {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-    
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-    return Math.floor(diff / 86400000) + 'd ago';
-}
-
 // Display messages in chat
 function displayMessages(messages) {
     const chatMessages = document.getElementById('chatMessages');
     chatMessages.innerHTML = '';
     
     messages.forEach(msg => {
-        addMessageToChat(msg.content, msg.sender);
+        addMessageToChat(msg.content, msg.sender, msg.createdAt);
     });
 }
 
@@ -532,7 +582,7 @@ function displayMessages(messages) {
             sendBtn.textContent = 'Sending...';
             
             // Add user message to chat
-            addMessageToChat(message, 'human');
+            addMessageToChat(message, 'human', new Date().toISOString());
             messageInput.value = '';
             
             try {
@@ -546,18 +596,23 @@ function displayMessages(messages) {
 
                 const data = await response.json();
                 
+                // ✅ FIX: Update global server time from API response
+                if (data.serverTime && window.TimeUtils && window.TimeUtils.setServerTime) {
+                    window.TimeUtils.setServerTime(data.serverTime);
+                }
+                
                 if (data.success && data.messages) {
                     // Add AI response
                     const aiMessage = data.messages.find(m => m.sender === 'twin');
                     if (aiMessage) {
-                        addMessageToChat(aiMessage.content, 'twin');
+                        addMessageToChat(aiMessage.content, 'twin', aiMessage.createdAt);
                     }
                 } else {
                     throw new Error(data.error || 'Failed to send message');
                 }
             } catch (error) {
                 console.error('Error sending message:', error);
-                addMessageToChat('Sorry, I had trouble responding. Please try again.', 'twin');
+                addMessageToChat('Sorry, I had trouble responding. Please try again.', 'twin', new Date().toISOString());
             } finally {
                 isChatting = false;
                 sendBtn.disabled = false;
@@ -565,16 +620,21 @@ function displayMessages(messages) {
             }
         }
 
-        function addMessageToChat(content, sender) {
+        function addMessageToChat(content, sender, timestamp = null) {
             const chatMessages = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
+            
+            // Use provided timestamp or current time
+            const messageTime = timestamp || new Date().toISOString();
+            const timeDisplay = TimeUtils.formatTimeWithContext(messageTime);
+            const timeTooltip = TimeUtils.formatFullDateTime(messageTime);
             
             if (sender === 'human') {
                 messageDiv.className = 'flex justify-end mb-4';
                 messageDiv.innerHTML = `
                     <div class="bg-blue-600 text-white px-4 py-3 rounded-lg max-w-xs lg:max-w-md shadow-sm">
                         <p class="text-sm">${content}</p>
-                        <p class="text-xs opacity-75 mt-1">${new Date().toLocaleTimeString()}</p>
+                        <p class="text-xs opacity-75 mt-1" title="${timeTooltip}">${timeDisplay}</p>
                     </div>
                 `;
             } else {
@@ -582,7 +642,7 @@ function displayMessages(messages) {
                 messageDiv.innerHTML = `
                     <div class="bg-white border border-gray-200 px-4 py-3 rounded-lg max-w-xs lg:max-w-md shadow-sm">
                         <p class="text-sm text-gray-800">${content}</p>
-                        <p class="text-xs text-gray-500 mt-1">${new Date().toLocaleTimeString()}</p>
+                        <p class="text-xs text-gray-500 mt-1" title="${timeTooltip}">${timeDisplay}</p>
                     </div>
                 `;
             }
@@ -907,6 +967,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-</script>        
+</script>    
+<script src="/utils/timeUtils.js"></script>
 </body>
 </html>

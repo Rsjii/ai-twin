@@ -10,6 +10,7 @@ import { createError, ErrorCodes } from '../../utils/errors';
 import * as chatUtils from './chatSharedUtils';
 import { handleControllerError, handleErrorWithSuccessFormat } from '../../utils/errorHandler';
 import { QUERY_LIMITS } from '../../config/constants';
+import { formatRelativeTime, normalizeTimestamp } from '../../utils/timestampUtils';
 
 // Validation schemas
 const startPublicChatSchema = z.object({
@@ -354,7 +355,7 @@ if (chat.requireLogin && !userId) {
       chatMemory: recentMessages.map(msg => ({
         content: msg.content,
         sender: msg.sender,
-        timestamp: msg.createdAt
+        timestamp: msg.createdAt // Keep as Date for internal AI service use
       })),
       currentMessages: [message.trim()],
       twinId: chat.twinId,
@@ -433,17 +434,21 @@ if (chat.requireLogin && !userId) {
           id: userMessage.id,
           content: message,
           sender: 'human',
-          createdAt: userMessage.createdAt
+          createdAt: normalizeTimestamp(userMessage.createdAt),
+          relativeTime: formatRelativeTime(userMessage.createdAt)
         },
         {
           id: aiMessage.id,
           content: aiResponse,
           sender: 'twin',
-          createdAt: aiMessage.createdAt
+          createdAt: normalizeTimestamp(aiMessage.createdAt),
+          relativeTime: formatRelativeTime(aiMessage.createdAt)
         }
       ],
       generatedTitle: generatedTitle || null,
-      isFirstMessage: isFirstMessage
+      isFirstMessage: isFirstMessage,
+      // ✅ FIX: Send server time so frontend can use it instead of browser time
+      serverTime: new Date().toISOString()
     });
 
   } catch (error: any) {
@@ -551,7 +556,15 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
         isTwinOwner: isTwinOwner,
         showChatHistory: chat.showChatHistory
       },
-      messages: messagesResult.rows
+      messages: messagesResult.rows.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        sender: msg.sender,
+        createdAt: normalizeTimestamp(msg.createdAt),
+        relativeTime: formatRelativeTime(msg.createdAt)
+      })),
+      // ✅ FIX: Send server time so frontend can use it instead of browser time
+      serverTime: new Date().toISOString()
     });
 
   } catch (error: any) {
@@ -710,12 +723,13 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
     const chats = chatsResult.rows.map(chat => ({
       id: chat.id,
       messageCount: chat.messageCount || 0,
-      createdAt: chat.createdAt,
-      lastActivity: chat.lastActivity,
+      createdAt: normalizeTimestamp(chat.createdAt),
+      lastActivity: normalizeTimestamp(chat.lastActivity),
       title: chat.title || null,
       lastMessage: chat.last_message ? {
         content: chat.last_message,
-        createdAt: chat.last_message_time
+        createdAt: normalizeTimestamp(chat.last_message_time),
+        relativeTime: formatRelativeTime(chat.last_message_time)
       } : null
     }));
 
@@ -730,7 +744,9 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
         sampleReply: twin.sampleReply,
         showChatHistory: twin.showChatHistory
       },
-      chats
+      chats,
+      // ✅ FIX: Send server time so frontend can use it instead of browser time
+      serverTime: new Date().toISOString()
     };
 
     logger.info(`[getPublicChatsByTwin] Sending response with ${responseData.chats.length} chats`);
@@ -866,15 +882,16 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
       latestChat: {
         id: row.chat_id,
         messageCount: row.latest_chat_message_count || 0,
-        createdAt: row.latest_chat_created_at,
-        lastActivity: row.latest_chat_last_activity,
+        createdAt: normalizeTimestamp(row.latest_chat_created_at),
+        lastActivity: normalizeTimestamp(row.latest_chat_last_activity),
         title: row.latest_chat_title
       },
       totalChats: parseInt(row.total_chats || '0', 10),
       totalMessages: parseInt(row.total_messages || '0', 10),
       lastMessage: row.last_message_content ? {
         content: row.last_message_content,
-        createdAt: row.last_message_time
+        createdAt: normalizeTimestamp(row.last_message_time),
+        relativeTime: formatRelativeTime(row.last_message_time)
       } : null
     }));
 
@@ -883,7 +900,9 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
     res.json({
       success: true,
       chats: twinChats,
-      total: twinChats.length
+      total: twinChats.length,
+      // ✅ FIX: Send server time so frontend can use it instead of browser time
+      serverTime: new Date().toISOString()
     });
 
   } catch (error) {
@@ -999,9 +1018,11 @@ export const updatePublicChatTitle = async (req: Request, res: Response, next: N
     }
 
     // Update chat title
+    // ✅ FIX: Use JavaScript Date for UTC timestamp
+    const utcTimestamp = new Date().toISOString();
     await db.query(`
-      UPDATE "PublicChat" SET "title" = $1, "lastActivity" = NOW() WHERE id = $2
-    `, [title.trim(), chatId]);
+      UPDATE "PublicChat" SET "title" = $1, "lastActivity" = $2::timestamptz WHERE id = $3
+    `, [title.trim(), utcTimestamp, chatId]);
     
     logger.info('Public chat title updated:', { chatId, title: title.trim() });
     
@@ -1107,8 +1128,8 @@ FROM "PublicChat" pc
       visitorId: chat.visitorId || null,
       messageCount: chat.messageCount || 0,
       title: chat.title || 'Untitled Chat',
-      createdAt: chat.createdAt,
-      lastActivity: chat.lastActivity,
+      createdAt: normalizeTimestamp(chat.createdAt),
+      lastActivity: normalizeTimestamp(chat.lastActivity),
       user: chat.user_id ? {
         id: chat.user_id,
         handle: chat.user_handle,
@@ -1118,7 +1139,8 @@ FROM "PublicChat" pc
       isAnonymous: !chat.userId && (chat.visitorId!==null && chat.visitorId!==undefined),
       lastMessage: chat.last_message_content ? {
         content: chat.last_message_content,
-        createdAt: chat.last_message_time
+        createdAt: normalizeTimestamp(chat.last_message_time),
+        relativeTime: formatRelativeTime(chat.last_message_time)
       } : null
     }));
 
@@ -1205,8 +1227,8 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
         twinHandle: chat.publicHandle,
         title: chat.title || 'Untitled Chat',
         messageCount: chat.messageCount || 0,
-        createdAt: chat.createdAt,
-        lastActivity: chat.lastActivity,
+        createdAt: normalizeTimestamp(chat.createdAt),
+        lastActivity: normalizeTimestamp(chat.lastActivity),
         user: chat.user_id ? {
           id: chat.user_id,
           handle: chat.user_handle,
@@ -1216,7 +1238,15 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
         isAnonymous: !chat.userId && !!chat.visitorId,
         visitorId: chat.visitorId
       },
-      messages: messagesResult.rows
+      messages: messagesResult.rows.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        sender: msg.sender,
+        createdAt: normalizeTimestamp(msg.createdAt),
+        relativeTime: formatRelativeTime(msg.createdAt)
+      })),
+      // ✅ FIX: Send server time so frontend can use it instead of browser time
+      serverTime: new Date().toISOString()
     });
 
   } catch (error) {

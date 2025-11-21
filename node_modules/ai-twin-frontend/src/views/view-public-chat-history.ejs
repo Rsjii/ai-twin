@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Chat History</title>
     <link rel="stylesheet" href="/css/output.css">
+    <script src="/utils/timeUtils.js"></script>
     <script>
         (function() {
             const theme = localStorage.getItem('theme') || 'light';
@@ -57,6 +58,12 @@
                 
                 const data = await response.json();
                 
+                // ✅ FIX: Set server time from API response
+                if (data.serverTime && window.TimeUtils && window.TimeUtils.setServerTime) {
+                    window.TimeUtils.setServerTime(data.serverTime);
+                    console.log('[loadChatHistory] ✅ Server time set:', data.serverTime);
+                }
+                
                 if (data.success) {
                     displayChatInfo(data.chat);
                     displayMessages(data.messages);
@@ -102,10 +109,34 @@
                     </div>
                     <div class="text-right">
                         <p class="text-sm text-gray-600 dark:text-gray-400">${chat.messageCount} messages</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-500">${new Date(chat.createdAt).toLocaleDateString()}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-500 timestamp-display" data-timestamp="${chat.createdAt}" data-format="date"></p>                        
                     </div>
                 </div>
             `;
+            
+            // ✅ Format timestamps client-side after rendering
+            if (window.TimeUtils) {
+                container.querySelectorAll('.timestamp-display').forEach(el => {
+                    const timestamp = el.dataset.timestamp;
+                    const format = el.dataset.format || 'smart';
+                    if (timestamp) {
+                        try {
+                            let displayTime, fullTime;
+                            if (format === 'date') {
+                                displayTime = window.TimeUtils.formatDateOnly(timestamp);
+                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                            } else {
+                                displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                            }
+                            el.textContent = displayTime;
+                            el.title = fullTime;
+                        } catch (e) {
+                            console.error('Error formatting timestamp:', e);
+                        }
+                    }
+                });
+            }
         }
         
         function displayMessages(messages) {
@@ -128,10 +159,51 @@
                             : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border dark:border-gray-700'
                     }">
                         <p class="text-sm">${escapeHtml(msg.content)}</p>
-                        <p class="text-xs mt-1 opacity-70">${new Date(msg.createdAt).toLocaleString()}</p>
-                    </div>
+                        <p class="text-xs mt-1 opacity-70 timestamp-display" data-timestamp="${msg.createdAt}" data-relative-time="${escapeHtml(msg.relativeTime || '')}" data-format="context"></p>                    </div>
                 </div>
             `).join('');
+            
+            // ✅ Format timestamps client-side after rendering
+            if (window.TimeUtils) {
+                container.querySelectorAll('.timestamp-display').forEach(el => {
+                    const timestamp = el.dataset.timestamp;
+                    const format = el.dataset.format || 'smart';
+                    const backendRelativeTime = el.dataset.relativeTime;
+                    if (timestamp) {
+                        try {
+                            let displayTime, fullTime;
+                            if (format === 'context') {
+                                // ✅ FIX: Use backend relativeTime if available, otherwise format client-side
+                                if (backendRelativeTime) {
+                                    displayTime = backendRelativeTime;
+                                } else {
+                                    displayTime = window.TimeUtils.formatTimeWithContext(timestamp);
+                                }
+                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                            } else if (format === 'date') {
+                                displayTime = window.TimeUtils.formatDateOnly(timestamp);
+                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                            } else {
+                                // ✅ FIX: Use backend relativeTime if available for smart format
+                                if (backendRelativeTime) {
+                                    displayTime = backendRelativeTime;
+                                } else {
+                                    displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                                }
+                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                            }
+                            el.textContent = displayTime;
+                            el.title = fullTime;
+                        } catch (e) {
+                            console.error('Error formatting timestamp:', e);
+                            // Fallback to backend relativeTime if available
+                            if (backendRelativeTime) {
+                                el.textContent = backendRelativeTime;
+                            }
+                        }
+                    }
+                });
+            }
         }
         
         function escapeHtml(text) {

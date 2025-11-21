@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title><%= typeof title !== 'undefined' ? title : 'Your Chat History - AI Twin' %></title>
     <link rel="stylesheet" href="/css/output.css">
+    <script src="/utils/timeUtils.js"></script>
     <script>
         // Immediate theme application to prevent FOUC
         (function() {
@@ -120,6 +121,11 @@
                 }
 
                 const data = await response.json();
+
+                // ✅ FIX: Update global server time from API response
+                if (data.serverTime && window.TimeUtils && window.TimeUtils.setServerTime) {
+                    window.TimeUtils.setServerTime(data.serverTime);
+                }
 
                 // Hide loading
                 loadingState.classList.add('hidden');
@@ -245,7 +251,7 @@
                             <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">${twin.bio || 'No bio available'}</p>
                             <div class="flex items-center gap-3 mt-1">
                                 ${totalChats > 0 ? `<span class="text-xs text-gray-500 dark:text-gray-400">${totalChats} chat${totalChats > 1 ? 's' : ''}</span>` : ''}
-                                ${latestChat?.lastActivity ? `<span class="text-xs text-gray-400 dark:text-gray-500">Last: ${new Date(latestChat.lastActivity).toLocaleDateString()}</span>` : ''}
+                                ${latestChat?.lastActivity ? `<span class="text-xs text-gray-400 dark:text-gray-500 timestamp-display" data-timestamp="${latestChat.lastActivity}" data-format="smart"></span>` : ''}                                
                             </div>
                         </div>
                     </div>
@@ -298,6 +304,31 @@
 
                 twinsGrid.appendChild(card);
             });
+            
+            // ✅ Format timestamps client-side after rendering
+            if (window.TimeUtils) {
+                twinsGrid.querySelectorAll('.timestamp-display').forEach(el => {
+                    const timestamp = el.dataset.timestamp;
+                    const format = el.dataset.format || 'smart';
+                    if (timestamp) {
+                        try {
+                            let displayTime, fullTime;
+                            if (format === 'smart') {
+                                displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                                el.textContent = 'Last: ' + displayTime;
+                            } else {
+                                displayTime = window.TimeUtils.formatDateOnly(timestamp);
+                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                                el.textContent = displayTime;
+                            }
+                            el.title = fullTime;
+                        } catch (e) {
+                            console.error('Error formatting timestamp:', e);
+                        }
+                    }
+                });
+            }
         }        
 
         // Initialize on page load

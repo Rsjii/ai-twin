@@ -121,16 +121,18 @@ export const reportContent = async (req: Request, res: Response) => {
     }
 
     // Create report
+    const utcTimestamp = new Date().toISOString();
     await db.query(`
       INSERT INTO "ContentReport" ("id", "contentId", "contentType", "reason", "description", "reporterId", "createdAt")
-      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7::timestamptz)
     `, [
       generateId.report(),
       contentId,
       contentType,
       reason,
       description || '',
-      req.user.id
+      req.user.id,
+      utcTimestamp
     ]);
 
     // Log report event

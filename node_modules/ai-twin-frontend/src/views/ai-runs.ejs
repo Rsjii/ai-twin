@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title><%= title %></title>
     <link rel="stylesheet" href="/css/output.css">
+    <script src="/utils/timeUtils.js"></script>
     <script>
         // Immediate theme application to prevent FOUC
         (function() {
@@ -158,7 +159,7 @@
                 qualityTrendsChart.destroy();
             }
 
-            const labels = trends.map(t => new Date(t.date).toLocaleDateString()).reverse();
+            const labels = trends.map(t => TimeUtils.formatDateOnly(t.date)).reverse();            
             const scores = trends.map(t => parseFloat(t.avg_score)).reverse();
 
             qualityTrendsChart = new Chart(ctx, {
@@ -303,11 +304,35 @@
                         <div class="flex items-center space-x-2">
                             ${run.critic_score ? `<span class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-sm">Score: ${run.critic_score}</span>` : ''}
                             ${run.regen ? '<span class="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded text-sm">Regen</span>' : ''}
-                            <span class="text-sm text-gray-500 dark:text-gray-400">${new Date(run.ts).toLocaleString()}</span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400 timestamp-display" data-timestamp="${run.ts}" data-format="context"></span>                       
                         </div>
                     `;
                     container.appendChild(div);
                 });
+                
+                // ✅ Format timestamps client-side after rendering
+                if (window.TimeUtils) {
+                    container.querySelectorAll('.timestamp-display').forEach(el => {
+                        const timestamp = el.dataset.timestamp;
+                        const format = el.dataset.format || 'context';
+                        if (timestamp) {
+                            try {
+                                let displayTime, fullTime;
+                                if (format === 'context') {
+                                    displayTime = window.TimeUtils.formatTimeWithContext(timestamp);
+                                    fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                                } else {
+                                    displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                                    fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                                }
+                                el.textContent = displayTime;
+                                el.title = fullTime;
+                            } catch (e) {
+                                console.error('Error formatting timestamp:', e);
+                            }
+                        }
+                    });
+                }
             } catch (error) {
                 console.error('Error loading runs:', error);
             }

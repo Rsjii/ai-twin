@@ -182,11 +182,12 @@ export const setLearningGoal = async (req: any, res: Response) => {
     
     // Create learning goal using fast query (table may not exist)
     const goalId = generateId.goal();
+    const utcTimestamp = new Date().toISOString();
     const goalResult = await fastQuery(`
       INSERT INTO "learning_goals" (id, "twinId", type, target, current, completed, "createdAt")
-      VALUES ($1, $2, $3, $4, 0, false, NOW())
+      VALUES ($1, $2, $3, $4, 0, false, $5::timestamptz)
       RETURNING *
-    `, [goalId, id, type, target]);
+    `, [goalId, id, type, target, utcTimestamp]);
     
     // Handle case where table doesn't exist
     if (!goalResult || !goalResult.rows || goalResult.rows.length === 0) {

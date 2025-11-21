@@ -21,15 +21,17 @@ export class EventLogger {
    */
   static async log(userId: string | null, type: string, meta?: any): Promise<void> {
     try {
+      const utcTimestamp = new Date().toISOString();
       
       await db.query(`
         INSERT INTO "Event" ("id", "userId", "type", "meta", "createdAt")
-        VALUES ($1, $2, $3, $4, NOW())
+        VALUES ($1, $2, $3, $4, $5::timestamptz)
       `, [
         generateId.event(),
         userId || null,
         type,
-        JSON.stringify(meta || {})
+        JSON.stringify(meta || {}),
+        utcTimestamp
       ]);
       
       // Log to console in development

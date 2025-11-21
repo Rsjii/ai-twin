@@ -46,12 +46,13 @@ export const submitResponseFeedback = async (req: Request, res: Response, next: 
     // Store feedback as style correction using EXISTING table
     const correctionId = generateId.correction();
     const delta = rating === 'up' ? 1 : -1;
+    const utcTimestamp = new Date().toISOString();
     
     // Use EXISTING style_corrections table with mapped knob
     await db.query(`
       INSERT INTO style_corrections (id, twin_id, knob, delta, source, ts)
-      VALUES ($1, $2, $3, $4, 'user_feedback', NOW())
-    `, [correctionId, twinId, knobMapping['user_style'], delta]);
+      VALUES ($1, $2, $3, $4, 'user_feedback', $5::timestamptz)
+    `, [correctionId, twinId, knobMapping['user_style'], delta, utcTimestamp]);
 
     // Update AI run with rating if available
     await db.query(`
@@ -66,8 +67,8 @@ export const submitResponseFeedback = async (req: Request, res: Response, next: 
       const anchorId = generateId.anchor();
       await db.query(`
         INSERT INTO style_anchors (id, twin_id, user_utterance, ideal_reply, tags, created_at)
-        VALUES ($1, $2, $3, $4, $5, NOW())
-      `, [anchorId, twinId, 'User feedback', correction, ['user_correction']]);
+        VALUES ($1, $2, $3, $4, $5, $6::timestamptz)
+      `, [anchorId, twinId, 'User feedback', correction, ['user_correction'], utcTimestamp]);
     }
 
     res.json({
@@ -129,6 +130,7 @@ import { generateResponseWithTone, adjustResponseTone } from '../../services/cha
  */
 export const submitChatFeedback = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const utcTimestamp = new Date().toISOString();
     const { chatId } = req.params;
     const { responseId, rating, suggestion, tonePreference } = req.body;
     const userId = req.user.id;
@@ -136,8 +138,8 @@ export const submitChatFeedback = async (req: Request, res: Response, next: Next
     // Store feedback in database
     await db.query(`
       INSERT INTO "ChatFeedback" ("chatId", "responseId", "userId", "rating", "suggestion", "tonePreference", "createdAt")
-      VALUES ($1, $2, $3, $4, $5, $6, NOW())
-    `, [chatId, responseId, userId, rating, suggestion, tonePreference]);
+      VALUES ($1, $2, $3, $4, $5, $6, $7::timestamptz)
+    `, [chatId, responseId, userId, rating, suggestion, tonePreference, utcTimestamp]);
     
     // Update AI learning data
     await updateAILearning(chatId, rating, suggestion, tonePreference);

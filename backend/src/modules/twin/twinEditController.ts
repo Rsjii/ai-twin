@@ -121,11 +121,12 @@ export const updateTwinStyle = async (req: Request, res: Response) => {
     const newSystemPrompt = await twinService.generateSystemPrompt(updatedStyleVector, twinResult.rows[0].personaData);
 
     // Update twin in database
+    const utcTimestamp = new Date().toISOString();
     await db.query(`
       UPDATE "Twin" 
-      SET "styleVector" = $1, "systemPrompt" = $2, "last_updated" = NOW(), "style_version" = "style_version" + 1
-      WHERE id = $3
-    `, [JSON.stringify(updatedStyleVector), newSystemPrompt, twinId]);
+      SET "styleVector" = $1, "systemPrompt" = $2, "last_updated" = $3::timestamptz, "style_version" = "style_version" + 1
+      WHERE id = $4
+    `, [JSON.stringify(updatedStyleVector), newSystemPrompt, utcTimestamp, twinId]);
 
     // Generate new sample reply
     const newSampleReply = await twinService.generateSampleReply(updatedStyleVector);
@@ -175,11 +176,12 @@ export const updateTwinPersona = async (req: Request, res: Response) => {
     const newSystemPrompt = await twinService.generateSystemPrompt(twinResult.rows[0].styleVector, updatedPersonaData);
 
     // Update twin in database
+    const utcTimestamp = new Date().toISOString();
     await db.query(`
       UPDATE "Twin" 
-      SET "personaData" = $1, "systemPrompt" = $2, "last_updated" = NOW()
-      WHERE id = $3
-    `, [JSON.stringify(updatedPersonaData), newSystemPrompt, twinId]);
+      SET "personaData" = $1, "systemPrompt" = $2, "last_updated" = $3::timestamptz
+      WHERE id = $4
+    `, [JSON.stringify(updatedPersonaData), newSystemPrompt, utcTimestamp, twinId]);
 
     res.json({
       success: true,

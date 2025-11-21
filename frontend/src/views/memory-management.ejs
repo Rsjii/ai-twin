@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Memory Management - AI Twin</title>
     <link rel="stylesheet" href="/css/output.css">
+    <script src="/utils/timeUtils.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -477,8 +478,8 @@ if (anchorError) anchorError.classList.add('hidden');
         const safeValue = escapeHtml(memory.value || memory.text || '');
         const safeValueAttr = escapeForAttribute(memory.value || memory.text || '');
         const safeCategory = escapeForAttribute(memory.category || currentMemoryCategory);
-        const date = new Date(memory.createdAt || memory.created_at || Date.now()).toLocaleDateString();
-        
+        const date = TimeUtils.formatDateOnly(memory.createdAt || memory.created_at || new Date().toISOString());        
+
         const memoryDiv = document.createElement('div');
         memoryDiv.className = 'mb-3 p-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-gray-700 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors';
         memoryDiv.innerHTML = `
@@ -555,8 +556,8 @@ function displayStyleAnchors(anchors, type) {
         }
         
         const safeId = escapeForAttribute(anchorId);
-        const date = new Date(anchor.created_at || anchor.createdAt || Date.now()).toLocaleDateString();
-        
+        const date = TimeUtils.formatDateOnly(anchor.created_at || anchor.createdAt || new Date().toISOString());        
+
         const anchorDiv = document.createElement('div');
         anchorDiv.className = 'mb-3 p-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-gray-700 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors';
         

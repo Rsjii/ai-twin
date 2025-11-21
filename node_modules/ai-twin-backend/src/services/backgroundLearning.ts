@@ -70,9 +70,10 @@ export class BackgroundLearningService {
       await this.applyLearningCorrections(twinId, feedbackResult.rows);
       
       // Update last_updated timestamp
+      const utcTimestamp = new Date().toISOString();
       await db.query(`
-        UPDATE "Twin" SET "last_updated" = NOW() WHERE id = $1
-      `, [twinId]);
+        UPDATE "Twin" SET "last_updated" = $1::timestamptz WHERE id = $2
+      `, [utcTimestamp, twinId]);
       
       logger.info(`Background learning completed for twin ${twinId}`);
       return true;

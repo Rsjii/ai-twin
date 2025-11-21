@@ -221,7 +221,7 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                     const fragment = document.createDocumentFragment();
                     data.analytics.recentActivity.forEach(activity => {
                         if (!activity || !activity.description) return;
-                        const timestamp = activity.timestamp ? new Date(activity.timestamp).toLocaleString() : 'Unknown time';
+                        const timestamp = activity.timestamp ? TimeUtils.formatTimeWithContext(activity.timestamp) : 'Unknown time';
                         const div = document.createElement('div');
                         div.className = 'flex items-center space-x-3';
                         div.innerHTML = `<div class="w-2 h-2 bg-blue-500 rounded-full"></div><div class="flex-1"><p class="text-sm text-gray-900 dark:text-white">${activity.description}</p><p class="text-xs text-gray-500 dark:text-gray-400">${timestamp}</p></div>`;

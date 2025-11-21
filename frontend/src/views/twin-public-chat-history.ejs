@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Public Chat History - My Twin</title>
     <link rel="stylesheet" href="/css/output.css">
+    <script src="/utils/timeUtils.js"></script>
     <script>
         (function() {
             const theme = localStorage.getItem('theme') || 'light';
@@ -132,10 +133,10 @@
                             <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mt-2">
                                 <span>${chat.messageCount} messages</span>
                                 <span>•</span>
-                                <span>${new Date(chat.createdAt).toLocaleDateString()}</span>
+                                <span class="timestamp-display" data-timestamp="${chat.createdAt}" data-format="date"></span>                                
                                 ${chat.lastMessage ? `
                                     <span>•</span>
-                                    <span>Last: ${new Date(chat.lastMessage.createdAt).toLocaleDateString()}</span>
+                                    <span class="timestamp-display" data-timestamp="${chat.lastMessage.createdAt}" data-format="smart" data-prefix="Last: "></span>                                    
                                 ` : ''}
                             </div>
                             ${chat.lastMessage ? `
@@ -162,6 +163,34 @@
                     </div>
                 </div>
             `).join('');
+            
+            // ✅ Format timestamps client-side after rendering
+            if (window.TimeUtils) {
+                container.querySelectorAll('.timestamp-display').forEach(el => {
+                    const timestamp = el.dataset.timestamp;
+                    const format = el.dataset.format || 'smart';
+                    const prefix = el.dataset.prefix || '';
+                    if (timestamp) {
+                        try {
+                            let displayTime, fullTime;
+                            if (format === 'smart') {
+                                displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                            } else if (format === 'date') {
+                                displayTime = window.TimeUtils.formatDateOnly(timestamp);
+                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                            } else {
+                                displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                            }
+                            el.textContent = prefix + displayTime;
+                            el.title = fullTime;
+                        } catch (e) {
+                            console.error('Error formatting timestamp:', e);
+                        }
+                    }
+                });
+            }
             
             // ✅ Add event listeners for delete buttons (using buttonId, not onclick)
             chats.forEach(chat => {

@@ -37,20 +37,19 @@ const analyticsLimit = typeof pagination !== 'undefined' && pagination.limit ? p
     let currentPage = analyticsPageValue;
     let currentSearch = urlParams.get('search') || '';
     
-    // Format date helper
-    function formatDate(dateString) {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        const now = new Date();
-        const diff = now - date;
-        
+    function formatTime(date) {
+        if (!date) return 'N/A';
+        if (window.TimeUtils) {
+            return window.TimeUtils.formatTimeWithContext(date);
+        }
+        const d = new Date(date);
+        const diff = Date.now() - d.getTime();
         if (diff < 60000) return 'Just now';
         if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
         if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
         if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
-        return date.toLocaleDateString();
+        return window.TimeUtils ? window.TimeUtils.formatDateOnly(date) : d.toLocaleDateString();
     }
-
     // Change page
     function changePage(page) {
         if (page < 1) return;

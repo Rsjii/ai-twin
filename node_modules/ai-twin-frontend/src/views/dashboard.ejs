@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/css/output.css">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="/utils/timeUtils.js?v=<%= new Date().getTime() %>"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -1018,6 +1019,11 @@
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="font-medium text-gray-900 dark:text-white"><%= chat.title || 'Untitled Chat' %></p>
+                                    <% if (chat.updatedAt) { %>
+                                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 private-chat-timestamp" 
+                                           data-timestamp="<%= chat.updatedAt %>">
+                                        </p>
+                                    <% } %>
                                 </div>
                                 <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -1317,6 +1323,15 @@ function renderRecentInteractions(chats) {
                         <span class="text-xs bg-primary/10 dark:bg-primary/20 text-primary dark:text-blue-400 px-2 py-0.5 rounded-full">${totalMessages || 0} msgs</span>
                     </div>
                     <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${lastMessagePreview}</p>
+                    ${lastMessage?.createdAt ? `
+<div class="flex items-center gap-1 mt-1">
+        <span class="text-xs text-gray-500 dark:text-gray-400">Last chatted at:</span>
+        <p class="text-xs text-gray-400 dark:text-gray-500 recent-chat-timestamp" 
+           data-timestamp="${lastMessage.createdAt}" 
+           data-relative-time="${lastMessage.relativeTime || ''}">
+        </p>
+    </div>
+` : ''}
                 </div>
             ` : ''}
             
@@ -1365,6 +1380,26 @@ function renderRecentInteractions(chats) {
         });
         
         container.appendChild(card);        
+        
+        // Format timestamp after card is added to DOM
+        if (window.TimeUtils && lastMessage?.createdAt) {
+            const timestampEl = card.querySelector('.recent-chat-timestamp');
+            if (timestampEl) {
+                const timestamp = timestampEl.dataset.timestamp;
+                const relativeTime = timestampEl.dataset.relativeTime;
+                if (timestamp) {
+                    try {
+                        const displayTime = relativeTime || window.TimeUtils.formatSmartTime(timestamp);
+                        const fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                        timestampEl.textContent = displayTime;
+                        timestampEl.title = fullTime;
+                    } catch (e) {
+                        console.error('Error formatting timestamp:', e);
+                        timestampEl.textContent = relativeTime || 'Just now';
+                    }
+                }
+            }
+        }
     });
 }
 
@@ -1374,6 +1409,23 @@ function renderRecentInteractions(chats) {
     document.addEventListener('DOMContentLoaded', function() {
         loadTrendingTwins();
         loadPublicChatInteractions();
+        
+        // Format timestamps for private chats in "Recent Chats" section
+        if (window.TimeUtils) {
+            document.querySelectorAll('.private-chat-timestamp').forEach(el => {
+                const timestamp = el.dataset.timestamp;
+                if (timestamp) {
+                    try {
+                        const displayTime = window.TimeUtils.formatRelativeTime(timestamp);
+                        const fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                        el.textContent = displayTime;
+                        el.title = fullTime;
+                    } catch (e) {
+                        console.error('Error formatting timestamp:', e);
+                    }
+                }
+            });
+        }
     });
     
     

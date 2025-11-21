@@ -5,7 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">    
     <title>Chat with <%= twin.publicHandle %></title>
     <link rel="stylesheet" href="/css/output.css">
+    <script src="/utils/timeUtils.js?v=<%= new Date().getTime() %>"></script>
     <script>
+        // ✅ VERIFY TimeUtils loaded - with delay check
+        (function() {
+            function checkTimeUtils() {
+                if (typeof window.TimeUtils === 'undefined') {
+                    console.error('❌ TimeUtils not loaded! Check script path.');
+                    console.error('Available scripts:', Array.from(document.scripts).map(s => s.src));
+                } else {
+                    console.log('✅ TimeUtils loaded successfully');
+                    console.log('✅ TimeUtils.setServerTime:', typeof window.TimeUtils.setServerTime);
+                    console.log('✅ TimeUtils methods:', Object.keys(window.TimeUtils));
+                }
+            }
+            // Check immediately
+            checkTimeUtils();
+            // Also check after a delay (in case script loads async)
+            setTimeout(checkTimeUtils, 100);
+        })();
+        
+        // ✅ IMMEDIATE theme application (prevents flash)
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
+    <script>
+        // ✅ Wait for TimeUtils to be ready
+        (function() {
+            if (typeof window.TimeUtils === 'undefined') {
+                console.error('❌ TimeUtils not loaded! Check script path.');
+            } else {
+                console.log('✅ TimeUtils loaded successfully');
+            }
+        })();
+        
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
             const theme = localStorage.getItem('theme') || 'light';
@@ -405,6 +442,57 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch(`/api/public-chat/twin/${currentTwinId}/chats?${params.toString()}`);
                 const data = await response.json();
                 
+                // ✅ CRITICAL: Set server time FIRST - before any other processing
+                // Force immediate execution with explicit check
+                console.log('[loadPublicChatHistory] ========== SERVER TIME SETUP START ==========');
+                console.log('[loadPublicChatHistory] Full data object:', JSON.stringify(data, null, 2));
+                console.log('[loadPublicChatHistory] data.serverTime value:', data.serverTime);
+                console.log('[loadPublicChatHistory] data.serverTime type:', typeof data.serverTime);
+                console.log('[loadPublicChatHistory] window object exists:', typeof window !== 'undefined');
+                console.log('[loadPublicChatHistory] window.TimeUtils exists:', typeof window.TimeUtils);
+                
+                // Force set server time - multiple fallback methods
+                if (data && data.serverTime) {
+                    const serverTimeStr = String(data.serverTime).trim();
+                    console.log('[loadPublicChatHistory] serverTimeStr:', serverTimeStr);
+                    
+                    if (window && window.TimeUtils) {
+                        console.log('[loadPublicChatHistory] TimeUtils object:', window.TimeUtils);
+                        console.log('[loadPublicChatHistory] setServerTime exists:', 'setServerTime' in window.TimeUtils);
+                        console.log('[loadPublicChatHistory] setServerTime type:', typeof window.TimeUtils.setServerTime);
+                        
+                        if (typeof window.TimeUtils.setServerTime === 'function') {
+                            try {
+                                window.TimeUtils.setServerTime(serverTimeStr);
+                                console.log('[loadPublicChatHistory] ✅✅✅ SERVER TIME SET SUCCESSFULLY:', serverTimeStr);
+                                console.log('[loadPublicChatHistory] ✅ Verified globalServerTime:', window.TimeUtils.globalServerTime);
+                            } catch (e) {
+                                console.error('[loadPublicChatHistory] ❌ ERROR setting server time:', e);
+                                console.error('[loadPublicChatHistory] Error stack:', e.stack);
+                            }
+                        } else {
+                            console.error('[loadPublicChatHistory] ❌ setServerTime is not a function');
+                            // Try direct assignment as fallback
+                            try {
+                                if (window.TimeUtils.globalServerTime !== undefined) {
+                                    window.TimeUtils.globalServerTime = serverTimeStr;
+                                    console.log('[loadPublicChatHistory] ✅ Set via direct assignment');
+                                }
+                            } catch (e2) {
+                                console.error('[loadPublicChatHistory] ❌ Direct assignment also failed:', e2);
+                            }
+                        }
+                    } else {
+                        console.error('[loadPublicChatHistory] ❌ window.TimeUtils not available');
+                        console.error('[loadPublicChatHistory] window keys:', Object.keys(window).slice(0, 20));
+                    }
+                } else {
+                    console.error('[loadPublicChatHistory] ❌ NO SERVER TIME IN RESPONSE');
+                    console.error('[loadPublicChatHistory] data keys:', data ? Object.keys(data) : 'data is null');
+                }
+                console.log('[loadPublicChatHistory] ========== SERVER TIME SETUP END ==========');
+                
+                // Now continue with rest of the code
                 console.log('[loadPublicChatHistory] Response received:', data);
                 console.log('[loadPublicChatHistory] Chats count:', data.chats?.length || 0);
                 
@@ -413,7 +501,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (data.success) {
                     console.log('[loadPublicChatHistory] Displaying chats:', data.chats);
-                    displayPublicChatHistory(data.chats);
+                    // ✅ Call display function AFTER setting server time
+                    displayPublicChatHistory(data.chats);                    
                     
                     // ✅ Show/hide empty state
                     if (data.chats && data.chats.length === 0) {
@@ -474,33 +563,54 @@ document.addEventListener('DOMContentLoaded', function() {
             
             try {
                 container.innerHTML = chatsToDisplay.map(chat => `
-                    <div class="chat-item p-3 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg relative group ${chat.id === currentChatId ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700' : ''}" data-chat-id="${chat.id}">
-                        <div class="flex justify-between items-start min-w-0">
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center justify-between gap-2 mb-1 min-w-0">
-                                    <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.id === currentChatId ? 'text-blue-700 dark:text-blue-400' : 'text-gray-900 dark:text-white'}" id="public-chat-title-${chat.id}">${escapeHtml(chat.title || 'Chat #' + chat.id.slice(-6))}</h4>
-                                    <div class="flex items-center gap-1 flex-shrink-0">
-                                        <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 pointer-events-auto" data-chat-id="${chat.id}" title="Edit title">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
-                                        </button>
-                                        <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.id}" title="Delete chat">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                                ${chat.lastMessage ? `
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${escapeHtml(chat.lastMessage.content)}</p>
-                                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">${new Date(chat.lastMessage.createdAt).toLocaleDateString()}</p>
-                                ` : '<p class="text-xs text-gray-500 dark:text-gray-400">No messages yet</p>'}
-                            </div>
-                        </div>
+    <div class="chat-item p-3 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg relative group ${chat.id === currentChatId ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700' : ''}" data-chat-id="${chat.id}">
+        <div class="flex justify-between items-start min-w-0">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2 mb-1 min-w-0">
+                    <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.id === currentChatId ? 'text-blue-700 dark:text-blue-400' : 'text-gray-900 dark:text-white'}" id="public-chat-title-${chat.id}">${escapeHtml(chat.title || 'Chat #' + chat.id.slice(-6))}</h4>
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 pointer-events-auto" data-chat-id="${chat.id}" title="Edit title">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                        </button>
+                        <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.id}" title="Delete chat">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
                     </div>
-                `).join('');
+                </div>
+                ${chat.lastMessage ? `
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${escapeHtml(chat.lastMessage.content)}</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 chat-timestamp" data-timestamp="${escapeHtml(chat.lastMessage.createdAt)}" data-relative-time="${escapeHtml(chat.lastMessage.relativeTime || '')}"></p>                                    
+                ` : '<p class="text-xs text-gray-500 dark:text-gray-400">No messages yet</p>'}
+            </div>
+        </div>
+    </div>
+`).join('');
 
+// ✅ FIX: Format timestamps client-side after rendering
+if (window.TimeUtils) {
+    container.querySelectorAll('.chat-timestamp').forEach(el => {
+        const timestamp = el.dataset.timestamp;
+        const relativeTime = el.dataset.relativeTime;
+        
+        if (timestamp) {
+            try {
+                // Use relativeTime from backend if available, otherwise format client-side
+                const displayTime = relativeTime || window.TimeUtils.formatSmartTime(timestamp);
+                const fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                
+                el.textContent = displayTime;
+                el.title = fullTime;
+            } catch (e) {
+                console.error('Error formatting timestamp:', e);
+                el.textContent = relativeTime || 'Just now';
+            }
+        }
+    });
+}                
                 console.log('[displayPublicChatHistory] HTML rendered, adding event listeners');
 
                 // Add event listeners for chat items
@@ -553,6 +663,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     credentials: 'include'
                 });
                 const data = await response.json();
+                
+                // ✅ CRITICAL: Set server time FIRST - before any other processing
+                if (data && data.serverTime) {
+                    const serverTimeStr = String(data.serverTime).trim();
+                    if (window && window.TimeUtils && typeof window.TimeUtils.setServerTime === 'function') {
+                        try {
+                            window.TimeUtils.setServerTime(serverTimeStr);
+                            console.log('[switchToPublicChat] ✅✅✅ SERVER TIME SET:', serverTimeStr);
+                        } catch (e) {
+                            console.error('[switchToPublicChat] ❌ ERROR setting server time:', e);
+                        }
+                    }
+                }
                 
                 if (data.success) {
             // ✅ FIX: Check if history is hidden (empty messages but chat exists)
@@ -848,43 +971,54 @@ async function createNewPublicChat() {
             chatMessages.innerHTML = '';
             
             messages.forEach(msg => {
-                addMessageToChat(msg.content, msg.sender);
+                addMessageToChat(msg.content, msg.sender, false, msg.createdAt);
             });
         }
 
         // Add message to chat (updated to support typing indicator)
-        function addMessageToChat(content, sender, isTyping = false) {
-            const chatMessages = document.getElementById('chatMessages');
-            const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            const messageDiv = document.createElement('div');
-            messageDiv.id = messageId;
-            messageDiv.className = `flex ${sender === 'human' ? 'justify-end' : 'justify-start'}`;
-            
-            if (isTyping) {
-                messageDiv.innerHTML = `
-                    <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                        <div class="flex items-center space-x-2">
-                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                            <span class="text-sm">${content}</span>
-                        </div>
-                    </div>
-                `;
-            } else {
-                messageDiv.innerHTML = `
-                    <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                        sender === 'human' 
-                            ? 'bg-blue-600 text-white' 
-                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border dark:border-gray-700'
-                    }">
-                        <p class="text-sm">${content}</p>
-                    </div>
-                `;
+        function addMessageToChat(content, sender, isTyping = false, timestamp = null) {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const messageDiv = document.createElement('div');
+    messageDiv.id = messageId;
+    messageDiv.className = `flex ${sender === 'human' ? 'justify-end' : 'justify-start'}`;
+    
+    if (isTyping) {
+        messageDiv.innerHTML = `
+            <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center space-x-2">
+                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                    <span class="text-sm">${content}</span>
+                </div>
+            </div>
+        `;
+    } else {
+        // ✅ FIX: Format timestamp using TimeUtils
+        let timeDisplay = '';
+        if (timestamp && window.TimeUtils) {
+            try {
+                timeDisplay = window.TimeUtils.formatSmartTime(timestamp);
+            } catch (e) {
+                console.error('Error formatting time:', e);
             }
-            
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            return messageId;
         }
+        
+        messageDiv.innerHTML = `
+            <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                sender === 'human' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border dark:border-gray-700'
+            }">
+                <p class="text-sm">${content}</p>
+                ${timeDisplay ? `<p class="text-xs mt-1 opacity-70" title="${window.TimeUtils?.formatFullDateTime?.(timestamp) || ''}">${timeDisplay}</p>` : ''}
+            </div>
+        `;
+    }
+    
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return messageId;
+}
 
         // Remove message helper
         function removeMessage(messageId) {
@@ -897,68 +1031,75 @@ async function createNewPublicChat() {
         /**
          * Display text with word-by-word typing effect (same as chat-enhanced.ejs)
          */
-        function displayWithTypingEffect(sender, fullText, metadata = null, callback = null) {
-            const messagesContainer = document.getElementById('chatMessages');
-            const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+         function displayWithTypingEffect(sender, fullText, metadata = null, callback = null) {
+    const messagesContainer = document.getElementById('chatMessages');
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.id = messageId;
+    messageDiv.className = `flex ${sender === 'user' || sender === 'human' ? 'justify-end' : 'justify-start'}`;
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+        sender === 'user' || sender === 'human' 
+            ? 'bg-blue-600 text-white' 
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
+    }`;
+    
+    messageDiv.appendChild(messageContent);
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    // ✅ FIX: Get timestamp from metadata
+    const timestamp = metadata?.timestamp || null;
+    let timeDisplay = '';
+    if (timestamp && window.TimeUtils) {
+        try {
+            timeDisplay = window.TimeUtils.formatSmartTime(timestamp);
+        } catch (e) {
+            console.error('Error formatting time:', e);
+        }
+    }
+    
+    // Split into words for realistic typing
+    const words = fullText.split(/(\s+)/);
+    let currentWordIndex = 0;
+    let currentText = '';
+    
+    function typeNextWord() {
+        if (currentWordIndex < words.length) {
+            const word = words[currentWordIndex];
+            currentText += word;
             
-            const messageDiv = document.createElement('div');
-            messageDiv.id = messageId;
-            messageDiv.className = `flex ${sender === 'user' || sender === 'human' ? 'justify-end' : 'justify-start'}`;
+            // Show text with blinking cursor
+            messageContent.innerHTML = `
+                <p class="text-sm">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
+            `;
             
-            const messageContent = document.createElement('div');
-            messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                sender === 'user' || sender === 'human' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
-            }`;
-            
-            messageDiv.appendChild(messageContent);
-            messagesContainer.appendChild(messageDiv);
+            currentWordIndex++;
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
             
-            // Split into words for realistic typing
-            const words = fullText.split(/(\s+)/); // Keep spaces
-            let currentWordIndex = 0;
-            let currentText = '';
+            const baseSpeed = word.length < 3 ? 20 : word.length < 6 ? 40 : 60;
+            const randomDelay = Math.random() * 30;
+            const speed = baseSpeed + randomDelay;
             
-            function typeNextWord() {
-                if (currentWordIndex < words.length) {
-                    const word = words[currentWordIndex];
-                    currentText += word;
-                    
-                    // Show text with blinking cursor
-                    messageContent.innerHTML = `
-                        <p class="text-sm">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
-                    `;
-                    
-                    currentWordIndex++;
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                    
-                    // ✅ Variable speed: faster for short words, slower for long words
-                    // Also add small random delay to feel more natural
-                    const baseSpeed = word.length < 3 ? 20 : word.length < 6 ? 40 : 60;
-                    const randomDelay = Math.random() * 30; // 0-30ms random
-                    const speed = baseSpeed + randomDelay;
-                    
-                    setTimeout(typeNextWord, speed);
-                } else {
-                    // Typing complete - show final text
-                    messageContent.innerHTML = `
-                        <p class="text-sm">${fullText}</p>
-                    `;
-                    
-                    // Call callback if provided
-                    if (callback) {
-                        callback(messageId);
-                    }
-                }
+            setTimeout(typeNextWord, speed);
+        } else {
+            // ✅ FIX: Typing complete - show final text WITH timestamp
+            messageContent.innerHTML = `
+                <p class="text-sm">${fullText}</p>
+                ${timeDisplay ? `<p class="text-xs mt-1 opacity-70" title="${window.TimeUtils?.formatFullDateTime?.(timestamp) || ''}">${timeDisplay}</p>` : ''}
+            `;
+            
+            if (callback) {
+                callback(messageId);
             }
-            
-            // Start typing
-            typeNextWord();
-            
-            return messageId;
         }
+    }
+    
+    typeNextWord();
+    return messageId;
+}
 
         // Send message (updated with typing effect)
 
@@ -1127,7 +1268,7 @@ async function sendMessage() {
              }
             
             // ✅ Add user message and create typing indicator
-            addMessageToChat(message, 'human');
+            addMessageToChat(message, 'human', false, new Date().toISOString());
             const typingId = addMessageToChat('Thinking...', 'ai', true);
             messageInput.value = '';
             
@@ -1141,6 +1282,19 @@ async function sendMessage() {
                 });
 
                 const data = await response.json();
+                
+                // ✅ CRITICAL: Set server time FIRST - before any other processing
+                if (data && data.serverTime) {
+                    const serverTimeStr = String(data.serverTime).trim();
+                    if (window && window.TimeUtils && typeof window.TimeUtils.setServerTime === 'function') {
+                        try {
+                            window.TimeUtils.setServerTime(serverTimeStr);
+                            console.log('[sendMessage] ✅✅✅ SERVER TIME SET:', serverTimeStr);
+                        } catch (e) {
+                            console.error('[sendMessage] ❌ ERROR setting server time:', e);
+                        }
+                    }
+                }
                 
                 // Remove typing indicator
                 removeMessage(typingId);

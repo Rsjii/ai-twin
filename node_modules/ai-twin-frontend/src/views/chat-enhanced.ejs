@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Enhanced Chat - AI Twin</title>
     <link rel="stylesheet" href="/css/output.css">
+    <script src="/utils/timeUtils.js?v=<%= new Date().getTime() %>"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
@@ -663,10 +664,9 @@ function submitModalFeedback() {
 }
 
 // Global helper functions
-function addMessageToChat(sender, content, isTyping = false, metadata = null) {
+function addMessageToChat(sender, content, isTyping = false, metadata = null, timestamp=null){
     const messagesContainer = document.getElementById('chatMessages');
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
     const messageDiv = document.createElement('div');
     messageDiv.id = messageId;
     messageDiv.className = `flex flex-col ${sender === 'user' ? 'justify-end items-end' : 'justify-start items-start'}`;
@@ -697,6 +697,15 @@ function addMessageToChat(sender, content, isTyping = false, metadata = null) {
     messageContent.innerHTML = `
                 <p class="text-sm dark:text-white">${content}</p>
     `;
+    }
+
+     // Add timestamp if provided
+     if (timestamp && window.TimeUtils) {
+        const timestampEl = document.createElement('div');
+        timestampEl.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
+        timestampEl.textContent = window.TimeUtils.formatSmartTime(timestamp);
+        timestampEl.title = window.TimeUtils.formatFullDateTime(timestamp);
+        messageContent.appendChild(timestampEl);
     }
     
     messageWrapper.appendChild(messageContent);
@@ -779,6 +788,16 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
             messageContent.innerHTML = `
                 <p class="text-sm dark:text-white">${fullText}</p>
             `;
+            
+            // Add timestamp if TimeUtils is available
+            if (window.TimeUtils) {
+                const timestampEl = document.createElement('div');
+                timestampEl.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
+                const timestamp = metadata?.timestamp || new Date().toISOString();
+                timestampEl.textContent = window.TimeUtils.formatSmartTime(timestamp);
+                timestampEl.title = window.TimeUtils.formatFullDateTime(timestamp);
+                messageContent.appendChild(timestampEl);
+            }
             
             // Add metadata display if provided
             if (metadata && (metadata.intent || metadata.criticScore !== undefined)) {
@@ -1048,7 +1067,7 @@ async function loadCurrentChatMessages() {
             if (messagesContainer) messagesContainer.innerHTML = '';
             
             // Show welcome message for draft
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
             return;
         }
         
@@ -1107,6 +1126,15 @@ async function loadCurrentChatMessages() {
         <p class="text-sm">${msg.content}</p>
     `;
     
+    // Add timestamp if available
+    if (msg.createdAt && window.TimeUtils) {
+        const timestampEl = document.createElement('div');
+        timestampEl.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
+        timestampEl.textContent = window.TimeUtils.formatSmartTime(msg.createdAt);
+        timestampEl.title = window.TimeUtils.formatFullDateTime(msg.createdAt);
+        messageContent.appendChild(timestampEl);
+    }
+    
     messageWrapper.appendChild(messageContent);
     messageDiv.appendChild(messageWrapper);
     messageDiv.appendChild(actionsContainer); // ✅ Actions container separate
@@ -1128,16 +1156,16 @@ async function loadCurrentChatMessages() {
 });
         } else {
                 // Show welcome message if no history
-                addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+                addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
             }
         } else {
             // Show welcome message if loading fails
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
         }
     } catch (error) {
         console.error('Error loading chat history:', error);
         // Show welcome message if error
-        addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+        addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
         // Hide loading, show error
         if (initialLoading) initialLoading.classList.add('hidden');
         if (errorState) errorState.classList.remove('hidden');
@@ -1156,7 +1184,7 @@ async function loadChatMessages() {
             if (messagesContainer) messagesContainer.innerHTML = '';
             
             // Show welcome message for draft
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
             return;
         }
         
@@ -1205,6 +1233,15 @@ async function loadChatMessages() {
                     messageContent.innerHTML = `
                         <p class="text-sm">${msg.content}</p>
                     `;
+                    
+                    // Add timestamp if available
+                    if (msg.createdAt && window.TimeUtils) {
+                        const timestampEl = document.createElement('div');
+                        timestampEl.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
+                        timestampEl.textContent = window.TimeUtils.formatSmartTime(msg.createdAt);
+                        timestampEl.title = window.TimeUtils.formatFullDateTime(msg.createdAt);
+                        messageContent.appendChild(timestampEl);
+                    }
                     
                     // ✅ Create actions container for AI messages
                     const actionsContainer = document.createElement('div');
@@ -1296,7 +1333,7 @@ function displayChatHistory(chats) {
                             </button>
                         </div>
                     </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${chat.lastMessage ? (chat.lastMessage.length > 50 ? chat.lastMessage.substring(0, 50) + '...' : chat.lastMessage) : 'No messages yet'}</p>
+<p class="text-xs text-gray-500 dark:text-gray-400 truncate">${chat.lastMessage ? (typeof chat.lastMessage === 'string' ? (chat.lastMessage.length > 50 ? chat.lastMessage.substring(0, 50) + '...' : chat.lastMessage) : (chat.lastMessage.content && chat.lastMessage.content.length > 50 ? chat.lastMessage.content.substring(0, 50) + '...' : (chat.lastMessage.content || 'No messages yet'))) : 'No messages yet'}</p>
                 </div>
             </div>
             <div class="flex items-center justify-between mt-2">
@@ -1774,10 +1811,11 @@ if (messageForm) {
         
         try {
             // ✅ FIX: Add user message to chat UI first
-            addMessageToChat('user', message);
+            const userMessageTimestamp = new Date().toISOString();
+            addMessageToChat('user', message, false, null, userMessageTimestamp);
             
             // ✅ FIX: Create typing indicator
-            typingId = addMessageToChat('ai', 'Thinking...', true);
+            typingId = addMessageToChat('ai', 'Thinking...', true, null, null);
 
             // ✅ Check if draft chat, convert to actual chat first
 let actualChatId = currentChatId;
@@ -1890,7 +1928,8 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
                 const responseId = displayWithTypingEffect('ai', data.response, {
                     intent: data.intent,
                     criticScore: data.criticScore,
-                    latency: data.latency
+                    latency: data.latency,
+                    timestamp: data.timestamp || new Date().toISOString()
                 }, (messageId) => {
                     // Callback after typing completes
                     // Store response metadata for actions
@@ -1942,7 +1981,7 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
                 if (generatingIndicator) {
                     generatingIndicator.classList.add('hidden');
                 }
-                addMessageToChat('ai', 'Sorry, I had trouble processing that. Please try again.');
+                addMessageToChat('ai', 'Sorry, I had trouble processing that. Please try again.', false, null, new Date().toISOString());
                 
                 // ✅ RE-ENABLE: Input and button on error
                 messageInput.disabled = false;

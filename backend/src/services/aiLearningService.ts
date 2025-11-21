@@ -24,18 +24,19 @@ export async function updateAILearning(
     const twinId = chatResult.rows[0].twinId;
     
     // Store learning data
+    const utcTimestamp = new Date().toISOString();
     await db.query(`
       INSERT INTO "AILearning" ("twinId", "userId", "learningData", "lastUpdated")
-      VALUES ($1, $2, $3, NOW())
+      VALUES ($1, $2, $3, $4::timestamptz)
       ON CONFLICT ("twinId") DO UPDATE SET
         "learningData" = $3,
-        "lastUpdated" = NOW()
+        "lastUpdated" = $4::timestamptz
     `, [twinId, chatId, JSON.stringify({
       rating,
       suggestion,
       tonePreference,
-      timestamp: new Date().toISOString()
-    })]);
+      timestamp: utcTimestamp
+    }), utcTimestamp]);
   } catch (error) {
     console.error('Update AI learning error:', error);
     // Don't throw - allow request to continue even if learning update fails

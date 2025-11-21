@@ -39,15 +39,16 @@ export async function updateTwinPerformanceScores(twinId: string): Promise<void>
     
     // Upsert to TwinPerformance table
     const id = generateId.twinPerf();
+    const utcTimestamp = new Date().toISOString();
     await db.query(`
       INSERT INTO "TwinPerformance" (id, "twinId", "engagementScore", "popularityScore", "updatedAt")
-      VALUES ($1, $2, $3, $4, NOW())
+      VALUES ($1, $2, $3, $4, $5::timestamptz)
       ON CONFLICT ("twinId")
       DO UPDATE SET
         "engagementScore" = EXCLUDED."engagementScore",
         "popularityScore" = EXCLUDED."popularityScore",
-        "updatedAt" = NOW()
-    `, [id, twinId, engagementScore, popularityScore]);
+        "updatedAt" = $5::timestamptz
+    `, [id, twinId, engagementScore, popularityScore, utcTimestamp]);
     
     logger.debug(`Updated TwinPerformance scores for twin ${twinId}: engagement=${engagementScore.toFixed(2)}, popularity=${popularityScore.toFixed(2)}`);
   } catch (error) {

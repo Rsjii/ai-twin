@@ -28,7 +28,7 @@
                             </p>
                             <div class="w-2 h-2 bg-white/60 rounded-full"></div>
                             <p class="text-sm opacity-75 text-white/75">
-                                Member since <%= new Date(profileUser.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) %>
+                                Member since <span id="profile-member-since" data-timestamp="<%= profileUser.createdAt %>"></span>
                             </p>
                         </div>
                         <% if (profileUser.bio) { %>
@@ -179,3 +179,22 @@
         </div>
     <% } %>
 </div>
+
+<script>
+// Format profile member since date using TimeUtils
+document.addEventListener('DOMContentLoaded', () => {
+    const memberSinceEl = document.getElementById('profile-member-since');
+    if (memberSinceEl && memberSinceEl.dataset.timestamp) {
+        if (typeof TimeUtils !== 'undefined' && TimeUtils.formatExactTime) {
+            const formatted = TimeUtils.formatExactTime(memberSinceEl.dataset.timestamp, { month: 'short', year: 'numeric' });
+            memberSinceEl.textContent = formatted;
+            memberSinceEl.title = TimeUtils.formatFullDateTime(memberSinceEl.dataset.timestamp);
+        } else {
+            // Fallback if TimeUtils not loaded
+            const date = new Date(memberSinceEl.dataset.timestamp);
+            const formatted = window.TimeUtils ? window.TimeUtils.formatDateOnly(memberSinceEl.dataset.timestamp) : date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            memberSinceEl.textContent = formatted;
+        }
+    }
+});
+</script>

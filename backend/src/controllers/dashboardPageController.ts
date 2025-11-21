@@ -4,8 +4,8 @@ import { Response } from 'express';
 import { userQueries, twinQueries } from '../config/database';
 import { db } from '../config/database';
 import { logger } from '../config/logger';
-import { AppError, createError } from '../utils/errors';
 import { handleControllerError } from '../utils/errorHandler';
+import { normalizeTimestamp } from '../utils/timestampUtils';
 
 /**
  * Dashboard page - Main user dashboard
@@ -96,8 +96,8 @@ export async function getDashboard(req: any, res: Response) {
         recentActivity = recentChatsResult.rows.map(chat => ({
           id: chat.id,
           title: chat.title || 'Untitled Chat',
-          createdAt: chat.createdAt,
-          updatedAt: chat.updatedAt
+          createdAt: normalizeTimestamp(chat.createdAt),
+          updatedAt: normalizeTimestamp(chat.updatedAt)
         }));
       }
     } catch (error) {
