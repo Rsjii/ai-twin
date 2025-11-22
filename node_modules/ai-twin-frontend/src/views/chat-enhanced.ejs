@@ -467,19 +467,39 @@ async function downvoteResponse(responseId) {
     }
 }
 
-        async function regenerateResponse(responseId) {
+async function regenerateResponse(responseId) {
     try {
         showNotification('Regenerating response... 🔄', 'info');
         
-        // Get the original user message from the chat history
-        const messages = document.querySelectorAll('[id^="msg_"]');
-        let lastUserMessage = null;
+        // Find the response element and its position
+        const responseElement = document.getElementById(responseId);
+        if (!responseElement) {
+            showNotification('Response not found', 'error');
+            return;
+        }
+
+        // FIXED: Get the database message ID from the response element
+        const dbMessageId = responseElement.dataset.dbMessageId || responseId;
         
-        // Find the last user message before this AI response
-        for (let i = messages.length - 1; i >= 0; i--) {
+        // Get all messages to find the user message before this response
+        const messages = Array.from(document.querySelectorAll('[id^="msg_"]'));
+        const responseIndex = messages.findIndex(msg => msg.id === responseId);
+        
+        if (responseIndex === -1) {
+            showNotification('Could not find response in chat', 'error');
+            return;
+        }
+        
+        // Find the user message before this AI response
+        let lastUserMessage = null;
+        let userMessageId = null;
+        
+        for (let i = responseIndex - 1; i >= 0; i--) {
             const msg = messages[i];
-            if (msg.querySelector('.bg-blue-600')) { // User message
-                lastUserMessage = msg.querySelector('.bg-blue-600').textContent.trim();
+            const userMsgElement = msg.querySelector('.bg-blue-600, .bg-blue-500');
+            if (userMsgElement) {
+                lastUserMessage = userMsgElement.textContent.trim();
+                userMessageId = msg.id;
                 break;
             }
         }
@@ -489,7 +509,16 @@ async function downvoteResponse(responseId) {
             return;
         }
         
-        // Re-run the same prompt
+        // ✅ STEP 1: Delete the response element itself AND all messages after it (from DOM)
+        // This matches backend behavior - backend deletes the AI response and all subsequent messages
+        responseElement.remove(); // Remove the response being regenerated
+        
+        // Remove all messages after the response
+        for (let i = responseIndex + 1; i < messages.length; i++) {
+            messages[i].remove();
+        }
+        
+        // ✅ STEP 2: Regenerate the response (backend will handle deletion from database)
         const response = await fetch(`/api/enhanced-chat/${currentChatId}/enhanced-reply`, {
             method: 'POST',
             headers: {
@@ -498,21 +527,85 @@ async function downvoteResponse(responseId) {
             },
             body: JSON.stringify({
                 message: lastUserMessage,
-                strictStyle: false
+                strictStyle: false,
+                regenerate: true, // Backend will delete old AI response and all messages after it
+                regenerateMessageId: dbMessageId // ✅ Pass the database message ID to backend
             })
         });
         
         const data = await response.json();
         
         if (data.success && data.response) {
-            // Update the response in the UI
-            const responseElement = document.getElementById(responseId);
-            if (responseElement) {
-                const contentDiv = responseElement.querySelector('.bg-white.border, .message-content');
-                if (contentDiv) {
-                    contentDiv.textContent = data.response;
+            // ✅ STEP 3: Create NEW response element (don't update old one, it's already deleted)
+            // Find the user message element to insert after
+            const userMessageElement = document.getElementById(userMessageId);
+            if (userMessageElement) {
+                // Create new AI response element
+                const newResponseId = data.messageId || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const newResponseDiv = document.createElement('div');
+                newResponseDiv.id = newResponseId;
+                newResponseDiv.dataset.dbMessageId = data.messageId || newResponseId;
+                newResponseDiv.className = 'flex flex-col justify-start items-start';
+                
+                const messageWrapper = document.createElement('div');
+                messageWrapper.className = 'flex justify-start';
+                
+                const messageContent = document.createElement('div');
+                messageContent.className = 'max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white';
+                messageContent.innerHTML = `<p class="text-sm dark:text-white">${data.response}</p>`;
+                
+                // Add timestamp
+                if (window.TimeUtils) {
+                    const timestampEl = document.createElement('div');
+                    timestampEl.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
+                    const timestamp = data.timestamp || new Date().toISOString();
+                    timestampEl.textContent = window.TimeUtils.formatSmartTime(timestamp);
+                    timestampEl.title = window.TimeUtils.formatFullDateTime(timestamp);
+                    messageContent.appendChild(timestampEl);
                 }
+                
+                // Create actions container
+                const actionsContainer = document.createElement('div');
+                actionsContainer.id = `actions_${newResponseId}`;
+                actionsContainer.className = 'mt-2';
+                
+                messageWrapper.appendChild(messageContent);
+                newResponseDiv.appendChild(messageWrapper);
+                newResponseDiv.appendChild(actionsContainer);
+                
+                // Insert after user message
+                userMessageElement.parentNode.insertBefore(newResponseDiv, userMessageElement.nextSibling);
+                
+                // Add response actions buttons
+                setTimeout(() => {
+                    addResponseActionsButton(newResponseId);
+                }, 200);
+                
+                // Scroll to bottom
+                const messagesContainer = document.getElementById('chatMessages');
+                if (messagesContainer) {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+            } else {
+                // Fallback: use displayWithTypingEffect if user message not found
+                displayWithTypingEffect('ai', data.response, {
+                    intent: data.intent,
+                    criticScore: data.criticScore,
+                    latency: data.latency,
+                    timestamp: data.timestamp || new Date().toISOString()
+                }, (messageId) => {
+                    // Update dataset with database ID
+                    const msgElement = document.getElementById(messageId);
+                    if (msgElement && data.messageId) {
+                        msgElement.dataset.dbMessageId = data.messageId;
+                    }
+                    // Add actions
+                    setTimeout(() => {
+                        addResponseActionsButton(messageId);
+                    }, 200);
+                });
             }
+            
             showNotification('Response regenerated! 🔄', 'success');
         } else {
             showNotification('Failed to regenerate response', 'error');
@@ -1105,6 +1198,7 @@ async function loadCurrentChatMessages() {
     // Create message with specific ID
     const messageDiv = document.createElement('div');
     messageDiv.id = messageId;
+    messageDiv.dataset.dbMessageId = msg.id; // ✅ ADD: Store database ID
     messageDiv.className = `flex flex-col ${sender === 'user' ? 'justify-end items-end' : 'justify-start items-start'}`;
     
     const messageWrapper = document.createElement('div');

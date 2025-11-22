@@ -6,7 +6,7 @@ import { config } from '../../config/env';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { generateJWT } from '../../services/jwtService';
-import { ErrorCodes } from '../../utils/errors';
+import { createError, ErrorCodes } from '../../utils/errors';
 import { handleControllerError, handleErrorWithResponse } from '../../utils/errorHandler';
 import { logEvent } from '../../services/eventLogger';
 
@@ -309,6 +309,20 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
       email: z.string().email('Invalid email format'),
       password: z.string().min(6, 'Password must be at least 6 characters'),
     }).parse(req.body);
+
+    // Check if password is same as current password
+    const user = await userQueries.findByEmail(email.toLowerCase());
+    if (!user) {
+      throw createError.notFound('User not found', ErrorCodes.USER_NOT_FOUND);
+    }
+
+     // Check if user has a password set
+     if (user.passwordHash) {
+      const isSamePassword = await verifyPassword(password, user.passwordHash);
+      if (isSamePassword) {
+        throw createError.validation('Password is same as current password', ErrorCodes.VALIDATION_ERROR);
+      }
+    }
     
     // Hash new password
     const passwordHash = await hashPassword(password);

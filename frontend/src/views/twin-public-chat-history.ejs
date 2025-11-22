@@ -95,6 +95,18 @@
                         <option value="messageCount">Message Count</option>
                     </select>
                 </div>
+                <!-- User Sort (always rendered, hidden when view is 'chat') -->
+                <div id="userSortByContainer" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sort Users By</label>
+                    <select 
+                        id="filterUserSortBy"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                        <option value="lastActivity">Last Activity</option>
+                        <option value="totalMessages">Total Messages</option>
+                        <option value="totalChats">Total Chats</option>
+                    </select>
+                </div>
                 <!-- Advanced Filters -->
                 <div class="md:col-span-2 lg:col-span-4">
                     <details class="group">
@@ -183,7 +195,8 @@
             search: '',
             sortBy: 'lastActivity',
             minMessages: '',
-            maxMessages: ''
+            maxMessages: '',
+            userSortBy: 'lastActivity' // Added for user-wise view
         };
 
         let searchDebounceTimer = null;
@@ -208,6 +221,10 @@
                 // ✅ NEW: Advanced filters
                 if (currentFilters.minMessages) params.append('minMessages', currentFilters.minMessages);
                 if (currentFilters.maxMessages) params.append('maxMessages', currentFilters.maxMessages);
+                // ✅ NEW: User sort (only for user-wise view)
+                if (currentView === 'user' && currentFilters.userSortBy) {
+                    params.append('userSortBy', currentFilters.userSortBy);
+                }
 
                 const endpoint = currentView === 'user' 
                     ? `/api/public-chat/twin/${twinId}/user-chats?${params.toString()}`
@@ -486,6 +503,10 @@
             currentFilters.dateFrom = document.getElementById('filterDateFrom')?.value || '';
             currentFilters.dateTo = document.getElementById('filterDateTo')?.value || '';
             currentFilters.sortBy = document.getElementById('filterSortBy')?.value || 'lastActivity';
+            // ✅ NEW: User sort
+            if (currentView === 'user') {
+                currentFilters.userSortBy = document.getElementById('filterUserSortBy')?.value || 'lastActivity';
+            }
             // ✅ NEW: Advanced filters
             currentFilters.minMessages = document.getElementById('filterMinMessages')?.value || '';
             currentFilters.maxMessages = document.getElementById('filterMaxMessages')?.value || '';
@@ -617,7 +638,8 @@
                 search: '',
                 sortBy: 'lastActivity',
                 minMessages: '',
-                maxMessages: ''
+                maxMessages: '',
+                userSortBy: 'lastActivity' // Added for user-wise view
             };
             
             // Clear all input fields
@@ -625,6 +647,7 @@
             const filterDateFrom = document.getElementById('filterDateFrom');
             const filterDateTo = document.getElementById('filterDateTo');
             const filterSortBy = document.getElementById('filterSortBy');
+            const filterUserSortBy = document.getElementById('filterUserSortBy');
             const filterMinMessages = document.getElementById('filterMinMessages');
             const filterMaxMessages = document.getElementById('filterMaxMessages');
             const quickDatePreset = document.getElementById('quickDatePreset');
@@ -633,6 +656,7 @@
             if (filterDateFrom) filterDateFrom.value = '';
             if (filterDateTo) filterDateTo.value = '';
             if (filterSortBy) filterSortBy.value = 'lastActivity';
+            if (filterUserSortBy) filterUserSortBy.value = 'lastActivity';
             if (filterMinMessages) filterMinMessages.value = '';
             if (filterMaxMessages) filterMaxMessages.value = '';
             if (quickDatePreset) quickDatePreset.value = '';
@@ -647,9 +671,15 @@
             if (view === 'chat') {
                 document.getElementById('viewChatBtn').className = 'px-4 py-2 rounded-lg transition-colors bg-primary text-white';
                 document.getElementById('viewUserBtn').className = 'px-4 py-2 rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600';
+                // Hide user sort option
+                const userSortContainer = document.getElementById('userSortByContainer');
+                if (userSortContainer) userSortContainer.classList.add('hidden');
             } else {
                 document.getElementById('viewChatBtn').className = 'px-4 py-2 rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600';
                 document.getElementById('viewUserBtn').className = 'px-4 py-2 rounded-lg transition-colors bg-primary text-white';
+                // Show user sort option
+                const userSortContainer = document.getElementById('userSortByContainer');
+                if (userSortContainer) userSortContainer.classList.remove('hidden');
             }
             // ✅ IMPORTANT: Preserve filters when switching views
             currentPage = 1;
@@ -720,6 +750,17 @@
                 filterSortBy.addEventListener('change', () => {
                     currentFilters.sortBy = filterSortBy.value;
                     applyFilters();
+                });
+            }
+            
+            // ✅ NEW: User sort select - Instant auto-apply on change
+            const userSortBySelect = document.getElementById('filterUserSortBy');
+            if (userSortBySelect) {
+                userSortBySelect.addEventListener('change', () => {
+                    if (currentView === 'user') {
+                        currentFilters.userSortBy = userSortBySelect.value;
+                        applyFilters();
+                    }
                 });
             }
             
@@ -800,6 +841,16 @@
             
             // Initial filter display
             updateActiveFiltersDisplay();
+            
+            // ✅ Set initial visibility of user sort based on current view
+            const userSortContainer = document.getElementById('userSortByContainer');
+            if (userSortContainer) {
+                if (currentView === 'user') {
+                    userSortContainer.classList.remove('hidden');
+                } else {
+                    userSortContainer.classList.add('hidden');
+                }
+            }
         });
     </script>    
 </body>

@@ -4,7 +4,8 @@ import {
   generateEnhancedReply,
   applyStyleCorrection,
   addToAnchors,
-  getChatHistory
+  getChatHistory,
+  deleteMessagesAfter
 } from './enhancedChatController';
 import {
   submitChatFeedback,
@@ -29,5 +30,8 @@ router.post('/:chatId/regenerate', regenerateResponse);
 router.post('/:chatId/feedback', submitChatFeedback);
 router.get('/:chatId/feedback-status', getChatFeedbackStatus);
 router.post('/:chatId/adjust-tone', adjustTone);
+
+// Delete messages after endpoint
+router.delete('/:chatId/delete-messages-after', deleteMessagesAfter);
 
 export default router;

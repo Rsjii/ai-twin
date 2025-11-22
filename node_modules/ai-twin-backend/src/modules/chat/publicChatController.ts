@@ -1241,7 +1241,8 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
     const dateFrom = req.query.dateFrom as string | undefined;
     const dateTo = req.query.dateTo as string | undefined;
     const search = req.query.search as string | undefined;
-    const sortBy = (req.query.sortBy as string) || 'lastActivity'; // 'lastActivity' | 'totalMessages' | 'totalChats'
+    const sortBy = (req.query.sortBy as string) || 'lastActivity'; // For sorting chats within users
+    const userSortBy = (req.query.userSortBy as string) || 'lastActivity'; // For sorting users: 'lastActivity' | 'totalMessages' | 'totalChats'
     const minMessages = req.query.minMessages ? parseInt(req.query.minMessages as string, 10) : undefined;
     const maxMessages = req.query.maxMessages ? parseInt(req.query.maxMessages as string, 10) : undefined;
 
@@ -1262,7 +1263,7 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
 
     const twin = twinResult.rows[0];
 
-    // Build WHERE conditions (for filtering chats)
+    // Build WHERE conditions for filtering INDIVIDUAL CHATS (not users)
     let whereConditions = ['pc."twinId" = $1', 'pc."userId" IS NOT NULL'];
     let params: any[] = [twinId];
     let paramIndex = 2;
@@ -1279,6 +1280,19 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
       paramIndex++;
     }
 
+    // ✅ FIX: Apply message count filters to INDIVIDUAL CHATS (not users)
+    if (minMessages !== undefined && !isNaN(minMessages)) {
+      whereConditions.push(`pc."messageCount" >= $${paramIndex}`);
+      params.push(minMessages);
+      paramIndex++;
+    }
+
+    if (maxMessages !== undefined && !isNaN(maxMessages)) {
+      whereConditions.push(`pc."messageCount" <= $${paramIndex}`);
+      params.push(maxMessages);
+      paramIndex++;
+    }
+
     // Search condition
     let searchJoin = '';
     let searchCondition = '';
@@ -1291,36 +1305,22 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
       paramIndex++;
     }
 
-    // ✅ NEW: Build HAVING clause for message count filtering (filters users by total messages)
-    let havingConditions: string[] = [];
-    if (minMessages !== undefined && !isNaN(minMessages)) {
-      havingConditions.push(`SUM(pc."messageCount") >= $${paramIndex}`);
-      params.push(minMessages);
-      paramIndex++;
-    }
-
-    if (maxMessages !== undefined && !isNaN(maxMessages)) {
-      havingConditions.push(`SUM(pc."messageCount") <= $${paramIndex}`);
-      params.push(maxMessages);
-      paramIndex++;
-    }
-
-    // ✅ NEW: Build ORDER BY clause for user sorting
-    let orderByClause = '';
-    switch (sortBy) {
+    // ✅ NEW: Build ORDER BY clause for USER sorting
+    let userOrderByClause = '';
+    switch (userSortBy) {
       case 'totalMessages':
-        orderByClause = 'total_messages DESC';
+        userOrderByClause = 'total_messages DESC';
         break;
       case 'totalChats':
-        orderByClause = 'total_chats DESC';
+        userOrderByClause = 'total_chats DESC';
         break;
       case 'lastActivity':
       default:
-        orderByClause = 'last_activity DESC';
+        userOrderByClause = 'last_activity DESC';
         break;
     }
 
-    // Get users with their chat stats
+    // Get users with their chat stats (based on FILTERED chats)
     const usersResult = await db.query(`
       SELECT DISTINCT
         u.id as user_id,
@@ -1336,34 +1336,41 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
       WHERE ${whereConditions.join(' AND ')}
       ${searchCondition}
       GROUP BY u.id, u.handle, u.name, u."profileImage"
-      ${havingConditions.length > 0 ? `HAVING ${havingConditions.join(' AND ')}` : ''}
-      ORDER BY ${orderByClause}
+      ORDER BY ${userOrderByClause}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `, [...params, limit, offset]);
 
-    // Get total user count (with HAVING clause for message count filters)
+    // Get total user count (users who have at least one chat matching filters)
     const totalUsersResult = await db.query(`
-      SELECT COUNT(*) as total
-      FROM (
-        SELECT 
-          u.id,
-          SUM(pc."messageCount") as total_messages
-        FROM "PublicChat" pc
-        INNER JOIN "User" u ON pc."userId" = u.id
-        ${searchJoin}
-        WHERE ${whereConditions.join(' AND ')}
-        ${searchCondition}
-        GROUP BY u.id
-        ${havingConditions.length > 0 ? `HAVING ${havingConditions.join(' AND ')}` : ''}
-      ) as filtered_users
+      SELECT COUNT(DISTINCT u.id) as total
+      FROM "PublicChat" pc
+      INNER JOIN "User" u ON pc."userId" = u.id
+      ${searchJoin}
+      WHERE ${whereConditions.join(' AND ')}
+      ${searchCondition}
     `, params);
 
     const totalUsers = parseInt(totalUsersResult.rows[0]?.total || '0', 10);
 
-    // For each user, get their chats
+    // ✅ NEW: Build ORDER BY clause for CHAT sorting (within each user)
+    let chatOrderByClause = '';
+    switch (sortBy) {
+      case 'messageCount':
+        chatOrderByClause = 'pc."messageCount" DESC';
+        break;
+      case 'createdAt':
+        chatOrderByClause = 'pc."createdAt" DESC';
+        break;
+      case 'lastActivity':
+      default:
+        chatOrderByClause = 'COALESCE(pc."lastActivity", pc."createdAt") DESC';
+        break;
+    }
+
+    // For each user, get their FILTERED chats (with same filters applied)
     const usersWithChats = await Promise.all(
       usersResult.rows.map(async (userRow) => {
-        // Build WHERE conditions for individual user chats with filters
+        // Build WHERE conditions for individual user chats (apply ALL filters)
         let chatWhereConditions = ['pc."twinId" = $1', 'pc."userId" = $2'];
         let chatParams: any[] = [twinId, userRow.user_id];
         let chatParamIndex = 3;
@@ -1378,6 +1385,19 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
         if (dateTo) {
           chatWhereConditions.push(`pc."createdAt" <= $${chatParamIndex}::timestamptz`);
           chatParams.push(dateTo);
+          chatParamIndex++;
+        }
+
+        // ✅ FIX: Apply message count filters to INDIVIDUAL CHATS
+        if (minMessages !== undefined && !isNaN(minMessages)) {
+          chatWhereConditions.push(`pc."messageCount" >= $${chatParamIndex}`);
+          chatParams.push(minMessages);
+          chatParamIndex++;
+        }
+
+        if (maxMessages !== undefined && !isNaN(maxMessages)) {
+          chatWhereConditions.push(`pc."messageCount" <= $${chatParamIndex}`);
+          chatParams.push(maxMessages);
           chatParamIndex++;
         }
 
@@ -1419,7 +1439,7 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
           ${chatSearchJoin}
           WHERE ${chatWhereConditions.join(' AND ')}
           ${chatSearchCondition}
-          ORDER BY sort_date DESC
+          ORDER BY ${chatOrderByClause}
           LIMIT 10
         `, chatParams);
 
@@ -1466,7 +1486,8 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
         dateFrom,
         dateTo,
         search,
-        sortBy,
+        sortBy, // For sorting chats within users
+        userSortBy, // For sorting users
         minMessages,
         maxMessages
       }

@@ -1,0 +1,138 @@
+1. rmeber this bolne par save bhi ho rahi hai kya wo , kaha ho rahi handling
+2. cache set ho raha hai kya
+
+
+
+
+
+//TODO=>
+
+//DONE 1. bhai login pe jo nahi dikhna chahiye wo na dikehe like bottom me create twin //DONE
+//DONE 2. logout me jo nahi dikhna chahiye na dikhe //DONE
+//DONE 3. user apne twin se baat na kar paaye public me , msg dikahe enhanced chat pe jaaye
+//DONE 4. user ke twin ki jo prfoile visible hai fix karoo beeter banao //DONE
+//DONE 5. make twin public button add karo settings me //DONE
+//DONE 6. now make discover page much beeter beeter design color theme acha banao thodi vibe aaye
+//DONE 7. public-chat/history + publicChat me bhi hai dadad header //DONE
+//DONE 8. memory-management , twin/manage me iamge nahi aa rahi //DONE
+//DONE 9. public waale pages me double footer //DONE
+//DONE 10. user apne follow like ye sab dekh paaye clcik karne par 
+//DONE 11. dicover me dabbe alag size ke hai
+//DONE 12. login/signup me show password
+//DONE 13. Account Management => Export My Data + Delete Account not working
+//DONE 14. Settings change password better dada abhi direc hi de rahe 3 dabbe
+//VERIFY 15. top pe rakhna chahiye theme ya settings me i guess settings me hi only
+//DONE 16. public chat me app uski profile bhi dekh sako ye option hona chahiye public chat history me
+//DONE 17. allow share me bhi msg aaye if off
+//DONE 18. show chat history me previous chat hide ho jaaye current chod ke
+//DONE 19. button ke toggle par na change ho balki save preferences par changes apply ho confudion
+//DONE 20. multiple new msg na bane jab ek new msg bane aur usme kuch baat ho tabhi store karo warna 0 msg dont store and dont allow multiple 0 msg chat to become like opneAI
+//DONE 21. jab logged out user ho jab tak wo chat kare chats visible ho else just atfer refresh reset it, user lnot logged in
+//DONE 22. require login me bhi gadbad hai not working i guess //DONE
+//VERIFY 23. event logging check karo
+//ADVANCED_FEATURE 24. share profile ke case me user ki handle bhi hide honi chahiye aisa hona chahiye ???????
+//VERIFY 25. localhost pe msg aati hai console pe upar thik, deploy karke site pe aise hi chalta hai
+//DONE 26. dicover me box par clcik karo to profile khulni chahiye naa ki chat par
+//ADVANCED_FEATURE 27. hide profile ka option hona chahiye
+//ADVANCED_FEATURE 28. share , profile ak logic alag hona cahiye, same button hona chahiye likr hide profile / allow sahre ye samjna hai hona kya chahiye
+//LATER 29. kuch referrals pe top user aa jaaye verified user, aisa kuch soch sakte
+//LATER 30. referrals abhi think not needed baad me add kar sakte ,todo15
+//VERIFY 31. new chat banen wala proavte me daalo + kya new click karne par ek left me msg dikhe , tab wo enter kare tab msg aaye jaise chatgpt me hota leftme new chatt aa jaati , ek se jyada new chat na ba sakti
+//DONE 32. jab banda aata hai pehli baar account banaa ke to usme userHAndle to mandatory field hai to saale optional kyu dikhata frontend par
+//DONE 33. exportData me kya nhejna soch lo
+//DONE 34. change password me bhi eye view wala button 
+//DONE 35. dashboard me 2 baar chats, likes ,follows dikh rahe
+//DONE 36. kisi aur button pe clcik karte to dahboard kyu dikhta header mw 
+//DONE 37. botttom me social icons footer wale check karo
+//DONE 38. aap apne hi twin ko like na kar sakte 
+//VERIFY 39. analytics/type/details me clcik karke twin ki rpfole dekh sakte
+//DONE 40. ek banda dusre bande ki profile ya twin profile jya dekh sakta aur kaha kaha bata
+//ALMOST DONE => 41. bacha hai kahi dekh lege41. time bhi add karna
+//DONE 42. chats me kitni detail dekh paaye
+//BETTER => msg top par aaye /////43. apne twin se chat par redirect to the chat-enhanced with a message
+44. mobile viewwww
+//VERIFY 45. dicover me kis basis par alag sections me twin aate
+//ALMOST DONE => learning-dahboard me dekh lo ////////46. color theme
+//VERIFY 47. dashboard a-z
+//VERIFY 48. sab pages final sturture final theme light dark consistent
+//DONE 49. dashboard me trending ka logic kya hai, discover me bhi kya hai
+50. console / network me kya kya dikhta hai
+//VERIFY 51. sirf twin profile rakhni ya user bhi sochke 
+//DONE 52. pagination chahiye 
+//DONE 53. save priavcy settings me jab tak jcuh edit na ho button alag color edit ho to alag
+54. block btn add karo , profile me
+//DONE 55. analytics me view full detailed direct hi dikhao
+56. console . repeated code hatao clean karo files simplify karo , dao banao simple samjh me aaye bulky nhi
+//DONE 57. user apne twin se hui chat dekh saktaa
+58. incomplete data aa rha analytics,  twin/manage
+//DONE 59. block logged out ka bhi option ho 
+60. analytics dasboard sahi krooo
+//DONE 61. block /unblock na chal raha hai
+//DONE 62. kisi user twin ko like ya follow kiya hai to wo dicover me dikhna chaiye done or not not any confusion
+//DONE 63. public profile me like twin work hi nahi kar rahe
+//DONE 64. Show Chat History button in settings not working
+//DONE 65. jab saala block hai , to sirf siscover to nahi dikhta, agar uske link par bhi jaaoge tab bhi nahi dikhna chahiye blocked user ke liye got it , no chat allowed ye add karna
+//VERIFY 66. user publcic chat history delete kare , maange kare 
+//DONE 67, view-chat-history me messages time ke according aanic ahahiye abhi sahi nahi aa rahi
+68. ananoymous user data clear ho raha ho , total me dikhe ye ensure hjo raha
+//VERIFY 69. bas manage publci chat history dekho
+70. disable chat waali chiz alag from the blockk
+71. validation sabb
+72. fb jaisi profile type ho jaah user aur users kya kya kar sakte hai per user decide kar sake , yaani ek user like nahi , ek follow nahi ,advanced settings
+73. dashboard -> recently chatted -> multiple dikhe chats like tredning waali left me jo hai mere dada 
+//DONE 74. create twin coming in footer jab already twin hai
+75. public chat width kam
+76. kuch jagah color issue hai like footer me dark theme sahi karo
+77. analytics me chart dikhe 
+78. analytics slow kyu load ho raha hai
+79. admin analytics , paages par koi jaa na paaye usse pata hi na chale ki ye admin page hai error 404 not u are authorized papta chal jaayega , apan kaise ensure karege kisi access na ho paaye
+80. google analytics
+81. regenerate pe niche waali ud jaaye
+//DONE 82. /twin/manage me publcic hats me private chats na dikjhee
+83. kaha konsi chat dikhnii
+84. /analytics/type me profile hi clcik na ho rahi
+85. signup me dark theme me email color wrong hai
+86. regenerate prompt me usi ko font badal ke dikha rahe
+87. public vhat dark theme color text
+88. ingest memory cross nahi hota hai
+89. private chat me yaar chats me thida sahi nahi dikh rahi, regenerate chat multiple instnaces dikh rahe
+90. duplicate content ye kya hai saala 
+{
+    "success": false,
+    "error": "Message blocked",
+    "message": "I cannot answer this message due to content moderation policies.",
+    "reasons": [
+        "Duplicate content detected"
+    ],
+    "suggestions": [
+        "Please avoid repeating the same message"
+    ]
+}
+
+91. moderation pe ruk kyu jaata hai mect chat mana karde we cannot answer this , na regenerate chale na koi button dikhe
+92. errors me requestID source bheja jaaye to pata chale kaha se aaya kis functoin file line
+93. prod par ednpoint sahi
+94. id wagerah usrs ko na dikhee
+95. deployment dockerfile
+96. settings me reload pe account pe kyu aa jaata like jab public kro
+97. make twin public me same handle daalo existing wala to errror nahi aa rha proper frontend par , uski wajah se atak ja raha hai + {Pattern attribute value [a-zA-Z0-9_-]+ is not a valid regular expression: Uncaught SyntaxError: Invalid regular expression: /[a-zA-Z0-9_-]+/v: Invalid character in character class } logic hai isko sahi karo
+98. user profile hata deni chahiye i guess only the twin profile , kaise karna hai socho aur batao , fully twin oriednted ya both sochna hoga
+99. prfolie non logged in ke liye block hai to eror 404 aaye na  , link khul hi na raha ye kya baat hai , jaise public chat me aata errro 403
+100. discover me har twin ka sample rely aata hai, jyada bada ho, apnlimited hi dikaaye na ki pura ensure karo
+//VERIFY 101. dicover me load more ho raha hai kya
+//CHECK => aur kaha add kare 102. filtering wagerah ke options publci chat history + aur jagah
+103. reset password different + eye
+104. actual email se jaaye
+105. Enhanced AI Twin Creation full flow
+106. apni profile hide karke anonymous chat ka option bhi de users do, think hona cahiye ya baad me kare
+107. leaderboard wagerah dekhl
+108. follows enabled hai to saala follow kaise nahi ho raha jya dikkat hai
+109. discover + twin profile me agar likes/share/follow diabled ho to button ki stae hi dikhao hover pe aaye liking is blocked , na ki res.403 jaisa abhi discover follow me ho raha
+110. new msg jab banaye banda 
+a. isko better kar sakte pata chala new msg ban rhi in public + private
+b. agar show chat hisory false ho to bhi acche se pan previous hatwa sakte new se replace kar sakte hai
+111. sirf icon clcik pe profile khulni chahiye ya pure box par for many like Dashboard -> Trending Now , Dashboard -> You recently chatted with
+113. block twin trending now , you recently chatted with in dashboard me na dikhee
+112. extra bg me white shade ki need nahi hai on top Twin Os , selected section like dashboard
+//DONE 113. public chat history me user wise bhi dikha sakte , along with chat wise + filters 
+114. reset password me dark theme\115/ /twin/create par header alag , no dark theme

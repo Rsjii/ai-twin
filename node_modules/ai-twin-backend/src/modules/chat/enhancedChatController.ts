@@ -13,7 +13,7 @@ import { classifyIntent } from '../../utils/intentClassification';
 // Keeping import for backwards compatibility but function does nothing
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
 import { generateId } from '../../utils/idGenerator';
-import { handleControllerError } from '../../utils/errorHandler';
+import { handleControllerError, handleErrorWithResponse } from '../../utils/errorHandler';
 import { normalizeTimestamp, formatRelativeTime } from '../../utils/timestampUtils';
 
 const twinService = new TwinService();
@@ -21,7 +21,9 @@ const twinService = new TwinService();
 // Validation schemas
 const generateReplySchema = z.object({
   message: z.string().min(1).max(1000),
-  strictStyle: z.boolean().optional().default(false)
+  strictStyle: z.boolean().optional().default(false),
+  regenerate: z.boolean().optional().default(false),  // ✅ ADD: Flag for regeneration
+  regenerateMessageId: z.string().optional()  // ✅ ADD: ID of message being regenerated
 });
 
 const styleCorrectionSchema = z.object({
@@ -34,11 +36,11 @@ const styleCorrectionSchema = z.object({
  */
 export const generateEnhancedReply = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { message, strictStyle } = generateReplySchema.parse(req.body);
+    const { message, strictStyle, regenerate, regenerateMessageId } = generateReplySchema.parse(req.body);
     const { id: chatId } = req.params;
     const userId = req.user.id;
 
-    logger.info('🚀 Enhanced reply request:', { chatId, userId, message });
+    logger.info('🚀 Enhanced reply request:', { chatId, userId, message, regenerate, regenerateMessageId });
 
     // 1. Get chat and twin data
     const chatResult = await db.query(`
@@ -55,6 +57,59 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
 
     const chat = chatResult.rows[0];
     logger.info('✅ Chat found:', chat.id);
+    
+    // ✅ NEW: If regenerating, delete the old AI response and all messages after it
+    if (regenerate) {
+      let messageToDeleteTime: Date | null = null;
+      
+      if (regenerateMessageId) {
+        // Find the specific message being regenerated
+        const messageResult = await db.query(`
+          SELECT id, "createdAt" 
+          FROM "Message" 
+          WHERE id = $1 AND "chatId" = $2 AND sender = 'twin'
+        `, [regenerateMessageId, chatId]);
+        
+        if (messageResult.rows.length > 0) {
+          messageToDeleteTime = messageResult.rows[0].createdAt;
+        }
+      } else {
+        // Fallback: Find the last AI response message
+        const lastAIResponseResult = await db.query(`
+          SELECT id, "createdAt" 
+          FROM "Message" 
+          WHERE "chatId" = $1 AND sender = 'twin'
+          ORDER BY "createdAt" DESC 
+          LIMIT 1
+        `, [chatId]);
+        
+        if (lastAIResponseResult.rows.length > 0) {
+          messageToDeleteTime = lastAIResponseResult.rows[0].createdAt;
+        }
+      }
+      
+      if (messageToDeleteTime) {
+        // Delete the old AI response and all messages after it (including the response itself)
+        const deleteResult = await db.query(`
+          DELETE FROM "Message" 
+          WHERE "chatId" = $1 AND "createdAt" >= $2
+          RETURNING id
+        `, [chatId, messageToDeleteTime]);
+        
+        logger.info(`🗑️ Deleted ${deleteResult.rows.length} messages during regeneration (from ${messageToDeleteTime})`);
+        
+        // Update message count
+        await db.query(`
+          UPDATE "Chat" 
+          SET "messageCount" = (
+            SELECT COUNT(*) FROM "Message" WHERE "chatId" = $1
+          )
+          WHERE id = $1
+        `, [chatId]);
+      } else {
+        logger.warn('⚠️ Could not find message to delete during regeneration');
+      }
+    }
     
     // Check if this is first message and get current title
     let isFirstMessage = false;
@@ -123,22 +178,26 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
       response = "I'm having trouble thinking right now. Could you try again?";
     }
 
-    // 5. Save user message to chat
-    try {
-      const userMessageId = generateId.message();
-      const utcTimestamp = new Date().toISOString();
-      await db.query(`
-        INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
-        VALUES ($1, $2, $3, 'human', $4::timestamptz)
-      `, [userMessageId, chatId, message, utcTimestamp]);
-      logger.info('✅ User message saved');
-    } catch (error) {
-      logger.warn('⚠️ Failed to save user message:', error);
+    // ✅ MODIFY: Only save user message if NOT regenerating
+    if (!regenerate) {
+      // 5. Save user message to chat (only if not regenerating)
+      try {
+        const userMessageId = generateId.message();
+        const utcTimestamp = new Date().toISOString();
+        await db.query(`
+          INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
+          VALUES ($1, $2, $3, 'human', $4::timestamptz)
+        `, [userMessageId, chatId, message, utcTimestamp]);
+        logger.info('✅ User message saved');
+      } catch (error) {
+        logger.warn('⚠️ Failed to save user message:', error);
+      }
     }
 
     // 6. Save AI response to chat
+    let aiMessageId: string | null = null;
     try {
-      const aiMessageId = generateId.message();
+      aiMessageId = generateId.message();
       const utcTimestamp = new Date().toISOString();
       await db.query(`
         INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
@@ -152,24 +211,41 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     // Update chat metadata and title
     try {
       const utcTimestamp = new Date().toISOString();
-      if (generatedTitle) {
-        await db.query(`
-          UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "title" = $2, "updatedAt" = $3::timestamptz WHERE id = $4
-        `, [response, generatedTitle, utcTimestamp, chatId]);
-      } else if (isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '')) {
-        // Fallback: use first 30 chars of message as title
-        const fallbackTitle = message.trim().length > 30 
-          ? message.trim().substring(0, 30) + '...' 
-          : message.trim();
-        if (fallbackTitle && fallbackTitle.trim().length > 0) {
+      
+      // ✅ MODIFY: Update messageCount correctly (increment only if not regenerating, or recalculate)
+      if (regenerate) {
+        // During regeneration, messageCount was already updated when we deleted messages
+        // Just update lastMessage and title
+        if (generatedTitle) {
           await db.query(`
-            UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "title" = $2, "updatedAt" = $3::timestamptz WHERE id = $4
-          `, [response, fallbackTitle.trim(), utcTimestamp, chatId]);
+            UPDATE "Chat" SET "lastMessage" = $1, "title" = $2, "updatedAt" = $3::timestamptz WHERE id = $4
+          `, [response, generatedTitle, utcTimestamp, chatId]);
+        } else {
+          await db.query(`
+            UPDATE "Chat" SET "lastMessage" = $1, "updatedAt" = $2::timestamptz WHERE id = $3
+          `, [response, utcTimestamp, chatId]);
         }
       } else {
-        await db.query(`
-          UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = $2::timestamptz WHERE id = $3
-        `, [response, utcTimestamp, chatId]);
+        // Normal flow - increment messageCount
+        if (generatedTitle) {
+          await db.query(`
+            UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "title" = $2, "updatedAt" = $3::timestamptz WHERE id = $4
+          `, [response, generatedTitle, utcTimestamp, chatId]);
+        } else if (isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '')) {
+          // Fallback: use first 30 chars of message as title
+          const fallbackTitle = message.trim().length > 30 
+            ? message.trim().substring(0, 30) + '...' 
+            : message.trim();
+          if (fallbackTitle && fallbackTitle.trim().length > 0) {
+            await db.query(`
+              UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "title" = $2, "updatedAt" = $3::timestamptz WHERE id = $4
+            `, [response, fallbackTitle.trim(), utcTimestamp, chatId]);
+          }
+        } else {
+          await db.query(`
+            UPDATE "Chat" SET "messageCount" = "messageCount" + 1, "lastMessage" = $1, "updatedAt" = $2::timestamptz WHERE id = $3
+          `, [response, utcTimestamp, chatId]);
+        }
       }
     } catch (error) {
       logger.warn('Failed to update chat metadata:', error);
@@ -191,6 +267,7 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     res.json({
       success: true,
       response: response,
+      messageId: aiMessageId, // ✅ ADD: Return message ID for frontend to update dataset
       intent: intent.intent,
       criticScore: null,
       latency: 1000,
@@ -564,3 +641,61 @@ async function saveResponseToChat(chatId: string, response: string) {
     logger.error('Failed to save response:', error);
   }
 }
+
+/**
+ * Delete messages after a specific message ID (for regenerate functionality)
+ */
+export const deleteMessagesAfter = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const { chatId } = req.params;
+    const { messageId } = req.body;
+    const userId = req.user.id;
+
+    // Verify chat belongs to user
+    const chatResult = await db.query(`
+      SELECT id, "userId" FROM "Chat" WHERE id = $1 AND "userId" = $2
+    `, [chatId, userId]);
+
+    if (chatResult.rows.length === 0) {
+      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
+    }
+
+    // Get the message to find its createdAt timestamp
+    const messageResult = await db.query(`
+      SELECT "createdAt" FROM "Message" 
+      WHERE id = $1 AND "chatId" = $2
+    `, [messageId, chatId]);
+
+    if (messageResult.rows.length === 0) {
+      throw createError.notFound('Message not found', ErrorCodes.NOT_FOUND);
+    }
+
+    const messageTime = messageResult.rows[0].createdAt;
+
+    // Delete all messages after this message
+    const deleteResult = await db.query(`
+      DELETE FROM "Message" 
+      WHERE "chatId" = $1 AND "createdAt" > $2
+      RETURNING id
+    `, [chatId, messageTime]);
+
+    // Update chat message count
+    await db.query(`
+      UPDATE "Chat" 
+      SET "messageCount" = (
+        SELECT COUNT(*) FROM "Message" WHERE "chatId" = $1
+      )
+      WHERE id = $1
+    `, [chatId]);
+
+    logger.info(`Deleted ${deleteResult.rows.length} messages after message ${messageId}`);
+
+    res.json({
+      success: true,
+      deletedCount: deleteResult.rows.length
+    });
+  } catch (error) {
+    logger.error('Delete messages after error:', error);
+    handleErrorWithResponse(error, res, 'Failed to delete messages');
+  }
+};
