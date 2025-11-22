@@ -156,6 +156,19 @@ app.use(express.static(path.resolve(__dirname, '../../frontend/src/public'), {
 app.use('/uploads', express.static(path.resolve(__dirname, '../../public/uploads')));
 app.use('/utils', express.static(path.resolve(__dirname, '../../frontend/src/utils')));
 
+// ✅ ADD: Log utils path in production for debugging
+if(config.nodeEnv === 'production'){
+  const utilsPath = path.resolve(__dirname, '../../frontend/src/utils');
+  logger.info(`📁 Utils path: ${utilsPath}`);
+  const fs = require('fs');
+  if (fs.existsSync(utilsPath)) {
+    logger.info(`✅ Utils directory exists`);
+    logger.info(`📁 Utils files: ${fs.readdirSync(utilsPath).join(', ')}`);
+  } else {
+    logger.error(`❌ Utils directory does not exist: ${utilsPath}`);
+  }
+}
+
 // Apply custom middleware
 app.use(generateCSRFToken);
 

@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <!-- ✅ Mobile-specific meta tags -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AI Twin">
     <meta name="description" content="Create your AI twin that communicates in your unique style, tone, and personality">
     <meta name="theme-color" content="#6366f1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -234,6 +239,35 @@
     border-radius: 8px;
 }
 
+        
+        /* ✅ Mobile-specific global fixes */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+        
+        html {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            /* ✅ iOS Safari viewport height fix */
+            height: -webkit-fill-available;
+        }
+        
+        body {
+            overflow-x: hidden;
+            width: 100%;
+            position: relative;
+            /* ✅ iOS Safari viewport height fix */
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+        }
+        
+        /* ✅ Mobile button touch targets */
+        button, a.button, input[type="button"], input[type="submit"] {
+            min-height: 44px;
+            min-width: 44px;
+            touch-action: manipulation;
+        }
         
         /* Mobile-specific styles */
         /* ✅ PHASE 1: Enhanced Responsive Breakpoints */
@@ -958,9 +992,27 @@
             }, 5000);
         }
 
-        // Global error handler
-        window.addEventListener('error', (event) => {
-            console.error('Global error:', event.error);
+        // ✅ Mobile error handling (enhanced)
+        window.addEventListener('error', function(e) {
+            console.error('Mobile error:', e.error);
+            // Prevent error from breaking the page
+            e.preventDefault();
+        });
+        
+        // ✅ Mobile touch support check
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            document.documentElement.classList.add('touch-device');
+        }
+        
+        // ✅ Mobile viewport height fix (iOS Safari)
+        function setViewportHeight() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+        setViewportHeight();
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', function() {
+            setTimeout(setViewportHeight, 100);
         });
         
         // Add event listeners for dropdown and logout button
