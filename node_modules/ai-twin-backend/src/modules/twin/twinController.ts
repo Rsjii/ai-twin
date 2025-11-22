@@ -28,6 +28,8 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
        throw createError.unauthorized();
     }
 
+    const {samples} = createTwinSchema.parse(req.body);
+
    const existingTwinQuery = `
     SELECT id, "createdAt" 
     FROM "Twin" 
@@ -101,11 +103,11 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
     
     // Create a mock twin object for testing
     const twin = {
-      id: 'test-twin-id',
+      id: twinId,
       userId: req.user.id,
       styleVector,
       sampleReply,
-      createdAt: new Date()
+      createdAt: result.rows[0].createdAt
     };
     
     // Log twin creation event using EventLogger
@@ -134,8 +136,20 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
         error: error instanceof Error ? error.message : 'Unknown error' 
       });
     }
+
+      // ✅ FIX: Handle errors properly
+  if (error instanceof z.ZodError) {
+    return res.status(400).json({ error: 'Invalid input', details: error.errors });
+  }
+  if (error instanceof Error && 'statusCode' in error) {
+    // AppError with statusCode
+    const appError = error as any;
+    return res.status(appError.statusCode || 500).json({ 
+      error: appError.message || 'Failed to create twin' 
+    });
+  }
+  return res.status(500).json({ error: 'Failed to create twin' });
     
-    handleControllerError(error, 'Failed to create twin');
   }
 };
 
@@ -157,7 +171,7 @@ export const getUserTwins = async (req: Request, res: Response, next: NextFuncti
     logger.debug('Found twins:', { count: twins.rows.length });
     res.json({ twins: twins.rows });
   } catch (error) {
-    handleControllerError(error, 'Failed to get user twins');
+    next(error);      
   }
 };
 
@@ -182,7 +196,7 @@ export const getTwinById = async (req: Request, res: Response, next: NextFunctio
     
     res.json({ twin });
   } catch (error) {
-    handleControllerError(error, 'Failed to get twin');
+    next(error);
   }
 };
 

@@ -80,7 +80,7 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use(limiter);
+//app.use(limiter);
 
 // Cookie parser middleware
 app.use(cookieParser());

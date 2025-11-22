@@ -87,15 +87,15 @@
 78. analytics slow kyu load ho raha hai
 79. admin analytics , paages par koi jaa na paaye usse pata hi na chale ki ye admin page hai error 404 not u are authorized papta chal jaayega , apan kaise ensure karege kisi access na ho paaye
 80. google analytics
-81. regenerate pe niche waali ud jaaye
+//VERIFY => ho haya 81. regenerate pe niche waali ud jaaye
 //DONE 82. /twin/manage me publcic hats me private chats na dikjhee
 83. kaha konsi chat dikhnii
 84. /analytics/type me profile hi clcik na ho rahi
 85. signup me dark theme me email color wrong hai
-86. regenerate prompt me usi ko font badal ke dikha rahe
+//DONE 86. regenerate prompt me usi ko font badal ke dikha rahe
 87. public vhat dark theme color text
 88. ingest memory cross nahi hota hai
-89. private chat me yaar chats me thida sahi nahi dikh rahi, regenerate chat multiple instnaces dikh rahe
+//DONE 89. private chat me yaar chats me thida sahi nahi dikh rahi, regenerate chat multiple instnaces dikh rahe
 90. duplicate content ye kya hai saala 
 {
     "success": false,
@@ -121,11 +121,11 @@
 100. discover me har twin ka sample rely aata hai, jyada bada ho, apnlimited hi dikaaye na ki pura ensure karo
 //VERIFY 101. dicover me load more ho raha hai kya
 //CHECK => aur kaha add kare 102. filtering wagerah ke options publci chat history + aur jagah
-103. reset password different + eye
+//DONE 103. reset password different + eye
 104. actual email se jaaye
 105. Enhanced AI Twin Creation full flow
 106. apni profile hide karke anonymous chat ka option bhi de users do, think hona cahiye ya baad me kare
-107. leaderboard wagerah dekhl
+//ADVANCED 107. leaderboard wagerah dekhl
 108. follows enabled hai to saala follow kaise nahi ho raha jya dikkat hai
 109. discover + twin profile me agar likes/share/follow diabled ho to button ki stae hi dikhao hover pe aaye liking is blocked , na ki res.403 jaisa abhi discover follow me ho raha
 110. new msg jab banaye banda 

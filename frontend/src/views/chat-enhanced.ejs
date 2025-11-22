@@ -477,7 +477,7 @@ async function regenerateResponse(responseId) {
             showNotification('Response not found', 'error');
             return;
         }
-
+        
         // FIXED: Get the database message ID from the response element
         const dbMessageId = responseElement.dataset.dbMessageId || responseId;
         
