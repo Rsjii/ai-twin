@@ -1,0 +1,16 @@
+# Ignore workspace node_modules symlinks
+node_modules/ai-twin-backend
+node_modules/ai-twin-frontend
+
+# Ignore root node_modules (will be installed fresh)
+node_modules/
+
+# Ignore build artifacts
+backend/dist/
+frontend/dist/
+
+# Ignore development files
+*.log
+.DS_Store
+.vscode/
+.idea/
