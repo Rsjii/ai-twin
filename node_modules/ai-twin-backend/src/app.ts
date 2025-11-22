@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit'; 
 import cookieParser from 'cookie-parser';
+import path from 'path';  // ✅ ADD: For path resolution
 import { config } from './config/env';
 import { logger } from './config/logger';
 import { db } from './config/database';
@@ -139,16 +140,17 @@ app.post('/api/chats/:id/generate-title', requireJWTFromCookie, generateChatTitl
 
 // View engine setup
 app.set('view engine', 'ejs');
-app.set('views', '../frontend/src/views');
+// ✅ FIX: Use absolute path resolution
+app.set('views', path.resolve(__dirname, '../../frontend/src/views'));
 
 // Static files with cache headers
-app.use(express.static('../frontend/src/public', {
+app.use(express.static(path.resolve(__dirname, '../../frontend/src/public'), {
   maxAge: '1y',
   etag: true,
   lastModified: true,
 }));
-app.use('/uploads', express.static('public/uploads'));
-app.use('/utils', express.static('../frontend/src/utils')); // ADD THIS LINE for pagination.js
+app.use('/uploads', express.static(path.resolve(__dirname, '../../public/uploads')));
+app.use('/utils', express.static(path.resolve(__dirname, '../../frontend/src/utils')));
 
 // Apply custom middleware
 app.use(generateCSRFToken);
