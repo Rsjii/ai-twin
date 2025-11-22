@@ -95,6 +95,20 @@ export async function getPublicProfile(req: any, res: Response) {
     // Check if viewer is the owner
     const isOwner = userId && userId === twin.userId;
     
+    // ✅ FIX: Get user's like/follow status (if logged in)
+    let hasLiked = false;
+    let hasFollowed = false;
+    
+    if (userId) {
+      const [likeStatus, followStatus] = await Promise.all([
+        db.query('SELECT id FROM "TwinLike" WHERE "twinId" = $1 AND "userId" = $2', [twin.id, userId]),
+        db.query('SELECT id FROM "TwinFollow" WHERE "twinId" = $1 AND "userId" = $2', [twin.id, userId])
+      ]);
+      
+      hasLiked = likeStatus.rows.length > 0;
+      hasFollowed = followStatus.rows.length > 0;
+    }
+    
     // Ensure userName and userHandle are available
     const creatorName = twin.userName || twin.userHandle || 'Unknown';
     
@@ -117,7 +131,9 @@ export async function getPublicProfile(req: any, res: Response) {
         requireLogin: twin.requireLogin ?? false,
         userHandle: twin.userHandle || 'Unknown',
         userName: twin.userName || twin.userHandle || 'Unknown',
-        isOwner: isOwner
+        isOwner: isOwner,
+        hasLiked: hasLiked,  // ✅ ADD: Include initial like state
+        hasFollowed: hasFollowed  // ✅ ADD: Include initial follow state
       },      
       viewer: req.user ? {
         id: req.user.id,

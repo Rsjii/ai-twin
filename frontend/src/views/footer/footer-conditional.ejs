@@ -1,12 +1,17 @@
 <!-- Reusable Footer Component - For Public/Private Pages -->
 <% 
   try {
+    // ✅ ENHANCED: More robust authentication check
     const isAuthenticated = typeof user !== 'undefined' && 
                             user !== null && 
                             typeof user === 'object' &&
                             user.id !== undefined && 
-                            user.id !== null;
-    const userHasTwin = (typeof hasTwins !== 'undefined' && hasTwins === true);
+                            user.id !== null &&
+                            user.email !== undefined &&
+                            user.email !== null;
+    
+    // ✅ ENHANCED: Safe hasTwins check (default to false if undefined)
+    const userHasTwin = typeof hasTwins !== 'undefined' ? hasTwins === true : false;
     
     if (!isAuthenticated) {
 %>

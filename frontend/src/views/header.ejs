@@ -1,11 +1,16 @@
 <!-- Robust Authentication Check -->
 <% 
-  // Robust authentication check - handles all edge cases
+  // ✅ ENHANCED: More robust authentication check for production
   const isAuthenticated = typeof user !== 'undefined' && 
                           user !== null && 
                           typeof user === 'object' &&
                           user.id !== undefined && 
-                          user.id !== null;
+                          user.id !== null &&
+                          user.email !== undefined &&
+                          user.email !== null;
+  
+  // ✅ ENHANCED: Safe hasTwins check (default to false if undefined)
+  const userHasTwins = typeof hasTwins !== 'undefined' ? hasTwins : false;
 %>
 
 <style>

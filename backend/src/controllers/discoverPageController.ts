@@ -11,7 +11,7 @@ export async function getDiscover(req: any, res: Response) {
     let hasTwins = false;
     let twinId = null;
     
-    if (req.user) {
+    if (req.user && req.user.email) {
       // Fetch full user data from database
       const fullUser = await userQueries.findByEmail(req.user.email);
       if (fullUser) {
@@ -33,19 +33,19 @@ export async function getDiscover(req: any, res: Response) {
     
     res.render('discover', {
       title: 'Discover AI Twins - Twinverse',
-      user: user || null,
+      user: user || null,  // ✅ Always pass user (null if not logged in)
       pathname: '/discover',
-      hasTwins: hasTwins,
-      twinId: twinId,
+      hasTwins: hasTwins,  // ✅ Always pass hasTwins (false if no twins)
+      twinId: twinId || null,  // ✅ Always pass twinId (null if no twin)
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {
     logger.error('Discover page error:', error);
     res.render('discover', {
       title: 'Discover AI Twins - Twinverse',
-      user: null,
-      hasTwins: false,
-      twinId: null,
+      user: null,  // ✅ Explicit null
+      hasTwins: false,  // ✅ Explicit false
+      twinId: null,  // ✅ Explicit null
       csrfToken: res.locals['csrfToken']
     });
   }

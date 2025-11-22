@@ -929,7 +929,22 @@ async function shareTwin(platform) {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    checkInitialStatus();
+    // ✅ FIX: Use server-side initial state (more reliable than API call)
+    const serverHasLiked = <%= typeof twin.hasLiked !== 'undefined' ? (twin.hasLiked ? 'true' : 'false') : 'false' %>;
+    const serverHasFollowed = <%= typeof twin.hasFollowed !== 'undefined' ? (twin.hasFollowed ? 'true' : 'false') : 'false' %>;
+    
+    hasLiked = serverHasLiked === 'true';
+    hasFollowed = serverHasFollowed === 'true';
+    
+    // Update button states immediately
+    updateLikeButton(hasLiked);
+    updateFollowButton(hasFollowed);
+    
+    // ✅ OPTIONAL: Verify with API call (for consistency, but not blocking)
+    // This ensures state is correct even if there's a race condition
+    checkInitialStatus().catch(err => {
+        console.warn('Initial status check failed, using server-side state:', err);
+    });
     
     // ✅ FIX: Like and Follow buttons functionality (exactly like discover.ejs)
     const likeBtn = document.getElementById('likeBtn');
