@@ -151,17 +151,53 @@
                 return;
             }
             
-            container.innerHTML = messages.map(msg => `
+            // ✅ IMPORTANT: Display messages in the exact order received (already sorted by backend)
+            // DO NOT sort client-side - backend sends in chronological order
+            container.innerHTML = messages.map((msg, index) => {
+                const messageId = `msg-${index}`;
+                const maxLength = 300; // Characters before truncation
+                const isLong = msg.content.length > maxLength;
+                const truncatedContent = isLong ? msg.content.substring(0, maxLength) + '...' : msg.content;
+                
+                return `
                 <div class="flex ${msg.sender === 'human' ? 'justify-end' : 'justify-start'} mb-4">
                     <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                         msg.sender === 'human' 
                             ? 'bg-blue-600 text-white' 
                             : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border dark:border-gray-700'
                     }">
-                        <p class="text-sm">${escapeHtml(msg.content)}</p>
-                        <p class="text-xs mt-1 opacity-70 timestamp-display" data-timestamp="${msg.createdAt}" data-relative-time="${escapeHtml(msg.relativeTime || '')}" data-format="context"></p>                    </div>
+                        <p class="text-sm break-words" id="${messageId}-content">${escapeHtml(truncatedContent)}</p>
+                        ${isLong ? `
+                            <button 
+                                id="${messageId}-expand-btn"
+                                class="text-xs mt-1 ${msg.sender === 'human' ? 'text-blue-100 hover:text-white' : 'text-blue-600 dark:text-blue-400 hover:underline'} font-medium"
+                                data-message-id="${messageId}"
+                                data-full-content="${escapeHtml(msg.content)}"
+                            >
+                                Read more
+                            </button>
+                        ` : ''}
+                        <p class="text-xs mt-1 opacity-70 timestamp-display" data-timestamp="${msg.createdAt}" data-relative-time="${escapeHtml(msg.relativeTime || '')}" data-format="context"></p>
+                    </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
+            
+            // ✅ Add event listeners for expand/collapse buttons
+            messages.forEach((msg, index) => {
+                const messageId = `msg-${index}`;
+                const maxLength = 300;
+                const isLong = msg.content.length > maxLength;
+                
+                if (isLong) {
+                    const expandBtn = document.getElementById(`${messageId}-expand-btn`);
+                    if (expandBtn) {
+                        expandBtn.addEventListener('click', () => {
+                            toggleMessageExpand(messageId, msg.content, maxLength);
+                        });
+                    }
+                }
+            });
             
             // ✅ Format timestamps client-side after rendering
             if (window.TimeUtils) {
@@ -206,6 +242,28 @@
             }
         }
         
+        // ✅ UPDATED: Toggle message expand/collapse with proper parameters
+        function toggleMessageExpand(messageId, fullContent, maxLength = 300) {
+            const contentEl = document.getElementById(`${messageId}-content`);
+            const buttonEl = document.getElementById(`${messageId}-expand-btn`);
+            
+            if (!contentEl || !buttonEl) return;
+            
+            const currentText = contentEl.textContent.trim();
+            const isExpanded = currentText === fullContent || currentText.length > maxLength + 10;
+            
+            if (isExpanded) {
+                // Collapse
+                const truncated = fullContent.substring(0, maxLength) + '...';
+                contentEl.textContent = truncated;
+                buttonEl.textContent = 'Read more';
+            } else {
+                // Expand
+                contentEl.textContent = fullContent;
+                buttonEl.textContent = 'Show less';
+            }
+        }
+   
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');

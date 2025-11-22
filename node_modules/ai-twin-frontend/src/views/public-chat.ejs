@@ -582,7 +582,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
                 ${chat.lastMessage ? `
-                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${escapeHtml(chat.lastMessage.content)}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${escapeHtml(chat.lastMessage.content)}</p>
                     <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 chat-timestamp" data-timestamp="${escapeHtml(chat.lastMessage.createdAt)}" data-relative-time="${escapeHtml(chat.lastMessage.relativeTime || '')}"></p>                                    
                 ` : '<p class="text-xs text-gray-500 dark:text-gray-400">No messages yet</p>'}
             </div>

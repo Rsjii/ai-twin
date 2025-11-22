@@ -1047,6 +1047,14 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
     const limit = Math.min(parseInt(req.query.limit as string) || 5, 50);
     const offset = (page - 1) * limit;
 
+    // ✅ NEW: Filter parameters
+    const view = (req.query.view as string) || 'chat'; // 'chat' | 'user'
+    const filterUserId = req.query.userId as string | undefined;
+    const dateFrom = req.query.dateFrom as string | undefined;
+    const dateTo = req.query.dateTo as string | undefined;
+    const search = req.query.search as string | undefined;
+    const sortBy = (req.query.sortBy as string) || 'lastActivity'; // 'lastActivity' | 'createdAt' | 'messageCount'
+
     if (!userId) {
       throw createError.unauthorized('Authentication required');
     }
@@ -1064,16 +1072,70 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
 
     const twin = twinResult.rows[0];
 
-    // Get total count of all public chats for this twin
+    // ✅ Build dynamic WHERE conditions
+    let whereConditions = ['pc."twinId" = $1'];
+    let params: any[] = [twinId];
+    let paramIndex = 2;
+
+    if (filterUserId) {
+      whereConditions.push(`pc."userId" = $${paramIndex}`);
+      params.push(filterUserId);
+      paramIndex++;
+    }
+
+    if (dateFrom) {
+      whereConditions.push(`pc."createdAt" >= $${paramIndex}::timestamptz`);
+      params.push(dateFrom);
+      paramIndex++;
+    }
+
+    if (dateTo) {
+      whereConditions.push(`pc."createdAt" <= $${paramIndex}::timestamptz`);
+      params.push(dateTo);
+      paramIndex++;
+    }
+
+    // ✅ Build search condition (search in messages)
+    let searchJoin = '';
+    let searchCondition = '';
+    if (search && search.trim()) {
+      searchJoin = `
+        INNER JOIN "PublicMessage" pm_search ON pc.id = pm_search."chatId"
+      `;
+      searchCondition = `AND pm_search.content ILIKE $${paramIndex}`;
+      params.push(`%${search.trim()}%`);
+      paramIndex++;
+    }
+
+    // ✅ Build ORDER BY clause
+    let orderByClause = '';
+    switch (sortBy) {
+      case 'createdAt':
+        orderByClause = 'pc."createdAt" DESC';
+        break;
+      case 'messageCount':
+        orderByClause = 'pc."messageCount" DESC';
+        break;
+      case 'lastActivity':
+      default:
+        orderByClause = 'COALESCE(pc."lastActivity", pc."createdAt") DESC';
+        break;
+    }
+
+    // Get total count with filters
     const totalResult = await db.query(`
-      SELECT COUNT(*) as total
-      FROM "PublicChat"
-      WHERE "twinId" = $1
-    `, [twinId]);
+      SELECT COUNT(DISTINCT pc.id) as total
+      FROM "PublicChat" pc
+      ${searchJoin}
+      WHERE ${whereConditions.join(' AND ')}
+      ${searchCondition}
+    `, params);
 
     const total = parseInt(totalResult.rows[0]?.total || '0', 10);
 
     // Get all public chats with user/visitor info and message counts
+    // ✅ FIX: Remove DISTINCT and use subquery to avoid ORDER BY issues
+    // DISTINCT is only needed when searchJoin creates duplicates
     const chatsResult = await db.query(`
       SELECT 
         pc.id,
@@ -1101,25 +1163,19 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
           WHERE "chatId" = pc.id 
           ORDER BY "createdAt" DESC 
           LIMIT 1
-        ) as last_message_time
-FROM "PublicChat" pc
-  LEFT JOIN "User" u ON pc."userId" = u.id
-  WHERE pc."twinId" = $1
-    AND (
-      pc."userId" IS NOT NULL  -- All logged-in user chats
-      OR pc.id IN (  -- OR last 50 anonymous chats
-        SELECT id FROM "PublicChat"
-        WHERE "twinId" = $1 AND "userId" IS NULL AND "visitorId" IS NOT NULL
-        ORDER BY "lastActivity" DESC, "createdAt" DESC
-        LIMIT ${QUERY_LIMITS.DEFAULT_PAGE_SIZE}
-      )
-    )
-  ORDER BY 
-    CASE WHEN pc."userId" IS NOT NULL THEN 0 ELSE 1 END,  -- Logged-in users first
-    pc."lastActivity" DESC, 
-    pc."createdAt" DESC
-  LIMIT $2 OFFSET $3
-`, [twinId, limit, offset]);    
+        ) as last_message_time,
+        CASE WHEN pc."userId" IS NOT NULL THEN 0 ELSE 1 END as user_priority
+      FROM "PublicChat" pc
+      LEFT JOIN "User" u ON pc."userId" = u.id
+      ${searchJoin}
+      WHERE ${whereConditions.join(' AND ')}
+      ${searchCondition}
+      ${search && search.trim() ? 'GROUP BY pc.id, pc."twinId", pc."userId", pc."visitorId", pc."messageCount", pc."title", pc."createdAt", pc."lastActivity", u.id, u.handle, u.name, u."profileImage"' : ''}
+      ORDER BY 
+        user_priority,
+        ${orderByClause}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `, [...params, limit, offset]);    
 
     const chats = chatsResult.rows.map(chat => ({
       id: chat.id,
@@ -1136,7 +1192,7 @@ FROM "PublicChat" pc
         name: chat.user_name,
         profileImage: chat.user_profile_image
       } : null,
-      isAnonymous: !chat.userId && (chat.visitorId!==null && chat.visitorId!==undefined),
+      isAnonymous: !chat.userId && (chat.visitorId !== null && chat.visitorId !== undefined),
       lastMessage: chat.last_message_content ? {
         content: chat.last_message_content,
         createdAt: normalizeTimestamp(chat.last_message_time),
@@ -1156,11 +1212,268 @@ FROM "PublicChat" pc
         totalPages: Math.ceil(total / limit),
         totalItems: total,
         itemsPerPage: limit
+      },
+      filters: {
+        view,
+        userId: filterUserId,
+        dateFrom,
+        dateTo,
+        search,
+        sortBy
       }
     });
 
   } catch (error) {
     handleControllerError(error, 'Failed to get public chats for twin');
+  }
+};
+
+// ✅ NEW: Get public chats grouped by user
+export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { twinId } = req.params;
+    const userId = req.user?.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
+    const offset = (page - 1) * limit;
+
+    // Filter parameters
+    const dateFrom = req.query.dateFrom as string | undefined;
+    const dateTo = req.query.dateTo as string | undefined;
+    const search = req.query.search as string | undefined;
+    const sortBy = (req.query.sortBy as string) || 'lastActivity'; // 'lastActivity' | 'totalMessages' | 'totalChats'
+    const minMessages = req.query.minMessages ? parseInt(req.query.minMessages as string, 10) : undefined;
+    const maxMessages = req.query.maxMessages ? parseInt(req.query.maxMessages as string, 10) : undefined;
+
+    if (!userId) {
+      throw createError.unauthorized('Authentication required');
+    }
+
+    // Verify twin ownership
+    const twinResult = await db.query(`
+      SELECT id, "publicHandle", "isPublic", "userId"
+      FROM "Twin"
+      WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+
+    if (twinResult.rows.length === 0) {
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
+    }
+
+    const twin = twinResult.rows[0];
+
+    // Build WHERE conditions (for filtering chats)
+    let whereConditions = ['pc."twinId" = $1', 'pc."userId" IS NOT NULL'];
+    let params: any[] = [twinId];
+    let paramIndex = 2;
+
+    if (dateFrom) {
+      whereConditions.push(`pc."createdAt" >= $${paramIndex}::timestamptz`);
+      params.push(dateFrom);
+      paramIndex++;
+    }
+
+    if (dateTo) {
+      whereConditions.push(`pc."createdAt" <= $${paramIndex}::timestamptz`);
+      params.push(dateTo);
+      paramIndex++;
+    }
+
+    // Search condition
+    let searchJoin = '';
+    let searchCondition = '';
+    if (search && search.trim()) {
+      searchJoin = `
+        INNER JOIN "PublicMessage" pm_search ON pc.id = pm_search."chatId"
+      `;
+      searchCondition = `AND pm_search.content ILIKE $${paramIndex}`;
+      params.push(`%${search.trim()}%`);
+      paramIndex++;
+    }
+
+    // ✅ NEW: Build HAVING clause for message count filtering (filters users by total messages)
+    let havingConditions: string[] = [];
+    if (minMessages !== undefined && !isNaN(minMessages)) {
+      havingConditions.push(`SUM(pc."messageCount") >= $${paramIndex}`);
+      params.push(minMessages);
+      paramIndex++;
+    }
+
+    if (maxMessages !== undefined && !isNaN(maxMessages)) {
+      havingConditions.push(`SUM(pc."messageCount") <= $${paramIndex}`);
+      params.push(maxMessages);
+      paramIndex++;
+    }
+
+    // ✅ NEW: Build ORDER BY clause for user sorting
+    let orderByClause = '';
+    switch (sortBy) {
+      case 'totalMessages':
+        orderByClause = 'total_messages DESC';
+        break;
+      case 'totalChats':
+        orderByClause = 'total_chats DESC';
+        break;
+      case 'lastActivity':
+      default:
+        orderByClause = 'last_activity DESC';
+        break;
+    }
+
+    // Get users with their chat stats
+    const usersResult = await db.query(`
+      SELECT DISTINCT
+        u.id as user_id,
+        u.handle as user_handle,
+        u.name as user_name,
+        u."profileImage" as user_profile_image,
+        COUNT(DISTINCT pc.id) as total_chats,
+        SUM(pc."messageCount") as total_messages,
+        MAX(COALESCE(pc."lastActivity", pc."createdAt")) as last_activity
+      FROM "PublicChat" pc
+      INNER JOIN "User" u ON pc."userId" = u.id
+      ${searchJoin}
+      WHERE ${whereConditions.join(' AND ')}
+      ${searchCondition}
+      GROUP BY u.id, u.handle, u.name, u."profileImage"
+      ${havingConditions.length > 0 ? `HAVING ${havingConditions.join(' AND ')}` : ''}
+      ORDER BY ${orderByClause}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `, [...params, limit, offset]);
+
+    // Get total user count (with HAVING clause for message count filters)
+    const totalUsersResult = await db.query(`
+      SELECT COUNT(*) as total
+      FROM (
+        SELECT 
+          u.id,
+          SUM(pc."messageCount") as total_messages
+        FROM "PublicChat" pc
+        INNER JOIN "User" u ON pc."userId" = u.id
+        ${searchJoin}
+        WHERE ${whereConditions.join(' AND ')}
+        ${searchCondition}
+        GROUP BY u.id
+        ${havingConditions.length > 0 ? `HAVING ${havingConditions.join(' AND ')}` : ''}
+      ) as filtered_users
+    `, params);
+
+    const totalUsers = parseInt(totalUsersResult.rows[0]?.total || '0', 10);
+
+    // For each user, get their chats
+    const usersWithChats = await Promise.all(
+      usersResult.rows.map(async (userRow) => {
+        // Build WHERE conditions for individual user chats with filters
+        let chatWhereConditions = ['pc."twinId" = $1', 'pc."userId" = $2'];
+        let chatParams: any[] = [twinId, userRow.user_id];
+        let chatParamIndex = 3;
+
+        // Apply date filters to individual chats
+        if (dateFrom) {
+          chatWhereConditions.push(`pc."createdAt" >= $${chatParamIndex}::timestamptz`);
+          chatParams.push(dateFrom);
+          chatParamIndex++;
+        }
+
+        if (dateTo) {
+          chatWhereConditions.push(`pc."createdAt" <= $${chatParamIndex}::timestamptz`);
+          chatParams.push(dateTo);
+          chatParamIndex++;
+        }
+
+        // Add search condition for individual chats
+        let chatSearchJoin = '';
+        let chatSearchCondition = '';
+        if (search && search.trim()) {
+          chatSearchJoin = `
+            INNER JOIN "PublicMessage" pm_chat_search ON pc.id = pm_chat_search."chatId"
+          `;
+          chatSearchCondition = `AND pm_chat_search.content ILIKE $${chatParamIndex}`;
+          chatParams.push(`%${search.trim()}%`);
+          chatParamIndex++;
+        }
+
+        const userChatsResult = await db.query(`
+          SELECT DISTINCT
+            pc.id,
+            pc."messageCount",
+            pc."title",
+            pc."createdAt",
+            pc."lastActivity",
+            COALESCE(pc."lastActivity", pc."createdAt") as sort_date,
+            (
+              SELECT content 
+              FROM "PublicMessage" 
+              WHERE "chatId" = pc.id 
+              ORDER BY "createdAt" DESC 
+              LIMIT 1
+            ) as last_message_content,
+            (
+              SELECT "createdAt" 
+              FROM "PublicMessage" 
+              WHERE "chatId" = pc.id 
+              ORDER BY "createdAt" DESC 
+              LIMIT 1
+            ) as last_message_time
+          FROM "PublicChat" pc
+          ${chatSearchJoin}
+          WHERE ${chatWhereConditions.join(' AND ')}
+          ${chatSearchCondition}
+          ORDER BY sort_date DESC
+          LIMIT 10
+        `, chatParams);
+
+        return {
+          user: {
+            id: userRow.user_id,
+            handle: userRow.user_handle,
+            name: userRow.user_name,
+            profileImage: userRow.user_profile_image
+          },
+          totalChats: parseInt(userRow.total_chats || '0', 10),
+          totalMessages: parseInt(userRow.total_messages || '0', 10),
+          lastActivity: normalizeTimestamp(userRow.last_activity),
+          chats: userChatsResult.rows.map(chat => ({
+            id: chat.id,
+            messageCount: chat.messageCount || 0,
+            title: chat.title || 'Untitled Chat',
+            createdAt: normalizeTimestamp(chat.createdAt),
+            lastActivity: normalizeTimestamp(chat.lastActivity),
+            lastMessage: chat.last_message_content ? {
+              content: chat.last_message_content,
+              createdAt: normalizeTimestamp(chat.last_message_time),
+              relativeTime: formatRelativeTime(chat.last_message_time)
+            } : null
+          }))
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      users: usersWithChats,
+      twin: {
+        id: twin.id,
+        publicHandle: twin.publicHandle
+      },
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalUsers / limit),
+        totalItems: totalUsers,
+        itemsPerPage: limit
+      },
+      filters: {
+        dateFrom,
+        dateTo,
+        search,
+        sortBy,
+        minMessages,
+        maxMessages
+      }
+    });
+
+  } catch (error) {
+    handleControllerError(error, 'Failed to get user-wise public chats');
   }
 };
 
@@ -1216,7 +1529,7 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
       SELECT id, content, sender, "createdAt"
       FROM "PublicMessage"
       WHERE "chatId" = $1
-      ORDER BY "createdAt" ASC
+      ORDER BY "createdAt" ASC NULLS LAST
     `, [chatId]);
 
     res.json({

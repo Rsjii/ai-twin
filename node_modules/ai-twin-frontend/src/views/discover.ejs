@@ -525,9 +525,19 @@ function setupInfiniteScroll() {
     // Show sample reply if available
     if (twin.sampleReply) {
         clone.querySelector('.twin-sample-reply').classList.remove('hidden');
-        clone.querySelector('.sample-text').textContent = twin.sampleReply;
-    }
-    
+        const sampleTextEl = clone.querySelector('.sample-text');
+        const maxLength = 120; // Limit to 120 characters
+        if (twin.sampleReply.length > maxLength) {
+            const truncated = twin.sampleReply.substring(0, maxLength) + '...';
+            sampleTextEl.textContent = truncated;
+            sampleTextEl.setAttribute('data-full-text', twin.sampleReply);
+            sampleTextEl.setAttribute('data-truncated', 'true');
+            sampleTextEl.classList.add('cursor-pointer', 'hover:underline');
+        } else {
+            sampleTextEl.textContent = twin.sampleReply;
+        }
+    }    
+
     // Set initial letter for avatar
     const initial = twin.publicHandle.charAt(0).toUpperCase();
     clone.querySelector('.twin-initial').textContent = initial;

@@ -31,6 +31,128 @@
             </div>
         </div>
 
+        <!-- Filters -->
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 mb-6">
+            <div class="flex flex-wrap items-center gap-4 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">View:</span>
+                    <button 
+                        id="viewChatBtn" 
+                        class="px-4 py-2 rounded-lg transition-colors bg-primary text-white"
+                    >
+                        Chat-wise
+                    </button>
+                    <button 
+                        id="viewUserBtn" 
+                        class="px-4 py-2 rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                    >
+                        User-wise
+                    </button>
+                </div>
+                <div class="flex-1"></div>
+                <button 
+                    id="clearFiltersBtn"
+                    class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                >
+                    Clear Filters
+                </button>
+            </div>
+            <div id="activeFiltersContainer" class="flex flex-wrap gap-2 mb-4"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search Messages</label>
+                    <input 
+                        type="text" 
+                        id="filterSearch"
+                        placeholder="Search in messages..."
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date From</label>
+                    <input 
+                        type="date" 
+                        id="filterDateFrom"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date To</label>
+                    <input 
+                        type="date" 
+                        id="filterDateTo"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sort By</label>
+                    <select 
+                        id="filterSortBy"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                        <option value="lastActivity">Last Activity</option>
+                        <option value="createdAt">Date Created</option>
+                        <option value="messageCount">Message Count</option>
+                    </select>
+                </div>
+                <!-- Advanced Filters -->
+                <div class="md:col-span-2 lg:col-span-4">
+                    <details class="group">
+                        <summary class="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary flex items-center gap-2">
+                            <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                            Advanced Filters
+                        </summary>
+                        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Min Messages</label>
+                                <input 
+                                    type="number" 
+                                    id="filterMinMessages"
+                                    min="0"
+                                    placeholder="0"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Messages</label>
+                                <input 
+                                    type="number" 
+                                    id="filterMaxMessages"
+                                    min="0"
+                                    placeholder="Any"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quick Date</label>
+                                <select 
+                                    id="quickDatePreset"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                >
+                                    <option value="">Select preset</option>
+                                    <option value="today">Today</option>
+                                    <option value="7days">Last 7 days</option>
+                                    <option value="30days">Last 30 days</option>
+                                    <option value="90days">Last 90 days</option>
+                                </select>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button 
+                    id="applyFiltersBtn"
+                    class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors"
+                    title="Filters apply automatically. Click to apply manually."
+                >
+                    Apply Filters
+                </button>
+            </div>
+        </div>                
+
         <!-- Chats List -->
         <div id="chatsContainer" class="space-y-4 mb-8">
             <div class="text-center py-12">
@@ -53,24 +175,58 @@
     <script>
         const twinId = '<%= twinId %>';
         let currentPage = 1;
+        let currentView = 'chat'; // 'chat' | 'user'
+        let currentFilters = {
+            userId: '',
+            dateFrom: '',
+            dateTo: '',
+            search: '',
+            sortBy: 'lastActivity',
+            minMessages: '',
+            maxMessages: ''
+        };
 
+        let searchDebounceTimer = null;
+        
         // Load public chat history
         async function loadPublicChatHistory(page = 1) {
             try {
-                const response = await fetch(`/api/public-chat/twin/${twinId}/all-chats?page=${page}&limit=5`, {
+                currentPage = page;
+                
+                // Build query params
+                const params = new URLSearchParams({
+                    page: page.toString(),
+                    limit: '5',
+                    view: currentView,
+                    sortBy: currentFilters.sortBy
+                });
+                
+                if (currentFilters.userId) params.append('userId', currentFilters.userId);
+                if (currentFilters.dateFrom) params.append('dateFrom', currentFilters.dateFrom);
+                if (currentFilters.dateTo) params.append('dateTo', currentFilters.dateTo);
+                if (currentFilters.search) params.append('search', currentFilters.search);
+                // ✅ NEW: Advanced filters
+                if (currentFilters.minMessages) params.append('minMessages', currentFilters.minMessages);
+                if (currentFilters.maxMessages) params.append('maxMessages', currentFilters.maxMessages);
+
+                const endpoint = currentView === 'user' 
+                    ? `/api/public-chat/twin/${twinId}/user-chats?${params.toString()}`
+                    : `/api/public-chat/twin/${twinId}/all-chats?${params.toString()}`;
+
+                const response = await fetch(endpoint, {
                     credentials: 'include'
                 });
                 
                 const data = await response.json();
-                console.log('Data:', data);
-                console.log('Pagination data:', data.pagination); // ✅ Debug log
-                console.log('Total pages:', data.pagination?.totalPages);
-                console.log('Total items:', data.pagination?.totalItems);
 
                 if (data.success) {
-                    displayChats(data.chats);
+                    if (currentView === 'user') {
+                        displayUsers(data.users);
+                    } else {
+                        displayChats(data.chats);
+                    }
                     
-                    // ✅ Initialize pagination using shared component helper
+                    // Initialize pagination
                     if (typeof window.initPaginationContainerPagination === 'function') {
                         window.initPaginationContainerPagination(data);
                     }
@@ -92,8 +248,8 @@
                         <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                         </svg>
-                        <p class="text-gray-600 dark:text-gray-400">No public chats yet</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Users haven't started any public chats with your twin</p>
+                        <p class="text-gray-600 dark:text-gray-400">No public chats found</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Try adjusting your filters</p>
                     </div>
                 `;
                 return;
@@ -140,7 +296,7 @@
                                 ` : ''}
                             </div>
                             ${chat.lastMessage ? `
-                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-2 truncate">${escapeHtml(chat.lastMessage.content)}</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">${escapeHtml(chat.lastMessage.content)}</p>
                             ` : ''}
                         </div>
                         <div class="flex items-center gap-2">
@@ -164,7 +320,7 @@
                 </div>
             `).join('');
             
-            // ✅ Format timestamps client-side after rendering
+            // Format timestamps
             if (window.TimeUtils) {
                 container.querySelectorAll('.timestamp-display').forEach(el => {
                     const timestamp = el.dataset.timestamp;
@@ -192,7 +348,7 @@
                 });
             }
             
-            // ✅ Add event listeners for delete buttons (using buttonId, not onclick)
+            // Add delete button listeners
             chats.forEach(chat => {
                 const deleteBtn = document.getElementById(`deleteChatBtn_${chat.id}`);
                 if (deleteBtn) {
@@ -201,6 +357,77 @@
                     });
                 }
             });
+        }
+
+        function displayUsers(users) {
+            const container = document.getElementById('chatsContainer');
+            
+            if (users.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <p class="text-gray-600 dark:text-gray-400">No users found</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Try adjusting your filters</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = users.map(userGroup => `
+                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 mb-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            ${userGroup.user.profileImage ? `
+                                <img src="${escapeHtml(userGroup.user.profileImage)}" alt="${escapeHtml(userGroup.user.name || userGroup.user.handle)}" class="w-12 h-12 rounded-full">
+                            ` : `
+                                <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                                    <span class="text-primary font-semibold text-lg">${escapeHtml((userGroup.user.name || userGroup.user.handle || 'U').charAt(0).toUpperCase())}</span>
+                                </div>
+                            `}
+                            <div>
+                                <h3 class="font-semibold text-gray-900 dark:text-white">${escapeHtml(userGroup.user.name || userGroup.user.handle || 'Unknown User')}</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">@${escapeHtml(userGroup.user.handle || 'unknown')}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-600 dark:text-gray-400">${userGroup.totalChats} chats</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${userGroup.totalMessages} messages</p>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        ${userGroup.chats.map(chat => `
+                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <div class="flex-1">
+                                    <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(chat.title)}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${chat.messageCount} messages • <span class="timestamp-display" data-timestamp="${chat.lastActivity}" data-format="smart"></span></p>
+                                </div>
+                                <a href="/twin/${twinId}/view-chat-history/${chat.id}" class="px-3 py-1 bg-primary text-white rounded-lg hover:bg-secondary transition-colors text-sm">
+                                    View
+                                </a>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            // Format timestamps
+            if (window.TimeUtils) {
+                container.querySelectorAll('.timestamp-display').forEach(el => {
+                    const timestamp = el.dataset.timestamp;
+                    if (timestamp) {
+                        try {
+                            const displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                            const fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                            el.textContent = displayTime;
+                            el.title = fullTime;
+                        } catch (e) {
+                            console.error('Error formatting timestamp:', e);
+                        }
+                    }
+                });
+            }
         }
 
         function escapeHtml(text) {
@@ -233,19 +460,16 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Show success message
                     const container = document.getElementById('chatsContainer');
                     const successMsg = document.createElement('div');
                     successMsg.className = 'mb-4 p-4 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-lg';
                     successMsg.textContent = 'Chat deleted successfully';
                     container.insertBefore(successMsg, container.firstChild);
                     
-                    // Remove message after 3 seconds
                     setTimeout(() => {
                         successMsg.remove();
                     }, 3000);
                     
-                    // Reload chat list
                     loadPublicChatHistory(currentPage);
                 } else {
                     showError(data.error || 'Failed to delete chat');
@@ -256,10 +480,327 @@
             }
         }
 
+        // Filter functions
+        function applyFilters() {
+            currentFilters.search = document.getElementById('filterSearch')?.value || '';
+            currentFilters.dateFrom = document.getElementById('filterDateFrom')?.value || '';
+            currentFilters.dateTo = document.getElementById('filterDateTo')?.value || '';
+            currentFilters.sortBy = document.getElementById('filterSortBy')?.value || 'lastActivity';
+            // ✅ NEW: Advanced filters
+            currentFilters.minMessages = document.getElementById('filterMinMessages')?.value || '';
+            currentFilters.maxMessages = document.getElementById('filterMaxMessages')?.value || '';
+            currentPage = 1;
+            updateActiveFiltersDisplay();
+            loadPublicChatHistory(1);
+        }
+
+        function updateActiveFiltersDisplay() {
+            const container = document.getElementById('activeFiltersContainer');
+            if (!container) return;
+            
+            const activeFilters = [];
+            
+            if (currentFilters.search && currentFilters.search.trim()) {
+                activeFilters.push({
+                    key: 'search',
+                    label: `Search: "${currentFilters.search}"`,
+                    value: currentFilters.search
+                });
+            }
+            if (currentFilters.dateFrom) {
+                activeFilters.push({
+                    key: 'dateFrom',
+                    label: `From: ${new Date(currentFilters.dateFrom).toLocaleDateString()}`,
+                    value: currentFilters.dateFrom
+                });
+            }
+            if (currentFilters.dateTo) {
+                activeFilters.push({
+                    key: 'dateTo',
+                    label: `To: ${new Date(currentFilters.dateTo).toLocaleDateString()}`,
+                    value: currentFilters.dateTo
+                });
+            }
+            if (currentFilters.sortBy && currentFilters.sortBy !== 'lastActivity') {
+                const sortLabels = {
+                    'createdAt': 'Date Created',
+                    'messageCount': 'Message Count'
+                };
+                activeFilters.push({
+                    key: 'sortBy',
+                    label: `Sort: ${sortLabels[currentFilters.sortBy] || currentFilters.sortBy}`,
+                    value: currentFilters.sortBy
+                });
+            }
+            // ✅ NEW: Advanced filter chips
+            if (currentFilters.minMessages) {
+                activeFilters.push({
+                    key: 'minMessages',
+                    label: `Min: ${currentFilters.minMessages} messages`,
+                    value: currentFilters.minMessages
+                });
+            }
+            if (currentFilters.maxMessages) {
+                activeFilters.push({
+                    key: 'maxMessages',
+                    label: `Max: ${currentFilters.maxMessages} messages`,
+                    value: currentFilters.maxMessages
+                });
+            }
+            
+            if (activeFilters.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            container.innerHTML = activeFilters.map(filter => `
+                <span class="inline-flex items-center gap-1 px-3 py-1 bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-300 rounded-full text-sm">
+                    ${escapeHtml(filter.label)}
+                    <button 
+                        data-filter-key="${filter.key}"
+                        class="remove-filter-btn ml-1 hover:bg-primary/30 rounded-full p-0.5 transition-colors"
+                        title="Remove filter"
+                    >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </span>
+            `).join('');
+            
+            // Add event listeners for remove buttons
+            container.querySelectorAll('.remove-filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const key = btn.dataset.filterKey;
+                    removeFilter(key);
+                });
+            });
+        }
+
+        function removeFilter(key) {
+            switch(key) {
+                case 'search':
+                    document.getElementById('filterSearch').value = '';
+                    currentFilters.search = '';
+                    break;
+                case 'dateFrom':
+                    document.getElementById('filterDateFrom').value = '';
+                    currentFilters.dateFrom = '';
+                    break;
+                case 'dateTo':
+                    document.getElementById('filterDateTo').value = '';
+                    currentFilters.dateTo = '';
+                    break;
+                case 'sortBy':
+                    document.getElementById('filterSortBy').value = 'lastActivity';
+                    currentFilters.sortBy = 'lastActivity';
+                    break;
+                // ✅ NEW: Advanced filters
+                case 'minMessages':
+                    document.getElementById('filterMinMessages').value = '';
+                    currentFilters.minMessages = '';
+                    break;
+                case 'maxMessages':
+                    document.getElementById('filterMaxMessages').value = '';
+                    currentFilters.maxMessages = '';
+                    break;
+            }
+            updateActiveFiltersDisplay();
+            applyFilters();
+        }
+
+        function clearFilters() {
+            currentFilters = {
+                userId: '',
+                dateFrom: '',
+                dateTo: '',
+                search: '',
+                sortBy: 'lastActivity',
+                minMessages: '',
+                maxMessages: ''
+            };
+            
+            // Clear all input fields
+            const filterSearch = document.getElementById('filterSearch');
+            const filterDateFrom = document.getElementById('filterDateFrom');
+            const filterDateTo = document.getElementById('filterDateTo');
+            const filterSortBy = document.getElementById('filterSortBy');
+            const filterMinMessages = document.getElementById('filterMinMessages');
+            const filterMaxMessages = document.getElementById('filterMaxMessages');
+            const quickDatePreset = document.getElementById('quickDatePreset');
+            
+            if (filterSearch) filterSearch.value = '';
+            if (filterDateFrom) filterDateFrom.value = '';
+            if (filterDateTo) filterDateTo.value = '';
+            if (filterSortBy) filterSortBy.value = 'lastActivity';
+            if (filterMinMessages) filterMinMessages.value = '';
+            if (filterMaxMessages) filterMaxMessages.value = '';
+            if (quickDatePreset) quickDatePreset.value = '';
+            
+            updateActiveFiltersDisplay();
+            applyFilters();
+        }        
+
+        function toggleView(view) {
+            currentView = view;
+            // Update button styles
+            if (view === 'chat') {
+                document.getElementById('viewChatBtn').className = 'px-4 py-2 rounded-lg transition-colors bg-primary text-white';
+                document.getElementById('viewUserBtn').className = 'px-4 py-2 rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600';
+            } else {
+                document.getElementById('viewChatBtn').className = 'px-4 py-2 rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600';
+                document.getElementById('viewUserBtn').className = 'px-4 py-2 rounded-lg transition-colors bg-primary text-white';
+            }
+            // ✅ IMPORTANT: Preserve filters when switching views
+            currentPage = 1;
+            loadPublicChatHistory(1);
+        }        
+
         // Load on page load
         document.addEventListener('DOMContentLoaded', () => {
             loadPublicChatHistory(1);
+            
+            // ✅ Setup event listeners for buttons
+            const viewChatBtn = document.getElementById('viewChatBtn');
+            const viewUserBtn = document.getElementById('viewUserBtn');
+            const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+            const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+            const filterSearch = document.getElementById('filterSearch');
+            const filterDateFrom = document.getElementById('filterDateFrom');
+            const filterDateTo = document.getElementById('filterDateTo');
+            const filterSortBy = document.getElementById('filterSortBy');
+            
+            // View toggle buttons
+            if (viewChatBtn) {
+                viewChatBtn.addEventListener('click', () => {
+                    toggleView('chat');
+                });
+            }
+            
+            if (viewUserBtn) {
+                viewUserBtn.addEventListener('click', () => {
+                    toggleView('user');
+                });
+            }
+            
+            // Filter buttons
+            // Search input - Debounced auto-apply (500ms delay) + Enter key
+            if (filterSearch) {
+                filterSearch.addEventListener('input', () => {
+                    clearTimeout(searchDebounceTimer);
+                    searchDebounceTimer = setTimeout(() => {
+                        applyFilters();
+                    }, 500);
+                });
+                
+                // Also apply on Enter key for immediate feedback
+                filterSearch.addEventListener('keyup', (e) => {
+                    if (e.key === 'Enter') {
+                        clearTimeout(searchDebounceTimer);
+                        applyFilters();
+                    }
+                });
+            }            
+
+            // Date inputs - Instant auto-apply on change
+            if (filterDateFrom) {
+                filterDateFrom.addEventListener('change', () => {
+                    applyFilters();
+                });
+            }
+            
+            if (filterDateTo) {
+                filterDateTo.addEventListener('change', () => {
+                    applyFilters();
+                });
+            }
+            
+            // Sort select - Instant auto-apply on change
+            if (filterSortBy) {
+                filterSortBy.addEventListener('change', () => {
+                    currentFilters.sortBy = filterSortBy.value;
+                    applyFilters();
+                });
+            }
+            
+            // ✅ NEW: Quick date preset
+            const quickDatePreset = document.getElementById('quickDatePreset');
+            if (quickDatePreset) {
+                quickDatePreset.addEventListener('change', () => {
+                    const preset = quickDatePreset.value;
+                    const dateFromInput = document.getElementById('filterDateFrom');
+                    const dateToInput = document.getElementById('filterDateTo');
+                    
+                    if (!preset) {
+                        if (dateFromInput) dateFromInput.value = '';
+                        if (dateToInput) dateToInput.value = '';
+                        applyFilters();
+                        return;
+                    }
+                    
+                    const today = new Date();
+                    let fromDate = new Date();
+                    
+                    switch(preset) {
+                        case 'today':
+                            fromDate = new Date(today);
+                            break;
+                        case '7days':
+                            fromDate.setDate(today.getDate() - 7);
+                            break;
+                        case '30days':
+                            fromDate.setDate(today.getDate() - 30);
+                            break;
+                        case '90days':
+                            fromDate.setDate(today.getDate() - 90);
+                            break;
+                    }
+                    
+                    if (dateFromInput) {
+                        dateFromInput.value = fromDate.toISOString().split('T')[0];
+                    }
+                    if (dateToInput) {
+                        dateToInput.value = today.toISOString().split('T')[0];
+                    }
+                    applyFilters();
+                });
+            }
+            
+            // ✅ NEW: Message count filters - auto-apply on change
+            const filterMinMessages = document.getElementById('filterMinMessages');
+            const filterMaxMessages = document.getElementById('filterMaxMessages');
+            
+            if (filterMinMessages) {
+                filterMinMessages.addEventListener('change', () => {
+                    applyFilters();
+                });
+            }
+            
+            if (filterMaxMessages) {
+                filterMaxMessages.addEventListener('change', () => {
+                    applyFilters();
+                });
+            }
+            
+            // Apply Filters button - Manual trigger (useful for re-applying or when auto-apply doesn't trigger)
+            if (applyFiltersBtn) {
+                applyFiltersBtn.addEventListener('click', () => {
+                    // Clear any pending debounce
+                    clearTimeout(searchDebounceTimer);
+                    applyFilters();
+                });
+            }
+            
+            // ✅ FIX: Clear Filters button - Missing event listener
+            if (clearFiltersBtn) {
+                clearFiltersBtn.addEventListener('click', () => {
+                    clearFilters();
+                });
+            }
+            
+            // Initial filter display
+            updateActiveFiltersDisplay();
         });
-    </script>
+    </script>    
 </body>
 </html>

@@ -1,7 +1,6 @@
 import { Response } from 'express';
 import { twinQueries, userQueries } from '../config/database';
 import { logger } from '../config/logger';
-import { AppError, createError } from '../utils/errors';
 import { fastQuery } from '../utils/dbUtils';
 import { handleControllerError } from '../utils/errorHandler';
 
@@ -53,34 +52,20 @@ export async function getTwinManage(req: any, res: Response) {
     let recentChats: any[] = [];
     try {
       const recentChatsResult = await fastQuery(`
-        (
           SELECT 
             pc.id,
             pc.title,
             pc."createdAt",
+            pc."lastActivity",
             COUNT(pm.id) as message_count,
             'public' as chat_type
           FROM "PublicChat" pc
           LEFT JOIN "PublicMessage" pm ON pc.id = pm."chatId"
           WHERE pc."twinId" = $1
-          GROUP BY pc.id, pc.title, pc."createdAt"
-        )
-        UNION ALL
-        (
-          SELECT 
-            c.id,
-            NULL as title,
-            c."createdAt",
-            COUNT(m.id) as message_count,
-            'private' as chat_type
-          FROM "Chat" c
-          LEFT JOIN "Message" m ON c.id = m."chatId"
-          WHERE c."twinId" = $1 AND c."userId" = $2
-          GROUP BY c.id, c."createdAt"
-        )
-        ORDER BY "createdAt" DESC
-        LIMIT 5
-      `, [twinId, userId]);
+          GROUP BY pc.id, pc.title, pc."createdAt", pc."lastActivity"
+          ORDER BY COALESCE(pc."lastActivity", pc."createdAt") DESC
+          LIMIT 5
+      `, [twinId]);
       recentChats = recentChatsResult.rows || [];
     } catch (error) {
       logger.warn('Error fetching recent chats:', {

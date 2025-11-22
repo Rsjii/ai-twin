@@ -10,7 +10,8 @@ import {
   deletePublicChat,
   updatePublicChatTitle,
   getAllPublicChatsForTwin,
-  viewPublicChatHistory
+  viewPublicChatHistory,
+  getUserWisePublicChats
 } from './publicChatController';
 import { requireJWTFromCookie, extractJWTFromCookie } from '../../middleware/jwtCookie';
 import { publicChatRateLimit, publicChatRateLimitAuthenticated } from '../../middleware/rateLimit';
@@ -48,5 +49,7 @@ router.put('/:chatId/title', updatePublicChatTitle);
 
 // View public chat history endpoint
 router.get('/:chatId/view-history', requireJWTFromCookie, viewPublicChatHistory);
+
+router.get('/twin/:twinId/user-chats', requireJWTFromCookie, getUserWisePublicChats);
 
 export default router;
