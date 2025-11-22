@@ -260,7 +260,7 @@
 document.getElementById('chatNowBtn').addEventListener('click', function() {
     // ✅ Check if login is required and user is not logged in
     const requireLogin = <%= twin.requireLogin ? 'true' : 'false' %>;
-    const isLoggedIn = <%= user ? 'true' : 'false' %>;
+    const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
     
     if (requireLogin && !isLoggedIn) {
         // Show confirmation dialog on profile page

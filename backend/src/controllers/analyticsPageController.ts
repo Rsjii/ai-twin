@@ -58,7 +58,9 @@ export async function getAnalytics(req: any, res: Response) {
 export async function getAdminAnalytics(req: any, res: Response) {
   try {
     if (!req.user || !req.user.email || !ADMIN_EMAILS.includes(req.user.email)) {
-      throw createError.forbidden('Admin access required');
+      return res.status(404).render('404', {
+        title: 'Page Not Found',
+      });
     }
 
     const fullUser = await userQueries.findByEmail(req.user.email);
@@ -94,7 +96,9 @@ export async function getAdminAnalytics(req: any, res: Response) {
 export async function getAdminAnalyticsPage(req: any, res: Response) {
   try {
     if (!req.user || !req.user.email || !ADMIN_EMAILS.includes(req.user.email)) {
-      throw createError.forbidden('Admin access required');
+      return res.status(404).render('404', {
+        title: 'Page Not Found',
+      });
     }
 
     const { type } = req.params;
@@ -138,7 +142,9 @@ export async function getAdminAnalyticsPage(req: any, res: Response) {
 export async function getEventExplorerPage(req: any, res: Response) {
   try {
     if (!req.user || !req.user.email || !ADMIN_EMAILS.includes(req.user.email)) {
-      throw createError.forbidden('Admin access required');
+      return res.status(404).render('404', {
+        title: 'Page Not Found',
+      });
     }
 
     const fullUser = await userQueries.findByEmail(req.user.email);

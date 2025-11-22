@@ -60,7 +60,7 @@
 //VERIFY 51. sirf twin profile rakhni ya user bhi sochke 
 //DONE 52. pagination chahiye 
 //DONE 53. save priavcy settings me jab tak jcuh edit na ho button alag color edit ho to alag
-54. block btn add karo , profile me
+54. block btn add karo , twin/user ki profile me
 //DONE 55. analytics me view full detailed direct hi dikhao
 56. console . repeated code hatao clean karo files simplify karo , dao banao simple samjh me aaye bulky nhi
 //DONE 57. user apne twin se hui chat dekh saktaa

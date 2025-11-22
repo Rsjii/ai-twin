@@ -3,12 +3,12 @@ import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { ADMIN_EMAILS, QUERY_LIMITS } from '../../config/constants';
 
-// Admin authentication middleware
+// Admin authentication middleware - returns 404 to hide admin pages
 export const requireAdminAuth = (req: Request, res: Response, next: Function) => {
-  // Check if user is admin (you can modify this logic as needed)
-  
+  // Check if user is admin
   if (!req.user || !req.user.email || !ADMIN_EMAILS.includes(req.user.email)) {
-    return res.status(403).json({ error: 'Admin access required' });
+    // Return 404 instead of 403 to hide that admin pages exist
+    return res.status(404).json({ error: 'Not found' });
   }
   
   next();
