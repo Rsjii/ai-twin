@@ -132,6 +132,42 @@ export async function getAdminAnalyticsPage(req: any, res: Response) {
   }
 }
 
+/**
+ * Event Explorer page
+ */
+export async function getEventExplorerPage(req: any, res: Response) {
+  try {
+    if (!req.user || !req.user.email || !ADMIN_EMAILS.includes(req.user.email)) {
+      throw createError.forbidden('Admin access required');
+    }
+
+    const fullUser = await userQueries.findByEmail(req.user.email);
+    if (!fullUser) {
+      return res.redirect('/auth');
+    }
+
+    res.render('admin-analytics-events', {
+      title: 'Admin Analytics - Events Explorer - AI Twin',
+      user: {
+        id: fullUser.id,
+        email: fullUser.email,
+        handle: fullUser.handle,
+        name: fullUser.name,
+        profileImage: fullUser.profileImage
+      },
+      csrfToken: res.locals['csrfToken']
+    });
+  } catch (error) {
+    logger.error('Event explorer page error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: req.user?.id,
+      path: req.path
+    });
+    
+    handleControllerError(error, 'Failed to load event explorer page');
+  }
+}
+
 // Add to existing analyticsPageController.ts
 export async function getAnalyticsDetails(req: any, res: Response) {
   try {

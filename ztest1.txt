@@ -84,7 +84,7 @@
 75. public chat width kam
 76. kuch jagah color issue hai like footer me dark theme sahi karo
 77. analytics me chart dikhe 
-78. analytics slow kyu load ho raha hai
+//DONE 78. analytics slow kyu load ho raha hai
 79. admin analytics , paages par koi jaa na paaye usse pata hi na chale ki ye admin page hai error 404 not u are authorized papta chal jaayega , apan kaise ensure karege kisi access na ho paaye
 80. google analytics
 //VERIFY => ho haya 81. regenerate pe niche waali ud jaaye
@@ -118,7 +118,7 @@
 97. make twin public me same handle daalo existing wala to errror nahi aa rha proper frontend par , uski wajah se atak ja raha hai + {Pattern attribute value [a-zA-Z0-9_-]+ is not a valid regular expression: Uncaught SyntaxError: Invalid regular expression: /[a-zA-Z0-9_-]+/v: Invalid character in character class } logic hai isko sahi karo
 98. user profile hata deni chahiye i guess only the twin profile , kaise karna hai socho aur batao , fully twin oriednted ya both sochna hoga
 99. prfolie non logged in ke liye block hai to eror 404 aaye na  , link khul hi na raha ye kya baat hai , jaise public chat me aata errro 403
-100. discover me har twin ka sample rely aata hai, jyada bada ho, apnlimited hi dikaaye na ki pura ensure karo
+//VERIFY 100. discover me har twin ka sample rely aata hai, jyada bada ho, apnlimited hi dikaaye na ki pura ensure karo
 //VERIFY 101. dicover me load more ho raha hai kya
 //CHECK => aur kaha add kare 102. filtering wagerah ke options publci chat history + aur jagah
 //DONE 103. reset password different + eye
@@ -135,4 +135,5 @@ b. agar show chat hisory false ho to bhi acche se pan previous hatwa sakte new s
 113. block twin trending now , you recently chatted with in dashboard me na dikhee
 112. extra bg me white shade ki need nahi hai on top Twin Os , selected section like dashboard
 //DONE 113. public chat history me user wise bhi dikha sakte , along with chat wise + filters 
-114. reset password me dark theme\115/ /twin/create par header alag , no dark theme
+114. reset password me dark theme
+115. /twin/create par header alag , no dark theme

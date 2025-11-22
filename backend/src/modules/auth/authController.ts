@@ -91,6 +91,13 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
     
     logger.info(`User created successfully: ${user.id}`);
 
+    // Log signup event
+    try {
+      await logEvent(user.id, 'signup', { email: user.email });
+    } catch (eventError) {
+      logger.warn('Failed to log signup event:', eventError);
+    }
+
 // If they were referred, link them
 if (referrerId) {
   const { db } = await import('../../config/database');
@@ -209,7 +216,17 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
-    
+
+    // Log profile completed event
+    try {
+      await logEvent(user.id, 'profile_completed', { 
+        name: user.name || name,
+        handle: user.handle || handle
+      });
+    } catch (eventError) {
+      logger.warn('Failed to log profile_completed event:', eventError);
+    }
+
     res.json({ 
       message: 'Profile completed successfully', 
       redirect: '/dashboard',
@@ -395,7 +412,14 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
-    
+
+    // Log login event
+    try {
+      await logEvent(user.id, 'login', { email: user.email });
+    } catch (eventError) {
+      logger.warn('Failed to log login event:', eventError);
+    }
+
     res.json({ 
       message: 'Login successful', 
       redirect: '/dashboard',
@@ -465,7 +489,14 @@ export const loginVerify = async (req: Request, res: Response, next: NextFunctio
     req.session!.userId = user.id;
     req.session!.userEmail = user.email;
     req.session!.userHandle = user.handle;
-    
+
+    // Log login event (for OTP-based login)
+    try {
+      await logEvent(user.id, 'login', { email: user.email, method: 'otp' });
+    } catch (eventError) {
+      logger.warn('Failed to log login event:', eventError);
+    }
+
     res.json({ 
       message: 'Login successful', 
       redirect: '/dashboard',
@@ -558,6 +589,16 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response, n
 
 export const logout = (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Get userId before clearing session
+    const userId = req.session?.userId || null;
+
+    // Log logout event (if userId available)
+    if (userId) {
+      logEvent(userId, 'logout', {}).catch((eventError) => {
+        logger.warn('Failed to log logout event:', eventError);
+      });
+    }
+
     // Clear JWT cookie
     res.clearCookie('jwtToken');
     

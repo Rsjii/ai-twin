@@ -541,18 +541,34 @@
                 chatsContainer.innerHTML = '<p class="text-gray-500 text-sm">No recent chats</p>';
             }
             
-            // Update recent events
-            const eventsContainer = document.getElementById('recentEvents');
-            if (activity.recentEvents && activity.recentEvents.length > 0) {
-                eventsContainer.innerHTML = activity.recentEvents.slice(0, 3).map(event => `
-                    <div class="text-sm">
-                        <p class="font-medium text-gray-900">${event.type}</p>
-                        <p class="text-gray-600 timestamp-display" data-timestamp="${event.createdAt}" data-format="date"></p>
-                    </div>
-                `).join('');
-            } else {
-                eventsContainer.innerHTML = '<p class="text-gray-500 text-sm">No recent events</p>';
-            }
+// Update recent events (with meta tags)
+const eventsContainer = document.getElementById('recentEvents');
+if (activity.recentEvents && activity.recentEvents.length > 0) {
+    eventsContainer.innerHTML = activity.recentEvents.slice(0, 3).map(event => {
+        // Extract meta tags (simple client-side extraction)
+        const meta = event.meta || {};
+        const tags = [];
+        if (meta.wv) tags.push(`wv:${meta.wv}`);
+        if (meta.source) tags.push(`src:${meta.source}`);
+        if (meta.twinId) tags.push(`twin:${meta.twinId.substring(0, 6)}`);
+        
+        const tagsHtml = tags.length > 0 
+            ? `<div class="flex flex-wrap gap-1 mt-1">${tags.map(tag => 
+                `<span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">${tag}</span>`
+              ).join('')}</div>`
+            : '';
+        
+        return `
+            <div class="text-sm">
+                <p class="font-medium text-gray-900">${event.type}</p>
+                <p class="text-gray-600 timestamp-display" data-timestamp="${event.createdAt}" data-format="date"></p>
+                ${tagsHtml}
+            </div>
+        `;
+    }).join('');
+} else {
+    eventsContainer.innerHTML = '<p class="text-gray-500 text-sm">No recent events</p>';
+}            
             
             // ✅ Format timestamps client-side after rendering
             if (window.TimeUtils) {
@@ -1123,14 +1139,27 @@
                     <div class="bg-white border rounded-lg p-4">
                         <h4 class="font-semibold mb-3">Recent Activity</h4>
                         <div class="space-y-2 max-h-48 overflow-y-auto">
-                            ${userData.events.slice(0, 10).map(event => `
-                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                    <div>
-                                        <p class="text-sm font-medium">${event.type}</p>
-                                        <p class="text-xs text-gray-600 timestamp-display" data-timestamp="${event.createdAt}" data-format="context"></p>
-                                    </div>
-                                </div>
-                            `).join('')}
+${userData.events.slice(0, 10).map(event => {
+    const meta = event.meta || {};
+    const metaPreview = [];
+    if (meta.wv) metaPreview.push(`wv:${meta.wv}`);
+    if (meta.source) metaPreview.push(`src:${meta.source}`);
+    if (meta.twinId) metaPreview.push(`twin:${meta.twinId.substring(0, 6)}`);
+    
+    const metaHtml = metaPreview.length > 0 
+        ? `<p class="text-xs text-gray-500 mt-1">${metaPreview.join(', ')}</p>`
+        : '';
+    
+    return `
+        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+            <div class="flex-1">
+                <p class="text-sm font-medium">${event.type}</p>
+                <p class="text-xs text-gray-600 timestamp-display" data-timestamp="${event.createdAt}" data-format="context"></p>
+                ${metaHtml}
+            </div>
+        </div>
+    `;
+}).join('')}                            
                         </div>
                     </div>
                     

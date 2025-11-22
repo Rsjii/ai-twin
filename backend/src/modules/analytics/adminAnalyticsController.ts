@@ -646,15 +646,21 @@ export const getDetailedUsersPage = async (req: Request, res: Response) => {
       SELECT COUNT(*) as total FROM "User" u ${whereClause}
     `, queryParams);
     
-    // Get summary
-    const summaryResult = await db.query(`
-      SELECT 
-        COUNT(*) as totalUsers,
-        COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
-        COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as newThisWeek,
-        COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as newThisMonth
-      FROM "User"
-    `);
+// Get summary with active users today
+const summaryResult = await db.query(`
+  SELECT 
+    COUNT(*) as totalUsers,
+    COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
+    COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as newThisWeek,
+    COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as newThisMonth,
+    (
+      SELECT COUNT(DISTINCT "userId")
+      FROM "Event"
+      WHERE "createdAt" >= NOW() - INTERVAL '24 hours'
+        AND "userId" IS NOT NULL
+    ) as activeToday
+  FROM "User"
+`);    
     
     console.log('Users page data fetched successfully');
     
@@ -713,15 +719,17 @@ export const getDetailedTwinsPage = async (req: Request, res: Response) => {
       SELECT COUNT(*) as total FROM "Twin" t JOIN "User" u ON t."userId" = u.id ${whereClause}
     `, queryParams);
     
-    // Get summary
-    const summaryResult = await db.query(`
-      SELECT 
-        COUNT(*) as totalTwins,
-        COUNT(CASE WHEN t."createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
-        COUNT(CASE WHEN t."createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as newThisWeek,
-        COUNT(CASE WHEN t."createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as newThisMonth
-      FROM "Twin" t
-    `);
+// Get summary with averages
+const summaryResult = await db.query(`
+  SELECT 
+    COUNT(*) as totalTwins,
+    COUNT(CASE WHEN t."createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
+    COUNT(CASE WHEN t."createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as newThisWeek,
+    COUNT(CASE WHEN t."createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as newThisMonth,
+    COALESCE(AVG(t."likeCount"), 0)::numeric(10,2) as avgLikes,
+    COALESCE(AVG(t."chatCount"), 0)::numeric(10,2) as avgChats
+  FROM "Twin" t
+`);    
     
     console.log('Twins page data fetched successfully');
     
@@ -781,16 +789,25 @@ export const getDetailedChatsPage = async (req: Request, res: Response) => {
       SELECT COUNT(*) as total FROM "Chat" c JOIN "User" u ON c."userId" = u.id ${whereClause}
     `, queryParams);
     
-    // Get summary
-    const summaryResult = await db.query(`
-      SELECT 
-        COUNT(*) as totalChats,
-        COUNT(CASE WHEN c."createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
-        COUNT(CASE WHEN c."createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as newThisWeek,
-        COUNT(CASE WHEN c."createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as newThisMonth
-      FROM "Chat" c
-    `);
-    
+// Get summary with avg messages per chat (optimized)
+const summaryResult = await db.query(`
+  SELECT 
+    COUNT(DISTINCT c.id) as totalChats,
+    COUNT(DISTINCT CASE WHEN c."createdAt" >= NOW() - INTERVAL '24 hours' THEN c.id END) as newToday,
+    COUNT(DISTINCT CASE WHEN c."createdAt" >= NOW() - INTERVAL '7 days' THEN c.id END) as newThisWeek,
+    COUNT(DISTINCT CASE WHEN c."createdAt" >= NOW() - INTERVAL '30 days' THEN c.id END) as newThisMonth,
+    COALESCE(
+      (SELECT AVG(msg_count)::numeric(10,2)
+       FROM (
+         SELECT COUNT(*) as msg_count
+         FROM "Message" m
+         GROUP BY m."chatId"
+       ) msg_stats
+      ), 0
+    ) as avgMessagesPerChat
+  FROM "Chat" c
+`);
+
     console.log('Chats page data fetched successfully');
     
     res.json({
@@ -854,15 +871,16 @@ export const getDetailedMessagesPage = async (req: Request, res: Response) => {
       ${whereClause}
     `, queryParams);
     
-    // Get summary
-    const summaryResult = await db.query(`
-      SELECT 
-        COUNT(*) as totalMessages,
-        COUNT(CASE WHEN m."createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
-        COUNT(CASE WHEN m."createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as newThisWeek,
-        COUNT(CASE WHEN m."createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as newThisMonth
-      FROM "Message" m
-    `);
+// Get summary with avg message length
+const summaryResult = await db.query(`
+  SELECT 
+    COUNT(*) as totalMessages,
+    COUNT(CASE WHEN m."createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
+    COUNT(CASE WHEN m."createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as newThisWeek,
+    COUNT(CASE WHEN m."createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as newThisMonth,
+    COALESCE(AVG(LENGTH(m.content))::numeric(10,2), 0) as avgMessageLength
+  FROM "Message" m
+`);    
     
     console.log('Messages page data fetched successfully');
     
@@ -995,6 +1013,116 @@ export const getEventAnalytics = async (req: Request, res: Response) => {
     });
   } catch (error) {
     logger.error('Event analytics error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Get filtered events list for Event Explorer
+export const getEventExplorer = async (req: Request, res: Response) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 50, 
+      eventType = '', 
+      startDate = '', 
+      endDate = '', 
+      metaFilter = '',
+      userId = ''
+    } = req.query;
+    
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const conditions: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
+    
+    // Event type filter
+    if (eventType) {
+      conditions.push(`e.type = $${paramIndex}`);
+      params.push(eventType);
+      paramIndex++;
+    }
+    
+    // Date range filter
+    if (startDate) {
+      conditions.push(`e."createdAt" >= $${paramIndex}::timestamp`);
+      params.push(startDate);
+      paramIndex++;
+    }
+    if (endDate) {
+      conditions.push(`e."createdAt" <= $${paramIndex}::timestamp`);
+      params.push(endDate);
+      paramIndex++;
+    }
+    
+    // User filter
+    if (userId) {
+      conditions.push(`e."userId" = $${paramIndex}`);
+      params.push(userId);
+      paramIndex++;
+    }
+    
+    // Meta filter (JSONB query)
+    if (metaFilter) {
+      // Support for simple key:value filters like "wv:event" or "source:dashboard"
+      const [key, value] = metaFilter.split(':');
+      if (key && value) {
+        conditions.push(`e.meta->>'${key}' = $${paramIndex}`);
+        params.push(value);
+        paramIndex++;
+      }
+    }
+    
+    const whereClause = conditions.length > 0 
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
+    
+    // Get events with user info
+    const eventsResult = await db.query(`
+      SELECT 
+        e.id,
+        e."userId",
+        e.type,
+        e.meta,
+        e."createdAt",
+        u.handle as "userHandle",
+        u.email as "userEmail"
+      FROM "Event" e
+      LEFT JOIN "User" u ON e."userId" = u.id
+      ${whereClause}
+      ORDER BY e."createdAt" DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `, [...params, parseInt(limit as string), offset]);
+    
+    // Get total count
+    const countResult = await db.query(`
+      SELECT COUNT(*) as total
+      FROM "Event" e
+      ${whereClause}
+    `, params);
+    
+    // Get event type breakdown for filter dropdown
+    const typesResult = await db.query(`
+      SELECT DISTINCT type
+      FROM "Event"
+      ORDER BY type
+    `);
+    
+    res.json({
+      success: true,
+      data: {
+        events: eventsResult.rows,
+        pagination: {
+          currentPage: parseInt(page as string),
+          totalPages: Math.ceil(parseInt(countResult.rows[0].total) / parseInt(limit as string)),
+          totalItems: parseInt(countResult.rows[0].total),
+          itemsPerPage: parseInt(limit as string)
+        },
+        eventTypes: typesResult.rows.map(r => r.type)
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Event explorer error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

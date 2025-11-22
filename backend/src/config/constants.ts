@@ -92,3 +92,52 @@ export const TIME_INTERVALS = {
   WEEK: '7 days',
   MONTH: '30 days',
 } as const;
+
+// Event Types - Canonical list for analytics
+export const EVENT_TYPES = {
+  // Auth & Onboarding
+  SIGNUP: 'signup',
+  LOGIN: 'login',
+  LOGOUT: 'logout',
+  INVITE_SENT: 'invite_sent',
+  INVITE_ACCEPTED: 'invite_accepted',
+  
+  // Twin Management
+  TWIN_CREATED: 'twin_created',
+  TWIN_CREATION_FAILED: 'twin_creation_failed',
+  ENHANCED_TWIN_CREATED: 'enhanced_twin_created',
+  TWIN_MADE_PUBLIC: 'twin_made_public',
+  TWIN_MADE_PRIVATE: 'twin_made_private',
+  
+  // Chat & Messaging
+  CHAT_STARTED: 'chat_started',
+  CHAT_CONTINUED: 'chat_continued',
+  CHAT_CREATED: 'chat_created',
+  CHAT_MESSAGE: 'chat_message',
+  CHAT_DELETED: 'chat_deleted',
+  PUBLIC_CHAT_STARTED: 'public_chat_started',
+  DRAFT_GENERATED: 'draft_generated',
+  MESSAGE_APPROVED: 'message_approved',
+  
+  // Social
+  TWIN_LIKED: 'twin_liked',
+  TWIN_UNLIKED: 'twin_unliked',
+  TWIN_FOLLOWED: 'twin_followed',
+  TWIN_UNFOLLOWED: 'twin_unfollowed',
+  TWIN_SHARED: 'twin_shared',
+  SHARE_CLICKED: 'share_clicked',
+  
+  // Privacy & Moderation
+  PRIVACY_SETTINGS_UPDATED: 'privacy_settings_updated',
+  USER_BLOCKED: 'user_blocked',
+  USER_UNBLOCKED: 'user_unblocked',
+  CONTENT_MODERATED: 'content_moderated',
+  CONTENT_REPORTED: 'content_reported',
+  
+  // AI & Performance
+  AI_RUN_CREATED: 'ai_run_created',
+  
+  // System
+  ERROR: 'error',
+  API_ERROR: 'api_error',
+} as const;

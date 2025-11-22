@@ -12,7 +12,8 @@ import {
   getDetailedChatsPage,
   getDetailedMessagesPage,
   getSystemHealth,
-  requireAdminAuth 
+  requireAdminAuth,
+  getEventExplorer
 } from './adminAnalyticsController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 
@@ -73,5 +74,8 @@ router.delete('/user/:userId', removeUser);
 
 // System health check
 router.get('/health', getSystemHealth);
+
+// Event explorer
+router.get('/events/explorer', getEventExplorer);
 
 export default router;
