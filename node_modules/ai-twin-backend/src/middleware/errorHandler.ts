@@ -64,7 +64,13 @@ export const errorHandlerMiddleware = (
   }
   
   // Unhandled errors
-  logger.error('Unhandled error:', err);
+  logger.error('Unhandled error:', {
+    message: err.message,
+    stack: err.stack,
+    name: err.name,
+    path: req.path,
+    method: req.method
+  });  
   
   if (isApiRequest) {
     return res.status(500).json({

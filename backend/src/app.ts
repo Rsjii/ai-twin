@@ -141,7 +141,11 @@ app.post('/api/chats/:id/generate-title', requireJWTFromCookie, generateChatTitl
 // View engine setup
 app.set('view engine', 'ejs');
 // ✅ FIX: Use absolute path resolution
-app.set('views', path.resolve(__dirname, '../../frontend/src/views'));
+const viewsPath = path.resolve(__dirname, '../../frontend/src/views');
+app.set('views', viewsPath);
+if(config.nodeEnv === 'production'){
+  logger.info('Views path:', viewsPath);
+}
 
 // Static files with cache headers
 app.use(express.static(path.resolve(__dirname, '../../frontend/src/public'), {

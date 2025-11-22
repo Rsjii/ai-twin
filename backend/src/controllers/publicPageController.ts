@@ -8,16 +8,25 @@ import { handleControllerError } from '../utils/errorHandler';
  * Landing page - Public home page
  */
 export function getLanding(req: any, res: Response) {
-  // If user is logged in, redirect to dashboard
-  if (req.user) {
-    return res.redirect('/dashboard');
-  }
+  try {
+    // If user is logged in, redirect to dashboard
+    if (req.user) {
+      return res.redirect('/dashboard');
+    }
 
-  res.render('landing', {
-    title: 'AI Twin - Create Your Digital Twin',
-    user: req.user || null,  // Always pass, even if null
-    csrfToken: res.locals['csrfToken']
-  });
+    res.render('landing', {
+      title: 'AI Twin - Create Your Digital Twin',
+      user: req.user || null,
+      csrfToken: res.locals['csrfToken'] || ''  // ✅ FIX: Ensure csrfToken is always a string
+    });
+  } catch (error) {
+    logger.error('Landing page error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      path: req.path
+    });
+    handleControllerError(error, 'Failed to load landing page');
+  }
 }
 
 /**
