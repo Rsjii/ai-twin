@@ -136,11 +136,24 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
         try {
             // Load user analytics and feedback analytics in parallel (FAST)
             const [response, feedbackResponse] = await Promise.all([
-                fetch('/api/metrics/user', { cache: 'no-store' }),           // ✅ force no cache
-                fetch('/api/analytics/feedback', { cache: 'no-store' })     // ✅
+                fetch('/api/metrics/user', {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache' },
+                }),
+                fetch('/api/analytics/feedback', {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache' },
+                })
             ]);
 
             // ✅ Handle 304 or non-OK without crashing
+            console.log('[ANALYTICS_FETCH]', {
+                metricsStatus: response.status,
+                feedbackStatus: feedbackResponse.status,
+                metricsOk: response.ok,
+                feedbackOk: feedbackResponse.ok,
+            });
+
             if (!response.ok) {
                 console.error('Metrics response status:', response.status);
             }
@@ -156,6 +169,8 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                     console.error('Failed to parse /api/metrics/user JSON', err);
                     return {};
                 });
+            } else {
+                console.warn('[ANALYTICS] Got 304 for /api/metrics/user - using cached data');
             }
 
             if (feedbackResponse.status !== 304) {
@@ -163,6 +178,8 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                     console.error('Failed to parse /api/analytics/feedback JSON', err);
                     return {};
                 });
+            } else {
+                console.warn('[ANALYTICS] Got 304 for /api/analytics/feedback - using cached data');
             }
             
             // Update overview cards

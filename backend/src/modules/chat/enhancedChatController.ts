@@ -287,6 +287,23 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
  */
 export const getChatHistory = async (req: any, res: Response, next: NextFunction) => {
   try {
+    // ✅ ULTRA-DETAILED LOGGING for enhanced-chat API
+    try {
+      logger.info('[ENHANCED_CHAT:START]', {
+        path: req.path,
+        method: req.method,
+        chatId: req.params.id,
+        userId: req.user?.id || null,
+        headers: {
+          ifNoneMatch: req.headers['if-none-match'] || null,
+          ifModifiedSince: req.headers['if-modified-since'] || null,
+          cacheControl: req.headers['cache-control'] || null,
+        },
+      });
+    } catch (logErr) {
+      logger.warn('[ENHANCED_CHAT] Failed to log START:', logErr);
+    }
+
     const { id: chatId } = req.params;
     const userId = req.user.id;
 
@@ -335,6 +352,25 @@ export const getChatHistory = async (req: any, res: Response, next: NextFunction
         relativeTime: formatRelativeTime(msg.createdAt) // ✅ ADD: Relative time
       }))
     };
+
+    // ✅ Log response before sending
+    try {
+      logger.info('[ENHANCED_CHAT:RESPONSE]', {
+        chatId,
+        userId,
+        messagesCount: chatData.messages.length,
+        twinId: chatData.twinId,
+      });
+    } catch (logErr) {
+      logger.warn('[ENHANCED_CHAT] Failed to log RESPONSE:', logErr);
+    }
+
+    // ✅ ADD: Cache headers to prevent 304 responses
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    });
     
     res.json({ 
       chat: chatData,

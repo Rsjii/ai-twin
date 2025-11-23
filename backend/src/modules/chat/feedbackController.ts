@@ -174,6 +174,22 @@ export const regenerateResponse = async (req: Request, res: Response, next: Next
  */
 export const getFeedbackAnalytics = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // ✅ ULTRA-DETAILED LOGGING for feedback analytics
+    try {
+      logger.info('[FEEDBACK_ANALYTICS:START]', {
+        path: req.path,
+        method: req.method,
+        userId: req.user?.id || null,
+        headers: {
+          ifNoneMatch: req.headers['if-none-match'] || null,
+          ifModifiedSince: req.headers['if-modified-since'] || null,
+          cacheControl: req.headers['cache-control'] || null,
+        },
+      });
+    } catch (logErr) {
+      logger.warn('[FEEDBACK_ANALYTICS] Failed to log START:', logErr);
+    }
+
     const userId = req.user.id;
     
     // Get feedback counts
@@ -191,9 +207,22 @@ export const getFeedbackAnalytics = async (req: Request, res: Response, next: Ne
       ? Math.round((feedback.positive_count / feedback.total_feedback) * 100)
       : 0;
     
+    // ✅ Log response before sending
+    try {
+      logger.info('[FEEDBACK_ANALYTICS:RESPONSE]', {
+        userId,
+        positiveCount: feedback.positive_count,
+        negativeCount: feedback.negative_count,
+        totalFeedback: feedback.total_feedback,
+        satisfactionScore,
+      });
+    } catch (logErr) {
+      logger.warn('[FEEDBACK_ANALYTICS] Failed to log RESPONSE:', logErr);
+    }
+    
     // ✅ ADD: Cache headers to prevent 304 responses
     res.set({
-      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
       'Pragma': 'no-cache',
       'Expires': '0',
     });

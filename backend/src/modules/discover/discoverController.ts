@@ -101,6 +101,34 @@ async function enrichTwinsWithUserInteraction(twins: any[], userId?: string) {
 // Get trending twins based on engagement
 export const getTrendingTwins = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // ✅ ULTRA-DETAILED LOGGING for discover trending API
+    try {
+      logger.info('[DISCOVER_TRENDING:START]', {
+        path: req.path,
+        method: req.method,
+        query: req.query,
+        parsedQuery: {
+          limit: req.query.limit,
+          offset: req.query.offset,
+          timeframe: req.query.timeframe,
+        },
+        userFromReq: req.user
+          ? {
+              id: (req.user as any).id || (req.user as any).userId,
+              email: (req.user as any).email,
+              handle: (req.user as any).handle,
+            }
+          : null,
+        headers: {
+          ifNoneMatch: req.headers['if-none-match'] || null,
+          ifModifiedSince: req.headers['if-modified-since'] || null,
+          cacheControl: req.headers['cache-control'] || null,
+        },
+      });
+    } catch (logErr) {
+      logger.warn('[DISCOVER_TRENDING] Failed to log START:', logErr);
+    }
+
     const { limit=20, offset=0, timeframe='all' } = trendingSchema.parse(req.query);
 
     // Calculate time filter
@@ -237,6 +265,23 @@ const totalCount = parseInt(totalCountResult.rows[0].total);
         ? [...blockedTwinIds, limit]
         : [limit]);
       
+      // ✅ Log fallback response
+      try {
+        logger.info('[DISCOVER_TRENDING:FALLBACK]', {
+          recentTwinsCount: recentTwins.rows.length,
+          limit,
+          offset,
+        });
+      } catch (logErr) {
+        logger.warn('[DISCOVER_TRENDING] Failed to log FALLBACK:', logErr);
+      }
+
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      });
+
       return res.json({
         success: true,
         twins: recentTwins.rows,
@@ -253,6 +298,27 @@ const totalCount = parseInt(totalCountResult.rows[0].total);
       trendingTwins.rows,
       req.user?.id
     );
+
+    // ✅ Log response before sending
+    try {
+      logger.info('[DISCOVER_TRENDING:RESPONSE]', {
+        twinsCount: enrichedTwins.length,
+        totalCount,
+        limit,
+        offset,
+        timeframe,
+        userId: req.user ? ((req.user as any).id || (req.user as any).userId) : null,
+      });
+    } catch (logErr) {
+      logger.warn('[DISCOVER_TRENDING] Failed to log RESPONSE:', logErr);
+    }
+
+    // ✅ Ensure no-cache headers (already set globally, but double-check)
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    });
 
     res.json({
       success: true,

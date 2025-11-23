@@ -402,8 +402,39 @@
                     url = `/api/discover/search?query=${encodeURIComponent(searchQuery)}&limit=${limit}&offset=${offset}`;
                 }
 
-                const response = await fetch(url);
-                const data = await response.json();
+                // ✅ Log fetch attempt
+                console.log('[DISCOVER_FETCH]', {
+                    url,
+                    currentFilter,
+                    limit,
+                    offset,
+                    searchQuery: searchQuery || null,
+                });
+
+                const response = await fetch(url, {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache' },
+                });
+
+                // ✅ Log response status
+                console.log('[DISCOVER_FETCH_RESPONSE]', {
+                    url,
+                    status: response.status,
+                    ok: response.ok,
+                    statusText: response.statusText,
+                });
+
+                if (response.status === 304) {
+                    console.warn('[DISCOVER] Got 304 - using cached data');
+                    // Try to use cached data or show error
+                    return;
+                }
+
+                const data = await response.json().catch(err => {
+                    console.error('[DISCOVER] Failed to parse JSON:', err);
+                    showError('Failed to load twins. Please refresh.');
+                    return { success: false, twins: [] };
+                });
 
                 if (data.success) {
                     if (data.twins.length === 0) {

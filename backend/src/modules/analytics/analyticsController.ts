@@ -186,6 +186,29 @@ export const createSampleData = async (req: Request, res: Response) => {
 
 export const getUserAnalytics = async (req: Request, res: Response) => {
   try {
+    // ✅ ULTRA-DETAILED LOGGING for analytics API
+    try {
+      logger.info('[ANALYTICS_USER:START]', {
+        path: req.path,
+        method: req.method,
+        userFromReq: req.user
+          ? {
+              id: (req.user as any).id || (req.user as any).userId,
+              email: (req.user as any).email,
+              handle: (req.user as any).handle,
+            }
+          : null,
+        sessionUserId: (req.session as any)?.userId || null,
+        headers: {
+          ifNoneMatch: req.headers['if-none-match'] || null,
+          ifModifiedSince: req.headers['if-modified-since'] || null,
+          cacheControl: req.headers['cache-control'] || null,
+        },
+      });
+    } catch (logErr) {
+      logger.warn('[ANALYTICS_USER] Failed to log START:', logErr);
+    }
+
     let userId: string | null = null;
     
     // Try JWT authentication first
@@ -202,6 +225,7 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
     }
     
     if (!userId) {
+      logger.warn('[ANALYTICS_USER] No userId found - returning 401');
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
@@ -279,9 +303,25 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
       eventBreakdown: userEventBreakdown || {},
     };
 
+    // ✅ Log response before sending
+    try {
+      logger.info('[ANALYTICS_USER:RESPONSE]', {
+        userId,
+        analyticsData: {
+          totalViews: responseData.analytics.totalViews,
+          totalLikes: responseData.analytics.totalLikes,
+          totalChats: responseData.analytics.totalChats,
+          twins: responseData.analytics.twins,
+        },
+        eventBreakdownKeys: Object.keys(responseData.eventBreakdown),
+      });
+    } catch (logErr) {
+      logger.warn('[ANALYTICS_USER] Failed to log RESPONSE:', logErr);
+    }
+
     // ✅ ADD: Cache headers to prevent 304 responses
     res.set({
-      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
       'Pragma': 'no-cache',
       'Expires': '0',
     });

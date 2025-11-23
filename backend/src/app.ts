@@ -89,6 +89,52 @@ const limiter = rateLimit({
 // Cookie parser middleware
 app.use(cookieParser());
 
+// ✅ GLOBAL: force no-cache for all dynamic routes (HTML + JSON) - BRUTEFORCE FIX
+app.use((req, res, next) => {
+  const path = req.path || '';
+
+  // Allow caching ONLY for static assets
+  const isStatic =
+    path.startsWith('/css/') ||
+    path.startsWith('/js/') ||
+    path.startsWith('/images/') ||
+    path.startsWith('/uploads/') ||
+    path.startsWith('/utils/') ||
+    path.startsWith('/favicon') ||
+    path.endsWith('.png') ||
+    path.endsWith('.jpg') ||
+    path.endsWith('.jpeg') ||
+    path.endsWith('.svg') ||
+    path.endsWith('.ico') ||
+    path.endsWith('.woff') ||
+    path.endsWith('.woff2') ||
+    path.endsWith('.ttf');
+
+  if (!isStatic) {
+    // ✅ absolutely disable caching for dynamic stuff (HTML pages + JSON APIs)
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
+    // ✅ Log cache headers being set
+    try {
+      logger.info('[CACHE_HEADERS_SET]', {
+        path,
+        method: req.method,
+        cacheControl: 'no-store, no-cache, must-revalidate, max-age=0, private',
+        clientCacheHeaders: {
+          ifNoneMatch: req.headers['if-none-match'] || null,
+          ifModifiedSince: req.headers['if-modified-since'] || null,
+        },
+      });
+    } catch (logErr) {
+      // Silent fail for logging
+    }
+  }
+
+  next();
+});
+
 // ✅ GLOBAL: extract JWT for ALL requests (pages + APIs)
 app.use(extractJWTFromCookie);
 
