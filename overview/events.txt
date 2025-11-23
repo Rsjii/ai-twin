@@ -1,0 +1,203 @@
+Checking where events are displayed in the analytics dashboard:
+
+
+[5 tools called]
+
+
+Checking the user detail modal and Event Explorer page:
+
+
+[3 tools called]
+
+
+## Events display locations in admin analytics dashboard
+
+### 1. Main dashboard (`/admin/analytics`)
+
+#### A. Event breakdown chart (donut chart)
+- Location: Lines 269-275 in `admin-analytics.ejs`
+- Shows: All event types with counts
+- Visual: Doughnut chart (Chart.js)
+- Data source: `data.content.eventBreakdown` from backend
+- Includes: `signup`, `login`, `logout`, `profile_completed`, `twin_created`, `chat_started`, etc.
+
+```269:275:frontend/src/views/admin-analytics.ejs
+                <!-- Event Breakdown Chart -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Event Breakdown</h3>
+                    <div class="chart-container">
+                        <canvas id="eventBreakdownChart"></canvas>
+                    </div>
+                </div>
+```
+
+#### B. Time-based event counts
+- Location: Lines 138-220 in `admin-analytics.ejs`
+- Shows: Daily, weekly, monthly event counts
+- Sections:
+  - Today's Activity → `id="dailyEvents"` (Line 162)
+  - This Week → `id="weeklyEvents"` (Line 189)
+  - This Month → `id="monthlyEvents"` (Line 216)
+
+```160:163:frontend/src/views/admin-analytics.ejs
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Events</span>
+                            <span class="font-medium" id="dailyEvents">-</span>
+                        </div>
+```
+
+#### C. Recent events section
+- Location: Lines 339-344 in `admin-analytics.ejs`
+- Shows: Latest 3 events with meta tags
+- Display: Event type, timestamp, meta tags (wv, source, twinId)
+- Code: Lines 544-571
+
+```339:344:frontend/src/views/admin-analytics.ejs
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">Recent Events</h4>
+                        <div id="recentEvents" class="space-y-2">
+                            <p class="text-gray-500 text-sm">Loading...</p>
+                        </div>
+                    </div>
+```
+
+Recent events display code:
+```544:571:frontend/src/views/admin-analytics.ejs
+// Update recent events (with meta tags)
+const eventsContainer = document.getElementById('recentEvents');
+if (activity.recentEvents && activity.recentEvents.length > 0) {
+    eventsContainer.innerHTML = activity.recentEvents.slice(0, 3).map(event => {
+        // Extract meta tags (simple client-side extraction)
+        const meta = event.meta || {};
+        const tags = [];
+        if (meta.wv) tags.push(`wv:${meta.wv}`);
+        if (meta.source) tags.push(`src:${meta.source}`);
+        if (meta.twinId) tags.push(`twin:${meta.twinId.substring(0, 6)}`);
+        
+        const tagsHtml = tags.length > 0 
+            ? `<div class="flex flex-wrap gap-1 mt-1">${tags.map(tag => 
+                `<span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">${tag}</span>`
+              ).join('')}</div>`
+            : '';
+        
+        return `
+            <div class="text-sm">
+                <p class="font-medium text-gray-900">${event.type}</p>
+                <p class="text-gray-600 timestamp-display" data-timestamp="${event.createdAt}" data-format="date"></p>
+                ${tagsHtml}
+            </div>
+        `;
+    }).join('');
+} else {
+    eventsContainer.innerHTML = '<p class="text-gray-500 text-sm">No recent events</p>';
+}
+```
+
+#### D. User detail modal — user events
+- Location: Lines 1142-1162 in `admin-analytics.ejs`
+- Shows: Last 10 events for a specific user
+- Display: Event type, timestamp, meta preview (wv, source, twinId)
+- Trigger: Click on a user card
+
+```1142:1162:frontend/src/views/admin-analytics.ejs
+${userData.events.slice(0, 10).map(event => {
+    const meta = event.meta || {};
+    const metaPreview = [];
+    if (meta.wv) metaPreview.push(`wv:${meta.wv}`);
+    if (meta.source) metaPreview.push(`src:${meta.source}`);
+    if (meta.twinId) metaPreview.push(`twin:${meta.twinId.substring(0, 6)}`);
+    
+    const metaHtml = metaPreview.length > 0 
+        ? `<p class="text-xs text-gray-500 mt-1">${metaPreview.join(', ')}</p>`
+        : '';
+    
+    return `
+        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+            <div class="flex-1">
+                <p class="text-sm font-medium">${event.type}</p>
+                <p class="text-xs text-gray-600 timestamp-display" data-timestamp="${event.createdAt}" data-format="context"></p>
+                ${metaHtml}
+            </div>
+        </div>
+    `;
+}).join('')}
+```
+
+---
+
+### 2. Events explorer page (`/admin/analytics/events`)
+
+- Location: `admin-analytics-events.ejs`
+- Features:
+  - Filter by event type
+  - Filter by meta (e.g., `wv:event`)
+  - Filter by date range
+  - Pagination (50 events per page)
+  - Full meta data display
+
+```33:64:frontend/src/views/admin-analytics-events.ejs
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Event Type</label>
+                    <select id="eventTypeFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        <option value="">All Types</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Meta Filter (key:value)</label>
+                    <input type="text" id="metaFilter" placeholder="e.g. wv:event" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                    <input type="date" id="startDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                    <input type="date" id="endDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+            </div>
+            <div class="mt-4">
+                <button onclick="applyFilters()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                    Apply Filters
+                </button>
+                <button onclick="clearFilters()" class="ml-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                    Clear
+                </button>
+            </div>
+        </div>
+```
+
+---
+
+## Summary: where events are shown
+
+| Location | What's Shown | Event Types Included |
+|----------|-------------|---------------------|
+| Event Breakdown Chart | All event types with counts (donut chart) | All (`signup`, `login`, `logout`, `profile_completed`, `twin_created`, etc.) |
+| Today's Activity | Daily event count | Total events today |
+| This Week | Weekly event count | Total events this week |
+| This Month | Monthly event count | Total events this month |
+| Recent Events | Latest 3 events with meta tags | Most recent events |
+| User Detail Modal | Last 10 events for specific user | User-specific events |
+| Events Explorer Page | All events with filters & pagination | All events (filterable) |
+
+---
+
+## Newly added events visibility
+
+- `signup` — visible in all sections above
+- `login` — visible in all sections above
+- `logout` — visible in all sections above
+- `profile_completed` — visible in all sections above
+
+All events are automatically included in:
+1. Event Breakdown Chart (counts)
+2. Time-based metrics (daily/weekly/monthly)
+3. Recent Events section
+4. User detail modal
+5. Events Explorer page
+
+No additional changes needed — events are automatically captured and displayed.

@@ -1,0 +1,40 @@
+{
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/node_modules/**": true,
+    "node_modules": true,
+    "node_modules/**": true,
+    "backend/node_modules": true,
+    "backend/node_modules/**": true,
+    "frontend/node_modules": true,
+    "frontend/node_modules/**": true,
+    "**/.env": true,
+    "**/.env.*": true,
+    ".env": true,
+    ".env.*": true,
+    "backend/.env": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/node_modules/**": true,
+    "node_modules": true,
+    "node_modules/**": true,
+    "backend/node_modules": true,
+    "backend/node_modules/**": true,
+    "frontend/node_modules": true,
+    "frontend/node_modules/**": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "node_modules/**": true,
+    "backend/node_modules/**": true,
+    "frontend/node_modules/**": true
+  },
+  "git.untrackedFiles": "hide",
+  "git.ignoreLimitWarning": true,
+  "git.enabled": true,
+  "git.autoRepositoryDetection": "openEditors",
+  "git.untrackedChanges": "hidden",
+  "git.detectSubmodules": false,
+  "scm.diffDecorations": "all"
+}

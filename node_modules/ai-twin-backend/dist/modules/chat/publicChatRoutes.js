@@ -1,0 +1,21 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const publicChatController_1 = require("./publicChatController");
+const jwtCookie_1 = require("../../middleware/jwtCookie");
+const rateLimit_1 = require("../../middleware/rateLimit");
+const router = (0, express_1.Router)();
+router.post('/start', jwtCookie_1.extractJWTFromCookie, publicChatController_1.startPublicChat);
+router.post('/:chatId/message', jwtCookie_1.extractJWTFromCookie, rateLimit_1.publicChatRateLimit, rateLimit_1.publicChatRateLimitAuthenticated, publicChatController_1.sendPublicMessage);
+router.get('/:chatId/history', jwtCookie_1.extractJWTFromCookie, publicChatController_1.getPublicChatHistory);
+router.get('/twin/:twinId', publicChatController_1.getPublicChatByTwin);
+router.get('/twin/:twinId/chats', jwtCookie_1.extractJWTFromCookie, publicChatController_1.getPublicChatsByTwin);
+router.post('/create', jwtCookie_1.extractJWTFromCookie, publicChatController_1.createNewPublicChat);
+router.get('/twin/:twinId/all-chats', jwtCookie_1.requireJWTFromCookie, publicChatController_1.getAllPublicChatsForTwin);
+router.get('/user/my-chats', jwtCookie_1.requireJWTFromCookie, publicChatController_1.getUserPublicChats);
+router.delete('/:chatId', jwtCookie_1.extractJWTFromCookie, publicChatController_1.deletePublicChat);
+router.put('/:chatId/title', publicChatController_1.updatePublicChatTitle);
+router.get('/:chatId/view-history', jwtCookie_1.requireJWTFromCookie, publicChatController_1.viewPublicChatHistory);
+router.get('/twin/:twinId/user-chats', jwtCookie_1.requireJWTFromCookie, publicChatController_1.getUserWisePublicChats);
+exports.default = router;
+//# sourceMappingURL=publicChatRoutes.js.map
