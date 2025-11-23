@@ -42,6 +42,8 @@ export async function getDiscover(req: any, res: Response) {
       twinId,
       userFromReq: req.user ? { id: req.user.id, email: req.user.email } : null,
       userFromLocals: user ? { id: user.id, email: user.email } : null,
+      jwtCookiePresent: !!(req as any).cookies?.['jwtToken'],
+      cookies: Object.keys((req as any).cookies || {}),
     });
 
     res.render('discover', {

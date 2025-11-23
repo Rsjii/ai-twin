@@ -1,4 +1,11 @@
-<%- include('layout', { title: 'Terms of Service - AI Twin', body: `
+<%- include('layout', { 
+  title: 'Terms of Service - AI Twin', 
+  user: typeof user !== 'undefined' ? user : null,
+  hasTwins: typeof hasTwins !== 'undefined' ? hasTwins : false,
+  twinId: typeof twinId !== 'undefined' ? twinId : null,
+  csrfToken: typeof csrfToken !== 'undefined' ? csrfToken : '',
+  pathname: typeof pathname !== 'undefined' ? pathname : '/terms',
+  body: `
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-4xl mx-auto">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl dark:shadow-gray-900 p-4 sm:p-6 lg:p-8 xl:p-12">

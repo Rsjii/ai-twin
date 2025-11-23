@@ -29,11 +29,13 @@ export async function getHelpCenter(req: any, res: Response) {
   }
 
   console.log('[PAGE_HELP_CENTER] Render data:', {
-    user: user ? { id: user.id, email: user.email } : null,
+    user: user ? { id: user.id, email: user.email, handle: user.handle } : null,
     hasTwins,
     twinId,
     userFromReq: req.user ? { id: req.user.id, email: req.user.email } : null,
     userFromLocals: user ? { id: user.id, email: user.email } : null,
+    jwtCookiePresent: !!(req as any).cookies?.['jwtToken'],
+    cookies: Object.keys((req as any).cookies || {}),
   });
 
   res.render('help-center', {
@@ -52,9 +54,13 @@ export async function getContact(req: any, res: Response) {
   const twinId = res.locals.twinId || null;
 
   console.log('[PAGE_CONTACT] Render data:', {
-    user: user ? { id: user.id, email: user.email } : null,
+    user: user ? { id: user.id, email: user.email, handle: user.handle } : null,
     hasTwins,
     twinId,
+    userFromReq: req.user ? { id: req.user.id, email: req.user.email } : null,
+    userFromLocals: user ? { id: user.id, email: user.email } : null,
+    jwtCookiePresent: !!(req as any).cookies?.['jwtToken'],
+    cookies: Object.keys((req as any).cookies || {}),
   });
 
   res.render('contact', {
@@ -73,9 +79,13 @@ export async function getPrivacy(req: any, res: Response) {
   const twinId = res.locals.twinId || null;
 
   console.log('[PAGE_PRIVACY] Render data:', {
-    user: user ? { id: user.id, email: user.email } : null,
+    user: user ? { id: user.id, email: user.email, handle: user.handle } : null,
     hasTwins,
     twinId,
+    userFromReq: req.user ? { id: req.user.id, email: req.user.email } : null,
+    userFromLocals: user ? { id: user.id, email: user.email } : null,
+    jwtCookiePresent: !!(req as any).cookies?.['jwtToken'],
+    cookies: Object.keys((req as any).cookies || {}),
   });
 
   res.render('privacy', {
@@ -94,9 +104,13 @@ export async function getTerms(req: any, res: Response) {
   const twinId = res.locals.twinId || null;
 
   console.log('[PAGE_TERMS] Render data:', {
-    user: user ? { id: user.id, email: user.email } : null,
+    user: user ? { id: user.id, email: user.email, handle: user.handle } : null,
     hasTwins,
     twinId,
+    userFromReq: req.user ? { id: req.user.id, email: req.user.email } : null,
+    userFromLocals: user ? { id: user.id, email: user.email } : null,
+    jwtCookiePresent: !!(req as any).cookies?.['jwtToken'],
+    cookies: Object.keys((req as any).cookies || {}),
   });
 
   res.render('terms', {
