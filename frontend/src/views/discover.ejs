@@ -536,7 +536,15 @@ function setupInfiniteScroll() {
     clone.querySelector('.follow-count').textContent = twin.followCount || 0;
     clone.querySelector('.chat-count').textContent = twin.chatCount || 0;
     
-    // ✅ ADD: Get buttons and update ARIA labels
+    // ✅ FIX ISSUE 2: Set twin avatar/image
+    const avatarContainer = clone.querySelector('.twin-initial').parentElement;
+    if (twin.profileImage) {
+        avatarContainer.innerHTML = `<img src="${twin.profileImage}" alt="${twin.publicHandle}" class="w-12 h-12 rounded-full object-cover" loading="lazy">`;
+    } else {
+        clone.querySelector('.twin-initial').textContent = (twin.publicHandle || 'T').charAt(0).toUpperCase();
+    }
+    
+    // Get buttons
     const chatBtn = clone.querySelector('.twin-chat-btn');
     const likeBtn = clone.querySelector('.twin-like-btn');
     const followBtn = clone.querySelector('.twin-follow-btn');
@@ -557,7 +565,7 @@ function setupInfiniteScroll() {
     if (twin.sampleReply) {
         clone.querySelector('.twin-sample-reply').classList.remove('hidden');
         const sampleTextEl = clone.querySelector('.sample-text');
-        const maxLength = 120; // Limit to 120 characters
+        const maxLength = 120;
         if (twin.sampleReply.length > maxLength) {
             const truncated = twin.sampleReply.substring(0, maxLength) + '...';
             sampleTextEl.textContent = truncated;
@@ -569,24 +577,88 @@ function setupInfiniteScroll() {
         }
     }    
 
-    // Set initial letter for avatar
-    const initial = twin.publicHandle.charAt(0).toUpperCase();
-    clone.querySelector('.twin-initial').textContent = initial;
+    // ✅ FIX ISSUE 2: Handle disabled states for ALL buttons (Like, Follow, Share)
+    // Check BEFORE setting initial states (hasLiked/hasFollowed)
     
-    // ✅ FIX: Set initial button states AFTER buttons are defined
-    if (twin.hasLiked) {
+    // 1. LIKE BUTTON - Check allowLikes
+    if (twin.allowLikes === false) {
+        likeBtn.disabled = true;
+        likeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        likeBtn.setAttribute('title', 'Liking is disabled for this twin');
+        likeBtn.setAttribute('aria-label', `Liking disabled for @${twin.publicHandle}`);
+        likeBtn.setAttribute('data-disabled-reason', 'likes_disabled');
+        
+        // ✅ FIX: Wrap button for tooltip with flex-shrink-0 to maintain layout
+        const likeWrapper = document.createElement('div');
+        likeWrapper.className = 'relative inline-flex flex-shrink-0'; // ✅ Changed to inline-flex
+        likeWrapper.setAttribute('data-tooltip', 'Liking is disabled for this twin');
+        likeBtn.parentNode.insertBefore(likeWrapper, likeBtn);
+        likeWrapper.appendChild(likeBtn);
+    } else {
+        likeBtn.disabled = false;
+        likeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        likeBtn.removeAttribute('title');
+        likeBtn.removeAttribute('data-disabled-reason');
+        likeBtn.setAttribute('aria-label', `Like @${twin.publicHandle}`);
+    }
+    
+    // 2. FOLLOW BUTTON - Check allowFollows
+    if (twin.allowFollows === false) {
+        followBtn.disabled = true;
+        followBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        followBtn.setAttribute('title', 'Following is disabled for this twin');
+        followBtn.setAttribute('aria-label', `Following disabled for @${twin.publicHandle}`);
+        followBtn.setAttribute('data-disabled-reason', 'follows_disabled');
+        
+        const followWrapper = document.createElement('div');
+        followWrapper.className = 'relative inline-flex flex-shrink-0'; // ✅ Changed to inline-flex
+        followWrapper.setAttribute('data-tooltip', 'Following is disabled for this twin');
+        followBtn.parentNode.insertBefore(followWrapper, followBtn);
+        followWrapper.appendChild(followBtn);
+    } else {
+        followBtn.disabled = false;
+        followBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        followBtn.removeAttribute('title');
+        followBtn.removeAttribute('data-disabled-reason');
+        followBtn.setAttribute('aria-label', `Follow @${twin.publicHandle}`);
+    }
+    
+    // 3. SHARE BUTTON - Check allowShares (already exists, but ensure consistency)
+    if (twin.allowShares === false) {
+        shareBtn.disabled = true;
+        shareBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        shareBtn.setAttribute('title', 'Sharing is disabled for this twin');
+        shareBtn.setAttribute('aria-label', `Sharing disabled for @${twin.publicHandle}`);
+        shareBtn.setAttribute('data-disabled-reason', 'shares_disabled');
+        
+        const shareWrapper = document.createElement('div');
+        shareWrapper.className = 'relative inline-flex flex-shrink-0'; // ✅ Changed to inline-flex
+        shareWrapper.setAttribute('data-tooltip', 'Sharing is disabled for this twin');
+        shareBtn.parentNode.insertBefore(shareWrapper, shareBtn);
+        shareWrapper.appendChild(shareBtn);
+    } else {
+        shareBtn.disabled = false;
+        shareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        shareBtn.removeAttribute('title');
+        shareBtn.removeAttribute('data-disabled-reason');
+        shareBtn.setAttribute('aria-label', `Share @${twin.publicHandle} profile`);
+    }
+    
+    // ✅ FIX ISSUE 2: Set initial button states AFTER checking disabled states
+    // Only set liked/followed state if button is NOT disabled
+    if (twin.hasLiked && !likeBtn.disabled) {
         likeBtn.classList.remove('bg-gradient-to-r', 'from-gray-100', 'to-gray-200', 'dark:from-gray-700', 'dark:to-gray-600', 'text-gray-700', 'dark:text-gray-300');
         likeBtn.classList.add('bg-red-600', 'text-white', 'dark:bg-red-500', 'shadow-md');
         likeBtn.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>';
     }
     
-    if (twin.hasFollowed) {
+    if (twin.hasFollowed && !followBtn.disabled) {
         followBtn.classList.remove('bg-gradient-to-r', 'from-gray-100', 'to-gray-200', 'dark:from-gray-700', 'dark:to-gray-600', 'text-gray-700', 'dark:text-gray-300');
         followBtn.classList.add('bg-blue-600', 'text-white', 'dark:bg-blue-500', 'shadow-md');
         followBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
     }    
     
-    // Add event listeners for buttons
+    // ✅ FIX ISSUE 2: Add event listeners with disabled check
     chatBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         e.preventDefault();
@@ -626,40 +698,50 @@ function setupInfiniteScroll() {
         window.location.href = `/@${twin.publicHandle}`;
     });
     
+    // ✅ FIX ISSUE 2: Prevent click on disabled buttons + show error on click attempt
     likeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        // Check if button is disabled BEFORE making request
+        if (likeBtn.disabled || likeBtn.classList.contains('cursor-not-allowed')) {
+            e.preventDefault();
+            showNotification('Liking is disabled for this twin', 'info');
+            return false;
+        }
         toggleLike(twin.id, likeBtn);
     });
     
     followBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        // Check if button is disabled BEFORE making request
+        if (followBtn.disabled || followBtn.classList.contains('cursor-not-allowed')) {
+            e.preventDefault();
+            showNotification('Following is disabled for this twin', 'info');
+            return false;
+        }
         toggleFollow(twin.id, followBtn);
     });
     
     shareBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        // Check if button is disabled BEFORE making request
+        if (shareBtn.disabled || shareBtn.classList.contains('cursor-not-allowed')) {
+            e.preventDefault();
+            showNotification('Sharing is disabled for this twin', 'info');
+            return false;
+        }
         shareTwinFromDiscover(twin.id, twin.publicHandle);
     });
-    
-    // ✅ FIX: Handle null/undefined allowShares (default is true)
-    // allowShares is true by default, only disable if explicitly false
-    if (twin.allowShares === false) {
-        shareBtn.disabled = true;
-        shareBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        shareBtn.setAttribute('title', 'Sharing is disabled for this twin');
-        shareBtn.setAttribute('aria-label', `Share disabled for @${twin.publicHandle}`);
-    } else {
-        // Enable button if allowShares is true, null, or undefined (default behavior)
-        shareBtn.disabled = false;
-        shareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        shareBtn.removeAttribute('title');
-        shareBtn.setAttribute('aria-label', `Share @${twin.publicHandle} profile`);
-    }
     
     document.getElementById('twinsGrid').appendChild(clone);
 }
 
         async function toggleLike(twinId, button) {
+    // ✅ FIX ISSUE 2: Check if button is disabled before making request
+    if (button.disabled || button.classList.contains('cursor-not-allowed')) {
+        console.log('Like button is disabled');
+        return;
+    }
+    
             try {
                 const response = await fetch('/api/social/toggle-like', {
                     method: 'POST',
@@ -670,16 +752,32 @@ function setupInfiniteScroll() {
                 });
 
                 const data = await response.json();
+        
+        // ✅ FIX ISSUE 2: Handle 403 error gracefully
+        if (response.status === 403) {
+            if (data.errorCode === 'LIKES_DISABLED') {
+                // Button should already be disabled, but handle gracefully
+                button.disabled = true;
+                button.classList.add('opacity-50', 'cursor-not-allowed');
+                showNotification('Liking is disabled for this twin', 'info');
+            } else if (data.errorCode === 'OWN_TWIN_INTERACTION') {
+                // ✅ FIX: Own twin check
+                showNotification('You cannot like your own twin', 'error');
+            } else if (data.errorCode === 'USER_BLOCKED') {
+                showNotification('You are blocked from interacting with this twin', 'error');
+            } else {
+                showNotification(data.error || 'Unable to like this twin', 'error');
+            }
+            return;
+        }        
                 
                 if (data.success) {
-                    // Update button state
                     // Update button state
                     if (data.action === 'liked') {
                         button.classList.remove('bg-gradient-to-r', 'from-gray-100', 'to-gray-200', 'dark:from-gray-700', 'dark:to-gray-600', 'text-gray-700', 'dark:text-gray-300');
                         button.classList.add('bg-red-600', 'text-white', 'dark:bg-red-500', 'shadow-md');
                         button.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>';                        
 
-                        // ✅ Show notification message
                         const card = button.closest('.twin-card');
                         const twinHandle = card.querySelector('.twin-handle').textContent;
                         showNotification(`❤️ You liked @${twinHandle}`, 'success');
@@ -688,30 +786,35 @@ function setupInfiniteScroll() {
                         button.classList.add('bg-gradient-to-r', 'from-gray-100', 'to-gray-200', 'dark:from-gray-700', 'dark:to-gray-600', 'text-gray-700', 'dark:text-gray-300');
                         button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>';                        
 
-                        // ✅ Show notification message
                         const card = button.closest('.twin-card');
                         const twinHandle = card.querySelector('.twin-handle').textContent;
                         showNotification(`💔 You unliked @${twinHandle}`, 'info');
                     }
                     
-                    // Update like count in the card
+            // Update like count
                     const card = button.closest('.twin-card');
                     const likeCount = card.querySelector('.like-count');
                     likeCount.textContent = data.likeCount;
                 } else {
                     if (data.error === 'Authentication required') {
-                        alert('Please log in to like this twin!');
+                showNotification('Please log in to like this twin!', 'error');
                     } else {
-                        alert('Error: ' + data.error);
+                showNotification('Error: ' + data.error, 'error');
                     }
                 }
             } catch (error) {
                 console.error('Error toggling like:', error);
-                alert('Please log in to like this twin!');
+        showNotification('Please log in to like this twin!', 'error');
             }
         }
 
         async function toggleFollow(twinId, button) {
+    // ✅ FIX ISSUE 2: Check if button is disabled before making request
+    if (button.disabled || button.classList.contains('cursor-not-allowed')) {
+        console.log('Follow button is disabled');
+        return;
+    }
+    
             try {
                 const response = await fetch('/api/social/toggle-follow', {
                     method: 'POST',
@@ -723,15 +826,30 @@ function setupInfiniteScroll() {
 
                 const data = await response.json();
                 
+      // ✅ FIX ISSUE 2: Handle 403 error gracefully
+      if (response.status === 403) {
+            if (data.errorCode === 'FOLLOWS_DISABLED') {
+                button.disabled = true;
+                button.classList.add('opacity-50', 'cursor-not-allowed');
+                showNotification('Following is disabled for this twin', 'info');
+            } else if (data.errorCode === 'OWN_TWIN_INTERACTION') {
+                // ✅ FIX: Own twin check
+                showNotification('You cannot follow your own twin', 'error');
+            } else if (data.errorCode === 'USER_BLOCKED') {
+                showNotification('You are blocked from interacting with this twin', 'error');
+            } else {
+                showNotification(data.error || 'Unable to follow this twin', 'error');
+            }
+            return;
+        }        
+                
                 if (data.success) {
-                    // Update button state
                     // Update button state
                     if (data.action === 'followed') {
                         button.classList.remove('bg-gradient-to-r', 'from-gray-100', 'to-gray-200', 'dark:from-gray-700', 'dark:to-gray-600', 'text-gray-700', 'dark:text-gray-300');
                         button.classList.add('bg-blue-600', 'text-white', 'dark:bg-blue-500', 'shadow-md');
                         button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';                        
 
-                        // ✅ Show notification message
                         const card = button.closest('.twin-card');
                         const twinHandle = card.querySelector('.twin-handle').textContent;
                         showNotification(`👥 You are now following @${twinHandle}`, 'success');
@@ -740,26 +858,25 @@ function setupInfiniteScroll() {
                         button.classList.add('bg-gradient-to-r', 'from-gray-100', 'to-gray-200', 'dark:from-gray-700', 'dark:to-gray-600', 'text-gray-700', 'dark:text-gray-300');
                         button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>';                        
 
-                        // ✅ Show notification message
                         const card = button.closest('.twin-card');
                         const twinHandle = card.querySelector('.twin-handle').textContent;
                         showNotification(`👋 You unfollowed @${twinHandle}`, 'info');
                     }
                     
-                    // Update follow count in the card
+            // Update follow count
                     const card = button.closest('.twin-card');
                     const followCount = card.querySelector('.follow-count');
                     followCount.textContent = data.followCount;
                 } else {
                     if (data.error === 'Authentication required') {
-                        alert('Please log in to follow this twin!');
+                showNotification('Please log in to follow this twin!', 'error');
                     } else {
-                        alert('Error: ' + data.error);
+                showNotification('Error: ' + data.error, 'error');
                     }
                 }
             } catch (error) {
                 console.error('Error toggling follow:', error);
-                alert('Please log in to follow this twin!');
+        showNotification('Please log in to follow this twin!', 'error');
             }
         }
 
@@ -817,14 +934,21 @@ function clearFilters() {
             // Create notification element
             const notification = document.createElement('div');
             notification.id = 'twin-notification';
-            notification.className = `fixed top-20 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 transform translate-x-0 ${
-                type === 'success' 
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
-                    : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
-            }`;
-            
-            // Add icon based on type
-            const icon = type === 'success' ? '✅' : 'ℹ️';
+    
+    // ✅ FIX ISSUE 2: Add error type styling
+    let bgClass = 'bg-gradient-to-r from-green-500 to-emerald-500 text-white';
+    let icon = '✅';
+    
+    if (type === 'error') {
+        bgClass = 'bg-gradient-to-r from-red-500 to-rose-500 text-white';
+        icon = '❌';
+    } else if (type === 'info') {
+        bgClass = 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white';
+        icon = 'ℹ️';
+    }
+    
+    notification.className = `fixed top-20 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 transform translate-x-0 ${bgClass}`;
+    
             notification.innerHTML = `
                 <div class="flex items-center gap-3">
                     <span class="text-xl">${icon}</span>
@@ -1037,6 +1161,72 @@ async function shareTwinFromDiscover(twinId, publicHandle) {
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+/* ✅ FIX ISSUE 2: Tooltip styles for disabled buttons */
+[data-tooltip] {
+    position: relative;
+    display: inline-block;
+}
+
+/* Tooltip on hover for wrapper (works even when button is disabled) */
+[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+    font-size: 12px;
+    white-space: nowrap;
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 1;
+    animation: tooltipFadeIn 0.2s ease-in;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+[data-tooltip]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 2px;
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+    pointer-events: none;
+    z-index: 1001;
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* Disabled button styles - prevent all interactions */
+button:disabled,
+button.cursor-not-allowed {
+    cursor: not-allowed !important;
+    opacity: 0.5 !important;
+}
+
+/* Ensure disabled buttons don't respond to hover effects */
+button:disabled:hover,
+button.cursor-not-allowed:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+
     </style>      
     <!-- Footer - Conditional based on authentication and twin status -->
     <%- include('footer/footer-conditional') %>

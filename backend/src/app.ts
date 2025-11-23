@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit'; 
 import cookieParser from 'cookie-parser';
 import path from 'path';  // ✅ ADD: For path resolution
+import fs from 'fs';
 import { config } from './config/env';
 import { logger } from './config/logger';
 import { db } from './config/database';
@@ -178,17 +179,37 @@ app.use((req, res, next) => {
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ✅ GLOBAL: expose user to EJS as `user` if controller ne nahi diya
-app.use((req, res, next) => {
-  // Agar controller ne already `res.locals.user` set kar diya ho (jaise dashboard),
-  // to usko respect karo, overwrite mat karo.
+// ✅ GLOBAL: expose full user (including profileImage) to EJS
+app.use(async (req, res, next) => {
   if (!res.locals.user && req.user) {
-    res.locals.user = {
-      id: req.user.userId || req.user.id,
-      email: req.user.email,
-      handle: req.user.handle,
-      // profileImage optional hai, header me fallback already hai
-    };
+    try {
+      const { userQueries } = await import('./config/database');
+      const fullUser = await userQueries.findByEmail(req.user.email);
+
+      if (fullUser) {
+        res.locals.user = {
+          id: req.user.userId || req.user.id,
+          email: req.user.email,
+          handle: req.user.handle,
+          name: fullUser.name,
+          profileImage: fullUser.profileImage || null,
+        };
+      } else {
+        res.locals.user = {
+          id: req.user.userId || req.user.id,
+          email: req.user.email,
+          handle: req.user.handle,
+          profileImage: null,
+        };
+      }
+    } catch (error) {
+      res.locals.user = {
+        id: req.user.userId || req.user.id,
+        email: req.user.email,
+        handle: req.user.handle,
+        profileImage: null,
+      };
+    }
   }
   next();
 });
@@ -352,8 +373,16 @@ app.use(express.static(path.resolve(__dirname, '../../frontend/src/public'), {
   etag: true,
   lastModified: true,
 }));
-app.use('/uploads', express.static(path.resolve(__dirname, '../../public/uploads')));
-// ✅ FIX: Serve timeUtils.js from backend/public/utils (guaranteed to exist in production)
+
+// ✅ SIMPLE STATIC SERVE FOR UPLOADS
+const uploadsPath = path.resolve(process.cwd(), 'public/uploads');
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
+}
+logger.info(`📁 Uploads path: ${uploadsPath}`);
+app.use('/uploads', express.static(uploadsPath));
+
+// ✅ timeUtils as before
 app.use('/utils', express.static(path.resolve(__dirname, '../public/utils')));
 
 // ✅ ADD: Log utils path in production for debugging

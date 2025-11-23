@@ -1124,64 +1124,84 @@
         
         // Initialize chart
         function initializeChart(learningData) {
-            const ctx = document.getElementById('styleChart');
-            if (!ctx) return;
-            
-            // Destroy existing chart if it exists
-            if (styleChart) {
-                styleChart.destroy();
-            }
-            
-            // Create new chart
-            styleChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                    datasets: [{
-                        label: 'Learning Score',
-                        data: [
-                            Math.max(0, learningData.learningScore - 20),
-                            Math.max(0, learningData.learningScore - 10),
-                            learningData.learningScore,
-                            Math.min(100, learningData.learningScore + 5)
-                        ],
-                        borderColor: 'rgb(99, 102, 241)',
-                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }, {
-                        label: 'Style Accuracy',
-                        data: [
-                            Math.max(0, learningData.styleAccuracy - 15),
-                            Math.max(0, learningData.styleAccuracy - 5),
-                            learningData.styleAccuracy,
-                            Math.min(100, learningData.styleAccuracy + 3)
-                        ],
-                        borderColor: 'rgb(139, 92, 246)',
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
+            try {
+                const ctx = document.getElementById('styleChart');
+                if (!ctx) {
+                    console.error('styleChart canvas not found');
+                    return;
+                }
+                
+                // Wait for Chart.js if not loaded
+                if (typeof Chart === 'undefined') {
+                    console.warn('Chart.js not loaded yet, retrying...');
+                    setTimeout(() => initializeChart(learningData), 100);
+                    return;
+                }
+                
+                // Destroy existing chart if it exists
+                if (styleChart) {
+                    styleChart.destroy();
+                }
+                
+                // Validate learningData
+                if (!learningData) {
+                    console.warn('No learning data available for chart');
+                    return;
+                }
+                
+                // Create new chart
+                styleChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                        datasets: [{
+                            label: 'Learning Score',
+                            data: [
+                                Math.max(0, (learningData.learningScore || 0) - 20),
+                                Math.max(0, (learningData.learningScore || 0) - 10),
+                                learningData.learningScore || 0,
+                                Math.min(100, (learningData.learningScore || 0) + 5)
+                            ],
+                            borderColor: 'rgb(99, 102, 241)',
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Style Accuracy',
+                            data: [
+                                Math.max(0, (learningData.styleAccuracy || 0) - 15),
+                                Math.max(0, (learningData.styleAccuracy || 0) - 5),
+                                learningData.styleAccuracy || 0,
+                                Math.min(100, (learningData.styleAccuracy || 0) + 3)
+                            ],
+                            borderColor: 'rgb(139, 92, 246)',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
                         }
                     }
-                }
-            });
-        }
-        
+                });
+            } catch (error) {
+                console.error('Error initializing learning chart:', error);
+            }
+        }        
+
         // Update learning progress display
         function updateLearningProgress(learning) {
             document.getElementById('totalInteractions').textContent = learning.totalInteractions || 0;
@@ -1245,11 +1265,23 @@
                     });
                 }
             } else {
-                // Show empty state
+                // ✅ Show empty state and a clear message when there is no data
                 if (eventsEmpty) eventsEmpty.classList.remove('hidden');
-                // Clear any existing content but keep the state divs
                 const existingContent = eventsContainer.querySelectorAll(':not(#learningEventsLoadingState):not(#learningEventsEmptyState):not(#learningEventsErrorState)');
                 existingContent.forEach(el => el.remove());
+
+                // Optional: if literally zero interactions, replace the chart with a message
+                if (!learning.totalInteractions || learning.totalInteractions === 0) {
+                    const chartCanvas = document.getElementById('styleChart');
+                    if (chartCanvas && chartCanvas.parentElement && !chartCanvas.parentElement.querySelector('.no-data-label')) {
+                        const wrapper = chartCanvas.parentElement;
+                        const p = document.createElement('p');
+                        p.className = 'no-data-label mt-8 text-sm text-gray-500 dark:text-gray-400 text-center';
+                        p.textContent = 'No learning data yet. Chat with your twin to see learning progress here.';
+                        wrapper.innerHTML = '';
+                        wrapper.appendChild(p);
+                    }
+                }
             }
         }
     

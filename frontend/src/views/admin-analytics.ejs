@@ -451,6 +451,23 @@
                     // Create charts
                     createEventBreakdownChart(data.content.eventBreakdown);
                     createGrowthTrendsChart(data.metrics);
+
+                    // ✅ Show a friendly message when there is no event data
+                    const hasEvents =
+                        data.content &&
+                        data.content.eventBreakdown &&
+                        Object.values(data.content.eventBreakdown).some(v => (v as number) > 0);
+
+                    if (!hasEvents) {
+                        const chartEl = document.getElementById('eventBreakdownChart');
+                        const container = chartEl ? chartEl.parentElement : null;
+                        if (container && !container.querySelector('.no-data-label')) {
+                            const p = document.createElement('p');
+                            p.className = 'no-data-label mt-4 text-sm text-gray-500 text-center';
+                            p.textContent = 'No events yet for this period.';
+                            container.appendChild(p);
+                        }
+                    }
                 } else {
                     console.error('Failed to load admin analytics:', data.error);
                     document.getElementById('loadingState').innerHTML = '<p class="text-red-600">Failed to load analytics data</p>';
@@ -600,77 +617,129 @@ if (activity.recentEvents && activity.recentEvents.length > 0) {
         }
         
         function createEventBreakdownChart(eventBreakdown) {
-            const ctx = document.getElementById('eventBreakdownChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(eventBreakdown),
-                    datasets: [{
-                        data: Object.values(eventBreakdown),
-                        backgroundColor: [
-                            '#3B82F6',
-                            '#10B981',
-                            '#F59E0B',
-                            '#EF4444',
-                            '#8B5CF6',
-                            '#06B6D4'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
+            try {
+                const canvas = document.getElementById('eventBreakdownChart');
+                if (!canvas) {
+                    console.error('eventBreakdownChart canvas not found');
+                    return;
+                }
+                
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    console.error('Could not get canvas context for eventBreakdownChart');
+                    return;
+                }
+                
+                // Destroy existing chart if it exists
+                if (window.eventBreakdownChartInstance) {
+                    window.eventBreakdownChartInstance.destroy();
+                }
+                
+                // Validate data
+                if (!eventBreakdown || Object.keys(eventBreakdown).length === 0) {
+                    console.warn('No event breakdown data available');
+                    return;
+                }
+                
+                window.eventBreakdownChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(eventBreakdown),
+                        datasets: [{
+                            data: Object.values(eventBreakdown),
+                            backgroundColor: [
+                                '#3B82F6',
+                                '#10B981',
+                                '#F59E0B',
+                                '#EF4444',
+                                '#8B5CF6',
+                                '#06B6D4'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
                         }
                     }
-                }
-            });
+                });
+            } catch (error) {
+                console.error('Error creating event breakdown chart:', error);
+            }
         }
-        
+                
         function createGrowthTrendsChart(metrics) {
-            const ctx = document.getElementById('growthTrendsChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Daily', 'Weekly', 'Monthly'],
-                    datasets: [
-                        {
-                            label: 'Users',
-                            data: [metrics.daily.users, metrics.weekly.users, metrics.monthly.users],
-                            borderColor: '#3B82F6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Twins',
-                            data: [metrics.daily.twins, metrics.weekly.twins, metrics.monthly.twins],
-                            borderColor: '#10B981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Chats',
-                            data: [metrics.daily.chats, metrics.weekly.chats, metrics.monthly.chats],
-                            borderColor: '#F59E0B',
-                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                            tension: 0.4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
+            try {
+                const canvas = document.getElementById('growthTrendsChart');
+                if (!canvas) {
+                    console.error('growthTrendsChart canvas not found');
+                    return;
+                }
+                
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    console.error('Could not get canvas context for growthTrendsChart');
+                    return;
+                }
+                
+                // Destroy existing chart if it exists
+                if (window.growthTrendsChartInstance) {
+                    window.growthTrendsChartInstance.destroy();
+                }
+                
+                // Validate metrics
+                if (!metrics || !metrics.daily || !metrics.weekly || !metrics.monthly) {
+                    console.warn('Invalid metrics data for growth trends chart');
+                    return;
+                }
+                
+                window.growthTrendsChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Daily', 'Weekly', 'Monthly'],
+                        datasets: [
+                            {
+                                label: 'Users',
+                                data: [metrics.daily.users || 0, metrics.weekly.users || 0, metrics.monthly.users || 0],
+                                borderColor: '#3B82F6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Twins',
+                                data: [metrics.daily.twins || 0, metrics.weekly.twins || 0, metrics.monthly.twins || 0],
+                                borderColor: '#10B981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Chats',
+                                data: [metrics.daily.chats || 0, metrics.weekly.chats || 0, metrics.monthly.chats || 0],
+                                borderColor: '#F59E0B',
+                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
                         }
                     }
-                }
-            });
+                });
+            } catch (error) {
+                console.error('Error creating growth trends chart:', error);
+            }
         }
-        
+
         // Global state for current time period
         let currentTimePeriod = 'today';
         let currentAnalyticsData = null;
@@ -952,10 +1021,10 @@ if (activity.recentEvents && activity.recentEvents.length > 0) {
                                             <p class="text-xs text-gray-500">Chats</p>
                                         </div>
                                         <div class="flex space-x-2">
-                                            <button onclick="viewUserDetails('${user.id}')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                                            <button onclick="viewUserDetails('${user.publicId || user.id}')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
                                                 View
                                             </button>
-                                            <button onclick="removeUser('${user.id}')" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">
+                                            <button onclick="removeUser('${user.publicId || user.id}')" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">
                                                 Remove
                                             </button>
                                         </div>
@@ -1165,7 +1234,7 @@ ${userData.events.slice(0, 10).map(event => {
                     
                     <!-- Action Buttons -->
                     <div class="flex space-x-4">
-                        <button onclick="removeUser('${userData.user.id}')" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                        <button onclick="removeUser('${userData.user.publicId || userData.user.id}')" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
                             Remove User
                         </button>
                         <button onclick="closeUserModal()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
@@ -1228,7 +1297,7 @@ ${userData.events.slice(0, 10).map(event => {
                     const usersList = document.getElementById('usersList');
                     if (data.data.users && data.data.users.length > 0) {
                         usersList.innerHTML = data.data.users.map(user => `
-                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" onclick="viewUserDetails('${user.id}')">
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" onclick="viewUserDetails('${user.publicId || user.id}')">
                                 <div class="flex items-center space-x-4">
                                     <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
                                         ${(user.handle || user.email).charAt(0).toUpperCase()}
@@ -1253,10 +1322,10 @@ ${userData.events.slice(0, 10).map(event => {
                                         <p class="text-xs text-gray-500">Events</p>
                                     </div>
                                     <div class="flex space-x-2">
-                                        <button onclick="event.stopPropagation(); viewUserDetails('${user.id}')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                                        <button onclick="event.stopPropagation(); viewUserDetails('${user.publicId || user.id}')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
                                             View
                                         </button>
-                                        <button onclick="event.stopPropagation(); removeUser('${user.id}')" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">
+                                        <button onclick="event.stopPropagation(); removeUser('${user.publicId || user.id}')" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">
                                             Remove
                                         </button>
                                     </div>

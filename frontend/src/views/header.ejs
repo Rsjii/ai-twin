@@ -115,11 +115,17 @@
                     <div class="relative" id="userDropdown" data-open="false">
                         <!-- Profile Photo Button (WITH name/email like dashboard) -->
                         <button id="dropdownButton" class="flex items-center space-x-2 sm:space-x-3 px-2 sm:px-4 py-2 rounded-xl bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 shadow-lg hover:shadow-xl border border-white/20 dark:border-gray-700 group focus:outline-none focus:ring-2 focus:ring-primary">                            
-                            <% if (user.profileImage) { %>
-                                <img src="<%= user.profileImage %>" alt="Profile" class="w-10 h-10 rounded-full object-cover shadow-lg ring-2 ring-white dark:ring-gray-700">
+                            <% 
+                                const navProfileImage = (user && user.profileImage)
+                                    ? (user.profileImage.startsWith('/') ? user.profileImage : '/' + user.profileImage)
+                                    : null;
+                            %>
+                            <% if (navProfileImage) { %>
+                                <img src="<%= navProfileImage %>" alt="Profile" class="w-10 h-10 rounded-full object-cover shadow-lg ring-2 ring-white dark:ring-gray-700" onerror="console.error('Image failed to load:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">
                             <% } else { %>
-                                <div class="w-10 h-10 bg-gradient-to-r from-primary via-accent to-purple-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg ring-2 ring-white dark:ring-gray-700">
-                                    <%= (user.handle || user.email || 'U').charAt(0).toUpperCase() %>
+                                <!-- Fallback to initial -->
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-sm shadow-lg ring-2 ring-white dark:ring-gray-700">
+                                    <%= (user && user.handle) ? user.handle.charAt(0).toUpperCase() : 'U' %>
                                 </div>
                             <% } %>
                             <div class="hidden md:block text-left">
@@ -137,13 +143,13 @@
                             <!-- User Info Header -->
                             <div class="px-6 py-4 border-b border-gray-100/50 dark:border-gray-700/50">
                                 <div class="flex items-center space-x-4">
-                                    <% if (user.profileImage) { %>
-                                        <img src="<%= user.profileImage %>" alt="Profile" class="w-14 h-14 rounded-2xl object-cover shadow-lg">
+                                    <% if (navProfileImage) { %>
+                                        <img src="<%= navProfileImage %>" alt="Profile" class="w-14 h-14 rounded-2xl object-cover shadow-lg">
                                     <% } else { %>
                                         <div class="w-14 h-14 bg-gradient-to-r from-primary via-accent to-purple-500 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg">
-                                            <%= (user.handle || user.email || 'U').charAt(0).toUpperCase() %>
+                                            <%= (user && (user.handle || user.email || 'U')) ? (user.handle || user.email || 'U').charAt(0).toUpperCase() : 'U' %>
                                         </div>
-                                    <% } %>
+                                    <% } %>                                    
                                     <div class="flex-1 min-w-0">
                                         <p class="text-lg font-semibold text-gray-900 dark:text-white truncate"><%= user.name || user.handle || 'User' %></p>
                                         <p class="text-sm text-gray-500 dark:text-gray-400 truncate"><%= user.email %></p>

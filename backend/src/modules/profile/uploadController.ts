@@ -8,7 +8,7 @@ import { userQueries } from '../../config/database';
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = 'public/uploads/profiles';
+    const uploadDir = path.resolve(process.cwd(), 'public/uploads/profiles');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -55,7 +55,7 @@ export const handleProfileImageUpload = async (req: Request, res: Response) => {
 
       // Delete old profile image if exists
       if (currentUser.profileImage && currentUser.profileImage.startsWith('/uploads/')) {
-        const oldImagePath = `public${currentUser.profileImage}`;
+        const oldImagePath = path.resolve(process.cwd(), `public${currentUser.profileImage}`);
         if (fs.existsSync(oldImagePath)) {
           fs.unlinkSync(oldImagePath);
         }
@@ -63,6 +63,8 @@ export const handleProfileImageUpload = async (req: Request, res: Response) => {
 
       // Update user profile with new image path
       const imagePath = `/uploads/profiles/${req.file.filename}`;
+      
+      // ✅ SIMPLE: Sirf DB update, extra logs / fs checks hata diye
       await userQueries.updateProfile(
         req.user.email,
         currentUser.name || '',

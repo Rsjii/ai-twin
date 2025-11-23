@@ -209,6 +209,8 @@ console.log('[DISCOVER] Total count query result:', { totalCount, rows: totalCou
         t."sampleReply",
         t."createdAt",
         t."allowShares",
+        t."allowLikes",        
+        t."allowFollows",      
         u.handle as "userHandle",
         u.name as "userName",
         COALESCE(
@@ -393,6 +395,9 @@ export const searchTwins = async (req: Request, res: Response, next: NextFunctio
         t."chatCount",
         t."sampleReply",
         t."createdAt",
+        t."allowShares",
+        t."allowLikes",        
+        t."allowFollows",      
         u.handle as "userHandle",
         u.name as "userName",
         -- Calculate relevance score
@@ -590,6 +595,9 @@ export const getRecentTwins = async (req: Request, res: Response, next: NextFunc
         t."chatCount",
         t."sampleReply",
         t."createdAt",
+        t."allowShares",
+        t."allowLikes",        
+        t."allowFollows",      
         u.handle as "userHandle",
         u.name as "userName"
       FROM "Twin" t
@@ -653,6 +661,9 @@ export const getMostLikedTwins = async (req: Request, res: Response, next: NextF
         t."chatCount",
         t."sampleReply",
         t."createdAt",
+        t."allowShares",
+        t."allowLikes",        
+        t."allowFollows",      
         u.handle as "userHandle",
         u.name as "userName"
       FROM "Twin" t
@@ -716,6 +727,9 @@ export const getMostFollowedTwins = async (req: Request, res: Response, next: Ne
         t."chatCount",
         t."sampleReply",
         t."createdAt",
+        t."allowShares",
+        t."allowLikes",        
+        t."allowFollows",      
         u.handle as "userHandle",
         u.name as "userName"
       FROM "Twin" t
@@ -780,6 +794,9 @@ export const getPopularTwins = async (req: Request, res: Response, next: NextFun
         t."chatCount",
         t."sampleReply",
         t."createdAt",
+        t."allowShares",
+        t."allowLikes",        
+        t."allowFollows",      
         u.handle as "userHandle",
         u.name as "userName",
         -- Use cached popularity score (fallback to calculated if missing)

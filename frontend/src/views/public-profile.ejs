@@ -162,13 +162,25 @@
                         </svg>
                         <span>Chat Now</span>
                     </button>
-                    <button id="likeBtn" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation">
+                    <button id="likeBtn" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.allowLikes === false) ? 'opacity-50 cursor-not-allowed pointer-events-none' : '' %>" 
+                        <% if (twin.allowLikes === false) { %>
+                            disabled
+                            title="Liking is disabled for this twin"
+                            data-disabled-reason="likes_disabled"
+                        <% } %>
+                    >
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
                         </svg>
                         <span>Like</span>
                     </button>
-                    <button id="followBtn" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation">
+                    <button id="followBtn" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.allowFollows === false) ? 'opacity-50 cursor-not-allowed pointer-events-none' : '' %>"
+                        <% if (twin.allowFollows === false) { %>
+                            disabled
+                            title="Following is disabled for this twin"
+                            data-disabled-reason="follows_disabled"
+                        <% } %>
+                    >
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
                         </svg>

@@ -22,7 +22,7 @@ const upload = multer();
 router.post('/handle', sanitizeInput, validateCSRF, requireJWTFromCookie, updateHandle);
 router.post('/link', validateCSRF, requireJWTFromCookie, generateProfileLink);
 router.post('/share', validateCSRF, requireJWTFromCookie, logProfileShare);
-router.post('/update', upload.none(), validateCSRF, requireJWTFromCookie, updateProfile);
+router.post('/update', upload.single('profileImageFile'), validateCSRF, requireJWTFromCookie, updateProfile);
 router.post('/upload', uploadProfileImage, handleProfileImageUpload);
 
 export default router;

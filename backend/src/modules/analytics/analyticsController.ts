@@ -244,7 +244,9 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
         invitesReceivedResult,
         eventsResult,
         userEventTypesResult,
-        recentActivityResult
+        recentActivityResult,
+        dailyEventsResult,
+        topEventTypesResult
       ] = await Promise.all([
         db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "userId" = $1', [userId]),
         db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [userId]),
@@ -253,8 +255,24 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
         db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "acceptedBy" = $1', [userId]),
         db.query('SELECT COUNT(*) as count FROM "Event" WHERE "userId" = $1', [userId]),
         db.query('SELECT type, COUNT(*) as count FROM "Event" WHERE "userId" = $1 GROUP BY type', [userId]),
-        db.query('SELECT type, "createdAt", meta FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}', [userId])
-      ]);
+        db.query('SELECT type, "createdAt", meta FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 50', [userId]),
+        db.query(`
+          SELECT DATE("createdAt") as date, COUNT(*) as count
+          FROM "Event"
+          WHERE "userId" = $1
+            AND "createdAt" >= NOW() - INTERVAL '30 days'
+          GROUP BY DATE("createdAt")
+          ORDER BY date ASC
+        `, [userId]),
+        db.query(`
+          SELECT type, COUNT(*) as count
+          FROM "Event"
+          WHERE "userId" = $1
+          GROUP BY type
+          ORDER BY count DESC
+          LIMIT 5
+        `, [userId])
+      ]);      
 
       // Parse all results
       userTwins = parseInt(twinsResult.rows[0].count);
@@ -292,6 +310,26 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
       return res.status(500).json({ success: false, error: 'Failed to fetch analytics data' });
     }
 
+    // Build engagementData from dailyEventsResult
+const engagementData = (() => {
+  if (!dailyEventsResult || dailyEventsResult.rows.length === 0) {
+    return null;
+  }
+  const labels: string[] = [];
+  const values: number[] = [];
+  dailyEventsResult.rows.forEach((row: any) => {
+    labels.push(new Date(row.date).toLocaleDateString());
+    values.push(parseInt(row.count, 10) || 0);
+  });
+  return { labels, values };
+})();
+
+// Build topContent from topEventTypesResult
+const topContent = topEventTypesResult.rows.map((row: any) => ({
+  title: row.type || 'Event',
+  views: parseInt(row.count, 10) || 0
+}));
+
     const responseData = {
       success: true,
       user: {
@@ -310,6 +348,8 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
         invitesReceived: userInvitesReceived || 0,
         events: userEvents || 0,
         recentActivity: formattedActivity || [],
+        engagementData: engagementData || null,
+        topContent
       },
       eventBreakdown: userEventBreakdown || {},
     };

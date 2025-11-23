@@ -6,8 +6,26 @@ import { logger } from '../config/logger';
  */
 export async function getDiscover(req: any, res: Response) {
   try {
-    // ✅ Use global locals filled by middleware (consistent with header/footer)
-    const user = res.locals.user || null;
+    // ✅ FIX ISSUE 1: Ensure user has profileImage
+    let user = res.locals.user || null;
+    
+    // If user exists but doesn't have profileImage, fetch it
+    if (user && req.user && !user.profileImage) {
+      try {
+        const fullUser = await userQueries.findByEmail(req.user.email);
+        if (fullUser) {
+          user = {
+            ...user,
+            profileImage: fullUser.profileImage || null,
+            name: fullUser.name || user.name,
+          };
+          res.locals.user = user; // Update locals for header
+        }
+      } catch (error) {
+        logger.warn('Failed to fetch user profileImage:', error);
+      }
+    }
+    
     const hasTwins = typeof res.locals.hasTwins !== 'undefined' ? res.locals.hasTwins : false;
     const twinId = res.locals.twinId || null;
 
@@ -27,6 +45,7 @@ export async function getDiscover(req: any, res: Response) {
               id: user.id,
               email: user.email,
               handle: user.handle,
+              hasProfileImage: !!user.profileImage,
             }
           : null,
         hasTwins,
@@ -37,7 +56,7 @@ export async function getDiscover(req: any, res: Response) {
     }
 
     console.log('[PAGE_DISCOVER] Render data:', {
-      user: user ? { id: user.id, email: user.email, handle: user.handle } : null,
+      user: user ? { id: user.id, email: user.email, handle: user.handle, hasProfileImage: !!user.profileImage } : null,
       hasTwins,
       twinId,
       userFromReq: req.user ? { id: req.user.id, email: req.user.email } : null,
@@ -48,7 +67,7 @@ export async function getDiscover(req: any, res: Response) {
 
     res.render('discover', {
       title: 'Discover AI Twins - Twinverse',
-      user,                 // ✅ always consistent with header
+      user: user,                 // ✅ Now includes profileImage
       pathname: '/discover',
       hasTwins,
       twinId,
@@ -95,7 +114,7 @@ export async function getMemoryManagement(req: any, res: Response) {
   const twinId = req.query.twinId || res.locals.twinId || 'default';
 
   console.log('[PAGE_MEMORY_MANAGEMENT] Render data:', {
-    user: user ? { id: user.id, email: user.email } : null,
+    user: user ? { id: user.id, email: user.email, hasProfileImage: !!user.profileImage } : null,
     twinId,
     queryTwinId: req.query.twinId,
     localsTwinId: res.locals.twinId,

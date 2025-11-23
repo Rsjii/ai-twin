@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { ADMIN_EMAILS, QUERY_LIMITS } from '../../config/constants';
+import { sanitizeUser, sanitizeTwin, sanitizeChat, sanitizeMessage, sanitizeEvent, sanitizeInvite } from '../../utils/idTokenization';
+import { detokenizeId } from '../../utils/idTokenization';
 
 // Admin authentication middleware - returns 404 to hide admin pages
 export const requireAdminAuth = (req: Request, res: Response, next: Function) => {
@@ -176,9 +178,10 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       avgEventsPerUser: parseFloat(avgEventsPerUserResult.rows[0].avg || 0)
     };
 
+    // ✅ Sanitize topContent
     const topContent = {
-      topTwins: topTwinsResult.rows,
-      mostActiveUsers: mostActiveUsersResult.rows
+      topTwins: topTwinsResult.rows.map(twin => sanitizeTwin(twin)),
+      mostActiveUsers: mostActiveUsersResult.rows.map(user => sanitizeUser(user, true)) // includeEmail=true for admin
     };
 
     const eventBreakdown = eventTypesResult.rows.reduce((acc, event) => {
@@ -186,11 +189,12 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       return acc;
     }, {} as Record<string, number>);
 
+    // ✅ Sanitize recentActivity
     const recentActivity = {
-      recentSignups: recentSignupsResult.rows,
-      recentTwins: recentTwinsResult.rows,
-      recentChats: recentChatsResult.rows,
-      recentEvents: recentEventsResult.rows
+      recentSignups: recentSignupsResult.rows.map(user => sanitizeUser(user, true)), // includeEmail=true for admin
+      recentTwins: recentTwinsResult.rows.map(twin => sanitizeTwin(twin)),
+      recentChats: recentChatsResult.rows.map(chat => sanitizeChat(chat)),
+      recentEvents: recentEventsResult.rows.map(event => sanitizeEvent(event))
     };
 
     // Calculate growth rates
@@ -250,36 +254,40 @@ export const getAdminUserAnalytics = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
-    }
-
-    // Get detailed user data
-    const [
-      userResult,
-      userTwinsResult,
-      userChatsResult,
-      userMessagesResult,
-      userEventsResult,
-      userInvitesResult,
-      userActivityResult
-    ] = await Promise.all([
-      db.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [userId]),
-      db.query('SELECT id, "userId", "styleVector", "sampleReply", "instructions", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE "userId" = $1', [userId]),
-      db.query('SELECT id, "userId", "twinId", "createdAt" FROM "Chat" WHERE "userId" = $1', [userId]),
-      db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [userId]),
-      db.query('SELECT id, "userId", type, meta, "createdAt" FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [userId]),
-      db.query('SELECT id, code, "inviterId", "acceptedBy", "createdAt" FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1', [userId]),
-      db.query('SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC', [userId])
-    ]);
+ // ✅ Detokenize the publicId
+ const decoded = detokenizeId(userId);
+ if (!decoded || decoded.type !== 'user') {
+   return res.status(400).json({ error: 'Invalid user token' });
+ }
+ const actualUserId = decoded.id;
+ 
+ // Get detailed user data
+ const [
+   userResult,
+   userTwinsResult,
+   userChatsResult,
+   userMessagesResult,
+   userEventsResult,
+   userInvitesResult,
+   userActivityResult
+ ] = await Promise.all([
+   db.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [actualUserId]),
+   db.query('SELECT id, "userId", "styleVector", "sampleReply", "instructions", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE "userId" = $1', [actualUserId]),
+   db.query('SELECT id, "userId", "twinId", "createdAt" FROM "Chat" WHERE "userId" = $1', [actualUserId]),
+   db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [actualUserId]),
+   db.query('SELECT id, "userId", type, meta, "createdAt" FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [actualUserId]),
+   db.query('SELECT id, code, "inviterId", "acceptedBy", "createdAt" FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1', [actualUserId]),
+   db.query('SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC', [actualUserId])
+ ]);    
 
     const user = userResult.rows[0];
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // ✅ Sanitize all user data before returning
     const userAnalytics = {
-      user,
+      user: sanitizeUser(user, true), // includeEmail=true for admin
       stats: {
         twins: userTwinsResult.rows.length,
         chats: userChatsResult.rows.length,
@@ -287,11 +295,11 @@ export const getAdminUserAnalytics = async (req: Request, res: Response) => {
         events: userEventsResult.rows.length,
         invites: userInvitesResult.rows.length
       },
-      twins: userTwinsResult.rows,
-      chats: userChatsResult.rows,
-      events: userEventsResult.rows,
-      invites: userInvitesResult.rows,
-      activity: userActivityResult.rows
+      twins: userTwinsResult.rows.map(twin => sanitizeTwin(twin)),
+      chats: userChatsResult.rows.map(chat => sanitizeChat(chat)),
+      events: userEventsResult.rows.map(event => sanitizeEvent(event)),
+      invites: userInvitesResult.rows.map(invite => sanitizeInvite(invite)),
+      activity: userActivityResult.rows // This is just aggregated stats, no IDs
     };
 
     res.json({
@@ -308,11 +316,14 @@ export const getAdminUserAnalytics = async (req: Request, res: Response) => {
 // Get detailed user information for admin
 export const getDetailedUserInfo = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const { userId } = req.params; // This will now be a publicId token
     
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
+    // ✅ Detokenize the publicId
+    const decoded = detokenizeId(userId);
+    if (!decoded || decoded.type !== 'user') {
+      return res.status(400).json({ error: 'Invalid user token' });
     }
+    const actualUserId = decoded.id;
 
     // Get comprehensive user data
     const [
@@ -326,15 +337,15 @@ export const getDetailedUserInfo = async (req: Request, res: Response) => {
       userEngagementResult,
       userTimelineResult
     ] = await Promise.all([
-      db.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [userId]),
-      db.query('SELECT id, "userId", "styleVector", "sampleReply", "instructions", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [userId]),
-      db.query('SELECT c.id, c."userId", c."twinId", c."createdAt", t.id as twinId FROM "Chat" c LEFT JOIN "Twin" t ON c."twinId" = t.id WHERE c."userId" = $1 ORDER BY c."createdAt" DESC', [userId]),
-      db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [userId]),
-      db.query(`SELECT id, "userId", type, meta, "createdAt" FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`, [userId]),
-      db.query('SELECT id, code, "inviterId", "acceptedBy", "createdAt" FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1 ORDER BY "createdAt" DESC', [userId]),
-      db.query(`SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC LIMIT ${QUERY_LIMITS.ANALYTICS_TIMELINE}`, [userId]),
-      db.query('SELECT AVG(chat_count) as avg_chats, AVG(message_count) as avg_messages FROM (SELECT COUNT(c.id) as chat_count, COUNT(m.id) as message_count FROM "Chat" c LEFT JOIN "Message" m ON c.id = m."chatId" WHERE c."userId" = $1 GROUP BY c.id) as subquery', [userId]),
-      db.query(`SELECT DATE("createdAt") as date, COUNT(*) as events FROM "Event" WHERE "userId" = $1 GROUP BY DATE("createdAt") ORDER BY date DESC LIMIT ${QUERY_LIMITS.ANALYTICS_TIMELINE}`, [userId])
+      db.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [actualUserId]),
+      db.query('SELECT id, "userId", "styleVector", "sampleReply", "instructions", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [actualUserId]),
+      db.query('SELECT c.id, c."userId", c."twinId", c."createdAt", t.id as twinId FROM "Chat" c LEFT JOIN "Twin" t ON c."twinId" = t.id WHERE c."userId" = $1 ORDER BY c."createdAt" DESC', [actualUserId]),
+      db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [actualUserId]),
+      db.query(`SELECT id, "userId", type, meta, "createdAt" FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`, [actualUserId]),
+      db.query('SELECT id, code, "inviterId", "acceptedBy", "createdAt" FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1 ORDER BY "createdAt" DESC', [actualUserId]),
+      db.query(`SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC LIMIT ${QUERY_LIMITS.ANALYTICS_TIMELINE}`, [actualUserId]),
+      db.query('SELECT AVG(chat_count) as avg_chats, AVG(message_count) as avg_messages FROM (SELECT COUNT(c.id) as chat_count, COUNT(m.id) as message_count FROM "Chat" c LEFT JOIN "Message" m ON c.id = m."chatId" WHERE c."userId" = $1 GROUP BY c.id) as subquery', [actualUserId]),
+      db.query(`SELECT DATE("createdAt") as date, COUNT(*) as events FROM "Event" WHERE "userId" = $1 GROUP BY DATE("createdAt") ORDER BY date DESC LIMIT ${QUERY_LIMITS.ANALYTICS_TIMELINE}`, [actualUserId])
     ]);
 
     const user = userResult.rows[0];
@@ -342,24 +353,24 @@ export const getDetailedUserInfo = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const detailedUserInfo = {
-      user,
-      stats: {
-        twins: userTwinsResult.rows.length,
-        chats: userChatsResult.rows.length,
-        messages: parseInt(userMessagesResult.rows[0].count),
-        events: userEventsResult.rows.length,
-        invites: userInvitesResult.rows.length,
-        avgChatsPerDay: parseFloat(userEngagementResult.rows[0].avg_chats || 0),
-        avgMessagesPerDay: parseFloat(userEngagementResult.rows[0].avg_messages || 0)
-      },
-      twins: userTwinsResult.rows,
-      chats: userChatsResult.rows,
-      events: userEventsResult.rows,
-      invites: userInvitesResult.rows,
-      activity: userActivityResult.rows,
-      timeline: userTimelineResult.rows
-    };
+const detailedUserInfo = {
+  user: sanitizeUser(user, true), // includeEmail=true for admin
+  stats: {
+    twins: userTwinsResult.rows.length,
+    chats: userChatsResult.rows.length,
+    messages: parseInt(userMessagesResult.rows[0].count),
+    events: userEventsResult.rows.length,
+    invites: userInvitesResult.rows.length,
+    avgChatsPerDay: parseFloat(userEngagementResult.rows[0].avg_chats || 0),
+    avgMessagesPerDay: parseFloat(userEngagementResult.rows[0].avg_messages || 0)
+  },
+  twins: userTwinsResult.rows.map(twin => sanitizeTwin(twin)),
+  chats: userChatsResult.rows.map(chat => sanitizeChat(chat)),
+  events: userEventsResult.rows.map(event => sanitizeEvent(event)),
+  invites: userInvitesResult.rows.map(invite => sanitizeInvite(invite)),
+  activity: userActivityResult.rows, // This is just aggregated stats, no IDs
+  timeline: userTimelineResult.rows // This is just aggregated stats, no IDs
+};    
 
     res.json({
       success: true,
@@ -375,20 +386,23 @@ export const getDetailedUserInfo = async (req: Request, res: Response) => {
 // Remove user (admin only)
 export const removeUser = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const { userId } = req.params; // This will now be a publicId token
     
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
+    // ✅ Detokenize the publicId
+    const decoded = detokenizeId(userId);
+    if (!decoded || decoded.type !== 'user') {
+      return res.status(400).json({ error: 'Invalid user token' });
     }
+    const actualUserId = decoded.id;
 
     // Check if user exists
-    const userResult = await db.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [userId]);
+    const userResult = await db.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [actualUserId]);
     if (!userResult.rows[0]) {
       return res.status(404).json({ error: 'User not found' });
     }
 
     // Delete user and all related data (cascade)
-    await db.query('DELETE FROM "User" WHERE id = $1', [userId]);
+    await db.query('DELETE FROM "User" WHERE id = $1', [actualUserId]);
 
     res.json({
       success: true,
@@ -466,8 +480,8 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
         daily: dailyBreakdownResult.rows
       },
       topContent: {
-        users: topUsersResult.rows,
-        twins: topTwinsResult.rows
+        users: topUsersResult.rows.map(user => sanitizeUser(user, true)),
+        twins: topTwinsResult.rows.map(twin => sanitizeTwin(twin)),
       },
       eventBreakdown: eventBreakdownResult.rows.reduce((acc, event) => {
         acc[event.type] = parseInt(event.count);
@@ -519,13 +533,16 @@ export const getUsersList = async (req: Request, res: Response) => {
       SELECT COUNT(*) as total FROM "User" u ${whereClause}
     `, queryParams);
     
+    // ✅ Sanitize users before returning
     res.json({
       success: true,
       data: {
-        users: usersResult.rows,
-        total: parseInt(totalUsersResult.rows[0].total),
-        limit: parseInt(limit as string),
-        offset: parseInt(offset as string)
+        users: usersResult.rows.map(user => sanitizeUser(user, true)), // includeEmail=true for admin
+        pagination: {
+          total: parseInt(totalUsersResult.rows[0].total),
+          limit: parseInt(limit as string),
+          offset: parseInt(offset as string)
+        }
       }
     });
     
@@ -555,7 +572,7 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
           totalUsers: parseInt(totalUsersResult.rows[0].count),
           activeUsers: parseInt(activeUsersResult.rows[0].count),
           newUsers: parseInt(newUsersResult.rows[0].count),
-          users: usersListResult.rows
+          users: usersListResult.rows.map(user => sanitizeUser(user, true)) // ✅ Add sanitization
         };
         break;
         
@@ -568,8 +585,8 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
         
         data = {
           totalTwins: parseInt(totalTwinsResult.rows[0].count),
-          popularTwins: popularTwinsResult.rows,
-          recentTwins: recentTwinsResult.rows
+          popularTwins: popularTwinsResult.rows.map(twin => sanitizeTwin(twin)), // ✅ Add sanitization
+          recentTwins: recentTwinsResult.rows.map(twin => sanitizeTwin(twin)) // ✅ Add sanitization
         };
         break;
         
@@ -583,7 +600,7 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
         data = {
           totalChats: parseInt(totalChatsResult.rows[0].count),
           activeChats: parseInt(activeChatsResult.rows[0].count),
-          chats: chatStatsResult.rows
+          chats: chatStatsResult.rows.map(chat => sanitizeChat(chat)) // ✅ Add sanitization
         };
         break;
         
@@ -597,7 +614,7 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
         data = {
           totalMessages: parseInt(totalMessagesResult.rows[0].count),
           recentMessages: parseInt(recentMessagesResult.rows[0].count),
-          messages: messageStatsResult.rows
+          messages: messageStatsResult.rows.map(msg => sanitizeMessage(msg)) // ✅ Add sanitization
         };
         break;
         
@@ -664,10 +681,11 @@ const summaryResult = await db.query(`
     
     console.log('Users page data fetched successfully');
     
+    // ✅ Sanitize users before returning
     res.json({
       success: true,
       data: {
-        users: usersResult.rows,
+        users: usersResult.rows.map(user => sanitizeUser(user, true)), // includeEmail=true for admin
         pagination: {
           currentPage: parseInt(page as string),
           totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
@@ -733,10 +751,11 @@ const summaryResult = await db.query(`
     
     console.log('Twins page data fetched successfully');
     
+    // ✅ Sanitize twins before returning
     res.json({
       success: true,
       data: {
-        twins: twinsResult.rows,
+        twins: twinsResult.rows.map(twin => sanitizeTwin(twin)), // ✅ Add sanitization
         pagination: {
           currentPage: parseInt(page as string),
           totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
@@ -810,10 +829,11 @@ const summaryResult = await db.query(`
 
     console.log('Chats page data fetched successfully');
     
+    // ✅ Sanitize chats before returning
     res.json({
       success: true,
       data: {
-        chats: chatsResult.rows,
+        chats: chatsResult.rows.map(chat => sanitizeChat(chat)), // ✅ Add sanitization
         pagination: {
           currentPage: parseInt(page as string),
           totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
@@ -884,10 +904,11 @@ const summaryResult = await db.query(`
     
     console.log('Messages page data fetched successfully');
     
+    // ✅ Sanitize messages before returning
     res.json({
       success: true,
       data: {
-        messages: messagesResult.rows,
+        messages: messagesResult.rows.map(msg => sanitizeMessage(msg)), // ✅ Add sanitization
         pagination: {
           currentPage: parseInt(page as string),
           totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
@@ -1007,7 +1028,7 @@ export const getEventAnalytics = async (req: Request, res: Response) => {
         eventTypes: eventTypesResult.rows,
         hourly: hourlyResult.rows,
         daily: dailyResult.rows,
-        topUsers: topUsersResult.rows,
+        topUsers: topUsersResult.rows.map(user => sanitizeUser(user, true)),
         period
       }
     });
@@ -1110,7 +1131,7 @@ export const getEventExplorer = async (req: Request, res: Response) => {
     res.json({
       success: true,
       data: {
-        events: eventsResult.rows,
+        events: eventsResult.rows.map(event => sanitizeEvent(event)),
         pagination: {
           currentPage: parseInt(page as string),
           totalPages: Math.ceil(parseInt(countResult.rows[0].total) / parseInt(limit as string)),

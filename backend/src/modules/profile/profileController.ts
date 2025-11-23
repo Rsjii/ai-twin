@@ -4,6 +4,8 @@ import { generateProfileToken, verifyProfileToken } from '../auth/authService';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
 import { logEvent } from '../../services/eventLogger';
+import path from 'path';
+import fs from 'fs';
 
 const updateHandleSchema = z.object({
   handle: z.string().min(3, 'Handle must be at least 3 characters').max(20, 'Handle too long').regex(/^[a-zA-Z0-9_-]+$/, 'Handle can only contain letters, numbers, hyphens, and underscores'),
@@ -156,6 +158,39 @@ export const updateProfile = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
+    // ✅ FIX: Handle file upload if present
+    let profileImagePath = undefined;
+    
+    if (req.file) {
+      // File was uploaded
+      const uploadDir = path.resolve(process.cwd(), 'public/uploads/profiles');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      // Get current user to delete old image
+      const currentUser = await userQueries.findByEmail(req.user.email);
+      if (currentUser && currentUser.profileImage && currentUser.profileImage.startsWith('/uploads/')) {
+        const oldImagePath = path.resolve(process.cwd(), `public${currentUser.profileImage}`);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+      
+      // Save new file with unique name
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const fileExt = path.extname(req.file.originalname);
+      const newFileName = `profile-${uniqueSuffix}${fileExt}`;
+      const filePath = path.join(uploadDir, newFileName);
+      
+      // Write file to disk
+      fs.writeFileSync(filePath, req.file.buffer);
+      
+      // Set profile image path
+      profileImagePath = `/uploads/profiles/${newFileName}`;
+    }
+
+    // ✅ FIX: Parse form data (can be from multipart/form-data or JSON)
     const updateProfileSchema = z.object({
       name: z.string().min(2, 'Name must be at least 2 characters').optional(),
       handle: z.string().min(3, 'Handle must be at least 3 characters').max(20, 'Handle too long').regex(/^[a-zA-Z0-9_\s-]+$/, 'Handle can only contain letters, numbers, spaces, hyphens, and underscores').optional(),
@@ -165,6 +200,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       profileImage: z.string().nullable().optional(),
     });
 
+    // ✅ FIX: Parse from req.body (multer will parse multipart/form-data)
     const { name, handle, dob, phone, bio, profileImage } = updateProfileSchema.parse(req.body);
 
     // Get current user data
@@ -172,7 +208,6 @@ export const updateProfile = async (req: Request, res: Response) => {
     if (!currentUser) {
       return res.status(404).json({ error: 'User not found' });
     }
-
 
     // Check if handle is already taken (if provided and different from current)
     if (handle && handle !== currentUser.handle) {
@@ -190,8 +225,10 @@ export const updateProfile = async (req: Request, res: Response) => {
     const finalDob = dob !== undefined ? dob : currentUser.dob || '';
     const finalPhone = phone !== undefined ? phone : currentUser.phone || '';
     const finalBio = bio !== undefined ? bio : currentUser.bio || '';
-    const finalProfileImage = profileImage !== undefined ? profileImage : currentUser.profileImage || '';
-
+    // ✅ FIX: Use uploaded file path if file was uploaded, otherwise use provided profileImage or current
+    const finalProfileImage = profileImagePath !== undefined 
+      ? profileImagePath 
+      : (profileImage !== undefined ? profileImage : currentUser.profileImage || '');
 
     // Update user profile using raw SQL
     const updatedUser = await userQueries.updateProfile(
@@ -204,8 +241,6 @@ export const updateProfile = async (req: Request, res: Response) => {
       finalProfileImage
     );
 
-    // No need to update session since we're using JWT
-
     return res.json({
       success: true,
       user: {
@@ -216,7 +251,7 @@ export const updateProfile = async (req: Request, res: Response) => {
         bio: updatedUser.bio,
         profileImage: updatedUser.profileImage,
       },
-      handle: updatedUser.handle, // For frontend to know if handle changed
+      handle: updatedUser.handle,
     });
   } catch (error) {
     logger.error('Update profile error:', error);
