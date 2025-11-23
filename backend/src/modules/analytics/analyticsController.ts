@@ -279,6 +279,12 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
       eventBreakdown: userEventBreakdown || {},
     };
 
+    // ✅ ADD: Cache headers to prevent 304 responses
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    });
     res.json(responseData);
   } catch (error) {
     logger.error('Get user analytics error:', error);

@@ -191,6 +191,12 @@ export const getFeedbackAnalytics = async (req: Request, res: Response, next: Ne
       ? Math.round((feedback.positive_count / feedback.total_feedback) * 100)
       : 0;
     
+    // ✅ ADD: Cache headers to prevent 304 responses
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    });
     res.json({
       success: true,
       analytics: {

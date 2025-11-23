@@ -136,15 +136,34 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
         try {
             // Load user analytics and feedback analytics in parallel (FAST)
             const [response, feedbackResponse] = await Promise.all([
-                fetch('/api/metrics/user'),
-                fetch('/api/analytics/feedback')
+                fetch('/api/metrics/user', { cache: 'no-store' }),           // ✅ force no cache
+                fetch('/api/analytics/feedback', { cache: 'no-store' })     // ✅
             ]);
-            
-            // Parse JSON in parallel (FAST)
-            const [data, feedbackData] = await Promise.all([
-                response.json(),
-                feedbackResponse.json()
-            ]);
+
+            // ✅ Handle 304 or non-OK without crashing
+            if (!response.ok) {
+                console.error('Metrics response status:', response.status);
+            }
+            if (!feedbackResponse.ok) {
+                console.error('Feedback response status:', feedbackResponse.status);
+            }
+
+            let data = {};
+            let feedbackData = {};
+
+            if (response.status !== 304) {
+                data = await response.json().catch(err => {
+                    console.error('Failed to parse /api/metrics/user JSON', err);
+                    return {};
+                });
+            }
+
+            if (feedbackResponse.status !== 304) {
+                feedbackData = await feedbackResponse.json().catch(err => {
+                    console.error('Failed to parse /api/analytics/feedback JSON', err);
+                    return {};
+                });
+            }
             
             // Update overview cards
             if (data.success && data.analytics) {

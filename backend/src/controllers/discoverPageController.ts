@@ -6,55 +6,17 @@ import { logger } from '../config/logger';
  */
 export async function getDiscover(req: any, res: Response) {
   try {
-    // ✅ ADD: Debug logging for production
-    if (process.env['NODE_ENV'] === 'production') {
-      logger.info('Discover page - req.user:', req.user ? {
-        id: req.user.id,
-        email: req.user.email,
-        hasEmail: !!req.user.email
-      } : 'null');
-    }
-    
-    // Check if user is authenticated (optional - discover is public)
-    let user = null;
-    let hasTwins = false;
-    let twinId = null;
-    
-    if (req.user && req.user.email) { // ✅ ENSURE: Check email exists
-      // Fetch full user data from database
-      const fullUser = await userQueries.findByEmail(req.user.email);
-      if (fullUser) {
-        user = {
-          id: fullUser.id,
-          email: fullUser.email,
-          handle: fullUser.handle,
-          name: fullUser.name,
-          profileImage: fullUser.profileImage,
-        };
-        
-        // Check if user has twins
-        const userTwins = await twinQueries.findByUserId(fullUser.id);
-        hasTwins = userTwins.length > 0;
-        const twin = hasTwins ? userTwins[0] : null;
-        twinId = twin && twin.id ? twin.id : null;
-      }
-    }
-    
-    // ✅ ADD: Log what's being passed to template
-    if (process.env['NODE_ENV'] === 'production') {
-      logger.info('Discover page render data:', {
-        hasUser: !!user,
-        userEmail: user?.email,
-        hasTwins: hasTwins
-      });
-    }
-    
+    // ✅ Use global locals filled by middleware (consistent with header/footer)
+    const user = res.locals.user || null;
+    const hasTwins = typeof res.locals.hasTwins !== 'undefined' ? res.locals.hasTwins : false;
+    const twinId = res.locals.twinId || null;
+
     res.render('discover', {
       title: 'Discover AI Twins - Twinverse',
-      user: user || null,
+      user,                 // ✅ always consistent with header
       pathname: '/discover',
-      hasTwins: hasTwins,
-      twinId: twinId || null,
+      hasTwins,
+      twinId,
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {
@@ -93,25 +55,14 @@ export async function getOnboarding(req: any, res: Response) {
  * Memory Management page
  */
 export async function getMemoryManagement(req: any, res: Response) {
-  // Fetch full user data from database (like getDiscover)
-  let user = null;
-  if (req.user) {
-    const fullUser = await userQueries.findByEmail(req.user.email);
-    if (fullUser) {
-      user = {
-        id: fullUser.id,
-        email: fullUser.email,
-        handle: fullUser.handle,
-        name: fullUser.name,
-        profileImage: fullUser.profileImage,
-      };
-    }
-  }
-  
+  // ✅ Use global locals filled by middleware (consistent with header/footer)
+  const user = res.locals.user || null;
+  const twinId = req.query.twinId || res.locals.twinId || 'default';
+
   res.render('memory-management', { 
     title: 'Memory Management - AI Twin',
-    user: user,
-    twinId: req.query.twinId || 'default',
+    user,
+    twinId,
     csrfToken: res.locals['csrfToken']
   });
 }

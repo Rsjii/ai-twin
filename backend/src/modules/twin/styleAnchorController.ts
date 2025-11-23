@@ -23,6 +23,12 @@ export const getTwinAnchors = async (req: any, res: Response, next: NextFunction
       parseInt(offset as string)
     );
     
+    // ✅ ADD: Cache headers to prevent 304 responses
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    });
     res.json({ success: true, anchors });
   } catch (error) {
     handleControllerError(error, 'Failed to get style anchors');

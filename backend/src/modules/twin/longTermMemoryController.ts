@@ -29,6 +29,12 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
         query,
         parseInt(limit as string) || 10
       );
+      // ✅ ADD: Cache headers to prevent 304 responses
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      });
       return res.json({ success: true, memories });
     }
     
@@ -39,6 +45,12 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
       parseInt(limit as string) || 20
     );
     
+    // ✅ ADD: Cache headers to prevent 304 responses
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    });
     res.json({ success: true, memories });
   } catch (error) {
     handleControllerError(error, 'Failed to get memories');

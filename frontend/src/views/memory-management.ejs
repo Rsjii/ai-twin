@@ -346,12 +346,27 @@ if (anchorError) anchorError.classList.add('hidden');
             try {
                 // Load all memories and anchors
                 const [longTermMemories, styleAnchors] = await Promise.all([
-                    fetch(`/api/twin/${twinId}/long-term-memory?limit=1000`, {credentials: 'include'}),
-                    fetch(`/api/twin/${twinId}/style-anchors?limit=1000`, {credentials: 'include'})
+                    fetch(`/api/twin/${twinId}/long-term-memory?limit=1000`, {credentials: 'include', cache: 'no-store'}),  // ✅ force no cache
+                    fetch(`/api/twin/${twinId}/style-anchors?limit=1000`, {credentials: 'include', cache: 'no-store'})     // ✅
                 ]);
                 
-                const longTermData = await longTermMemories.json();
-                const anchorsData = await styleAnchors.json();
+                // ✅ Handle 304 or non-OK without crashing
+                let longTermData = { memories: [] };
+                let anchorsData = { anchors: [] };
+
+                if (longTermMemories.status !== 304 && longTermMemories.ok) {
+                    longTermData = await longTermMemories.json().catch(err => {
+                        console.error('Failed to parse long-term-memory JSON', err);
+                        return { memories: [] };
+                    });
+                }
+
+                if (styleAnchors.status !== 304 && styleAnchors.ok) {
+                    anchorsData = await styleAnchors.json().catch(err => {
+                        console.error('Failed to parse style-anchors JSON', err);
+                        return { anchors: [] };
+                    });
+                }
                 
                 allMemories = longTermData.memories || [];
                 allAnchors = anchorsData.anchors || [];

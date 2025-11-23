@@ -147,7 +147,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ ADD: Global hasTwins middleware (for footer)
+// ✅ ADD: Global hasTwins + twinId middleware (for footer + pages)
 app.use(async (req, res, next) => {
   // Only set hasTwins if controller hasn't set it AND user is authenticated
   if (res.locals.hasTwins === undefined && req.user && req.user.email) {
@@ -155,12 +155,16 @@ app.use(async (req, res, next) => {
       const { twinQueries } = await import('./config/database');
       const userTwins = await twinQueries.findByUserId(req.user.userId || req.user.id);
       res.locals.hasTwins = userTwins.length > 0;
+      const twin = res.locals.hasTwins ? userTwins[0] : null;
+      res.locals.twinId = twin && twin.id ? twin.id : null; // ✅ NEW: Set twinId globally
     } catch (error) {
       logger.warn('Error fetching hasTwins in global middleware:', error);
       res.locals.hasTwins = false;
+      res.locals.twinId = null;
     }
   } else if (!req.user) {
     res.locals.hasTwins = false;
+    res.locals.twinId = null;
   }
   next();
 });
