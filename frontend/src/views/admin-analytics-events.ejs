@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/output.css">
+    <script src="/utils/timeUtils.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/admin/analytics" class="text-xl font-bold text-gray-900">← Back to Analytics</a>
+                    <span class="ml-4 px-3 py-1 bg-purple-100 text-purple-800 text-sm font-medium rounded-full">Events Explorer</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <img src="<%= user.profileImage || '/uploads/profiles/default.jpg' %>" alt="Profile" class="w-8 h-8 rounded-full">
+                    <span class="text-sm font-medium text-gray-700"><%= user.handle || user.email %></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Events Explorer</h1>
+            <p class="text-gray-600 mt-2">Filter and explore all system events with meta data</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Event Type</label>
+                    <select id="eventTypeFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        <option value="">All Types</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Meta Filter (key:value)</label>
+                    <input type="text" id="metaFilter" placeholder="e.g. wv:event" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                    <input type="date" id="startDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                    <input type="date" id="endDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+            </div>
+            <div class="mt-4">
+                <button onclick="applyFilters()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                    Apply Filters
+                </button>
+                <button onclick="clearFilters()" class="ml-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                    Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Events List -->
+        <div class="bg-white rounded-lg shadow-sm">
+            <div class="p-6 border-b">
+                <h3 class="text-lg font-semibold text-gray-900">Events</h3>
+            </div>
+            <div id="eventsList" class="divide-y divide-gray-200">
+                <div class="p-8 text-center">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <p class="text-gray-600 mt-4">Loading events...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="mt-8 flex justify-center"></div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let currentFilters = {
+            eventType: '',
+            metaFilter: '',
+            startDate: '',
+            endDate: ''
+        };
+
+        async function loadEvents() {
+            try {
+                const params = new URLSearchParams({
+                    page: currentPage,
+                    limit: 50,
+                    ...currentFilters
+                });
+                
+                // Remove empty params
+                Object.keys(currentFilters).forEach(key => {
+                    if (!currentFilters[key]) params.delete(key);
+                });
+
+                const response = await fetch(`/api/admin/analytics/events/explorer?${params}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    // Populate event type dropdown
+                    if (data.data.eventTypes && document.getElementById('eventTypeFilter').options.length === 1) {
+                        data.data.eventTypes.forEach(type => {
+                            const option = document.createElement('option');
+                            option.value = type;
+                            option.textContent = type;
+                            document.getElementById('eventTypeFilter').appendChild(option);
+                        });
+                    }
+
+                    updateEventsList(data.data.events);
+                    updatePagination(data.data.pagination);
+                } else {
+                    showError('Failed to load events: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Load events error:', error);
+                showError('Error loading events');
+            }
+        }
+
+        function updateEventsList(events) {
+            const eventsList = document.getElementById('eventsList');
+            
+            if (events && events.length > 0) {
+                eventsList.innerHTML = events.map(event => {
+                    const meta = event.meta || {};
+                    const metaTags = [];
+                    if (meta.wv) metaTags.push(`wv:${meta.wv}`);
+                    if (meta.source) metaTags.push(`src:${meta.source}`);
+                    if (meta.twinId) metaTags.push(`twin:${meta.twinId.substring(0, 8)}`);
+                    if (meta.chatId) metaTags.push(`chat:${meta.chatId.substring(0, 8)}`);
+                    
+                    const tagsHtml = metaTags.length > 0
+                        ? `<div class="flex flex-wrap gap-1 mt-2">${metaTags.map(tag => 
+                            `<span class="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded">${tag}</span>`
+                          ).join('')}</div>`
+                        : '';
+                    
+                    return `
+                        <div class="p-6 hover:bg-gray-50">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <h4 class="text-lg font-semibold text-gray-900">${event.type}</h4>
+                                        <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">${event.userHandle || event.userEmail || 'System'}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 timestamp-display" data-timestamp="${event.createdAt}" data-format="context"></p>
+                                    ${tagsHtml}
+                                    ${Object.keys(meta).length > 0 ? `<pre class="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">${JSON.stringify(meta, null, 2)}</pre>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Format timestamps
+                if (window.TimeUtils) {
+                    eventsList.querySelectorAll('.timestamp-display').forEach(el => {
+                        const timestamp = el.dataset.timestamp;
+                        if (timestamp) {
+                            try {
+                                el.textContent = window.TimeUtils.formatTimeWithContext(timestamp);
+                                el.title = window.TimeUtils.formatFullDateTime(timestamp);
+                            } catch (e) {
+                                console.error('Error formatting timestamp:', e);
+                            }
+                        }
+                    });
+                }
+            } else {
+                eventsList.innerHTML = '<div class="p-8 text-center text-gray-500">No events found</div>';
+            }
+        }
+
+        function updatePagination(pagination) {
+            const paginationDiv = document.getElementById('pagination');
+            const { currentPage, totalPages, totalItems } = pagination;
+            
+            let html = '<div class="flex items-center space-x-2">';
+            
+            if (currentPage > 1) {
+                html += `<button onclick="changePage(${currentPage - 1})" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Previous</button>`;
+            }
+            
+            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+                html += `<button onclick="changePage(${i})" class="px-3 py-2 ${i === currentPage ? 'bg-purple-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'} rounded-lg">${i}</button>`;
+            }
+            
+            if (currentPage < totalPages) {
+                html += `<button onclick="changePage(${currentPage + 1})" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Next</button>`;
+            }
+            
+            html += '</div>';
+            html += `<div class="ml-4 text-sm text-gray-600">Showing ${((currentPage - 1) * 50) + 1}-${Math.min(currentPage * 50, totalItems)} of ${totalItems} events</div>`;
+            
+            paginationDiv.innerHTML = html;
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            loadEvents();
+        }
+
+        function applyFilters() {
+            currentFilters = {
+                eventType: document.getElementById('eventTypeFilter').value,
+                metaFilter: document.getElementById('metaFilter').value,
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value
+            };
+            currentPage = 1;
+            loadEvents();
+        }
+
+        function clearFilters() {
+            document.getElementById('eventTypeFilter').value = '';
+            document.getElementById('metaFilter').value = '';
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            applyFilters();
+        }
+
+        function showError(message) {
+            const eventsList = document.getElementById('eventsList');
+            eventsList.innerHTML = `<div class="p-8 text-center text-red-600">${message}</div>`;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadEvents();
+        });
+    </script>
+</body>
+</html>

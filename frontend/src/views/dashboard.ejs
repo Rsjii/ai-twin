@@ -1551,6 +1551,12 @@ function displayPublicTwinStatus(twin) {
     const statusContainer = document.getElementById('publicTwinStatus');
     console.log('Status container found:', statusContainer);
     
+    // ✅ FIX: Guard against null container
+    if (!statusContainer) {
+        console.warn('⚠️ Status container not found, skipping public twin status UI');
+        return;
+    }
+    
     if (twin && twin.isPublic) {
         console.log('✅ Twin is public, showing public status');
         statusContainer.innerHTML = 

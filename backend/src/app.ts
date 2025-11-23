@@ -68,7 +68,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"], // ✅ FIX: Allow unpkg.com for AlpineJS
       imgSrc: ["'self'", "data:", "https:"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
     },
@@ -353,11 +353,12 @@ app.use(express.static(path.resolve(__dirname, '../../frontend/src/public'), {
   lastModified: true,
 }));
 app.use('/uploads', express.static(path.resolve(__dirname, '../../public/uploads')));
-app.use('/utils', express.static(path.resolve(__dirname, '../../frontend/src/utils')));
+// ✅ FIX: Serve timeUtils.js from backend/public/utils (guaranteed to exist in production)
+app.use('/utils', express.static(path.resolve(__dirname, '../public/utils')));
 
 // ✅ ADD: Log utils path in production for debugging
 if(config.nodeEnv === 'production'){
-  const utilsPath = path.resolve(__dirname, '../../frontend/src/utils');
+  const utilsPath = path.resolve(__dirname, '../public/utils');
   logger.info(`📁 Utils path: ${utilsPath}`);
   const fs = require('fs');
   if (fs.existsSync(utilsPath)) {
