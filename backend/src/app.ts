@@ -140,11 +140,21 @@ app.post('/api/chats/:id/generate-title', requireJWTFromCookie, generateChatTitl
 
 // View engine setup
 app.set('view engine', 'ejs');
-// ✅ FIX: Use absolute path resolution
+// ✅ FIX: Use absolute path resolution with proper production handling
 const viewsPath = path.resolve(__dirname, '../../frontend/src/views');
 app.set('views', viewsPath);
-if(config.nodeEnv === 'production'){
+
+// ✅ ADD: Disable EJS caching in development, enable in production
+if (config.nodeEnv === 'production') {
   logger.info('Views path:', viewsPath);
+  // Verify path exists
+  const fs = require('fs');
+  if (!fs.existsSync(viewsPath)) {
+    logger.error('Views path does not exist:', viewsPath);
+  }
+} else {
+  // Development: disable caching for hot reload
+  app.set('view cache', false);
 }
 
 // Static files with cache headers

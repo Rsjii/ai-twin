@@ -13,6 +13,11 @@ declare global {
 
 export const extractJWTFromCookie = (req: Request, res: Response, next: NextFunction) => {
   try {
+    // ✅ ADD: Debug logging for production
+    if (process.env['NODE_ENV'] === 'production') {
+      logger.info('Cookie extraction - cookies:', Object.keys(req.cookies || {}));
+    }
+    
     // Try to get JWT from cookie first
     const tokenFromCookie = req.cookies?.['jwtToken'];
     
@@ -26,12 +31,28 @@ export const extractJWTFromCookie = (req: Request, res: Response, next: NextFunc
           handle: decoded.handle,
           id: decoded.userId // Add id field for compatibility
         };
+        
+        // ✅ ADD: Verify email is set
+        if (!req.user.email) {
+          logger.error('JWT decoded but email missing:', decoded);
+        }
+        
         logger.info(`JWT extracted from cookie for user: ${decoded.email}`);
         return next();
       } catch (error) {
         logger.warn('Invalid JWT token in cookie:', error);
         // Clear invalid cookie
-        res.clearCookie('jwtToken');
+        res.clearCookie('jwtToken', {
+          httpOnly: true,
+          secure: process.env['NODE_ENV'] === 'production',
+          sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict',
+          path: '/'
+        });
+      }
+    } else {
+      // ✅ ADD: Log when no cookie found
+      if (process.env['NODE_ENV'] === 'production') {
+        logger.info('No jwtToken cookie found in request');
       }
     }
     
@@ -66,7 +87,12 @@ export const requireJWTFromCookie = (req: Request, res: Response, next: NextFunc
       next();
     } catch (error) {
       logger.warn('Invalid JWT token in cookie:', error);
-      res.clearCookie('jwtToken');
+      res.clearCookie('jwtToken', {
+        httpOnly: true,
+        secure: process.env['NODE_ENV'] === 'production',
+        sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict',
+        path: '/'
+      });      
       return res.redirect('/auth');
     }
   } catch (error) {

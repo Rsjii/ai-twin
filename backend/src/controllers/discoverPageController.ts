@@ -6,12 +6,21 @@ import { logger } from '../config/logger';
  */
 export async function getDiscover(req: any, res: Response) {
   try {
+    // ✅ ADD: Debug logging for production
+    if (process.env['NODE_ENV'] === 'production') {
+      logger.info('Discover page - req.user:', req.user ? {
+        id: req.user.id,
+        email: req.user.email,
+        hasEmail: !!req.user.email
+      } : 'null');
+    }
+    
     // Check if user is authenticated (optional - discover is public)
     let user = null;
     let hasTwins = false;
     let twinId = null;
     
-    if (req.user && req.user.email) {
+    if (req.user && req.user.email) { // ✅ ENSURE: Check email exists
       // Fetch full user data from database
       const fullUser = await userQueries.findByEmail(req.user.email);
       if (fullUser) {
@@ -31,21 +40,30 @@ export async function getDiscover(req: any, res: Response) {
       }
     }
     
+    // ✅ ADD: Log what's being passed to template
+    if (process.env['NODE_ENV'] === 'production') {
+      logger.info('Discover page render data:', {
+        hasUser: !!user,
+        userEmail: user?.email,
+        hasTwins: hasTwins
+      });
+    }
+    
     res.render('discover', {
       title: 'Discover AI Twins - Twinverse',
-      user: user || null,  // ✅ Always pass user (null if not logged in)
+      user: user || null,
       pathname: '/discover',
-      hasTwins: hasTwins,  // ✅ Always pass hasTwins (false if no twins)
-      twinId: twinId || null,  // ✅ Always pass twinId (null if no twin)
+      hasTwins: hasTwins,
+      twinId: twinId || null,
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {
     logger.error('Discover page error:', error);
     res.render('discover', {
       title: 'Discover AI Twins - Twinverse',
-      user: null,  // ✅ Explicit null
-      hasTwins: false,  // ✅ Explicit false
-      twinId: null,  // ✅ Explicit null
+      user: null,
+      hasTwins: false,
+      twinId: null,
       csrfToken: res.locals['csrfToken']
     });
   }

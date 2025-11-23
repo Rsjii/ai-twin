@@ -213,8 +213,9 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
     res.cookie('jwtToken', token, {
       httpOnly: true,
       secure: process.env['NODE_ENV'] === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict', // ✅ Change: 'lax' for production
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/' // ✅ ADD: Explicit path      
     });
 
     // Log profile completed event
@@ -409,8 +410,9 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     res.cookie('jwtToken', token, {
       httpOnly: true,
       secure: process.env['NODE_ENV'] === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/' // ✅ ADD: Explicit path      
     });
 
     // Log login event
@@ -481,8 +483,9 @@ export const loginVerify = async (req: Request, res: Response, next: NextFunctio
     res.cookie('jwtToken', token, {
       httpOnly: true,
       secure: process.env['NODE_ENV'] === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/' // ✅ ADD: Explicit path      
     });
     
     // Also create session for backward compatibility
@@ -599,8 +602,13 @@ export const logout = (req: Request, res: Response, next: NextFunction) => {
       });
     }
 
-    // Clear JWT cookie
-    res.clearCookie('jwtToken');
+   // Clear JWT cookie
+   res.clearCookie('jwtToken', {
+    httpOnly: true,
+    secure: process.env['NODE_ENV'] === 'production',
+    sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict',
+    path: '/'
+  });    
     
     // Also clear session if it exists (for backward compatibility)
     if (req.session) {
