@@ -28,6 +28,14 @@ export async function getHelpCenter(req: any, res: Response) {
     logger.warn('[PAGE_HELP_CENTER] Failed to log context:', logError);
   }
 
+  console.log('[PAGE_HELP_CENTER] Render data:', {
+    user: user ? { id: user.id, email: user.email } : null,
+    hasTwins,
+    twinId,
+    userFromReq: req.user ? { id: req.user.id, email: req.user.email } : null,
+    userFromLocals: user ? { id: user.id, email: user.email } : null,
+  });
+
   res.render('help-center', {
     title: 'Help Center - AI Twin',
     user,
@@ -42,6 +50,12 @@ export async function getContact(req: any, res: Response) {
   const user = res.locals.user || null;
   const hasTwins = typeof res.locals.hasTwins !== 'undefined' ? res.locals.hasTwins : false;
   const twinId = res.locals.twinId || null;
+
+  console.log('[PAGE_CONTACT] Render data:', {
+    user: user ? { id: user.id, email: user.email } : null,
+    hasTwins,
+    twinId,
+  });
 
   res.render('contact', {
     title: 'Contact Us - AI Twin',
@@ -58,6 +72,12 @@ export async function getPrivacy(req: any, res: Response) {
   const hasTwins = typeof res.locals.hasTwins !== 'undefined' ? res.locals.hasTwins : false;
   const twinId = res.locals.twinId || null;
 
+  console.log('[PAGE_PRIVACY] Render data:', {
+    user: user ? { id: user.id, email: user.email } : null,
+    hasTwins,
+    twinId,
+  });
+
   res.render('privacy', {
     title: 'Privacy Policy - AI Twin',
     user,
@@ -72,6 +92,12 @@ export async function getTerms(req: any, res: Response) {
   const user = res.locals.user || null;
   const hasTwins = typeof res.locals.hasTwins !== 'undefined' ? res.locals.hasTwins : false;
   const twinId = res.locals.twinId || null;
+
+  console.log('[PAGE_TERMS] Render data:', {
+    user: user ? { id: user.id, email: user.email } : null,
+    hasTwins,
+    twinId,
+  });
 
   res.render('terms', {
     title: 'Terms of Service - AI Twin',

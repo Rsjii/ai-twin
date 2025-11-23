@@ -13,6 +13,15 @@ export const getTwinAnchors = async (req: any, res: Response, next: NextFunction
     const { limit = 10, offset = 0 } = req.query;
     const userId = req.user.id;
     
+    console.log('[STYLE_ANCHORS:START]', {
+      twinId,
+      userId,
+      limit,
+      offset,
+      path: req.path,
+      method: req.method,
+    });
+    
     // Verify twin ownership
     await verifyTwinOwnership(twinId, userId);
     
@@ -23,9 +32,20 @@ export const getTwinAnchors = async (req: any, res: Response, next: NextFunction
       parseInt(offset as string)
     );
     
+    console.log('[STYLE_ANCHORS] Query result:', {
+      anchorsCount: anchors.length,
+      limit,
+      offset,
+      sampleAnchor: anchors[0] ? {
+        id: anchors[0].id,
+        type: anchors[0].type,
+        phrase: anchors[0].phrase || null,
+      } : null,
+    });
+    
     // ✅ ADD: Cache headers to prevent 304 responses
     res.set({
-      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
       'Pragma': 'no-cache',
       'Expires': '0',
     });

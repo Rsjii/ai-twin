@@ -36,6 +36,14 @@ export async function getDiscover(req: any, res: Response) {
       logger.warn('[PAGE_DISCOVER] Failed to log context:', logError);
     }
 
+    console.log('[PAGE_DISCOVER] Render data:', {
+      user: user ? { id: user.id, email: user.email, handle: user.handle } : null,
+      hasTwins,
+      twinId,
+      userFromReq: req.user ? { id: req.user.id, email: req.user.email } : null,
+      userFromLocals: user ? { id: user.id, email: user.email } : null,
+    });
+
     res.render('discover', {
       title: 'Discover AI Twins - Twinverse',
       user,                 // ✅ always consistent with header
@@ -83,6 +91,13 @@ export async function getMemoryManagement(req: any, res: Response) {
   // ✅ Use global locals filled by middleware (consistent with header/footer)
   const user = res.locals.user || null;
   const twinId = req.query.twinId || res.locals.twinId || 'default';
+
+  console.log('[PAGE_MEMORY_MANAGEMENT] Render data:', {
+    user: user ? { id: user.id, email: user.email } : null,
+    twinId,
+    queryTwinId: req.query.twinId,
+    localsTwinId: res.locals.twinId,
+  });
 
   res.render('memory-management', { 
     title: 'Memory Management - AI Twin',

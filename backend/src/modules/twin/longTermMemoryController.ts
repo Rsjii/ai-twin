@@ -15,6 +15,16 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
     const { category, limit = 20, query } = req.query;
     const userId = req.user?.id || req.userId;
     
+    console.log('[LONG_TERM_MEMORIES:START]', {
+      twinId,
+      userId,
+      category,
+      limit,
+      query,
+      path: req.path,
+      method: req.method,
+    });
+    
     if (!userId) {
       throw createError.unauthorized();
     }
@@ -29,9 +39,14 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
         query,
         parseInt(limit as string) || 10
       );
+      console.log('[LONG_TERM_MEMORIES] Smart retrieval result:', {
+        memoriesCount: memories.length,
+        query,
+        limit,
+      });
       // ✅ ADD: Cache headers to prevent 304 responses
       res.set({
-        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
         'Pragma': 'no-cache',
         'Expires': '0',
       });
@@ -45,9 +60,19 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
       parseInt(limit as string) || 20
     );
     
+    console.log('[LONG_TERM_MEMORIES] Query result:', {
+      memoriesCount: memories.length,
+      category,
+      limit,
+      sampleMemory: memories[0] ? {
+        id: memories[0].key || memories[0].id,
+        category: memories[0].category,
+      } : null,
+    });
+    
     // ✅ ADD: Cache headers to prevent 304 responses
     res.set({
-      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
       'Pragma': 'no-cache',
       'Expires': '0',
     });

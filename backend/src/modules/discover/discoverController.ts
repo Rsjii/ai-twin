@@ -193,6 +193,7 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
   : []);
 
 const totalCount = parseInt(totalCountResult.rows[0].total);
+console.log('[DISCOVER] Total count query result:', { totalCount, rows: totalCountResult.rows });
 
     // Get trending twins with engagement score
     const trendingTwins = await db.query(`
@@ -235,6 +236,14 @@ const totalCount = parseInt(totalCountResult.rows[0].total);
     `, blockedTwinIds.length > 0 
       ? [...blockedTwinIds, limit, offset]
       : [limit, offset]);   
+    
+    console.log('[DISCOVER] Trending query result:', {
+      rowsCount: trendingTwins.rows.length,
+      limit,
+      offset,
+      queryParams: blockedTwinIds.length > 0 ? [...blockedTwinIds, limit, offset] : [limit, offset],
+      firstTwinId: trendingTwins.rows[0]?.id || null,
+    });
     
     // ✅ Fallback to recent if no trending results (also filter blocked)
     if (trendingTwins.rows.length === 0 && offset === 0) {
@@ -299,6 +308,17 @@ const totalCount = parseInt(totalCountResult.rows[0].total);
       req.user?.id
     );
 
+    console.log('[DISCOVER] Enriched twins:', {
+      beforeEnrichment: trendingTwins.rows.length,
+      afterEnrichment: enrichedTwins.length,
+      sampleTwin: enrichedTwins[0] ? {
+        id: enrichedTwins[0].id,
+        publicHandle: enrichedTwins[0].publicHandle,
+        hasLiked: enrichedTwins[0].hasLiked,
+        hasFollowed: enrichedTwins[0].hasFollowed,
+      } : null,
+    });
+
     // ✅ Log response before sending
     try {
       logger.info('[DISCOVER_TRENDING:RESPONSE]', {
@@ -312,6 +332,18 @@ const totalCount = parseInt(totalCountResult.rows[0].total);
     } catch (logErr) {
       logger.warn('[DISCOVER_TRENDING] Failed to log RESPONSE:', logErr);
     }
+
+    console.log('[DISCOVER] Final response data:', {
+      success: true,
+      twinsCount: enrichedTwins.length,
+      pagination: {
+        limit,
+        offset,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        currentPage: Math.floor(offset / limit) + 1,
+      },
+    });
 
     // ✅ Ensure no-cache headers (already set globally, but double-check)
     res.set({

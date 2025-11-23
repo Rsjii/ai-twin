@@ -264,6 +264,17 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
       userInvitesReceived = parseInt(invitesReceivedResult.rows[0].count);
       userEvents = parseInt(eventsResult.rows[0].count);
 
+      console.log('[ANALYTICS] Query results:', {
+        userTwins,
+        userChats,
+        userMessages,
+        userInvitesSent,
+        userInvitesReceived,
+        userEvents,
+        eventTypesCount: userEventTypesResult.rows.length,
+        recentActivityCount: recentActivityResult.rows.length,
+      });
+
       // Process event breakdown (now from parallel query)
       userEventBreakdown = userEventTypesResult.rows.reduce((acc, event) => {
         acc[event.type] = parseInt(event.count);
@@ -318,6 +329,22 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
     } catch (logErr) {
       logger.warn('[ANALYTICS_USER] Failed to log RESPONSE:', logErr);
     }
+
+    console.log('[ANALYTICS] Final response data:', {
+      success: responseData.success,
+      userId: responseData.user.id,
+      analytics: {
+        totalViews: responseData.analytics.totalViews,
+        totalLikes: responseData.analytics.totalLikes,
+        totalFollowers: responseData.analytics.totalFollowers,
+        totalChats: responseData.analytics.totalChats,
+        twins: responseData.analytics.twins,
+        messages: responseData.analytics.messages,
+        events: responseData.analytics.events,
+        recentActivityCount: responseData.analytics.recentActivity.length,
+      },
+      eventBreakdownCount: Object.keys(responseData.eventBreakdown).length,
+    });
 
     // ✅ ADD: Cache headers to prevent 304 responses
     res.set({
