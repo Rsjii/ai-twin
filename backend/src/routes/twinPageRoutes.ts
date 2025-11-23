@@ -12,7 +12,7 @@ const router = Router();
 router.get('/my-twins', requireJWTFromCookie, generateCSRFToken, twinPageController.getMyTwins);
 
 // Twin Create page
-router.get('/twin/create', extractJWTFromCookie, optionalAuth, generateCSRFToken, twinPageController.getTwinCreate);
+router.get('/twin/create', optionalAuth, generateCSRFToken, twinPageController.getTwinCreate);
 
 // Twin AI Edit page
 router.get('/twin/:id/ai-edit', requireJWTFromCookie, generateCSRFToken, twinPageController.getTwinAiEdit);

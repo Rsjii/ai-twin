@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { extractJWTFromCookie } from '../middleware/jwtCookie';
 import { generateCSRFToken } from '../middleware/csrf';
 import * as publicPageController from '../controllers/publicPageController';
 import { getPublicChatPage } from '../modules/twin/publicTwinController';
@@ -8,24 +7,24 @@ import { getPublicChatHistoryPage } from '../controllers/publicChatHistoryPageCo
 const router = Router();
 
 // Landing page (extract user for header consistency)
-router.get('/', extractJWTFromCookie, generateCSRFToken, publicPageController.getLanding);
+router.get('/', generateCSRFToken, publicPageController.getLanding);
 
 // Simple test page (no middleware)
 router.get('/simple', publicPageController.getSimple);
 
 // Public Profile page
-router.get('/@:handle', extractJWTFromCookie, generateCSRFToken, publicPageController.getPublicProfile);
+router.get('/@:handle', generateCSRFToken, publicPageController.getPublicProfile);
 
 // Public Profile alternative route (extract user for header consistency)
-router.get('/p/:handle', extractJWTFromCookie, generateCSRFToken, publicPageController.getPublicProfileAlt);
+router.get('/p/:handle', generateCSRFToken, publicPageController.getPublicProfileAlt);
 
 // Public Chat page route (renders EJS view)
-router.get('/public-twin/chat/:twinId', extractJWTFromCookie, generateCSRFToken, getPublicChatPage);
+router.get('/public-twin/chat/:twinId', generateCSRFToken, getPublicChatPage);
 
 // Public Chat History page
-router.get('/public-chat/history', extractJWTFromCookie, generateCSRFToken, getPublicChatHistoryPage);
+router.get('/public-chat/history', generateCSRFToken, getPublicChatHistoryPage);
 
-router.get('/user/:handle', extractJWTFromCookie, generateCSRFToken, publicPageController.getUserProfile);
+router.get('/user/:handle', generateCSRFToken, publicPageController.getUserProfile);
 
 export default router;
 

@@ -6,7 +6,7 @@ import * as discoverPageController from '../controllers/discoverPageController';
 const router = Router();
 
 // Discover page
-router.get('/discover', extractJWTFromCookie, generateCSRFToken, discoverPageController.getDiscover);
+router.get('/discover', generateCSRFToken, discoverPageController.getDiscover);
 
 // Onboarding page
 router.get('/onboarding', requireJWTFromCookie, generateCSRFToken, discoverPageController.getOnboarding);

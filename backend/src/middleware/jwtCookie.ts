@@ -35,6 +35,9 @@ export const extractJWTFromCookie = (req: Request, res: Response, next: NextFunc
         // ✅ ADD: Verify email is set
         if (!req.user.email) {
           logger.error('JWT decoded but email missing:', decoded);
+          //Don't set req.user if email is missing
+          req.user = undefined;
+          return next();
         }
         
         logger.info(`JWT extracted from cookie for user: ${decoded.email}`);

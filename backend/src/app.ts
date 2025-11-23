@@ -52,7 +52,7 @@ if(config.nodeEnv==='production'){
 }
 
 // Import JWT middleware
-import { requireJWTFromCookie } from './middleware/jwtCookie';
+import { requireJWTFromCookie, extractJWTFromCookie } from './middleware/jwtCookie';
 
 // Import middleware
 import { generateCSRFToken } from './middleware/csrf';
@@ -85,6 +85,9 @@ const limiter = rateLimit({
 
 // Cookie parser middleware
 app.use(cookieParser());
+
+// ✅ GLOBAL: extract JWT for ALL requests (pages + APIs)
+app.use(extractJWTFromCookie);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -123,6 +126,39 @@ app.use((req, res, next) => {
 // Initialize Passport (must be after session middleware)
 app.use(passport.initialize());
 app.use(passport.session());
+
+// ✅ GLOBAL: expose user to EJS as `user` if controller ne nahi diya
+app.use((req, res, next) => {
+  // Agar controller ne already `res.locals.user` set kar diya ho (jaise dashboard),
+  // to usko respect karo, overwrite mat karo.
+  if (!res.locals.user && req.user) {
+    res.locals.user = {
+      id: req.user.userId || req.user.id,
+      email: req.user.email,
+      handle: req.user.handle,
+      // profileImage optional hai, header me fallback already hai
+    };
+  }
+  next();
+});
+
+// ✅ ADD: Global hasTwins middleware (for footer)
+app.use(async (req, res, next) => {
+  // Only set hasTwins if controller hasn't set it AND user is authenticated
+  if (res.locals.hasTwins === undefined && req.user && req.user.email) {
+    try {
+      const { twinQueries } = await import('./config/database');
+      const userTwins = await twinQueries.findByUserId(req.user.userId || req.user.id);
+      res.locals.hasTwins = userTwins.length > 0;
+    } catch (error) {
+      logger.warn('Error fetching hasTwins in global middleware:', error);
+      res.locals.hasTwins = false;
+    }
+  } else if (!req.user) {
+    res.locals.hasTwins = false;
+  }
+  next();
+});
 
 // Logging middleware
 if (config.nodeEnv === 'development') {
