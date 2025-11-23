@@ -110,16 +110,18 @@ app.use(session({
 
 // After session middleware, before routes
 app.use((req, res, next) => {
-  // Set no-cache headers for all protected pages
+  // Paths that should NEVER be cached even for anonymous
   const protectedPaths = ['/dashboard', '/chat', '/learning-dashboard', '/profile', '/twin', '/onboarding', '/analytics', '/admin'];
-  const isProtected = protectedPaths.some(path => req.path.startsWith(path));
-  
-  if (isProtected) {
+
+  const pathProtected = protectedPaths.some(path => req.path.startsWith(path));
+  const userProtected = !!req.user; // ✅ agar user logged-in hai, koi bhi page cache nahi hoga
+
+  if (pathProtected || userProtected) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
   }
-  
+
   next();
 });
 
@@ -138,24 +140,6 @@ app.use((req, res, next) => {
       handle: req.user.handle,
       // profileImage optional hai, header me fallback already hai
     };
-  }
-  next();
-});
-
-// ✅ ADD: Global hasTwins middleware (for footer)
-app.use(async (req, res, next) => {
-  // Only set hasTwins if controller hasn't set it AND user is authenticated
-  if (res.locals.hasTwins === undefined && req.user && req.user.email) {
-    try {
-      const { twinQueries } = await import('./config/database');
-      const userTwins = await twinQueries.findByUserId(req.user.userId || req.user.id);
-      res.locals.hasTwins = userTwins.length > 0;
-    } catch (error) {
-      logger.warn('Error fetching hasTwins in global middleware:', error);
-      res.locals.hasTwins = false;
-    }
-  } else if (!req.user) {
-    res.locals.hasTwins = false;
   }
   next();
 });
