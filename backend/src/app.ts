@@ -59,6 +59,9 @@ import { generateCSRFToken } from './middleware/csrf';
 
 const app = express();
 
+// ✅ Disable ETag for all responses (prevents 304 on JSON APIs)
+app.set('etag', false);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -141,6 +144,47 @@ app.use((req, res, next) => {
       // profileImage optional hai, header me fallback already hai
     };
   }
+  next();
+});
+
+// ✅ ADD: Global hasTwins middleware (for footer)
+app.use(async (req, res, next) => {
+  // Only set hasTwins if controller hasn't set it AND user is authenticated
+  if (res.locals.hasTwins === undefined && req.user && req.user.email) {
+    try {
+      const { twinQueries } = await import('./config/database');
+      const userTwins = await twinQueries.findByUserId(req.user.userId || req.user.id);
+      res.locals.hasTwins = userTwins.length > 0;
+    } catch (error) {
+      logger.warn('Error fetching hasTwins in global middleware:', error);
+      res.locals.hasTwins = false;
+    }
+  } else if (!req.user) {
+    res.locals.hasTwins = false;
+  }
+  next();
+});
+
+// ✅ NEW: Global render wrapper — ensure `user` / `hasTwins` are always correct for views
+app.use((req, res, next) => {
+  const originalRender = res.render.bind(res);
+
+  res.render = (view: string, options?: any, callback?: any) => {
+    const opts = options || {};
+
+    // If controller did NOT set user, OR set it to null/undefined, use global res.locals.user
+    if ((!("user" in opts) || opts.user == null) && res.locals.user) {
+      opts.user = res.locals.user;
+    }
+
+    // If controller didn't set hasTwins, but global hasTwins exists, use it
+    if ((!("hasTwins" in opts)) && typeof res.locals.hasTwins !== 'undefined') {
+      opts.hasTwins = res.locals.hasTwins;
+    }
+
+    return originalRender(view, opts, callback as any);
+  };
+
   next();
 });
 
