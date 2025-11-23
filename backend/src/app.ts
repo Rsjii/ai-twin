@@ -169,6 +169,50 @@ app.use(async (req, res, next) => {
   next();
 });
 
+// ✅ NEW: Ultra-detailed request context logger (for debugging prod vs dev issues)
+app.use((req, res, next) => {
+  try {
+    const jwtCookieRaw = (req as any).cookies?.['jwtToken'] as string | undefined;
+    const jwtCookieShort = jwtCookieRaw
+      ? `${jwtCookieRaw.substring(0, 10)}...len=${jwtCookieRaw.length}`
+      : null;
+
+    logger.info('[REQ_CTX]', {
+      method: req.method,
+      path: req.path,
+      query: req.query,
+      userFromReq: req.user
+        ? {
+            id: (req.user as any).userId || (req.user as any).id,
+            email: (req.user as any).email,
+            handle: (req.user as any).handle,
+          }
+        : null,
+      userFromLocals: res.locals.user
+        ? {
+            id: res.locals.user.id,
+            email: res.locals.user.email,
+            handle: res.locals.user.handle,
+          }
+        : null,
+      hasTwins: typeof res.locals.hasTwins !== 'undefined' ? res.locals.hasTwins : null,
+      twinId: typeof res.locals.twinId !== 'undefined' ? res.locals.twinId : null,
+      jwtCookiePresent: !!jwtCookieRaw,
+      jwtCookiePreview: jwtCookieShort,
+      cacheHeadersFromClient: {
+        ifNoneMatch: req.headers['if-none-match'] || null,
+        ifModifiedSince: req.headers['if-modified-since'] || null,
+        cacheControl: req.headers['cache-control'] || null,
+        pragma: req.headers['pragma'] || null,
+      },
+    });
+  } catch (logError) {
+    logger.warn('Failed to log request context:', logError);
+  }
+
+  next();
+});
+
 // ✅ NEW: Global render wrapper — ensure `user` / `hasTwins` are always correct for views
 app.use((req, res, next) => {
   const originalRender = res.render.bind(res);
@@ -184,6 +228,37 @@ app.use((req, res, next) => {
     // If controller didn't set hasTwins, but global hasTwins exists, use it
     if ((!("hasTwins" in opts)) && typeof res.locals.hasTwins !== 'undefined') {
       opts.hasTwins = res.locals.hasTwins;
+    }
+
+    // ✅ Ultra-detailed render logging
+    try {
+      logger.info('[RENDER_CTX]', {
+        view,
+        hasUserInOpts: !!opts.user,
+        userInOpts: opts.user
+          ? {
+              id: opts.user.id,
+              email: opts.user.email,
+              handle: opts.user.handle,
+            }
+          : null,
+        hasUserInLocals: !!res.locals.user,
+        userInLocals: res.locals.user
+          ? {
+              id: res.locals.user.id,
+              email: res.locals.user.email,
+              handle: res.locals.user.handle,
+            }
+          : null,
+        hasTwinsInOpts: Object.prototype.hasOwnProperty.call(opts, 'hasTwins')
+          ? opts.hasTwins
+          : undefined,
+        hasTwinsInLocals:
+          typeof res.locals.hasTwins !== 'undefined' ? res.locals.hasTwins : undefined,
+        twinIdInLocals: typeof res.locals.twinId !== 'undefined' ? res.locals.twinId : null,
+      });
+    } catch (renderLogError) {
+      logger.warn('Failed to log render context:', renderLogError);
     }
 
     return originalRender(view, opts, callback as any);

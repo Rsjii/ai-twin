@@ -198,6 +198,31 @@ export const getUserChats = async (req: AuthenticatedRequest, res: Response, nex
 // Get chat history for user (all previous chats)
 export const getChatHistory = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
+    // ✅ Ultra-detailed logging for /api/chats issues (prod vs dev)
+    try {
+      logger.info('[getChatHistory:START]', {
+        path: req.path,
+        method: req.method,
+        query: req.query,
+        userFromReq: req.user
+          ? {
+              id: req.user.id,
+              email: req.user.email,
+              handle: req.user.handle,
+            }
+          : null,
+        headers: {
+          ifNoneMatch: req.headers['if-none-match'] || null,
+          ifModifiedSince: req.headers['if-modified-since'] || null,
+          cacheControl: req.headers['cache-control'] || null,
+          pragma: req.headers['pragma'] || null,
+          accept: req.headers['accept'] || null,
+        },
+      });
+    } catch (logError) {
+      logger.warn('[getChatHistory] Failed to log START context:', logError);
+    }
+
     if (!req.user) {
       throw createError.unauthorized();
     }
@@ -261,14 +286,31 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response, n
 
     const total = parseInt(totalResult.rows[0]?.total || '0', 10);
     
-    res.json({
+    const responsePayload = {
       success: true,
       chats,
       total: total,
       page: page,
       limit: limit,
       totalPages: Math.ceil(total / limit)
-    });
+    };
+
+    // ✅ Log response shape before sending
+    try {
+      logger.info('[getChatHistory:RESPONSE]', {
+        userId,
+        chatsCount: chats.length,
+        total,
+        page,
+        limit,
+        totalPages: responsePayload.totalPages,
+        statusBeforeSend: res.statusCode,
+      });
+    } catch (logError) {
+      logger.warn('[getChatHistory] Failed to log RESPONSE context:', logError);
+    }
+
+    res.json(responsePayload);
 
   } catch (error) {
     handleControllerError(error, 'Failed to get chat history');

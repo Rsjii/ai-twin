@@ -11,6 +11,31 @@ export async function getDiscover(req: any, res: Response) {
     const hasTwins = typeof res.locals.hasTwins !== 'undefined' ? res.locals.hasTwins : false;
     const twinId = res.locals.twinId || null;
 
+    // ✅ Ultra-detailed page log
+    try {
+      logger.info('[PAGE_DISCOVER]', {
+        path: req.path,
+        userFromReq: req.user
+          ? {
+              id: req.user.id,
+              email: req.user.email,
+              handle: req.user.handle,
+            }
+          : null,
+        userFromLocals: user
+          ? {
+              id: user.id,
+              email: user.email,
+              handle: user.handle,
+            }
+          : null,
+        hasTwins,
+        twinId,
+      });
+    } catch (logError) {
+      logger.warn('[PAGE_DISCOVER] Failed to log context:', logError);
+    }
+
     res.render('discover', {
       title: 'Discover AI Twins - Twinverse',
       user,                 // ✅ always consistent with header

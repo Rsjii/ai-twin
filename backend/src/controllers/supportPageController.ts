@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { userQueries, twinQueries } from '../config/database';
+import { logger } from '../config/logger';
 
 /**
  * Help Center page
@@ -9,6 +10,23 @@ export async function getHelpCenter(req: any, res: Response) {
   const user = res.locals.user || null;
   const hasTwins = typeof res.locals.hasTwins !== 'undefined' ? res.locals.hasTwins : false;
   const twinId = res.locals.twinId || null;
+
+  // ✅ Ultra-detailed page log for debugging header/footer
+  try {
+    logger.info('[PAGE_HELP_CENTER]', {
+      path: req.path,
+      userFromReq: req.user
+        ? { id: req.user.id, email: req.user.email, handle: req.user.handle }
+        : null,
+      userFromLocals: user
+        ? { id: user.id, email: user.email, handle: user.handle }
+        : null,
+      hasTwins,
+      twinId,
+    });
+  } catch (logError) {
+    logger.warn('[PAGE_HELP_CENTER] Failed to log context:', logError);
+  }
 
   res.render('help-center', {
     title: 'Help Center - AI Twin',
