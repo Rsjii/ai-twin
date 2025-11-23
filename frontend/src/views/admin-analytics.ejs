@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title><%= title %></title>
     <link rel="stylesheet" href="/css/output.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>    
     <script src="/utils/timeUtils.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">    
     <style>
@@ -395,9 +395,23 @@
             try {
                 console.log('Loading admin analytics data...');
                 
-                const response = await fetch('/api/admin/analytics/dashboard');
-                const data = await response.json();
+                const response = await fetch('/api/admin/analytics/dashboard', {
+                    method: 'GET',
+                    credentials: 'include', // ✅ CRITICAL: Add this
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
                 
+                console.log('Admin analytics response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Admin analytics API error:', response.status, errorText);
+                    throw new Error(`Admin analytics API failed: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
                 console.log('Admin analytics data:', data);
                 
                 if (data.success) {
@@ -405,58 +419,99 @@
                     document.getElementById('loadingState').classList.add('hidden');
                     document.getElementById('mainContent').classList.remove('hidden');
                     
+                    // ✅ ADD: Check if metrics exist
+                    if (!data.metrics) {
+                        console.error('No metrics in response:', data);
+                        throw new Error('Invalid response format: missing metrics');
+                    }
+                    
                     // Update overview cards
-                    document.getElementById('totalUsers').textContent = data.metrics.lifetime.users;
-                    document.getElementById('totalTwins').textContent = data.metrics.lifetime.twins;
-                    document.getElementById('totalChats').textContent = data.metrics.lifetime.chats;
-                    document.getElementById('totalMessages').textContent = data.metrics.lifetime.messages;
+                    document.getElementById('totalUsers').textContent = data.metrics.lifetime?.users || 0;
+                    document.getElementById('totalTwins').textContent = data.metrics.lifetime?.twins || 0;
+                    document.getElementById('totalChats').textContent = data.metrics.lifetime?.chats || 0;
+                    document.getElementById('totalMessages').textContent = data.metrics.lifetime?.messages || 0;
                     
                     // Update daily metrics
-                    document.getElementById('dailyUsers').textContent = data.metrics.daily.users;
-                    document.getElementById('dailyTwins').textContent = data.metrics.daily.twins;
-                    document.getElementById('dailyChats').textContent = data.metrics.daily.chats;
-                    document.getElementById('dailyMessages').textContent = data.metrics.daily.messages;
-                    document.getElementById('dailyEvents').textContent = data.metrics.daily.events;
+                    document.getElementById('dailyUsers').textContent = data.metrics.daily?.users || 0;
+                    document.getElementById('dailyTwins').textContent = data.metrics.daily?.twins || 0;
+                    document.getElementById('dailyChats').textContent = data.metrics.daily?.chats || 0;
+                    document.getElementById('dailyMessages').textContent = data.metrics.daily?.messages || 0;
+                    document.getElementById('dailyEvents').textContent = data.metrics.daily?.events || 0;
                     
                     // Update weekly metrics
-                    document.getElementById('weeklyUsers').textContent = data.metrics.weekly.users;
-                    document.getElementById('weeklyTwins').textContent = data.metrics.weekly.twins;
-                    document.getElementById('weeklyChats').textContent = data.metrics.weekly.chats;
-                    document.getElementById('weeklyMessages').textContent = data.metrics.weekly.messages;
-                    document.getElementById('weeklyEvents').textContent = data.metrics.weekly.events;
+                    document.getElementById('weeklyUsers').textContent = data.metrics.weekly?.users || 0;
+                    document.getElementById('weeklyTwins').textContent = data.metrics.weekly?.twins || 0;
+                    document.getElementById('weeklyChats').textContent = data.metrics.weekly?.chats || 0;
+                    document.getElementById('weeklyMessages').textContent = data.metrics.weekly?.messages || 0;
+                    document.getElementById('weeklyEvents').textContent = data.metrics.weekly?.events || 0;
                     
                     // Update monthly metrics
-                    document.getElementById('monthlyUsers').textContent = data.metrics.monthly.users;
-                    document.getElementById('monthlyTwins').textContent = data.metrics.monthly.twins;
-                    document.getElementById('monthlyChats').textContent = data.metrics.monthly.chats;
-                    document.getElementById('monthlyMessages').textContent = data.metrics.monthly.messages;
-                    document.getElementById('monthlyEvents').textContent = data.metrics.monthly.events;
+                    document.getElementById('monthlyUsers').textContent = data.metrics.monthly?.users || 0;
+                    document.getElementById('monthlyTwins').textContent = data.metrics.monthly?.twins || 0;
+                    document.getElementById('monthlyChats').textContent = data.metrics.monthly?.chats || 0;
+                    document.getElementById('monthlyMessages').textContent = data.metrics.monthly?.messages || 0;
+                    document.getElementById('monthlyEvents').textContent = data.metrics.monthly?.events || 0;
                     
                     // Update user activity
-                    document.getElementById('activeUsersToday').textContent = data.metrics.userActivity.activeUsersToday;
-                    document.getElementById('newUsersToday').textContent = data.metrics.userActivity.newUsersToday;
-                    document.getElementById('newUsersThisWeek').textContent = data.metrics.userActivity.newUsersThisWeek;
-                    document.getElementById('newUsersThisMonth').textContent = data.metrics.userActivity.newUsersThisMonth;
+                    document.getElementById('activeUsersToday').textContent = data.metrics.userActivity?.activeUsersToday || 0;
+                    document.getElementById('newUsersToday').textContent = data.metrics.userActivity?.newUsersToday || 0;
+                    document.getElementById('newUsersThisWeek').textContent = data.metrics.userActivity?.newUsersThisWeek || 0;
+                    document.getElementById('newUsersThisMonth').textContent = data.metrics.userActivity?.newUsersThisMonth || 0;
                     
                     // Update engagement metrics
-                    document.getElementById('avgMessagesPerChat').textContent = data.metrics.engagement.avgMessagesPerChat.toFixed(2);
-                    document.getElementById('avgChatsPerUser').textContent = data.metrics.engagement.avgChatsPerUser.toFixed(2);
-                    document.getElementById('avgEventsPerUser').textContent = data.metrics.engagement.avgEventsPerUser.toFixed(2);
+                    const avgMsg = data.metrics.engagement?.avgMessagesPerChat || 0;
+                    const avgChats = data.metrics.engagement?.avgChatsPerUser || 0;
+                    const avgEvents = data.metrics.engagement?.avgEventsPerUser || 0;
+                    
+                    document.getElementById('avgMessagesPerChat').textContent = Number(avgMsg).toFixed(2);
+                    document.getElementById('avgChatsPerUser').textContent = Number(avgChats).toFixed(2);
+                    document.getElementById('avgEventsPerUser').textContent = Number(avgEvents).toFixed(2);
                     
                     // Update content sections
-                    updateTopTwins(data.content.topContent.topTwins);
-                    updateMostActiveUsers(data.content.topContent.mostActiveUsers);
-                    updateRecentActivity(data.content.recentActivity);
+                    if (data.content?.topContent) {
+                        updateTopTwins(data.content.topContent.topTwins || []);
+                        updateMostActiveUsers(data.content.topContent.mostActiveUsers || []);
+                    }
+                    if (data.content?.recentActivity) {
+                        updateRecentActivity(data.content.recentActivity);
+                    }
                     
                     // Create charts
-                    createEventBreakdownChart(data.content.eventBreakdown);
-                    createGrowthTrendsChart(data.metrics);
+                    console.log('[ADMIN] Creating charts...');
+                    console.log('[ADMIN] Event breakdown check:', {
+                        hasContent: !!data.content,
+                        hasEventBreakdown: !!data.content?.eventBreakdown,
+                        eventBreakdownType: typeof data.content?.eventBreakdown,
+                        eventBreakdownKeys: data.content?.eventBreakdown ? Object.keys(data.content.eventBreakdown) : null,
+                        eventBreakdownValues: data.content?.eventBreakdown ? Object.values(data.content.eventBreakdown) : null
+                    });
+                    
+                    if (data.content?.eventBreakdown) {
+                        console.log('[ADMIN] ✅ Calling createEventBreakdownChart');
+                        createEventBreakdownChart(data.content.eventBreakdown);
+                    } else {
+                        console.warn('[ADMIN] ⚠️ No eventBreakdown data, skipping chart');
+                    }
+                    
+                    console.log('[ADMIN] Metrics check:', {
+                        hasMetrics: !!data.metrics,
+                        hasDaily: !!data.metrics?.daily,
+                        hasWeekly: !!data.metrics?.weekly,
+                        hasMonthly: !!data.metrics?.monthly
+                    });
+                    
+                    if (data.metrics) {
+                        console.log('[ADMIN] ✅ Calling createGrowthTrendsChart');
+                        createGrowthTrendsChart(data.metrics);
+                    } else {
+                        console.warn('[ADMIN] ⚠️ No metrics data, skipping chart');
+                    }
 
                     // ✅ Show a friendly message when there is no event data
                     const hasEvents =
                         data.content &&
                         data.content.eventBreakdown &&
-                        Object.values(data.content.eventBreakdown).some(v => (v as number) > 0);
+                        Object.values(data.content.eventBreakdown).some(v => Number(v) > 0);
 
                     if (!hasEvents) {
                         const chartEl = document.getElementById('eventBreakdownChart');
@@ -470,11 +525,14 @@
                     }
                 } else {
                     console.error('Failed to load admin analytics:', data.error);
-                    document.getElementById('loadingState').innerHTML = '<p class="text-red-600">Failed to load analytics data</p>';
+                    document.getElementById('loadingState').innerHTML = '<p class="text-red-600">Failed to load analytics data: ' + (data.error || 'Unknown error') + '</p>';
                 }
             } catch (error) {
                 console.error('Admin analytics loading error:', error);
-                document.getElementById('loadingState').innerHTML = '<p class="text-red-600">Error loading analytics data</p>';
+                const loadingEl = document.getElementById('loadingState');
+                if (loadingEl) {
+                    loadingEl.innerHTML = '<p class="text-red-600">Error loading analytics data: ' + error.message + '</p>';
+                }
             }
         }
         
@@ -617,44 +675,262 @@ if (activity.recentEvents && activity.recentEvents.length > 0) {
         }
         
         function createEventBreakdownChart(eventBreakdown) {
-            try {
-                const canvas = document.getElementById('eventBreakdownChart');
-                if (!canvas) {
-                    console.error('eventBreakdownChart canvas not found');
-                    return;
+    console.log('[ADMIN_CHART_EVENT] ========== START createEventBreakdownChart ==========');
+    console.log('[ADMIN_CHART_EVENT] Input data:', eventBreakdown);
+    console.log('[ADMIN_CHART_EVENT] Data type:', typeof eventBreakdown);
+    console.log('[ADMIN_CHART_EVENT] Is object:', typeof eventBreakdown === 'object');
+    console.log('[ADMIN_CHART_EVENT] Keys count:', eventBreakdown ? Object.keys(eventBreakdown).length : 0);
+    
+    try {
+        // Wait for Chart.js
+        if (typeof Chart === 'undefined') {
+            console.warn('[ADMIN_CHART_EVENT] ⚠️ Chart.js not loaded, retrying...');
+            setTimeout(() => createEventBreakdownChart(eventBreakdown), 100);
+            return;
+        }
+        console.log('[ADMIN_CHART_EVENT] ✅ Chart.js is loaded');
+
+        const canvas = document.getElementById('eventBreakdownChart');
+        if (!canvas) {
+            console.error('[ADMIN_CHART_EVENT] ❌ eventBreakdownChart canvas not found');
+            return;
+        }
+        console.log('[ADMIN_CHART_EVENT] ✅ Canvas element found');
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.error('[ADMIN_CHART_EVENT] ❌ Could not get canvas context');
+            return;
+        }
+        console.log('[ADMIN_CHART_EVENT] ✅ Canvas context obtained');
+        
+        // Destroy existing chart if it exists
+        if (window.eventBreakdownChartInstance) {
+            console.log('[ADMIN_CHART_EVENT] Destroying existing chart instance');
+            window.eventBreakdownChartInstance.destroy();
+        }
+        
+        // Validate data
+        if (!eventBreakdown || typeof eventBreakdown !== 'object' || Object.keys(eventBreakdown).length === 0) {
+            console.warn('[ADMIN_CHART_EVENT] ⚠️ No event breakdown data available:', {
+                hasEventBreakdown: !!eventBreakdown,
+                type: typeof eventBreakdown,
+                keysLength: eventBreakdown ? Object.keys(eventBreakdown).length : 0
+            });
+            return;
+        }
+
+        const labels = Object.keys(eventBreakdown);
+        const values = Object.values(eventBreakdown).map(v => Number(v) || 0);
+        
+        console.log('[ADMIN_CHART_EVENT] Processed data:', {
+            labelsCount: labels.length,
+            valuesCount: values.length,
+            labels: labels,
+            values: values,
+            totalValue: values.reduce((a, b) => a + b, 0)
+        });
+        
+        if (labels.length === 0 || values.length === 0) {
+            console.warn('[ADMIN_CHART_EVENT] ⚠️ Empty labels or values array');
+            return;
+        }
+        
+        console.log('[ADMIN_CHART_EVENT] Creating Chart.js doughnut chart...');
+        window.eventBreakdownChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: [
+                        '#3B82F6', '#10B981', '#F59E0B', 
+                        '#EF4444', '#8B5CF6', '#06B6D4'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
                 }
-                
+            }
+        });
+        console.log('[ADMIN_CHART_EVENT] ✅ Chart created successfully');
+        console.log('[ADMIN_CHART_EVENT] ========== END createEventBreakdownChart (SUCCESS) ==========');
+    } catch (error) {
+        console.error('[ADMIN_CHART_EVENT] ========== ERROR in createEventBreakdownChart ==========');
+        console.error('[ADMIN_CHART_EVENT] Error object:', error);
+        console.error('[ADMIN_CHART_EVENT] Error message:', error.message);
+        console.error('[ADMIN_CHART_EVENT] Error stack:', error.stack);
+        console.log('[ADMIN_CHART_EVENT] ========== END createEventBreakdownChart (ERROR) ==========');
+    }
+}        
+
+function createGrowthTrendsChart(metrics) {
+    console.log('[ADMIN_CHART_GROWTH] ========== START createGrowthTrendsChart ==========');
+    console.log('[ADMIN_CHART_GROWTH] Input metrics:', metrics);
+    console.log('[ADMIN_CHART_GROWTH] Metrics structure:', {
+        hasMetrics: !!metrics,
+        hasDaily: !!metrics?.daily,
+        hasWeekly: !!metrics?.weekly,
+        hasMonthly: !!metrics?.monthly,
+        dailyKeys: metrics?.daily ? Object.keys(metrics.daily) : null,
+        weeklyKeys: metrics?.weekly ? Object.keys(metrics.weekly) : null,
+        monthlyKeys: metrics?.monthly ? Object.keys(metrics.monthly) : null
+    });
+    
+    try {
+        // Wait for Chart.js
+        if (typeof Chart === 'undefined') {
+            console.warn('[ADMIN_CHART_GROWTH] ⚠️ Chart.js not loaded, retrying...');
+            setTimeout(() => createGrowthTrendsChart(metrics), 100);
+            return;
+        }
+        console.log('[ADMIN_CHART_GROWTH] ✅ Chart.js is loaded');
+
+        const canvas = document.getElementById('growthTrendsChart');
+        if (!canvas) {
+            console.error('[ADMIN_CHART_GROWTH] ❌ growthTrendsChart canvas not found');
+            return;
+        }
+        console.log('[ADMIN_CHART_GROWTH] ✅ Canvas element found');
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.error('[ADMIN_CHART_GROWTH] ❌ Could not get canvas context');
+            return;
+        }
+        console.log('[ADMIN_CHART_GROWTH] ✅ Canvas context obtained');
+        
+        // Destroy existing chart if it exists
+        if (window.growthTrendsChartInstance) {
+            console.log('[ADMIN_CHART_GROWTH] Destroying existing chart instance');
+            window.growthTrendsChartInstance.destroy();
+        }
+        
+        // Validate metrics
+        if (!metrics || !metrics.daily || !metrics.weekly || !metrics.monthly) {
+            console.warn('[ADMIN_CHART_GROWTH] ⚠️ Invalid metrics data:', {
+                hasMetrics: !!metrics,
+                hasDaily: !!metrics?.daily,
+                hasWeekly: !!metrics?.weekly,
+                hasMonthly: !!metrics?.monthly
+            });
+            return;
+        }
+        
+        const dailyUsers = Number(metrics.daily?.users) || 0;
+        const weeklyUsers = Number(metrics.weekly?.users) || 0;
+        const monthlyUsers = Number(metrics.monthly?.users) || 0;
+        
+        const dailyTwins = Number(metrics.daily?.twins) || 0;
+        const weeklyTwins = Number(metrics.weekly?.twins) || 0;
+        const monthlyTwins = Number(metrics.monthly?.twins) || 0;
+        
+        const dailyChats = Number(metrics.daily?.chats) || 0;
+        const weeklyChats = Number(metrics.weekly?.chats) || 0;
+        const monthlyChats = Number(metrics.monthly?.chats) || 0;
+        
+        console.log('[ADMIN_CHART_GROWTH] Processed values:', {
+            users: { daily: dailyUsers, weekly: weeklyUsers, monthly: monthlyUsers },
+            twins: { daily: dailyTwins, weekly: weeklyTwins, monthly: monthlyTwins },
+            chats: { daily: dailyChats, weekly: weeklyChats, monthly: monthlyChats }
+        });
+        
+        const chartData = {
+            labels: ['Daily', 'Weekly', 'Monthly'],
+            datasets: [
+                {
+                    label: 'Users',
+                    data: [dailyUsers, weeklyUsers, monthlyUsers],
+                    borderColor: '#3B82F6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4
+                },
+                {
+                    label: 'Twins',
+                    data: [dailyTwins, weeklyTwins, monthlyTwins],
+                    borderColor: '#10B981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4
+                },
+                {
+                    label: 'Chats',
+                    data: [dailyChats, weeklyChats, monthlyChats],
+                    borderColor: '#F59E0B',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    tension: 0.4
+                }
+            ]
+        };
+        
+        console.log('[ADMIN_CHART_GROWTH] Chart data prepared:', chartData);
+        console.log('[ADMIN_CHART_GROWTH] Creating Chart.js line chart...');
+        
+        window.growthTrendsChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        console.log('[ADMIN_CHART_GROWTH] ✅ Chart created successfully');
+        console.log('[ADMIN_CHART_GROWTH] ========== END createGrowthTrendsChart (SUCCESS) ==========');
+    } catch (error) {
+        console.error('[ADMIN_CHART_GROWTH] ========== ERROR in createGrowthTrendsChart ==========');
+        console.error('[ADMIN_CHART_GROWTH] Error object:', error);
+        console.error('[ADMIN_CHART_GROWTH] Error message:', error.message);
+        console.error('[ADMIN_CHART_GROWTH] Error stack:', error.stack);
+        console.log('[ADMIN_CHART_GROWTH] ========== END createGrowthTrendsChart (ERROR) ==========');
+    }
+}
+
+// Add this function after createGrowthTrendsChart
+function createTimeBasedChart(breakdown, period) {
+    try {
+        if (typeof Chart === 'undefined') {
+            console.warn('Chart.js not loaded, retrying...');
+            setTimeout(() => createTimeBasedChart(breakdown, period), 100);
+            return;
+        }
+
+        // Update event breakdown chart with hourly data if available
+        if (breakdown && breakdown.hourly && breakdown.hourly.length > 0) {
+            const canvas = document.getElementById('eventBreakdownChart');
+            if (canvas) {
                 const ctx = canvas.getContext('2d');
                 if (!ctx) {
-                    console.error('Could not get canvas context for eventBreakdownChart');
+                    console.error('Could not get canvas context');
                     return;
                 }
                 
-                // Destroy existing chart if it exists
                 if (window.eventBreakdownChartInstance) {
                     window.eventBreakdownChartInstance.destroy();
                 }
                 
-                // Validate data
-                if (!eventBreakdown || Object.keys(eventBreakdown).length === 0) {
-                    console.warn('No event breakdown data available');
-                    return;
-                }
+                const labels = breakdown.hourly.map(h => `${h.hour}:00`);
+                const values = breakdown.hourly.map(h => Number(h.count) || 0);
                 
                 window.eventBreakdownChartInstance = new Chart(ctx, {
-                    type: 'doughnut',
+                    type: 'bar',
                     data: {
-                        labels: Object.keys(eventBreakdown),
+                        labels: labels,
                         datasets: [{
-                            data: Object.values(eventBreakdown),
-                            backgroundColor: [
-                                '#3B82F6',
-                                '#10B981',
-                                '#F59E0B',
-                                '#EF4444',
-                                '#8B5CF6',
-                                '#06B6D4'
-                            ]
+                            label: `${period.charAt(0).toUpperCase() + period.slice(1)} Activity`,
+                            data: values,
+                            backgroundColor: '#3B82F6',
+                            borderColor: '#2563EB',
+                            borderWidth: 1
                         }]
                     },
                     options: {
@@ -664,66 +940,49 @@ if (activity.recentEvents && activity.recentEvents.length > 0) {
                             legend: {
                                 position: 'bottom'
                             }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
                         }
                     }
                 });
-            } catch (error) {
-                console.error('Error creating event breakdown chart:', error);
             }
         }
-                
-        function createGrowthTrendsChart(metrics) {
-            try {
-                const canvas = document.getElementById('growthTrendsChart');
-                if (!canvas) {
-                    console.error('growthTrendsChart canvas not found');
-                    return;
-                }
-                
+        
+        // Update growth trends chart with daily data if available
+        if (breakdown && breakdown.daily && breakdown.daily.length > 0) {
+            const canvas = document.getElementById('growthTrendsChart');
+            if (canvas) {
                 const ctx = canvas.getContext('2d');
                 if (!ctx) {
-                    console.error('Could not get canvas context for growthTrendsChart');
+                    console.error('Could not get canvas context');
                     return;
                 }
                 
-                // Destroy existing chart if it exists
                 if (window.growthTrendsChartInstance) {
                     window.growthTrendsChartInstance.destroy();
                 }
                 
-                // Validate metrics
-                if (!metrics || !metrics.daily || !metrics.weekly || !metrics.monthly) {
-                    console.warn('Invalid metrics data for growth trends chart');
-                    return;
-                }
+                const labels = breakdown.daily.map(d => {
+                    const date = new Date(d.date);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                });
+                const values = breakdown.daily.map(d => Number(d.count) || 0);
                 
                 window.growthTrendsChartInstance = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: ['Daily', 'Weekly', 'Monthly'],
-                        datasets: [
-                            {
-                                label: 'Users',
-                                data: [metrics.daily.users || 0, metrics.weekly.users || 0, metrics.monthly.users || 0],
-                                borderColor: '#3B82F6',
-                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                tension: 0.4
-                            },
-                            {
-                                label: 'Twins',
-                                data: [metrics.daily.twins || 0, metrics.weekly.twins || 0, metrics.monthly.twins || 0],
-                                borderColor: '#10B981',
-                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                tension: 0.4
-                            },
-                            {
-                                label: 'Chats',
-                                data: [metrics.daily.chats || 0, metrics.weekly.chats || 0, metrics.monthly.chats || 0],
-                                borderColor: '#F59E0B',
-                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                                tension: 0.4
-                            }
-                        ]
+                        labels: labels,
+                        datasets: [{
+                            label: `Events (${period})`,
+                            data: values,
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
                     },
                     options: {
                         responsive: true,
@@ -735,10 +994,12 @@ if (activity.recentEvents && activity.recentEvents.length > 0) {
                         }
                     }
                 });
-            } catch (error) {
-                console.error('Error creating growth trends chart:', error);
             }
         }
+    } catch (error) {
+        console.error('Error creating time-based chart:', error);
+    }
+}
 
         // Global state for current time period
         let currentTimePeriod = 'today';
@@ -746,75 +1007,90 @@ if (activity.recentEvents && activity.recentEvents.length > 0) {
 
         // Time-based analytics loading
         async function loadTimeBasedAnalytics(period) {
-            try {
-                console.log(`Loading ${period} analytics...`);
-                
-                // Update active button
-                document.querySelectorAll('.time-filter-btn').forEach(btn => {
-                    btn.classList.remove('bg-blue-600', 'text-white');
-                    btn.classList.add('bg-gray-100', 'text-gray-700');
-                });
-                
-                // Find the clicked button and update its style
-                const buttons = document.querySelectorAll('.time-filter-btn');
-                buttons.forEach(btn => {
-                    if (btn.textContent.trim().toLowerCase().includes(period.toLowerCase()) || 
-                        (period === 'today' && btn.textContent.trim().toLowerCase().includes('today')) ||
-                        (period === 'week' && btn.textContent.trim().toLowerCase().includes('7 days')) ||
-                        (period === 'month' && btn.textContent.trim().toLowerCase().includes('monthly')) ||
-                        (period === 'all' && btn.textContent.trim().toLowerCase().includes('all time'))) {
-                        btn.classList.remove('bg-gray-100', 'text-gray-700');
-                        btn.classList.add('bg-blue-600', 'text-white');
-                    }
-                });
-                
-                currentTimePeriod = period;
-                
-                let response;
-                if (period === 'all') {
-                    // Load all-time data
-                    response = await fetch('/api/admin/analytics/dashboard');
-                } else {
-                    // Load time-based data
-                    response = await fetch(`/api/admin/analytics/time/${period}`);
-                }
-                
-                const data = await response.json();
-                console.log(`${period} analytics data:`, data);
-                
-                if (data.success) {
-                    currentAnalyticsData = data.data || data.metrics;
-                    
-                    if (period === 'all') {
-                        // Update with all-time data
-                        document.getElementById('totalUsers').textContent = data.metrics.lifetime.users;
-                        document.getElementById('totalTwins').textContent = data.metrics.lifetime.twins;
-                        document.getElementById('totalChats').textContent = data.metrics.lifetime.chats;
-                        document.getElementById('totalMessages').textContent = data.metrics.lifetime.messages;
-                    } else {
-                        // Update with time-based data
-                        document.getElementById('totalUsers').textContent = data.data.summary.users;
-                        document.getElementById('totalTwins').textContent = data.data.summary.twins;
-                        document.getElementById('totalChats').textContent = data.data.summary.chats;
-                        document.getElementById('totalMessages').textContent = data.data.summary.messages;
-                    }
-                    
-                    // Update charts with new data
-                    if (period !== 'all') {
-                        createTimeBasedChart(data.data.breakdown, period);
-                    }
-                    
-                    // Show success message
-                    showNotification(`Loaded ${period} analytics successfully!`, 'success');
-                } else {
-                    showNotification(`Error loading ${period} analytics: ${data.error}`, 'error');
-                }
-            } catch (error) {
-                console.error('Time-based analytics error:', error);
-                showNotification(`Error loading ${period} analytics: ${error.message}`, 'error');
+    try {
+        console.log(`Loading ${period} analytics...`);
+        
+        // Update active button
+        document.querySelectorAll('.time-filter-btn').forEach(btn => {
+            btn.classList.remove('bg-blue-600', 'text-white');
+            btn.classList.add('bg-gray-100', 'text-gray-700');
+        });
+        
+        // Find the clicked button and update its style
+        const buttons = document.querySelectorAll('.time-filter-btn');
+        buttons.forEach(btn => {
+            if (btn.textContent.trim().toLowerCase().includes(period.toLowerCase()) || 
+                (period === 'today' && btn.textContent.trim().toLowerCase().includes('today')) ||
+                (period === 'week' && btn.textContent.trim().toLowerCase().includes('7 days')) ||
+                (period === 'month' && btn.textContent.trim().toLowerCase().includes('monthly')) ||
+                (period === 'all' && btn.textContent.trim().toLowerCase().includes('all time'))) {
+                btn.classList.remove('bg-gray-100', 'text-gray-700');
+                btn.classList.add('bg-blue-600', 'text-white');
             }
+        });
+        
+        currentTimePeriod = period;
+        
+        let response;
+        if (period === 'all') {
+            response = await fetch('/api/admin/analytics/dashboard', {
+                method: 'GET',
+                credentials: 'include', // ✅ Add this
+                headers: { 'Content-Type': 'application/json' }
+            });
+        } else {
+            response = await fetch(`/api/admin/analytics/time/${period}`, {
+                method: 'GET',
+                credentials: 'include', // ✅ Add this
+                headers: { 'Content-Type': 'application/json' }
+            });
         }
         
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`${period} analytics data:`, data);
+        
+        if (data.success) {
+            currentAnalyticsData = data.data || data.metrics;
+            
+            if (period === 'all') {
+                document.getElementById('totalUsers').textContent = data.metrics.lifetime?.users || 0;
+                document.getElementById('totalTwins').textContent = data.metrics.lifetime?.twins || 0;
+                document.getElementById('totalChats').textContent = data.metrics.lifetime?.chats || 0;
+                document.getElementById('totalMessages').textContent = data.metrics.lifetime?.messages || 0;
+                
+                // Recreate charts with all-time data
+                if (data.content?.eventBreakdown) {
+                    createEventBreakdownChart(data.content.eventBreakdown);
+                }
+                if (data.metrics) {
+                    createGrowthTrendsChart(data.metrics);
+                }
+            } else {
+                document.getElementById('totalUsers').textContent = data.data?.summary?.users || 0;
+                document.getElementById('totalTwins').textContent = data.data?.summary?.twins || 0;
+                document.getElementById('totalChats').textContent = data.data?.summary?.chats || 0;
+                document.getElementById('totalMessages').textContent = data.data?.summary?.messages || 0;
+                
+                // Update charts with time-based data
+                if (data.data?.breakdown) {
+                    createTimeBasedChart(data.data.breakdown, period);
+                }
+            }
+            
+            showNotification(`Loaded ${period} analytics successfully!`, 'success');
+        } else {
+            showNotification(`Error loading ${period} analytics: ${data.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Time-based analytics error:', error);
+        showNotification(`Error loading ${period} analytics: ${error.message}`, 'error');
+    }
+}
+
         // Show detailed view for metrics
         function showDetailedView(type) {
             console.log(`=== CLICKING DETAILED VIEW FOR ${type.toUpperCase()} ===`);
@@ -831,6 +1107,106 @@ if (activity.recentEvents && activity.recentEvents.length > 0) {
                 console.log('New window opened successfully');
             }
         }
+
+        function createTimeBasedChart(breakdown, period) {
+    try {
+        // Wait for Chart.js
+        if (typeof Chart === 'undefined') {
+            console.warn('Chart.js not loaded, retrying...');
+            setTimeout(() => createTimeBasedChart(breakdown, period), 100);
+            return;
+        }
+
+        // For time-based charts, we can update existing charts or create new ones
+        // Since we already have eventBreakdownChart and growthTrendsChart,
+        // we can update them with time-based data
+        
+        if (breakdown && breakdown.hourly && breakdown.hourly.length > 0) {
+            // Update event breakdown chart with hourly data
+            const canvas = document.getElementById('eventBreakdownChart');
+            if (canvas && window.eventBreakdownChartInstance) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    window.eventBreakdownChartInstance.destroy();
+                    
+                    const labels = breakdown.hourly.map(h => `${h.hour}:00`);
+                    const values = breakdown.hourly.map(h => Number(h.count) || 0);
+                    
+                    window.eventBreakdownChartInstance = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: `${period} Activity`,
+                                data: values,
+                                backgroundColor: '#3B82F6',
+                                borderColor: '#2563EB',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+        
+        if (breakdown && breakdown.daily && breakdown.daily.length > 0) {
+            // Update growth trends chart with daily data
+            const canvas = document.getElementById('growthTrendsChart');
+            if (canvas && window.growthTrendsChartInstance) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    window.growthTrendsChartInstance.destroy();
+                    
+                    const labels = breakdown.daily.map(d => {
+                        const date = new Date(d.date);
+                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    });
+                    const values = breakdown.daily.map(d => Number(d.count) || 0);
+                    
+                    window.growthTrendsChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: `Events (${period})`,
+                                data: values,
+                                borderColor: '#3B82F6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error creating time-based chart:', error);
+    }
+}
         
         // Load detailed data for specific metric type
         async function loadDetailedData(type, timePeriod = 'today') {

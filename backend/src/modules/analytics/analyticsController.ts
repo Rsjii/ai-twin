@@ -187,6 +187,7 @@ export const createSampleData = async (req: Request, res: Response) => {
 export const getUserAnalytics = async (req: Request, res: Response) => {
   try {
     // ✅ ULTRA-DETAILED LOGGING for analytics API
+    console.log('[BACKEND_ANALYTICS] ========== START getUserAnalytics ==========');
     try {
       logger.info('[ANALYTICS_USER:START]', {
         path: req.path,
@@ -205,8 +206,18 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
           cacheControl: req.headers['cache-control'] || null,
         },
       });
+      console.log('[BACKEND_ANALYTICS] Request details:', {
+        path: req.path,
+        method: req.method,
+        hasUser: !!req.user,
+        hasSession: !!req.session,
+        userEmail: (req.user as any)?.email,
+        userIdFromUser: (req.user as any)?.id || (req.user as any)?.userId,
+        userIdFromSession: (req.session as any)?.userId
+      });
     } catch (logErr) {
       logger.warn('[ANALYTICS_USER] Failed to log START:', logErr);
+      console.error('[BACKEND_ANALYTICS] Logging error:', logErr);
     }
 
     let userId: string | null = null;
@@ -215,25 +226,33 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
     if (req.user) {
       if (req.user.id) {
         userId = req.user.id;
+        console.log('[BACKEND_ANALYTICS] ✅ Got userId from req.user.id:', userId);
       } else if (req.user.userId) {
         userId = req.user.userId;
+        console.log('[BACKEND_ANALYTICS] ✅ Got userId from req.user.userId:', userId);
       }
     }
     // Fallback to session authentication
     else if (req.session && req.session.userId) {
       userId = req.session.userId;
+      console.log('[BACKEND_ANALYTICS] ✅ Got userId from session:', userId);
     }
     
     if (!userId) {
+      console.error('[BACKEND_ANALYTICS] ❌ No userId found - returning 401');
       logger.warn('[ANALYTICS_USER] No userId found - returning 401');
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
+    
+    console.log('[BACKEND_ANALYTICS] ✅ User authenticated, userId:', userId);
 
     // User already authenticated via JWT middleware - skip redundant user check
     // Get user's analytics - ALL QUERIES IN PARALLEL (FAST)
     let userTwins = 0, userChats = 0, userMessages = 0, userInvitesSent = 0, userInvitesReceived = 0, userEvents = 0;
     let userEventBreakdown: Record<string, number> = {};
     let formattedActivity: Array<{description: string, timestamp: Date, metadata: any}> = [];
+    let dailyEventsResult: any | null = null;
+    let topEventTypesResult: any | null = null;
     
     try {
       const [
@@ -245,8 +264,8 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
         eventsResult,
         userEventTypesResult,
         recentActivityResult,
-        dailyEventsResult,
-        topEventTypesResult
+        dailyEventsQueryResult,
+        topEventTypesQueryResult
       ] = await Promise.all([
         db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "userId" = $1', [userId]),
         db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [userId]),
@@ -273,6 +292,10 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
           LIMIT 5
         `, [userId])
       ]);      
+
+       // ✅ FIX: Assign query results to outer scope variables
+       dailyEventsResult = dailyEventsQueryResult;
+       topEventTypesResult = topEventTypesQueryResult;
 
       // Parse all results
       userTwins = parseInt(twinsResult.rows[0].count);
@@ -325,10 +348,12 @@ const engagementData = (() => {
 })();
 
 // Build topContent from topEventTypesResult
-const topContent = topEventTypesResult.rows.map((row: any) => ({
+const topContent = topEventTypesResult
+? topEventTypesResult.rows.map((row: any) => ({
   title: row.type || 'Event',
   views: parseInt(row.count, 10) || 0
-}));
+}))
+: [];
 
     const responseData = {
       success: true,
@@ -355,6 +380,23 @@ const topContent = topEventTypesResult.rows.map((row: any) => ({
     };
 
     // ✅ Log response before sending
+    console.log('[BACKEND_ANALYTICS] Building response data...');
+    console.log('[BACKEND_ANALYTICS] Engagement data:', {
+      hasEngagementData: !!engagementData,
+      labelsCount: engagementData?.labels?.length || 0,
+      valuesCount: engagementData?.values?.length || 0,
+      labelsSample: engagementData?.labels?.slice(0, 3),
+      valuesSample: engagementData?.values?.slice(0, 3)
+    });
+    console.log('[BACKEND_ANALYTICS] Top content:', {
+      count: topContent.length,
+      items: topContent
+    });
+    console.log('[BACKEND_ANALYTICS] Event breakdown:', {
+      keys: Object.keys(userEventBreakdown),
+      values: Object.values(userEventBreakdown)
+    });
+    
     try {
       logger.info('[ANALYTICS_USER:RESPONSE]', {
         userId,
@@ -370,7 +412,7 @@ const topContent = topEventTypesResult.rows.map((row: any) => ({
       logger.warn('[ANALYTICS_USER] Failed to log RESPONSE:', logErr);
     }
 
-    console.log('[ANALYTICS] Final response data:', {
+    console.log('[BACKEND_ANALYTICS] Final response data structure:', {
       success: responseData.success,
       userId: responseData.user.id,
       analytics: {
@@ -382,6 +424,10 @@ const topContent = topEventTypesResult.rows.map((row: any) => ({
         messages: responseData.analytics.messages,
         events: responseData.analytics.events,
         recentActivityCount: responseData.analytics.recentActivity.length,
+        hasEngagementData: !!responseData.analytics.engagementData,
+        engagementDataLabelsCount: responseData.analytics.engagementData?.labels?.length || 0,
+        engagementDataValuesCount: responseData.analytics.engagementData?.values?.length || 0,
+        topContentCount: responseData.analytics.topContent?.length || 0,
       },
       eventBreakdownCount: Object.keys(responseData.eventBreakdown).length,
     });
@@ -392,9 +438,15 @@ const topContent = topEventTypesResult.rows.map((row: any) => ({
       'Pragma': 'no-cache',
       'Expires': '0',
     });
+    console.log('[BACKEND_ANALYTICS] ✅ Sending response with status 200');
+    console.log('[BACKEND_ANALYTICS] ========== END getUserAnalytics (SUCCESS) ==========');
     res.json(responseData);
   } catch (error) {
+    console.error('[BACKEND_ANALYTICS] ========== ERROR in getUserAnalytics ==========');
+    console.error('[BACKEND_ANALYTICS] Error:', error);
+    console.error('[BACKEND_ANALYTICS] Error stack:', error instanceof Error ? error.stack : 'No stack');
     logger.error('Get user analytics error:', error);
+    console.log('[BACKEND_ANALYTICS] ========== END getUserAnalytics (ERROR) ==========');
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };

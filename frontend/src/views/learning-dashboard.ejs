@@ -6,7 +6,7 @@
     <title>Learning Dashboard - AI Twin</title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>
     <script src="/utils/timeUtils.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
@@ -1077,148 +1077,291 @@
     
         // Load learning data
         async function loadLearningData() {
+            console.log('[LEARNING] ========== START loadLearningData ==========');
+            console.log('[LEARNING] Twin ID:', twinId);
+            
             // Show loading for learning events
             const eventsLoading = document.getElementById('learningEventsLoadingState');
             const eventsEmpty = document.getElementById('learningEventsEmptyState');
             const eventsError = document.getElementById('learningEventsErrorState');
             const eventsContainer = document.getElementById('learningEvents');
             
+            console.log('[LEARNING] DOM Elements check:', {
+                eventsLoading: !!eventsLoading,
+                eventsEmpty: !!eventsEmpty,
+                eventsError: !!eventsError,
+                eventsContainer: !!eventsContainer
+            });
+            
             if (eventsLoading) eventsLoading.classList.remove('hidden');
             if (eventsEmpty) eventsEmpty.classList.add('hidden');
             if (eventsError) eventsError.classList.add('hidden');
             
             try {
-                const response = await fetch(`/api/twin/${twinId}/learning-data`);
+                console.log('[LEARNING] Fetching from:', `/api/twin/${twinId}/learning-data`);
+                const response = await fetch(`/api/twin/${twinId}/learning-data`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('[LEARNING] Response status:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok,
+                    headers: Object.fromEntries(response.headers.entries())
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('[LEARNING] ❌ API error:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        errorText: errorText
+                    });
+                    throw new Error(`Learning data API failed: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                console.log('[LEARNING] Full response data:', JSON.stringify(data, null, 2));
+                console.log('[LEARNING] Response structure check:', {
+                    hasSuccess: 'success' in data,
+                    successValue: data.success,
+                    hasLearning: 'learning' in data,
+                    learningKeys: data.learning ? Object.keys(data.learning) : null,
+                    totalInteractions: data.learning?.totalInteractions,
+                    learningScore: data.learning?.learningScore,
+                    styleAccuracy: data.learning?.styleAccuracy,
+                    hasEvents: Array.isArray(data.learning?.events),
+                    eventsLength: data.learning?.events?.length || 0
+                });
                 
                 if (data.success) {
+                    console.log('[LEARNING] ✅ Success=true, processing data...');
                     // Hide loading
                     if (eventsLoading) eventsLoading.classList.add('hidden');
                     if (eventsError) eventsError.classList.add('hidden');
                     
+                    // ✅ FIX: Check if learning data exists
+                    if (!data.learning) {
+                        console.warn('[LEARNING] ⚠️ No learning data in response, using defaults');
+                        data.learning = {
+                            totalInteractions: 0,
+                            learningScore: 0,
+                            styleAccuracy: 0,
+                            events: []
+                        };
+                    }
+                    
+                    console.log('[LEARNING] Calling updateLearningProgress with:', data.learning);
                     updateLearningProgress(data.learning);
                     
                     // Show empty if no events
-                    if (!data.learning || !data.learning.events || data.learning.events.length === 0) {
+                    if (!data.learning.events || data.learning.events.length === 0) {
+                        console.log('[LEARNING] ⚠️ No events found, showing empty state');
                         if (eventsEmpty) eventsEmpty.classList.remove('hidden');
                     } else {
+                        console.log('[LEARNING] ✅ Events found:', data.learning.events.length);
                         if (eventsEmpty) eventsEmpty.classList.add('hidden');
                     }
+                    console.log('[LEARNING] ========== END loadLearningData (SUCCESS) ==========');
                 } else {
+                    console.error('[LEARNING] ❌ Success=false in response');
                     // Hide loading, show error
                     if (eventsLoading) eventsLoading.classList.add('hidden');
                     if (eventsEmpty) eventsEmpty.classList.add('hidden');
                     if (eventsError) eventsError.classList.remove('hidden');
                 }
             } catch (error) {
-                console.error('Error loading learning data:', error);
+                console.error('[LEARNING] ========== ERROR in loadLearningData ==========');
+                console.error('[LEARNING] Error object:', error);
+                console.error('[LEARNING] Error message:', error.message);
+                console.error('[LEARNING] Error stack:', error.stack);
                 // Hide loading, show error
                 if (eventsLoading) eventsLoading.classList.add('hidden');
                 if (eventsEmpty) eventsEmpty.classList.add('hidden');
                 if (eventsError) eventsError.classList.remove('hidden');
+                console.log('[LEARNING] ========== END loadLearningData (ERROR) ==========');
             }
         }
     
         // Chart instance
         let styleChart = null;
         
-        // Initialize chart
         function initializeChart(learningData) {
-            try {
-                const ctx = document.getElementById('styleChart');
-                if (!ctx) {
-                    console.error('styleChart canvas not found');
-                    return;
-                }
-                
-                // Wait for Chart.js if not loaded
-                if (typeof Chart === 'undefined') {
-                    console.warn('Chart.js not loaded yet, retrying...');
-                    setTimeout(() => initializeChart(learningData), 100);
-                    return;
-                }
-                
-                // Destroy existing chart if it exists
-                if (styleChart) {
-                    styleChart.destroy();
-                }
-                
-                // Validate learningData
-                if (!learningData) {
-                    console.warn('No learning data available for chart');
-                    return;
-                }
-                
-                // Create new chart
-                styleChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                        datasets: [{
-                            label: 'Learning Score',
-                            data: [
-                                Math.max(0, (learningData.learningScore || 0) - 20),
-                                Math.max(0, (learningData.learningScore || 0) - 10),
-                                learningData.learningScore || 0,
-                                Math.min(100, (learningData.learningScore || 0) + 5)
-                            ],
-                            borderColor: 'rgb(99, 102, 241)',
-                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        }, {
-                            label: 'Style Accuracy',
-                            data: [
-                                Math.max(0, (learningData.styleAccuracy || 0) - 15),
-                                Math.max(0, (learningData.styleAccuracy || 0) - 5),
-                                learningData.styleAccuracy || 0,
-                                Math.min(100, (learningData.styleAccuracy || 0) + 3)
-                            ],
-                            borderColor: 'rgb(139, 92, 246)',
-                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top'
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100
-                            }
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error('Error initializing learning chart:', error);
-            }
-        }        
+    console.log('[LEARNING_CHART] ========== START initializeChart ==========');
+    console.log('[LEARNING_CHART] Input data:', learningData);
+    
+    try {
+        // Wait for Chart.js
+        if (typeof Chart === 'undefined') {
+            console.warn('[LEARNING_CHART] ⚠️ Chart.js not loaded yet, retrying...');
+            setTimeout(() => initializeChart(learningData), 100);
+            return;
+        }
+        console.log('[LEARNING_CHART] ✅ Chart.js is loaded');
 
-        // Update learning progress display
-        function updateLearningProgress(learning) {
-            document.getElementById('totalInteractions').textContent = learning.totalInteractions || 0;
-            document.getElementById('learningScore').textContent = (learning.learningScore || 0) + '%';
-            document.getElementById('styleAccuracy').textContent = (learning.styleAccuracy || 0) + '%';
-            
-            // Initialize/update chart
-            initializeChart(learning);
-            
-            const eventsContainer = document.getElementById('learningEvents');
-            const eventsLoading = document.getElementById('learningEventsLoadingState');
-            const eventsEmpty = document.getElementById('learningEventsEmptyState');
-            const eventsError = document.getElementById('learningEventsErrorState');
-            
-            // Hide all states first
-            if (eventsLoading) eventsLoading.classList.add('hidden');
-            if (eventsError) eventsError.classList.add('hidden');
+        const canvas = document.getElementById('styleChart');
+        if (!canvas) {
+            console.error('[LEARNING_CHART] ❌ styleChart canvas not found');
+            return;
+        }
+        console.log('[LEARNING_CHART] ✅ Canvas element found');
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.error('[LEARNING_CHART] ❌ Could not get canvas context');
+            return;
+        }
+        console.log('[LEARNING_CHART] ✅ Canvas context obtained');
+        
+        // Destroy existing chart if it exists
+        if (styleChart) {
+            console.log('[LEARNING_CHART] Destroying existing chart instance');
+            styleChart.destroy();
+            styleChart = null;
+        }
+        
+        // Validate learningData
+        if (!learningData) {
+            console.warn('[LEARNING_CHART] ⚠️ No learning data available for chart');
+            return;
+        }
+        
+        const learningScore = Number(learningData.learningScore) || 0;
+        const styleAccuracy = Number(learningData.styleAccuracy) || 0;
+        
+        console.log('[LEARNING_CHART] Processed values:', {
+            learningScore,
+            styleAccuracy,
+            learningScoreType: typeof learningScore,
+            styleAccuracyType: typeof styleAccuracy
+        });
+        
+        // Create new chart
+        const chartData = {
+            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+            datasets: [{
+                label: 'Learning Score',
+                data: [
+                    Math.max(0, learningScore - 20),
+                    Math.max(0, learningScore - 10),
+                    learningScore,
+                    Math.min(100, learningScore + 5)
+                ],
+                borderColor: 'rgb(99, 102, 241)',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Style Accuracy',
+                data: [
+                    Math.max(0, styleAccuracy - 15),
+                    Math.max(0, styleAccuracy - 5),
+                    styleAccuracy,
+                    Math.min(100, styleAccuracy + 3)
+                ],
+                borderColor: 'rgb(139, 92, 246)',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        };
+        
+        console.log('[LEARNING_CHART] Chart data prepared:', {
+            labels: chartData.labels,
+            datasetsCount: chartData.datasets.length,
+            learningScoreData: chartData.datasets[0].data,
+            styleAccuracyData: chartData.datasets[1].data
+        });
+        
+        console.log('[LEARNING_CHART] Creating Chart.js instance...');
+        styleChart = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+        console.log('[LEARNING_CHART] ✅ Chart created successfully');
+        console.log('[LEARNING_CHART] ========== END initializeChart (SUCCESS) ==========');
+    } catch (error) {
+        console.error('[LEARNING_CHART] ========== ERROR in initializeChart ==========');
+        console.error('[LEARNING_CHART] Error object:', error);
+        console.error('[LEARNING_CHART] Error message:', error.message);
+        console.error('[LEARNING_CHART] Error stack:', error.stack);
+        console.log('[LEARNING_CHART] ========== END initializeChart (ERROR) ==========');
+    }
+}
+
+// Update learning progress display
+function updateLearningProgress(learning) {
+    console.log('[LEARNING_PROGRESS] ========== START updateLearningProgress ==========');
+    console.log('[LEARNING_PROGRESS] Input data:', learning);
+    
+    if (!learning) {
+        console.warn('[LEARNING_PROGRESS] ⚠️ No learning data provided');
+        return;
+    }
+    
+    const totalInteractionsEl = document.getElementById('totalInteractions');
+    const learningScoreEl = document.getElementById('learningScore');
+    const styleAccuracyEl = document.getElementById('styleAccuracy');
+    
+    console.log('[LEARNING_PROGRESS] DOM Elements check:', {
+        totalInteractions: !!totalInteractionsEl,
+        learningScore: !!learningScoreEl,
+        styleAccuracy: !!styleAccuracyEl
+    });
+    
+    // ✅ FIX: Use safe navigation
+    const totalInteractions = learning.totalInteractions || 0;
+    const learningScore = learning.learningScore || 0;
+    const styleAccuracy = learning.styleAccuracy || 0;
+    
+    console.log('[LEARNING_PROGRESS] Values to set:', {
+        totalInteractions,
+        learningScore,
+        styleAccuracy
+    });
+    
+    if (totalInteractionsEl) totalInteractionsEl.textContent = totalInteractions;
+    if (learningScoreEl) learningScoreEl.textContent = learningScore + '%';
+    if (styleAccuracyEl) styleAccuracyEl.textContent = styleAccuracy + '%';
+    
+    console.log('[LEARNING_PROGRESS] ✅ Progress values updated');
+    
+    // ✅ Initialize chart AFTER DOM is ready and data is available
+    // Wait a bit to ensure Chart.js is loaded
+    console.log('[LEARNING_PROGRESS] Scheduling chart initialization in 300ms...');
+    setTimeout(() => {
+        console.log('[LEARNING_PROGRESS] Calling initializeChart...');
+        initializeChart(learning);
+    }, 300);
+    
+    const eventsContainer = document.getElementById('learningEvents');
+    const eventsLoading = document.getElementById('learningEventsLoadingState');
+    const eventsEmpty = document.getElementById('learningEventsEmptyState');
+    const eventsError = document.getElementById('learningEventsErrorState');
+    
+    // Hide all states first
+    if (eventsLoading) eventsLoading.classList.add('hidden');
+    if (eventsError) eventsError.classList.add('hidden');           
             
             if (learning.events && learning.events.length > 0) {
                 // Hide empty state, show events
@@ -1243,26 +1386,28 @@
                 
                 // ✅ Format timestamps client-side after rendering
                 if (window.TimeUtils) {
-                    eventsContainer.querySelectorAll('.timestamp-display').forEach(el => {
-                        const timestamp = el.dataset.timestamp;
-                        const format = el.dataset.format || 'context';
-                        if (timestamp) {
-                            try {
-                                let displayTime, fullTime;
-                                if (format === 'context') {
-                                    displayTime = window.TimeUtils.formatTimeWithContext(timestamp);
-                                    fullTime = window.TimeUtils.formatFullDateTime(timestamp);
-                                } else {
-                                    displayTime = window.TimeUtils.formatSmartTime(timestamp);
-                                    fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                    setTimeout(() => {
+                        eventsContainer.querySelectorAll('.timestamp-display').forEach(el => {
+                            const timestamp = el.dataset.timestamp;
+                            const format = el.dataset.format || 'context';
+                            if (timestamp) {
+                                try {
+                                    let displayTime, fullTime;
+                                    if (format === 'context') {
+                                        displayTime = window.TimeUtils.formatTimeWithContext(timestamp);
+                                        fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                                    } else {
+                                        displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                                        fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                                    }
+                                    el.textContent = displayTime;
+                                    el.title = fullTime;
+                                } catch (e) {
+                                    console.error('Error formatting timestamp:', e);
                                 }
-                                el.textContent = displayTime;
-                                el.title = fullTime;
-                            } catch (e) {
-                                console.error('Error formatting timestamp:', e);
                             }
-                        }
-                    });
+                        });
+                    }, 100);
                 }
             } else {
                 // ✅ Show empty state and a clear message when there is no data

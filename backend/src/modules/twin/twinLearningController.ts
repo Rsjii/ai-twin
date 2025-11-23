@@ -34,11 +34,20 @@ export const regeneratePrompt = async (req: any, res: Response) => {
  */
 export const getLearningData = async (req: any, res: Response) => {
   try {
+    console.log('[BACKEND_LEARNING] ========== START getLearningData ==========');
     const { id: twinId } = req.params;
     const userId = req.user.id;
     
+    console.log('[BACKEND_LEARNING] Request params:', {
+      twinId,
+      userId,
+      hasUser: !!req.user
+    });
+    
     // Verify ownership
-   await verifyTwinOwnership(twinId, userId);
+    console.log('[BACKEND_LEARNING] Verifying twin ownership...');
+    await verifyTwinOwnership(twinId, userId);
+    console.log('[BACKEND_LEARNING] ✅ Ownership verified');
     
     // Real learning data from database
     const learningData = {
@@ -49,6 +58,7 @@ export const getLearningData = async (req: any, res: Response) => {
     };
 
     try {
+      console.log('[BACKEND_LEARNING] Executing analytics query...');
       // Get real analytics from database
       const analyticsResult = await db.query(`
         SELECT 
@@ -62,9 +72,22 @@ export const getLearningData = async (req: any, res: Response) => {
         WHERE c."twinId" = $1
       `, [twinId]);
 
+      console.log('[BACKEND_LEARNING] Analytics query result:', {
+        hasResult: !!analyticsResult,
+        rowsCount: analyticsResult?.rows?.length || 0,
+        firstRow: analyticsResult?.rows?.[0]
+      });
+
       if (analyticsResult && analyticsResult.rows.length > 0) {
         const analytics = analyticsResult.rows[0];
+        console.log('[BACKEND_LEARNING] Analytics data:', {
+          total_chats: analytics.total_chats,
+          total_messages: analytics.total_messages,
+          positive_feedback: analytics.positive_feedback,
+          negative_feedback: analytics.negative_feedback
+        });
         
+        console.log('[BACKEND_LEARNING] Executing events query...');
         // Get recent learning events
         const eventsResult = await db.query(`
           SELECT 
@@ -76,27 +99,49 @@ export const getLearningData = async (req: any, res: Response) => {
           LIMIT 5
         `, [twinId]);
 
+        console.log('[BACKEND_LEARNING] Events query result:', {
+          hasResult: !!eventsResult,
+          rowsCount: eventsResult?.rows?.length || 0
+        });
+
         learningData.totalInteractions = parseInt(analytics.total_messages) || 0;
         learningData.learningScore = analytics.total_messages > 0 ? 
           Math.round((parseInt(analytics.positive_feedback) / parseInt(analytics.total_messages)) * 100) : 0;
         learningData.styleAccuracy = analytics.total_messages > 0 ? 
           Math.round((parseInt(analytics.positive_feedback) / parseInt(analytics.total_messages)) * 100) : 0;
         
+        console.log('[BACKEND_LEARNING] Calculated learning data:', {
+          totalInteractions: learningData.totalInteractions,
+          learningScore: learningData.learningScore,
+          styleAccuracy: learningData.styleAccuracy
+        });
+        
         if (eventsResult && eventsResult.rows) {
           learningData.events = eventsResult.rows.map((event: any) => ({
             description: event.description,
             timestamp: event.timestamp
           }));
+          console.log('[BACKEND_LEARNING] Events mapped:', learningData.events.length, 'events');
         }
+      } else {
+        console.warn('[BACKEND_LEARNING] ⚠️ No analytics result, using default values');
       }
     } catch (error) {
+      console.error('[BACKEND_LEARNING] ❌ Error loading learning data:', error);
       logger.error('Error loading learning data:', error);
       // Keep default values if error occurs
     }
 
+    console.log('[BACKEND_LEARNING] Final learning data:', learningData);
+    console.log('[BACKEND_LEARNING] ✅ Sending response with status 200');
+    console.log('[BACKEND_LEARNING] ========== END getLearningData (SUCCESS) ==========');
     res.json({ success: true, learning: learningData });
   } catch (error) {
+    console.error('[BACKEND_LEARNING] ========== ERROR in getLearningData ==========');
+    console.error('[BACKEND_LEARNING] Error:', error);
+    console.error('[BACKEND_LEARNING] Error stack:', error instanceof Error ? error.stack : 'No stack');
     logger.error('Learning data API error:', error);
+    console.log('[BACKEND_LEARNING] ========== END getLearningData (ERROR) ==========');
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
