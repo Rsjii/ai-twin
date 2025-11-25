@@ -4,6 +4,7 @@ import { logger } from '../config/logger';
 import { AppError, createError, ErrorCodes } from '../utils/errors';
 import { userQueries, twinQueries } from '../config/database';
 import { handleControllerError } from '../utils/errorHandler';
+import { detokenizeId } from '../utils/idTokenization';
 
 /**
  * My Twins page - Redirects to twin management page
@@ -34,7 +35,13 @@ export function getTwinCreate(req: any, res: Response) {
  */
 export async function getTwinAiEdit(req: any, res: Response) {
   try {
-    const { id: twinId } = req.params;
+    const { twinToken } = req.params;
+    //Phase 3: Detokenize twinToken
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const userId = req.user?.id;
     
     if (!userId) {
@@ -94,7 +101,13 @@ export async function getTwinAiEdit(req: any, res: Response) {
  */
 export async function getTwinStyleCustomize(req: any, res: Response) {
   try {
-    const { id: twinId } = req.params;
+    const { twinToken } = req.params;
+    //Phase 3: Detokenize twinToken
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const userId = req.user?.id;
     
     if (!userId) {
@@ -154,7 +167,13 @@ export async function getTwinStyleCustomize(req: any, res: Response) {
  */
 export async function getTwinLearningDashboard(req: any, res: Response) {
   try {
-    const { id: twinId } = req.params;
+    const { twinToken } = req.params;
+    //Phase 3: Detokenize twinToken
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const userId = req.user?.id;
     
     if (!userId) {

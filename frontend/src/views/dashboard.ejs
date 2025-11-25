@@ -676,7 +676,7 @@
             <!-- Total Chats Card -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all duration-300 cursor-pointer" 
      id="topChatsCard"
-     <% if (twin) { %>data-twin-id="<%= twin.id %>" data-list-type="chatters"<% } %>>                
+     <% if (twin) { %>data-twin-id="<%= twin.publicId || twinPublicId %>" data-list-type="chatters"<% } %>>                
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Chats</p>
@@ -693,7 +693,7 @@
             <!-- Total Likes Card -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] hover:bg-red-50/50 dark:hover:bg-red-900/20 transition-all duration-300 cursor-pointer" 
      id="topLikesCard"
-     <% if (twin) { %>data-twin-id="<%= twin.id %>" data-list-type="likers"<% } %>>                
+     <% if (twin) { %>data-twin-id="<%= twin.publicId || twinPublicId %>" data-list-type="likers"<% } %>>                
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Likes</p>
@@ -710,7 +710,7 @@
             <!-- Total Followers Card -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] hover:bg-green-50/50 dark:hover:bg-green-900/20 transition-all duration-300 cursor-pointer" 
             id="topFollowersCard"
-            <% if (twin) { %>data-twin-id="<%= twin.id %>" data-list-type="followers"<% } %>>                
+            <% if (twin) { %>data-twin-id="<%= twin.publicId || twinPublicId %>" data-list-type="followers"<% } %>>                
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Followers</p>
@@ -842,7 +842,7 @@
                     </a>
                     
                     <!-- Learning Dashboard -->
-                    <a href="/twin/<%= twin.id %>/learning-dashboard" class="flex items-center justify-center space-x-2 px-4 py-3 bg-white/80 dark:bg-gray-700/80 backdrop-blur-xl text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 hover:text-white dark:hover:text-white hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium border border-white/20 dark:border-gray-600 group">
+                    <a href="/twin/<%= twin.publicId || twinPublicId %>/learning-dashboard" class="flex items-center justify-center space-x-2 px-4 py-3 bg-white/80 dark:bg-gray-700/80 backdrop-blur-xl text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 hover:text-white dark:hover:text-white hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium border border-white/20 dark:border-gray-600 group">
                         <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
@@ -1015,7 +1015,7 @@
             <div id="chatsList" class="space-y-3">
                 <% if (recentActivity && recentActivity.length > 0) { %>
                     <% recentActivity.forEach(chat => { %>
-                        <a href="/chat-enhanced?chatId=<%= chat.id %>" class="block p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <a href="/chat-enhanced" class="block p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">                           
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="font-medium text-gray-900 dark:text-white"><%= chat.title || 'Untitled Chat' %></p>
@@ -1124,7 +1124,7 @@
     function createTwinCard(twin) {
         const card = document.createElement('div');
         card.className = 'twin-card-discover min-w-[280px] bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-md dark:shadow-gray-900 p-6 border border-white/30 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer flex-shrink-0';
-        card.setAttribute('data-twin-id', twin.id);
+        card.setAttribute('data-twin-id', twin.publicId || twinPublicId);
         
         // Avatar
         const avatarInitial = (twin.publicHandle || 'T').charAt(0).toUpperCase();
@@ -1151,7 +1151,7 @@
                 <span>👥 ${twin.followCount || 0}</span>
             </div>
             
-            <button class="chat-now-btn w-full px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm" data-twin-id="${twin.id}">
+            <button class="chat-now-btn w-full px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm" data-twin-id="${twin.publicId || twinPublicId}">
                 💬 Chat Now
             </button>            
         `;
@@ -1218,8 +1218,8 @@ async function loadPublicChatInteractions() {
         // Debug: Log each chat's structure
         data.chats.forEach((chat, index) => {
             console.log(`🔍 Chat ${index}:`, {
-                twinId: chat.twin?.id,
-                latestChatId: chat.latestChat?.id,
+                twinId: chat.twin?.publicId,
+                latestChatId: chat.latestChat?.publicId || chat.latestChat?.id,
                 latestChatTitle: chat.latestChat?.title,
                 hasLatestChat: !!chat.latestChat,
                 fullLatestChat: chat.latestChat
@@ -1296,8 +1296,8 @@ function renderRecentInteractions(chats) {
             : 'Continue conversation...';
         
         // Store chatId and twinId for click handlers
-        const chatId = latestChat?.id || '';
-        const twinId = twin.id;
+        const chatId = latestChat?.publicId || latestChat?.id || '';
+        const twinId = twin.publicId || twinPublicId;
         
         card.innerHTML = `
             <div class="flex items-center gap-4 mb-3">
@@ -1448,7 +1448,7 @@ function renderRecentInteractions(chats) {
                 } else {
                     twinsList.innerHTML = result.twins.map(twin => 
                         '<div class="border rounded-lg p-3">' +
-                        '<p class="font-medium">Twin #' + twin.id.slice(-6) + '</p>' +
+                        '<p class="font-medium">Twin #' + twin.publicId.slice(-6) + '</p>' +
                         '</div>'
                     ).join('');
                 }
@@ -1596,10 +1596,10 @@ function displayPublicTwinStatus(twin) {
             '<a href="/discover" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
             'Discover Twins' +
             '</a>' +
-            '<a href="/twin/' + twin.id + '/ai-edit" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
+            '<a href="/twin/' + twin.publicId + '/ai-edit" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
             'Edit Twin Style' +
             '</a>' +
-            '<a href="/twin/' + twin.id + '/style-customize" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
+            '<a href="/twin/' + twin.publicId + '/style-customize" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
             'Style Sandbox' +
             '</a>' +
             '<a href="/analytics" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
@@ -2119,7 +2119,7 @@ setTimeout(() => {
         async function loadAnalytics() {
             try {
                 <% if (hasTwins && twinId) { %>
-                const twinId = '<%= twinId %>';
+                const twinId = '<%= twinPublicId %>';
                 
                 // Get memory count
                 try {

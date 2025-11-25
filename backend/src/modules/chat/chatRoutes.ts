@@ -17,19 +17,19 @@ router.post('/start', sanitizeInput, validateCSRF, startChat);
 router.post('/continue', sanitizeInput, validateCSRF, continueChat);
 router.get('/history', getChatHistory);
 router.get('/', getUserChats);
-router.get('/:id', getChat);
-router.get('/:id/messages', getChatMessages);
-router.post('/:id/draft', sanitizeInput, validateCSRF, draftGenerationRateLimit, generateDraft);
-router.post('/:id/send', sanitizeInput, validateCSRF, sendMessage);
-router.post('/:id/message', sanitizeInput, handleUserMessage);
+router.get('/:chatToken', getChat);
+router.get('/:chatToken/messages', getChatMessages);
+router.post('/:chatToken/draft', sanitizeInput, validateCSRF, draftGenerationRateLimit, generateDraft);
+router.post('/:chatToken/send', sanitizeInput, validateCSRF, sendMessage);
+router.post('/:chatToken/message', sanitizeInput, handleUserMessage);
 
 // Delete chat endpoint
-router.delete('/:id', sanitizeInput, validateCSRF, deleteChat);
+router.delete('/:chatToken', sanitizeInput, validateCSRF, deleteChat);
 
 // Feedback endpoints
-router.post('/:id/feedback', submitResponseFeedback);
-router.post('/:chatId/feedback', submitChatFeedback);
-router.post('/:chatId/regenerate', regenerateResponse);
+router.post('/:chatToken/feedback', submitResponseFeedback);
+router.post('/:chatToken/feedback', submitChatFeedback);
+router.post('/:chatToken/regenerate', regenerateResponse);
 router.get('/twin/:twinId/feedback-stats', getFeedbackStats);
 
 export default router;

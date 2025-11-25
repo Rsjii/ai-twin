@@ -3,14 +3,16 @@ import { db, twinLikeQueries, twinFollowQueries } from '../../config/database';
 import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
+import { detokenizeId, tokenizeId } from '../../utils/idTokenization';
+import { createError, ErrorCodes } from '../../utils/errors';
 
 // Validation schemas
 const likeTwinSchema = z.object({
-  twinId: z.string().min(1, 'Twin ID is required')
+  twinToken: z.string().min(1, 'Twin token is required')
 });
 
 const followTwinSchema = z.object({
-  twinId: z.string().min(1, 'Twin ID is required')
+  twinToken: z.string().min(1, 'Twin token is required')
 });
 
 // Like a twin
@@ -20,7 +22,14 @@ export const likeTwin = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const { twinId } = likeTwinSchema.parse(req.body);
+    const { twinToken } = likeTwinSchema.parse(req.body);
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
@@ -116,7 +125,14 @@ export const unlikeTwin = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const { twinId } = likeTwinSchema.parse(req.body);
+    const { twinToken } = likeTwinSchema.parse(req.body);
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
 
     // ✅ PHASE 2: Check if twin exists and likes are allowed (for consistency)
     const twinResult = await db.query(`
@@ -187,7 +203,14 @@ export const followTwin = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const { twinId } = followTwinSchema.parse(req.body);
+    const { twinToken } = followTwinSchema.parse(req.body);
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
@@ -283,7 +306,14 @@ export const unfollowTwin = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const { twinId } = followTwinSchema.parse(req.body);
+    const { twinToken } = followTwinSchema.parse(req.body);
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
 
     // ✅ PHASE 2: Check if twin exists and follows are allowed (for consistency)
     const twinResult = await db.query(`
@@ -350,11 +380,14 @@ export const unfollowTwin = async (req: Request, res: Response) => {
 // Get twin engagement stats
 export const getTwinStats = async (req: Request, res: Response) => {
   try {
-    const { twinId } = req.params;
+    const { twinToken } = req.params;
 
-    if (!twinId) {
-      return res.status(400).json({ error: 'Twin ID is required' });
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
     }
+    const twinId = decoded.id;
 
     // Get twin stats
     const twinResult = await db.query(`
@@ -417,10 +450,21 @@ export const getUserLikedTwins = async (req: Request, res: Response) => {
       ORDER BY tl."createdAt" DESC
     `, [req.user.id]);
 
-    res.json({
-      success: true,
-      twins: likedTwins.rows
-    });
+// ✅ FIX:
+res.json({
+  success: true,
+  twins: likedTwins.rows.map(twin => ({
+    publicId: tokenizeId(twin.id, 'twin'),  // Tokenize twin ID
+    publicHandle: twin.publicHandle,
+    bio: twin.bio,
+    profileImage: twin.profileImage,
+    likeCount: twin.likeCount,
+    followCount: twin.followCount,
+    chatCount: twin.chatCount,
+    userHandle: twin.userHandle,
+    userName: twin.userName
+  }))
+});    
 
   } catch (error) {
     logger.error('Get user liked twins error:', error);
@@ -445,10 +489,21 @@ export const getUserFollowedTwins = async (req: Request, res: Response) => {
       ORDER BY tf."createdAt" DESC
     `, [req.user.id]);
 
-    res.json({
-      success: true,
-      twins: followedTwins.rows
-    });
+// ✅ FIX:
+res.json({
+  success: true,
+  twins: followedTwins.rows.map(twin => ({
+    publicId: tokenizeId(twin.id, 'twin'),  // Tokenize twin ID
+    publicHandle: twin.publicHandle,
+    bio: twin.bio,
+    profileImage: twin.profileImage,
+    likeCount: twin.likeCount,
+    followCount: twin.followCount,
+    chatCount: twin.chatCount,
+    userHandle: twin.userHandle,
+    userName: twin.userName
+  }))
+});    
 
   } catch (error) {
     logger.error('Get user followed twins error:', error);
@@ -463,7 +518,14 @@ export const toggleLike = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const { twinId } = likeTwinSchema.parse(req.body);
+    const { twinToken } = likeTwinSchema.parse(req.body);
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
@@ -556,7 +618,14 @@ export const toggleFollow = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const { twinId } = followTwinSchema.parse(req.body);
+    const { twinToken } = followTwinSchema.parse(req.body);
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
@@ -648,7 +717,14 @@ export const toggleFollow = async (req: Request, res: Response) => {
  */
 export const getTwinLikers = async (req: Request, res: Response) => {
   try {
-    const { twinId } = req.params;
+    const { twinToken } = req.params;
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
 
     // Verify twin exists and is public
     const twinResult = await db.query(
@@ -679,7 +755,7 @@ export const getTwinLikers = async (req: Request, res: Response) => {
     res.json({
       success: true,
       likers: likersResult.rows.map(row => ({
-        id: row.id,
+        publicId: tokenizeId(row.id, 'user'),
         name: row.name,
         handle: row.handle,
         likedAt: row.likedAt
@@ -699,7 +775,14 @@ export const getTwinLikers = async (req: Request, res: Response) => {
  */
 export const getTwinFollowers = async (req: Request, res: Response) => {
   try {
-    const { twinId } = req.params;
+    const { twinToken } = req.params;
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
 
     // Verify twin exists
     const twinResult = await db.query(
@@ -729,7 +812,7 @@ export const getTwinFollowers = async (req: Request, res: Response) => {
     res.json({
       success: true,
       followers: followersResult.rows.map(row => ({
-        id: row.id,
+        publicId: tokenizeId(row.id, 'user'),
         name: row.name,
         handle: row.handle,
         followedAt: row.followedAt
@@ -748,8 +831,15 @@ export const getTwinFollowers = async (req: Request, res: Response) => {
  */
 export const getTwinChatters = async (req: Request, res: Response) => {
   try {
-    const { twinId } = req.params;
+    const { twinToken } = req.params;
     
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
+
     // Verify twin exists and user owns it
     const twinResult = await db.query(
       'SELECT id, "userId" FROM "Twin" WHERE id = $1',
@@ -781,7 +871,7 @@ export const getTwinChatters = async (req: Request, res: Response) => {
     res.json({
       success: true,
       chatters: chattersResult.rows.map(row => ({
-        id: row.id,
+        publicId: tokenizeId(row.id, 'user'),
         name: row.name,
         handle: row.handle,
         profileImage: row.profileImage,

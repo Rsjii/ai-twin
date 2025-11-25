@@ -3,6 +3,7 @@ import { twinQueries, userQueries } from '../config/database';
 import { logger } from '../config/logger';
 import { fastQuery } from '../utils/dbUtils';
 import { handleControllerError } from '../utils/errorHandler';
+import { tokenizeId } from '../utils/idTokenization';
 
 /**
  * Twin Management Page - Complete twin dashboard
@@ -24,6 +25,9 @@ export async function getTwinManage(req: any, res: Response) {
     }
 
     const twinId = twin.id;
+
+    //Phase 3: Tokenize twinId
+    const twinPublicId = tokenizeId(twin.id, 'twin');
     
     // Fetch twin analytics - using CORRECT table names that exist
     const analyticsResult = await fastQuery(`
@@ -129,6 +133,7 @@ export async function getTwinManage(req: any, res: Response) {
       user: user,
       twin: twin,
       twinId: twinId,
+      twinPublicId: twinPublicId,
       stats: stats,
       publicTwin: publicTwin,
       recentChats: recentChats,

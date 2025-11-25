@@ -4,6 +4,7 @@ import { logger } from '../../config/logger';
 import { z } from 'zod';
 import { AppError, createError } from '../../utils/errors';
 import { handleControllerError } from '../../utils/errorHandler';
+import { tokenizeId, sanitizeTwin } from '../../utils/idTokenization';
 
 // Validation schemas
 const searchSchema = z.object({
@@ -70,14 +71,23 @@ function buildBlockNonLoggedUsersFilter(hasUser: boolean): string {
 // Add after line 60, before getTrendingTwins
 async function enrichTwinsWithUserInteraction(twins: any[], userId?: string) {
   if (!userId || twins.length === 0) {
-    return twins.map(twin => ({ ...twin, hasLiked: false, hasFollowed: false }));
-  }
+    return twins.map(twin => ({ 
+      ...twin, 
+      hasLiked: false, 
+      hasFollowed: false,
+      publicId: tokenizeId(twin.id, 'twin') // ✅ PHASE 5: Add publicId
+    }));
+  }  
 
+  
   const twinIds = twins.map(t => t.id);
-  if (twinIds.length === 0) return twins;
+  if (twinIds.length === 0) return twins.map(twin => ({
+    ...twin,
+    publicId: tokenizeId(twin.id, 'twin') // ✅ PHASE 5: Add publicId
+  }));
 
   // Get user's likes and follows for all twins in one query
-  const [likes, follows] = await Promise.all([
+  const [likes, follows, userTwins] = await Promise.all([
     db.query(`
       SELECT "twinId" FROM "TwinLike" 
       WHERE "twinId" = ANY($1::text[]) AND "userId" = $2
@@ -85,16 +95,32 @@ async function enrichTwinsWithUserInteraction(twins: any[], userId?: string) {
     db.query(`
       SELECT "twinId" FROM "TwinFollow" 
       WHERE "twinId" = ANY($1::text[]) AND "userId" = $2
-    `, [twinIds, userId])
+    `, [twinIds, userId]),
+    db.query(`
+      SELECT id FROM "Twin" 
+      WHERE "userId" = $1 and id = ANY($2::text[])
+    `, [userId, twinIds])
   ]);
 
   const likedTwinIds = new Set(likes.rows.map(r => r.twinId));
   const followedTwinIds = new Set(follows.rows.map(r => r.twinId));
+  const ownTwinIds = new Set(userTwins.rows.map(r => r.id));
 
   return twins.map(twin => ({
     ...twin,
     hasLiked: likedTwinIds.has(twin.id),
-    hasFollowed: followedTwinIds.has(twin.id)
+    hasFollowed: followedTwinIds.has(twin.id),
+    isOwnTwin: ownTwinIds.has(twin.id),
+    publicId: tokenizeId(twin.id, 'twin') // ✅ PHASE 5: Add publicId
+  }));
+}
+
+// ✅ ADD: Helper function to sanitize twin arrays
+function sanitizeTwinsArray(twins: any[]): any[] {
+  return twins.map(twin => ({
+    ...twin,
+    publicId: tokenizeId(twin.id, 'twin'),
+    id: twin.id // Keep for backward compatibility temporarily
   }));
 }
 
@@ -293,9 +319,16 @@ console.log('[DISCOVER] Total count query result:', { totalCount, rows: totalCou
         'Expires': '0',
       });
 
+      // ✅ Sanitize twin IDs before sending
+      const sanitizedTwins = recentTwins.rows.map(twin => ({
+        ...twin,
+        publicId: tokenizeId(twin.id, 'twin'),
+        id: twin.id // Keep for backward compatibility temporarily
+      }));
+
       return res.json({
         success: true,
-        twins: recentTwins.rows,
+        twins: sanitizedTwins,
         pagination: {
           limit,
           offset,
@@ -356,7 +389,7 @@ console.log('[DISCOVER] Total count query result:', { totalCount, rows: totalCou
 
     res.json({
       success: true,
-      twins: enrichedTwins,
+      twins: enrichedTwins.map(twin => sanitizeTwin(twin)), // ✅ PHASE 5: Use sanitizeTwin
       pagination: {
         limit,
         offset,
@@ -364,7 +397,7 @@ console.log('[DISCOVER] Total count query result:', { totalCount, rows: totalCou
         totalPages: Math.ceil(totalCount / limit),
         currentPage: Math.floor(offset / limit) + 1
       }
-    });
+    });    
 
   } catch (error) {
     handleControllerError(error, 'Failed to get trending twins');
@@ -446,7 +479,7 @@ export const searchTwins = async (req: Request, res: Response, next: NextFunctio
     res.json({
       success: true,
       query,
-      twins: enrichedTwins,
+      twins: enrichedTwins.map(twin => sanitizeTwin(twin)), // ✅ PHASE 5: Use sanitizeTwin
       pagination: {
         limit,
         offset,
@@ -550,7 +583,7 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
 
     res.json({
       success: true,
-      twins: enrichedTwins,
+      twins: enrichedTwins.map(twin => sanitizeTwin(twin)), // ✅ PHASE 5: Use sanitizeTwin
       pagination: {
         limit,
         offset,
@@ -616,7 +649,7 @@ export const getRecentTwins = async (req: Request, res: Response, next: NextFunc
 
     res.json({
       success: true,
-      twins: enrichedTwins,
+      twins: enrichedTwins.map(twin => sanitizeTwin(twin)), // ✅ PHASE 5: Use sanitizeTwin
       pagination: {
         limit,
         offset,
@@ -682,7 +715,7 @@ export const getMostLikedTwins = async (req: Request, res: Response, next: NextF
 
     res.json({
       success: true,
-      twins: enrichedTwins,
+      twins: enrichedTwins.map(twin => sanitizeTwin(twin)), // ✅ PHASE 5: Use sanitizeTwin
       pagination: {
         limit,
         offset,
@@ -748,7 +781,7 @@ export const getMostFollowedTwins = async (req: Request, res: Response, next: Ne
 
     res.json({
       success: true,
-      twins: enrichedTwins,
+      twins: enrichedTwins.map(twin => sanitizeTwin(twin)), // ✅ PHASE 5: Use sanitizeTwin
       pagination: {
         limit,
         offset,
@@ -825,7 +858,7 @@ export const getPopularTwins = async (req: Request, res: Response, next: NextFun
 
     res.json({
       success: true,
-      twins: enrichedTwins,
+      twins: enrichedTwins.map(twin => sanitizeTwin(twin)), // ✅ PHASE 5: Use sanitizeTwin
       pagination: {
         limit,
         offset,
@@ -956,7 +989,7 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
 
     res.json({
       success: true,
-      twins: enrichedTwins,
+      twins: enrichedTwins.map(twin => sanitizeTwin(twin)), // ✅ PHASE 5: Use sanitizeTwin
       pagination: {
         limit,
         offset,

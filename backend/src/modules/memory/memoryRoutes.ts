@@ -12,8 +12,8 @@ const router = Router();
 router.use(extractJWTFromCookie);
 
 // Memory management routes
-router.get('/:id/memory/stats', getMemoryStats);
-router.get('/:id/memory/retrieve', retrieveMemories);
-router.post('/:id/memory/ingest', ingestMemories);
+router.get('/:twinToken/memory/stats', getMemoryStats);
+router.get('/:twinToken/memory/retrieve', retrieveMemories);
+router.post('/:twinToken/memory/ingest', ingestMemories);
 
 export default router;

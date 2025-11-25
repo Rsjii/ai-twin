@@ -4,6 +4,7 @@ import { logger } from '../config/logger';
 import { AppError, createError } from '../utils/errors';
 import { ADMIN_EMAILS } from '../config/constants';
 import { handleControllerError } from '../utils/errorHandler';
+import { detokenizeId, tokenizeId } from '../utils/idTokenization';
 
 /**
  * Analytics dashboard page - User analytics
@@ -32,7 +33,8 @@ export async function getAnalytics(req: any, res: Response) {
       'SELECT id FROM "Twin" WHERE "userId" = $1 LIMIT 1',
       [req.user.id]
     );
-    const userTwinId = twinResult.rows.length > 0 ? twinResult.rows[0].id : '';
+    const rawTwinId = twinResult.rows.length > 0 ? twinResult.rows[0].id : '';
+    const userTwinId = rawTwinId ? tokenizeId(rawTwinId, 'twin') : null;
     
     res.render('analytics', {
       title: 'Analytics Dashboard - AI Twin',
@@ -187,15 +189,26 @@ export async function getAnalyticsDetails(req: any, res: Response) {
     
     const twinIds = userTwins.rows.map(t => t.id);
     
-    // If specific twinId provided, verify user owns it
-    let targetTwinId = null;
-    if (twinId) {
-      if (twinIds.includes(twinId)) {
-        targetTwinId = twinId;
-      } else {
-        return res.status(403).json({ error: 'Access denied' });
-      }
-    }
+ // ✅ PHASE 3: If specific twinId provided (as token), detokenize and verify
+ let targetTwinId = null;
+ if (twinId) {
+   // ✅ Detokenize the token to get actual twin ID
+   const decoded = detokenizeId(twinId as string);
+   if (!decoded || decoded.type !== 'twin') {
+     return res.status(400).json({ 
+       error: 'Invalid twin token', 
+       errorCode: 'INVALID_INPUT' 
+     });
+   }
+   const actualTwinId = decoded.id;
+   
+   // Verify user owns this twin
+   if (twinIds.includes(actualTwinId)) {
+     targetTwinId = actualTwinId;
+   } else {
+     return res.status(403).json({ error: 'Access denied' });
+   }
+ }    
     
     // Fetch data based on type
     let data = [];

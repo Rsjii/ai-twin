@@ -84,10 +84,10 @@ router.get('/:id/export/analytics', exportAnalytics);
 router.post('/:id/reset/performance', resetPerformance);
 
 // Unified Long-Term Memory API
-router.get('/:id/long-term-memory', requireJWTFromCookie, getLongTermMemories);
-router.post('/:id/long-term-memory', requireJWTFromCookie, addLongTermMemory);
-router.put('/:id/long-term-memory/:key', requireJWTFromCookie, updateLongTermMemory);
-router.delete('/:id/long-term-memory/:key', requireJWTFromCookie, deleteLongTermMemory);
+router.get('/:twinToken/long-term-memory', requireJWTFromCookie, getLongTermMemories);
+router.post('/:twinToken/long-term-memory', requireJWTFromCookie, addLongTermMemory);
+router.put('/:twinToken/long-term-memory/:key', requireJWTFromCookie, updateLongTermMemory);
+router.delete('/:twinToken/long-term-memory/:key', requireJWTFromCookie, deleteLongTermMemory);
 
 // Style Anchor API
 router.get('/:id/style-anchors', getTwinAnchors);

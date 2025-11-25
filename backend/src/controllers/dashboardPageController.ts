@@ -6,6 +6,7 @@ import { db } from '../config/database';
 import { logger } from '../config/logger';
 import { handleControllerError } from '../utils/errorHandler';
 import { normalizeTimestamp } from '../utils/timestampUtils';
+import { tokenizeId } from '../utils/idTokenization';
 
 /**
  * Dashboard page - Main user dashboard
@@ -36,6 +37,9 @@ export async function getDashboard(req: any, res: Response) {
     
     // Get single twin (first twin) - since only one twin per user allowed
     const twin = hasTwins ? userTwins[0] : null;
+
+    //Phase 3: Tokenize twinId
+    const twinPublicId = twin && twin.id ? tokenizeId(twin.id, 'twin') : null;
     
     // Get twinId safely
     const twinId = twin && twin.id ? twin.id : null;
@@ -123,6 +127,7 @@ export async function getDashboard(req: any, res: Response) {
       hasTwins: hasTwins,
       twin: twin, // Single twin instead of array
       twinId: twinId, // Use safe twinId variable
+      twinPublicId: twinPublicId,
       stats: stats, // Analytics stats
       recentActivity: recentActivity, // Recent chats
       csrfToken: res.locals['csrfToken']

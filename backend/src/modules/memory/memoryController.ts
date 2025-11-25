@@ -1,10 +1,11 @@
 import { Response, NextFunction } from 'express';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
-import { AppError, createError } from '../../utils/errors';
+import { AppError, createError, ErrorCodes } from '../../utils/errors';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { generateId } from '../../utils/idGenerator';
 import { handleControllerError } from '../../utils/errorHandler';
+import { detokenizeId, tokenizeId } from '../../utils/idTokenization';
 
 /**
  * Get unified memory statistics
@@ -12,7 +13,16 @@ import { handleControllerError } from '../../utils/errorHandler';
  */
 export const getMemoryStats = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    const { twinToken } = req.params;
+    //Phase 3: Detokenize twinToken
+    const decoded = detokenizeId(twinToken, {
+      userId: req.user?.id || req.userId,
+      endpoint: 'getMemoryStats'
+    });    
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const userId = req.user?.id || req.userId;
     
     console.log('[MEMORY_STATS:START]', {
@@ -101,7 +111,16 @@ export const getMemoryStats = async (req: any, res: Response, next: NextFunction
  */
 export const retrieveMemories = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    const { twinToken } = req.params;
+    //Phase 3: Detokenize twinToken
+    const decoded = detokenizeId(twinToken, {
+      userId: req.user?.id || req.userId,
+      endpoint: 'retrieveMemories'
+    });    
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const { bucket, limit = 10, offset = 0 } = req.query;
     const userId = req.user?.id || req.userId;
     
@@ -204,7 +223,16 @@ export const retrieveMemories = async (req: any, res: Response, next: NextFuncti
  */
 export const ingestMemories = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    const { twinToken } = req.params;
+    //Phase 3: Detokenize twinToken
+    const decoded = detokenizeId(twinToken, {
+      userId: req.user?.id || req.userId,
+      endpoint: 'ingestMemories'
+    });    
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const { bucket, text } = req.body;
     const userId = req.user?.id || req.userId;
     
@@ -237,7 +265,7 @@ export const ingestMemories = async (req: any, res: Response, next: NextFunction
     if (bucket === 'facts') {
       // Redirect to MemoryLongTerm
       const { addLongTermMemory } = await import('../twin/longTermMemoryController');
-      req.params.id = twinId;
+      req.params.twinToken = tokenizeId(twinId, 'twin');
       req.body.key = generateId.fact();
       req.body.category = 'fact';
       req.body.value = text;
@@ -246,7 +274,7 @@ export const ingestMemories = async (req: any, res: Response, next: NextFunction
     } else if (bucket === 'voice') {
       // Redirect to StyleAnchors
       const { addTwinAnchor } = await import('../twin/styleAnchorController');
-      req.params.id = twinId;
+      req.params.twinToken = tokenizeId(twinId, 'twin');
       req.body.type = 'phrase';
       req.body.phrase = text;
       req.body.userUtterance = '';

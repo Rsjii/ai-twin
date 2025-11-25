@@ -1117,6 +1117,12 @@ function updateSidebarImmediately(aiResponse, userMessage) {
 }
 
 async function loadFeedbackStatus(chatId) {
+    // ✅ SAFETY: Check if chatId is null/empty before API call
+    if (!chatId || chatId === 'null' || chatId === 'undefined' || chatId === '') {
+        console.warn('Cannot load feedback status: chatId is empty');
+        return {};
+    }
+    
     // ✅ FIX: Skip API call for draft chats
     if (chatId && chatId.startsWith('draft_')) {
         console.log('Skipping feedback status for draft chat:', chatId);
@@ -1153,8 +1159,18 @@ async function loadCurrentChatMessages() {
     try {
         console.log('Loading chat history for chatId:', currentChatId);
         
+        // ✅ SAFETY: Agar kisi edge case me chatId empty ho, API mat call karo
+        if (!currentChatId || currentChatId === 'null' || currentChatId === '') {
+            console.warn('Cannot load chat: currentChatId is empty');
+            const initialLoading = document.getElementById('initialLoadingState');
+            if (initialLoading) initialLoading.classList.add('hidden');
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) emptyState.classList.remove('hidden');
+            return;
+        }
+        
         // ✅ FIX: Check if draft chat - skip database call
-        if (currentChatId && currentChatId.startsWith('draft_')) {
+        if (currentChatId && currentChatId.startsWith('draft_')) {            
             console.log('Draft chat detected, showing empty state');
             const messagesContainer = document.getElementById('chatMessages');
             if (messagesContainer) messagesContainer.innerHTML = '';
@@ -1271,6 +1287,12 @@ async function loadChatMessages() {
     try {
         console.log('Loading messages for chatId:', currentChatId);
         
+        // ✅ SAFETY: Agar kisi edge case me chatId empty ho, API mat call karo
+        if (!currentChatId || currentChatId === 'null' || currentChatId === '') {
+            console.warn('Cannot load chat: currentChatId is empty');
+            return;
+        }
+        
         // ✅ FIX: Check if draft chat - skip database call
         if (currentChatId && currentChatId.startsWith('draft_')) {
             console.log('Draft chat detected, showing empty state');
@@ -1280,7 +1302,7 @@ async function loadChatMessages() {
             // Show welcome message for draft
             addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
             return;
-        }
+        }        
         
         // Clear existing messages
         const messagesContainer = document.getElementById('chatMessages');
@@ -1409,18 +1431,18 @@ function displayChatHistory(chats) {
 
     // Remove the old text-only empty state if it exists
     container.innerHTML = chats.map(chat => `
-        <div class="chat-item p-3 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg relative group ${chat.id === currentChatId ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : ''}" data-chat-id="${chat.id}">
+        <div class="chat-item p-3 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg relative group ${chat.publicId === currentChatId ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : ''}" data-chat-id="${chat.publicId}">
             <div class="flex justify-between items-start min-w-0">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between gap-2 mb-1 min-w-0">
-                        <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.id === currentChatId ? 'text-blue-700 dark:text-blue-400' : 'text-gray-900 dark:text-white'}" id="chat-title-${chat.id}">${chat.title || 'Untitled Chat'}</h4>
+                        <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.publicId === currentChatId ? 'text-blue-700 dark:text-blue-400' : 'text-gray-900 dark:text-white'}" id="chat-title-${chat.publicId}">${chat.title || 'Untitled Chat'}</h4>
                         <div class="flex items-center gap-1 flex-shrink-0">
-                            <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 pointer-events-auto" data-chat-id="${chat.id}" title="Edit title">
+                            <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Edit title">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                 </svg>
                             </button>
-                            <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.id}" title="Delete chat">
+                            <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Delete chat">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                 </svg>
@@ -1487,10 +1509,7 @@ async function switchToChat(chatId) {
         // Update current chat ID
         currentChatId = chatId;
         
-        // Update URL without page reload (only if not draft)
-        if (!chatId.startsWith('draft_')) {
-        window.history.pushState({}, '', `/chat-enhanced?chatId=${chatId}`);
-        }
+        // ✅ URL ko change nahi karna: /chat-enhanced hi rahega (no ?chatId in URL)
         
         // ✅ FIX: For draft chats, just show empty state
         if (chatId && chatId.startsWith('draft_')) {
@@ -1513,7 +1532,6 @@ async function switchToChat(chatId) {
         showNotification('Error switching to chat', 'error');
     }
 }
-
 
 // Delete chat function
 async function deleteChat(chatId) {
@@ -1800,45 +1818,60 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Get chat ID from EJS variable
-    currentChatId = '<%= chatId %>';
+    // ✅ FIX: Get chat ID from EJS variable and validate
+    const chatIdFromServer = '<%= chatId || "" %>';
+    currentChatId = (chatIdFromServer && chatIdFromServer !== 'null' && chatIdFromServer !== 'undefined' && chatIdFromServer.trim() !== '') ? chatIdFromServer : null;
+    
     console.log('Enhanced chat initialized with chatId:', currentChatId);
+    
+    // ✅ SAFETY: If no valid chatId, don't proceed with API calls
+    if (!currentChatId) {
+        console.warn('No valid chatId from server, skipping API calls');
+        const initialLoading = document.getElementById('initialLoadingState');
+        if (initialLoading) initialLoading.classList.add('hidden');
+        const emptyState = document.getElementById('emptyState');
+        if (emptyState) emptyState.classList.remove('hidden');
+        // Still set up UI listeners, but don't load chat data
+    }
                 
-            // Mobile event listeners
-            const mobileChatMenuBtn = document.getElementById('mobile-chat-menu-btn');
-            const mobileChatCloseBtn = document.getElementById('mobile-chat-close-btn');
-            const mobileHistoryBtn = document.getElementById('mobile-history-btn');
-            const mobileNewChatBtn = document.getElementById('mobile-new-chat-btn');
-            const mobileSettingsBtn = document.getElementById('mobile-settings-btn');
-            
-            if (mobileChatMenuBtn) {
-                mobileChatMenuBtn.addEventListener('click', openMobileChatSidebar);
-            }
-            
-            if (mobileChatCloseBtn) {
-                mobileChatCloseBtn.addEventListener('click', closeMobileChatSidebar);
-            }
-            
-            if (mobileHistoryBtn) {
-                mobileHistoryBtn.addEventListener('click', openMobileChatSidebar);
-            }
-            
-            if (mobileNewChatBtn) {
-                mobileNewChatBtn.addEventListener('click', createNewChat);
-            }
-            
-            if (mobileSettingsBtn) {
-                mobileSettingsBtn.addEventListener('click', function() {
-                    window.open('/twin/' + getCurrentTwinId() + '/style-customize', '_blank');
-                });
-            }
-            
-            // Touch gesture event listeners
-            document.addEventListener('touchstart', handleChatTouchStart, { passive: true });
-            document.addEventListener('touchend', handleChatTouchEnd, { passive: true });
-            
-            loadChatHistory();
-            loadCurrentChatMessages();
+    // Mobile event listeners
+    const mobileChatMenuBtn = document.getElementById('mobile-chat-menu-btn');
+    const mobileChatCloseBtn = document.getElementById('mobile-chat-close-btn');
+    const mobileHistoryBtn = document.getElementById('mobile-history-btn');
+    const mobileNewChatBtn = document.getElementById('mobile-new-chat-btn');
+    const mobileSettingsBtn = document.getElementById('mobile-settings-btn');
+    
+    if (mobileChatMenuBtn) {
+        mobileChatMenuBtn.addEventListener('click', openMobileChatSidebar);
+    }
+    
+    if (mobileChatCloseBtn) {
+        mobileChatCloseBtn.addEventListener('click', closeMobileChatSidebar);
+    }
+    
+    if (mobileHistoryBtn) {
+        mobileHistoryBtn.addEventListener('click', openMobileChatSidebar);
+    }
+    
+    if (mobileNewChatBtn) {
+        mobileNewChatBtn.addEventListener('click', createNewChat);
+    }
+    
+    if (mobileSettingsBtn) {
+        mobileSettingsBtn.addEventListener('click', function() {
+            window.open('/twin/' + getCurrentTwinId() + '/style-customize', '_blank');
+        });
+    }
+    
+    // Touch gesture event listeners
+    document.addEventListener('touchstart', handleChatTouchStart, { passive: true });
+    document.addEventListener('touchend', handleChatTouchEnd, { passive: true });
+    
+    // ✅ Only load chat data if currentChatId is valid
+    if (currentChatId) {
+        loadChatHistory();
+        loadCurrentChatMessages();
+    }
 
             // Add event listeners for quick action buttons
             document.getElementById('styleCustomizeBtn').addEventListener('click', function() {
@@ -1935,10 +1968,13 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
             
             const data = await response.json();
                         
-                        // ✅ FIX: Use data.chat.id (backend returns chat object, not chatId directly)
-                        if (data.success && data.chat && data.chat.id) {
-                            actualChatId = data.chat.id;  // ✅ Use data.chat.id instead of data.chatId
-                currentChatId = actualChatId;
+                        // ✅ PHASE 4: Use data.chatId (now tokenized) or data.chat.publicId
+                        if (data.success && data.chatId) {
+                            actualChatId = data.chatId;  // ✅ Now tokenized
+                            currentChatId = actualChatId;
+                        } else if (data.success && data.chat && data.chat.publicId) {
+                            actualChatId = data.chat.publicId;  // ✅ Fallback to publicId
+                            currentChatId = actualChatId;
                 
                 // Remove draft from sidebar
                 removeDraftFromSidebar(draft.chatId);

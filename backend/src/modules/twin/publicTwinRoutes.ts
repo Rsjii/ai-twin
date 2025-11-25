@@ -21,6 +21,6 @@ router.post('/make-public', requireJWTFromCookie, makeTwinPublic);
 router.post('/make-private', requireJWTFromCookie, makeTwinPrivate);
 router.put('/profile', requireJWTFromCookie, updateTwinProfile);
 router.get('/my-profile', requireJWTFromCookie, getMyTwinProfile);
-router.get('/check-owner/:twinId', requireJWTFromCookie, checkTwinOwner);
+router.get('/check-owner/:twinToken', requireJWTFromCookie, checkTwinOwner);
 
 export default router;

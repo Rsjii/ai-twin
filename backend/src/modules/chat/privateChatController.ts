@@ -13,6 +13,7 @@ import { handleControllerError } from '../../utils/errorHandler';
 import { logEvent } from '../../services/eventLogger';
 import { QUERY_LIMITS } from '../../config/constants';
 import { normalizeTimestamp, formatRelativeTime } from '../../utils/timestampUtils';
+import { detokenizeId, tokenizeId } from '../../utils/idTokenization';
 
 const twinService = new TwinService();
 
@@ -88,8 +89,8 @@ export const startChat = async (req: AuthenticatedRequest, res: Response, next: 
     
     res.json({
       success: true,
-      chatId: chat.id,
-      redirect: `/chat/${chat.id}`,
+      chatId: tokenizeId(chat.id, 'chat'),
+      redirect: `/chat-enhanced?chatId=${tokenizeId(chat.id, 'chat')}`,
     });
   } catch (error) {
     handleControllerError(error, 'Failed to start chat');
@@ -98,15 +99,22 @@ export const startChat = async (req: AuthenticatedRequest, res: Response, next: 
 
 export const getChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const { chatToken } = req.params;
     
     if (!req.user) {
       throw createError.unauthorized();
     }
 
-    if (!id) {
-      throw createError.validation('Chat ID is required');
+    if(!chatToken) {
+      throw createError.validation('Chat token is required');
     }
+
+     // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+     const decoded = detokenizeId(chatToken);
+     if (!decoded || decoded.type !== 'chat') {
+       throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+     }
+     const chatId = decoded.id;
 
     // Get chat with twin information using raw SQL
     const chatResult = await db.query(`
@@ -115,7 +123,7 @@ export const getChat = async (req: AuthenticatedRequest, res: Response, next: Ne
       FROM "Chat" c
       JOIN "Twin" t ON c."twinId" = t.id
       WHERE c.id = $1 AND c."userId" = $2
-    `, [id, req.user.id]);
+    `, [chatId, req.user.id]);
     
     if (chatResult.rows.length === 0) {
       throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
@@ -129,20 +137,27 @@ export const getChat = async (req: AuthenticatedRequest, res: Response, next: Ne
       FROM "Message"
       WHERE "chatId" = $1
       ORDER BY "createdAt" ASC
-    `, [id]);
+    `, [chatId]);
 
     const chatData = {
-      id: chat.id,
-      userId: chat.userId,
-      twinId: chat.twinId,
+      publicId: tokenizeId(chat.id, 'chat'),
+      publicUserId: tokenizeId(chat.userId, 'user'),
+      publicTwinId: tokenizeId(chat.twinId, 'twin'),
       createdAt: chat.createdAt,
       chatVector: chat.chatVector,
       twin: {
-        id: chat.twin_id,
+        publicId: tokenizeId(chat.twin_id, 'twin'),
         styleVector: chat.styleVector,
         sampleReply: chat.sampleReply,
       },
-      messages: messagesResult.rows
+      messages: messagesResult.rows.map(msg => ({
+        id: msg.id,
+        publicChatId: tokenizeId(msg.chatId, 'chat'),
+        sender: msg.sender,
+        content: msg.content,
+        approved: msg.approved,
+        createdAt: msg.createdAt
+      }))      
     };
     
     res.json({ chat: chatData });
@@ -176,15 +191,15 @@ export const getUserChats = async (req: AuthenticatedRequest, res: Response, nex
     
     // Format response with proper field names (matching frontend expectations)
     const formattedChats = chats.rows.map(chat => ({
-      id: chat.id,
-      twinId: chat.twinId,
-      title: chat.title || null, // ✅ Include title
+      publicId: tokenizeId(chat.id, 'chat'),
+      publicTwinId: tokenizeId(chat.twinId, 'twin'),
+      title: chat.title || null,
       createdAt: chat.createdAt,
-      updatedAt: chat.updatedAt || chat.createdAt, // Use updatedAt or fallback to createdAt
+      updatedAt: chat.updatedAt || chat.createdAt,
       messageCount: chat.messageCount || 0,
-      lastMessage: chat.last_message || null, // Frontend expects lastMessage
+      lastMessage: chat.last_message || null,
       twin: {
-        id: chat.twin_id,
+        publicId: tokenizeId(chat.twin_id, 'twin'),
         sampleReply: chat.sampleReply
       }
     }));
@@ -269,8 +284,8 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response, n
     `, [userId]);
 
     const chats = chatsResult.rows.map(chat => ({
-      id: chat.id,
-      twinId: chat.twinId,
+      publicId: tokenizeId(chat.id, 'chat'),
+      publicTwinId: tokenizeId(chat.twinId, 'twin'),
       title: chat.title || 'New Chat',
       summary: chat.summary || '',
       lastMessage: chat.lastMessage ? {
@@ -320,15 +335,22 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response, n
 // Get specific chat with all messages
 export const getChatMessages = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const { chatToken } = req.params;
     
     if (!req.user) {
       throw createError.unauthorized();
     }
 
-    if (!id) {
-      throw createError.validation('Chat ID is required');
+    if (!chatToken) {
+      throw createError.validation('Chat token is required');
     }
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     // Get chat with twin information using raw SQL
     const chatResult = await db.query(`
@@ -337,7 +359,7 @@ export const getChatMessages = async (req: AuthenticatedRequest, res: Response, 
       FROM "Chat" c
       JOIN "Twin" t ON c."twinId" = t.id
       WHERE c.id = $1 AND c."userId" = $2
-    `, [id, req.user.id]);
+    `, [chatId, req.user.id]);
 
     if (chatResult.rows.length === 0) {
       throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
@@ -351,20 +373,27 @@ export const getChatMessages = async (req: AuthenticatedRequest, res: Response, 
       FROM "Message"
       WHERE "chatId" = $1 AND approved = true
       ORDER BY "createdAt" ASC
-    `, [id]);
+    `, [chatId]);
 
     res.json({
       success: true,
       chat: {
-        id: chat.id,
-        twinId: chat.twinId,
+        publicId: tokenizeId(chat.id, 'chat'),
+        publicTwinId: tokenizeId(chat.twinId, 'twin'),
         chatVector: chat.chatVector,
         twin: {
-          id: chat.twin_id,
+          publicId: tokenizeId(chat.twin_id, 'twin'),
           styleVector: chat.styleVector,
           sampleReply: chat.sampleReply,
         },
-        messages: messagesResult.rows,
+        messages: messagesResult.rows.map(msg => ({
+          id: msg.id,
+          publicChatId: tokenizeId(msg.chatId, 'chat'),
+          sender: msg.sender,
+          content: msg.content,
+          approved: msg.approved,
+          createdAt: msg.createdAt,
+        })),
         createdAt: chat.createdAt,
       },
     });
@@ -449,9 +478,9 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response, nex
 
     res.json({
       success: true,
-      chatId: chat.id,
+      chatId: tokenizeId(chat.id, 'chat'),
       isNewChat: !existingChat,
-      redirect: `/chat/${chat.id}`,
+      redirect: `/chat-enhanced?chatId=${tokenizeId(chat.id, 'chat')}`,
     });
   } catch (error) {
     handleControllerError(error, 'Failed to continue chat');
@@ -461,15 +490,22 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response, nex
 export const generateDraft = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { messages } = generateDraftSchema.parse(req.body);
-    const { id } = req.params;
+    const { chatToken } = req.params;
     
     if (!req.user) {
       throw createError.unauthorized();
     }
 
-    if (!id) {
-      throw createError.validation('Chat ID is required');
+    if (!chatToken) {
+      throw createError.validation('Chat token is required');
     }
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     // Validate message lengths
     for (const message of messages) {
@@ -485,7 +521,7 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response, ne
       FROM "Chat" c
       JOIN "Twin" t ON c."twinId" = t.id
       WHERE c.id = $1 AND c."userId" = $2
-    `, [id, req.user.id]);
+    `, [chatId, req.user.id]);
     
     if (chatResult.rows.length === 0) {
       throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
@@ -538,7 +574,7 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response, ne
 export const sendMessage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { content } = sendMessageSchema.parse(req.body);
-    const { id } = req.params;
+    const { chatToken } = req.params;
     
     if (!req.user) {
       throw createError.unauthorized();
@@ -553,16 +589,23 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response, next
       throw createError.validation('Message contains restricted content');
     }
 
-    if (!id) {
-      throw createError.validation('Chat ID is required');
+    if (!chatToken) {
+      throw createError.validation('Chat token is required');
     }
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     // Get chat using raw SQL
     const chatResult = await db.query(`
       SELECT id, "userId", "twinId"
       FROM "Chat"
       WHERE id = $1 AND "userId" = $2
-    `, [id, req.user.id]);
+    `, [chatId, req.user.id]);
     
     if (chatResult.rows.length === 0) {
       throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
@@ -599,6 +642,7 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response, next
       success: true,
       message: {
         id: message.id,
+        publicChatId: tokenizeId(chat.id, 'chat'),
         content: message.content,
         sender: message.sender,
         createdAt: message.createdAt,
@@ -613,7 +657,7 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response, next
 export const handleUserMessage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { message } = req.body;
-    const { id } = req.params;
+    const { chatToken } = req.params;
     
     if (!req.user) {
       throw createError.unauthorized();
@@ -622,9 +666,16 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
     // ✅ Use shared validation
     chatUtils.validateMessage(message);
 
-    if (!id) {
-      throw createError.validation('Chat ID is required');
+    if (!chatToken) {
+      throw createError.validation('Chat token is required');
     }
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     // Get chat with twin information
     const chatResult = await db.query(`
@@ -634,11 +685,11 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       FROM "Chat" c
       JOIN "Twin" t ON c."twinId" = t.id
       WHERE c.id = $1 AND c."userId" = $2
-    `, [id, req.user.id]);
+    `, [chatId, req.user.id]);
     
     let chat;
     if (chatResult.rows.length === 0) {
-      logger.info('Chat not found, creating new chat for user:', { chatId: id, userId: req.user.id });
+      logger.info('Chat not found, creating new chat for user:', { chatId: chatId, userId: req.user.id });
       
       // Get user's latest twin with all persona data
       const twinResult = await db.query(`
@@ -657,13 +708,13 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       const twin = twinResult.rows[0];
       logger.info('Found twin for new chat:', twin.id);
       
-      // Create new chat
+      // Create new chat with the provided chatId (from token)
       const utcTimestamp = new Date().toISOString();
       const newChatResult = await db.query(`
         INSERT INTO "Chat" ("id", "userId", "twinId", "createdAt")
         VALUES ($1, $2, $3, $4::timestamptz)
         RETURNING id, "userId", "twinId", "createdAt"
-      `, [id, req.user.id, twin.id, utcTimestamp]);
+      `, [chatId, req.user.id, twin.id, utcTimestamp]);
       
       if (newChatResult.rows.length === 0) {
         logger.error('Failed to create new chat');
@@ -807,12 +858,14 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       isFirstMessage: isFirstMessage,
       userMessage: {
         id: userMessage.id,
+        publicChatId: tokenizeId(chat.id, 'chat'),
         content: userMessage.content,
         sender: userMessage.sender,
         createdAt: userMessage.createdAt,
       },
       aiMessage: {
         id: aiMessage.id,
+        publicChatId: tokenizeId(chat.id, 'chat'),
         content: aiMessage.content,
         sender: aiMessage.sender,
         createdAt: aiMessage.createdAt,
@@ -1044,20 +1097,27 @@ async function updateChatVectorAfterMessage(chatId: string, newMessages: Array<{
 // Delete chat
 export const deleteChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const { chatToken } = req.params;
     
     if (!req.user) {
       throw createError.unauthorized();
     }
 
-    if (!id) {
-      throw createError.validation('Chat ID is required');
+    if (!chatToken) {
+      throw createError.validation('Chat token is required');
     }
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     // Verify chat belongs to user
     const chatResult = await db.query(`
       SELECT id, "userId" FROM "Chat" WHERE id = $1
-    `, [id]);
+    `, [chatId]);
     
     if (chatResult.rows.length === 0) {
       throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
@@ -1073,16 +1133,16 @@ export const deleteChat = async (req: AuthenticatedRequest, res: Response, next:
     // Delete chat (CASCADE will automatically delete all messages and related data)
     await db.query(`
       DELETE FROM "Chat" WHERE id = $1
-    `, [id]);
+    `, [chatId]);
     
     // Log event
     try {
-      await logEvent(req.user.id, 'chat_deleted', { chatId: id });
+      await logEvent(req.user.id, 'chat_deleted', { chatId: chatId });
     } catch (error) {
       logger.warn('Failed to log chat deletion event:', error);
     }
     
-    logger.info('Chat deleted successfully:', { chatId: id, userId: req.user.id });
+    logger.info('Chat deleted successfully:', { chatId: chatId, userId: req.user.id });
     
     res.json({
       success: true,
@@ -1125,14 +1185,15 @@ export const createNewChat = async (req: AuthenticatedRequest, res: Response, ne
 
     res.json({
       success: true,
+      chatId: tokenizeId(chat.id, 'chat'),
       chat: {
-        id: chat.id,
-        twinId: chat.twinId,
+        publicId: tokenizeId(chat.id, 'chat'),
+        publicTwinId: tokenizeId(chat.twinId, 'twin'),
         title: chat.title,
         messageCount: chat.messageCount,
         createdAt: chat.createdAt
       },
-      redirect: `/chat-enhanced?chatId=${chat.id}`
+      redirect: `/chat-enhanced?chatId=${tokenizeId(chat.id, 'chat')}`
     });
 
   } catch (error) {

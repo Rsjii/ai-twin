@@ -4,6 +4,8 @@ import { logger } from '../../config/logger';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { logEvent } from '../../services/eventLogger';
 import { QUERY_LIMITS } from '../../config/constants';
+import { createError, ErrorCodes } from '../../utils/errors';
+import { detokenizeId, sanitizeUser } from '../../utils/idTokenization';
 
 export const getMetricsSummary = async (_req: Request, res: Response) => {
   try {
@@ -126,7 +128,7 @@ export const debugUserData = async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      user: user,
+      user: sanitizeUser(user),
       counts: {
         twins: parseInt(twinsResult.rows[0].count),
         chats: parseInt(chatsResult.rows[0].count),
@@ -355,29 +357,29 @@ const topContent = topEventTypesResult
 }))
 : [];
 
-    const responseData = {
-      success: true,
-      user: {
-        id: userId,
-        email: req.user?.email || 'Unknown',
-        handle: req.user?.handle || 'Unknown',
-      },
-      analytics: {
-        totalViews: userEvents || 0,
-        totalLikes: userInvitesReceived || 0,
-        totalFollowers: userInvitesSent || 0,
-        totalChats: userChats || 0,
-        twins: userTwins || 0,
-        messages: userMessages || 0,
-        invitesSent: userInvitesSent || 0,
-        invitesReceived: userInvitesReceived || 0,
-        events: userEvents || 0,
-        recentActivity: formattedActivity || [],
-        engagementData: engagementData || null,
-        topContent
-      },
-      eventBreakdown: userEventBreakdown || {},
-    };
+const responseData = {
+  success: true,
+  user: sanitizeUser({
+    id: userId,
+    email: req.user?.email || 'Unknown',
+    handle: req.user?.handle || 'Unknown',
+  }), // ✅ PHASE 5: Use sanitizeUser
+  analytics: {
+    totalViews: userEvents || 0,
+    totalLikes: userInvitesReceived || 0,
+    totalFollowers: userInvitesSent || 0,
+    totalChats: userChats || 0,
+    twins: userTwins || 0,
+    messages: userMessages || 0,
+    invitesSent: userInvitesSent || 0,
+    invitesReceived: userInvitesReceived || 0,
+    events: userEvents || 0,
+    recentActivity: formattedActivity || [],
+    engagementData: engagementData || null,
+    topContent
+  },
+  eventBreakdown: userEventBreakdown || {},
+};    
 
     // ✅ Log response before sending
     console.log('[BACKEND_ANALYTICS] Building response data...');
@@ -456,7 +458,13 @@ const topContent = topEventTypesResult
  */
 export const getTwinAnalytics = async (req: Request, res: Response) => {
   try {
-    const { twinId } = req.params;
+    const { twinToken } = req.params;
+    //Phase 3: Detokenize twinToken
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const userId = req.user.id;
 
     // Verify twin ownership

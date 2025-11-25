@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../../middleware/auth';
-import { db, publicTwinQueries, userQueries } from '../../config/database';
+import { db, publicTwinQueries, userQueries, publicChatQueries } from '../../config/database';
 import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
@@ -8,6 +8,7 @@ import { createError, ErrorCodes } from '../../utils/errors';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { handleControllerError } from '../../utils/errorHandler';
 import {twinQueries} from '../../config/database';
+import { detokenizeId, sanitizeTwin, tokenizeId } from '../../utils/idTokenization';
 
 // Validation schemas
 const makePublicSchema = z.object({
@@ -219,19 +220,12 @@ export const getPublicTwinProfile = async (req: Request, res: Response, next: Ne
     }
 
     // Return public data only (no sensitive information)
+    const sanitizedTwin = sanitizeTwin(publicTwin);
     res.json({
       success: true,
       twin: {
-        id: publicTwin.id,
-        publicHandle: publicTwin.publicHandle,
-        bio: publicTwin.bio,
-        profileImage: publicTwin.profileImage,
-        verified: publicTwin.verified,
-        likeCount: publicTwin.likeCount,
-        followCount: publicTwin.followCount,
-        chatCount: publicTwin.chatCount,
+        ...sanitizedTwin,
         sampleReply: publicTwin.sampleReply,
-        createdAt: publicTwin.createdAt,
         userHandle: publicTwin.userHandle,
         userName: publicTwin.userName
       }
@@ -282,28 +276,22 @@ export const getMyTwinProfile = async (req: Request, res: Response, next: NextFu
     
     const userData = userResult?.rows?.[0] || {};
 
+    const sanitizedTwin = sanitizeTwin(twin);
+
     res.json({
       success: true,
       twin: {
-        id: twin.id,
-        isPublic: twin.isPublic,
-        publicHandle: twin.publicHandle,
-        bio: twin.bio,
-        profileImage: twin.profileImage,
-        verified: twin.verified,
-        likeCount: twin.likeCount,
-        followCount: twin.followCount,
-        chatCount: twin.chatCount,
+        ...sanitizedTwin, // ✅ Already has publicId, no raw id
         styleVector: twin.styleVector,
         sampleReply: twin.sampleReply,
-        personaData: twin.personaData,        // ✅ Complete onboarding data
-        systemPrompt: twin.systemPrompt,      // ✅ Generated system prompt
+        personaData: twin.personaData,
+        systemPrompt: twin.systemPrompt,
         createdAt: twin.createdAt,
         userHandle: twin.userHandle,
         userName: twin.userName
       },
       user: {
-        personaData: userData.personaData,           // ✅ User's stored personaData
+        personaData: userData.personaData,
         onboardingCompleted: userData.onboardingCompleted || false
       }
     });
@@ -317,12 +305,36 @@ export const getMyTwinProfile = async (req: Request, res: Response, next: NextFu
 // Line 312: Change to AuthenticatedRequest to get userId
 export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { twinId } = req.params;
+    const { twinToken } = req.params;
     // ✅ ADD: Extract chatId from query params
+
+      // ✅ ADD: Validate twinToken exists
+      if (!twinToken) {
+        logger.warn('getPublicChatPage: Missing twinToken', { 
+          params: req.params,
+          path: req.path,
+          userId: req.user?.id 
+        });
+        throw createError.validation('Twin token is required', ErrorCodes.INVALID_INPUT);
+      }
+
     const chatIdParam = req.query.chatId;
-    const chatId = Array.isArray(chatIdParam) ? chatIdParam[0] : (chatIdParam as string);
+    let initialChatIdToken: string | null = null;
     const userId = req.user?.id;
-    logger.info('getPublicChatPage:', { twinId, chatId, userId });
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken, {
+      userId: req.user?.id,
+      endpoint: 'getPublicChatPage'
+    });    
+    if (!decoded || decoded.type !== 'twin') {
+      logger.warn('getPublicChatPage: Invalid twin token', { twinToken, userId });
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
+
+    logger.info('getPublicChatPage:', { twinToken, chatIdParam, userId });
+
     
     // ✅ FIRST: Check if this is user's own twin - redirect immediately
     if (userId) {
@@ -331,7 +343,8 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
         // Own twin detected - redirect to enhanced chat
         logger.info('Own twin detected, redirecting to enhanced chat:', { twinId, userId });
         const message = encodeURIComponent('You cannot chat with your own twin in public chat. Use Enhanced Chat for interactive conversations.');
-        return res.redirect(`/chat-enhanced?twinId=${twinId}&message=${message}`);
+        const safeTwinId = tokenizeId(twinId, 'twin');
+        return res.redirect(`/chat-enhanced?twinId=${safeTwinId}&message=${message}`);
       } catch (error) {
         // Not owned, continue with public chat flow
       }
@@ -403,54 +416,87 @@ if (twinResult.rows.length === 0) {
 
 const twin = twinResult.rows[0];    
 
-    // If chatId provided, validate it belongs to twin (not just user)
-    let initialChatId = null;
-    if (chatId) {
-      // Check if chat exists and belongs to this twin
-      const chatResult = await db.query(`
-        SELECT id, "userId", "visitorId" 
-        FROM "PublicChat" 
-        WHERE id = $1 AND "twinId" = $2
-      `, [chatId, twinId]);
+    // ✅ FIX: Treat chatId as token ONLY for logged-in users
+    if (userId && chatIdParam) {
+      const chatTokenRaw = Array.isArray(chatIdParam) ? chatIdParam[0] : chatIdParam;
+      const chatToken = typeof chatTokenRaw === 'string' ? chatTokenRaw : String(chatTokenRaw);
       
-      if (chatResult && chatResult.rows && chatResult.rows.length > 0) {
-        const chat = chatResult.rows[0];
+      try {
+        // Detokenize to get actual DB ID for verification
+        const decodedChat = detokenizeId(chatToken, {
+          userId: req.user?.id,
+          endpoint: 'getPublicChatPage.initialChat'
+        });
         
-        // If user is logged in, check if they own the chat OR if they own the twin
-        if (userId) {
-          // Check if user owns the chat
-          const ownsChat = chat.userId === userId;
+        if (decodedChat && decodedChat.type === 'chat') {
+          const dbChatId = decodedChat.id;
           
-          // Check if user owns the twin
-          let ownsTwin = false;
-          if (userId) {
+          // Verify this chat belongs to this twin
+          const chatResult = await db.query(`
+            SELECT id, "userId", "visitorId" 
+            FROM "PublicChat" 
+            WHERE id = $1 AND "twinId" = $2
+          `, [dbChatId, twinId]);
+          
+          if (chatResult && chatResult.rows && chatResult.rows.length > 0) {
+            const chat = chatResult.rows[0];
+            
+            // If user is logged in, check if they own the chat OR if they own the twin
+            // (we already know userId is truthy here)
+            const ownsChat = chat.userId === userId;
+            let ownsTwin = false;
             try {
               await verifyTwinOwnership(twinId, userId);
               ownsTwin = true;
             } catch (error) {
               ownsTwin = false;
             }
-          }
-          
-          if (ownsChat || ownsTwin) {
-            initialChatId = chatId;
-            logger.info('Valid chatId found:', { chatId, twinId, userId, ownsChat, ownsTwin });
+            
+            if (ownsChat || ownsTwin) {
+              initialChatIdToken = chatToken;  // ✅ Keep token for frontend
+              logger.info('Valid chatId token found:', { chatToken, dbChatId, twinId, userId, ownsChat, ownsTwin });
+            } else {
+              logger.warn('ChatId token not found or access denied:', { chatToken, dbChatId, twinId, userId });
+            }
           } else {
-            logger.warn('ChatId not found or access denied:', { chatId, twinId, userId });
+            logger.warn('ChatId token not found in database:', { chatToken, dbChatId, twinId });
           }
         } else {
-          // For anonymous users, allow if chat has visitorId (anonymous chat)
-          if (chat.visitorId) {
-            initialChatId = chatId;
-            logger.info('Using anonymous chatId:', { chatId });
-          }
+          logger.warn('Invalid chat token type:', { chatToken, decodedType: decodedChat?.type });
         }
-      } else {
-        logger.warn('ChatId not found for twin:', { chatId, twinId });
+      } catch (error) {
+        // If detokenization fails, log but don't crash - just don't set initialChatId
+        logger.warn('Failed to detokenize chatId query param:', { 
+          chatIdParam, 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          userId 
+        });
       }
     }
     
-    // Fetch full user data from database (like getDiscover)
+    // ✅ NEW: For logged-in users, if no chatId provided, pick default chat
+    if (userId && !initialChatIdToken) {
+      try {
+        const defaultChat = await publicChatQueries.findLatestByTwinAndUser(twinId, userId);
+        if (defaultChat) {
+          initialChatIdToken = tokenizeId(defaultChat.id, 'chat');
+          logger.info('getPublicChatPage: Using default chat for logged-in user', {
+            twinId,
+            userId,
+            chatId: defaultChat.id,
+          });
+        }
+      } catch (error) {
+        logger.warn('getPublicChatPage: Failed to find default chat', {
+          twinId,
+          userId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        // Continue with initialChatIdToken = null
+      }
+    }
+    
+    // Fetch full user data from database (like getDiscover)    
     let user = null;
     let hasTwins = false;
     let userTwinId = null;  // ✅ Changed from twinId to userTwinId
@@ -472,16 +518,31 @@ const twin = twinResult.rows[0];
         userTwinId = userTwin && userTwin.id ? userTwin.id : null;  // ✅ Changed to userTwinId
       }
     }
+
+    const twinPublicId = tokenizeId(twin.id, 'twin');
     
+    // ✅ NEW: For anonymous users, prevent browser caching (back should always reload)
+    if (!userId) {
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      });
+    }
+
     // Render with twin data and optional initial chatId
     res.render('public-chat', { 
       title: 'Public Chat - AI Twin',
       user: user,
-      twin, 
-      initialChatId,
+      twin: {
+        ...twin,
+        publicId: twinPublicId
+      },
+      twinPublicId: twinPublicId,
+      initialChatId: initialChatIdToken,  // ✅ Always a token if set, null otherwise
       requiresLogin: twin.requireLogin && !userId,
       hasTwins: hasTwins,
-      twinId: userTwinId,  // ✅ Changed to userTwinId
+      twinId: userTwinId,
       csrfToken: req.csrfToken?.() || ''
     });
     
@@ -494,32 +555,50 @@ const twin = twinResult.rows[0];
 export const checkTwinOwner = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      return res.json({
-        isOwner: false
-      });
+      return res.json({ isOwner: false });
     }
 
-    const { twinId } = req.params;
+    const { twinToken } = req.params;  // ✅ Changed from twinId
+
+    if (!twinToken) {
+      logger.warn('checkTwinOwner: Missing twinToken', {
+        params: req.params,
+        path: req.path,
+        userId: req.user.id
+      });
+      return res.json({ isOwner: false });
+    }
+
+    // ✅ PHASE 6: Detokenize with context for logging
+    const decoded = detokenizeId(twinToken, {
+      userId: req.user.id,
+      endpoint: 'checkTwinOwner'
+    });
+
+    if (!decoded || decoded.type !== 'twin') {
+      logger.warn('checkTwinOwner: Invalid twin token', {
+        tokenLength: twinToken.length,
+        userId: req.user.id,
+        path: req.path
+      });
+      return res.json({ isOwner: false });
+    }
+
+    const twinId = decoded.id;
     
     const twinResult = await db.query(`
       SELECT "userId" FROM "Twin" WHERE id = $1
     `, [twinId]);
 
     if (twinResult.rows.length === 0) {
-      return res.json({
-        isOwner: false
-      });
+      return res.json({ isOwner: false });
     }
 
     const isOwner = twinResult.rows[0].userId === req.user.id;
 
-    res.json({
-      isOwner
-    });
+    return res.json({ isOwner });
   } catch (error) {
     logger.error('Check twin owner error:', error);
-    res.json({
-      isOwner: false
-    });
+    return res.json({ isOwner: false });
   }
 };

@@ -3,6 +3,7 @@ import { db } from '../config/database';
 import { logger } from '../config/logger';
 import { AppError, createError } from '../utils/errors';
 import { handleControllerError } from '../utils/errorHandler';
+import { tokenizeId } from '../utils/idTokenization';
 
 /**
  * Landing page - Public home page
@@ -94,6 +95,12 @@ export async function getPublicProfile(req: any, res: Response) {
     
     // Check if viewer is the owner
     const isOwner = userId && userId === twin.userId;
+    const isOwnTwin = isOwner; // ✅ NEW: Alias for clarity
+    
+    // ✅ NEW: Calculate disabled flags (inverse of allow flags)
+    const likesDisabled = !(twin.allowLikes ?? true);
+    const followsDisabled = !(twin.allowFollows ?? true);
+    const sharesDisabled = !(twin.allowShares ?? true);
     
     // ✅ FIX: Get user's like/follow status (if logged in)
     let hasLiked = false;
@@ -110,14 +117,18 @@ export async function getPublicProfile(req: any, res: Response) {
     }
     
     // Ensure userName and userHandle are available
-    const creatorName = twin.userName || twin.userHandle || 'Unknown';
+
+    
+    // ✅ PHASE 2: Tokenize twin.id before passing to view
+    const twinPublicId = tokenizeId(twin.id, 'twin');
     
     // Render public profile page
     res.render('public-profile', {
       title: `@${handle} - AI Twin`,
       user: req.user || null,
       twin: {
-        id: twin.id,
+        id: twin.id, // Keep for internal use if needed, but don't expose in JS
+        publicId: twinPublicId, // ✅ Add publicId token
         publicHandle: twin.publicHandle,
         bio: twin.bio,
         profileImage: twin.profileImage,
@@ -134,16 +145,20 @@ export async function getPublicProfile(req: any, res: Response) {
         userHandle: twin.userHandle || 'Unknown',
         userName: twin.userName || twin.userHandle || 'Unknown',
         isOwner: isOwner,
+        isOwnTwin: isOwnTwin,  // ✅ NEW: Add isOwnTwin flag
+        likesDisabled: likesDisabled,  // ✅ NEW: Add disabled flags
+        followsDisabled: followsDisabled,  // ✅ NEW
+        sharesDisabled: sharesDisabled,  // ✅ NEW
         hasLiked: hasLiked,  // ✅ ADD: Include initial like state
         hasFollowed: hasFollowed  // ✅ ADD: Include initial follow state
       },      
+      twinPublicId: twinPublicId, // ✅ Pass tokenized ID separately for JS
       viewer: req.user ? {
         id: req.user.id,
         handle: req.user.handle
       } : null,
       csrfToken: res.locals['csrfToken']
     });
-
   } catch (error) {
     logger.error('Public profile error:', {
       error: error instanceof Error ? error.message : 'Unknown error',

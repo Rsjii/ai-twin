@@ -64,8 +64,8 @@ export const createError = {
   validation: (message: string, details?: any) => 
     new AppError(400, message, ErrorCodes.VALIDATION_ERROR, details),
   
-  unauthorized: (message: string = 'Authentication required') => 
-    new AppError(401, message, ErrorCodes.UNAUTHORIZED),
+  unauthorized: (message: string = 'Authentication required', errorCode?: string) => 
+    new AppError(401, message, errorCode || ErrorCodes.UNAUTHORIZED),
   
   forbidden: (message: string = 'Access denied') => 
     new AppError(403, message, ErrorCodes.FORBIDDEN),

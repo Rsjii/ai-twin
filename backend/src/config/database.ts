@@ -337,7 +337,28 @@ export const twinQueries = {
 
   findByUserId: async (userId: string) => {
     const result = await db.query(
-      'SELECT id, "userId", "styleVector", "sampleReply", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE "userId" = $1',
+      `SELECT
+        id,
+        "userId",
+        "styleVector",
+        "sampleReply",
+        "isPublic",
+        "publicHandle",
+        bio,
+        "profileImage",
+        verified,
+        "likeCount",
+        "followCount",
+        "chatCount",
+        "createdAt",
+        "showChatHistory",
+        "requireLogin",
+        "blockNonLoggedUsers",
+        "allowLikes",
+        "allowFollows",
+        "allowShares"
+      FROM "Twin"
+      WHERE "userId" = $1`,
       [userId]
     );    
     return result.rows;
@@ -361,7 +382,29 @@ export const twinQueries = {
 
   findById: async (twinId: string) => {
     const result = await db.query(
-      'SELECT id, "userId", "styleVector", "sampleReply", "instructions", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE id = $1',
+      `SELECT
+        id,
+        "userId",
+        "styleVector",
+        "sampleReply",
+        "instructions",
+        "isPublic",
+        "publicHandle",
+        bio,
+        "profileImage",
+        verified,
+        "likeCount",
+        "followCount",
+        "chatCount",
+        "createdAt",
+        "showChatHistory",
+        "requireLogin",
+        "blockNonLoggedUsers",
+        "allowLikes",
+        "allowFollows",
+        "allowShares"
+      FROM "Twin"
+      WHERE id = $1`,
       [twinId]
     );    
     return result.rows[0];
@@ -729,6 +772,22 @@ export const publicChatQueries = {
     );
     return result.rows; // Return all chats, not just one
   },
+
+    // ✅ NEW: Find latest public chat for a twin + user (canonical default thread)
+    findLatestByTwinAndUser: async (twinId: string, userId: string) => {
+      const result = await db.query(
+        `
+        SELECT *
+        FROM "PublicChat"
+        WHERE "twinId" = $1
+          AND "userId" = $2
+        ORDER BY "lastActivity" DESC NULLS LAST, "createdAt" DESC
+        LIMIT 1
+        `,
+        [twinId, userId]
+      );
+      return result.rows[0] || null;
+    },
 
   findAllByTwinAndVisitor: async (twinId: string, visitorId?: string) => {
     const result = await db.query(

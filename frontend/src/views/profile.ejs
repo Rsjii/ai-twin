@@ -1164,7 +1164,313 @@
             }
         });
 
-        // ... rest of existing code ...
+            // ✅ FIX: Privacy settings change detection and button enable/disable
+            const savePrivacyBtn = document.getElementById('savePrivacySettingsBtn');
+            const privacyToggles = document.querySelectorAll('.privacy-toggle');
+            
+            // Get twinId from EJS (passed from backend)
+            const currentTwinId = '<%= typeof twinId !== "undefined" && twinId ? twinId : "" %>';
+            
+            if (!currentTwinId) {
+                console.error('Twin ID not found');
+                if (savePrivacyBtn) {
+                    savePrivacyBtn.disabled = true;
+                    savePrivacyBtn.textContent = 'No Twin Found';
+                }
+            }
+            
+            // Store initial values
+            const initialValues = {
+                showChatHistory: document.getElementById('showChatHistory')?.checked ?? true,
+                requireLogin: document.getElementById('requireLogin')?.checked ?? false,
+                blockNonLoggedUsers: document.getElementById('blockNonLoggedUsers')?.checked ?? false,
+                allowLikes: document.getElementById('allowLikes')?.checked ?? true,
+                allowFollows: document.getElementById('allowFollows')?.checked ?? true,
+                allowShares: document.getElementById('allowShares')?.checked ?? true
+            };
+            
+            // Function to check if values changed
+            function checkForChanges() {
+                if (!currentTwinId) return; // Don't enable if no twinId
+                
+                const currentValues = {
+                    showChatHistory: document.getElementById('showChatHistory')?.checked ?? true,
+                    requireLogin: document.getElementById('requireLogin')?.checked ?? false,
+                    blockNonLoggedUsers: document.getElementById('blockNonLoggedUsers')?.checked ?? false,
+                    allowLikes: document.getElementById('allowLikes')?.checked ?? true,
+                    allowFollows: document.getElementById('allowFollows')?.checked ?? true,
+                    allowShares: document.getElementById('allowShares')?.checked ?? true
+                };
+                
+                const hasChanges = 
+                    currentValues.showChatHistory !== initialValues.showChatHistory ||
+                    currentValues.requireLogin !== initialValues.requireLogin ||
+                    currentValues.blockNonLoggedUsers !== initialValues.blockNonLoggedUsers ||
+                    currentValues.allowLikes !== initialValues.allowLikes ||
+                    currentValues.allowFollows !== initialValues.allowFollows ||
+                    currentValues.allowShares !== initialValues.allowShares;
+                
+                if (hasChanges && savePrivacyBtn) {
+                    // Enable button - change color and make clickable
+                    savePrivacyBtn.disabled = false;
+                    savePrivacyBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    savePrivacyBtn.classList.add('bg-gradient-to-r', 'from-green-500', 'to-emerald-500', 'hover:from-green-600', 'hover:to-emerald-600', 'cursor-pointer', 'shadow-lg', 'hover:shadow-xl', 'transform', 'hover:scale-105');
+                } else if (savePrivacyBtn) {
+                    // Disable button - gray and not clickable
+                    savePrivacyBtn.disabled = true;
+                    savePrivacyBtn.classList.remove('bg-gradient-to-r', 'from-green-500', 'to-emerald-500', 'hover:from-green-600', 'hover:to-emerald-600', 'cursor-pointer', 'shadow-lg', 'hover:shadow-xl', 'transform', 'hover:scale-105');
+                    savePrivacyBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                }
+            }
+            
+            // Add change listeners to all privacy toggles
+            privacyToggles.forEach(toggle => {
+                toggle.addEventListener('change', checkForChanges);
+            });
+            
+            // Initial check (button should be disabled if no changes)
+            checkForChanges();
+            
+            // ✅ FIX: Add click handler to save button with CORRECT endpoint and format
+            if (savePrivacyBtn && currentTwinId) {
+                savePrivacyBtn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    
+                    // Don't proceed if button is disabled
+                    if (savePrivacyBtn.disabled || !currentTwinId) {
+                        return;
+                    }
+                    
+                    // Disable button during submission
+                    savePrivacyBtn.disabled = true;
+                    const originalText = savePrivacyBtn.textContent;
+                    savePrivacyBtn.textContent = 'Saving...';
+                    
+                    try {
+                        const settings = {
+                            showChatHistory: document.getElementById('showChatHistory')?.checked ?? true,
+                            requireLogin: document.getElementById('requireLogin')?.checked ?? false,
+                            blockNonLoggedUsers: document.getElementById('blockNonLoggedUsers')?.checked ?? false,
+                            allowLikes: document.getElementById('allowLikes')?.checked ?? true,
+                            allowFollows: document.getElementById('allowFollows')?.checked ?? true,
+                            allowShares: document.getElementById('allowShares')?.checked ?? true
+                        };
+                        
+                        // ✅ FIX: Use correct endpoint and method
+                        const response = await fetch('/api/privacy/settings', {
+                            method: 'PUT',  // ✅ Changed from POST to PUT
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': '<%= csrfToken %>'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                twinId: currentTwinId,  // ✅ Add twinId to request body
+                                settings: settings      // ✅ Wrap settings in settings object
+                            })
+                        });
+                        
+                        // ✅ FIX: Check if response is JSON before parsing
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            const text = await response.text();
+                            console.error('Non-JSON response:', text.substring(0, 200));
+                            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                        }
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok && result.success) {
+                            showNotification('Privacy settings updated successfully!', 'success');
+                            
+                            // Update initial values to current values (so button disables again)
+                            Object.assign(initialValues, settings);
+                            checkForChanges(); // This will disable the button again
+                            
+                            // ✅ FIX ISSUE 3: Preserve current tab/subtab on reload
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const currentTab = urlParams.get('tab') || 'profile';
+                            const currentSubtab = urlParams.get('subtab') || 'privacy';
+                            
+                            let reloadUrl = `/profile?tab=${currentTab}`;
+                            if (currentSubtab) {
+                                reloadUrl += `&subtab=${currentSubtab}`;
+                            }
+                            
+                            setTimeout(() => {
+                                window.location.href = reloadUrl; // Preserve URL params
+                            }, 1500);
+                        } else {
+                            showNotification(result.error || 'Failed to update privacy settings', 'error');
+                            // Re-enable button on error
+                            checkForChanges();
+                        }
+                    } catch (error) {
+                        console.error('Privacy settings update error:', error);
+                        showNotification(error.message || 'Network error. Please try again.', 'error');
+                        // Re-enable button on error
+                        checkForChanges();
+                    } finally {
+                        savePrivacyBtn.textContent = originalText;
+                    }
+                });
+            }    
+            
+                    // ✅ BLOCKED USERS: Load + Block + Unblock logic
+        (function initBlockedUsers() {
+            const currentTwinId = '<%= typeof twinId !== "undefined" && twinId ? twinId : "" %>';
+            const blockedUsersList = document.getElementById('blockedUsersList');
+            const blockUserBtn = document.getElementById('blockUserBtn');
+
+            if (!currentTwinId || !blockedUsersList || !blockUserBtn) {
+                return; // No twin / no UI → nothing to do
+            }
+
+            // Render blocked users in the list
+            function renderBlockedUsers(users) {
+                blockedUsersList.innerHTML = '';
+
+                if (!users || users.length === 0) {
+                    blockedUsersList.innerHTML = `
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            No users are blocked yet.
+                        </p>
+                    `;
+                    return;
+                }
+
+                users.forEach(user => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700';
+
+                    const name = user.name || '';
+                    const handle = user.handle ? `@${user.handle}` : '';
+                    const label = (handle && name) ? `${handle} (${name})` : (handle || name || 'Unknown user');
+
+                    item.innerHTML = `
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">${label}</span>
+                        </div>
+                        <button 
+                            type="button"
+                            class="text-xs px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            data-unblock-user-id="${user.id}"
+                        >
+                            Unblock
+                        </button>
+                    `;
+
+                    blockedUsersList.appendChild(item);
+                });
+            }
+
+            // Load blocked users from backend
+            async function loadBlockedUsers() {
+                try {
+                    const response = await fetch(`/api/privacy/settings/${currentTwinId}`, {
+                        credentials: 'include'
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.success && data.settings) {
+                        renderBlockedUsers(data.settings.blockedUsers || []);
+                    } else {
+                        console.error('Failed to load blocked users:', data);
+                        blockedUsersList.innerHTML = `
+                            <p class="text-sm text-red-500">
+                                Failed to load blocked users.
+                            </p>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error loading blocked users:', error);
+                    blockedUsersList.innerHTML = `
+                        <p class="text-sm text-red-500">
+                            Failed to load blocked users.
+                        </p>
+                    `;
+                }
+            }
+
+            // Handle "Block User" click
+            blockUserBtn.addEventListener('click', async function (e) {
+                e.preventDefault();
+                if (!currentTwinId) return;
+
+                const input = prompt('Enter the handle or email of the user you want to block:');
+                if (!input || !input.trim()) {
+                    return;
+                }
+
+                const payload = {
+                    twinId: currentTwinId,
+                    userHandle: input.trim()   // backend will resolve handle/email → userId
+                };
+
+                try {
+                    const response = await fetch('/api/privacy/block', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': '<%= csrfToken %>'
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        showNotification('User blocked successfully.', 'success');
+                        await loadBlockedUsers();
+                    } else {
+                        showNotification(data.error || 'Failed to block user.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Block user error:', error);
+                    showNotification('Network error. Please try again.', 'error');
+                }
+            });
+
+            // Handle "Unblock" clicks inside the list (event delegation)
+            blockedUsersList.addEventListener('click', async function (e) {
+                const btn = e.target.closest('button[data-unblock-user-id]');
+                if (!btn) return;
+
+                e.preventDefault();
+                const userId = btn.getAttribute('data-unblock-user-id');
+                if (!userId) return;
+
+                if (!confirm('Unblock this user?')) return;
+
+                try {
+                    const response = await fetch('/api/privacy/unblock', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': '<%= csrfToken %>'
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({ twinId: currentTwinId, userId })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        showNotification('User unblocked successfully.', 'success');
+                        await loadBlockedUsers();
+                    } else {
+                        showNotification(data.error || 'Failed to unblock user.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Unblock user error:', error);
+                    showNotification('Network error. Please try again.', 'error');
+                }
+            });
+
+            // Initial load
+            loadBlockedUsers();
+        })();
     </script>
 
     <!--Footer-->

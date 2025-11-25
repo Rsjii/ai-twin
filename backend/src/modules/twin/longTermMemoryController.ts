@@ -1,9 +1,10 @@
 import { Response, NextFunction } from 'express';
 import { memoryService } from '../../services/memoryService';
-import { AppError, createError } from '../../utils/errors';
+import { AppError, createError, ErrorCodes } from '../../utils/errors';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { generateId } from '../../utils/idGenerator';
 import { handleControllerError } from '../../utils/errorHandler';
+import { detokenizeId } from '../../utils/idTokenization';
 
 /**
  * Get all long-term memories for a twin
@@ -11,7 +12,13 @@ import { handleControllerError } from '../../utils/errorHandler';
  */
 export const getLongTermMemories = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    const { id: twinToken } = req.params;
+    //Phase 3: Detokenize twinToken
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const { category, limit = 20, query } = req.query;
     const userId = req.user?.id || req.userId;
     
@@ -88,7 +95,13 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
  */
 export const addLongTermMemory = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    const { id: twinToken } = req.params;
+    //Phase 3: Detokenize twinToken
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const { key, value, category = 'fact' } = req.body;
     const userId = req.user?.id || req.userId;
     
@@ -130,7 +143,13 @@ export const addLongTermMemory = async (req: any, res: Response, next: NextFunct
  */
 export const updateLongTermMemory = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId, key } = req.params;
+    const { id: twinToken, key } = req.params;
+    //Phase 3: Detokenize twinToken
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const { value, category } = req.body;
     const userId = req.user?.id || req.userId;
     
@@ -169,7 +188,13 @@ export const updateLongTermMemory = async (req: any, res: Response, next: NextFu
  */
 export const deleteLongTermMemory = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId, key } = req.params;
+    const { id: twinToken, key } = req.params;
+    //Phase 3: Detokenize twinToken
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const userId = req.user?.id || req.userId;
     
     if (!userId) {

@@ -271,7 +271,8 @@
 
     <script>
         let currentChatId = null;
-        let currentTwinId = '<%= twin.id %>';
+        // ✅ PHASE 2: Use tokenized twinPublicId instead of raw twin.id
+        let currentTwinId = '<%= typeof twinPublicId !== 'undefined' ? twinPublicId : (twin.publicId || '') %>';
         let visitorId = null;
         let isChatting = false;
     
@@ -295,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Login Required</h3>
                 <p class="text-gray-600 dark:text-gray-300 mb-4">You need to login to chat with this twin.</p>
-                <a href="/auth?redirect=/public-twin/chat/<%= twin.id %>" class="inline-block bg-blue-600 dark:bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold">
+                <a href="/auth?redirect=/public-twin/chat/<%= twinPublicId %>" class="inline-block bg-blue-600 dark:bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold">
                     Go to Login
                 </a>
             </div>
@@ -327,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 <% } %>
 
-// ✅ PHASE 2: Check if user is trying to chat with their own twin
+// ✅ PHASE 2: Check if user is trying to chat with own twin
 <% if (typeof user !== 'undefined' && user && typeof twin !== 'undefined' && twin) { %>
     <%
         // Check if this twin belongs to the current user
@@ -517,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             currentChatId = '<%= initialChatId %>';
                             await switchToPublicChat(currentChatId);
                         } else {
-                            currentChatId = data.chats[0].id;
+                            currentChatId = data.chats[0].publicId;
                             await switchToPublicChat(currentChatId);
                         }
                     } else if (!data.chats || data.chats.length === 0 && !currentChatId) {
@@ -563,29 +564,30 @@ document.addEventListener('DOMContentLoaded', function() {
             
             try {
                 container.innerHTML = chatsToDisplay.map(chat => `
-    <div class="chat-item p-3 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg relative group ${chat.id === currentChatId ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700' : ''}" data-chat-id="${chat.id}">
+    <div class="chat-item p-3 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg relative group ${chat.publicId === currentChatId ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700' : ''}" data-chat-id="${chat.publicId}">
         <div class="flex justify-between items-start min-w-0">
             <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between gap-2 mb-1 min-w-0">
-                    <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.id === currentChatId ? 'text-blue-700 dark:text-blue-400' : 'text-gray-900 dark:text-white'}" id="public-chat-title-${chat.id}">${escapeHtml(chat.title || 'Chat #' + chat.id.slice(-6))}</h4>
+                    <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.publicId === currentChatId ? 'text-blue-700 dark:text-blue-400' : 'text-gray-900 dark:text-white'}" id="public-chat-title-${chat.publicId}">${escapeHtml(chat.title || 'Chat #' + (chat.publicId ? chat.publicId.slice(-6) : ''))}</h4>
                     <div class="flex items-center gap-1 flex-shrink-0">
-                        <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 pointer-events-auto" data-chat-id="${chat.id}" title="Edit title">
+                        <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Edit title">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                             </svg>
                         </button>
-                        <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.id}" title="Delete chat">
+                        <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Delete chat">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
                         </button>
                     </div>
                 </div>
-                ${chat.lastMessage ? `
-                    <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${escapeHtml(chat.lastMessage.content)}</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 chat-timestamp" data-timestamp="${escapeHtml(chat.lastMessage.createdAt)}" data-relative-time="${escapeHtml(chat.lastMessage.relativeTime || '')}"></p>                                    
-                ` : '<p class="text-xs text-gray-500 dark:text-gray-400">No messages yet</p>'}
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${chat.lastMessage ? (typeof chat.lastMessage === 'string' ? (chat.lastMessage.length > 50 ? chat.lastMessage.substring(0, 50) + '...' : chat.lastMessage) : (chat.lastMessage.content && chat.lastMessage.content.length > 50 ? chat.lastMessage.content.substring(0, 50) + '...' : (chat.lastMessage.content || 'No messages yet'))) : 'No messages yet'}</p>
             </div>
+        </div>
+        <div class="flex items-center justify-between mt-2">
+            <span class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded">${chat.messageCount || 0} messages</span>
+            ${chat.lastMessage ? `<div class="text-xs text-gray-400 dark:text-gray-500 chat-timestamp" data-timestamp="${escapeHtml(chat.lastMessage.createdAt)}" data-relative-time="${escapeHtml(chat.lastMessage.relativeTime || '')}"></div>` : ''}
         </div>
     </div>
 `).join('');
@@ -652,6 +654,14 @@ if (window.TimeUtils) {
         async function switchToPublicChat(chatId) {
             try {
                 currentChatId = chatId;
+
+                        // ✅ OPTIONAL: Update URL for logged-in users (for back button consistency)
+        const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
+        if (isLoggedIn) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('chatId', chatId);
+            window.history.replaceState({}, '', url.toString());
+        }
                 
                 // ✅ Hide initial loading state
                 const initialLoading = document.getElementById('initialLoadingState');
@@ -896,7 +906,7 @@ async function createNewPublicChat() {
         // Store draft chat info in sessionStorage
         sessionStorage.setItem('draftPublicChat', JSON.stringify({
             chatId: draftChatId,
-            twinId: currentTwinId,
+            twinToken: currentTwinId,
             visitorId: visitorId,
             createdAt: Date.now()
         }));
@@ -947,23 +957,34 @@ async function createNewPublicChat() {
                 // For logged in users: Load chat history
                 await loadPublicChatHistory();
                 
-                // ✅ Don't auto-create chat - let user send first message
-                // If no existing chat, create draft instead
+ 
+                // ✅ NEW: If no chatId set yet, get canonical chat from history
                 if (!currentChatId) {
-                    // Check if there's a draft chat
-                    const draftData = sessionStorage.getItem('draftPublicChat');
-                    if (draftData) {
-                        const draft = JSON.parse(draftData);
-                        currentChatId = draft.chatId;
-                    } else {
-                        // Create draft chat (not saved to DB yet)
-                        await createNewPublicChat();
+                    // History should have loaded the canonical chat
+                    const historyList = document.getElementById('publicChatHistoryList');
+                    if (historyList) {
+                        const firstChat = historyList.querySelector('[data-chat-id]');
+                        if (firstChat) {
+                            const canonicalChatId = firstChat.getAttribute('data-chat-id');
+                            if (canonicalChatId) {
+                                currentChatId = canonicalChatId;
+                                // ✅ Update URL to include canonical chatId (for back button stability)
+                                const url = new URL(window.location.href);
+                                url.searchParams.set('chatId', canonicalChatId);
+                                window.history.replaceState({}, '', url.toString());
+                                // Load the canonical chat
+                                await switchToPublicChat(canonicalChatId);
+                            }
+                        }
                     }
+                } else {
+                    // ChatId already set, just switch to it
+                    await switchToPublicChat(currentChatId);
                 }
             } catch (error) {
-                console.error('Error starting chat:', error);
+                console.error('Error starting public chat:', error);
             }
-        }
+        }        
 
         // Display messages in chat
         function displayMessages(messages) {
@@ -1151,7 +1172,7 @@ async function sendMessage() {
                          },
                          credentials: 'include',
                          body: JSON.stringify({
-                             twinId: twinId,
+                             twinToken: currentTwinId,
                              visitorId: visitorIdToUse
                          })
                      });
@@ -1194,7 +1215,7 @@ async function sendMessage() {
                              },
                              credentials: 'include',
                              body: JSON.stringify({
-                                 twinId: draft.twinId,
+                                 twinToken: draft.twinToken,
                                  visitorId: draft.visitorId
                              })
                          });
@@ -1228,7 +1249,7 @@ async function sendMessage() {
                              },
                              credentials: 'include',
                              body: JSON.stringify({
-                                 twinId: twinId,
+                                 twinToken: currentTwinId,
                                  visitorId: visitorIdToUse
                              })
                          });
@@ -1337,7 +1358,7 @@ async function sendMessage() {
                         },
                         credentials: 'include',
                         body: JSON.stringify({
-                            twinId: twinId,
+                            twinToken: currentTwinId,
                             visitorId: visitorIdToUse
                         })
                      });
@@ -1493,6 +1514,17 @@ async function sendMessage() {
             
             // ✅ For logged out users: Hide all loading states immediately
             if (!isLoggedIn) {
+
+                sessionStorage.removeItem('draftPublicChat');
+
+                 // ✅ NEW: Remove chatId from URL for anonymous users (prevent reuse)
+                 const url = new URL(window.location.href);
+                if (url.searchParams.has('chatId')) {
+                    url.searchParams.delete('chatId');
+                    window.history.replaceState({}, '', url.toString());
+                }
+                
+
                 // Hide initial loading state
                 const initialLoading = document.getElementById('initialLoadingState');
                 if (initialLoading) initialLoading.classList.add('hidden');
@@ -1521,13 +1553,20 @@ async function sendMessage() {
             // If initialChatId provided, load that chat
             if ('<%= initialChatId || "" %>') {
                 currentChatId = '<%= initialChatId %>';
+
+                 // ✅ NEW: Update URL to include chatId (if not already present)
+                 const url = new URL(window.location.href);
+                if (!url.searchParams.has('chatId')) {
+                    url.searchParams.set('chatId', '<%= initialChatId %>');
+                    window.history.replaceState({}, '', url.toString());
+                }
                 
                 // ✅ Check if this is user's own twin
                 const isOwnTwin = <%= typeof user !== 'undefined' && user && twin.userId === user.id ? 'true' : 'false' %>;
                 
                 if (isOwnTwin) {
                     // For own twin: Load chat history in read-only mode
-                    loadChatHistoryForViewing('<%= initialChatId %>');
+                    await switchToPublicChat('<%= initialChatId %>');
                 } else {
                     // For other users: Normal chat loading
                     switchToPublicChat('<%= initialChatId %>');

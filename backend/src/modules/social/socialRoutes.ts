@@ -18,7 +18,7 @@ import { requireJWTFromCookie, extractJWTFromCookie } from '../../middleware/jwt
 const router = Router();
 
 // Public routes (no authentication required, but extract JWT if available)
-router.get('/stats/:twinId', extractJWTFromCookie, getTwinStats);
+router.get('/stats/:twinToken', extractJWTFromCookie, getTwinStats);
 
 // Protected routes (authentication required)
 router.post('/like', requireJWTFromCookie, likeTwin);
@@ -29,8 +29,8 @@ router.post('/toggle-like', requireJWTFromCookie, toggleLike);
 router.post('/toggle-follow', requireJWTFromCookie, toggleFollow);
 router.get('/my-likes', requireJWTFromCookie, getUserLikedTwins);
 router.get('/my-follows', requireJWTFromCookie, getUserFollowedTwins);
-router.get('/twin/:twinId/likers', extractJWTFromCookie, getTwinLikers);
-router.get('/twin/:twinId/followers', extractJWTFromCookie, getTwinFollowers);
-router.get('/twin/:twinId/chatters', extractJWTFromCookie, getTwinChatters);
+router.get('/twin/:twinToken/likers', extractJWTFromCookie, getTwinLikers);
+router.get('/twin/:twinToken/followers', extractJWTFromCookie, getTwinFollowers);
+router.get('/twin/:twinToken/chatters', extractJWTFromCookie, getTwinChatters);
 
 export default router;

@@ -9,12 +9,12 @@ import { z } from 'zod';
 import { createError, ErrorCodes } from '../../utils/errors';
 import * as chatUtils from './chatSharedUtils';
 import { handleControllerError, handleErrorWithSuccessFormat } from '../../utils/errorHandler';
-import { QUERY_LIMITS } from '../../config/constants';
 import { formatRelativeTime, normalizeTimestamp } from '../../utils/timestampUtils';
+import { detokenizeId, sanitizePublicChat, sanitizeTwin, tokenizeId } from '../../utils/idTokenization';
 
 // Validation schemas
 const startPublicChatSchema = z.object({
-  twinId: z.string().min(1, 'Twin ID is required'),
+  twinToken: z.string().min(1, 'Twin token is required'),
   visitorId: z.string().nullish()
 });
 
@@ -37,7 +37,16 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
 
   try {
     const parsed = startPublicChatSchema.parse(req.body);
-    twinId = parsed.twinId;
+    const twinToken = parsed.twinToken;
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+
+    const twinId = decoded.id;
+
     visitorId = parsed.visitorId;
 
     // Get userId if user is logged in
@@ -71,9 +80,9 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
       
       return res.json({
         success: true,
-        chatId: publicChat.id,
+        chatId: tokenizeId(publicChat.id, 'chat'),
         twin: {
-          id: defaultTwin.id,
+          publicId: tokenizeId(defaultTwin.id, 'twin'),
           sampleReply: defaultTwin.sampleReply
         }
       });
@@ -117,37 +126,64 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
           success: false,
           error: 'You cannot chat with your own twin in public chat. Please use Enhanced Chat.',
           errorCode: 'OWN_TWIN_CHAT',
-          redirectUrl: `/chat-enhanced?twinId=${twinId}`
+          redirectUrl: `/chat-enhanced?twinId=${tokenizeId(twinId, 'twin')}`
         });
       }
     }
 
-    // ✅ For lazy creation: Always create new chat (don't check for existing)    
-    // This ensures each draft chat gets a fresh chat when first message is sent
-    logger.info(`[startPublicChat] Creating new chat - TwinId: ${twinId}, UserId: ${userId || 'null'}, VisitorId: ${finalVisitorId || 'null'}`);
-    
+    // ✅ NEW: Reuse existing chat for logged-in users, always create new for anonymous
     let publicChat;
-    try {
-      publicChat = await publicChatQueries.create(twinId, finalVisitorId || undefined, userId || undefined);
-      logger.info(`[startPublicChat] Chat created successfully - ChatId: ${publicChat.id}, UserId set: ${publicChat.userId || 'null'}`);
-    } catch (createError: any) {
-      // ✅ More detailed error logging
-      const createErrorMessage = createError?.message || String(createError) || 'Unknown create error';
-      logger.error('[startPublicChat] Failed to create chat:', {
-        error: createErrorMessage,
-        errorType: createError?.constructor?.name,
-        errorCode: createError?.code,
-        errorDetail: createError?.detail,
-        errorConstraint: createError?.constraint,
-        stack: createError?.stack,
+
+    if (userId) {
+      // Logged-in user: reuse canonical default thread per (user, twin)
+      publicChat = await publicChatQueries.findLatestByTwinAndUser(twinId, userId);
+
+      if (publicChat) {
+        logger.info('[startPublicChat] Reusing existing public chat for user + twin', {
+          twinId,
+          userId,
+          chatId: publicChat.id,
+        });
+      }
+    }
+    // Anonymous users: don't reuse, always create new (no check for existing)
+
+    // If no existing chat found (logged-in) or anonymous → create new
+    if (!publicChat) {
+      logger.info('[startPublicChat] Creating NEW public chat', {
         twinId,
         userId: userId || 'null',
         visitorId: finalVisitorId || 'null',
-        // ✅ Log full error object
-        fullError: JSON.stringify(createError, Object.getOwnPropertyNames(createError))
       });
-      
-      throw createError; // Re-throw to be caught by outer catch
+
+      try {
+        publicChat = await publicChatQueries.create(
+          twinId,
+          finalVisitorId || undefined,
+          userId || undefined
+        );
+        logger.info('[startPublicChat] Chat created successfully', {
+          chatId: publicChat.id,
+          userId: publicChat.userId || 'null',
+        });
+      } catch (createError: any) {
+        // ✅ More detailed error logging
+        const createErrorMessage = createError?.message || String(createError) || 'Unknown create error';
+        logger.error('[startPublicChat] Failed to create chat:', {
+          error: createErrorMessage,
+          errorType: createError?.constructor?.name,
+          errorCode: createError?.code,
+          errorDetail: createError?.detail,
+          errorConstraint: createError?.constraint,
+          stack: createError?.stack,
+          twinId,
+          userId: userId || 'null',
+          visitorId: finalVisitorId || 'null',
+          fullError: JSON.stringify(createError, Object.getOwnPropertyNames(createError))
+        });
+        
+        throw createError; // Re-throw to be caught by outer catch
+      }
     }
 
     // Log event (don't fail if this fails)
@@ -155,7 +191,7 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
       try {
         await EventLogger.logUserEvent(userId, 'public_chat_started', {
           twinId,
-          chatId: publicChat.id
+          chatId: publicChat.id,
         });
       } catch (eventError) {
         logger.warn('[startPublicChat] Failed to log event:', eventError);
@@ -164,22 +200,22 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
       try {
         await EventLogger.logUserEvent(finalVisitorId, 'public_chat_started', {
           twinId,
-          chatId: publicChat.id
+          chatId: publicChat.id,
         });
       } catch (eventError) {
         logger.warn('[startPublicChat] Failed to log event:', eventError);
       }
     }
 
-    res.json({
+    // ✅ Response: always return the chatId token (stable for logged-in, new for anonymous)
+    return res.json({
       success: true,
-      chatId: publicChat.id,
+      chatId: tokenizeId(publicChat.id, 'chat'),
       twin: {
-        id: twin.id,
-        sampleReply: twin.sampleReply
-      }
-    });
-
+        publicId: tokenizeId(twin.id, 'twin'),
+        sampleReply: twin.sampleReply,
+      },
+    });    
   } catch (error: any) {
     // ✅ Better error logging with proper serialization
     const errorMessage = error?.message || String(error) || 'Unknown error';
@@ -210,8 +246,19 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
 // Send message in public chat
 export const sendPublicMessage = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { chatId } = req.params;
+    const { chatToken } = req.params;
     const { message } = sendPublicMessageSchema.parse(req.body);
+
+    if (!chatToken) {
+      throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
+    }
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     // ✅ Use shared validation
     try {
@@ -262,7 +309,7 @@ if (chat.requireLogin && !userId) {
           success: false,
           error: 'You cannot chat with your own twin in public chat. Please use Enhanced Chat.',
           errorCode: 'OWN_TWIN_CHAT',
-          redirectUrl: `/chat-enhanced?twinId=${chat.twinId}`
+          redirectUrl: `/chat-enhanced?twinId=${tokenizeId(chat.twinId, 'twin')}`
         });
       }
     }
@@ -460,8 +507,19 @@ if (chat.requireLogin && !userId) {
 // Get public chat history
 export const getPublicChatHistory = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { chatId } = req.params;
+    const { chatToken } = req.params;
     const userId = req.user?.id; //Get userId if logged in
+
+    if (!chatToken) {
+      throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
+    }
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     // Get public chat (LEFT JOIN so it works even if twin doesn't exist)
     const chatResult = await db.query(`
@@ -547,8 +605,8 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
     res.json({
       success: true,
       chat: {
-        id: chat.id,
-        twinId: chat.twinId,
+        publicId: tokenizeId(chat.id, 'chat'),
+        publicTwinId: tokenizeId(chat.twinId, 'twin'),
         visitorId: chat.visitorId,
         messageCount: chat.messageCount,
         twinHandle: chat.publicHandle,
@@ -576,8 +634,15 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
 // Get public chat by twin ID (for starting new chat)
 export const getPublicChatByTwin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { twinId } = req.params;
+    const { twinToken } = req.params;
     const { visitorId } = req.query;
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
 
 // Allow access to public chat - blockNonLoggedUsers only affects discover visibility
 const twinResult = await db.query(`
@@ -594,9 +659,10 @@ const twinResult = await db.query(`
     const twin = twinResult.rows[0];
 
     // Check for existing public chat
-    const existingChat = await publicChatQueries.findByTwinAndVisitor(twinId, visitorId as string);
+    const existingChats = await publicChatQueries.findByTwinAndVisitor(twinId, visitorId as string);
 
-    if (existingChat) {
+    if (existingChats && existingChats.length > 0) {
+      const existingChat = existingChats[0]; // Get first chat
       // Get chat history
       const messagesResult = await db.query(`
         SELECT id, content, sender, "createdAt"
@@ -607,13 +673,19 @@ const twinResult = await db.query(`
 
       return res.json({
         success: true,
-        chatId: existingChat.id,
+        chatId: tokenizeId(existingChat.id, 'chat'),
         twin: {
-          id: twin.id,
+          publicId: tokenizeId(twin.id, 'twin'),
           publicHandle: twin.publicHandle,
           sampleReply: twin.sampleReply
         },
-        messages: messagesResult.rows
+        messages: messagesResult.rows.map(msg => ({
+          id: msg.id,
+          publicChatId: tokenizeId(existingChat.id, 'chat'),
+          content: msg.content,
+          sender: msg.sender,
+          createdAt: msg.createdAt
+        }))
       });
     }
 
@@ -622,7 +694,7 @@ const twinResult = await db.query(`
       success: true,
       chatId: null,
       twin: {
-        id: twin.id,
+        publicId: tokenizeId(twin.id, 'twin'),
         publicHandle: twin.publicHandle,
         sampleReply: twin.sampleReply
       },
@@ -639,9 +711,16 @@ const twinResult = await db.query(`
 // Get all public chats for a visitor with a specific twin
 export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { twinId } = req.params;
+    const { twinToken } = req.params;
     const { visitorId } = req.query;
     const userId = req.user?.id;
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
@@ -720,18 +799,18 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
       `, [twinId, userId || null, visitorId as string || null]);
     }
 
-    const chats = chatsResult.rows.map(chat => ({
-      id: chat.id,
-      messageCount: chat.messageCount || 0,
-      createdAt: normalizeTimestamp(chat.createdAt),
-      lastActivity: normalizeTimestamp(chat.lastActivity),
-      title: chat.title || null,
-      lastMessage: chat.last_message ? {
-        content: chat.last_message,
-        createdAt: normalizeTimestamp(chat.last_message_time),
-        relativeTime: formatRelativeTime(chat.last_message_time)
-      } : null
-    }));
+const chats = chatsResult.rows.map(chat => sanitizePublicChat({
+  id: chat.id,
+  twinId: chat.twinId,
+  userId: chat.userId,
+  visitorId: chat.visitorId,
+  messageCount: chat.messageCount || 0,
+  createdAt: chat.createdAt,
+  lastActivity: chat.lastActivity,
+  title: chat.title || null,
+  last_message: chat.last_message,
+  last_message_time: chat.last_message_time
+}));    
 
     logger.info(`[getPublicChatsByTwin] Returning ${chats.length} chats for twinId: ${twinId}`);
     logger.info(`[getPublicChatsByTwin] First chat sample:`, chats[0] ? JSON.stringify(chats[0]) : 'no chats');
@@ -739,7 +818,7 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
     const responseData = {
       success: true,
       twin: {
-        id: twin.id,
+        publicId: tokenizeId(twin.id, 'twin'),
         publicHandle: twin.publicHandle,
         sampleReply: twin.sampleReply,
         showChatHistory: twin.showChatHistory
@@ -761,7 +840,15 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
 // Create new public chat
 export const createNewPublicChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { twinId, visitorId } = req.body;
+    const { twinToken, visitorId } = req.body;
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+
+    const twinId = decoded.id;
     const userId = req.user?.id; // Get userId if logged in
     logger.info(`[createNewPublicChat] Twin: ${twinId}, UserId: ${userId || 'anonymous'}, VisitorId: ${visitorId || 'none'}`);
 
@@ -784,9 +871,9 @@ export const createNewPublicChat = async (req: AuthenticatedRequest, res: Respon
 
     res.json({
       success: true,
-      chatId: publicChat.id,
+      chatId: tokenizeId(publicChat.id, 'chat'),
       twin: {
-        id: twin.id,
+        publicId: tokenizeId(twin.id, 'twin'),
         sampleReply: twin.sampleReply
       }
     });
@@ -867,33 +954,34 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
 
     logger.info(`[getUserPublicChats] Query returned ${chatsResult?.rows?.length || 0} rows`);
 
-    // Format response
-    const twinChats = chatsResult.rows.map(row => ({
-      twin: {
-        id: row.twinId,
-        publicHandle: row.publicHandle,
-        bio: row.bio,
-        profileImage: row.profileImage,
-        likeCount: row.likeCount || 0,
-        chatCount: row.chatCount || 0,
-        followCount: row.followCount || 0,
-        verified: row.verified || false
-      },
-      latestChat: {
-        id: row.chat_id,
-        messageCount: row.latest_chat_message_count || 0,
-        createdAt: normalizeTimestamp(row.latest_chat_created_at),
-        lastActivity: normalizeTimestamp(row.latest_chat_last_activity),
-        title: row.latest_chat_title
-      },
-      totalChats: parseInt(row.total_chats || '0', 10),
-      totalMessages: parseInt(row.total_messages || '0', 10),
-      lastMessage: row.last_message_content ? {
-        content: row.last_message_content,
-        createdAt: normalizeTimestamp(row.last_message_time),
-        relativeTime: formatRelativeTime(row.last_message_time)
-      } : null
-    }));
+ // Format response - USE SANITIZATION
+ const twinChats = chatsResult.rows.map(row => ({
+  twin: sanitizeTwin({
+    id: row.twinId,
+    publicHandle: row.publicHandle,
+    bio: row.bio,
+    profileImage: row.profileImage,
+    likeCount: row.likeCount || 0,
+    chatCount: row.chatCount || 0,
+    followCount: row.followCount || 0,
+    verified: row.verified || false
+  }),
+  latestChat: sanitizePublicChat({
+    id: row.chat_id,
+    messageCount: row.latest_chat_message_count || 0,
+    createdAt: row.latest_chat_created_at,
+    lastActivity: row.latest_chat_last_activity,
+    title: row.latest_chat_title
+  }),
+  totalChats: parseInt(row.total_chats || '0', 10),
+  totalMessages: parseInt(row.total_messages || '0', 10),
+  lastMessage: row.last_message_content ? {
+    content: row.last_message_content,
+    createdAt: normalizeTimestamp(row.last_message_time),
+    relativeTime: formatRelativeTime(row.last_message_time)
+  } : null
+}));
+
 
     logger.info(`[getUserPublicChats] Found ${twinChats.length} unique twins with chats for userId: ${userId}`);
 
@@ -913,8 +1001,19 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
 // Delete public chat
 export const deletePublicChat = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { chatId } = req.params;
+    const { chatToken } = req.params;
     const userId = req.user?.id; // ✅ FIX: Get userId from req.user
+
+    if (!chatToken) {
+      throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
+    }
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     if (!chatId) {
       return res.status(400).json({
@@ -985,8 +1084,19 @@ export const deletePublicChat = async (req: Request, res: Response, next: NextFu
 // Update public chat title
 export const updatePublicChatTitle = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { chatId } = req.params;
+    const { chatToken } = req.params;
     const { title } = req.body;
+
+    if (!chatToken) {
+      throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
+    }
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     if (!chatId) {
       return res.status(400).json({
@@ -1041,7 +1151,7 @@ export const updatePublicChatTitle = async (req: Request, res: Response, next: N
  */
 export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { twinId } = req.params;
+    const { twinToken } = req.params;
     const userId = req.user?.id;
     const page = parseInt(req.query.page as string) || 1;
     const limit = Math.min(parseInt(req.query.limit as string) || 5, 50);
@@ -1055,9 +1165,16 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
     const search = req.query.search as string | undefined;
     const sortBy = (req.query.sortBy as string) || 'lastActivity'; // 'lastActivity' | 'createdAt' | 'messageCount'
 
-    if (!userId) {
+    if(!userId){
       throw createError.unauthorized('Authentication required');
     }
+
+      // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+      const decoded = detokenizeId(twinToken);
+      if (!decoded || decoded.type !== 'twin') {
+        throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+      }
+      const twinId = decoded.id;
 
     // Verify twin ownership
     const twinResult = await db.query(`
@@ -1177,34 +1294,24 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `, [...params, limit, offset]);    
 
-    const chats = chatsResult.rows.map(chat => ({
+    const chats = chatsResult.rows.map(chat => sanitizePublicChat({
       id: chat.id,
       twinId: chat.twinId,
       userId: chat.userId,
-      visitorId: chat.visitorId || null,
+      visitorId: chat.visitorId,
       messageCount: chat.messageCount || 0,
+      createdAt: chat.createdAt,
+      lastActivity: chat.lastActivity,
       title: chat.title || 'Untitled Chat',
-      createdAt: normalizeTimestamp(chat.createdAt),
-      lastActivity: normalizeTimestamp(chat.lastActivity),
-      user: chat.user_id ? {
-        id: chat.user_id,
-        handle: chat.user_handle,
-        name: chat.user_name,
-        profileImage: chat.user_profile_image
-      } : null,
-      isAnonymous: !chat.userId && (chat.visitorId !== null && chat.visitorId !== undefined),
-      lastMessage: chat.last_message_content ? {
-        content: chat.last_message_content,
-        createdAt: normalizeTimestamp(chat.last_message_time),
-        relativeTime: formatRelativeTime(chat.last_message_time)
-      } : null
-    }));
+      last_message: chat.last_message_content,
+      last_message_time: chat.last_message_time
+    }));    
 
     res.json({
       success: true,
       chats: chats,
       twin: {
-        id: twin.id,
+        publicId: tokenizeId(twin.id, 'twin'),
         publicHandle: twin.publicHandle
       },
       pagination: {
@@ -1231,8 +1338,16 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
 // ✅ NEW: Get public chats grouped by user
 export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { twinId } = req.params;
+    const { twinToken } = req.params;
     const userId = req.user?.id;
+
+    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+
+    const twinId = decoded.id;
     const page = parseInt(req.query.page as string) || 1;
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
     const offset = (page - 1) * limit;
@@ -1445,7 +1560,7 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
 
         return {
           user: {
-            id: userRow.user_id,
+            publicId: tokenizeId(userRow.user_id, 'user'),
             handle: userRow.user_handle,
             name: userRow.user_name,
             profileImage: userRow.user_profile_image
@@ -1453,18 +1568,18 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
           totalChats: parseInt(userRow.total_chats || '0', 10),
           totalMessages: parseInt(userRow.total_messages || '0', 10),
           lastActivity: normalizeTimestamp(userRow.last_activity),
-          chats: userChatsResult.rows.map(chat => ({
+          chats: userChatsResult.rows.map(chat => sanitizePublicChat({
             id: chat.id,
+            twinId: chat.twinId,
+            userId: chat.userId,
+            visitorId: chat.visitorId,
             messageCount: chat.messageCount || 0,
+            createdAt: chat.createdAt,
+            lastActivity: chat.lastActivity,
             title: chat.title || 'Untitled Chat',
-            createdAt: normalizeTimestamp(chat.createdAt),
-            lastActivity: normalizeTimestamp(chat.lastActivity),
-            lastMessage: chat.last_message_content ? {
-              content: chat.last_message_content,
-              createdAt: normalizeTimestamp(chat.last_message_time),
-              relativeTime: formatRelativeTime(chat.last_message_time)
-            } : null
-          }))
+            last_message: chat.last_message_content,
+            last_message_time: chat.last_message_time
+          }))          
         };
       })
     );
@@ -1473,7 +1588,7 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
       success: true,
       users: usersWithChats,
       twin: {
-        id: twin.id,
+        publicId: tokenizeId(twin.id, 'twin'),
         publicHandle: twin.publicHandle
       },
       pagination: {
@@ -1542,7 +1657,7 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
     // ✅ Verify twin ownership
     const isTwinOwner = chat.twin_owner_id === userId;
     if (!isTwinOwner) {
-      throw createError.forbidden('Access denied. Only twin owner can view this chat.', ErrorCodes.ACCESS_DENIED);
+      throw createError.unauthorized('Access denied. Only twin owner can view this chat.');
     }
 
     // Get all messages
@@ -1556,15 +1671,15 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
     res.json({
       success: true,
       chat: {
-        id: chat.id,
-        twinId: chat.twinId,
+        publicId: tokenizeId(chat.id, 'chat'),
+        publicTwinId: tokenizeId(chat.twinId, 'twin'),
         twinHandle: chat.publicHandle,
         title: chat.title || 'Untitled Chat',
         messageCount: chat.messageCount || 0,
         createdAt: normalizeTimestamp(chat.createdAt),
         lastActivity: normalizeTimestamp(chat.lastActivity),
         user: chat.user_id ? {
-          id: chat.user_id,
+          publicId: tokenizeId(chat.user_id, 'user'),
           handle: chat.user_handle,
           name: chat.user_name,
           profileImage: chat.user_profile_image

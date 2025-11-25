@@ -15,20 +15,20 @@ router.get('/my-twins', requireJWTFromCookie, generateCSRFToken, twinPageControl
 router.get('/twin/create', optionalAuth, generateCSRFToken, twinPageController.getTwinCreate);
 
 // Twin AI Edit page
-router.get('/twin/:id/ai-edit', requireJWTFromCookie, generateCSRFToken, twinPageController.getTwinAiEdit);
+router.get('/twin/:twinToken/ai-edit', requireJWTFromCookie, generateCSRFToken, twinPageController.getTwinAiEdit);
 
 // Twin Style Customize page
-router.get('/twin/:id/style-customize', requireJWTFromCookie, generateCSRFToken, twinPageController.getTwinStyleCustomize);
+router.get('/twin/:twinToken/style-customize', requireJWTFromCookie, generateCSRFToken, twinPageController.getTwinStyleCustomize);
 
 // Twin Learning Dashboard page
-router.get('/twin/:id/learning-dashboard', requireJWTFromCookie, generateCSRFToken, twinPageController.getTwinLearningDashboard);
+router.get('/twin/:twinToken/learning-dashboard', requireJWTFromCookie, generateCSRFToken, twinPageController.getTwinLearningDashboard);
 
 // Twin Management page
 router.get('/twin/manage', requireJWTFromCookie, generateCSRFToken, twinManagePageController.getTwinManage);
 
 // Twin Public Chat History page
-router.get('/twin/:id/public-chat-history', requireJWTFromCookie, generateCSRFToken, getTwinPublicChatHistoryPage);
+router.get('/twin/:twinToken/public-chat-history', requireJWTFromCookie, generateCSRFToken, getTwinPublicChatHistoryPage);
 
 // Twin View Chat History page
-router.get('/twin/:twinId/view-chat-history/:chatId', requireJWTFromCookie, generateCSRFToken, getViewPublicChatHistoryPage);
+router.get('/twin/:twinToken/view-chat-history/:chatId', requireJWTFromCookie, generateCSRFToken, getViewPublicChatHistoryPage);
 export default router;

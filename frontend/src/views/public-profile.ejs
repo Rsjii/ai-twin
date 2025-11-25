@@ -162,11 +162,11 @@
                         </svg>
                         <span>Chat Now</span>
                     </button>
-                    <button id="likeBtn" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.allowLikes === false) ? 'opacity-50 cursor-not-allowed pointer-events-none' : '' %>" 
-                        <% if (twin.allowLikes === false) { %>
+                    <button id="likeBtn" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.likesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>" 
+                        <% if (twin.likesDisabled || twin.isOwnTwin) { %>
                             disabled
-                            title="Liking is disabled for this twin"
-                            data-disabled-reason="likes_disabled"
+                            title="<%= twin.isOwnTwin ? 'You cannot like your own twin' : 'Liking is disabled for this twin' %>"
+                            data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'likes_disabled' %>"
                         <% } %>
                     >
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -174,11 +174,11 @@
                         </svg>
                         <span>Like</span>
                     </button>
-                    <button id="followBtn" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.allowFollows === false) ? 'opacity-50 cursor-not-allowed pointer-events-none' : '' %>"
-                        <% if (twin.allowFollows === false) { %>
+                    <button id="followBtn" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.followsDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
+                        <% if (twin.followsDisabled || twin.isOwnTwin) { %>
                             disabled
-                            title="Following is disabled for this twin"
-                            data-disabled-reason="follows_disabled"
+                            title="<%= twin.isOwnTwin ? 'You cannot follow your own twin' : 'Following is disabled for this twin' %>"
+                            data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'follows_disabled' %>"
                         <% } %>
                     >
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -198,23 +198,48 @@
                     </h4>
                     <div class="flex flex-wrap gap-2 sm:gap-3">
                         <div class="flex flex-wrap gap-2 sm:gap-3">
-                            <button data-share-platform="twitter" class="bg-gradient-to-r from-blue-400 to-blue-500 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation">
+                            <button data-share-platform="twitter" class="bg-gradient-to-r from-blue-400 to-blue-500 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
+                                    disabled
+                                    title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
+                                    data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
+                                <% } %>
+                            >
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"></path></svg>
                                 <span>Twitter</span>
                             </button>
-                            <button data-share-platform="facebook" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation">
+                            <button data-share-platform="facebook" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
+                                    disabled
+                                    title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
+                                    data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
+                                <% } %>
+                            >
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h1z"></path></svg>
                                 <span>Facebook</span>
                             </button>
-                            <button data-share-platform="whatsapp" class="bg-gradient-to-r from-green-500 to-green-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation">
+                            <button data-share-platform="whatsapp" class="bg-gradient-to-r from-green-500 to-green-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
+                                    disabled
+                                    title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
+                                    data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
+                                <% } %>
+                            >
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"></path></svg>
                                 <span>WhatsApp</span>
                             </button>
-                            <button data-share-action="copy" class="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation">
+                            <button data-share-action="copy" class="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
+                                    disabled
+                                    title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
+                                    data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
+                                <% } %>
+                            >
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path></svg>
                                 <span>Copy Link</span>
                             </button>
                         </div>                        
+                    </div>                        
                     </div>
                 </div>
             </div>
@@ -262,7 +287,8 @@
 
     <script>
         let currentChatId = null;
-        let currentTwinId = '<%= twin.id %>';
+        // ✅ PHASE 2: Use tokenized twinPublicId instead of raw twin.id
+        let currentTwinId = '<%= typeof twinPublicId !== 'undefined' ? twinPublicId : (twin.publicId || '') %>';
         let visitorId = null;
         let isChatting = false;
         let hasLiked = false;
@@ -270,24 +296,21 @@
 
 // Chat modal functionality
 document.getElementById('chatNowBtn').addEventListener('click', function() {
-    // ✅ Check if login is required and user is not logged in
     const requireLogin = <%= twin.requireLogin ? 'true' : 'false' %>;
     const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
     
     if (requireLogin && !isLoggedIn) {
-        // Show confirmation dialog on profile page
         const shouldLogin = confirm('You need to login to chat with this twin. Do you want to continue to login?');
         
         if (shouldLogin) {
-            // User clicked Yes -> go to auth
-            window.location.href = '/auth?redirect=/public-twin/chat/<%= twin.id %>&message=Please login to chat with this twin';
+            // ✅ PHASE 2: Use token in redirect URL
+            window.location.href = '/auth?redirect=/public-twin/chat/<%= twinPublicId %>&message=Please login to chat with this twin';
         } else {
-            // User clicked Cancel -> stay on profile page (do nothing)
             return;
         }
     } else {
-        // User is logged in OR login not required -> proceed to chat
-        window.location.href = '<% if (twin.isOwner) { %>/chat-enhanced?twinId=<%= twin.id %><% } else { %>/public-twin/chat/<%= twin.id %><% } %>';
+        // ✅ PHASE 2: Use token in chat URL
+        window.location.href = '<% if (twin.isOwner) { %>/chat-enhanced?twinId=<%= twinPublicId %><% } else { %>/public-twin/chat/<%= twinPublicId %><% } %>';
     }
 });
 
@@ -338,6 +361,13 @@ async function checkInitialStatus() {
 // Update like button state
 function updateLikeButton(liked) {
     const likeBtn = document.getElementById('likeBtn');
+    if (!likeBtn) return;
+    
+    // ✅ FIX: Only update state if button is NOT disabled
+    if (likeBtn.disabled || likeBtn.classList.contains('cursor-not-allowed')) {
+        return; // Don't change state if disabled
+    }
+    
     if (liked) {
         likeBtn.innerHTML = `
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -362,6 +392,13 @@ function updateLikeButton(liked) {
 // Update follow button state
 function updateFollowButton(followed) {
     const followBtn = document.getElementById('followBtn');
+    if (!followBtn) return;
+    
+    // ✅ FIX: Only update state if button is NOT disabled
+    if (followBtn.disabled || followBtn.classList.contains('cursor-not-allowed')) {
+        return; // Don't change state if disabled
+    }
+    
     if (followed) {
         followBtn.innerHTML = `
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -457,10 +494,10 @@ function displayPublicChatHistory(chats) {
     }
 
     container.innerHTML = chats.map(chat => `
-        <div class="chat-item p-3 border-b cursor-pointer hover:bg-gray-50 rounded-lg ${chat.id === currentChatId ? 'bg-blue-50 border-blue-200' : ''}" data-chat-id="${chat.id}">
+        <div class="chat-item p-3 border-b cursor-pointer hover:bg-gray-50 rounded-lg ${chat.publicId === currentChatId ? 'bg-blue-50 border-blue-200' : ''}" data-chat-id="${chat.publicId}">
             <div class="flex justify-between items-start">
                 <div class="flex-1">
-                    <h4 class="font-medium text-sm ${chat.id === currentChatId ? 'text-blue-700' : ''}">Chat #${chat.id.slice(-6)}</h4>
+                    <h4 class="font-medium text-sm ${chat.publicId === currentChatId ? 'text-blue-700' : ''}">Chat #${chat.publicId.slice(-6)}</h4>
                     <p class="text-xs text-gray-500 truncate">${chat.lastMessage ? chat.lastMessage.content : 'No messages yet'}</p>
                 </div>
 <div class="text-xs text-gray-400 timestamp-display" data-timestamp="${chat.createdAt}" data-format="smart"></div>                
@@ -558,7 +595,7 @@ async function createNewPublicChat() {
 // Updated startPublicChat function
 async function startPublicChat() {
     try {
-        window.location.href = `/public-chat/<%= twin.id %>`;
+        window.location.href = `/public-chat/<%= twinPublicId %>`;
     } catch (error) {
         console.error('Error starting chat:', error);
     }
@@ -670,15 +707,25 @@ function displayMessages(messages) {
         });
 
 // Toggle like functionality (exactly like discover.ejs)
-async function toggleLike(twinId, button) {
-    try {
+async function toggleLike(twinToken, button) {
+    // ✅ SAFETY: Check if button is disabled before making request
+    if (button.disabled || button.classList.contains('cursor-not-allowed')) {
+        const disabledReason = button.getAttribute('data-disabled-reason');
+        const message = disabledReason === 'own_twin' 
+            ? 'You cannot like your own twin' 
+            : 'Liking is disabled for this twin';
+        showNotification(message, 'info');
+        return;
+    }
+    
+    try {        
         const response = await fetch('/api/social/toggle-like', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             credentials: 'include',
-            body: JSON.stringify({ twinId })
+            body: JSON.stringify({ twinToken })
         });
 
         const data = await response.json();
@@ -733,15 +780,25 @@ async function toggleLike(twinId, button) {
 }        
         
 // Toggle follow functionality (exactly like discover.ejs)
-async function toggleFollow(twinId, button) {
-    try {
+async function toggleFollow(twinToken, button) {
+    // ✅ SAFETY: Check if button is disabled before making request
+    if (button.disabled || button.classList.contains('cursor-not-allowed')) {
+        const disabledReason = button.getAttribute('data-disabled-reason');
+        const message = disabledReason === 'own_twin' 
+            ? 'You cannot follow your own twin' 
+            : 'Following is disabled for this twin';
+        showNotification(message, 'info');
+        return;
+    }
+    
+    try {        
         const response = await fetch('/api/social/toggle-follow', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             credentials: 'include',
-            body: JSON.stringify({ twinId })
+            body: JSON.stringify({ twinToken })
         });
 
         const data = await response.json();
@@ -929,7 +986,7 @@ async function shareTwin(platform) {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        shareId: '<%= twin.id %>',
+                        shareId: '<%= twinPublicId %>',
                         platform: platform,
                         referrer: document.referrer
                     })
@@ -952,6 +1009,67 @@ document.addEventListener('DOMContentLoaded', function() {
     updateLikeButton(hasLiked);
     updateFollowButton(hasFollowed);
     
+    // ✅ NEW: Check and disable buttons if needed (similar to discover.ejs)
+    const likeBtn = document.getElementById('likeBtn');
+    const followBtn = document.getElementById('followBtn');
+    const shareButtons = document.querySelectorAll('[data-share-platform], [data-share-action="copy"]');
+    
+    // Get flags from EJS
+    const isOwnTwin = <%= typeof twin.isOwnTwin !== 'undefined' ? twin.isOwnTwin : 'false' %> === 'true';
+    const likesDisabled = <%= typeof twin.likesDisabled !== 'undefined' ? twin.likesDisabled : 'false' %> === 'true';
+    const followsDisabled = <%= typeof twin.followsDisabled !== 'undefined' ? twin.followsDisabled : 'false' %> === 'true';
+    const sharesDisabled = <%= typeof twin.sharesDisabled !== 'undefined' ? twin.sharesDisabled : 'false' %> === 'true';
+    
+    // 1) Check if likes are disabled for this twin
+    if (likesDisabled || isOwnTwin) {
+        if (likeBtn) {
+            likeBtn.disabled = true;
+            likeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            likeBtn.setAttribute('title', isOwnTwin ? 'You cannot like your own twin' : 'Liking is disabled for this twin');
+            likeBtn.setAttribute('aria-label', `Liking disabled for @<%= twin.publicHandle %>`);
+            likeBtn.setAttribute('data-disabled-reason', isOwnTwin ? 'own_twin' : 'likes_disabled');
+        }
+    } else {
+        if (likeBtn) {
+            likeBtn.disabled = false;
+            likeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            likeBtn.removeAttribute('data-disabled-reason');
+        }
+    }
+    
+    // 2) Check if follows are disabled for this twin
+    if (followsDisabled || isOwnTwin) {
+        if (followBtn) {
+            followBtn.disabled = true;
+            followBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            followBtn.setAttribute('title', isOwnTwin ? 'You cannot follow your own twin' : 'Following is disabled for this twin');
+            followBtn.setAttribute('aria-label', `Following disabled for @<%= twin.publicHandle %>`);
+            followBtn.setAttribute('data-disabled-reason', isOwnTwin ? 'own_twin' : 'follows_disabled');
+        }
+    } else {
+        if (followBtn) {
+            followBtn.disabled = false;
+            followBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            followBtn.removeAttribute('data-disabled-reason');
+        }
+    }
+    
+    // 3) Check if shares are disabled for this twin
+    if (sharesDisabled || isOwnTwin) {
+        shareButtons.forEach(shareBtn => {
+            shareBtn.disabled = true;
+            shareBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            shareBtn.setAttribute('title', isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin');
+            shareBtn.setAttribute('data-disabled-reason', isOwnTwin ? 'own_twin' : 'shares_disabled');
+        });
+    } else {
+        shareButtons.forEach(shareBtn => {
+            shareBtn.disabled = false;
+            shareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            shareBtn.removeAttribute('data-disabled-reason');
+        });
+    }
+    
     // ✅ OPTIONAL: Verify with API call (for consistency, but not blocking)
     // This ensures state is correct even if there's a race condition
     checkInitialStatus().catch(err => {
@@ -959,13 +1077,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // ✅ FIX: Like and Follow buttons functionality (exactly like discover.ejs)
-    const likeBtn = document.getElementById('likeBtn');
-    const followBtn = document.getElementById('followBtn');
-    
     if (likeBtn) {
         likeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
+            // ✅ Check if button is disabled BEFORE making request
+            if (likeBtn.disabled || likeBtn.classList.contains('cursor-not-allowed')) {
+                const disabledReason = likeBtn.getAttribute('data-disabled-reason');
+                const message = disabledReason === 'own_twin' 
+                    ? 'You cannot like your own twin' 
+                    : 'Liking is disabled for this twin';
+                showNotification(message, 'info');
+                return;
+            }
             toggleLike(currentTwinId, likeBtn);
         });
     }
@@ -974,13 +1098,33 @@ document.addEventListener('DOMContentLoaded', function() {
         followBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
+            // ✅ Check if button is disabled BEFORE making request
+            if (followBtn.disabled || followBtn.classList.contains('cursor-not-allowed')) {
+                const disabledReason = followBtn.getAttribute('data-disabled-reason');
+                const message = disabledReason === 'own_twin' 
+                    ? 'You cannot follow your own twin' 
+                    : 'Following is disabled for this twin';
+                showNotification(message, 'info');
+                return;
+            }
             toggleFollow(currentTwinId, followBtn);
         });
     }
     
     // Share button event listeners
     document.querySelectorAll('[data-share-platform]').forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            // ✅ Check if button is disabled BEFORE making request
+            if (this.disabled || this.classList.contains('cursor-not-allowed')) {
+                const disabledReason = this.getAttribute('data-disabled-reason');
+                const message = disabledReason === 'own_twin' 
+                    ? 'You cannot share your own twin' 
+                    : 'Sharing is disabled for this twin';
+                showNotification(message, 'info');
+                return;
+            }
             const platform = this.getAttribute('data-share-platform');
             shareTwin(platform);
         });
@@ -989,7 +1133,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Copy link button event listener
     const copyBtn = document.querySelector('[data-share-action="copy"]');
     if (copyBtn) {
-        copyBtn.addEventListener('click', function() {
+        copyBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            // ✅ Check if button is disabled BEFORE making request
+            if (this.disabled || this.classList.contains('cursor-not-allowed')) {
+                const disabledReason = this.getAttribute('data-disabled-reason');
+                const message = disabledReason === 'own_twin' 
+                    ? 'You cannot share your own twin' 
+                    : 'Sharing is disabled for this twin';
+                showNotification(message, 'info');
+                return;
+            }
             copyShareLink();
         });
     }

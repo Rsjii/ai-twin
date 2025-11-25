@@ -271,9 +271,6 @@ export async function saveUserMessage(params: {
 
   // Always use UTC ISO string
   const utcIso = new Date().toISOString();
-
-  console.log('[SAVE MESSAGE] BEFORE DB INSERT: iso =', utcIso);
-
   const messageResult = await db.query(`
     INSERT INTO "${params.messageTable}" ("id", "chatId", "sender", "content", "approved", "requestId", "createdAt")
     VALUES ($1, $2, $3, $4, $5, $6, $7::timestamptz)
@@ -289,8 +286,7 @@ export async function saveUserMessage(params: {
   ]);
 
   const userMessage = messageResult.rows[0];
-
-  console.log('[SAVE MESSAGE] AFTER DB RETURN: DB createdAt ISO =', new Date(userMessage.createdAt).toISOString());
+  logger.info('User message saved successfully:', userMessage.id);
 
   return {
     id: userMessage.id,
@@ -313,8 +309,6 @@ export async function saveAIMessage(params: {
 
   const utcIso = new Date().toISOString();
 
-  console.log('[SAVE AI MESSAGE] BEFORE DB INSERT: iso =', utcIso);
-
   const aiMessageResult = await db.query(`
     INSERT INTO "${params.messageTable}" ("id", "chatId", "sender", "content", "approved", "createdAt")
     VALUES ($1, $2, $3, $4, $5, $6::timestamptz)
@@ -329,8 +323,7 @@ export async function saveAIMessage(params: {
   ]);
 
   const aiMessage = aiMessageResult.rows[0];
-
-  console.log('[SAVE AI MESSAGE] AFTER DB RETURN: DB createdAt ISO =', new Date(aiMessage.createdAt).toISOString());
+  logger.info('AI message saved successfully:', aiMessage.id);
 
   return {
     id: aiMessage.id,

@@ -17,7 +17,7 @@ router.post('/create-sample', requireJWTFromCookie, createSampleData);
 router.get('/user', requireJWTFromCookie, getUserAnalytics);
 
 // Twin analytics
-router.get('/twin/:twinId/analytics', requireJWTFromCookie, getTwinAnalytics);
+router.get('/twin/:twinToken/analytics', requireJWTFromCookie, getTwinAnalytics);
 
 // Referral stats
 router.get('/referrals', requireJWTFromCookie, getReferralStats);

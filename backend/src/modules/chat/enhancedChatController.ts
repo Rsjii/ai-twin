@@ -15,6 +15,7 @@ import { AppError, createError, ErrorCodes } from '../../utils/errors';
 import { generateId } from '../../utils/idGenerator';
 import { handleControllerError, handleErrorWithResponse } from '../../utils/errorHandler';
 import { normalizeTimestamp, formatRelativeTime } from '../../utils/timestampUtils';
+import { detokenizeId, tokenizeId } from '../../utils/idTokenization';
 
 const twinService = new TwinService();
 
@@ -37,8 +38,19 @@ const styleCorrectionSchema = z.object({
 export const generateEnhancedReply = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { message, strictStyle, regenerate, regenerateMessageId } = generateReplySchema.parse(req.body);
-    const { id: chatId } = req.params;
+    const { chatToken } = req.params;
     const userId = req.user.id;
+
+    if (!chatToken) {
+      throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
+    }
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     logger.info('🚀 Enhanced reply request:', { chatId, userId, message, regenerate, regenerateMessageId });
 
@@ -292,7 +304,7 @@ export const getChatHistory = async (req: any, res: Response, next: NextFunction
       logger.info('[ENHANCED_CHAT:START]', {
         path: req.path,
         method: req.method,
-        chatId: req.params.id,
+        chatToken: req.params.chatToken,
         userId: req.user?.id || null,
         headers: {
           ifNoneMatch: req.headers['if-none-match'] || null,
@@ -304,8 +316,31 @@ export const getChatHistory = async (req: any, res: Response, next: NextFunction
       logger.warn('[ENHANCED_CHAT] Failed to log START:', logErr);
     }
 
-    const { id: chatId } = req.params;
+    const { chatToken } = req.params;
     const userId = req.user.id;
+
+ // ✅ SAFETY: If chatToken missing, don't crash – return empty chat instead
+    if (!chatToken) {
+      logger.warn('[ENHANCED_CHAT] Missing chatToken in request', {
+        path: req.path,
+        method: req.method,
+        userId,
+      });
+      return res.status(200).json({
+        success: false,
+        errorCode: 'CHAT_TOKEN_MISSING',
+        error: 'Chat is not initialized yet',
+        chat: null,
+        messages: [],
+      });
+    }    
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     logger.info('📚 Getting chat history for:', chatId);
 
@@ -333,23 +368,23 @@ export const getChatHistory = async (req: any, res: Response, next: NextFunction
     `, [chatId]);
 
     const chatData = {
-      id: chat.id,
-      userId: chat.userId,
-      twinId: chat.twinId,
+      publicId: tokenizeId(chat.id, 'chat'),
+      publicUserId: tokenizeId(chat.userId, 'user'),
+      publicTwinId: tokenizeId(chat.twinId, 'twin'),
       createdAt: normalizeTimestamp(chat.createdAt),
       twin: {
-        id: chat.twin_id,
+        publicId: tokenizeId(chat.twin_id, 'twin'),
         styleVector: chat.styleVector,
         sampleReply: chat.sampleReply,
       },
       messages: messagesResult.rows.map(msg => ({
         id: msg.id,
-        chatId: msg.chatId,
+        publicChatId: tokenizeId(chat.id, 'chat'),
         sender: msg.sender,
         content: msg.content,
         approved: msg.approved,
         createdAt: normalizeTimestamp(msg.createdAt),
-        relativeTime: formatRelativeTime(msg.createdAt) // ✅ ADD: Relative time
+        relativeTime: formatRelativeTime(msg.createdAt)
       }))
     };
 
@@ -359,7 +394,7 @@ export const getChatHistory = async (req: any, res: Response, next: NextFunction
         chatId,
         userId,
         messagesCount: chatData.messages.length,
-        twinId: chatData.twinId,
+        twinId: chat.twinId,
       });
     } catch (logErr) {
       logger.warn('[ENHANCED_CHAT] Failed to log RESPONSE:', logErr);
@@ -387,8 +422,19 @@ export const getChatHistory = async (req: any, res: Response, next: NextFunction
 export const applyStyleCorrection = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { knob, delta } = styleCorrectionSchema.parse(req.body);
-    const { id: chatId } = req.params;
+    const { chatToken } = req.params;
     const userId = req.user.id;
+
+    if (!chatToken) {
+      throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
+    }
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     // Get chat and twin data
     const chatResult = await db.query(`
@@ -453,8 +499,19 @@ export const applyStyleCorrection = async (req: any, res: Response, next: NextFu
 export const addToAnchors = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { userUtterance, idealReply } = req.body;
-    const { id: chatId } = req.params;
+    const { chatToken } = req.params;
     const userId = req.user.id;
+
+    if (!chatToken) {
+      throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
+    }
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     // Get twin ID from chat
     const chatResult = await db.query(`
@@ -683,9 +740,20 @@ async function saveResponseToChat(chatId: string, response: string) {
  */
 export const deleteMessagesAfter = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { chatId } = req.params;
+    const { chatToken } = req.params;
     const { messageId } = req.body;
     const userId = req.user.id;
+
+    if (!chatToken) {
+      throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
+    }
+
+    // ✅ PHASE 4: Detokenize chatToken to get actual chatId
+    const decoded = detokenizeId(chatToken);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
 
     // Verify chat belongs to user
     const chatResult = await db.query(`
