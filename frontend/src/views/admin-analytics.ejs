@@ -13,6 +13,64 @@
         .metric-card { transition: all 0.3s ease; }
         .metric-card:hover { transform: translateY(-2px); }
         .chart-container { position: relative; height: 300px; }
+
+         /* ADD THESE LOADING STYLES */
+         .loading-shimmer {
+                background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                background-size: 200% 100%;
+                animation: shimmer 1.5s infinite;
+            }
+            
+            @keyframes shimmer {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
+            }
+            
+            .loading-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(255, 255, 255, 0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10;
+                border-radius: 8px;
+            }
+            
+            .notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 9999;
+                animation: slideIn 0.3s ease-out;
+            }
+            
+            .notification.success {
+                background: #10b981;
+                color: white;
+            }
+            
+            .notification.error {
+                background: #ef4444;
+                color: white;
+            }
+            
+            @keyframes slideIn {
+                from {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -55,7 +113,10 @@
         <div class="mb-8">
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Time Period Filter</h3>
-                <div class="flex space-x-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Time tabs affect overview cards, charts, and detailed modals. Lifetime metrics and Activation/Retention/Virality use global windows (30-60 days).
+                </p>
+                <div class="flex space-x-4">                    
                     <button onclick="loadTimeBasedAnalytics('today')" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Today filter">
                         Today
                     </button>
@@ -73,7 +134,14 @@
         </div>
 
         <!-- Overview Cards with Hover Effects -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <!-- ADD THIS BADGE -->
+        <div class="mb-4 flex items-center gap-2">
+            <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full" id="overviewPeriodBadge">
+                All Time
+            </span>
+            <span class="text-xs text-gray-500">(Click cards for detailed breakdown)</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">            
             <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('users')" data-type="users">
                 <div class="flex items-center">
                     <div class="p-2 bg-blue-100 rounded-lg">
@@ -219,6 +287,19 @@
                 </div>
             </div>
 
+            <!-- DAU/WAU/MAU Metrics -->
+<div class="flex gap-2 mt-3">
+    <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
+      DAU: <span id="dauCount">-</span>
+    </span>
+    <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">
+      WAU: <span id="wauCount">-</span>
+    </span>
+    <span class="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded">
+      MAU: <span id="mauCount">-</span>
+    </span>
+  </div>
+
             <!-- User Activity & Engagement -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
                 <!-- User Activity -->
@@ -264,7 +345,77 @@
                 </div>
             </div>
 
-            <!-- Charts Section -->
+            <!-- NEW: Activation, Retention & Virality Metrics -->
+            <!-- ADD THIS BADGE -->
+            <div class="mb-2">
+                <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
+                    Window: Rolling 30-60 days (Global - not affected by time filter)
+                </span>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">                
+                <!-- Activation Metrics -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Activation Funnel</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Total Signups</span>
+                            <span class="text-lg font-bold text-blue-600" id="activationSignups">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Twin Creation Rate</span>
+                            <span class="text-lg font-bold text-green-600" id="activationTwinRate">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">First Chat Rate</span>
+                            <span class="text-lg font-bold text-purple-600" id="activationChatRate">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">First Approval Rate</span>
+                            <span class="text-lg font-bold text-orange-600" id="activationApprovalRate">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Retention Metrics -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Retention Rates</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Day 1 Retention</span>
+                            <span class="text-lg font-bold text-blue-600" id="retentionD1">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Day 7 Retention</span>
+                            <span class="text-lg font-bold text-green-600" id="retentionD7">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Day 30 Retention</span>
+                            <span class="text-lg font-bold text-purple-600" id="retentionD30">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Virality Metrics -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Virality</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Invites per User</span>
+                            <span class="text-lg font-bold text-blue-600" id="viralityInvitesPerUser">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Shares per User</span>
+                            <span class="text-lg font-bold text-green-600" id="viralitySharesPerUser">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Invite Conversion</span>
+                            <span class="text-lg font-bold text-purple-600" id="viralityConversionRate">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
                 <!-- Event Breakdown Chart -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
@@ -390,6 +541,28 @@
     </div>
 
     <script>
+
+                // Notification system
+                function showNotification(message, type = 'success') {
+            // Remove existing notification
+            const existing = document.getElementById('globalNotification');
+            if (existing) {
+                existing.remove();
+            }
+            
+            const notification = document.createElement('div');
+            notification.id = 'globalNotification';
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+
         // Load admin analytics data
         async function loadAdminAnalytics() {
             try {
@@ -462,6 +635,11 @@
                     const avgMsg = data.metrics.engagement?.avgMessagesPerChat || 0;
                     const avgChats = data.metrics.engagement?.avgChatsPerUser || 0;
                     const avgEvents = data.metrics.engagement?.avgEventsPerUser || 0;
+
+                    // Add after existing metric updates:
+                    document.getElementById('dauCount').textContent = data.metrics.userActivity?.dau || 0;
+                    document.getElementById('wauCount').textContent = data.metrics.userActivity?.wau || 0;
+                    document.getElementById('mauCount').textContent = data.metrics.userActivity?.mau || 0;
                     
                     document.getElementById('avgMessagesPerChat').textContent = Number(avgMsg).toFixed(2);
                     document.getElementById('avgChatsPerUser').textContent = Number(avgChats).toFixed(2);
@@ -522,6 +700,33 @@
                             p.textContent = 'No events yet for this period.';
                             container.appendChild(p);
                         }
+                    }
+
+                    // After line 468 (engagement metrics), add:
+
+                    // Update activation metrics
+                    if (data.metrics.activation) {
+                        const activation = data.metrics.activation;
+                        document.getElementById('activationSignups').textContent = activation.signups || 0;
+                        document.getElementById('activationTwinRate').textContent = activation.twinCreationRate + '%';
+                        document.getElementById('activationChatRate').textContent = activation.firstChatRate + '%';
+                        document.getElementById('activationApprovalRate').textContent = activation.firstApprovalRate + '%';
+                    }
+
+                    // Update retention metrics
+                    if (data.metrics.retention) {
+                        const retention = data.metrics.retention;
+                        document.getElementById('retentionD1').textContent = retention.d1.rate + '%';
+                        document.getElementById('retentionD7').textContent = retention.d7.rate + '%';
+                        document.getElementById('retentionD30').textContent = retention.d30.rate + '%';
+                    }
+
+                    // Update virality metrics
+                    if (data.metrics.virality) {
+                        const virality = data.metrics.virality;
+                        document.getElementById('viralityInvitesPerUser').textContent = virality.invitesPerActiveUser;
+                        document.getElementById('viralitySharesPerUser').textContent = virality.sharesPerActiveUser;
+                        document.getElementById('viralityConversionRate').textContent = virality.inviteConversionRate + '%';
                     }
                 } else {
                     console.error('Failed to load admin analytics:', data.error);
@@ -1007,106 +1212,211 @@ function createTimeBasedChart(breakdown, period) {
 
         // Time-based analytics loading
         async function loadTimeBasedAnalytics(period) {
-    try {
-        console.log(`Loading ${period} analytics...`);
-        
-        // Update active button
-        document.querySelectorAll('.time-filter-btn').forEach(btn => {
-            btn.classList.remove('bg-blue-600', 'text-white');
-            btn.classList.add('bg-gray-100', 'text-gray-700');
-        });
-        
-        // Find the clicked button and update its style
-        const buttons = document.querySelectorAll('.time-filter-btn');
-        buttons.forEach(btn => {
-            if (btn.textContent.trim().toLowerCase().includes(period.toLowerCase()) || 
-                (period === 'today' && btn.textContent.trim().toLowerCase().includes('today')) ||
-                (period === 'week' && btn.textContent.trim().toLowerCase().includes('7 days')) ||
-                (period === 'month' && btn.textContent.trim().toLowerCase().includes('monthly')) ||
-                (period === 'all' && btn.textContent.trim().toLowerCase().includes('all time'))) {
-                btn.classList.remove('bg-gray-100', 'text-gray-700');
-                btn.classList.add('bg-blue-600', 'text-white');
-            }
-        });
-        
-        currentTimePeriod = period;
-        
-        let response;
-        if (period === 'all') {
-            response = await fetch('/api/admin/analytics/dashboard', {
-                method: 'GET',
-                credentials: 'include', // ✅ Add this
-                headers: { 'Content-Type': 'application/json' }
-            });
-        } else {
-            response = await fetch(`/api/admin/analytics/time/${period}`, {
-                method: 'GET',
-                credentials: 'include', // ✅ Add this
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log(`${period} analytics data:`, data);
-        
-        if (data.success) {
-            currentAnalyticsData = data.data || data.metrics;
-            
-            if (period === 'all') {
-                document.getElementById('totalUsers').textContent = data.metrics.lifetime?.users || 0;
-                document.getElementById('totalTwins').textContent = data.metrics.lifetime?.twins || 0;
-                document.getElementById('totalChats').textContent = data.metrics.lifetime?.chats || 0;
-                document.getElementById('totalMessages').textContent = data.metrics.lifetime?.messages || 0;
+            try {
+                console.log(`Loading ${period} analytics...`);
                 
-                // Recreate charts with all-time data
-                if (data.content?.eventBreakdown) {
-                    createEventBreakdownChart(data.content.eventBreakdown);
-                }
-                if (data.metrics) {
-                    createGrowthTrendsChart(data.metrics);
-                }
-            } else {
-                document.getElementById('totalUsers').textContent = data.data?.summary?.users || 0;
-                document.getElementById('totalTwins').textContent = data.data?.summary?.twins || 0;
-                document.getElementById('totalChats').textContent = data.data?.summary?.chats || 0;
-                document.getElementById('totalMessages').textContent = data.data?.summary?.messages || 0;
+                // Save to localStorage
+                localStorage.setItem('adminAnalyticsTimePeriod', period);
                 
-                // Update charts with time-based data
-                if (data.data?.breakdown) {
-                    createTimeBasedChart(data.data.breakdown, period);
+                // Show loading state
+                showLoadingState(period);
+                
+                // Update active button
+                document.querySelectorAll('.time-filter-btn').forEach(btn => {
+                    btn.classList.remove('bg-blue-600', 'text-white', 'dark:bg-blue-600', 'dark:text-white');
+                    btn.classList.add('bg-gray-100', 'text-gray-700', 'dark:bg-gray-700', 'dark:text-gray-300');
+                });
+                
+                // Find the clicked button and update its style
+                const buttons = document.querySelectorAll('.time-filter-btn');
+                buttons.forEach(btn => {
+                    const btnText = btn.textContent.trim().toLowerCase();
+                    if (
+                        (period === 'today' && btnText.includes('today')) ||
+                        (period === 'week' && btnText.includes('7 days')) ||
+                        (period === 'month' && btnText.includes('monthly')) ||
+                        (period === 'all' && btnText.includes('all time'))
+                    ) {
+                        btn.classList.remove('bg-gray-100', 'text-gray-700', 'dark:bg-gray-700', 'dark:text-gray-300');
+                        btn.classList.add('bg-blue-600', 'text-white', 'dark:bg-blue-600', 'dark:text-white');
+                    }
+                });
+                
+                currentTimePeriod = period;
+                
+                // Update period badge
+                const periodLabels = {
+                    'today': 'Today',
+                    'week': 'Last 7 Days',
+                    'month': 'Last 30 Days',
+                    'all': 'All Time'
+                };
+                const badge = document.getElementById('overviewPeriodBadge');
+                if (badge) {
+                    badge.textContent = periodLabels[period] || 'All Time';
+                }
+                
+                let response;
+                if (period === 'all') {
+                    response = await fetch('/api/admin/analytics/dashboard', {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                } else {
+                    response = await fetch(`/api/admin/analytics/time/${period}`, {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log(`${period} analytics data:`, data);
+                
+                if (data.success) {
+                    currentAnalyticsData = data.data || data.metrics;
+                    
+                    if (period === 'all') {
+                        // All Time: Update lifetime cards
+                        document.getElementById('totalUsers').textContent = data.metrics.lifetime?.users || 0;
+                        document.getElementById('totalTwins').textContent = data.metrics.lifetime?.twins || 0;
+                        document.getElementById('totalChats').textContent = data.metrics.lifetime?.chats || 0;
+                        document.getElementById('totalMessages').textContent = data.metrics.lifetime?.messages || 0;
+                        
+                        // Recreate charts with all-time data
+                        if (data.content?.eventBreakdown) {
+                            createEventBreakdownChart(data.content.eventBreakdown);
+                        }
+                        if (data.metrics) {
+                            createGrowthTrendsChart(data.metrics);
+                        }
+                    } else {
+                        // Time-based: Update overview cards with period data
+                        document.getElementById('totalUsers').textContent = data.data?.summary?.users || 0;
+                        document.getElementById('totalTwins').textContent = data.data?.summary?.twins || 0;
+                        document.getElementById('totalChats').textContent = data.data?.summary?.chats || 0;
+                        document.getElementById('totalMessages').textContent = data.data?.summary?.messages || 0;
+                        
+                        // Update charts with time-based data
+                        if (data.data?.breakdown) {
+                            createTimeBasedChart(data.data.breakdown, period);
+                        }
+                    }
+                    
+                    // Hide loading state
+                    hideLoadingState();
+                    
+                    showNotification(`Loaded ${periodLabels[period]} analytics successfully!`, 'success');
+                } else {
+                    hideLoadingState();
+                    showNotification(`Error loading ${period} analytics: ${data.error}`, 'error');
+                    // Fallback to All Time on error
+                    if (period !== 'all') {
+                        setTimeout(() => {
+                            loadTimeBasedAnalytics('all');
+                        }, 2000);
+                    }
+                }
+            } catch (error) {
+                console.error('Time-based analytics error:', error);
+                hideLoadingState();
+                showNotification(`Error loading ${period} analytics: ${error.message}`, 'error');
+                
+                // Fallback to All Time on error
+                if (period !== 'all') {
+                    setTimeout(() => {
+                        loadTimeBasedAnalytics('all');
+                    }, 2000);
                 }
             }
-            
-            showNotification(`Loaded ${period} analytics successfully!`, 'success');
-        } else {
-            showNotification(`Error loading ${period} analytics: ${data.error}`, 'error');
         }
-    } catch (error) {
-        console.error('Time-based analytics error:', error);
-        showNotification(`Error loading ${period} analytics: ${error.message}`, 'error');
-    }
-}
+        
+        // Loading state helpers
+        function showLoadingState(period) {
+            // Add shimmer to overview cards
+            const cards = document.querySelectorAll('.metric-card');
+            cards.forEach(card => {
+                const numbers = card.querySelectorAll('p.text-2xl, span.text-lg, span.text-2xl');
+                numbers.forEach(el => {
+                    el.classList.add('loading-shimmer');
+                    el.style.minWidth = '60px';
+                    el.style.minHeight = '24px';
+                    el.textContent = '...';
+                });
+            });
+            
+            // Add loading overlay to charts
+            const chartContainers = document.querySelectorAll('canvas').forEach(canvas => {
+                const container = canvas.parentElement;
+                if (container && !container.querySelector('.loading-overlay')) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'loading-overlay';
+                    overlay.innerHTML = '<p class="text-gray-600">Loading...</p>';
+                    container.style.position = 'relative';
+                    container.appendChild(overlay);
+                }
+            });
+        }
+        
 
-        // Show detailed view for metrics
+        function hideLoadingState() {
+            // Remove shimmer
+            document.querySelectorAll('.loading-shimmer').forEach(el => {
+                el.classList.remove('loading-shimmer');
+                el.style.minWidth = '';
+                el.style.minHeight = '';
+            });
+            
+            // Remove loading overlays
+            document.querySelectorAll('.loading-overlay').forEach(overlay => {
+                overlay.remove();
+            });
+        }
+
+        // Show detailed view for metrics (MODAL VERSION)
         function showDetailedView(type) {
-            console.log(`=== CLICKING DETAILED VIEW FOR ${type.toUpperCase()} ===`);
-            console.log(`Opening detailed page for ${type}`);
-            console.log(`URL: /admin/analytics/page/${type}`);
+            console.log(`Opening detailed modal for ${type} with period: ${currentTimePeriod}`);
             
-            // Open detailed page in new window/tab
-            const newWindow = window.open(`/admin/analytics/page/${type}`, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-            
-            if (!newWindow) {
-                console.error('Failed to open new window - popup blocked');
-                alert('Please allow popups for this site to view detailed analytics');
+            // Open modal
+            const modal = document.getElementById('detailedModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                
+                // Set modal title
+                const title = document.getElementById('detailedModalTitle');
+                if (title) {
+                    const typeLabels = {
+                        'users': 'Users',
+                        'twins': 'Twins',
+                        'chats': 'Chats',
+                        'messages': 'Messages',
+                        'events': 'Events'
+                    };
+                    title.textContent = `${typeLabels[type] || type} Details`;
+                }
+                
+                // Load data with current time period
+                loadDetailedData(type, currentTimePeriod || 'today');
             } else {
-                console.log('New window opened successfully');
+                console.error('Detailed modal not found');
+                showNotification('Modal not found. Please refresh the page.', 'error');
             }
         }
+        
+        // Close detailed modal
+        function closeDetailedModal() {
+            const modal = document.getElementById('detailedModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.getElementById('detailedModalContent').innerHTML = '<p class="text-gray-500">Loading...</p>';
+            }
+        }        
+
 
         function createTimeBasedChart(breakdown, period) {
     try {
@@ -1209,62 +1519,100 @@ function createTimeBasedChart(breakdown, period) {
 }
         
         // Load detailed data for specific metric type
-        async function loadDetailedData(type, timePeriod = 'today') {
+        async function loadDetailedData(type, timePeriod = null) {
             try {
-                console.log(`Loading detailed data for ${type} in ${timePeriod} period...`);
+                // Use currentTimePeriod if not provided
+                const period = timePeriod || currentTimePeriod || 'today';
+                console.log(`Loading detailed data for ${type} in ${period} period...`);
                 
                 let response;
-                if (timePeriod === 'all') {
-                    // Load all-time detailed data
-                    response = await fetch(`/api/admin/analytics/detailed/${type}`);
+                if (period === 'all') {
+                    response = await fetch(`/api/admin/analytics/detailed/${type}`, {
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
                 } else {
-                    // Load time-based detailed data
-                    response = await fetch(`/api/admin/analytics/time/${timePeriod}`);
+                    response = await fetch(`/api/admin/analytics/time/${period}`, {
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const data = await response.json();
-                console.log(`Detailed ${type} data for ${timePeriod}:`, data);
+                console.log(`Detailed ${type} data for ${period}:`, data);
                 
                 if (data.success) {
+                    // Update currentAnalyticsData for accurate export
+                    currentAnalyticsData = data.data || data.metrics;
+                    
                     const content = document.getElementById('detailedModalContent');
-                    if (timePeriod === 'all') {
+                    if (period === 'all') {
                         content.innerHTML = generateDetailedContent(type, data.data);
                     } else {
-                        // For time-based data, show summary and breakdown
-                        content.innerHTML = generateTimeBasedDetailedContent(type, data.data, timePeriod);
+                        // For time-based data, show summary and breakdown with period tabs
+                        content.innerHTML = generateTimeBasedDetailedContent(type, data.data, period);
                     }
                 } else {
-                    document.getElementById('detailedModalContent').innerHTML = '<p class="text-red-600">Error: ' + data.error + '</p>';
+                    document.getElementById('detailedModalContent').innerHTML = 
+                        '<p class="text-red-600">Error: ' + (data.error || 'Unknown error') + '</p>';
                 }
             } catch (error) {
                 console.error('Detailed data error:', error);
-                document.getElementById('detailedModalContent').innerHTML = '<p class="text-red-600">Error loading detailed data: ' + error.message + '</p>';
+                document.getElementById('detailedModalContent').innerHTML = 
+                    '<p class="text-red-600">Error loading detailed data: ' + error.message + '</p>';
             }
         }
-        
-        // Generate time-based detailed content
+
+        // Generate time-based detailed content with period tabs
         function generateTimeBasedDetailedContent(type, data, timePeriod) {
             const periodLabel = timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1);
+            const periodLabels = {
+                'today': 'Today',
+                'week': 'Last 7 Days',
+                'month': 'Last 30 Days',
+                'all': 'All Time'
+            };
             
             return `
                 <div class="space-y-6">
+                    <!-- Period Tabs in Modal -->
+                    <div class="flex space-x-2 border-b pb-2">
+                        ${['today', 'week', 'month', 'all'].map(p => `
+                            <button 
+                                onclick="loadDetailedData('${type}', '${p}')" 
+                                class="px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                    p === timePeriod 
+                                        ? 'bg-blue-600 text-white' 
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }"
+                            >
+                                ${periodLabels[p]}
+                            </button>
+                        `).join('')}
+                    </div>
+                    
+                    <!-- Summary -->
                     <div class="bg-blue-50 p-4 rounded-lg">
-                        <h4 class="font-semibold text-blue-900">${periodLabel} Summary</h4>
+                        <h4 class="font-semibold text-blue-900 mb-2">${periodLabels[timePeriod]} Summary</h4>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-4">
                             <div class="text-center">
-                                <p class="text-2xl font-bold text-blue-600">${data.summary.users || 0}</p>
+                                <p class="text-2xl font-bold text-blue-600">${data.summary?.users || 0}</p>
                                 <p class="text-sm text-blue-800">Users</p>
                             </div>
                             <div class="text-center">
-                                <p class="text-2xl font-bold text-green-600">${data.summary.twins || 0}</p>
+                                <p class="text-2xl font-bold text-green-600">${data.summary?.twins || 0}</p>
                                 <p class="text-sm text-green-800">Twins</p>
                             </div>
                             <div class="text-center">
-                                <p class="text-2xl font-bold text-purple-600">${data.summary.chats || 0}</p>
+                                <p class="text-2xl font-bold text-purple-600">${data.summary?.chats || 0}</p>
                                 <p class="text-sm text-purple-800">Chats</p>
                             </div>
                             <div class="text-center">
-                                <p class="text-2xl font-bold text-orange-600">${data.summary.messages || 0}</p>
+                                <p class="text-2xl font-bold text-orange-600">${data.summary?.messages || 0}</p>
                                 <p class="text-sm text-orange-800">Messages</p>
                             </div>
                         </div>
@@ -1290,7 +1638,7 @@ function createTimeBasedChart(breakdown, period) {
                         <div class="space-y-2 max-h-48 overflow-y-auto">
                             ${data.breakdown.daily.map(day => `
                                 <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                    <span class="font-medium timestamp-display" data-timestamp="${day.date}" data-format="date"></span>
+                                    <span class="font-medium">${new Date(day.date).toLocaleDateString()}</span>
                                     <span class="text-green-600 font-bold">${day.count} events</span>
                                 </div>
                             `).join('')}
@@ -1300,14 +1648,26 @@ function createTimeBasedChart(breakdown, period) {
                     
                     ${data.topContent && data.topContent.users ? `
                     <div class="bg-white border rounded-lg p-4">
-                        <h4 class="font-semibold mb-4">Top Active Users</h4>
+                        <h4 class="font-semibold mb-4">Top Users (${periodLabels[timePeriod]})</h4>
                         <div class="space-y-2 max-h-48 overflow-y-auto">
                             ${data.topContent.users.slice(0, 10).map(user => `
                                 <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                    <div>
-                                        <p class="font-medium">${user.handle || user.email}</p>
-                                        <p class="text-sm text-gray-600">${user.eventCount || 0} events</p>
-                                    </div>
+                                    <span class="font-medium">${user.handle || user.name || 'Unknown'}</span>
+                                    <span class="text-purple-600 font-bold">${user.eventCount || 0} events</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${data.topContent && data.topContent.twins ? `
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="font-semibold mb-4">Top Twins (${periodLabels[timePeriod]})</h4>
+                        <div class="space-y-2 max-h-48 overflow-y-auto">
+                            ${data.topContent.twins.slice(0, 10).map(twin => `
+                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                    <span class="font-medium">@${twin.publicHandle || 'unknown'}</span>
+                                    <span class="text-orange-600 font-bold">${twin.likeCount || 0} likes</span>
                                 </div>
                             `).join('')}
                         </div>
@@ -1316,25 +1676,46 @@ function createTimeBasedChart(breakdown, period) {
                     
                     ${data.eventBreakdown ? `
                     <div class="bg-white border rounded-lg p-4">
-                        <h4 class="font-semibold mb-4">Event Breakdown</h4>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                        <h4 class="font-semibold mb-4">Event Types Breakdown</h4>
+                        <div class="space-y-2 max-h-48 overflow-y-auto">
                             ${Object.entries(data.eventBreakdown).map(([eventType, count]) => `
-                                <div class="text-center p-3 bg-gray-50 rounded">
-                                    <p class="font-bold text-lg">${count}</p>
-                                    <p class="text-sm text-gray-600">${eventType}</p>
+                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                    <span class="font-medium">${eventType}</span>
+                                    <span class="text-blue-600 font-bold">${count}</span>
                                 </div>
                             `).join('')}
                         </div>
                     </div>
                     ` : ''}
+                    
+                    <!-- Export Button -->
+                    <div class="flex justify-end">
+                        <button 
+                            onclick="exportDetailedData('${type}', '${timePeriod}')" 
+                            class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
+                        >
+                            📋 Copy Data to Clipboard
+                        </button>
+                    </div>
                 </div>
             `;
+        }
+        
+        // Export detailed data
+        function exportDetailedData(type, period) {
+            const data = {
+                type,
+                period,
+                timestamp: new Date().toISOString(),
+                data: currentAnalyticsData
+            };
             
-            // ✅ Format timestamps after rendering
-            const container = document.getElementById('analyticsContent');
-            if (container) {
-                setTimeout(() => formatTimestampsInContainer(container), 50);
-            }
+            navigator.clipboard.writeText(JSON.stringify(data, null, 2)).then(() => {
+                showNotification('Data copied to clipboard!', 'success');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                showNotification('Failed to copy data', 'error');
+            });
         }
 
         // Generate detailed content based on type
@@ -1649,10 +2030,6 @@ ${userData.events.slice(0, 10).map(event => {
             document.getElementById('userModal').classList.add('hidden');
         }
         
-        function closeDetailedModal() {
-            document.getElementById('detailedModal').classList.add('hidden');
-        }
-        
         // Close modals when clicking outside
         document.addEventListener('click', (e) => {
             if (e.target.id === 'userModal') closeUserModal();
@@ -1749,31 +2126,6 @@ ${userData.events.slice(0, 10).map(event => {
             };
         }
         
-        // Notification function
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 ${
-                type === 'success' ? 'bg-green-500 text-white' :
-                type === 'error' ? 'bg-red-500 text-white' :
-                type === 'warning' ? 'bg-yellow-500 text-white' :
-                'bg-blue-500 text-white'
-            }`;
-            notification.textContent = message;
-            
-            document.body.appendChild(notification);
-            
-            // Auto remove after 3 seconds
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                notification.style.transform = 'translateX(100%)';
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 300);
-            }, 3000);
-        }
-
         // Test click functionality
         function testClickFunctionality() {
             console.log('=== TESTING CLICK FUNCTIONALITY ===');
@@ -1826,22 +2178,20 @@ ${userData.events.slice(0, 10).map(event => {
             });
         }
 
-        // Load analytics on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            loadAdminAnalytics();
-            loadUsersList();
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load saved period from localStorage
+            const savedPeriod = localStorage.getItem('adminAnalyticsTimePeriod') || 'all';
             
-            // Format timestamps on initial load
-            setTimeout(() => {
-                formatTimestampsInContainer(document.body);
-            }, 100);
-            
-            // Test click functionality after 2 seconds
-            setTimeout(() => {
-                console.log('=== ADMIN ANALYTICS DASHBOARD LOADED ===');
-                console.log('Click functionality test available - call testClickFunctionality() in console');
-                console.log('Alternative click handler also available via event delegation');
-            }, 2000);
+            // Load initial data
+            loadAdminAnalytics().then(() => {
+                // After initial load, switch to saved period if not 'all'
+                if (savedPeriod !== 'all') {
+                    setTimeout(() => {
+                        loadTimeBasedAnalytics(savedPeriod);
+                    }, 500);
+                }
+            });
         });
     </script>
 </body>

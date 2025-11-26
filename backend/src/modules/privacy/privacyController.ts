@@ -4,6 +4,8 @@ import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
 import { generateId } from '../../utils/idGenerator';
+import { EVENT_TYPES } from '../../config/constants';
+import { tokenizeId } from '../../utils/idTokenization';
 
 // Privacy settings interface
 export interface TwinPrivacySettings {
@@ -146,8 +148,8 @@ export const updatePrivacySettings = async (req: Request, res: Response) => {
     }
 
     // Log privacy settings update
-    await EventLogger.logUserEvent(req.user.id, 'privacy_settings_updated', {
-      twinId,
+    await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.PRIVACY_SETTINGS_UPDATED, {
+      publicTwinId: twinId,
       settings: settings
     });
 
@@ -293,9 +295,10 @@ export const blockUser = async (req: Request, res: Response) => {
     ]);
 
     // Log block event
-    await EventLogger.logUserEvent(req.user.id, 'user_blocked', {
-      twinId,
-      blockedUserId: targetUserId
+    await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.USER_BLOCKED, {
+      twinId, //Internal ID for DB queries
+      publicTwinId: tokenizeId(twinId, 'twin'),
+      blockedPublicUserId: targetUserId ? tokenizeId(targetUserId, 'user') : undefined
     });
 
     res.json({
@@ -348,9 +351,9 @@ export const unblockUser = async (req: Request, res: Response) => {
     }
 
     // Log unblock event
-    await EventLogger.logUserEvent(req.user.id, 'user_unblocked', {
-      twinId,
-      unblockedUserId: userId
+    await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.USER_UNBLOCKED, {
+      publicTwinId: tokenizeId(twinId, 'twin'),
+      unblockedPublicUserId: userId ? tokenizeId(userId, 'user') : undefined
     });
 
     res.json({

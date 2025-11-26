@@ -9,6 +9,9 @@ import { generateJWT } from '../../services/jwtService';
 import { createError, ErrorCodes } from '../../utils/errors';
 import { handleControllerError, handleErrorWithResponse } from '../../utils/errorHandler';
 import { logEvent } from '../../services/eventLogger';
+import { EventLogger } from '../../services/eventLogger';
+import { EVENT_TYPES } from '../../config/constants';
+import { identifyPostHogUser } from '../../services/posthogService';
 
 const emailService = new EmailService();
 
@@ -93,10 +96,18 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
 
     // Log signup event
     try {
-      await logEvent(user.id, 'signup', { email: user.email });
+      await EventLogger.logSignup(user.id, {
+        source: referralCode ? 'referral' : 'direct'
+      });
     } catch (eventError) {
       logger.warn('Failed to log signup event:', eventError);
     }
+
+    // ✅ Identify user in PostHog
+    identifyPostHogUser(user.id, {
+      handle: user.handle,
+      createdAt: user.createdAt.toISOString()
+    });
 
 // If they were referred, link them
 if (referrerId) {
@@ -111,7 +122,7 @@ if (referrerId) {
   );
   
   // Log event
-  await logEvent(referrerId, 'invite_accepted', { referredUserId: user.id });
+  await EventLogger.logInviteAccepted(user.id, referralCode, referrerId);
 }    
     
   // Generate OTP
@@ -220,7 +231,7 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
 
     // Log profile completed event
     try {
-      await logEvent(user.id, 'profile_completed', { 
+      await EventLogger.logUserEvent(user.id, EVENT_TYPES.PROFILE_COMPLETED, { 
         name: user.name || name,
         handle: user.handle || handle
       });
@@ -417,10 +428,17 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
     // Log login event
     try {
-      await logEvent(user.id, 'login', { email: user.email });
+      await EventLogger.logLogin(user.id, {
+        source: 'direct'
+      });
     } catch (eventError) {
       logger.warn('Failed to log login event:', eventError);
     }
+
+    // ✅ Identify user in PostHog (optional - can do on first login only)
+    identifyPostHogUser(user.id, {
+      handle: user.handle
+    });
 
     res.json({ 
       message: 'Login successful', 
@@ -495,7 +513,10 @@ export const loginVerify = async (req: Request, res: Response, next: NextFunctio
 
     // Log login event (for OTP-based login)
     try {
-      await logEvent(user.id, 'login', { email: user.email, method: 'otp' });
+      await EventLogger.logLogin(user.id, {
+        source: 'direct',
+        method: 'otp'
+      });
     } catch (eventError) {
       logger.warn('Failed to log login event:', eventError);
     }
@@ -597,7 +618,7 @@ export const logout = (req: Request, res: Response, next: NextFunction) => {
 
     // Log logout event (if userId available)
     if (userId) {
-      logEvent(userId, 'logout', {}).catch((eventError) => {
+      EventLogger.logUserEvent(userId, EVENT_TYPES.LOGOUT, {}).catch((eventError) => {
         logger.warn('Failed to log logout event:', eventError);
       });
     }

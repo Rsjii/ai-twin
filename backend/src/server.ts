@@ -3,6 +3,7 @@ import { config } from './config/env';
 import { logger } from './config/logger';
 import { db } from './config/db';
 import { initializeDatabase } from './config/database';
+import { initializePostHog, shutdownPostHog } from './services/posthogService';
 
 // ✅ Pre-warm Groq API function
 async function preWarmGroqAPI(): Promise<void> {
@@ -41,6 +42,9 @@ async function preWarmGroqAPI(): Promise<void> {
 
 async function startServer() {
   try {
+    // Initialize PostHog
+    initializePostHog();
+
     // Test database connection
     await db.query('SELECT 1');
     logger.info('Database connected successfully');
@@ -88,6 +92,19 @@ async function startServer() {
         default:
           throw error;
       }
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      logger.info('SIGTERM received, shutting down gracefully...');
+      shutdownPostHog();
+      process.exit(0);
+    });
+
+    process.on('SIGINT', () => {
+      logger.info('SIGINT received, shutting down gracefully...');
+      shutdownPostHog();
+      process.exit(0);
     });
 
   } catch (error) {

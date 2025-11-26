@@ -6,6 +6,7 @@ import { EventLogger } from '../../services/eventLogger';
 import { TwinService } from '../twin/twinService';
 import { featureFlags } from '../../config/featureFlags';
 import { generateId } from '../../utils/idGenerator';
+import { EVENT_TYPES } from '../../config/constants';
 
 const twinService = new TwinService();
 
@@ -146,11 +147,10 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
     const result = await db.query(insertQuery, insertParams);
 
     // Log twin creation event
-    await EventLogger.logUserEvent(req.user.id, 'enhanced_twin_created', { 
-      twinId: twinId,
+    await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.ENHANCED_TWIN_CREATED, { 
+      publicTwinId: twinId,
       personaData: personaData,
       samplesCount: validatedData.samples.content.length,
-      onboardingCompleted: validatedData.onboardingCompleted
     });
 
     res.json({
@@ -170,8 +170,9 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
     
     // Log the error event
     if (req.user) {
-      await EventLogger.logUserEvent(req.user.id, 'enhanced_twin_creation_failed', { 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_CREATION_FAILED, { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        type: 'enhanced'
       });
     }
     

@@ -4,6 +4,7 @@ import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
 import {generateId} from '../../utils/idGenerator';
+import { EVENT_TYPES } from '../../config/constants';
 
 // Content moderation levels
 export enum ModerationLevel {
@@ -74,7 +75,7 @@ export const moderateContent = async (req: Request, res: Response) => {
 
     // Log moderation event
     if (userId) {
-      await EventLogger.logUserEvent(userId, 'content_moderated', {
+      await EventLogger.logUserEvent(userId, EVENT_TYPES.CONTENT_MODERATED, {
         contentType,
         isApproved,
         confidence: moderationResult.confidence,
@@ -136,7 +137,7 @@ export const reportContent = async (req: Request, res: Response) => {
     ]);
 
     // Log report event
-    await EventLogger.logUserEvent(req.user.id, 'content_reported', {
+    await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.CONTENT_REPORTED, {
       contentId,
       contentType,
       reason

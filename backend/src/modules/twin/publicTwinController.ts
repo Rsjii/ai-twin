@@ -9,6 +9,7 @@ import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { handleControllerError } from '../../utils/errorHandler';
 import {twinQueries} from '../../config/database';
 import { detokenizeId, sanitizeTwin, tokenizeId } from '../../utils/idTokenization';
+import { EVENT_TYPES } from '../../config/constants';
 
 // Validation schemas
 const makePublicSchema = z.object({
@@ -75,10 +76,10 @@ export const makeTwinPublic = async (req: Request, res: Response, next: NextFunc
     );
 
     // Log event
-    await EventLogger.logUserEvent(req.user.id, 'twin_made_public', {
-      twinId: twin.id,
+    await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_MADE_PUBLIC, {
+      publicTwinId: twin.id,
       publicHandle,
-      bio: bio?.length || 0
+      bioLength: bio?.length || 0
     });
 
     res.json({
@@ -131,8 +132,8 @@ export const makeTwinPrivate = async (req: Request, res: Response, next: NextFun
     await publicTwinQueries.makePrivate(twin.id);
 
     // Log event
-    await EventLogger.logUserEvent(req.user.id, 'twin_made_private', {
-      twinId: twin.id
+    await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_MADE_PRIVATE, {
+      publicTwinId: twin.id
     });
 
     res.json({

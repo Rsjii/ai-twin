@@ -3,6 +3,7 @@ import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
+import { EVENT_TYPES } from '../../config/constants';
 
 // Validation schemas
 const generateShareLinkSchema = z.object({
@@ -92,11 +93,9 @@ export const generateShareLink = async (req: Request, res: Response) => {
     }
 
     // Log share event
-    await EventLogger.logUserEvent(req.user.id, 'twin_shared', {
-      twinId,
-      platform,
-      shareUrl,
-      publicHandle: twin.publicHandle
+    await EventLogger.logProfileShared(req.user.id, twinId, {
+      shareMethod: platform,
+      shareUrl
     });
 
     res.json({
@@ -193,7 +192,7 @@ export const trackShareClick = async (req: Request, res: Response) => {
     const { shareId, platform, referrer } = shareAnalyticsSchema.parse(req.body);
 
     // Log share click event
-    await EventLogger.logUserEvent('anonymous', 'share_clicked', {
+    await EventLogger.logSystemEvent(EVENT_TYPES.SHARE_CLICKED, {
       shareId,
       platform,
       referrer: referrer || 'direct'

@@ -80,7 +80,29 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       recentSignupsResult,
       recentTwinsResult,
       recentChatsResult,
-      recentEventsResult
+      recentEventsResult,
+      
+      // NEW: Activation metrics queries
+      signupsResult,
+      signupsWithTwin24hResult,
+      signupsWithChat24hResult,
+      signupsWithApproval72hResult,
+      
+      // NEW: Retention metrics queries
+      retentionD1Result,
+      retentionD7Result,
+      retentionD30Result,
+      cohortDataResult,
+      
+      // NEW: Virality metrics queries
+      totalInvitesSentResult,
+      totalInvitesAcceptedResult,
+      invitesPerActiveUserResult,
+      sharesPerActiveUserResult,
+      inviteConversionRateResult,
+      dauResult,
+      wauResult,
+      mauResult
     ] = await Promise.all([
       // Lifetime metrics
       db.query('SELECT COUNT(*) as count FROM "User"'),
@@ -133,7 +155,161 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       db.query(`SELECT id, email, handle, name, "createdAt", active FROM "User" ORDER BY "createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),      
       db.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
       db.query(`SELECT c.id, c."userId", c."twinId", c."createdAt", u.handle as userHandle FROM "Chat" c JOIN "User" u ON c."userId" = u.id ORDER BY c."createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
-      db.query(`SELECT e.id, e."userId", e.type, e.meta, e."createdAt", u.handle as userHandle FROM "Event" e LEFT JOIN "User" u ON e."userId" = u.id ORDER BY e."createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ACTIVITY}`)
+      db.query(`SELECT e.id, e."userId", e.type, e.meta, e."createdAt", u.handle as userHandle FROM "Event" e LEFT JOIN "User" u ON e."userId" = u.id ORDER BY e."createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ACTIVITY}`),
+      
+      // NEW: Activation metrics
+      // Total signups
+      db.query('SELECT COUNT(*) as count FROM "Event" WHERE type = $1', ['signup']),
+      
+      // Signups who created twin within 24h
+      db.query(`
+        SELECT COUNT(DISTINCT s."userId") as count
+        FROM "Event" s
+        WHERE s.type = 'signup'
+        AND EXISTS (
+          SELECT 1 FROM "Event" t
+          WHERE t."userId" = s."userId"
+          AND t.type = 'twin_created'
+          AND t."createdAt" BETWEEN s."createdAt" AND s."createdAt" + INTERVAL '24 hours'
+        )
+      `),
+      
+      // Signups who started chat within 24h
+      db.query(`
+        SELECT COUNT(DISTINCT s."userId") as count
+        FROM "Event" s
+        WHERE s.type = 'signup'
+        AND EXISTS (
+          SELECT 1 FROM "Event" c
+          WHERE c."userId" = s."userId"
+          AND c.type IN ('chat_started', 'chat_created')
+          AND c."createdAt" BETWEEN s."createdAt" AND s."createdAt" + INTERVAL '24 hours'
+        )
+      `),
+      
+      // Signups who approved message within 72h
+      db.query(`
+        SELECT COUNT(DISTINCT s."userId") as count
+        FROM "Event" s
+        WHERE s.type = 'signup'
+        AND EXISTS (
+          SELECT 1 FROM "Event" m
+          WHERE m."userId" = s."userId"
+          AND m.type = 'message_approved'
+          AND m."createdAt" BETWEEN s."createdAt" AND s."createdAt" + INTERVAL '72 hours'
+        )
+      `),
+      
+      // NEW: Retention metrics
+      // D1 Retention: Users who signed up and came back within 1 day
+      db.query(`
+        SELECT COUNT(DISTINCT s."userId") as count
+        FROM "Event" s
+        WHERE s.type = 'signup'
+        AND s."createdAt" >= NOW() - INTERVAL '30 days'
+        AND EXISTS (
+          SELECT 1 FROM "Event" e
+          WHERE e."userId" = s."userId"
+          AND e."createdAt" > s."createdAt"
+          AND e."createdAt" <= s."createdAt" + INTERVAL '1 day'
+          AND e.type != 'signup'
+        )
+      `),
+      
+      // D7 Retention: Users who signed up and came back within 7 days
+      db.query(`
+        SELECT COUNT(DISTINCT s."userId") as count
+        FROM "Event" s
+        WHERE s.type = 'signup'
+        AND s."createdAt" >= NOW() - INTERVAL '37 days'
+        AND EXISTS (
+          SELECT 1 FROM "Event" e
+          WHERE e."userId" = s."userId"
+          AND e."createdAt" > s."createdAt"
+          AND e."createdAt" <= s."createdAt" + INTERVAL '7 days'
+          AND e.type != 'signup'
+        )
+      `),
+      
+      // D30 Retention: Users who signed up and came back within 30 days
+      db.query(`
+        SELECT COUNT(DISTINCT s."userId") as count
+        FROM "Event" s
+        WHERE s.type = 'signup'
+        AND s."createdAt" >= NOW() - INTERVAL '60 days'
+        AND EXISTS (
+          SELECT 1 FROM "Event" e
+          WHERE e."userId" = s."userId"
+          AND e."createdAt" > s."createdAt"
+          AND e."createdAt" <= s."createdAt" + INTERVAL '30 days'
+          AND e.type != 'signup'
+        )
+      `),
+      
+      // Cohort data: Monthly cohorts with retention
+      db.query(`
+        SELECT 
+          DATE_TRUNC('month', s."createdAt") as cohort_month,
+          COUNT(DISTINCT s."userId") as signups,
+          COUNT(DISTINCT CASE 
+            WHEN e."createdAt" > s."createdAt" 
+            AND e."createdAt" <= s."createdAt" + INTERVAL '1 day'
+            THEN e."userId" END) as d1_retained,
+          COUNT(DISTINCT CASE 
+            WHEN e."createdAt" > s."createdAt" 
+            AND e."createdAt" <= s."createdAt" + INTERVAL '7 days'
+            THEN e."userId" END) as d7_retained,
+          COUNT(DISTINCT CASE 
+            WHEN e."createdAt" > s."createdAt" 
+            AND e."createdAt" <= s."createdAt" + INTERVAL '30 days'
+            THEN e."userId" END) as d30_retained
+        FROM "Event" s
+        LEFT JOIN "Event" e ON s."userId" = e."userId" AND e.type != 'signup'
+        WHERE s.type = 'signup'
+        AND s."createdAt" >= NOW() - INTERVAL '90 days'
+        GROUP BY DATE_TRUNC('month', s."createdAt")
+        ORDER BY cohort_month DESC
+        LIMIT 6
+      `),
+      
+      // NEW: Virality metrics
+      // Total invites sent
+      db.query('SELECT COUNT(*) as count FROM "Event" WHERE type = $1', ['invite_sent']),
+      
+      // Total invites accepted
+      db.query('SELECT COUNT(*) as count FROM "Event" WHERE type = $1', ['invite_accepted']),
+      
+      // Invites per active user (last 30 days)
+      db.query(`
+        SELECT 
+          COUNT(DISTINCT i."userId") as active_users,
+          COUNT(*) FILTER (WHERE i.type = 'invite_sent') as invites_sent
+        FROM "Event" i
+        WHERE i."createdAt" >= NOW() - INTERVAL '30 days'
+        AND i.type IN ('invite_sent', 'invite_accepted')
+      `),
+      
+      // Shares per active user (last 30 days)
+      db.query(`
+        SELECT 
+          COUNT(DISTINCT s."userId") as active_users,
+          COUNT(*) FILTER (WHERE s.type IN ('twin_shared', 'share_clicked', 'profile_shared')) as shares
+        FROM "Event" s
+        WHERE s."createdAt" >= NOW() - INTERVAL '30 days'
+        AND s.type IN ('twin_shared', 'share_clicked', 'profile_shared')
+      `),
+      
+      // Invite conversion rate (invites accepted / invites sent)
+      db.query(`
+        SELECT 
+          COUNT(*) FILTER (WHERE type = 'invite_sent') as sent,
+          COUNT(*) FILTER (WHERE type = 'invite_accepted') as accepted
+        FROM "Event"
+        WHERE type IN ('invite_sent', 'invite_accepted')
+      `),
+      db.query('SELECT COUNT(DISTINCT "userId") as count FROM "Event" WHERE "createdAt" >= CURRENT_DATE'),
+      db.query('SELECT COUNT(DISTINCT "userId") as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
+      db.query('SELECT COUNT(DISTINCT "userId") as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\'')
     ]);
 
     // Process results
@@ -174,7 +350,10 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       activeUsersToday: parseInt(activeUsersResult.rows[0].count),
       newUsersToday: parseInt(newUsersTodayResult.rows[0].count),
       newUsersThisWeek: parseInt(newUsersThisWeekResult.rows[0].count),
-      newUsersThisMonth: parseInt(newUsersThisMonthResult.rows[0].count)
+      newUsersThisMonth: parseInt(newUsersThisMonthResult.rows[0].count),
+      dau: parseInt(dauResult.rows[0].count),
+      wau: parseInt(wauResult.rows[0].count),
+      mau: parseInt(mauResult.rows[0].count)
     };
 
     const engagement = {
@@ -210,6 +389,73 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       recentEvents: recentEventsResult.rows.map(event => sanitizeEvent(event))
     };
 
+    // NEW: Process activation metrics
+    const totalSignups = parseInt(signupsResult.rows[0].count);
+    const signupsWithTwin24h = parseInt(signupsWithTwin24hResult.rows[0].count);
+    const signupsWithChat24h = parseInt(signupsWithChat24hResult.rows[0].count);
+    const signupsWithApproval72h = parseInt(signupsWithApproval72hResult.rows[0].count);
+    
+    const activation = {
+      signups: totalSignups,
+      createdTwinWithin24h: signupsWithTwin24h,
+      startedChatWithin24h: signupsWithChat24h,
+      approvedMessageWithin72h: signupsWithApproval72h,
+      twinCreationRate: totalSignups > 0 ? ((signupsWithTwin24h / totalSignups) * 100).toFixed(2) : '0',
+      firstChatRate: totalSignups > 0 ? ((signupsWithChat24h / totalSignups) * 100).toFixed(2) : '0',
+      firstApprovalRate: totalSignups > 0 ? ((signupsWithApproval72h / totalSignups) * 100).toFixed(2) : '0'
+    };
+
+    // NEW: Process retention metrics
+    const totalSignupsForRetention = parseInt(signupsResult.rows[0].count);
+    const d1Retained = parseInt(retentionD1Result.rows[0].count);
+    const d7Retained = parseInt(retentionD7Result.rows[0].count);
+    const d30Retained = parseInt(retentionD30Result.rows[0].count);
+    
+    const retention = {
+      d1: {
+        retained: d1Retained,
+        rate: totalSignupsForRetention > 0 ? ((d1Retained / totalSignupsForRetention) * 100).toFixed(2) : '0'
+      },
+      d7: {
+        retained: d7Retained,
+        rate: totalSignupsForRetention > 0 ? ((d7Retained / totalSignupsForRetention) * 100).toFixed(2) : '0'
+      },
+      d30: {
+        retained: d30Retained,
+        rate: totalSignupsForRetention > 0 ? ((d30Retained / totalSignupsForRetention) * 100).toFixed(2) : '0'
+      },
+      cohorts: cohortDataResult.rows.map(row => ({
+        month: row.cohort_month,
+        signups: parseInt(row.signups),
+        d1Retained: parseInt(row.d1_retained),
+        d7Retained: parseInt(row.d7_retained),
+        d30Retained: parseInt(row.d30_retained),
+        d1Rate: parseInt(row.signups) > 0 ? ((parseInt(row.d1_retained) / parseInt(row.signups)) * 100).toFixed(2) : '0',
+        d7Rate: parseInt(row.signups) > 0 ? ((parseInt(row.d7_retained) / parseInt(row.signups)) * 100).toFixed(2) : '0',
+        d30Rate: parseInt(row.signups) > 0 ? ((parseInt(row.d30_retained) / parseInt(row.signups)) * 100).toFixed(2) : '0'
+      }))
+    };
+
+    // NEW: Process virality metrics
+    const totalInvitesSent = parseInt(totalInvitesSentResult.rows[0].count);
+    const totalInvitesAccepted = parseInt(totalInvitesAcceptedResult.rows[0].count);
+    const activeUsersForInvites = parseInt(invitesPerActiveUserResult.rows[0].active_users) || 1;
+    const invitesSent = parseInt(invitesPerActiveUserResult.rows[0].invites_sent);
+    const activeUsersForShares = parseInt(sharesPerActiveUserResult.rows[0].active_users) || 1;
+    const shares = parseInt(sharesPerActiveUserResult.rows[0].shares);
+    const invitesSentForConversion = parseInt(inviteConversionRateResult.rows[0].sent) || 1;
+    const invitesAcceptedForConversion = parseInt(inviteConversionRateResult.rows[0].accepted);
+    
+    const virality = {
+      totalInvitesSent,
+      totalInvitesAccepted,
+      invitesPerActiveUser: (invitesSent / activeUsersForInvites).toFixed(2),
+      sharesPerActiveUser: (shares / activeUsersForShares).toFixed(2),
+      inviteConversionRate: invitesSentForConversion > 0 
+        ? ((invitesAcceptedForConversion / invitesSentForConversion) * 100).toFixed(2) 
+        : '0'
+    };
+
     // Calculate growth rates
     const growthRates = {
       daily: {
@@ -234,7 +480,11 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
         monthly,
         userActivity,
         engagement,
-        growthRates
+        growthRates,
+        // NEW: Add new metrics
+        activation,
+        retention,
+        virality
       },
       content: {
         topContent,
@@ -249,7 +499,11 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
         totalEvents: lifetime.events,
         activeUsersToday: userActivity.activeUsersToday,
         newUsersToday: userActivity.newUsersToday,
-        avgEngagement: engagement.avgMessagesPerChat
+        avgEngagement: engagement.avgMessagesPerChat,
+        // NEW: Add key activation/virality metrics to summary
+        activationRate: activation.twinCreationRate,
+        d7RetentionRate: retention.d7.rate,
+        inviteConversionRate: virality.inviteConversionRate
       }
     };
 

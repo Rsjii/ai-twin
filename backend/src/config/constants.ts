@@ -140,4 +140,10 @@ export const EVENT_TYPES = {
   // System
   ERROR: 'error',
   API_ERROR: 'api_error',
+  
+  // Add if profile_completed is needed:
+  PROFILE_COMPLETED: 'profile_completed', // Optional - add if you want to track this
+  
+  // Add if enhanced_twin_creation_failed is needed separately:
+  ENHANCED_TWIN_CREATION_FAILED: 'enhanced_twin_creation_failed', // Optional
 } as const;

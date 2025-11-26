@@ -14,6 +14,8 @@ import { logEvent } from '../../services/eventLogger';
 import { QUERY_LIMITS } from '../../config/constants';
 import { normalizeTimestamp, formatRelativeTime } from '../../utils/timestampUtils';
 import { detokenizeId, tokenizeId } from '../../utils/idTokenization';
+import { EventLogger } from '../../services/eventLogger';
+import { EVENT_TYPES } from '../../config/constants';
 
 const twinService = new TwinService();
 
@@ -85,7 +87,9 @@ export const startChat = async (req: AuthenticatedRequest, res: Response, next: 
     const chat = chatResult.rows[0];
     
     // Log chat started event
-    await logEvent(req.user.id, 'chat_started', { chatId: chat.id, twinId: twin.id });
+    await EventLogger.logChatStarted(req.user.id, chat.id, twin.id, {
+      source: 'dashboard'
+    });
     
     res.json({
       success: true,
@@ -474,7 +478,14 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response, nex
     }
 
     // Log chat continued/started event
-    await logEvent(req.user.id, existingChat ? 'chat_continued' : 'chat_started', { chatId: chat.id, twinId: twin.id });
+    if (existingChat) {
+      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.CHAT_CONTINUED, {
+        publicChatId: chat.id,
+        publicTwinId: twin.id
+      });
+    } else {
+      await EventLogger.logChatStarted(req.user.id, chat.id, twin.id);
+    }
 
     res.json({
       success: true,
@@ -563,7 +574,10 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response, ne
       : (typeof draftResult === 'string' ? draftResult : '');
     
     // Log draft generated event
-      await logEvent(req.user.id, 'draft_generated', { chatId: chat.id, twinId: chat.twinId });
+      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.DRAFT_GENERATED, {
+        publicChatId: chat.id,
+        publicTwinId: chat.twinId
+      });
     
     res.json({ draft });
   } catch (error) {
@@ -631,7 +645,9 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response, next
     const message = messageResult.rows[0];
 
     // Log message approved event using raw SQL
-    await logEvent(req.user.id, 'message_approved', { chatId: chat.id, messageId: message.id });
+    await EventLogger.logMessageApproved(req.user.id, chat.id, {
+      messageLength: message.content?.length || 0
+    });
 
     // Update style vector based on new conversation (async, don't wait)
     updateStyleVectorAfterChat(chat.twinId, req.user.id).catch(error => {
@@ -726,7 +742,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       
       // Log chat started event
       try {
-        await logEvent(req.user.id, 'chat_started', { chatId: newChat.id, twinId: twin.id });
+        await EventLogger.logChatStarted(req.user.id, newChat.id, twin.id);
         logger.info('Chat started event logged');
       } catch (error) {
         logger.error('Failed to log chat started event:', error);
@@ -893,7 +909,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
           }),
 
           // Log event
-          await logEvent(userId, 'chat_message', { chatId: chat.id, twinId: chat.twinId, userMessageId: userMessage.id, aiMessageId: aiMessage.id }),
+          await EventLogger.logUserEvent(userId, EVENT_TYPES.CHAT_MESSAGE, { chatId: chat.id, twinId: chat.twinId, userMessageId: userMessage.id, aiMessageId: aiMessage.id }),
 
           // Update style vector
           updateStyleVectorAfterChat(chat.twinId, userId).catch(err => 
@@ -1137,7 +1153,7 @@ export const deleteChat = async (req: AuthenticatedRequest, res: Response, next:
     
     // Log event
     try {
-      await logEvent(req.user.id, 'chat_deleted', { chatId: chatId });
+      await EventLogger.logEvent(req.user.id, EVENT_TYPES.CHAT_DELETED, { chatId: chatId });
     } catch (error) {
       logger.warn('Failed to log chat deletion event:', error);
     }
@@ -1180,7 +1196,7 @@ export const createNewChat = async (req: AuthenticatedRequest, res: Response, ne
     const chat = chatResult.rows[0];
 
     // Log chat creation event
-    await logEvent(userId, 'chat_created', { chatId: chat.id, twinId: chat.twinId });
+    await EventLogger.logEvent(userId, EVENT_TYPES.CHAT_CREATED, { chatId: chat.id, twinId: chat.twinId });
 
 
     res.json({

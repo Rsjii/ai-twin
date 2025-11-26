@@ -9,6 +9,7 @@ import { featureFlags } from '../../config/featureFlags';
 import { createError, ErrorCodes } from '../../utils/errors';
 import { generateId } from '../../utils/idGenerator';
 import { handleControllerError } from '../../utils/errorHandler';
+import { EVENT_TYPES } from '../../config/constants';
 
 const twinService = new TwinService();
 
@@ -111,11 +112,8 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
     };
     
     // Log twin creation event using EventLogger
-    await EventLogger.logUserEvent(req.user.id, 'twin_created', { 
-      twinId: twin.id,
-      samplesCount: samples.length,
-      totalLength: combinedText.length,
-      styleVector: styleVector
+    await EventLogger.logTwinCreated(req.user.id, twin.id, {
+      samplesCount: samples.length
     });
     
     res.json({
@@ -132,7 +130,7 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
     
     // Log the error event
     if (req.user) {
-      await EventLogger.logUserEvent(req.user.id, 'twin_creation_failed', { 
+      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_CREATION_FAILED, { 
         error: error instanceof Error ? error.message : 'Unknown error' 
       });
     }

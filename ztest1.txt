@@ -111,10 +111,10 @@
 
 91. moderation pe ruk kyu jaata hai mect chat mana karde we cannot answer this , na regenerate chale na koi button dikhe
 92. errors me requestID source bheja jaaye to pata chale kaha se aaya kis functoin file line
-93. prod par ednpoint sahi
-94. id wagerah usrs ko na dikhee
+//DONE 93. prod par ednpoint sahi
+//VERIFY 94. id wagerah usrs ko na dikhee
 95. deployment dockerfile
-96. settings me reload pe account pe kyu aa jaata like jab public kro
+//VERIFY 96. settings me reload pe account pe kyu aa jaata like jab public kro
 97. make twin public me same handle daalo existing wala to errror nahi aa rha proper frontend par , uski wajah se atak ja raha hai + {Pattern attribute value [a-zA-Z0-9_-]+ is not a valid regular expression: Uncaught SyntaxError: Invalid regular expression: /[a-zA-Z0-9_-]+/v: Invalid character in character class } logic hai isko sahi karo
 98. user profile hata deni chahiye i guess only the twin profile , kaise karna hai socho aur batao , fully twin oriednted ya both sochna hoga
 99. prfolie non logged in ke liye block hai to eror 404 aaye na  , link khul hi na raha ye kya baat hai , jaise public chat me aata errro 403
@@ -126,7 +126,7 @@
 105. Enhanced AI Twin Creation full flow
 106. apni profile hide karke anonymous chat ka option bhi de users do, think hona cahiye ya baad me kare
 //ADVANCED 107. leaderboard wagerah dekhl
-108. follows enabled hai to saala follow kaise nahi ho raha jya dikkat hai
+//DONE 108. follows enabled hai to saala follow kaise nahi ho raha jya dikkat hai
 109. discover + twin profile me agar likes/share/follow diabled ho to button ki stae hi dikhao hover pe aaye liking is blocked , na ki res.403 jaisa abhi discover follow me ho raha
 110. new msg jab banaye banda 
 a. isko better kar sakte pata chala new msg ban rhi in public + private

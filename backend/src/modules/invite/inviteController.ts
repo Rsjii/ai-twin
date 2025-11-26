@@ -4,6 +4,8 @@ import { logger } from '../../config/logger';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { db } from '../../config/database';
 import { logEvent } from '../../services/eventLogger';
+import { EVENT_TYPES } from '../../config/constants';
+import { EventLogger } from '../../services/eventLogger';
 
 export const getMyReferralCode = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -178,7 +180,7 @@ export const processInviteAcceptance = async (req: AuthenticatedRequest, res: Re
     );
     
     // Log invite accepted event using raw SQL
-    await logEvent(invite.inviterId, 'invite_accepted', { inviteId: invite.id, inviterId: invite.inviterId });
+    await EventLogger.logInviteAccepted(req.user.id, code, invite.inviterId);
     
     res.json({ success: true });
   } catch (error) {

@@ -5,6 +5,7 @@ import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
 import { detokenizeId, tokenizeId } from '../../utils/idTokenization';
 import { createError, ErrorCodes } from '../../utils/errors';
+import { EVENT_TYPES } from '../../config/constants';
 
 // Validation schemas
 const likeTwinSchema = z.object({
@@ -93,7 +94,7 @@ export const likeTwin = async (req: Request, res: Response) => {
     `, [twinId]);
 
     // Log event
-    await EventLogger.logUserEvent(req.user.id, 'twin_liked', {
+    await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_LIKED, {
       twinId,
       newLikeCount: updatedTwin.rows[0].likeCount
     });
@@ -171,7 +172,7 @@ export const unlikeTwin = async (req: Request, res: Response) => {
     `, [twinId]);
 
     // Log event
-    await EventLogger.logUserEvent(req.user.id, 'twin_unliked', {
+    await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_UNLIKED, {
       twinId,
       newLikeCount: updatedTwin.rows[0].likeCount
     });
@@ -274,7 +275,7 @@ export const followTwin = async (req: Request, res: Response) => {
     `, [twinId]);
 
     // Log event
-    await EventLogger.logUserEvent(req.user.id, 'twin_followed', {
+    await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_FOLLOWED, {
       twinId,
       newFollowCount: updatedTwin.rows[0].followCount
     });
@@ -352,7 +353,7 @@ export const unfollowTwin = async (req: Request, res: Response) => {
     `, [twinId]);
 
     // Log event
-    await EventLogger.logUserEvent(req.user.id, 'twin_unfollowed', {
+    await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_UNFOLLOWED, {
       twinId,
       newFollowCount: updatedTwin.rows[0].followCount
     });
@@ -572,7 +573,7 @@ export const toggleLike = async (req: Request, res: Response) => {
       message = 'Twin unliked successfully';
       
       // Log event
-      await EventLogger.logUserEvent(req.user.id, 'twin_unliked', { twinId });
+      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_UNLIKED, { twinId });
     } else {
       // Like
       await twinLikeQueries.create(twinId, req.user.id);
@@ -580,7 +581,7 @@ export const toggleLike = async (req: Request, res: Response) => {
       message = 'Twin liked successfully';
       
       // Log event
-      await EventLogger.logUserEvent(req.user.id, 'twin_liked', { twinId });
+      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_LIKED, { twinId });
     }
 
     // Get updated like count
@@ -672,7 +673,7 @@ export const toggleFollow = async (req: Request, res: Response) => {
       message = 'Twin unfollowed successfully';
       
       // Log event
-      await EventLogger.logUserEvent(req.user.id, 'twin_unfollowed', { twinId });
+      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_UNFOLLOWED, { twinId });
     } else {
       // Follow
       await twinFollowQueries.create(twinId, req.user.id);
@@ -680,7 +681,7 @@ export const toggleFollow = async (req: Request, res: Response) => {
       message = 'Twin followed successfully';
       
       // Log event
-      await EventLogger.logUserEvent(req.user.id, 'twin_followed', { twinId });
+      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_FOLLOWED, { twinId });
     }
 
     // Get updated follow count

@@ -11,6 +11,7 @@ import * as chatUtils from './chatSharedUtils';
 import { handleControllerError, handleErrorWithSuccessFormat } from '../../utils/errorHandler';
 import { formatRelativeTime, normalizeTimestamp } from '../../utils/timestampUtils';
 import { detokenizeId, sanitizePublicChat, sanitizeTwin, tokenizeId } from '../../utils/idTokenization';
+import { EVENT_TYPES } from '../../config/constants';
 
 // Validation schemas
 const startPublicChatSchema = z.object({
@@ -189,16 +190,17 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
     // Log event (don't fail if this fails)
     if (userId) {
       try {
-        await EventLogger.logUserEvent(userId, 'public_chat_started', {
-          twinId,
-          chatId: publicChat.id,
+        await EventLogger.logUserEvent(userId, EVENT_TYPES.PUBLIC_CHAT_STARTED, {
+          publicTwinId: twinId,
+          publicChatId: publicChat.id,
+          source: 'public_profile'
         });
       } catch (eventError) {
         logger.warn('[startPublicChat] Failed to log event:', eventError);
       }
     } else if (finalVisitorId && !finalVisitorId.startsWith('visitor_')) {
       try {
-        await EventLogger.logUserEvent(finalVisitorId, 'public_chat_started', {
+        await EventLogger.logUserEvent(finalVisitorId, EVENT_TYPES.PUBLIC_CHAT_STARTED, {
           twinId,
           chatId: publicChat.id,
         });
