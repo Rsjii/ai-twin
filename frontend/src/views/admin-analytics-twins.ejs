@@ -100,22 +100,44 @@
 
         <!-- Search and Filters -->
         <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
-            <div class="flex flex-col md:flex-row gap-4">
-                <div class="flex-1">
-                    <input type="text" id="searchInput" placeholder="Search twins by name, user email or handle..." 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <input type="text" id="searchInput" placeholder="Search twins by name, user email or handle..." 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="date" id="fromDate" placeholder="From Date" 
+                               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        <input type="date" id="toDate" placeholder="To Date" 
+                               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                    </div>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <select id="isPublic" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        <option value="">All Visibility</option>
+                        <option value="true">Public Only</option>
+                        <option value="false">Private Only</option>
+                    </select>
+                    <input type="number" id="minLikes" placeholder="Min Likes" min="0" 
+                           class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                    <input type="number" id="minChats" placeholder="Min Chats" min="0" 
+                           class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                     <select id="sortBy" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                         <option value="createdAt">Sort by Date</option>
                         <option value="likeCount">Sort by Likes</option>
                         <option value="chatCount">Sort by Chats</option>
+                        <option value="followCount">Sort by Follows</option>
+                        <option value="messageCount">Sort by Messages</option>
+                        <option value="eventCount">Sort by Events</option>
                         <option value="name">Sort by Name</option>
                     </select>
                     <select id="sortOrder" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                         <option value="DESC">Highest First</option>
                         <option value="ASC">Lowest First</option>
                     </select>
+                    <button id="applyFiltersBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Apply Filters</button>
+                    <button id="clearFiltersBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Clear</button>
                 </div>
             </div>
         </div>
@@ -144,6 +166,11 @@
         let currentSearch = '';
         let currentSortBy = 'createdAt';
         let currentSortOrder = 'DESC';
+        let currentFromDate = '';
+        let currentToDate = '';
+        let currentIsPublic = '';
+        let currentMinLikes = '';
+        let currentMinChats = '';
 
         // Load twins data
         async function loadTwinsData() {
@@ -153,7 +180,12 @@
                     limit: 10,
                     search: currentSearch,
                     sortBy: currentSortBy,
-                    sortOrder: currentSortOrder
+                    sortOrder: currentSortOrder,
+                    fromDate: currentFromDate,
+                    toDate: currentToDate,
+                    isPublic: currentIsPublic,
+                    minLikes: currentMinLikes,
+                    minChats: currentMinChats
                 });
 
                 const response = await fetch(`/api/admin/analytics/page/twins?${params}`);
@@ -193,7 +225,7 @@
                                     ${(twin.name || 'T').charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                    <h4 class="text-lg font-semibold text-gray-900">${twin.name || 'Unnamed Twin'}</h4>
+                                    <h4 class="text-lg font-semibold text-gray-900">${twin.name || twin.publicHandle || 'Unnamed Twin'}</h4>
                                     <p class="text-sm text-gray-600">Owner: ${twin.userHandle || twin.userEmail}</p>
                                     <p class="text-xs text-gray-500 timestamp-display" data-timestamp="${twin.createdAt}" data-format="date" data-prefix="Created: "></p>                                    
                                     <p class="text-xs text-gray-500">ID: ${twin.id}</p>
@@ -217,10 +249,14 @@
                                     <p class="text-xs text-gray-500">Events</p>
                                 </div>
                                 <div class="flex space-x-2">
-                                    <button onclick="viewTwinDetails('${twin.id}')" class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">
-                                        View Details
-                                    </button>
-                                    <button onclick="viewOwnerProfile('${twin.userId}')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+<button 
+  class="view-twin-btn px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200" 
+  data-twin-id="${twin.publicId || twin.id}"
+  data-twin='${JSON.stringify(twin).replace(/'/g, "&apos;")}'
+>
+  View Details
+</button>                                    
+                                    <button class="view-owner-btn px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200" data-user-id="${twin.publicUserId || twin.userId}">
                                         View Owner
                                     </button>
                                 </div>
@@ -267,17 +303,17 @@
             
             // Previous button
             if (currentPage > 1) {
-                paginationHTML += `<button onclick="changePage(${currentPage - 1})" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Previous</button>`;
+                paginationHTML += `<button class="page-btn px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" data-page="${currentPage - 1}">Previous</button>`;
             }
             
             // Page numbers
             for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
-                paginationHTML += `<button onclick="changePage(${i})" class="px-3 py-2 ${i === currentPage ? 'bg-green-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'} rounded-lg">${i}</button>`;
+                paginationHTML += `<button class="page-btn px-3 py-2 ${i === currentPage ? 'bg-green-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'} rounded-lg" data-page="${i}">${i}</button>`;
             }
             
             // Next button
             if (currentPage < totalPages) {
-                paginationHTML += `<button onclick="changePage(${currentPage + 1})" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Next</button>`;
+                paginationHTML += `<button class="page-btn px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" data-page="${currentPage + 1}">Next</button>`;
             }
             
             paginationHTML += '</div>';
@@ -300,25 +336,24 @@
         }
 
         // View twin details
-        async function viewTwinDetails(twinId) {
-            try {
-                // Open twin details in new window
-                const twinWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
-                twinWindow.document.write(`
-                    <html>
-                    <head><title>Twin Details</title></head>
-                    <body style="font-family: Arial, sans-serif; padding: 20px;">
-                        <h2>Twin Details</h2>
-                        <p>Twin ID: ${twinId}</p>
-                        <p>Loading detailed information...</p>
-                    </body>
-                    </html>
-                `);
-            } catch (error) {
-                console.error('View twin details error:', error);
-                alert('Error loading twin details');
-            }
-        }
+        async function viewTwinDetails(twinId, twinData) {
+  try {
+    const twinWindow = window.open('', '_blank', 'width=900,height=700,scrollbars=yes,resizable=yes');
+    twinWindow.document.write(`
+      <html>
+      <head><title>Twin Details</title></head>
+      <body style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Twin Details</h2>
+        <p><strong>Twin ID (token):</strong> ${twinId}</p>
+        <pre>${twinData ? JSON.stringify(twinData, null, 2) : 'No extra data passed'}</pre>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('View twin details error:', error);
+    alert('Error loading twin details');
+  }
+}
 
         // View owner profile
         async function viewOwnerProfile(userId) {
@@ -351,6 +386,36 @@
             twinsList.innerHTML = `<div class="p-4 sm:p-6 lg:p-8 text-center text-red-600 dark:text-red-400">${message}</div>`;
         }
 
+        // Apply filters
+        function applyFilters() {
+            currentSearch = document.getElementById('searchInput').value;
+            currentFromDate = document.getElementById('fromDate').value;
+            currentToDate = document.getElementById('toDate').value;
+            currentIsPublic = document.getElementById('isPublic').value;
+            currentMinLikes = document.getElementById('minLikes').value;
+            currentMinChats = document.getElementById('minChats').value;
+            currentPage = 1;
+            loadTwinsData();
+        }
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('fromDate').value = '';
+            document.getElementById('toDate').value = '';
+            document.getElementById('isPublic').value = '';
+            document.getElementById('minLikes').value = '';
+            document.getElementById('minChats').value = '';
+            currentSearch = '';
+            currentFromDate = '';
+            currentToDate = '';
+            currentIsPublic = '';
+            currentMinLikes = '';
+            currentMinChats = '';
+            currentPage = 1;
+            loadTwinsData();
+        }
+
         // Event listeners
         document.getElementById('searchInput').addEventListener('input', debounce(searchTwins, 300));
         document.getElementById('sortBy').addEventListener('change', (e) => {
@@ -361,6 +426,30 @@
             currentSortOrder = e.target.value;
             loadTwinsData();
         });
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') applyFilters();
+        });
+
+        // Event delegation for dynamically added buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('page-btn')) {
+                const page = parseInt(e.target.dataset.page);
+                if (page) changePage(page);
+            }
+            if (e.target.classList.contains('view-twin-btn')) {
+  const twinId = e.target.dataset.twinId;
+  const twinJson = e.target.dataset.twin;
+  const twinData = twinJson ? JSON.parse(twinJson) : null;
+  if (twinId) viewTwinDetails(twinId, twinData);
+}            
+            if (e.target.classList.contains('view-owner-btn')) {
+                const userId = e.target.dataset.userId;
+                if (userId) viewOwnerProfile(userId);
+            }
+        });
+
+        document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+        document.getElementById('clearFiltersBtn').addEventListener('click', clearFilters);
 
         // Debounce function
         function debounce(func, wait) {

@@ -117,19 +117,19 @@
                     Time tabs affect overview cards, charts, and detailed modals. Lifetime metrics and Activation/Retention/Virality use global windows (30-60 days).
                 </p>
                 <div class="flex space-x-4">                    
-                    <button onclick="loadTimeBasedAnalytics('today')" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Today filter">
+                    <button data-period="today" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Today filter">
                         Today
                     </button>
-                    <button onclick="loadTimeBasedAnalytics('week')" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="7 Days filter">
+                    <button data-period="week" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="7 Days filter">
                         7 Days
                     </button>
-                    <button onclick="loadTimeBasedAnalytics('month')" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Monthly filter">
+                    <button data-period="month" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Monthly filter">
                         Monthly
                     </button>
-                    <button onclick="loadTimeBasedAnalytics('all')" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="All Time filter">
+                    <button data-period="all" class="time-filter-btn px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="All Time filter">
                         All Time
                     </button>
-                </div>
+                </div>                           
             </div>
         </div>
 
@@ -142,65 +142,69 @@
             <span class="text-xs text-gray-500">(Click cards for detailed breakdown)</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">            
-            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('users')" data-type="users">
-                <div class="flex items-center">
-                    <div class="p-2 bg-blue-100 rounded-lg">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Total Users</p>
-                        <p class="text-2xl font-bold text-gray-900" id="totalUsers">-</p>
-                        <p class="text-xs text-gray-500 mt-1">Click for details</p>
-                    </div>
-                </div>
-            </div>
+<!-- Line 145: Users Card -->
+<a href="/admin/analytics/page/users" class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block" data-type="users">
+    <div class="flex items-center">
+        <div class="p-2 bg-blue-100 rounded-lg">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+            </svg>
+        </div>
+        <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Total Users</p>
+            <p class="text-2xl font-bold text-gray-900" id="totalUsers">-</p>
+            <p class="text-xs text-gray-500 mt-1">Click for details</p>
+        </div>
+    </div>
+</a>
 
-            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('twins')" data-type="twins">
-                <div class="flex items-center">
-                    <div class="p-2 bg-green-100 rounded-lg">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Total Twins</p>
-                        <p class="text-2xl font-bold text-gray-900" id="totalTwins">-</p>
-                        <p class="text-xs text-gray-500 mt-1">Click for details</p>
-                    </div>
-                </div>
-            </div>
+<!-- Line 160: Twins Card -->
+<a href="/admin/analytics/page/twins" class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block" data-type="twins">
+    <div class="flex items-center">
+        <div class="p-2 bg-green-100 rounded-lg">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
+        </div>
+        <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Total Twins</p>
+            <p class="text-2xl font-bold text-gray-900" id="totalTwins">-</p>
+            <p class="text-xs text-gray-500 mt-1">Click for details</p>
+        </div>
+    </div>
+</a>
 
-            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('chats')" data-type="chats">
-                <div class="flex items-center">
-                    <div class="p-2 bg-purple-100 rounded-lg">
-                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Total Chats</p>
-                        <p class="text-2xl font-bold text-gray-900" id="totalChats">-</p>
-                        <p class="text-xs text-gray-500 mt-1">Click for details</p>
-                    </div>
-                </div>
-            </div>
+<!-- Line 175: Chats Card -->
+<a href="/admin/analytics/page/chats" class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block" data-type="chats">
+    <div class="flex items-center">
+        <div class="p-2 bg-purple-100 rounded-lg">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+            </svg>
+        </div>
+        <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Total Chats</p>
+            <p class="text-2xl font-bold text-gray-900" id="totalChats">-</p>
+            <p class="text-xs text-gray-500 mt-1">Click for details</p>
+        </div>
+    </div>
+</a>
 
-            <div class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onclick="showDetailedView('messages')" data-type="messages">
-                <div class="flex items-center">
-                    <div class="p-2 bg-orange-100 rounded-lg">
-                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Total Messages</p>
-                        <p class="text-2xl font-bold text-gray-900" id="totalMessages">-</p>
-                        <p class="text-xs text-gray-500 mt-1">Click for details</p>
-                    </div>
-                </div>
-            </div>
+<!-- Line 190: Messages Card -->
+<a href="/admin/analytics/page/messages" class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block" data-type="messages">
+    <div class="flex items-center">
+        <div class="p-2 bg-orange-100 rounded-lg">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+        </div>
+        <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Total Messages</p>
+            <p class="text-2xl font-bold text-gray-900" id="totalMessages">-</p>
+            <p class="text-xs text-gray-500 mt-1">Click for details</p>
+        </div>
+    </div>
+</a>    
         </div>
 
             <!-- Time-based Metrics -->
@@ -415,30 +419,16 @@
                 </div>
             </div>
 
-            <!-- Charts Section -->             
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                <!-- Event Breakdown Chart -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Event Breakdown</h3>
-                    <div class="chart-container">
-                        <canvas id="eventBreakdownChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Growth Trends Chart -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Growth Trends</h3>
-                    <div class="chart-container">
-                        <canvas id="growthTrendsChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Top Content & Recent Activity -->
+            <!-- Row 1: Top Performing Twins + Most Active Users -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
                 <!-- Top Performing Twins -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Performing Twins</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Top Performing Twins</h3>
+                        <a href="/admin/analytics/page/twins" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            View All →
+                        </a>
+                    </div>
                     <div id="topTwins" class="space-y-3">
                         <p class="text-gray-500">Loading...</p>
                     </div>
@@ -446,51 +436,116 @@
 
                 <!-- Most Active Users -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Most Active Users</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Most Active Users</h3>
+                        <a href="/admin/analytics/page/users" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            View All →
+                        </a>
+                    </div>
                     <div id="mostActiveUsers" class="space-y-3">
                         <p class="text-gray-500">Loading...</p>
                     </div>
                 </div>
             </div>
 
-            <!-- User Management Section -->
-            <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">User Management</h3>
-                <div class="mb-4">
-                    <input type="text" id="userSearchInput" placeholder="Search users by email or handle..." 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <!-- Row 2: Events Over Time + Entity Growth Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                <!-- Chart 1: Events Over Time -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Events Over Time</h3>
+                    <div class="chart-container">
+                        <canvas id="eventsOverTimeChart"></canvas>
+                    </div>
                 </div>
-                <div id="usersList" class="space-y-3">
-                    <p class="text-gray-500">Loading users...</p>
+
+                <!-- Chart 2: Entity Growth (Users/Twins/Chats) -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Entity Growth</h3>
+                    <div class="chart-container">
+                        <canvas id="entityGrowthChart"></canvas>
+                    </div>
                 </div>
             </div>
 
-            <!-- Recent Activity -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <div>
-                        <h4 class="font-medium text-gray-900 mb-2">Recent Signups</h4>
-                        <div id="recentSignups" class="space-y-2">
-                            <p class="text-gray-500 text-sm">Loading...</p>
-                        </div>
+            <!-- Row 3: Event Breakdown + Top Entities Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                <!-- Chart 3: Event Type Breakdown -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Event Breakdown</h3>
+                        <a href="/admin/analytics/events" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            View Full Explorer →
+                        </a>
                     </div>
-                    <div>
-                        <h4 class="font-medium text-gray-900 mb-2">Recent Twins</h4>
-                        <div id="recentTwins" class="space-y-2">
-                            <p class="text-gray-500 text-sm">Loading...</p>
-                        </div>
+                    <div class="chart-container">
+                        <canvas id="eventBreakdownChart"></canvas>
                     </div>
-                    <div>
-                        <h4 class="font-medium text-gray-900 mb-2">Recent Chats</h4>
-                        <div id="recentChats" class="space-y-2">
-                            <p class="text-gray-500 text-sm">Loading...</p>
-                        </div>
+                </div>
+
+                <!-- Chart 4: Top Entities (Twins/Users) -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Entities</h3>
+                    <div class="mb-2 flex gap-2">
+                        <button id="topEntitiesTabTwins" class="px-3 py-1 text-sm font-medium bg-blue-600 text-white rounded" onclick="switchTopEntitiesTab('twins')">Twins</button>
+                        <button id="topEntitiesTabUsers" class="px-3 py-1 text-sm font-medium bg-gray-200 text-gray-700 rounded" onclick="switchTopEntitiesTab('users')">Users</button>
                     </div>
-                    <div>
-                        <h4 class="font-medium text-gray-900 mb-2">Recent Events</h4>
-                        <div id="recentEvents" class="space-y-2">
-                            <p class="text-gray-500 text-sm">Loading...</p>
+                    <div class="chart-container">
+                        <canvas id="topEntitiesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 4: User Management + Recent Activity -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                <!-- User Management Section -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">User Management</h3>
+                        <a href="/admin/analytics/page/users" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            View All Users →
+                        </a>
+                    </div>
+                    <div class="mb-4">
+                        <input type="text" id="userSearchInput" placeholder="Search users by email or handle..." 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div id="usersList" class="space-y-3">
+                        <p class="text-gray-500">Loading users...</p>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-4 sm:p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                        <a href="/admin/analytics/activity" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            View All Activity →
+                        </a>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Recent Signups</h4>
+                            <div id="recentSignups" class="space-y-2">
+                                <p class="text-gray-500 text-sm">Loading...</p>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Recent Twins</h4>
+                            <div id="recentTwins" class="space-y-2">
+                                <p class="text-gray-500 text-sm">Loading...</p>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Recent Chats</h4>
+                            <div id="recentChats" class="space-y-2">
+                                <p class="text-gray-500 text-sm">Loading...</p>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Recent Events</h4>
+                            <div id="recentEvents" class="space-y-2">
+                                <p class="text-gray-500 text-sm">Loading...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1100,109 +1155,277 @@ function createGrowthTrendsChart(metrics) {
     }
 }
 
-// Add this function after createGrowthTrendsChart
-function createTimeBasedChart(breakdown, period) {
+// ========== UNIFIED CHART FUNCTIONS (Work for all time periods) ==========
+
+// Chart 1: Events Over Time (Line chart - hourly for today, daily for others)
+function createEventsOverTimeChart(breakdown, period) {
     try {
         if (typeof Chart === 'undefined') {
-            console.warn('Chart.js not loaded, retrying...');
-            setTimeout(() => createTimeBasedChart(breakdown, period), 100);
+            setTimeout(() => createEventsOverTimeChart(breakdown, period), 100);
             return;
         }
 
-        // Update event breakdown chart with hourly data if available
-        if (breakdown && breakdown.hourly && breakdown.hourly.length > 0) {
-            const canvas = document.getElementById('eventBreakdownChart');
-            if (canvas) {
-                const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    console.error('Could not get canvas context');
-                    return;
-                }
-                
-                if (window.eventBreakdownChartInstance) {
-                    window.eventBreakdownChartInstance.destroy();
-                }
-                
-                const labels = breakdown.hourly.map(h => `${h.hour}:00`);
-                const values = breakdown.hourly.map(h => Number(h.count) || 0);
-                
-                window.eventBreakdownChartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: `${period.charAt(0).toUpperCase() + period.slice(1)} Activity`,
-                            data: values,
-                            backgroundColor: '#3B82F6',
-                            borderColor: '#2563EB',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom'
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-            }
-        }
+        const canvas = document.getElementById('eventsOverTimeChart');
+        if (!canvas) return;
         
-        // Update growth trends chart with daily data if available
-        if (breakdown && breakdown.daily && breakdown.daily.length > 0) {
-            const canvas = document.getElementById('growthTrendsChart');
-            if (canvas) {
-                const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    console.error('Could not get canvas context');
-                    return;
-                }
-                
-                if (window.growthTrendsChartInstance) {
-                    window.growthTrendsChartInstance.destroy();
-                }
-                
-                const labels = breakdown.daily.map(d => {
-                    const date = new Date(d.date);
-                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                });
-                const values = breakdown.daily.map(d => Number(d.count) || 0);
-                
-                window.growthTrendsChartInstance = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: `Events (${period})`,
-                            data: values,
-                            borderColor: '#3B82F6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-            }
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        if (window.eventsOverTimeChartInstance) {
+            window.eventsOverTimeChartInstance.destroy();
         }
+
+        let labels, values;
+        if (period === 'today' && breakdown.hourly && breakdown.hourly.length > 0) {
+            // Today: Show hourly
+            labels = breakdown.hourly.map(h => `${Math.floor(h.hour)}:00`);
+            values = breakdown.hourly.map(h => Number(h.count) || 0);
+        } else if (breakdown.daily && breakdown.daily.length > 0) {
+            // Week/Month/All: Show daily
+            labels = breakdown.daily.map(d => {
+                const date = new Date(d.date);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            values = breakdown.daily.map(d => Number(d.count) || 0);
+        } else {
+            return; // No data
+        }
+
+        window.eventsOverTimeChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Events',
+                    data: values,
+                    borderColor: '#3B82F6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'top' }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
     } catch (error) {
-        console.error('Error creating time-based chart:', error);
+        console.error('Error creating events over time chart:', error);
+    }
+}
+
+// Chart 2: Entity Growth (Multi-line: Users/Twins/Chats per day)
+function createEntityGrowthChart(entitiesDaily, period) {
+    try {
+        if (typeof Chart === 'undefined') {
+            setTimeout(() => createEntityGrowthChart(entitiesDaily, period), 100);
+            return;
+        }
+
+        const canvas = document.getElementById('entityGrowthChart');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        if (window.entityGrowthChartInstance) {
+            window.entityGrowthChartInstance.destroy();
+        }
+
+        if (!entitiesDaily || entitiesDaily.length === 0) {
+            return; // No data
+        }
+
+        const labels = entitiesDaily.map(d => {
+            const date = new Date(d.date);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        const users = entitiesDaily.map(d => Number(d.users) || 0);
+        const twins = entitiesDaily.map(d => Number(d.twins) || 0);
+        const chats = entitiesDaily.map(d => Number(d.chats) || 0);
+
+        window.entityGrowthChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Users',
+                        data: users,
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Twins',
+                        data: twins,
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Chats',
+                        data: chats,
+                        borderColor: '#F59E0B',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'top' }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error creating entity growth chart:', error);
+    }
+}
+
+// Chart 3: Top Entities (Bar chart - Twins or Users)
+let currentTopEntitiesTab = 'twins';
+function switchTopEntitiesTab(tab) {
+    currentTopEntitiesTab = tab;
+    const twinsBtn = document.getElementById('topEntitiesTabTwins');
+    const usersBtn = document.getElementById('topEntitiesTabUsers');
+    
+    if (twinsBtn && usersBtn) {
+        if (tab === 'twins') {
+            twinsBtn.classList.add('bg-blue-600', 'text-white');
+            twinsBtn.classList.remove('bg-gray-200', 'text-gray-700');
+            usersBtn.classList.remove('bg-blue-600', 'text-white');
+            usersBtn.classList.add('bg-gray-200', 'text-gray-700');
+        } else {
+            usersBtn.classList.add('bg-blue-600', 'text-white');
+            usersBtn.classList.remove('bg-gray-200', 'text-gray-700');
+            twinsBtn.classList.remove('bg-blue-600', 'text-white');
+            twinsBtn.classList.add('bg-gray-200', 'text-gray-700');
+        }
+    }
+    
+    // Re-render chart with current data
+    if (window.lastTopEntitiesData) {
+        createTopEntitiesChart(window.lastTopEntitiesData, currentTopEntitiesTab);
+    }
+}
+
+
+function createTopEntitiesChart(topContent, activeTab = 'twins') {
+    try {
+        if (typeof Chart === 'undefined') {
+            setTimeout(() => createTopEntitiesChart(topContent, activeTab), 100);
+            return;
+        }
+
+        const canvas = document.getElementById('topEntitiesChart');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        if (window.topEntitiesChartInstance) {
+            window.topEntitiesChartInstance.destroy();
+        }
+
+        // Store for tab switching
+        window.lastTopEntitiesData = topContent;
+
+        let labels, values, labelKey;
+        if (activeTab === 'twins' && topContent.twins && topContent.twins.length > 0) {
+            const sorted = topContent.twins.slice(0, 10).sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
+            labels = sorted.map(t => t.publicHandle || 'Unknown');
+            values = sorted.map(t => Number(t.likeCount) || 0);
+            labelKey = 'Likes';
+        } else if (activeTab === 'users' && topContent.users && topContent.users.length > 0) {
+            const sorted = topContent.users.slice(0, 10).sort((a, b) => (b.eventCount || 0) - (a.eventCount || 0));
+            labels = sorted.map(u => u.handle || u.email || 'Unknown');
+            values = sorted.map(u => Number(u.eventCount) || 0);
+            labelKey = 'Events';
+        } else {
+            return; // No data
+        }
+
+        window.topEntitiesChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: labelKey,
+                    data: values,
+                    backgroundColor: activeTab === 'twins' ? '#10B981' : '#3B82F6',
+                    borderColor: activeTab === 'twins' ? '#059669' : '#2563EB',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { beginAtZero: true }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error creating top entities chart:', error);
+    }
+}
+
+// Unified chart updater - calls all chart functions
+function updateCharts(period, data) {
+    const breakdown = data.breakdown || {};
+    const topContent = data.topContent || {};
+    const eventBreakdown = data.eventBreakdown || {};
+
+    console.log('[UPDATE_CHARTS] Period:', period);
+    console.log('[UPDATE_CHARTS] Breakdown:', breakdown);
+    console.log('[UPDATE_CHARTS] TopContent:', topContent);
+    console.log('[UPDATE_CHARTS] EventBreakdown:', eventBreakdown);
+
+    // Chart 1: Events Over Time
+    createEventsOverTimeChart(breakdown, period);
+
+    // Chart 2: Entity Growth
+    if (breakdown.entitiesDaily && breakdown.entitiesDaily.length > 0) {
+        createEntityGrowthChart(breakdown.entitiesDaily, period);
+    } else {
+        console.warn('[UPDATE_CHARTS] No entitiesDaily data for period:', period);
+    }
+
+    // Chart 3: Event Breakdown (existing function)
+    if (Object.keys(eventBreakdown).length > 0) {
+        createEventBreakdownChart(eventBreakdown);
+    }
+
+    // Chart 4: Top Entities - Normalize data structure
+    // Handle both formats: {twins: [], users: []} and {topTwins: [], mostActiveUsers: []}
+    const normalizedTopContent = {
+        twins: topContent.twins || topContent.topTwins || [],
+        users: topContent.users || topContent.mostActiveUsers || []
+    };
+    
+    console.log('[UPDATE_CHARTS] Normalized TopContent:', normalizedTopContent);
+    
+    if (normalizedTopContent.twins.length > 0 || normalizedTopContent.users.length > 0) {
+        createTopEntitiesChart(normalizedTopContent, currentTopEntitiesTab);
+    } else {
+        console.warn('[UPDATE_CHARTS] No top entities data for period:', period);
     }
 }
 
@@ -1282,19 +1505,137 @@ function createTimeBasedChart(breakdown, period) {
                     currentAnalyticsData = data.data || data.metrics;
                     
                     if (period === 'all') {
+                        // ✅ CRITICAL: Hide loading state and show main content
+                        const loadingState = document.getElementById('loadingState');
+                        const mainContent = document.getElementById('mainContent');
+                        if (loadingState) loadingState.classList.add('hidden');
+                        if (mainContent) mainContent.classList.remove('hidden');
+                        
                         // All Time: Update lifetime cards
                         document.getElementById('totalUsers').textContent = data.metrics.lifetime?.users || 0;
                         document.getElementById('totalTwins').textContent = data.metrics.lifetime?.twins || 0;
                         document.getElementById('totalChats').textContent = data.metrics.lifetime?.chats || 0;
                         document.getElementById('totalMessages').textContent = data.metrics.lifetime?.messages || 0;
                         
-                        // Recreate charts with all-time data
-                        if (data.content?.eventBreakdown) {
-                            createEventBreakdownChart(data.content.eventBreakdown);
+                        // Update daily/weekly/monthly metrics
+                        document.getElementById('dailyUsers').textContent = data.metrics.daily?.users || 0;
+                        document.getElementById('dailyTwins').textContent = data.metrics.daily?.twins || 0;
+                        document.getElementById('dailyChats').textContent = data.metrics.daily?.chats || 0;
+                        document.getElementById('dailyMessages').textContent = data.metrics.daily?.messages || 0;
+                        document.getElementById('dailyEvents').textContent = data.metrics.daily?.events || 0;
+                        
+                        document.getElementById('weeklyUsers').textContent = data.metrics.weekly?.users || 0;
+                        document.getElementById('weeklyTwins').textContent = data.metrics.weekly?.twins || 0;
+                        document.getElementById('weeklyChats').textContent = data.metrics.weekly?.chats || 0;
+                        document.getElementById('weeklyMessages').textContent = data.metrics.weekly?.messages || 0;
+                        document.getElementById('weeklyEvents').textContent = data.metrics.weekly?.events || 0;
+                        
+                        document.getElementById('monthlyUsers').textContent = data.metrics.monthly?.users || 0;
+                        document.getElementById('monthlyTwins').textContent = data.metrics.monthly?.twins || 0;
+                        document.getElementById('monthlyChats').textContent = data.metrics.monthly?.chats || 0;
+                        document.getElementById('monthlyMessages').textContent = data.metrics.monthly?.messages || 0;
+                        document.getElementById('monthlyEvents').textContent = data.metrics.monthly?.events || 0;
+                        
+                        // Update user activity
+                        document.getElementById('activeUsersToday').textContent = data.metrics.userActivity?.activeUsersToday || 0;
+                        document.getElementById('newUsersToday').textContent = data.metrics.userActivity?.newUsersToday || 0;
+                        document.getElementById('newUsersThisWeek').textContent = data.metrics.userActivity?.newUsersThisWeek || 0;
+                        document.getElementById('newUsersThisMonth').textContent = data.metrics.userActivity?.newUsersThisMonth || 0;
+                        
+                        // Update DAU/WAU/MAU
+                        document.getElementById('dauCount').textContent = data.metrics.userActivity?.dau || 0;
+                        document.getElementById('wauCount').textContent = data.metrics.userActivity?.wau || 0;
+                        document.getElementById('mauCount').textContent = data.metrics.userActivity?.mau || 0;
+                        
+                        // Update engagement metrics
+                        const avgMsg = data.metrics.engagement?.avgMessagesPerChat || 0;
+                        const avgChats = data.metrics.engagement?.avgChatsPerUser || 0;
+                        const avgEvents = data.metrics.engagement?.avgEventsPerUser || 0;
+                        document.getElementById('avgMessagesPerChat').textContent = Number(avgMsg).toFixed(2);
+                        document.getElementById('avgChatsPerUser').textContent = Number(avgChats).toFixed(2);
+                        document.getElementById('avgEventsPerUser').textContent = Number(avgEvents).toFixed(2);
+                        
+                        // Update activation metrics
+                        if (data.metrics.activation) {
+                            const activation = data.metrics.activation;
+                            document.getElementById('activationSignups').textContent = activation.signups || 0;
+                            document.getElementById('activationTwinRate').textContent = activation.twinCreationRate + '%';
+                            document.getElementById('activationChatRate').textContent = activation.firstChatRate + '%';
+                            document.getElementById('activationApprovalRate').textContent = activation.firstApprovalRate + '%';
                         }
-                        if (data.metrics) {
-                            createGrowthTrendsChart(data.metrics);
+                        
+                        // Update retention metrics
+                        if (data.metrics.retention) {
+                            const retention = data.metrics.retention;
+                            document.getElementById('retentionD1').textContent = retention.d1.rate + '%';
+                            document.getElementById('retentionD7').textContent = retention.d7.rate + '%';
+                            document.getElementById('retentionD30').textContent = retention.d30.rate + '%';
                         }
+                        
+                        // Update virality metrics
+                        if (data.metrics.virality) {
+                            const virality = data.metrics.virality;
+                            document.getElementById('viralityInvitesPerUser').textContent = virality.invitesPerActiveUser;
+                            document.getElementById('viralitySharesPerUser').textContent = virality.sharesPerActiveUser;
+                            document.getElementById('viralityConversionRate').textContent = virality.inviteConversionRate + '%';
+                        }
+                        
+                        // Update content sections
+                        if (data.content?.topContent) {
+                            updateTopTwins(data.content.topContent.topTwins || []);
+                            updateMostActiveUsers(data.content.topContent.mostActiveUsers || []);
+                        }
+                        if (data.content?.recentActivity) {
+                            updateRecentActivity(data.content.recentActivity);
+                        }
+                        
+                        // Update unified charts for All Time (async)
+                        // Fetch last 30 days data for daily breakdown
+                        (async () => {
+                            try {
+                                const monthResponse = await fetch('/api/admin/analytics/time/month', {
+                                    method: 'GET',
+                                    credentials: 'include',
+                                    headers: { 'Content-Type': 'application/json' }
+                                });
+                                const monthData = await monthResponse.json();
+                                
+                                // Normalize topContent structure
+                                const normalizedTopContent = {
+                                    twins: data.content?.topContent?.topTwins || [],
+                                    users: data.content?.topContent?.mostActiveUsers || []
+                                };
+                                
+                                // Use monthly breakdown for All Time charts (representative sample)
+                                const allTimeChartData = {
+                                    breakdown: monthData.success && monthData.data?.breakdown ? {
+                                        daily: monthData.data.breakdown.daily || [],
+                                        hourly: [],
+                                        entitiesDaily: monthData.data.breakdown.entitiesDaily || []
+                                    } : {
+                                        daily: [],
+                                        hourly: [],
+                                        entitiesDaily: []
+                                    },
+                                    topContent: normalizedTopContent,
+                                    eventBreakdown: data.content?.eventBreakdown || {}
+                                };
+                                
+                                updateCharts('all', allTimeChartData);
+                            } catch (error) {
+                                console.error('Error fetching monthly data for All Time charts:', error);
+                                // Fallback: Use empty breakdown but still show topContent and eventBreakdown
+                                const normalizedTopContent = {
+                                    twins: data.content?.topContent?.topTwins || [],
+                                    users: data.content?.topContent?.mostActiveUsers || []
+                                };
+                                updateCharts('all', {
+                                    breakdown: { daily: [], hourly: [], entitiesDaily: [] },
+                                    topContent: normalizedTopContent,
+                                    eventBreakdown: data.content?.eventBreakdown || {}
+                                });
+                            }
+                        })();
                     } else {
                         // Time-based: Update overview cards with period data
                         document.getElementById('totalUsers').textContent = data.data?.summary?.users || 0;
@@ -1302,11 +1643,27 @@ function createTimeBasedChart(breakdown, period) {
                         document.getElementById('totalChats').textContent = data.data?.summary?.chats || 0;
                         document.getElementById('totalMessages').textContent = data.data?.summary?.messages || 0;
                         
-                        // Update charts with time-based data
-                        if (data.data?.breakdown) {
-                            createTimeBasedChart(data.data.breakdown, period);
+                        // Update unified charts with time-based data
+                        if (data.data) {
+                            // Normalize topContent structure (already in correct format, but ensure consistency)
+                            const normalizedTopContent = {
+                                twins: data.data.topContent?.twins || [],
+                                users: data.data.topContent?.users || []
+                            };
+                            
+                            updateCharts(period, {
+                                breakdown: data.data.breakdown || {},
+                                topContent: normalizedTopContent,
+                                eventBreakdown: data.data.eventBreakdown || {}
+                            });
                         }
                     }
+
+                     // ✅ YAHAN COMMON TOGGLE ADD KARO (all / today / week / month sab ke liye)
+    const loadingStateEl = document.getElementById('loadingState');
+    const mainContentEl = document.getElementById('mainContent');
+    if (loadingStateEl) loadingStateEl.classList.add('hidden');
+    if (mainContentEl) mainContentEl.classList.remove('hidden');
                     
                     // Hide loading state
                     hideLoadingState();
@@ -1378,36 +1735,25 @@ function createTimeBasedChart(breakdown, period) {
             });
         }
 
-        // Show detailed view for metrics (MODAL VERSION)
-        function showDetailedView(type) {
-            console.log(`Opening detailed modal for ${type} with period: ${currentTimePeriod}`);
-            
-            // Open modal
-            const modal = document.getElementById('detailedModal');
-            if (modal) {
-                modal.classList.remove('hidden');
-                
-                // Set modal title
-                const title = document.getElementById('detailedModalTitle');
-                if (title) {
-                    const typeLabels = {
-                        'users': 'Users',
-                        'twins': 'Twins',
-                        'chats': 'Chats',
-                        'messages': 'Messages',
-                        'events': 'Events'
-                    };
-                    title.textContent = `${typeLabels[type] || type} Details`;
-                }
-                
-                // Load data with current time period
-                loadDetailedData(type, currentTimePeriod || 'today');
-            } else {
-                console.error('Detailed modal not found');
-                showNotification('Modal not found. Please refresh the page.', 'error');
-            }
-        }
-        
+// Navigate to dedicated detail pages (replaces modal-based showDetailedView)
+function showDetailedView(type) {
+    const routes = {
+        'users': '/admin/analytics/page/users',
+        'twins': '/admin/analytics/page/twins',
+        'chats': '/admin/analytics/page/chats',
+        'messages': '/admin/analytics/page/messages',
+        'events': '/admin/analytics/events',
+        'activity': '/admin/analytics/activity'
+    };
+    
+    const route = routes[type];
+    if (route) {
+        window.location.href = route;
+    } else {
+        console.error('Unknown detail type:', type);
+    }
+}        
+
         // Close detailed modal
         function closeDetailedModal() {
             const modal = document.getElementById('detailedModal');
@@ -2178,20 +2524,57 @@ ${userData.events.slice(0, 10).map(event => {
             });
         }
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Load saved period from localStorage
+        // ✅ Initialize analytics on page load AND browser navigation (back/forward)
+        function initializeAnalytics() {
+            // Load saved period from localStorage, default to 'all'
             const savedPeriod = localStorage.getItem('adminAnalyticsTimePeriod') || 'all';
             
-            // Load initial data
-            loadAdminAnalytics().then(() => {
-                // After initial load, switch to saved period if not 'all'
-                if (savedPeriod !== 'all') {
-                    setTimeout(() => {
-                        loadTimeBasedAnalytics(savedPeriod);
-                    }, 500);
-                }
+            // ✅ Add event listeners for time filter buttons (only if not already added)
+            document.querySelectorAll('.time-filter-btn').forEach(btn => {
+                // Remove existing listeners to avoid duplicates
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                // Add fresh event listener
+                newBtn.addEventListener('click', function() {
+                    const period = this.getAttribute('data-period');
+                    if (period) {
+                        console.log('Time filter clicked:', period);
+                        loadTimeBasedAnalytics(period);
+                    }
+                });
             });
+            
+            // Load analytics with saved/default period
+            loadTimeBasedAnalytics(savedPeriod);
+            
+            // Load user search functionality
+            const userSearchInput = document.getElementById('userSearchInput');
+            if (userSearchInput) {
+                // Remove existing listener to avoid duplicates
+                const newInput = userSearchInput.cloneNode(true);
+                userSearchInput.parentNode.replaceChild(newInput, userSearchInput);
+                
+                newInput.addEventListener('input', function() {
+                    // User search logic (if needed for preview)
+                    const searchTerm = this.value;
+                    if (searchTerm.length >= 2) {
+                        // Optional: Live search preview
+                    }
+                });
+            }
+        }
+        
+        // ✅ Handle both initial load AND browser navigation (back/forward)
+        document.addEventListener('DOMContentLoaded', initializeAnalytics);
+        
+        // ✅ Handle browser back/forward navigation (pageshow fires on cache restore)
+        window.addEventListener('pageshow', function(event) {
+            // event.persisted = true means page was loaded from cache (back/forward)
+            if (event.persisted) {
+                console.log('Page loaded from cache (back/forward navigation)');
+                initializeAnalytics();
+            }
         });
     </script>
 </body>

@@ -100,21 +100,36 @@
 
         <!-- Search and Filters -->
         <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
-            <div class="flex flex-col md:flex-row gap-4">
-                <div class="flex-1">
-                    <input type="text" id="searchInput" placeholder="Search users by email or handle..." 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <input type="text" id="searchInput" placeholder="Search users by email or handle..." 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="date" id="fromDate" placeholder="From Date" 
+                               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <input type="date" id="toDate" placeholder="To Date" 
+                               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex flex-col md:flex-row gap-4">
                     <select id="sortBy" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         <option value="createdAt">Sort by Date</option>
                         <option value="email">Sort by Email</option>
                         <option value="handle">Sort by Handle</option>
+                        <option value="twinCount">Sort by Twins</option>
+                        <option value="chatCount">Sort by Chats</option>
+                        <option value="messageCount">Sort by Messages</option>
+                        <option value="eventCount">Sort by Events</option>
+                        <option value="lastActivity">Sort by Last Activity</option>
                     </select>
                     <select id="sortOrder" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="DESC">Newest First</option>
-                        <option value="ASC">Oldest First</option>
+                        <option value="DESC">Highest First</option>
+                        <option value="ASC">Lowest First</option>
                     </select>
+                    <button id="applyFiltersBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Apply Filters</button>
+                    <button id="clearFiltersBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Clear</button>
                 </div>
             </div>
         </div>
@@ -143,6 +158,8 @@
         let currentSearch = '';
         let currentSortBy = 'createdAt';
         let currentSortOrder = 'DESC';
+        let currentFromDate = '';
+        let currentToDate = '';
 
         // Load users data
         async function loadUsersData() {
@@ -152,7 +169,9 @@
                     limit: 10,
                     search: currentSearch,
                     sortBy: currentSortBy,
-                    sortOrder: currentSortOrder
+                    sortOrder: currentSortOrder,
+                    fromDate: currentFromDate,
+                    toDate: currentToDate
                 });
 
                 const response = await fetch(`/api/admin/analytics/page/users?${params}`);
@@ -216,10 +235,10 @@
                                     <p class="text-xs text-gray-500">Events</p>
                                 </div>
                                 <div class="flex space-x-2">
-                                    <button onclick="viewUserDetails('${user.id}')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                                    <button class="view-user-btn px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200" data-user-id="${user.publicId || user.id}">
                                         View Details
                                     </button>
-                                    <button onclick="removeUser('${user.id}')" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">
+                                    <button class="remove-user-btn px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200" data-user-id="${user.publicId || user.id}">
                                         Remove
                                     </button>
                                 </div>
@@ -269,17 +288,17 @@
             
             // Previous button
             if (currentPage > 1) {
-                paginationHTML += `<button onclick="changePage(${currentPage - 1})" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Previous</button>`;
+                paginationHTML += `<button class="page-btn px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" data-page="${currentPage - 1}">Previous</button>`;
             }
             
             // Page numbers
             for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
-                paginationHTML += `<button onclick="changePage(${i})" class="px-3 py-2 ${i === currentPage ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'} rounded-lg">${i}</button>`;
+                paginationHTML += `<button class="page-btn px-3 py-2 ${i === currentPage ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'} rounded-lg" data-page="${i}">${i}</button>`;
             }
             
             // Next button
             if (currentPage < totalPages) {
-                paginationHTML += `<button onclick="changePage(${currentPage + 1})" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Next</button>`;
+                paginationHTML += `<button class="page-btn px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" data-page="${currentPage + 1}">Next</button>`;
             }
             
             paginationHTML += '</div>';
@@ -355,7 +374,9 @@
         }
 
         // Event listeners
-        document.getElementById('searchInput').addEventListener('input', debounce(searchUsers, 300));
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') applyFilters();
+        });
         document.getElementById('sortBy').addEventListener('change', (e) => {
             currentSortBy = e.target.value;
             loadUsersData();
@@ -364,6 +385,27 @@
             currentSortOrder = e.target.value;
             loadUsersData();
         });
+
+        // Apply filters
+        function applyFilters() {
+            currentSearch = document.getElementById('searchInput').value;
+            currentFromDate = document.getElementById('fromDate').value;
+            currentToDate = document.getElementById('toDate').value;
+            currentPage = 1;
+            loadUsersData();
+        }
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('fromDate').value = '';
+            document.getElementById('toDate').value = '';
+            currentSearch = '';
+            currentFromDate = '';
+            currentToDate = '';
+            currentPage = 1;
+            loadUsersData();
+        }
 
         // Debounce function
         function debounce(func, wait) {
@@ -382,6 +424,29 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadUsersData();
         });
+
+        // Event delegation for dynamically added buttons
+        document.addEventListener('click', (e) => {
+            // Pagination buttons
+            if (e.target.classList.contains('page-btn')) {
+                const page = parseInt(e.target.dataset.page);
+                if (page) changePage(page);
+            }
+            // View user button
+            if (e.target.classList.contains('view-user-btn')) {
+                const userId = e.target.dataset.userId;
+                if (userId) viewUserDetails(userId);
+            }
+            // Remove user button
+            if (e.target.classList.contains('remove-user-btn')) {
+                const userId = e.target.dataset.userId;
+                if (userId) removeUser(userId);
+            }
+        });
+
+        // Static button listeners
+        document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+        document.getElementById('clearFiltersBtn').addEventListener('click', clearFilters);
     </script>
 </body>
 </html>

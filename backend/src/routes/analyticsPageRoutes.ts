@@ -20,5 +20,8 @@ router.get('/analytics/details', requireJWTFromCookie, generateCSRFToken, analyt
 // Event explorer page
 router.get('/admin/analytics/events', requireJWTFromCookie, generateCSRFToken, analyticsPageController.getEventExplorerPage);
 
+// Activity feed page
+router.get('/admin/analytics/activity', requireJWTFromCookie, generateCSRFToken, analyticsPageController.getActivityFeedPage);
+
 export default router;
 

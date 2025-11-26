@@ -100,12 +100,22 @@
 
         <!-- Search and Filters -->
         <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
-            <div class="flex flex-col md:flex-row gap-4">
-                <div class="flex-1">
-                    <input type="text" id="searchInput" placeholder="Search chats by user email or handle..." 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <input type="text" id="searchInput" placeholder="Search chats by user email or handle..." 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="twinHandle" placeholder="Twin Handle" 
+                               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        <input type="date" id="fromDate" placeholder="From Date" 
+                               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        <input type="date" id="toDate" placeholder="To Date" 
+                               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                    </div>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex flex-col md:flex-row gap-4">
                     <select id="sortBy" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
                         <option value="createdAt">Sort by Date</option>
                         <option value="messageCount">Sort by Messages</option>
@@ -115,6 +125,8 @@
                         <option value="DESC">Newest First</option>
                         <option value="ASC">Oldest First</option>
                     </select>
+                    <button id="applyFiltersBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Apply Filters</button>
+                    <button id="clearFiltersBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Clear</button>
                 </div>
             </div>
         </div>
@@ -143,6 +155,9 @@
         let currentSearch = '';
         let currentSortBy = 'createdAt';
         let currentSortOrder = 'DESC';
+        let currentFromDate = '';
+        let currentToDate = '';
+        let currentTwinHandle = '';
 
         // Load chats data
         async function loadChatsData() {
@@ -152,7 +167,10 @@
                     limit: 10,
                     search: currentSearch,
                     sortBy: currentSortBy,
-                    sortOrder: currentSortOrder
+                    sortOrder: currentSortOrder,
+                    fromDate: currentFromDate,
+                    toDate: currentToDate,
+                    twinHandle: currentTwinHandle
                 });
 
                 const response = await fetch(`/api/admin/analytics/page/chats?${params}`);
@@ -194,7 +212,7 @@
                                 <div>
                                     <h4 class="text-lg font-semibold text-gray-900">Chat #${chat.id}</h4>
                                     <p class="text-sm text-gray-600">User: ${chat.userHandle || chat.userEmail}</p>
-                                    <p class="text-sm text-gray-600">Twin: ${chat.twinName || 'No Twin'}</p>
+                                    <p class="text-sm text-gray-600">Twin: ${chat.twinName || chat.twinHandle || 'No Twin'}</p>
                                     <p class="text-xs text-gray-500 timestamp-display" data-timestamp="${chat.createdAt}" data-format="date" data-prefix="Started: "></p>
                                     ${chat.lastMessageAt ? `<p class="text-xs text-gray-500 timestamp-display" data-timestamp="${chat.lastMessageAt}" data-format="smart" data-prefix="Last Message: "></p>` : ''}
                                 </div>
@@ -213,10 +231,10 @@
                                     <p class="text-xs text-gray-500">Twin ID</p>
                                 </div>
                                 <div class="flex space-x-2">
-                                    <button onclick="viewChatDetails('${chat.id}')" class="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200">
+                                    <button class="view-chat-btn px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200" data-chat-id="${chat.publicId || chat.id}">
                                         View Chat
                                     </button>
-                                    <button onclick="viewUserProfile('${chat.userId}')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                                    <button class="view-user-btn px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200" data-user-id="${chat.publicUserId || chat.userId}">
                                         View User
                                     </button>
                                 </div>
@@ -266,17 +284,17 @@
             
             // Previous button
             if (currentPage > 1) {
-                paginationHTML += `<button onclick="changePage(${currentPage - 1})" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Previous</button>`;
+                paginationHTML += `<button class="page-btn px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" data-page="${currentPage - 1}">Previous</button>`;
             }
             
             // Page numbers
             for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
-                paginationHTML += `<button onclick="changePage(${i})" class="px-3 py-2 ${i === currentPage ? 'bg-purple-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'} rounded-lg">${i}</button>`;
+                paginationHTML += `<button class="page-btn px-3 py-2 ${i === currentPage ? 'bg-purple-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'} rounded-lg" data-page="${i}">${i}</button>`;
             }
             
             // Next button
             if (currentPage < totalPages) {
-                paginationHTML += `<button onclick="changePage(${currentPage + 1})" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Next</button>`;
+                paginationHTML += `<button class="page-btn px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" data-page="${currentPage + 1}">Next</button>`;
             }
             
             paginationHTML += '</div>';
@@ -301,33 +319,59 @@
         // View chat details
         async function viewChatDetails(chatId) {
             try {
-                // Open chat details in new window
-                const chatWindow = window.open('', '_blank', 'width=1000,height=700,scrollbars=yes,resizable=yes');
-                chatWindow.document.write(`
-                    <html>
-                    <head>
-                        <title>Chat Details</title>
-                        <style>
-                            body { font-family: Arial, sans-serif; padding: 20px; }
-                            .chat-container { max-height: 500px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
-                            .message { margin: 10px 0; padding: 10px; border-radius: 5px; }
-                            .user-message { background-color: #e3f2fd; margin-left: 20px; }
-                            .twin-message { background-color: #f3e5f5; margin-right: 20px; }
-                        </style>
-                    </head>
-                    <body>
-                        <h2>Chat Details</h2>
-                        <p>Chat ID: ${chatId}</p>
-                        <div class="chat-container">
-                            <p>Loading chat messages...</p>
-                        </div>
-                    </body>
-                    </html>
-                `);
+                // For admin, we need to get messages directly from database
+                // Since chat endpoints require user ownership, we'll create an admin endpoint or use direct query
+                const response = await fetch(`/api/admin/analytics/chat/${chatId}/messages`);
+                if (!response.ok) {
+                    // Fallback: try regular endpoint (may fail if not owner)
+                    const fallbackResponse = await fetch(`/api/chats/${chatId}/messages`);
+                    if (!fallbackResponse.ok) {
+                        throw new Error('Chat not found or access denied');
+                    }
+                    const data = await fallbackResponse.json();
+                    displayChatWindow(chatId, data.messages || data.chat?.messages || []);
+                } else {
+                    const data = await response.json();
+                    displayChatWindow(chatId, data.messages || []);
+                }
             } catch (error) {
                 console.error('View chat details error:', error);
-                alert('Error loading chat details');
+                alert('Error loading chat details: ' + error.message);
             }
+        }
+
+        function displayChatWindow(chatId, messages) {
+            const chatWindow = window.open('', '_blank', 'width=1000,height=700,scrollbars=yes,resizable=yes');
+            chatWindow.document.write(`
+                <html>
+                <head>
+                    <title>Chat Details - ${chatId}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        .chat-container { max-height: 500px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
+                        .message { margin: 10px 0; padding: 10px; border-radius: 5px; }
+                        .user-message { background-color: #e3f2fd; margin-left: 20px; }
+                        .twin-message { background-color: #f3e5f5; margin-right: 20px; }
+                    </style>
+                </head>
+                <body>
+                    <h2>Chat Details</h2>
+                    <p>Chat ID: ${chatId}</p>
+                    <div class="chat-container">
+                        ${messages && messages.length > 0 ? 
+                            messages.map(msg => `
+                                <div class="message ${msg.sender === 'human' ? 'user-message' : 'twin-message'}">
+                                    <strong>${msg.sender === 'human' ? 'User' : 'Twin'}:</strong> ${msg.content}
+                                    <br><small>${new Date(msg.createdAt).toLocaleString()}</small>
+                                    ${msg.approved !== undefined ? `<br><small>Status: ${msg.approved ? 'Approved' : 'Pending'}</small>` : ''}
+                                </div>
+                            `).join('') : 
+                            '<p>No messages found</p>'
+                        }
+                    </div>
+                </body>
+                </html>
+            `);
         }
 
         // View user profile
@@ -361,6 +405,30 @@
             chatsList.innerHTML = `<div class="p-4 sm:p-6 lg:p-8 text-center text-red-600 dark:text-red-400">${message}</div>`;
         }
 
+        // Apply filters
+        function applyFilters() {
+            currentSearch = document.getElementById('searchInput').value;
+            currentTwinHandle = document.getElementById('twinHandle').value;
+            currentFromDate = document.getElementById('fromDate').value;
+            currentToDate = document.getElementById('toDate').value;
+            currentPage = 1;
+            loadChatsData();
+        }
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('twinHandle').value = '';
+            document.getElementById('fromDate').value = '';
+            document.getElementById('toDate').value = '';
+            currentSearch = '';
+            currentTwinHandle = '';
+            currentFromDate = '';
+            currentToDate = '';
+            currentPage = 1;
+            loadChatsData();
+        }
+
         // Event listeners
         document.getElementById('searchInput').addEventListener('input', debounce(searchChats, 300));
         document.getElementById('sortBy').addEventListener('change', (e) => {
@@ -370,6 +438,9 @@
         document.getElementById('sortOrder').addEventListener('change', (e) => {
             currentSortOrder = e.target.value;
             loadChatsData();
+        });
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') applyFilters();
         });
 
         // Debounce function
@@ -389,6 +460,25 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadChatsData();
         });
+
+        // Event delegation for dynamically added buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('page-btn')) {
+                const page = parseInt(e.target.dataset.page);
+                if (page) changePage(page);
+            }
+            if (e.target.classList.contains('view-chat-btn')) {
+                const chatId = e.target.dataset.chatId;
+                if (chatId) viewChatDetails(chatId);
+            }
+            if (e.target.classList.contains('view-user-btn')) {
+                const userId = e.target.dataset.userId;
+                if (userId) viewUserProfile(userId);
+            }
+        });
+
+        document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+        document.getElementById('clearFiltersBtn').addEventListener('click', clearFilters);
     </script>
 </body>
 </html>

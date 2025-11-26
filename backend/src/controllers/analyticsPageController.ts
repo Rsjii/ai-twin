@@ -176,6 +176,44 @@ export async function getEventExplorerPage(req: any, res: Response) {
   }
 }
 
+/**
+ * Activity Feed page
+ */
+export async function getActivityFeedPage(req: any, res: Response) {
+  try {
+    if (!req.user || !req.user.email || !ADMIN_EMAILS.includes(req.user.email)) {
+      return res.status(404).render('404', {
+        title: 'Page Not Found',
+      });
+    }
+
+    const fullUser = await userQueries.findByEmail(req.user.email);
+    if (!fullUser) {
+      return res.redirect('/auth');
+    }
+
+    res.render('admin-analytics-activity', {
+      title: 'Admin Analytics - Activity Feed - AI Twin',
+      user: {
+        id: fullUser.id,
+        email: fullUser.email,
+        handle: fullUser.handle,
+        name: fullUser.name,
+        profileImage: fullUser.profileImage
+      },
+      csrfToken: res.locals['csrfToken']
+    });
+  } catch (error) {
+    logger.error('Activity feed page error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: req.user?.id,
+      path: req.path
+    });
+    
+    handleControllerError(error, 'Failed to load activity feed page');
+  }
+}
+
 // Add to existing analyticsPageController.ts
 export async function getAnalyticsDetails(req: any, res: Response) {
   try {

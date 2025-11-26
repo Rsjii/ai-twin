@@ -13,7 +13,10 @@ import {
   getDetailedMessagesPage,
   getSystemHealth,
   requireAdminAuth,
-  getEventExplorer
+  getEventExplorer,
+  getAdminChatMessages,
+  getAdminMessageDetails,
+  getActivityFeed
 } from './adminAnalyticsController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 
@@ -77,5 +80,12 @@ router.get('/health', getSystemHealth);
 
 // Event explorer
 router.get('/events/explorer', getEventExplorer);
+
+// Activity feed
+router.get('/activity', getActivityFeed);
+
+// Admin chat and message endpoints
+router.get('/chat/:chatId/messages', getAdminChatMessages);
+router.get('/message/:messageId', getAdminMessageDetails);
 
 export default router;

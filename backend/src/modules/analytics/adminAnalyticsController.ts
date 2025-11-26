@@ -2,8 +2,7 @@ import { Request, Response } from 'express';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { ADMIN_EMAILS, QUERY_LIMITS } from '../../config/constants';
-import { sanitizeUser, sanitizeTwin, sanitizeChat, sanitizeMessage, sanitizeEvent, sanitizeInvite } from '../../utils/idTokenization';
-import { detokenizeId } from '../../utils/idTokenization';
+import { sanitizeUser, sanitizeTwin, sanitizeChat, sanitizeMessage, sanitizeEvent, sanitizeInvite, tokenizeId, detokenizeId } from '../../utils/idTokenization';
 
 // Admin authentication middleware - returns 404 to hide admin pages
 export const requireAdminAuth = (req: Request, res: Response, next: Function) => {
@@ -702,28 +701,66 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
   try {
     const { period } = req.params; // today, week, month
     
-    let timeFilter = '';
+    let userTimeFilter = '';
+    let twinTimeFilter = '';
+    let chatTimeFilter = '';
+    let messageTimeFilter = '';
+    let eventTimeFilter = '';
     let interval = '';
     
     switch (period) {
       case 'today':
-        // Optimized: use range query instead of DATE() function for index usage
-        timeFilter = '"createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\'';
+        // Use alias-specific filters for each table
+        userTimeFilter = 'u."createdAt" >= CURRENT_DATE AND u."createdAt" < CURRENT_DATE + INTERVAL \'1 day\'';
+        twinTimeFilter = 't."createdAt" >= CURRENT_DATE AND t."createdAt" < CURRENT_DATE + INTERVAL \'1 day\'';
+        chatTimeFilter = 'c."createdAt" >= CURRENT_DATE AND c."createdAt" < CURRENT_DATE + INTERVAL \'1 day\'';
+        messageTimeFilter = 'm."createdAt" >= CURRENT_DATE AND m."createdAt" < CURRENT_DATE + INTERVAL \'1 day\'';
+        eventTimeFilter = 'e."createdAt" >= CURRENT_DATE AND e."createdAt" < CURRENT_DATE + INTERVAL \'1 day\'';
         interval = '1 hour';
         break;
       case 'week':
-        timeFilter = '"createdAt" >= NOW() - INTERVAL \'7 days\'';
+        userTimeFilter = 'u."createdAt" >= NOW() - INTERVAL \'7 days\'';
+        twinTimeFilter = 't."createdAt" >= NOW() - INTERVAL \'7 days\'';
+        chatTimeFilter = 'c."createdAt" >= NOW() - INTERVAL \'7 days\'';
+        messageTimeFilter = 'm."createdAt" >= NOW() - INTERVAL \'7 days\'';
+        eventTimeFilter = 'e."createdAt" >= NOW() - INTERVAL \'7 days\'';
         interval = '1 day';
         break;
       case 'month':
-        timeFilter = '"createdAt" >= NOW() - INTERVAL \'30 days\'';
+        userTimeFilter = 'u."createdAt" >= NOW() - INTERVAL \'30 days\'';
+        twinTimeFilter = 't."createdAt" >= NOW() - INTERVAL \'30 days\'';
+        chatTimeFilter = 'c."createdAt" >= NOW() - INTERVAL \'30 days\'';
+        messageTimeFilter = 'm."createdAt" >= NOW() - INTERVAL \'30 days\'';
+        eventTimeFilter = 'e."createdAt" >= NOW() - INTERVAL \'30 days\'';
         interval = '1 day';
         break;
       default:
         return res.status(400).json({ error: 'Invalid period. Use: today, week, month' });
     }
 
-    // Get detailed time-based analytics
+    // Calculate date range for entitiesDaily query
+    let startDate: string;
+    let endDate: string = new Date().toISOString().split('T')[0];
+    
+    switch (period) {
+      case 'today':
+        startDate = new Date().toISOString().split('T')[0];
+        break;
+      case 'week':
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        startDate = weekAgo.toISOString().split('T')[0];
+        break;
+      case 'month':
+        const monthAgo = new Date();
+        monthAgo.setDate(monthAgo.getDate() - 30);
+        startDate = monthAgo.toISOString().split('T')[0];
+        break;
+      default:
+        startDate = endDate;
+    }
+
+    // Get detailed time-based analytics with alias-specific filters
     const [
       usersResult,
       twinsResult,
@@ -732,20 +769,62 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
       eventsResult,
       hourlyBreakdownResult,
       dailyBreakdownResult,
+      entitiesDailyResult,
       topUsersResult,
       topTwinsResult,
       eventBreakdownResult
     ] = await Promise.all([
-      db.query(`SELECT COUNT(*) as count FROM "User" WHERE ${timeFilter}`),
-      db.query(`SELECT COUNT(*) as count FROM "Twin" WHERE ${timeFilter}`),
-      db.query(`SELECT COUNT(*) as count FROM "Chat" WHERE ${timeFilter}`),
-      db.query(`SELECT COUNT(*) as count FROM "Message" WHERE ${timeFilter}`),
-      db.query(`SELECT COUNT(*) as count FROM "Event" WHERE ${timeFilter}`),
-      db.query(`SELECT EXTRACT(HOUR FROM "createdAt") as hour, COUNT(*) as count FROM "Event" WHERE ${timeFilter} GROUP BY EXTRACT(HOUR FROM "createdAt") ORDER BY hour`),
-      db.query(`SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Event" WHERE ${timeFilter} GROUP BY DATE("createdAt") ORDER BY date`),
-      db.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(e.id) as eventCount FROM "User" u LEFT JOIN "Event" e ON u.id = e."userId" WHERE ${timeFilter} GROUP BY u.id ORDER BY eventCount DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
-      db.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle FROM "Twin" t JOIN "User" u ON t."userId" = u.id WHERE ${timeFilter} ORDER BY t."likeCount" DESC, t."chatCount" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
-      db.query(`SELECT type, COUNT(*) as count FROM "Event" WHERE ${timeFilter} GROUP BY type ORDER BY count DESC`)
+      // Count queries with alias-specific filters
+      db.query(`SELECT COUNT(*) as count FROM "User" u WHERE ${userTimeFilter}`),
+      db.query(`SELECT COUNT(*) as count FROM "Twin" t WHERE ${twinTimeFilter}`),
+      db.query(`SELECT COUNT(*) as count FROM "Chat" c WHERE ${chatTimeFilter}`),
+      db.query(`SELECT COUNT(*) as count FROM "Message" m WHERE ${messageTimeFilter}`),
+      db.query(`SELECT COUNT(*) as count FROM "Event" e WHERE ${eventTimeFilter}`),
+      
+      // Hourly breakdown with alias
+      db.query(`SELECT EXTRACT(HOUR FROM e."createdAt") as hour, COUNT(*) as count FROM "Event" e WHERE ${eventTimeFilter} GROUP BY EXTRACT(HOUR FROM e."createdAt") ORDER BY hour`),
+      
+      // Daily breakdown with alias
+      db.query(`SELECT DATE(e."createdAt") as date, COUNT(*) as count FROM "Event" e WHERE ${eventTimeFilter} GROUP BY DATE(e."createdAt") ORDER BY date`),
+      
+      // Entities daily breakdown (users, twins, chats per day)
+      db.query(`
+        SELECT 
+          d::date as date,
+          COUNT(DISTINCT u.id) FILTER (WHERE DATE(u."createdAt") = d::date) as users,
+          COUNT(DISTINCT t.id) FILTER (WHERE DATE(t."createdAt") = d::date) as twins,
+          COUNT(DISTINCT c.id) FILTER (WHERE DATE(c."createdAt") = d::date) as chats
+        FROM generate_series(
+          '${startDate}'::date,
+          '${endDate}'::date,
+          '1 day'::interval
+        ) d
+        LEFT JOIN "User" u ON DATE(u."createdAt") = d::date AND ${userTimeFilter}
+        LEFT JOIN "Twin" t ON DATE(t."createdAt") = d::date AND ${twinTimeFilter}
+        LEFT JOIN "Chat" c ON DATE(c."createdAt") = d::date AND ${chatTimeFilter}
+        GROUP BY d::date
+        ORDER BY d::date
+      `),
+      
+      // Top users with alias-specific filter
+      db.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(e.id) as eventCount 
+                FROM "User" u 
+                LEFT JOIN "Event" e ON u.id = e."userId" AND ${eventTimeFilter}
+                WHERE ${userTimeFilter}
+                GROUP BY u.id 
+                ORDER BY eventCount DESC 
+                LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
+      
+      // Top twins with alias-specific filter
+      db.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle 
+                FROM "Twin" t 
+                JOIN "User" u ON t."userId" = u.id 
+                WHERE ${twinTimeFilter}
+                ORDER BY t."likeCount" DESC, t."chatCount" DESC 
+                LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
+      
+      // Event breakdown with alias
+      db.query(`SELECT e.type, COUNT(*) as count FROM "Event" e WHERE ${eventTimeFilter} GROUP BY e.type ORDER BY count DESC`)
     ]);
 
     const timeBasedAnalytics = {
@@ -759,7 +838,13 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
       },
       breakdown: {
         hourly: hourlyBreakdownResult.rows,
-        daily: dailyBreakdownResult.rows
+        daily: dailyBreakdownResult.rows,
+        entitiesDaily: entitiesDailyResult.rows.map(row => ({
+          date: row.date,
+          users: parseInt(row.users) || 0,
+          twins: parseInt(row.twins) || 0,
+          chats: parseInt(row.chats) || 0
+        }))
       },
       topContent: {
         users: topUsersResult.rows.map(user => sanitizeUser(user, true)),
@@ -920,46 +1005,88 @@ export const getDetailedUsersPage = async (req: Request, res: Response) => {
   try {
     console.log('=== GET DETAILED USERS PAGE ===');
     
-    const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC', fromDate = '', toDate = '', minEvents = '' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
     
     let whereClause = '';
     let queryParams: any[] = [];
+    const conditions: string[] = [];
     
     if (search) {
-      whereClause = 'WHERE u.email ILIKE $1 OR u.handle ILIKE $1';
+      conditions.push('(u.email ILIKE $' + (queryParams.length + 1) + ' OR u.handle ILIKE $' + (queryParams.length + 1) + ')');
       queryParams.push(`%${search}%`);
     }
     
-    // Simple query first
+    if (fromDate) {
+      conditions.push('u."createdAt" >= $' + (queryParams.length + 1));
+      queryParams.push(fromDate);
+    }
+    
+    if (toDate) {
+      conditions.push('u."createdAt" <= $' + (queryParams.length + 1));
+      queryParams.push(toDate);
+    }
+    
+    if (conditions.length > 0) {
+      whereClause = 'WHERE ' + conditions.join(' AND ');
+    }
+    
+    // Whitelist sortBy to prevent SQL injection
+    const allowedSortBy = ['createdAt', 'email', 'handle', 'twinCount', 'chatCount', 'messageCount', 'eventCount', 'lastActivity'];
+    const safeSortBy = allowedSortBy.includes(sortBy as string) ? sortBy as string : 'createdAt';
+    const safeSortOrder = (sortOrder as string).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    
+    // Enhanced query with all counts and lastActivity
     const usersResult = await db.query(`
-      SELECT u.id, u.email, u.handle, u."createdAt"
+      SELECT 
+        u.id, 
+        u.email, 
+        u.handle, 
+        u."createdAt",
+        u.active,
+        COALESCE(COUNT(DISTINCT t.id), 0)::int as "twinCount",
+        COALESCE(COUNT(DISTINCT c.id), 0)::int as "chatCount",
+        COALESCE(COUNT(DISTINCT m.id), 0)::int as "messageCount",
+        COALESCE(COUNT(DISTINCT e.id), 0)::int as "eventCount",
+        MAX(e."createdAt") as "lastActivity"
       FROM "User" u
+      LEFT JOIN "Twin" t ON u.id = t."userId"
+      LEFT JOIN "Chat" c ON u.id = c."userId"
+      LEFT JOIN "Message" m ON c.id = m."chatId"
+      LEFT JOIN "Event" e ON u.id = e."userId"
       ${whereClause}
-      ORDER BY u."createdAt" DESC
+      GROUP BY u.id, u.email, u.handle, u."createdAt", u.active
+      ORDER BY ${
+        safeSortBy === 'twinCount' ? 'COUNT(DISTINCT t.id)' :
+        safeSortBy === 'chatCount' ? 'COUNT(DISTINCT c.id)' :
+        safeSortBy === 'messageCount' ? 'COUNT(DISTINCT m.id)' :
+        safeSortBy === 'eventCount' ? 'COUNT(DISTINCT e.id)' :
+        safeSortBy === 'lastActivity' ? 'MAX(e."createdAt")' :
+        `u."${safeSortBy}"`
+      } ${safeSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
-    `, [...queryParams, parseInt(limit as string), offset]);
+    `, [...queryParams, parseInt(limit as string), offset]);    
     
     // Get total count
     const totalResult = await db.query(`
       SELECT COUNT(*) as total FROM "User" u ${whereClause}
     `, queryParams);
     
-// Get summary with active users today
-const summaryResult = await db.query(`
-  SELECT 
-    COUNT(*) as totalUsers,
-    COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
-    COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as newThisWeek,
-    COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as newThisMonth,
-    (
-      SELECT COUNT(DISTINCT "userId")
-      FROM "Event"
-      WHERE "createdAt" >= NOW() - INTERVAL '24 hours'
-        AND "userId" IS NOT NULL
-    ) as activeToday
-  FROM "User"
-`);    
+    // Get summary with active users today
+    const summaryResult = await db.query(`
+      SELECT 
+        COUNT(*) as "totalUsers",
+        COUNT(CASE WHEN u."createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as "newToday",
+        COUNT(CASE WHEN u."createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) as "newThisWeek",
+        COUNT(CASE WHEN u."createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) as "newThisMonth",
+        (
+          SELECT COUNT(DISTINCT "userId")
+          FROM "Event"
+          WHERE "createdAt" >= NOW() - INTERVAL '24 hours'
+            AND "userId" IS NOT NULL
+        ) as "activeToday"
+      FROM "User" u
+    `);
     
     console.log('Users page data fetched successfully');
     
@@ -967,7 +1094,17 @@ const summaryResult = await db.query(`
     res.json({
       success: true,
       data: {
-        users: usersResult.rows.map(user => sanitizeUser(user, true)), // includeEmail=true for admin
+        users: usersResult.rows.map(user => {
+          const sanitized = sanitizeUser(user, true); // adds publicId, handle, email
+          // re-attach safe numeric fields that sanitizeUser doesn't keep
+          sanitized.twinCount = user.twinCount ?? 0;
+          sanitized.chatCount = user.chatCount ?? 0;
+          sanitized.messageCount = user.messageCount ?? 0;
+          sanitized.eventCount = user.eventCount ?? 0;
+          sanitized.lastActivity = user.lastActivity || null;
+          sanitized.active = user.active;
+          return sanitized;
+        }),
         pagination: {
           currentPage: parseInt(page as string),
           totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
@@ -976,8 +1113,7 @@ const summaryResult = await db.query(`
         },
         summary: summaryResult.rows[0]
       }
-    });
-    
+    });    
   } catch (error) {
     console.error('=== ERROR IN GET DETAILED USERS PAGE ===');
     console.error('Error details:', error);
@@ -993,26 +1129,83 @@ export const getDetailedTwinsPage = async (req: Request, res: Response) => {
   try {
     console.log('=== GET DETAILED TWINS PAGE ===');
     
-    const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC', fromDate = '', toDate = '', isPublic = '', minLikes = '', minChats = '' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
     
     let whereClause = '';
     let queryParams: any[] = [];
+    const conditions: string[] = [];
     
     if (search) {
-      whereClause = 'WHERE u.email ILIKE $1 OR u.handle ILIKE $1';
+      conditions.push('(u.email ILIKE $' + (queryParams.length + 1) + ' OR u.handle ILIKE $' + (queryParams.length + 1) + ' OR t."publicHandle" ILIKE $' + (queryParams.length + 1) + ')');
       queryParams.push(`%${search}%`);
     }
     
+    if (fromDate) {
+      conditions.push('t."createdAt" >= $' + (queryParams.length + 1));
+      queryParams.push(fromDate);
+    }
+    
+    if (toDate) {
+      conditions.push('t."createdAt" <= $' + (queryParams.length + 1));
+      queryParams.push(toDate);
+    }
+    
+    if (isPublic !== '') {
+      conditions.push('t."isPublic" = $' + (queryParams.length + 1));
+      queryParams.push(isPublic === 'true');
+    }
+    
+    if (minLikes) {
+      conditions.push('t."likeCount" >= $' + (queryParams.length + 1));
+      queryParams.push(parseInt(minLikes as string));
+    }
+    
+    if (minChats) {
+      conditions.push('t."chatCount" >= $' + (queryParams.length + 1));
+      queryParams.push(parseInt(minChats as string));
+    }
+    
+    if (conditions.length > 0) {
+      whereClause = 'WHERE ' + conditions.join(' AND ');
+    }
+    
+    // Whitelist sortBy
+    const allowedSortBy = ['createdAt', 'likeCount', 'chatCount', 'followCount', 'messageCount', 'eventCount', 'name'];
+    const safeSortBy = allowedSortBy.includes(sortBy as string) ? sortBy as string : 'createdAt';
+    const safeSortOrder = (sortOrder as string).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    
+    // Enhanced query with all metrics
     const twinsResult = await db.query(`
-      SELECT t.id, t."createdAt",
-             u.handle as "userHandle", u.email as "userEmail"
+      SELECT 
+        t.id,
+        t."userId",
+        t."publicHandle",
+        t."sampleReply" as name,
+        t."isPublic",
+        t."likeCount",
+        t."followCount",
+        t."chatCount",
+        t."createdAt",
+        u.handle as "userHandle",
+        u.email as "userEmail",
+        COALESCE(COUNT(DISTINCT m.id), 0)::int as "messageCount",
+        COALESCE(COUNT(DISTINCT e.id), 0)::int as "eventCount"
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
+      LEFT JOIN "Chat" c ON t.id = c."twinId"
+      LEFT JOIN "Message" m ON c.id = m."chatId"
+      LEFT JOIN "Event" e ON e."meta"->>'publicTwinId' = t.id OR (e."meta"->>'twinId' = t.id)
       ${whereClause}
-      ORDER BY t."createdAt" DESC
+      GROUP BY t.id, t."userId", t."publicHandle", t."sampleReply", t."isPublic", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle, u.email
+      ORDER BY ${
+        safeSortBy === 'messageCount' ? 'COUNT(DISTINCT m.id)' :
+        safeSortBy === 'eventCount' ? 'COUNT(DISTINCT e.id)' :
+        safeSortBy === 'name' ? 't."sampleReply"' :
+        `t."${safeSortBy}"`
+      } ${safeSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
-    `, [...queryParams, parseInt(limit as string), offset]);
+    `, [...queryParams, parseInt(limit as string), offset]);    
     
     // Get total count
     const totalResult = await db.query(`
@@ -1037,7 +1230,14 @@ const summaryResult = await db.query(`
     res.json({
       success: true,
       data: {
-        twins: twinsResult.rows.map(twin => sanitizeTwin(twin)), // ✅ Add sanitization
+        twins: twinsResult.rows.map(twin => {
+          const sanitized = sanitizeTwin(twin); // adds publicId + publicUserId
+          // re-attach safe analytics fields
+          sanitized.messageCount = twin.messageCount ?? 0;
+          sanitized.eventCount = twin.eventCount ?? 0;
+          // owner identifiers are already inside sanitizeTwin: userHandle, userEmail
+          return sanitized;
+        }),
         pagination: {
           currentPage: parseInt(page as string),
           totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
@@ -1046,7 +1246,7 @@ const summaryResult = await db.query(`
         },
         summary: summaryResult.rows[0]
       }
-    });
+    });    
     
   } catch (error) {
     console.error('=== ERROR IN GET DETAILED TWINS PAGE ===');
@@ -1063,27 +1263,67 @@ export const getDetailedChatsPage = async (req: Request, res: Response) => {
   try {
     console.log('=== GET DETAILED CHATS PAGE ===');
     
-    const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC', fromDate = '', toDate = '', twinHandle = '' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
     
     let whereClause = '';
     let queryParams: any[] = [];
+    const conditions: string[] = [];
     
     if (search) {
-      whereClause = 'WHERE u.email ILIKE $1 OR u.handle ILIKE $1';
+      conditions.push('(u.email ILIKE $' + (queryParams.length + 1) + ' OR u.handle ILIKE $' + (queryParams.length + 1) + ')');
       queryParams.push(`%${search}%`);
     }
     
-    // Simple query first
+    if (fromDate) {
+      conditions.push('c."createdAt" >= $' + (queryParams.length + 1));
+      queryParams.push(fromDate);
+    }
+    
+    if (toDate) {
+      conditions.push('c."createdAt" <= $' + (queryParams.length + 1));
+      queryParams.push(toDate);
+    }
+    
+    if (twinHandle) {
+      conditions.push('t."publicHandle" ILIKE $' + (queryParams.length + 1));
+      queryParams.push(`%${twinHandle}%`);
+    }
+    
+    if (conditions.length > 0) {
+      whereClause = 'WHERE ' + conditions.join(' AND ');
+    }
+    
+    // Whitelist sortBy
+    const allowedSortBy = ['createdAt', 'messageCount', 'lastMessageAt'];
+    const safeSortBy = allowedSortBy.includes(sortBy as string) ? sortBy as string : 'createdAt';
+    const safeSortOrder = (sortOrder as string).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    
+    // Enhanced query with message count, last message, twin info
     const chatsResult = await db.query(`
-      SELECT c.id, c."createdAt",
-             u.handle as "userHandle", u.email as "userEmail"
+      SELECT 
+        c.id,
+        c."userId",
+        c."twinId",
+        c."createdAt",
+        u.handle as "userHandle",
+        u.email as "userEmail",
+        t."publicHandle" as "twinHandle",
+        t."sampleReply" as "twinName",
+        t."isPublic",
+        (SELECT COUNT(*) FROM "Message" m WHERE m."chatId" = c.id) as "messageCount",
+        (SELECT MAX(m."createdAt") FROM "Message" m WHERE m."chatId" = c.id) as "lastMessageAt"
       FROM "Chat" c
       JOIN "User" u ON c."userId" = u.id
+      LEFT JOIN "Twin" t ON c."twinId" = t.id
       ${whereClause}
-      ORDER BY c."createdAt" DESC
+      ORDER BY ${
+        safeSortBy === 'messageCount' ? '(SELECT COUNT(*) FROM "Message" m WHERE m."chatId" = c.id)' :
+        safeSortBy === 'lastMessageAt' ? '(SELECT MAX(m."createdAt") FROM "Message" m WHERE m."chatId" = c.id)' :
+        `c."${safeSortBy}"`
+      } ${safeSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
-    `, [...queryParams, parseInt(limit as string), offset]);
+    `, [...queryParams, parseInt(limit as string), offset]);    
     
     // Get total count
     const totalResult = await db.query(`
@@ -1115,7 +1355,18 @@ const summaryResult = await db.query(`
     res.json({
       success: true,
       data: {
-        chats: chatsResult.rows.map(chat => sanitizeChat(chat)), // ✅ Add sanitization
+        chats: chatsResult.rows.map(chat => {
+          const sanitized = sanitizeChat(chat); // adds publicId, publicUserId, publicTwinId
+          // re-attach safe analytics/display fields
+          sanitized.userHandle = chat.userHandle;
+          sanitized.userEmail = chat.userEmail;
+          sanitized.twinHandle = chat.twinHandle;
+          sanitized.twinName = chat.twinName;
+          sanitized.isPublic = chat.isPublic;
+          sanitized.messageCount = parseInt(chat.messageCount ?? 0);
+          sanitized.lastMessageAt = chat.lastMessageAt;
+          return sanitized;
+        }),
         pagination: {
           currentPage: parseInt(page as string),
           totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
@@ -1125,7 +1376,7 @@ const summaryResult = await db.query(`
         summary: summaryResult.rows[0]
       }
     });
-    
+
   } catch (error) {
     console.error('=== ERROR IN GET DETAILED CHATS PAGE ===');
     console.error('Error details:', error);
@@ -1141,29 +1392,79 @@ export const getDetailedMessagesPage = async (req: Request, res: Response) => {
   try {
     console.log('=== GET DETAILED MESSAGES PAGE ===');
     
-    const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC', fromDate = '', toDate = '', sender = '', approved = '', twinHandle = '' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
     
     let whereClause = '';
     let queryParams: any[] = [];
+    const conditions: string[] = [];
     
     if (search) {
-      whereClause = 'WHERE u.email ILIKE $1 OR u.handle ILIKE $1 OR m.content ILIKE $1';
+      conditions.push('(u.email ILIKE $' + (queryParams.length + 1) + ' OR u.handle ILIKE $' + (queryParams.length + 1) + ' OR m.content ILIKE $' + (queryParams.length + 1) + ')');
       queryParams.push(`%${search}%`);
     }
     
-    // Simple query first
+    if (fromDate) {
+      conditions.push('m."createdAt" >= $' + (queryParams.length + 1));
+      queryParams.push(fromDate);
+    }
+    
+    if (toDate) {
+      conditions.push('m."createdAt" <= $' + (queryParams.length + 1));
+      queryParams.push(toDate);
+    }
+    
+    if (sender) {
+      conditions.push('m.sender = $' + (queryParams.length + 1));
+      queryParams.push(sender);
+    }
+    
+    if (approved !== '') {
+      conditions.push('m.approved = $' + (queryParams.length + 1));
+      queryParams.push(approved === 'true');
+    }
+    
+    if (twinHandle) {
+      conditions.push('t."publicHandle" ILIKE $' + (queryParams.length + 1));
+      queryParams.push(`%${twinHandle}%`);
+    }
+    
+    if (conditions.length > 0) {
+      whereClause = 'WHERE ' + conditions.join(' AND ');
+    }
+    
+    // Whitelist sortBy
+    const allowedSortBy = ['createdAt', 'content', 'sender', 'approved'];
+    const safeSortBy = allowedSortBy.includes(sortBy as string) ? sortBy as string : 'createdAt';
+    const safeSortOrder = (sortOrder as string).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    
+    // Enhanced query with sender, approved, twin info, userId
     const messagesResult = await db.query(`
-      SELECT m.id, m.content, m."createdAt",
-             u.handle as "userHandle", u.email as "userEmail",
-             c.id as "chatId"
+      SELECT 
+        m.id,
+        m."chatId",
+        m.sender,
+        m.content,
+        m.approved,
+        m."createdAt",
+        u.id as "userId",
+        u.handle as "userHandle",
+        u.email as "userEmail",
+        t."publicHandle" as "twinHandle",
+        t."sampleReply" as "twinName"
       FROM "Message" m
       JOIN "Chat" c ON m."chatId" = c.id
       JOIN "User" u ON c."userId" = u.id
+      LEFT JOIN "Twin" t ON c."twinId" = t.id
       ${whereClause}
-      ORDER BY m."createdAt" DESC
+   ORDER BY ${
+        safeSortBy === 'content' ? 'm.content' :
+        safeSortBy === 'sender' ? 'm.sender' :
+        safeSortBy === 'approved' ? 'm.approved' :
+        `m."${safeSortBy}"`
+      } ${safeSortOrder}      
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
-    `, [...queryParams, parseInt(limit as string), offset]);
+    `, [...queryParams, parseInt(limit as string), offset]);    
     
     // Get total count
     const totalResult = await db.query(`
@@ -1186,11 +1487,23 @@ const summaryResult = await db.query(`
     
     console.log('Messages page data fetched successfully');
     
-    // ✅ Sanitize messages before returning
+    // ✅ Sanitize messages before returning and add publicUserId
     res.json({
       success: true,
       data: {
-        messages: messagesResult.rows.map(msg => sanitizeMessage(msg)), // ✅ Add sanitization
+        messages: messagesResult.rows.map(msg => {
+          const sanitized = sanitizeMessage(msg);
+          // Add publicUserId since sanitizeMessage doesn't handle userId
+          if (msg.userId) {
+            sanitized.publicUserId = tokenizeId(msg.userId, 'user');
+          }
+          // Keep userHandle and userEmail for display
+          sanitized.userHandle = msg.userHandle;
+          sanitized.userEmail = msg.userEmail;
+          sanitized.twinHandle = msg.twinHandle;
+          sanitized.twinName = msg.twinName;
+          return sanitized;
+        }),
         pagination: {
           currentPage: parseInt(page as string),
           totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
@@ -1249,8 +1562,7 @@ export const getSystemHealth = async (req: Request, res: Response) => {
   }
 };
 
-// ADD this function to get event analytics:
-
+// function to get event analytics:
 export const getEventAnalytics = async (req: Request, res: Response) => {
   try {
     const { period = 'week' } = req.query;
@@ -1429,3 +1741,231 @@ export const getEventExplorer = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// Get chat messages for admin (bypasses user ownership check)
+export const getAdminChatMessages = async (req: Request, res: Response) => {
+  try {
+    const { chatId } = req.params;
+    
+    // Detokenize if needed
+    const decoded = detokenizeId(chatId);
+    const actualChatId = decoded && decoded.type === 'chat' ? decoded.id : chatId;
+    
+    // Get messages for this chat (admin can see all)
+    const messagesResult = await db.query(`
+      SELECT id, "chatId", sender, content, approved, "createdAt"
+      FROM "Message"
+      WHERE "chatId" = $1
+      ORDER BY "createdAt" ASC
+    `, [actualChatId]);
+    
+    res.json({
+      success: true,
+      messages: messagesResult.rows.map(msg => sanitizeMessage(msg))
+    });
+    
+  } catch (error) {
+    logger.error('Admin get chat messages error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Get single message details for admin
+export const getAdminMessageDetails = async (req: Request, res: Response) => {
+  try {
+    const { messageId } = req.params;
+    
+    // Detokenize if needed
+    const decoded = detokenizeId(messageId);
+    const actualMessageId = decoded ? decoded.id : messageId;
+    
+    const messageResult = await db.query(`
+      SELECT m.id, m."chatId", m.sender, m.content, m.approved, m."createdAt",
+             u.id as "userId", u.handle as "userHandle", u.email as "userEmail",
+             t."publicHandle" as "twinHandle", t."sampleReply" as "twinName"
+      FROM "Message" m
+      JOIN "Chat" c ON m."chatId" = c.id
+      JOIN "User" u ON c."userId" = u.id
+      LEFT JOIN "Twin" t ON c."twinId" = t.id
+      WHERE m.id = $1
+    `, [actualMessageId]);
+    
+    if (messageResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+    
+    res.json({
+      success: true,
+      data: sanitizeMessage(messageResult.rows[0])
+    });
+    
+  } catch (error) {
+    logger.error('Admin get message details error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Get activity feed with filters, pagination and summary
+export const getActivityFeed = async (req: Request, res: Response) => {
+  try {
+    console.log('=== GET ACTIVITY FEED ===');
+    
+    const { 
+      page = 1, 
+      limit = 50, 
+      startDate = '', 
+      endDate = '', 
+      eventTypes = '',
+      userId = ''
+    } = req.query;
+    
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const eventTypesArray = eventTypes 
+    ? (eventTypes as string).split(',').filter(t => t.trim())
+    : []; // no type filter by default
+        
+    let whereClause = '';
+    let queryParams: any[] = [];
+    
+    // Event types filter
+    if (eventTypesArray.length > 0) {
+      const placeholders = eventTypesArray.map((_, i) => `$${i + 1}`).join(', ');
+      whereClause = `WHERE e.type IN (${placeholders})`;
+      queryParams.push(...eventTypesArray);
+    }
+    
+    // User filter
+    if (userId) {
+      const userIdCondition = `e."userId" = $${queryParams.length + 1}`;
+      queryParams.push(userId);
+      whereClause = whereClause 
+        ? `${whereClause} AND ${userIdCondition}`
+        : `WHERE ${userIdCondition}`;
+    }
+    
+    // Date range filter
+    if (startDate || endDate) {
+      const dateConditions: string[] = [];
+      if (startDate) {
+        dateConditions.push(`e."createdAt" >= $${queryParams.length + 1}::timestamp`);
+        queryParams.push(startDate);
+      }
+      if (endDate) {
+        dateConditions.push(`e."createdAt" <= $${queryParams.length + 1}::timestamp`);
+        queryParams.push(endDate);
+      }
+      whereClause = whereClause 
+        ? `${whereClause} AND ${dateConditions.join(' AND ')}`
+        : `WHERE ${dateConditions.join(' AND ')}`;
+    }
+    
+    // Activity list
+    const activityResult = await db.query(`
+      SELECT 
+        e.id,
+        e.type,
+        e."userId",
+        e.meta,
+        e."createdAt",
+        u.handle as "userHandle",
+        u.email as "userEmail",
+        u."profileImage" as "userProfileImage",
+        t."publicHandle" as "twinHandle",
+        t."isPublic" as "twinIsPublic"
+      FROM "Event" e
+      LEFT JOIN "User" u ON e."userId" = u.id
+LEFT JOIN "Twin" t ON 
+        (e.meta->>'twinId')::text = t.id::text 
+        OR (e.meta->>'publicTwinId') = t."publicHandle"        
+      ${whereClause}
+      ORDER BY e."createdAt" DESC
+      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+    `, [...queryParams, parseInt(limit as string), offset]);
+    
+    // Total count
+    const totalResult = await db.query(`
+      SELECT COUNT(*) as total 
+      FROM "Event" e
+      ${whereClause}
+    `, queryParams);
+    
+    // Summary stats
+    const summaryResult = await db.query(`
+      SELECT 
+        COUNT(*) FILTER (WHERE e.type = 'signup') as signups,
+        COUNT(*) FILTER (WHERE e.type = 'twin_created') as twinsCreated,
+        COUNT(*) FILTER (WHERE e.type = 'chat_started') as chatsStarted,
+        COUNT(*) FILTER (WHERE e.type = 'message_approved') as messagesApproved,
+        COUNT(*) FILTER (WHERE e.type IN ('invite_sent', 'invite_accepted')) as invites,
+        COUNT(*) FILTER (WHERE e.type IN ('twin_shared', 'profile_shared')) as shares
+      FROM "Event" e
+      ${whereClause}
+    `, queryParams);
+
+    // Daily counts for chart
+    const dailyCountsResult = await db.query(`
+      SELECT 
+        DATE(e."createdAt") as date,
+        COUNT(*) as total
+      FROM "Event" e
+      ${whereClause}
+      GROUP BY DATE(e."createdAt")
+      ORDER BY DATE(e."createdAt")
+    `, queryParams);
+    
+    console.log('Activity feed data fetched successfully');
+    
+    res.json({
+      success: true,
+      data: {
+        activities: activityResult.rows.map(activity => {
+          const sanitized = sanitizeEvent(activity);
+          sanitized.description = formatActivityDescription(activity);
+          return sanitized;
+        }),
+        pagination: {
+          currentPage: parseInt(page as string),
+          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
+          totalItems: parseInt(totalResult.rows[0].total),
+          itemsPerPage: parseInt(limit as string)
+        },
+        summary: summaryResult.rows[0],
+        dailyCounts: dailyCountsResult.rows
+      }
+    });
+    
+  } catch (error) {
+    console.error('=== ERROR IN GET ACTIVITY FEED ===');
+    console.error('Error details:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: (error as Error).message 
+    });
+  }
+};
+
+// Helper to format activity description
+function formatActivityDescription(activity: any): string {
+  const { type, userHandle, userEmail, twinHandle } = activity;
+  const userName = userHandle || userEmail || 'Unknown User';
+  
+  switch (type) {
+    case 'signup':
+      return `${userName} signed up`;
+    case 'twin_created':
+      return `${userName} created twin @${twinHandle || 'unknown'}`;
+    case 'chat_started':
+      return `${userName} started chat with @${twinHandle || 'unknown'}`;
+    case 'message_approved':
+      return `${userName} approved a message`;
+    case 'invite_sent':
+      return `${userName} sent an invite`;
+    case 'invite_accepted':
+      return `${userName} accepted an invite`;
+    case 'profile_shared':
+    case 'twin_shared':
+      return `${userName} shared ${twinHandle ? `@${twinHandle}` : 'a profile'}`;
+    default:
+      return `${userName} performed ${type}`;
+  }
+}

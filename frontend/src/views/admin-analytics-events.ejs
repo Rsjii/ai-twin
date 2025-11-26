@@ -54,12 +54,12 @@
                 </div>
             </div>
             <div class="mt-4">
-                <button onclick="applyFilters()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                <button id="applyFiltersBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
                     Apply Filters
                 </button>
-                <button onclick="clearFilters()" class="ml-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                <button id="clearFiltersBtn" class="ml-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
                     Clear
-                </button>
+                </button>                
             </div>
         </div>
 
@@ -187,17 +187,18 @@
             
             let html = '<div class="flex items-center space-x-2">';
             
-            if (currentPage > 1) {
-                html += `<button onclick="changePage(${currentPage - 1})" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Previous</button>`;
-            }
-            
-            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
-                html += `<button onclick="changePage(${i})" class="px-3 py-2 ${i === currentPage ? 'bg-purple-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'} rounded-lg">${i}</button>`;
-            }
-            
-            if (currentPage < totalPages) {
-                html += `<button onclick="changePage(${currentPage + 1})" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Next</button>`;
-            }
+                if (currentPage > 1) {
+    html += `<button class="page-btn px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" data-page="${currentPage - 1}">Previous</button>`;
+}
+
+for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+    html += `<button class="page-btn px-3 py-2 ${i === currentPage ? 'bg-purple-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'} rounded-lg" data-page="${i}">${i}</button>`;
+}
+
+if (currentPage < totalPages) {
+    html += `<button class="page-btn px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" data-page="${currentPage + 1}">Next</button>`;
+}
+
             
             html += '</div>';
             html += `<div class="ml-4 text-sm text-gray-600">Showing ${((currentPage - 1) * 50) + 1}-${Math.min(currentPage * 50, totalItems)} of ${totalItems} events</div>`;
@@ -237,6 +238,18 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadEvents();
         });
+
+        // Wire filter buttons
+document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+document.getElementById('clearFiltersBtn').addEventListener('click', clearFilters);
+
+// Event delegation for pagination
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('page-btn')) {
+        const page = parseInt(e.target.dataset.page);
+        if (page) changePage(page);
+    }
+});
     </script>
 </body>
 </html>

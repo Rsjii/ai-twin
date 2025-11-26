@@ -101,21 +101,44 @@
 
         <!-- Search and Filters -->
         <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
-            <div class="flex flex-col md:flex-row gap-4">
-                <div class="flex-1">
-                    <input type="text" id="searchInput" placeholder="Search messages by content, user email or handle..." 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <input type="text" id="searchInput" placeholder="Search messages by content, user email or handle..." 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="twinHandle" placeholder="Twin Handle" 
+                               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                        <input type="date" id="fromDate" placeholder="From Date" 
+                               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                        <input type="date" id="toDate" placeholder="To Date" 
+                               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                    </div>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <select id="sender" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                        <option value="">All Senders</option>
+                        <option value="human">Human Only</option>
+                        <option value="twin">Twin Only</option>
+                    </select>
+                    <select id="approved" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                        <option value="">All Status</option>
+                        <option value="true">Approved Only</option>
+                        <option value="false">Pending Only</option>
+                    </select>
                     <select id="sortBy" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
                         <option value="createdAt">Sort by Date</option>
                         <option value="content">Sort by Content</option>
-                        <option value="role">Sort by Role</option>
+                        <option value="sender">Sort by Sender</option>
+                        <option value="approved">Sort by Approved</option>
                     </select>
                     <select id="sortOrder" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
                         <option value="DESC">Newest First</option>
                         <option value="ASC">Oldest First</option>
                     </select>
+                    <button id="applyFiltersBtn" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">Apply Filters</button>
+                    <button id="clearFiltersBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Clear</button>
                 </div>
             </div>
         </div>
@@ -144,6 +167,11 @@
         let currentSearch = '';
         let currentSortBy = 'createdAt';
         let currentSortOrder = 'DESC';
+        let currentFromDate = '';
+        let currentToDate = '';
+        let currentSender = '';
+        let currentApproved = '';
+        let currentTwinHandle = '';
 
         // Load messages data
         async function loadMessagesData() {
@@ -153,7 +181,12 @@
                     limit: 10,
                     search: currentSearch,
                     sortBy: currentSortBy,
-                    sortOrder: currentSortOrder
+                    sortOrder: currentSortOrder,
+                    fromDate: currentFromDate,
+                    toDate: currentToDate,
+                    sender: currentSender,
+                    approved: currentApproved,
+                    twinHandle: currentTwinHandle
                 });
 
                 const response = await fetch(`/api/admin/analytics/page/messages?${params}`);
@@ -189,15 +222,16 @@
                     <div class="message-card p-6 hover:bg-gray-50">
                         <div class="flex items-start justify-between">
                             <div class="flex items-start space-x-4">
-                                <div class="w-10 h-10 ${message.role === 'user' ? 'bg-blue-500' : 'bg-orange-500'} rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                    ${message.role === 'user' ? 'U' : 'T'}
+                                <div class="w-10 h-10 ${message.sender === 'human' ? 'bg-blue-500' : 'bg-orange-500'} rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                    ${message.sender === 'human' ? 'U' : 'T'}
                                 </div>
                                 <div class="flex-1">
                                     <div class="flex items-center space-x-2 mb-2">
                                         <h4 class="text-sm font-semibold text-gray-900">${message.userHandle || message.userEmail || 'Unknown'}</h4>
-                                        <span class="px-2 py-1 text-xs rounded-full ${message.role === 'user' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}">
-                                            ${message.role === 'user' ? 'User' : 'Twin'}
+                                        <span class="px-2 py-1 text-xs rounded-full ${message.sender === 'human' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}">
+                                            ${message.sender === 'human' ? 'User' : 'Twin'}
                                         </span>
+                                        ${message.approved !== undefined ? `<span class="px-2 py-1 text-xs rounded-full ${message.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${message.approved ? 'Approved' : 'Pending'}</span>` : ''}
                                     </div>
                                     <div class="message-content">
                                         <p class="text-sm text-gray-700 mb-2">${message.content ? message.content.substring(0, 200) + (message.content.length > 200 ? '...' : '') : 'No content'}</p>
@@ -210,13 +244,13 @@
                                 </div>
                             </div>
                             <div class="flex space-x-2">
-                                <button onclick="viewMessageDetails('${message.id}')" class="px-3 py-1 bg-orange-100 text-orange-700 rounded text-sm hover:bg-orange-200">
+                                <button class="view-message-btn px-3 py-1 bg-orange-100 text-orange-700 rounded text-sm hover:bg-orange-200" data-message-id="${message.publicId || message.id}">
                                     View Full
                                 </button>
-                                <button onclick="viewChatMessages('${message.chatId}')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                                <button class="view-chat-btn px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200" data-chat-id="${message.publicChatId || message.chatId}">
                                     View Chat
                                 </button>
-                                <button onclick="viewUserProfile('${message.userId}')" class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">
+                                <button class="view-user-btn px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200" data-user-id="${message.publicUserId || message.userId}">
                                     View User
                                 </button>
                             </div>
@@ -261,17 +295,17 @@
             
             // Previous button
             if (currentPage > 1) {
-                paginationHTML += `<button onclick="changePage(${currentPage - 1})" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Previous</button>`;
+                paginationHTML += `<button class="page-btn px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" data-page="${currentPage - 1}">Previous</button>`;
             }
             
             // Page numbers
             for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
-                paginationHTML += `<button onclick="changePage(${i})" class="px-3 py-2 ${i === currentPage ? 'bg-orange-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'} rounded-lg">${i}</button>`;
+                paginationHTML += `<button class="page-btn px-3 py-2 ${i === currentPage ? 'bg-orange-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'} rounded-lg">${i}</button>`;
             }
             
             // Next button
             if (currentPage < totalPages) {
-                paginationHTML += `<button onclick="changePage(${currentPage + 1})" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Next</button>`;
+                paginationHTML += `<button class="page-btn px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" data-page="${currentPage + 1}">Next</button>`;
             }
             
             paginationHTML += '</div>';
@@ -296,7 +330,13 @@
         // View message details
         async function viewMessageDetails(messageId) {
             try {
-                // Open message details in new window
+                // Fetch full message details
+                const response = await fetch(`/api/admin/analytics/message/${messageId}`);
+                if (!response.ok) {
+                    throw new Error('Message not found');
+                }
+                const data = await response.json();
+                
                 const messageWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
                 messageWindow.document.write(`
                     <html>
@@ -305,27 +345,40 @@
                         <style>
                             body { font-family: Arial, sans-serif; padding: 20px; }
                             .message-detail { background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0; }
+                            .meta { margin-top: 10px; font-size: 12px; color: #666; }
                         </style>
                     </head>
                     <body>
                         <h2>Message Details</h2>
-                        <p>Message ID: ${messageId}</p>
                         <div class="message-detail">
-                            <p>Loading message details...</p>
+                            <p><strong>ID:</strong> ${data.data?.id || messageId}</p>
+                            <p><strong>Content:</strong> ${data.data?.content || 'N/A'}</p>
+                            <p><strong>Sender:</strong> ${data.data?.sender || 'N/A'}</p>
+                            <p><strong>Approved:</strong> ${data.data?.approved !== undefined ? (data.data.approved ? 'Yes' : 'No') : 'N/A'}</p>
+                            <p><strong>Chat ID:</strong> ${data.data?.chatId || 'N/A'}</p>
+                            <p><strong>Created:</strong> ${data.data?.createdAt ? new Date(data.data.createdAt).toLocaleString() : 'N/A'}</p>
+                            <div class="meta">
+                                <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                            </div>
                         </div>
                     </body>
                     </html>
                 `);
             } catch (error) {
                 console.error('View message details error:', error);
-                alert('Error loading message details');
+                alert('Error loading message details: ' + error.message);
             }
         }
 
         // View chat messages
         async function viewChatMessages(chatId) {
             try {
-                // Open chat messages in new window
+                const response = await fetch(`/api/admin/analytics/chat/${chatId}/messages`);
+                if (!response.ok) {
+                    throw new Error('Chat not found or access denied');
+                }
+                const data = await response.json();
+                
                 const chatWindow = window.open('', '_blank', 'width=1000,height=700,scrollbars=yes,resizable=yes');
                 chatWindow.document.write(`
                     <html>
@@ -343,14 +396,23 @@
                         <h2>Chat Messages</h2>
                         <p>Chat ID: ${chatId}</p>
                         <div class="chat-container">
-                            <p>Loading chat messages...</p>
+                            ${data.messages && data.messages.length > 0 ? 
+                                data.messages.map(msg => `
+                                    <div class="message ${msg.sender === 'human' ? 'user-message' : 'twin-message'}">
+                                        <strong>${msg.sender === 'human' ? 'User' : 'Twin'}:</strong> ${msg.content}
+                                        <br><small>${new Date(msg.createdAt).toLocaleString()}</small>
+                                        ${msg.approved !== undefined ? `<br><small>Status: ${msg.approved ? 'Approved' : 'Pending'}</small>` : ''}
+                                    </div>
+                                `).join('') : 
+                                '<p>No messages found</p>'
+                            }
                         </div>
                     </body>
                     </html>
                 `);
             } catch (error) {
                 console.error('View chat messages error:', error);
-                alert('Error loading chat messages');
+                alert('Error loading chat messages: ' + error.message);
             }
         }
 
@@ -385,6 +447,36 @@
             messagesList.innerHTML = `<div class="p-4 sm:p-6 lg:p-8 text-center text-red-600 dark:text-red-400">${message}</div>`;
         }
 
+        // Apply filters
+        function applyFilters() {
+            currentSearch = document.getElementById('searchInput').value;
+            currentFromDate = document.getElementById('fromDate').value;
+            currentToDate = document.getElementById('toDate').value;
+            currentSender = document.getElementById('sender').value;
+            currentApproved = document.getElementById('approved').value;
+            currentTwinHandle = document.getElementById('twinHandle').value;
+            currentPage = 1;
+            loadMessagesData();
+        }
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('fromDate').value = '';
+            document.getElementById('toDate').value = '';
+            document.getElementById('sender').value = '';
+            document.getElementById('approved').value = '';
+            document.getElementById('twinHandle').value = '';
+            currentSearch = '';
+            currentFromDate = '';
+            currentToDate = '';
+            currentSender = '';
+            currentApproved = '';
+            currentTwinHandle = '';
+            currentPage = 1;
+            loadMessagesData();
+        }
+
         // Event listeners
         document.getElementById('searchInput').addEventListener('input', debounce(searchMessages, 300));
         document.getElementById('sortBy').addEventListener('change', (e) => {
@@ -394,6 +486,9 @@
         document.getElementById('sortOrder').addEventListener('change', (e) => {
             currentSortOrder = e.target.value;
             loadMessagesData();
+        });
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') applyFilters();
         });
 
         // Debounce function
@@ -413,6 +508,39 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadMessagesData();
         });
+
+        // Event delegation for dynamically added buttons
+        document.addEventListener('click', (e) => {
+            // Pagination buttons
+            if (e.target.classList.contains('page-btn')) {
+                const page = parseInt(e.target.dataset.page);
+                if (page) changePage(page);
+            }
+            // View message button
+            if (e.target.classList.contains('view-message-btn')) {
+                const messageId = e.target.dataset.messageId;
+                if (messageId) viewMessageDetails(messageId);
+            }
+            // View chat button
+            if (e.target.classList.contains('view-chat-btn')) {
+                const chatId = e.target.dataset.chatId;
+                if (chatId) viewChatMessages(chatId);
+            }
+            // View user button
+            if (e.target.classList.contains('view-user-btn')) {
+                const userId = e.target.dataset.userId;
+                if (userId) viewUserProfile(userId);
+            }
+            // Remove user button
+            if (e.target.classList.contains('remove-user-btn')) {
+                const userId = e.target.dataset.userId;
+                if (userId) removeUser(userId);
+            }
+        });
+
+        // Static button listeners
+        document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+        document.getElementById('clearFiltersBtn').addEventListener('click', clearFilters);
     </script>
 </body>
 </html>
