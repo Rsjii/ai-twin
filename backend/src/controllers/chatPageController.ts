@@ -22,6 +22,7 @@ export async function getChatEnhanced(req: any, res: Response) {
       return res.redirect('/auth');
     }
 
+    // ✅ Single twin per user (already hai)
     const twins = await db.query(`
       SELECT id, "styleVector", "sampleReply", "createdAt" 
       FROM "Twin" 
@@ -37,27 +38,27 @@ export async function getChatEnhanced(req: any, res: Response) {
     const latestTwin = twins.rows[0];
     let chat;
 
-    // ✅ FIX: Check if chatId query parameter exists (now tokenized)
-    const requestedChatId = req.query.chatId;
-    
-    if (requestedChatId) {
-      // ✅ PHASE 4: Detokenize chatId token
-      const decoded = detokenizeId(requestedChatId as string);
+    // ✅ NEW: chat token can come from path OR query
+    const paramChatToken = req.params.chatToken as string | undefined;
+    const queryChatToken = req.query.chatId as string | undefined;
+    const requestedChatToken = paramChatToken || queryChatToken;
+
+    if (requestedChatToken) {
+      const decoded = detokenizeId(requestedChatToken as string);
       if (decoded && decoded.type === 'chat') {
         const actualChatId = decoded.id;
-        
-        // Verify the chat belongs to the user
+
         const chatResult = await db.query(`
           SELECT id, "userId", "twinId", "createdAt"
           FROM "Chat"
           WHERE id = $1 AND "userId" = $2
         `, [actualChatId, req.user.id]);
-        
+
         if (chatResult.rows.length > 0) {
           chat = chatResult.rows[0];
         } else {
           logger.warn('Requested chat not found or unauthorized', {
-            requestedChatId,
+            requestedChatId: requestedChatToken,
             actualChatId,
             userId: req.user.id
           });
@@ -86,8 +87,8 @@ export async function getChatEnhanced(req: any, res: Response) {
           }
         }
       } else {
-        // Invalid token, fall through to create/get latest chat
-        logger.warn('Invalid chat token in query', { requestedChatId });
+        // invalid token → fallback to latest/create (existing branch)
+        logger.warn('Invalid chat token in query', { requestedChatId: requestedChatToken });
         
         const chats = await db.query(`
           SELECT id, "userId", "twinId", "createdAt"
@@ -112,6 +113,7 @@ export async function getChatEnhanced(req: any, res: Response) {
         }
       }
     } else {
+      // ... existing "no chatId" branch (latest or new chat) ...
       const chats = await db.query(`
         SELECT id, "userId", "twinId", "createdAt"
         FROM "Chat"
@@ -150,8 +152,8 @@ export async function getChatEnhanced(req: any, res: Response) {
       title: 'Enhanced Chat - AI Twin',
       user: user,
       pathname: '/chat-enhanced',
-      chatId: tokenizeId(chat.id, 'chat'),
-      twinId: tokenizeId(latestTwin.id, 'twin'),
+      chatId: tokenizeId(chat.id, 'chat'),       // token for frontend
+      twinId: tokenizeId(latestTwin.id, 'twin'), // token for twin (if needed)
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {

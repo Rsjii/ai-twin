@@ -185,7 +185,7 @@
     <%- include('footer/footer-conditional-private') %>
 
     <script>
-        const twinId = '<%= twinId %>';
+        const twinId = '<%= twinPublicId %>';
         let currentPage = 1;
         let currentView = 'chat'; // 'chat' | 'user'
         let currentFilters = {
@@ -318,13 +318,13 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <a 
-                                href="/twin/${chat.twinId}/view-chat-history/${chat.id}" 
+                                href="/public-chat-history/view/${chat.publicId}" 
                                 class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors whitespace-nowrap"
                             >
                                 View Chat
                             </a>
                             <button 
-                                id="deleteChatBtn_${chat.id}"
+                                id="deleteChatBtn_${chat.publicId}"
                                 class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                                 title="Delete Chat"
                             >
@@ -367,10 +367,10 @@
             
             // Add delete button listeners
             chats.forEach(chat => {
-                const deleteBtn = document.getElementById(`deleteChatBtn_${chat.id}`);
+                const deleteBtn = document.getElementById(`deleteChatBtn_${chat.publicId}`);
                 if (deleteBtn) {
                     deleteBtn.addEventListener('click', () => {
-                        deleteChat(chat.id);
+                        deleteChat(chat.publicId);
                     });
                 }
             });
@@ -420,7 +420,7 @@
                                     <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(chat.title)}</p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${chat.messageCount} messages • <span class="timestamp-display" data-timestamp="${chat.lastActivity}" data-format="smart"></span></p>
                                 </div>
-                                <a href="/twin/${twinId}/view-chat-history/${chat.id}" class="px-3 py-1 bg-primary text-white rounded-lg hover:bg-secondary transition-colors text-sm">
+                                <a href="/public-chat-history/view/${chat.publicId}" class="px-3 py-1 bg-primary text-white rounded-lg hover:bg-secondary transition-colors text-sm">
                                     View
                                 </a>
                             </div>

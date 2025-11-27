@@ -12,13 +12,8 @@ import { detokenizeId } from '../../utils/idTokenization';
  */
 export const getLongTermMemories = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinToken } = req.params;
-    //Phase 3: Detokenize twinToken
-    const decoded = detokenizeId(twinToken);
-    if (!decoded || decoded.type !== 'twin') {
-      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
-    }
-    const twinId = decoded.id;
+    // 🔥 PRIVATE API: id is RAW twinId, no token
+    const { id: twinId } = req.params;
     const { category, limit = 20, query } = req.query;
     const userId = req.user?.id || req.userId;
     
@@ -36,9 +31,6 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
       throw createError.unauthorized();
     }
     
-    // Verify ownership
-   await verifyTwinOwnership(twinId, userId);
-    
     // If query provided, use smart retrieval
     if (query && typeof query === 'string') {
       const memories = await memoryService.getRelevantLongTermMemories(
@@ -51,7 +43,6 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
         query,
         limit,
       });
-      // ✅ ADD: Cache headers to prevent 304 responses
       res.set({
         'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
         'Pragma': 'no-cache',
@@ -77,7 +68,6 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
       } : null,
     });
     
-    // ✅ ADD: Cache headers to prevent 304 responses
     res.set({
       'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
       'Pragma': 'no-cache',
@@ -95,30 +85,21 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
  */
 export const addLongTermMemory = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinToken } = req.params;
-    //Phase 3: Detokenize twinToken
-    const decoded = detokenizeId(twinToken);
-    if (!decoded || decoded.type !== 'twin') {
-      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
-    }
-    const twinId = decoded.id;
+    const { id: twinId } = req.params;        // RAW twinId
     const { key, value, category = 'fact' } = req.body;
     const userId = req.user?.id || req.userId;
-    
+
     if (!userId) {
       throw createError.unauthorized();
     }
-    
+
     if (!value || typeof value !== 'string' || value.trim().length === 0) {
       throw createError.validation('Value is required');
     }
-    
-    // Verify ownership
-   await verifyTwinOwnership(twinId, userId);
-    
+
     // Auto-generate key if not provided
     const finalKey = key || generateId.fact();
-    
+
     await memoryService.storeLongTermMemory(
       twinId,
       finalKey,
@@ -143,13 +124,7 @@ export const addLongTermMemory = async (req: any, res: Response, next: NextFunct
  */
 export const updateLongTermMemory = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinToken, key } = req.params;
-    //Phase 3: Detokenize twinToken
-    const decoded = detokenizeId(twinToken);
-    if (!decoded || decoded.type !== 'twin') {
-      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
-    }
-    const twinId = decoded.id;
+    const { id: twinId, key } = req.params;  // raw twinId
     const { value, category } = req.body;
     const userId = req.user?.id || req.userId;
     
@@ -161,9 +136,8 @@ export const updateLongTermMemory = async (req: any, res: Response, next: NextFu
       throw createError.validation('Value is required');
     }
     
-   await verifyTwinOwnership(twinId, userId);
+    await verifyTwinOwnership(twinId, userId);
     
-    // Update via storeLongTermMemory (ON CONFLICT handles update)
     await memoryService.storeLongTermMemory(
       twinId,
       key,
@@ -188,21 +162,14 @@ export const updateLongTermMemory = async (req: any, res: Response, next: NextFu
  */
 export const deleteLongTermMemory = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinToken, key } = req.params;
-    //Phase 3: Detokenize twinToken
-    const decoded = detokenizeId(twinToken);
-    if (!decoded || decoded.type !== 'twin') {
-      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
-    }
-    const twinId = decoded.id;
+    const { id: twinId, key } = req.params;  // raw twinId
     const userId = req.user?.id || req.userId;
     
     if (!userId) {
       throw createError.unauthorized();
     }
     
-    // Verify ownership
-   await verifyTwinOwnership(twinId, userId);
+    await verifyTwinOwnership(twinId, userId);
     
     const { memoryLongTermQueries } = await import('../../config/database');
     await memoryLongTermQueries.delete(twinId, key);

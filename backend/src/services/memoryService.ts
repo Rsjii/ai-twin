@@ -354,13 +354,14 @@ async getRelevantLongTermMemories(
         `INSERT INTO "MemoryLongTerm" (id, "twinId", key, value, category, source, "updatedAt")
          VALUES ($1, $2, $3, $4, $5, $6, $7::timestamptz)
          ON CONFLICT ("twinId", key) 
-         DO UPDATE SET value = EXCLUDED.value, category = EXCLUDED.category, "updatedAt" = $7::timestamptz)`,
+         DO UPDATE SET value = EXCLUDED.value, category = EXCLUDED.category, "updatedAt" = $7::timestamptz`,
         [id, twinId, key, value, category, source, utcTimestamp]
       );
       
       logger.info(`Stored long-term memory for twin ${twinId}: ${key}`);
     } catch (error) {
       logger.error('Error storing long-term memory:', error);
+      throw error;
     }
   }
 

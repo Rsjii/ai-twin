@@ -297,15 +297,16 @@ export const getFeedbackAnalytics = async (req: Request, res: Response, next: Ne
  */
 export const getChatFeedbackStatus = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { chatToken } = req.params;
+    // 🔥 Accept both :chatToken (new) and :id (old dist)
+    const rawChatToken = (req.params.chatToken || req.params.id) as string | undefined;
     const userId = req.user.id;
 
-    if (!chatToken) {
+    if (!rawChatToken) {
       throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
     }
 
     // ✅ PHASE 4: Detokenize chatToken to get actual chatId
-    const decoded = detokenizeId(chatToken);
+    const decoded = detokenizeId(rawChatToken);
     if (!decoded || decoded.type !== 'chat') {
       throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
     }
@@ -340,16 +341,17 @@ export const getChatFeedbackStatus = async (req: Request, res: Response, next: N
  */
 export const adjustTone = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { chatToken } = req.params;
+    // 🔥 Accept both :chatToken (new) and :id (old dist)
+    const rawChatToken = (req.params.chatToken || req.params.id) as string | undefined;
     const { responseId, tone } = req.body;
     const userId = req.user.id;
 
-    if (!chatToken) {
+    if (!rawChatToken) {
       throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
     }
 
     // ✅ PHASE 4: Detokenize chatToken to get actual chatId
-    const decoded = detokenizeId(chatToken);
+    const decoded = detokenizeId(rawChatToken);
     if (!decoded || decoded.type !== 'chat') {
       throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
     }

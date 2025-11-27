@@ -99,6 +99,7 @@ export async function getDashboard(req: any, res: Response) {
       if (recentChatsResult && recentChatsResult.rows) {
         recentActivity = recentChatsResult.rows.map(chat => ({
           id: chat.id,
+          publicId: tokenizeId(chat.id, 'chat'),
           title: chat.title || 'Untitled Chat',
           createdAt: normalizeTimestamp(chat.createdAt),
           updatedAt: normalizeTimestamp(chat.updatedAt)

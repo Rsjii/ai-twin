@@ -1,8 +1,9 @@
 import { Response } from 'express';
 import { db, twinQueries } from '../config/database';
 import { logger } from '../config/logger';
-import { AppError, createError } from '../utils/errors';
+import { createError, ErrorCodes } from '../utils/errors';
 import { handleControllerError } from '../utils/errorHandler';
+import { detokenizeId, tokenizeId } from '../utils/idTokenization';
 
 /**
  * Twin Public Chat History Page - View all public chats with twin
@@ -14,47 +15,62 @@ export async function getTwinPublicChatHistoryPage(req: any, res: Response) {
       return res.redirect('/auth');
     }
 
-    const { id: twinId } = req.params;
-
-    // Fetch user's twin
+    // Single twin per user – latest/first twin
     const userTwins = await twinQueries.findByUserId(userId);
-    const twin = userTwins.find(t => t.id === twinId) || null;
+    const twin = userTwins[0] || null;
 
     if (!twin) {
-      throw createError.notFound('Twin not found or access denied');
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
     }
 
+    const twinId = twin.id;
+    const twinPublicId = tokenizeId(twinId, 'twin');
+
     // Fetch full user data
-    const fullUser = await db.query('SELECT id, email, handle, name, "profileImage" FROM "User" WHERE id = $1', [userId]);
+    const fullUser = await db.query(
+      'SELECT id, email, handle, name, "profileImage" FROM "User" WHERE id = $1',
+      [userId],
+    );
     const user = fullUser.rows[0] || null;
 
     res.render('twin-public-chat-history', {
       title: 'Public Chat History - My Twin',
-      user: user,
-      twin: twin,
-      twinId: twinId,
+      user,
+      twin,
+      twinId,
+      twinPublicId,
       hasTwins: true,
-      csrfToken: res.locals['csrfToken']
+      csrfToken: res.locals['csrfToken'],
     });
   } catch (error) {
     logger.error('Twin public chat history page error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       userId: req.user?.id,
-      path: req.path
+      path: req.path,
     });
-    
+
     handleControllerError(error, 'Failed to load public chat history page');
   }
 }
 
 export async function getViewPublicChatHistoryPage(req: any, res: Response) {
   try {
-    const { chatId } = req.params;
+    const { chatToken } = req.params;
     const userId = req.user?.id;
 
     if (!userId) {
       return res.redirect('/auth');
     }
+
+    // 🔥 detokenize chat token → real PublicChat.id
+    const decoded = detokenizeId(chatToken, {
+      userId,
+      endpoint: 'getViewPublicChatHistoryPage',
+    });
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.notFound('Chat not found or access denied');
+    }
+    const chatId = decoded.id;
 
     // Verify access
     const chatResult = await db.query(`
@@ -71,7 +87,7 @@ export async function getViewPublicChatHistoryPage(req: any, res: Response) {
     res.render('view-public-chat-history', {
       title: 'View Chat History',
       user: req.user,
-      chatId: chatId,
+      chatId: chatId,          // raw DB id; view page APIs can use this
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {

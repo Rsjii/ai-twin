@@ -21,6 +21,9 @@ router.get('/p/:handle', generateCSRFToken, publicPageController.getPublicProfil
 // Public Chat page route (renders EJS view)
 router.get('/public-twin/chat/:twinToken', generateCSRFToken, getPublicChatPage);
 
+// NEW: Deep-link directly to a specific public chat thread
+router.get('/public-twin/chat/:twinToken/:chatToken', generateCSRFToken, getPublicChatPage);
+
 // Public Chat History page
 router.get('/public-chat/history', generateCSRFToken, getPublicChatHistoryPage);
 

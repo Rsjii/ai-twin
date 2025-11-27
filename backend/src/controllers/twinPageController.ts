@@ -35,40 +35,27 @@ export function getTwinCreate(req: any, res: Response) {
  */
 export async function getTwinAiEdit(req: any, res: Response) {
   try {
-    const { twinToken } = req.params;
-    //Phase 3: Detokenize twinToken
-    const decoded = detokenizeId(twinToken);
-    if (!decoded || decoded.type !== 'twin') {
-      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
-    }
-    const twinId = decoded.id;
     const userId = req.user?.id;
-    
-    if (!userId) {
-      return res.redirect('/auth');
-    }
-    
-    // Fetch full user data
+    if (!userId) return res.redirect('/auth');
+
     const fullUser = await userQueries.findByEmail(req.user.email);
-    if (!fullUser) {
-      return res.redirect('/auth');
-    }
-    
-    // Check if user has twins
-    const userTwins = await twinQueries.findByUserId(fullUser.id);
-    const hasTwins = userTwins.length > 0;
-    
+    if (!fullUser) return res.redirect('/auth');
+
+    // ✅ Single twin per user (latest)
     const twinResult = await db.query(`
       SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version"
-      FROM "Twin" 
-      WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
+      FROM "Twin"
+      WHERE "userId" = $1
+      ORDER BY "createdAt" DESC
+      LIMIT 1
+    `, [userId]);
+
     if (twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
+      return res.redirect('/twin/create');
     }
-    
-    // Set user data with all fields
+
+    const twin = twinResult.rows[0];
+
     const user = {
       id: fullUser.id,
       email: fullUser.email,
@@ -76,13 +63,13 @@ export async function getTwinAiEdit(req: any, res: Response) {
       name: fullUser.name,
       profileImage: fullUser.profileImage,
     };
-    
+
     res.render('ai-edit', { 
       title: 'AI Edit - AI Twin',
-      user: user,
-      hasTwins: hasTwins,
-      twinId: twinId,
-      csrfToken: res.locals['csrfToken']
+      user,
+      hasTwins: true,
+      twinId: twin.id,                 // for private APIs only
+      csrfToken: res.locals['csrfToken'],
     });    
   } catch (error) {
     logger.error('AI edit route error:', {
@@ -101,40 +88,27 @@ export async function getTwinAiEdit(req: any, res: Response) {
  */
 export async function getTwinStyleCustomize(req: any, res: Response) {
   try {
-    const { twinToken } = req.params;
-    //Phase 3: Detokenize twinToken
-    const decoded = detokenizeId(twinToken);
-    if (!decoded || decoded.type !== 'twin') {
-      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
-    }
-    const twinId = decoded.id;
     const userId = req.user?.id;
-    
-    if (!userId) {
-      return res.redirect('/auth');
-    }
-    
-    // Fetch full user data
+    if (!userId) return res.redirect('/auth');
+
     const fullUser = await userQueries.findByEmail(req.user.email);
-    if (!fullUser) {
-      return res.redirect('/auth');
-    }
-    
-    // Check if user has twins
-    const userTwins = await twinQueries.findByUserId(fullUser.id);
-    const hasTwins = userTwins.length > 0;
-    
+    if (!fullUser) return res.redirect('/auth');
+
+    // ✅ Single twin per user (latest)
     const twinResult = await db.query(`
       SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version"
-      FROM "Twin" 
-      WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
+      FROM "Twin"
+      WHERE "userId" = $1
+      ORDER BY "createdAt" DESC
+      LIMIT 1
+    `, [userId]);
+
     if (twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
+      return res.redirect('/twin/create');
     }
-    
-    // Set user data with all fields
+
+    const twin = twinResult.rows[0];
+
     const user = {
       id: fullUser.id,
       email: fullUser.email,
@@ -142,13 +116,13 @@ export async function getTwinStyleCustomize(req: any, res: Response) {
       name: fullUser.name,
       profileImage: fullUser.profileImage,
     };
-    
+
     res.render('style-customize', { 
       title: 'Style Customize - AI Twin',
-      user: user,
-      hasTwins: hasTwins,
-      twinId: twinId,
-      csrfToken: res.locals['csrfToken']
+      user,
+      hasTwins: true,
+      twinId: twin.id,                 // for private APIs only
+      csrfToken: res.locals['csrfToken'],
     });    
   } catch (error) {
     logger.error('Style customize route error:', {
@@ -167,40 +141,27 @@ export async function getTwinStyleCustomize(req: any, res: Response) {
  */
 export async function getTwinLearningDashboard(req: any, res: Response) {
   try {
-    const { twinToken } = req.params;
-    //Phase 3: Detokenize twinToken
-    const decoded = detokenizeId(twinToken);
-    if (!decoded || decoded.type !== 'twin') {
-      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
-    }
-    const twinId = decoded.id;
     const userId = req.user?.id;
-    
-    if (!userId) {
-      return res.redirect('/auth');
-    }
-    
-    // Fetch full user data
+    if (!userId) return res.redirect('/auth');
+
     const fullUser = await userQueries.findByEmail(req.user.email);
-    if (!fullUser) {
-      return res.redirect('/auth');
-    }
-    
-    // Check if user has twins
-    const userTwins = await twinQueries.findByUserId(fullUser.id);
-    const hasTwins = userTwins.length > 0;
-    
+    if (!fullUser) return res.redirect('/auth');
+
+    // ✅ Single twin per user (latest)
     const twinResult = await db.query(`
       SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version"
-      FROM "Twin" 
-      WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
+      FROM "Twin"
+      WHERE "userId" = $1
+      ORDER BY "createdAt" DESC
+      LIMIT 1
+    `, [userId]);
+
     if (twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
+      return res.redirect('/twin/create');
     }
-    
-    // Set user data with all fields
+
+    const twin = twinResult.rows[0];
+
     const user = {
       id: fullUser.id,
       email: fullUser.email,
@@ -208,13 +169,13 @@ export async function getTwinLearningDashboard(req: any, res: Response) {
       name: fullUser.name,
       profileImage: fullUser.profileImage,
     };
-    
+
     res.render('learning-dashboard', { 
       title: 'Learning Dashboard - AI Twin',
-      user: user,
-      hasTwins: hasTwins,
-      twinId: twinId,
-      csrfToken: res.locals['csrfToken']
+      user,
+      hasTwins: true,
+      twinId: twin.id,                 // for private APIs only
+      csrfToken: res.locals['csrfToken'],
     });
   } catch (error) {
     logger.error('Learning dashboard route error:', {

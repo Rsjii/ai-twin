@@ -1508,25 +1508,37 @@ async function switchToChat(chatId) {
 
         // Update current chat ID
         currentChatId = chatId;
-        
-        // ✅ URL ko change nahi karna: /chat-enhanced hi rahega (no ?chatId in URL)
-        
-        // ✅ FIX: For draft chats, just show empty state
+
+        // ✅ URL sirf real chats ke liye
+        if (chatId && !chatId.startsWith('draft_')) {
+            const newUrl = `/chat-enhanced/${encodeURIComponent(chatId)}`;
+            window.history.pushState({}, '', newUrl);
+        }
+
+        // 🔥 Draft chats: pure blank state, backend ko touch nahi
         if (chatId && chatId.startsWith('draft_')) {
-            console.log('Switching to draft chat, showing empty state');
+            console.log('Draft chat selected, showing blank state');
+            
             const messagesContainer = document.getElementById('chatMessages');
             if (messagesContainer) messagesContainer.innerHTML = '';
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+
+            const initialLoading = document.getElementById('initialLoadingState');
+            if (initialLoading) initialLoading.classList.add('hidden');
+
+            const errorState = document.getElementById('errorState');
+            if (errorState) errorState.classList.add('hidden');
+
+            // (Optional) welcome message:
+            // addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
+
             return;
         }
-        
-        // Load chat messages (only for real chats)
-        await loadChatMessages();
 
+        // Real chats: load messages + sidebar
+        await loadChatMessages();
         await loadChatHistory();
 
         console.log('Switched to chat:', chatId);
-        
     } catch (error) {
         console.error('Error switching to chat:', error);
         showNotification('Error switching to chat', 'error');
@@ -1705,49 +1717,45 @@ async function editChatTitle(chatId) {
     });
 }
 
-// Create new chat
+// Create new enhanced chat (draft-only; real chat on first message)
 async function createNewChat() {
     try {
-        // Check if draft already exists
-        const draftData = sessionStorage.getItem('draftEnhancedChat');
-        if (draftData) {
-            const draft = JSON.parse(draftData);
-            // Switch to existing draft
-            switchToChat(draft.chatId);
+        const existingDraftData = sessionStorage.getItem('draftEnhancedChat');
+        if (existingDraftData) {
+            const draft = JSON.parse(existingDraftData);
+            console.log('Reusing enhanced draft chat:', draft.chatId);
+            // Draft ke liye switchToChat ab blank state show karega
+            await switchToChat(draft.chatId);
             return;
         }
         
-        // Create draft chat (not in DB)
         const draftChatId = `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const twinId = getCurrentTwinId();
-        
+
         sessionStorage.setItem('draftEnhancedChat', JSON.stringify({
             chatId: draftChatId,
-            twinId: twinId,
+            twinId,
             createdAt: Date.now()
         }));
-        
-        // Add draft to sidebar immediately
+
         addDraftChatToSidebar(draftChatId, 'New Chat');
-        
-        // Set as current chat
         currentChatId = draftChatId;
-        
-        // Clear messages area
+
         const chatMessages = document.getElementById('chatMessages');
         if (chatMessages) chatMessages.innerHTML = '';
-        
-        // Show empty state
-        const emptyState = document.getElementById('emptyChatState');
-        if (emptyState) emptyState.classList.remove('hidden');
-        
-        // Disable "New Chat" button
+
+        const initialLoading = document.getElementById('initialLoadingState');
+        if (initialLoading) initialLoading.classList.add('hidden');
+
+        const errorState = document.getElementById('errorState');
+        if (errorState) errorState.classList.add('hidden');
+
         const newChatBtn = document.getElementById('newChatBtn');
         if (newChatBtn) newChatBtn.disabled = true;
-        
+
         console.log('Draft chat created:', draftChatId);
     } catch (error) {
-        console.error('Error creating draft chat:', error);
+        console.error('Error creating enhanced draft chat:', error);
     }
 }
 
@@ -1859,7 +1867,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (mobileSettingsBtn) {
         mobileSettingsBtn.addEventListener('click', function() {
-            window.open('/twin/' + getCurrentTwinId() + '/style-customize', '_blank');
+            window.open('/style-customize', '_blank');
         });
     }
     
@@ -1875,11 +1883,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Add event listeners for quick action buttons
             document.getElementById('styleCustomizeBtn').addEventListener('click', function() {
-                window.open('/twin/' + getCurrentTwinId() + '/style-customize', '_blank');
+                window.open('/style-customize', '_blank');
             });
 
             document.getElementById('learningBtn').addEventListener('click', function() {
-                window.open('/twin/' + getCurrentTwinId() + '/learning-dashboard', '_blank');
+                window.open('/twin-settings', '_blank');
             });
 
             document.getElementById('analyticsBtn').addEventListener('click', function() {
@@ -2167,7 +2175,16 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
         }
 
         }); // Close DOMContentLoaded        
-   </script>
+
+        document.addEventListener('DOMContentLoaded', () => {
+    const newChatBtn = document.getElementById('newChatBtn');
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', createNewChat);
+        newChatBtn.disabled = false;
+    }
+});
+
+</script>
 
     <style>
         @keyframes blink {

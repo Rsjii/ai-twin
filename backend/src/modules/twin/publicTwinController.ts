@@ -306,7 +306,7 @@ export const getMyTwinProfile = async (req: Request, res: Response, next: NextFu
 // Line 312: Change to AuthenticatedRequest to get userId
 export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { twinToken } = req.params;
+    const { twinToken, chatToken: paramChatToken } = req.params;
     // ✅ ADD: Extract chatId from query params
 
       // ✅ ADD: Validate twinToken exists
@@ -319,7 +319,8 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
         throw createError.validation('Twin token is required', ErrorCodes.INVALID_INPUT);
       }
 
-    const chatIdParam = req.query.chatId;
+    const chatIdParam = paramChatToken || req.query.chatId;
+    
     let initialChatIdToken: string | null = null;
     const userId = req.user?.id;
 

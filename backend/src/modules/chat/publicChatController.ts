@@ -842,19 +842,23 @@ const chats = chatsResult.rows.map(chat => sanitizePublicChat({
 // Create new public chat
 export const createNewPublicChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { twinToken, visitorId } = req.body;
+    const { twinToken, twinId: rawTwinId, visitorId } = req.body;
 
-    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
-    const decoded = detokenizeId(twinToken);
+    const raw = twinToken || rawTwinId;
+    if (!raw) {
+      throw createError.validation('Twin token is required', ErrorCodes.INVALID_INPUT);
+    }
+
+    // ✅ Detokenize if needed
+    const decoded = detokenizeId(raw);
     if (!decoded || decoded.type !== 'twin') {
       throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
     }
-
     const twinId = decoded.id;
-    const userId = req.user?.id; // Get userId if logged in
+
+    const userId = req.user?.id || undefined;
     logger.info(`[createNewPublicChat] Twin: ${twinId}, UserId: ${userId || 'anonymous'}, VisitorId: ${visitorId || 'none'}`);
 
-    // Check if twin exists and is public
     const twinResult = await db.query(`
       SELECT id, "isPublic", "styleVector", "sampleReply"
       FROM "Twin"
@@ -867,8 +871,8 @@ export const createNewPublicChat = async (req: AuthenticatedRequest, res: Respon
 
     const twin = twinResult.rows[0];
 
-    // Create new public chat with userId if logged in
-    const publicChat = await publicChatQueries.create(twinId, visitorId, userId);
+    // Create new public chat
+    const publicChat = await publicChatQueries.create(twinId, visitorId || undefined, userId);
     logger.info(`[createNewPublicChat] Chat created - ChatId: ${publicChat.id}, UserId: ${publicChat.userId || 'null'}`);
 
     res.json({
@@ -1618,11 +1622,16 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
 // ✅ NEW: Get public chat history for viewing (read-only, for twin owners)
 export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { chatId } = req.params;
+    // 🔥 Accept both :chatId (from view page) and :chatToken (from route definition)
+    const rawChatId = (req.params.chatId || req.params.chatToken) as string | undefined;
     const userId = req.user?.id;
 
     if (!userId) {
       throw createError.unauthorized('Authentication required');
+    }
+
+    if (!rawChatId) {
+      throw createError.validation('Chat id is required', ErrorCodes.INVALID_INPUT);
     }
 
     // Get chat with twin info
@@ -1648,14 +1657,14 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
       LEFT JOIN "Twin" t ON pc."twinId" = t.id
       LEFT JOIN "User" u ON pc."userId" = u.id
       WHERE pc.id = $1
-    `, [chatId]);
+    `, [rawChatId]);
 
     if (chatResult.rows.length === 0) {
       throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     const chat = chatResult.rows[0];
-    
+
     // ✅ Verify twin ownership
     const isTwinOwner = chat.twin_owner_id === userId;
     if (!isTwinOwner) {
@@ -1668,7 +1677,7 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
       FROM "PublicMessage"
       WHERE "chatId" = $1
       ORDER BY "createdAt" ASC NULLS LAST
-    `, [chatId]);
+    `, [rawChatId]);
 
     res.json({
       success: true,
@@ -1696,7 +1705,6 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
         createdAt: normalizeTimestamp(msg.createdAt),
         relativeTime: formatRelativeTime(msg.createdAt)
       })),
-      // ✅ FIX: Send server time so frontend can use it instead of browser time
       serverTime: new Date().toISOString()
     });
 

@@ -632,7 +632,7 @@
                     </svg>
                     <span>My Twins</span>
                 </a>
-                <a href="/learning-dashboard" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <a href="/twin-settings" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                     </svg>
@@ -842,7 +842,7 @@
                     </a>
                     
                     <!-- Learning Dashboard -->
-                    <a href="/twin/<%= twin.publicId || twinPublicId %>/learning-dashboard" class="flex items-center justify-center space-x-2 px-4 py-3 bg-white/80 dark:bg-gray-700/80 backdrop-blur-xl text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 hover:text-white dark:hover:text-white hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium border border-white/20 dark:border-gray-600 group">
+                    <a href="/twin-settings" class="flex items-center justify-center space-x-2 px-4 py-3 bg-white/80 dark:bg-gray-700/80 backdrop-blur-xl text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 hover:text-white dark:hover:text-white hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium border border-white/20 dark:border-gray-600 group">
                         <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
@@ -1015,7 +1015,8 @@
             <div id="chatsList" class="space-y-3">
                 <% if (recentActivity && recentActivity.length > 0) { %>
                     <% recentActivity.forEach(chat => { %>
-                        <a href="/chat-enhanced" class="block p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">                           
+                        <a href="/chat-enhanced/<%= chat.publicId %>" 
+                           class="block p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="font-medium text-gray-900 dark:text-white"><%= chat.title || 'Untitled Chat' %></p>
@@ -1360,9 +1361,9 @@ function renderRecentInteractions(chats) {
                 e.stopPropagation();
                 console.log('🔘 Button clicked:', { chatId, twinId, hasChatId: !!chatId && chatId !== '' });
                 // Use closure variables directly, not from attributes
-                const url = chatId && chatId !== ''
-                    ? `/public-twin/chat/${twinId}?chatId=${encodeURIComponent(chatId)}`
-                    : `/public-twin/chat/${twinId}`;
+                const url = hasChatId
+                  ? `/public-twin/chat/${twinId}/${encodeURIComponent(chatId)}`
+                  : `/public-twin/chat/${twinId}`;
                 console.log('🔗 Navigating to:', url);
                 window.location.href = url;
             });
@@ -1596,10 +1597,10 @@ function displayPublicTwinStatus(twin) {
             '<a href="/discover" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
             'Discover Twins' +
             '</a>' +
-            '<a href="/twin/' + twin.publicId + '/ai-edit" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
+            '<a href="/ai-edit" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
             'Edit Twin Style' +
             '</a>' +
-            '<a href="/twin/' + twin.publicId + '/style-customize" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
+            '<a href="/style-customize" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
             'Style Sandbox' +
             '</a>' +
             '<a href="/analytics" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
@@ -2119,11 +2120,11 @@ setTimeout(() => {
         async function loadAnalytics() {
             try {
                 <% if (hasTwins && twinId) { %>
-                const twinId = '<%= twinPublicId %>';
+                const twinId = '<%= twinId %>';
                 
                 // Get memory count
                 try {
-                    const memoryRes = await fetch(`/api/memory/${twinId}/memory/stats`);
+                    const memoryRes = await fetch(`/api/twin/${twinId}/long-term-memory?limit=1000`);
                     if (memoryRes.ok) {
                         const memoryData = await memoryRes.json();
                         const memoryCountEl = document.getElementById('memoryCount');

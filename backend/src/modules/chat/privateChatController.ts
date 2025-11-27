@@ -1172,50 +1172,72 @@ export const deleteChat = async (req: AuthenticatedRequest, res: Response, next:
 /**
  * Create new chat (from chatManagementController)
  */
+// Create new chat (one twin per user – ignore client twinId)
 export const createNewChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
       throw createError.unauthorized();
     }
 
-    const { twinId } = createNewChatSchema.parse(req.body);
     const userId = req.user.id;
 
-    // Verify twin belongs to user
-   await verifyTwinOwnership(twinId, userId);
+    // 🔥 Always pick latest twin for this user (MVP: one twin per user)
+    const twinResult = await db.query(
+      `
+      SELECT id
+      FROM "Twin"
+      WHERE "userId" = $1
+      ORDER BY "createdAt" DESC
+      LIMIT 1
+      `,
+      [userId],
+    );
+
+    if (twinResult.rows.length === 0) {
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
+    }
+
+    const twinId = twinResult.rows[0].id;
 
     // Create new chat
     const chatId = generateId.chat();
     const utcTimestamp = new Date().toISOString();
-    const chatResult = await db.query(`
+    const chatResult = await db.query(
+      `
       INSERT INTO "Chat" (id, "userId", "twinId", "title", "messageCount", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, $6::timestamptz, $6::timestamptz)
       RETURNING id, "twinId", "title", "messageCount", "createdAt"
-    `, [chatId, userId, twinId, 'New Chat', 0, utcTimestamp]);
+      `,
+      [chatId, userId, twinId, 'New Chat', 0, utcTimestamp],
+    );
 
     const chat = chatResult.rows[0];
 
-    // Log chat creation event
-    await EventLogger.logEvent(userId, EVENT_TYPES.CHAT_CREATED, { chatId: chat.id, twinId: chat.twinId });
+    await EventLogger.logUserEvent(userId, EVENT_TYPES.CHAT_CREATED, {
+      publicChatId: chat.id,
+      publicTwinId: chat.twinId,
+    });
 
+    const publicChatId = tokenizeId(chat.id, 'chat');
+    const publicTwinId = tokenizeId(chat.twinId, 'twin');
 
     res.json({
       success: true,
-      chatId: tokenizeId(chat.id, 'chat'),
+      chatId: publicChatId,
       chat: {
-        publicId: tokenizeId(chat.id, 'chat'),
-        publicTwinId: tokenizeId(chat.twinId, 'twin'),
+        publicId: publicChatId,
+        publicTwinId: publicTwinId,
         title: chat.title,
         messageCount: chat.messageCount,
-        createdAt: chat.createdAt
+        createdAt: chat.createdAt,
       },
-      redirect: `/chat-enhanced?chatId=${tokenizeId(chat.id, 'chat')}`
+      redirect: `/chat-enhanced?chatId=${publicChatId}`,
     });
-
   } catch (error) {
     handleControllerError(error, 'Failed to create new chat');
   }
 };
+
 
 /**
  * Update chat title (from chatManagementController)

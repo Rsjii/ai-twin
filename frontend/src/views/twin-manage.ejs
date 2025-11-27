@@ -60,7 +60,7 @@
 
         <!-- Quick Stats Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinId %>" data-list-type="chatters" id="twinManageChattersCard">                
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinPublicId %>" data-list-type="chatters" id="twinManageChattersCard">                
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Chats</p>
@@ -76,7 +76,7 @@
 
     <!-- ... Views card (not clickable, no API for views) ... -->
 
-    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinId %>" data-list-type="likers" id="twinManageLikersCard">                
+    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinPublicId %>" data-list-type="likers" id="twinManageLikersCard">                
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Likes</p>
@@ -91,7 +91,7 @@
                 </div>
             </div>
 
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinId %>" data-list-type="followers" id="twinManageFollowersCard">                
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinPublicId %>" data-list-type="followers" id="twinManageFollowersCard">                
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Followers</p>
@@ -111,13 +111,13 @@
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Twin Information</h2>
                 <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                    <a href="/twin/<%= twinId %>/ai-edit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base flex items-center justify-center">
+                    <a href="/ai-edit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base flex items-center justify-center">
                         AI Edit
                     </a>
-                    <a href="/twin/<%= twinId %>/style-customize" class="px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base flex items-center justify-center">
+                    <a href="/style-customize" class="px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base flex items-center justify-center">
                         Style Customize
                     </a>
-                    <a href="/twin/<%= twinId %>/learning-dashboard" class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-purple-600 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base flex items-center justify-center">
+                    <a href="/twin-settings" class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-purple-600 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base flex items-center justify-center">
                         Learning Dashboard
                     </a>
                 </div>
@@ -167,7 +167,7 @@
         <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 lg:p-8">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Recent Chats</h2>
-                <a href="/twin/<%= twinId %>/public-chat-history" class="text-sm text-primary hover:text-secondary font-medium">
+                <a href="/public-chat-history" class="text-sm text-primary hover:text-secondary font-medium">
                     View All Public Chats →
                 </a>            
             </div>
@@ -185,7 +185,7 @@
                                     <span class="chat-date" data-timestamp="<%= chat.lastActivity || chat.createdAt || chat.created_at %>"></span>                                
                                 </p>
                             </div>
-                            <a href="/twin/<%= twinId %>/view-chat-history/<%= chat.id %>" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors">
+                            <a href="/public-chat-history/view/<%= chat.publicId %>" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors">
                                 Open
                             </a>                            
                         </div>

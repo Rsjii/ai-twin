@@ -899,33 +899,40 @@ if (window.TimeUtils) {
 // Find createNewPublicChat function and add error handling
 async function createNewPublicChat() {
     try {
+        // 🔥 If a draft chat already exists, just switch to it
+        if (currentChatId && currentChatId.startsWith('draft_')) {
+            console.log('Draft chat already active:', currentChatId);
+            return;
+        }
+        const existingDraft = sessionStorage.getItem('draftPublicChat');
+        if (existingDraft) {
+            const draft = JSON.parse(existingDraft);
+            currentChatId = draft.chatId;
+            console.log('Reusing existing draft chat:', currentChatId);
+            return;
+        }
+
         // ✅ Don't create chat immediately - store as draft
-        // Generate a temporary draft chat ID
         const draftChatId = `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Store draft chat info in sessionStorage
+
         sessionStorage.setItem('draftPublicChat', JSON.stringify({
             chatId: draftChatId,
             twinToken: currentTwinId,
             visitorId: visitorId,
             createdAt: Date.now()
         }));
-        
-        // Set current chat to draft
+
         currentChatId = draftChatId;
-        
-        // Clear chat messages UI
+
         const chatMessages = document.getElementById('chatMessages');
         if (chatMessages) chatMessages.innerHTML = '';
-        
-        // Show empty state
+
         const emptyState = document.getElementById('emptyChatState');
         if (emptyState) emptyState.classList.remove('hidden');
-        
-        // Disable "New Chat" button until first message is sent
+
         const newChatBtn = document.getElementById('newPublicChatBtn');
         if (newChatBtn) newChatBtn.disabled = true;
-        
+
         console.log('Draft chat created:', draftChatId);
     } catch (error) {
         console.error('Error creating draft chat:', error);
@@ -933,7 +940,7 @@ async function createNewPublicChat() {
     }
 }
 
-        // Start public chat (load existing or create new one)
+// Start public chat (load existing or create new one)
         async function startPublicChat() {
             try {
                 const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
@@ -969,9 +976,8 @@ async function createNewPublicChat() {
                             if (canonicalChatId) {
                                 currentChatId = canonicalChatId;
                                 // ✅ Update URL to include canonical chatId (for back button stability)
-                                const url = new URL(window.location.href);
-                                url.searchParams.set('chatId', canonicalChatId);
-                                window.history.replaceState({}, '', url.toString());
+                                const newUrl = `/public-twin/chat/${currentTwinId}/${encodeURIComponent(canonicalChatId)}`;
+                                window.history.replaceState({}, '', newUrl);
                                 // Load the canonical chat
                                 await switchToPublicChat(canonicalChatId);
                             }

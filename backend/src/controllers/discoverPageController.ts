@@ -109,22 +109,31 @@ export async function getOnboarding(req: any, res: Response) {
  * Memory Management page
  */
 export async function getMemoryManagement(req: any, res: Response) {
-  // ✅ Use global locals filled by middleware (consistent with header/footer)
   const user = res.locals.user || null;
-  const twinId = req.query.twinId || res.locals.twinId || 'default';
+  if (!user) {
+    return res.redirect('/auth');
+  }
+
+  const { twinQueries } = await import('../config/database');
+  const userTwins = await twinQueries.findByUserId(user.id);
+  const twin = userTwins[0] || null;
+
+  if (!twin) {
+    return res.redirect('/twin/create');
+  }
+
+  const twinId = twin.id;
 
   console.log('[PAGE_MEMORY_MANAGEMENT] Render data:', {
-    user: user ? { id: user.id, email: user.email, hasProfileImage: !!user.profileImage } : null,
+    user: { id: user.id, email: user.email, hasProfileImage: !!user.profileImage },
     twinId,
-    queryTwinId: req.query.twinId,
-    localsTwinId: res.locals.twinId,
   });
 
   res.render('memory-management', { 
     title: 'Memory Management - AI Twin',
     user,
-    twinId,
-    csrfToken: res.locals['csrfToken']
+    twinId,                            // used by JS for /api/twin/:id/long-term-memory
+    csrfToken: res.locals['csrfToken'],
   });
 }
 

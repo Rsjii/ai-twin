@@ -70,7 +70,12 @@ export async function getTwinManage(req: any, res: Response) {
           ORDER BY COALESCE(pc."lastActivity", pc."createdAt") DESC
           LIMIT 5
       `, [twinId]);
-      recentChats = recentChatsResult.rows || [];
+
+      // 🔥 Add publicId token for URLs
+      recentChats = (recentChatsResult.rows || []).map(chat => ({
+        ...chat,
+        publicId: tokenizeId(chat.id, 'chat'),
+      }));
     } catch (error) {
       logger.warn('Error fetching recent chats:', {
         error: error instanceof Error ? error.message : 'Unknown error',

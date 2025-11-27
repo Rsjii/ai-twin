@@ -1698,7 +1698,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (mobileSettingsBtn) {
                 mobileSettingsBtn.addEventListener('click', function() {
-                    window.open('/twin/' + getCurrentTwinId() + '/style-customize', '_blank');
+                    window.open('/style-customize', '_blank');
                 });
             }
             
@@ -1711,11 +1711,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Add event listeners for quick action buttons
             document.getElementById('styleCustomizeBtn').addEventListener('click', function() {
-                window.open('/twin/' + getCurrentTwinId() + '/style-customize', '_blank');
+                window.open('/style-customize', '_blank');
             });
 
             document.getElementById('learningBtn').addEventListener('click', function() {
-                window.open('/twin/' + getCurrentTwinId() + '/learning-dashboard', '_blank');
+                window.open('/twin-settings', '_blank');
             });
 
             document.getElementById('analyticsBtn').addEventListener('click', function() {
