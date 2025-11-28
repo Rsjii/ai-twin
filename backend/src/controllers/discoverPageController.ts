@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { userQueries, twinQueries } from '../config/database';
 import { logger } from '../config/logger';
+import { FEATURE_FLAGS } from '../config/featureFlags';
 /**
  * Discover page
  */
@@ -109,6 +110,13 @@ export async function getOnboarding(req: any, res: Response) {
  * Memory Management page
  */
 export async function getMemoryManagement(req: any, res: Response) {
+  if (!FEATURE_FLAGS.memoryUI) {
+    return res.status(404).render('404', {
+      title: 'Page Not Found',
+      message: 'This feature is not available yet.'
+    });
+  }
+    
   const user = res.locals.user || null;
   if (!user) {
     return res.redirect('/auth');

@@ -49,6 +49,19 @@
                 document.documentElement.classList.add('dark');
             }
         })();
+        <%
+  // ============================================
+  // GLOBAL FEATURE FLAGS - Control all V2 features from here
+  // ============================================
+  // Set to true to enable advanced features, false for MVP
+  const FEATURE_FLAGS = {
+    advancedLearningUI: false,   // Big learning dashboard analytics, charts, progress, goals, milestones, templates
+    memoryUI: false,             // Full memory-management UI (dashboard, categories, stats, style anchors)
+    styleAnchorsUI: false,       // Style anchors tables/forms (separate from memoryUI for granular control)
+    chatFeedbackUI: false,       // Thumbs up/down, regenerate, training buttons in chat
+    advancedPublicAnalyticsUI: false // Any fancy charts/analytics on public side
+  };
+%>
     </script>
     <style>
         .gradient-bg {

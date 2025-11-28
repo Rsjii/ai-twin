@@ -386,7 +386,7 @@
             }
             
             .quick-nav-grid {
-                grid-template-columns: repeat(4, 1fr) !important;
+                grid-template-columns: repeat(3, 1fr) !important;
             }
             
             .learning-progress-grid {
@@ -413,7 +413,7 @@
             }
             
             .quick-nav-grid {
-                grid-template-columns: repeat(4, 1fr) !important;
+                grid-template-columns: repeat(3, 1fr) !important;
             }
             
             .learning-progress-grid {
@@ -451,15 +451,24 @@
           }
       })();
   </script>
-  
+<%
+// Feature flags (if not already defined in layout)
+var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
+  advancedLearningUI: false,
+  memoryUI: false,
+  styleAnchorsUI: false,
+  chatFeedbackUI: false,
+  advancedPublicAnalyticsUI: false
+};
+%>  
   <!--Header-->
   <%- include('header') %>    
   
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <div class="mb-8">
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Learning Dashboard</h1>
-            <p class="text-gray-600 dark:text-gray-300">Track how your AI twin is learning and improving over time</p>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Twin Settings</h1>
+            <p class="text-gray-600 dark:text-gray-300">Manage your AI twin's style and personal information</p>
         </div>
 
         <!-- Navigation Breadcrumbs -->
@@ -487,7 +496,7 @@
           </svg>
         </li>
         <li>
-          <span class="text-gray-900 dark:text-white font-medium">Learning Dashboard</span>
+          <span class="text-gray-900 dark:text-white font-medium">Twin Settings</span>
         </li>
       </ol>
     </nav>
@@ -496,7 +505,7 @@
   <!-- Quick Navigation -->
   <div class="mb-6 sm:mb-8 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-4 sm:p-6 border border-blue-200 dark:border-blue-800">
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Navigation</h3>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 quick-nav-grid">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 quick-nav-grid">
       <a href="/ai-edit" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02] min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="AI Edit">
         <div class="text-center">
           <div class="text-2xl mb-2">🤖</div>
@@ -511,6 +520,8 @@
           <p class="text-xs text-gray-600 dark:text-gray-300">Customize communication style</p>
         </div>
       </a>
+      <% /* TODO(V2): Memory Management button */ %>
+      <% if (FEATURE_FLAGS.memoryUI) { %>
       <a href="/memory-management" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02] min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="Memory Management">
         <div class="text-center">
           <div class="text-2xl mb-2">🧠</div>
@@ -518,6 +529,8 @@
           <p class="text-xs text-gray-600 dark:text-gray-300">Manage twin memories</p>
         </div>
       </a>
+      <% } %>
+
       <a href="/analytics" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02] min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="Analytics">
         <div class="text-center">
           <div class="text-2xl mb-2">📊</div>
@@ -527,6 +540,65 @@
       </a>
     </div>
   </div>
+
+
+  <!-- Personal Info / Notes Section (MVP - Always Visible) -->
+<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 mb-6 sm:mb-8">
+  <h2 class="text-xl font-semibold mb-4 dark:text-white">Personal Information</h2>
+  <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+      Things your twin should always remember about you
+  </p>
+  <form id="personalInfoForm" class="space-y-4">
+      <div>
+          <label for="personalInfoTextarea" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Add or update personal information
+          </label>
+          <textarea 
+              id="personalInfoTextarea" 
+              rows="6" 
+              placeholder="Example: I'm 23 years old, love anime, work as a product manager, hate motivational quotes..."
+              class="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base min-h-[120px]"
+          ></textarea>
+      </div>
+      <button 
+          type="submit" 
+          class="px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all duration-300 font-semibold min-h-[48px] sm:min-h-[44px] touch-manipulation text-base"
+      >
+          Save Personal Info
+      </button>
+  </form>
+  
+  <!-- Last 3 saved items (read-only preview) -->
+  <div id="personalInfoPreview" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+      <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Recent entries</h3>
+      <div id="personalInfoList" class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+          <p class="italic">No entries yet. Add your first note above.</p>
+      </div>
+  </div>
+</div>
+
+<script>
+// Simple personal info save handler (you'll wire this to your backend API)
+document.getElementById('personalInfoForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const textarea = document.getElementById('personalInfoTextarea');
+  const content = textarea?.value?.trim();
+  
+  if (!content) {
+      alert('Please enter some information');
+      return;
+  }
+  
+  // TODO: Wire to backend API endpoint (e.g., POST /api/twin/:id/personal-info)
+  // For now, just show success
+  alert('Personal info saved! (Backend integration pending)');
+  textarea.value = '';
+});
+</script>
+
+
+  <% /* TODO(V2): Advanced learning analytics charts + progress cards + TRAINING */ %>
+  <% if (FEATURE_FLAGS.advancedLearningUI) { %>
 
         <!-- Learning Progress Overview -->
         <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 mb-6 sm:mb-8 section">
@@ -792,6 +864,8 @@
       </div>
     </div>
     
+    <% /* TODO(V2): Training progress goals system */ %>
+    <% if (FEATURE_FLAGS.advancedLearningUI) { %>
     <!-- Training Progress Goals -->
     <div>
       <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Training Goals</h4>
@@ -825,6 +899,7 @@
         </div>
       </div>
     </div>
+    <% } %>
   </div>
 
   <!-- Training Templates Section -->
@@ -1062,6 +1137,8 @@
     </div>
   </div>
 </div>
+
+<% } %>
 
 
     </div>

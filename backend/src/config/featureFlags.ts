@@ -106,3 +106,19 @@ export function logFeatureUsage(feature: keyof FeatureFlags, userId?: string) {
 // Export the current feature flags
 export const featureFlags = getFeatureFlags();
 export const validationSettings = getValidationSettings();
+
+
+/**
+ * Global Feature Flags - Control V2 features from environment variables
+ * 
+ * Usage:
+ * - Set env vars to 'true' to enable features
+ * - Default: all false (MVP mode)
+ */
+export const FEATURE_FLAGS = {
+  advancedLearningUI: process.env['ENABLE_ADVANCED_LEARNING_UI'] === 'true',
+  memoryUI: process.env['ENABLE_MEMORY_UI'] === 'true',
+  styleAnchorsUI: process.env['ENABLE_STYLE_ANCHORS_UI'] === 'true',
+  chatFeedbackUI: process.env['ENABLE_CHAT_FEEDBACK_UI'] === 'true',
+  advancedPublicAnalyticsUI: process.env['ENABLE_ADV_PUBLIC_ANALYTICS'] === 'true',
+};

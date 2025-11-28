@@ -34,7 +34,16 @@
             }
         })();
     </script>
-    
+<%
+// Feature flags (if not already defined in layout)
+var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
+  advancedLearningUI: false,
+  memoryUI: false,
+  styleAnchorsUI: false,
+  chatFeedbackUI: false,
+  advancedPublicAnalyticsUI: false
+};
+%>
     <div class="min-h-screen">
         <!--Header-->
         <%- include('header') %>        
@@ -57,7 +66,29 @@
                     </button>
                 </div>
             </div>
-        </div>        
+        </div>  
+        
+        <% if (!FEATURE_FLAGS.memoryUI) { %>
+            <!-- Coming Soon Message (MVP) -->
+            <div class="max-w-3xl mx-auto mt-8 text-center px-4">
+                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-8 sm:p-12">
+                    <div class="text-6xl mb-4">🧠</div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                        Advanced Memory Management – Coming Soon
+                    </h1>
+                    <p class="text-gray-600 dark:text-gray-300 text-base sm:text-lg mb-6">
+                        Your twin already learns from how you chat and the info you share in Twin Settings.
+                        Manual memory tools will unlock in a future update.
+                    </p>
+                    <a href="/twin-settings" class="inline-block px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all duration-300 font-semibold min-h-[48px] sm:min-h-[44px] touch-manipulation text-base">
+                        Go to Twin Settings →
+                    </a>
+                </div>
+            </div>
+            <% } %>
+
+        <% /* TODO(V2): Memory Management Main Content */ %>
+        <% if (FEATURE_FLAGS.memoryUI) { %>
 
         <!-- Main Content -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -241,6 +272,9 @@
                 </div>
             </div>
         </div>
+        <% } %>
+
+
     </div>
 
     <!-- Enhanced Ingest Modal -->

@@ -48,6 +48,16 @@
         })();
     </script>
     
+    <%
+    // Feature flags (if not already defined in layout)
+    var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
+      advancedLearningUI: false,
+      memoryUI: false,
+      styleAnchorsUI: false,
+      chatFeedbackUI: false,
+      advancedPublicAnalyticsUI: false
+    };
+  %>    
     <!-- Header -->
     <%- include('header') %>    
 
@@ -55,7 +65,7 @@
         <!-- Page Header -->
         <div class="mb-8">
             <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">My Twin Management</h1>
-            <p class="text-gray-600 dark:text-gray-300">Manage your AI twin's settings, training, and analytics</p>
+            <p class="text-gray-600 dark:text-gray-300">Manage your AI twin's settings and chats</p>
         </div>
 
         <!-- Quick Stats Cards -->
@@ -118,7 +128,7 @@
                         Style Customize
                     </a>
                     <a href="/twin-settings" class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-purple-600 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base flex items-center justify-center">
-                        Learning Dashboard
+                        Twin Settings
                     </a>
                 </div>
             </div>
@@ -147,6 +157,9 @@
             </div>
         </div>
 
+        <% /* TODO(V2): Training Stats */ %>
+        <% if (FEATURE_FLAGS.advancedLearningUI) { %>
+
         <!-- Training Stats -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
@@ -162,6 +175,7 @@
                 <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats.learningGoals %></p>
             </div>
         </div>
+        <% } %>
 
         <!-- Recent Chats -->
         <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 lg:p-8">
