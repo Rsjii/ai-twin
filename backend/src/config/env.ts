@@ -1,10 +1,18 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env file from backend root directory (explicit path)
+// Load .env
 const envPath = path.resolve(__dirname, '../../.env');
 dotenv.config({ path: envPath });
 
+// New: normalize NODE_ENV once
+const NODE_ENV = process.env['NODE_ENV'] || 'development';
+
+export const isProd = NODE_ENV === 'production';
+export const isDev  = NODE_ENV === 'development';
+export const isTest = NODE_ENV === 'test';
+
+// config now uses NODE_ENV
 export const config = {
   // Database
   databaseUrl: process.env['DATABASE_URL'],
@@ -37,8 +45,9 @@ export const config = {
   },
   
   // App Configuration
-  nodeEnv: process.env['NODE_ENV'],
+  nodeEnv: NODE_ENV,
   port: Number(process.env['PORT']),
+  enableAdminAnalytics: process.env['ENABLE_ADMIN_ANALYTICS'] === 'true',
   
   // Rate Limiting
   rateLimit: {

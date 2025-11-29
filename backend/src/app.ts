@@ -6,7 +6,7 @@ import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import path from 'path';  // ✅ ADD: For path resolution
 import fs from 'fs';
-import { config } from './config/env';
+import { config, isProd, isDev } from './config/env';
 import { logger } from './config/logger';
 import { db } from './config/database';
 import { errorHandlerMiddleware } from './middleware/errorHandler';
@@ -48,6 +48,8 @@ import { getFeedbackAnalytics } from './modules/chat/feedbackController';
 // Import test routes
 import testRoutes from './routes/testRoutes';
 
+import { randomUUID } from 'crypto';
+
 if(config.nodeEnv==='production'){
   learningScheduler.start();
 }
@@ -59,6 +61,26 @@ import { requireJWTFromCookie, extractJWTFromCookie } from './middleware/jwtCook
 import { generateCSRFToken } from './middleware/csrf';
 
 const app = express();
+
+// ✅ NEW: Global requestId middleware
+app.use((req, res, next) => {
+  const requestId = randomUUID();
+  (req as any).requestId = requestId;
+  res.locals.requestId = requestId;
+
+  // Lightweight start log – no heavy data here
+  try {
+    logger.info('[REQUEST_START]', {
+      requestId,
+      method: req.method,
+      path: req.path,
+    });
+  } catch {
+    // ignore logging errors
+  }
+
+  next();
+});
 
 // ✅ Disable ETag for all responses (prevents 304 on JSON APIs)
 app.set('etag', false);
@@ -241,7 +263,7 @@ app.use((req, res, next) => {
   try {
     const jwtCookieRaw = (req as any).cookies?.['jwtToken'] as string | undefined;
     const jwtCookieShort = jwtCookieRaw
-      ? `${jwtCookieRaw.substring(0, 10)}...len=${jwtCookieRaw.length}`
+      ? (isDev ? `${jwtCookieRaw.substring(0, 10)}...len=${jwtCookieRaw.length}` : 'present')
       : null;
 
     logger.info('[REQ_CTX]', {
@@ -421,7 +443,11 @@ app.use('/api/moderation', moderationRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/invite', inviteRoutes);
 app.use('/api/metrics', analyticsRoutes);
-app.use('/api/admin/analytics', adminAnalyticsRoutes);
+
+// ✅ FIX: always enable admin analytics in dev; use flag only to disable in prod
+if (config.nodeEnv === 'development' || config.enableAdminAnalytics) {
+  app.use('/api/admin/analytics', adminAnalyticsRoutes);
+}
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/memory', memoryRoutes);
 app.use('/api/user', userRoutes);

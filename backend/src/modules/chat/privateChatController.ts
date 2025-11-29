@@ -599,8 +599,23 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response, next
       throw createError.validation('Message length invalid');
     }
 
+    // ❌ Pehle yaha error throw hota tha
+    // if (checkBlacklist(content)) {
+    //   throw createError.validation('Message contains restricted content');
+    // }
+
+    // ✅ Ab: restricted content → NO error, sirf default reply + event
     if (checkBlacklist(content)) {
-      throw createError.validation('Message contains restricted content');
+      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.MESSAGE_BLOCKED, {
+        reason: 'restricted_content',
+        source: 'private_chat_send',
+      });
+
+      return res.json({
+        success: true,
+        blocked: true,
+        response: "Sorry, I can't answer this like this. Please try asking in a different way.",
+      });
     }
 
     if (!chatToken) {
@@ -679,8 +694,29 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       throw createError.unauthorized();
     }
 
-    // ✅ Use shared validation
-    chatUtils.validateMessage(message);
+    // ❌ Pehle direct throw hota tha:
+    // chatUtils.validateMessage(message);
+
+    // ✅ Ab: restricted content pe error nahi jaayega bahar, yahi handle hoga
+    try {
+      chatUtils.validateMessage(message);
+    } catch (err: any) {
+      if (err && err.message === 'Message contains restricted content') {
+        await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.MESSAGE_BLOCKED, {
+          reason: 'restricted_content',
+          source: 'enhanced_chat',
+        });
+
+        return res.json({
+          success: true,
+          blocked: true,
+          response: "Sorry, I can't answer this like this. Please try asking in a different way.",
+        });
+      }
+
+      // Baaki saare validation errors normal flow pe hi jaayen
+      throw err;
+    }
 
     if (!chatToken) {
       throw createError.validation('Chat token is required');
@@ -1248,11 +1284,21 @@ export const updateChatTitle = async (req: AuthenticatedRequest, res: Response, 
       throw createError.unauthorized();
     }
 
-    const { id: chatId } = req.params;
+    // ✅ tokenized id (chat_xxx...) ko detokenize karo
+    const rawId = req.params.id;
+    if (!rawId) {
+      throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
+    }
+
+    const decoded = detokenizeId(rawId);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
+
     const { title } = updateChatTitleSchema.parse(req.body);
     const userId = req.user.id;
 
-    // Verify chat belongs to user
     const chatResult = await db.query(`
       SELECT id FROM "Chat" WHERE id = $1 AND "userId" = $2
     `, [chatId, userId]);
@@ -1261,7 +1307,6 @@ export const updateChatTitle = async (req: AuthenticatedRequest, res: Response, 
       throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
-    // Update chat title
     const utcTimestamp = new Date().toISOString();
     await db.query(`
       UPDATE "Chat" SET "title" = $1, "updatedAt" = $2::timestamptz WHERE id = $3
@@ -1286,11 +1331,20 @@ export const generateChatTitle = async (req: AuthenticatedRequest, res: Response
       throw createError.unauthorized();
     }
 
-    const { id: chatId } = req.params;
+    const rawId = req.params.id;
+    if (!rawId) {
+      throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
+    }
+
+    const decoded = detokenizeId(rawId);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
+
     const { firstMessage } = generateTitleSchema.parse(req.body);
     const userId = req.user.id;
 
-    // Verify chat belongs to user
     const chatResult = await db.query(`
       SELECT id FROM "Chat" WHERE id = $1 AND "userId" = $2
     `, [chatId, userId]);
@@ -1328,10 +1382,19 @@ export const getChatSummary = async (req: AuthenticatedRequest, res: Response, n
       throw createError.unauthorized();
     }
 
-    const { id: chatId } = req.params;
+    const rawId = req.params.id;
+    if (!rawId) {
+      throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
+    }
+
+    const decoded = detokenizeId(rawId);
+    if (!decoded || decoded.type !== 'chat') {
+      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+    }
+    const chatId = decoded.id;
+
     const userId = req.user.id;
 
-    // Verify chat belongs to user
     const chatResult = await db.query(`
       SELECT id, "summary" FROM "Chat" WHERE id = $1 AND "userId" = $2
     `, [chatId, userId]);

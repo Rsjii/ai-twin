@@ -265,8 +265,79 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
     // ✅ Use shared validation
     try {
       chatUtils.validateMessage(message);
-    } catch (error) {
-      // Return early with success:false format for validation errors
+    } catch (error: any) {
+      // ✅ SPECIAL CASE: restricted content → safe default reply + analytics + DB save
+      if (error && error.message === 'Message contains restricted content') {
+        const defaultText =
+          "Sorry, I can't answer this like this. Please try asking in a different way.";
+        const now = new Date().toISOString();
+
+        // 1) Event log
+        try {
+          const userId = (req as any).user?.id || null;
+          if (userId) {
+            await EventLogger.logUserEvent(userId, EVENT_TYPES.MESSAGE_BLOCKED, {
+              reason: 'restricted_content',
+              source: 'public_chat',
+              chatId,
+              requestId: (req as any).requestId || null,
+            });
+          } else {
+            await EventLogger.logSystemEvent(EVENT_TYPES.MESSAGE_BLOCKED, {
+              reason: 'restricted_content',
+              source: 'public_chat',
+              chatId,
+            });
+          }
+        } catch (logErr) {
+          logger.error('Failed to log MESSAGE_BLOCKED event (public chat):', logErr);
+        }
+
+        // 2) DB me user + AI default messages save karo
+        try {
+          const userMessageId = generateId.message();
+          const aiMessageId = generateId.message();
+
+          // User message
+          await db.query(`
+            INSERT INTO "PublicMessage" ("id", "chatId", content, sender, "createdAt")
+            VALUES ($1, $2, $3, 'human', $4::timestamptz)
+          `, [userMessageId, chatId, message, now]);
+
+          // AI default reply
+          await db.query(`
+            INSERT INTO "PublicMessage" ("id", "chatId", content, sender, "createdAt")
+            VALUES ($1, $2, $3, 'twin', $4::timestamptz)
+          `, [aiMessageId, chatId, defaultText, now]);
+
+          // Chat metadata update (1 turn = +1)
+          await db.query(`
+            UPDATE "PublicChat"
+            SET "messageCount" = "messageCount" + 1,
+                "lastActivity" = $1::timestamptz
+            WHERE id = $2
+          `, [now, chatId]);
+        } catch (dbErr) {
+          logger.warn('Failed to persist blocked public message:', dbErr);
+        }
+
+        // 3) Frontend ko normal success response
+        return res.status(200).json({
+          success: true,
+          messages: [
+            {
+              id: null,
+              content: defaultText,
+              sender: 'twin',
+              createdAt: now,
+            },
+          ],
+          serverTime: now,
+          blocked: true,
+        });
+      }
+
+      // 🔁 baaki validation errors → purana behavior
       handleErrorWithSuccessFormat(error, res, 'Message validation failed');
       return;
     }

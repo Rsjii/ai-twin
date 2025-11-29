@@ -1,5 +1,4 @@
 export const ADMIN_EMAILS = [
-    'admin@aitwin.com',
     'i@gmail.com',
     'k@gmail.com'
   ] as const;
@@ -118,6 +117,7 @@ export const EVENT_TYPES = {
   PUBLIC_CHAT_STARTED: 'public_chat_started',
   DRAFT_GENERATED: 'draft_generated',
   MESSAGE_APPROVED: 'message_approved',
+  MESSAGE_BLOCKED: 'message_blocked', // ✅ restricted content ke liye
   
   // Social
   TWIN_LIKED: 'twin_liked',

@@ -16,6 +16,9 @@ import { generateId } from '../../utils/idGenerator';
 import { handleControllerError, handleErrorWithResponse } from '../../utils/errorHandler';
 import { normalizeTimestamp, formatRelativeTime } from '../../utils/timestampUtils';
 import { detokenizeId, tokenizeId } from '../../utils/idTokenization';
+import * as chatUtils from './chatSharedUtils';
+import { EventLogger } from '../../services/eventLogger';
+import { EVENT_TYPES } from '../../config/constants';
 
 const twinService = new TwinService();
 
@@ -69,6 +72,73 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
 
     const chat = chatResult.rows[0];
     logger.info('✅ Chat found:', chat.id);
+    
+    // ✅ NEW: Moderation-style validation (restricted content → default reply)
+    try {
+      chatUtils.validateMessage(message);
+    } catch (error: any) {
+      if (error && error.message === 'Message contains restricted content') {
+        const defaultText =
+          "Sorry, I can't answer this like this. Please try asking in a different way.";
+        const now = new Date().toISOString();
+
+        // 1) Log MESSAGE_BLOCKED
+        try {
+          await EventLogger.logUserEvent(userId, EVENT_TYPES.MESSAGE_BLOCKED, {
+            reason: 'restricted_content',
+            source: 'enhanced_chat',
+            chatId: chat.id,
+            requestId: (req as any).requestId || null,
+          });
+        } catch (logErr) {
+          logger.warn('Failed to log MESSAGE_BLOCKED (enhanced chat):', logErr);
+        }
+
+        // 2) User + AI default messages DB me save karo
+        try {
+          const userMessageId = generateId.message();
+          const aiMessageId = generateId.message();
+
+          await db.query(`
+            INSERT INTO "Message" (id, "chatId", content, sender, "createdAt")
+            VALUES ($1, $2, $3, 'human', $4::timestamptz)
+          `, [userMessageId, chat.id, message, now]);
+
+          await db.query(`
+            INSERT INTO "Message" (id, "chatId", content, sender, "createdAt")
+            VALUES ($1, $2, $3, 'twin', $4::timestamptz)
+          `, [aiMessageId, chat.id, defaultText, now]);
+
+          await db.query(`
+            UPDATE "Chat"
+            SET "messageCount" = "messageCount" + 1,
+                "lastMessage" = $1,
+                "updatedAt" = $2::timestamptz
+            WHERE id = $3
+          `, [defaultText, now, chat.id]);
+        } catch (dbErr) {
+          logger.warn('Failed to persist blocked enhanced message:', dbErr);
+        }
+
+        // 3) Frontend ko safe reply bhejo
+        return res.json({
+          success: true,
+          response: defaultText,
+          messageId: null,
+          intent: 'blocked',
+          criticScore: null,
+          latency: 0,
+          generatedTitle: null,
+          isFirstMessage: false,
+          timestamp: now,
+          serverTime: now,
+          blocked: true,
+        });
+      }
+
+      // koi aur validation error → normal error flow
+      throw error;
+    }
     
     // ✅ NEW: If regenerating, delete the old AI response and all messages after it
     if (regenerate) {
