@@ -138,3 +138,4 @@ b. agar show chat hisory false ho to bhi acche se pan previous hatwa sakte new s
 114. reset password me dark theme
 115. /twin/create par header alag , no dark theme
 116. kayi baar freeaxe ho jaata hai
+117. loading states + erroe states + env wise
