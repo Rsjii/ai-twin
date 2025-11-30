@@ -57,16 +57,33 @@
 
     <div class="flex flex-col md:flex-row min-h-screen md:h-screen">        
         <!-- Chat Sidebar -->
-        <div id="chatSidebar" class="hidden md:flex md:w-64 flex-col bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900 overflow-x-hidden">            
-            <div class="p-4 border-b dark:border-gray-700">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Chat with <%= twin.publicHandle %></h2>
-                <button id="newPublicChatBtn" class="w-full mt-2 bg-blue-600 dark:bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors" aria-label="Start new chat">
-                    + New Chat
-                </button>
-            </div>
-            
+        <div
+        id="chatSidebar"
+        class="fixed top-16 left-0 h-[calc(100vh-4rem)] w-72 bg-white dark:bg-gray-800 shadow-xl z-40 transform -translate-x-full transition-transform duration-200 ease-out flex flex-col overflow-x-hidden md:static md:transform-none md:w-64 md:h-full md:shadow-lg md:border-r border-gray-200 dark:border-gray-800"   
+    >    
+    <div class="p-4 border-b dark:border-gray-700 relative">
+        <!-- Mobile close button (X) -->
+        <button
+            id="mobile-public-chat-close-btn"
+            class="md:hidden absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 rounded-lg bg-white/80 dark:bg-gray-900/80 shadow min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
+            aria-label="Close chat history"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Chat with <%= twin.publicHandle %></h2>
+        <button id="newPublicChatBtn" class="w-full mt-2 bg-blue-600 dark:bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors" aria-label="Start new chat">
+            + New Chat
+        </button>
+    </div>            
+
             <!-- Chat History List -->
-            <div id="publicChatHistoryList" class="p-4 space-y-2 max-h-96 overflow-y-auto overflow-x-hidden">
+            <div
+            id="publicChatHistoryList"
+            class="p-4 space-y-2 overflow-y-auto overflow-x-hidden flex-1 md:flex-none md:max-h-96"
+        >                
                 <!-- Loading state -->
                 <div id="chatHistoryLoadingState" class="hidden">
                     <%- include('components/loading-skeleton', { type: 'list', count: 5 }) %>
@@ -90,11 +107,24 @@
         <div class="flex-1 flex flex-col w-full md:w-auto">            
             <!-- Chat Header -->
             <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-b dark:border-gray-700 flex items-center gap-2 sm:gap-3">
-                <a href="/@<%= twin.publicHandle %>" class="flex-shrink-0 hover:opacity-80 transition-opacity" title="View @<%= twin.publicHandle %> profile" aria-label="View @<%= twin.publicHandle %> profile">
+                <!-- Mobile Hamburger (left) -->
+                <button
+                    id="mobile-public-chat-menu-btn"
+                    class="md:hidden inline-flex items-center justify-center p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-h-[44px] min-w-[44px] touch-manipulation flex-shrink-0"
+                    aria-label="Open chat history"
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h6"></path>
+                    </svg>
+                </button>
+            
+                <!-- Avatar (desktop/tablet only) -->
+                <a href="/@<%= twin.publicHandle %>" class="hidden md:flex flex-shrink-0 hover:opacity-80 transition-opacity" title="View @<%= twin.publicHandle %> profile" aria-label="View @<%= twin.publicHandle %> profile">
                     <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all">
                         <%= twin.publicHandle ? twin.publicHandle.charAt(0).toUpperCase() : 'T' %>
                     </div>
                 </a>
+            
                 <div class="flex-1 min-w-0">
                     <h1 class="text-xl font-semibold text-gray-900 dark:text-white truncate">Chat with @<%= twin.publicHandle %></h1>
                     <p class="text-sm text-gray-600 dark:text-gray-300">
@@ -105,7 +135,7 @@
                         <% } %>
                     </p>
                 </div>
-            </div>      
+            </div>            
 
             <!-- Chat Messages -->
             <div id="chatMessages" class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-gray-50 dark:bg-gray-900">
@@ -158,114 +188,43 @@
         </div>
     </div>
 
-    <!-- Mobile Bottom Sheet for Chat History - Enhanced UX -->
-    <div id="mobileChatHistory" class="md:hidden fixed inset-0 z-50 pointer-events-none">
-        <!-- Backdrop -->
-        <div id="mobileChatHistoryBackdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-300 pointer-events-auto"></div>
-        
-        <!-- Bottom Sheet -->
-        <div id="mobileChatHistorySheet" class="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-300 max-h-[85vh] flex flex-col pointer-events-auto">
-            <!-- Drag Handle -->
-            <div class="flex justify-center pt-3 pb-2">
-                <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-            </div>
-            
-            <!-- Header -->
-            <div class="px-4 pb-4 border-b dark:border-gray-700">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Chat History</h2>
-                    <button id="closeMobileHistory" class="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation" aria-label="Close chat history">
-                        <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-                <button id="newPublicChatBtnMobile" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-600 text-white py-3 px-4 rounded-xl hover:shadow-lg transition-all font-semibold min-h-[48px] touch-manipulation shadow-md" aria-label="Start new chat">
-                    <span class="flex items-center justify-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        New Chat
-                    </span>
-                </button>
-            </div>
-            
-            <!-- Chat List -->
-            <div id="publicChatHistoryListMobile" class="flex-1 overflow-y-auto px-4 py-4 space-y-2">
-                <!-- Chat items will be loaded here -->
-            </div>
-        </div>
-    </div>    
-    
-    <!-- Mobile Chat History Toggle Button -->
-    <button id="mobileHistoryToggle" class="md:hidden fixed bottom-20 right-4 bg-blue-600 dark:bg-blue-500 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors z-40" aria-label="Open chat history">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
-    </button>
-
     <script>
-
-    // Mobile chat history toggle - Enhanced with backdrop
-    const mobileHistoryToggle = document.getElementById('mobileHistoryToggle');
-    const mobileChatHistory = document.getElementById('mobileChatHistory');
-    const mobileChatHistorySheet = document.getElementById('mobileChatHistorySheet');
-    const mobileChatHistoryBackdrop = document.getElementById('mobileChatHistoryBackdrop');
-    const closeMobileHistoryBtn = document.getElementById('closeMobileHistory');
+        // Mobile public chat sidebar toggle (ChatGPT-style, like enhanced chat)
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuBtn  = document.getElementById('mobile-public-chat-menu-btn');
+            const closeBtn = document.getElementById('mobile-public-chat-close-btn');
+            const sidebar  = document.getElementById('chatSidebar');
     
-    function openMobileHistory() {
-        if (mobileChatHistory && mobileChatHistorySheet && mobileChatHistoryBackdrop) {
-            mobileChatHistory.classList.remove('pointer-events-none');
-            mobileChatHistorySheet.classList.remove('translate-y-full');
-            mobileChatHistoryBackdrop.classList.remove('opacity-0');
-            mobileChatHistoryBackdrop.classList.add('opacity-100');
-            document.body.style.overflow = 'hidden';
-        }
-    }
+            if (menuBtn && sidebar) {
+                // Hamburger click => open/close
+                menuBtn.addEventListener('click', function() {
+                    const isOpen = !sidebar.classList.contains('-translate-x-full');
+                    if (isOpen) {
+                        sidebar.classList.add('-translate-x-full');
+                    } else {
+                        sidebar.classList.remove('-translate-x-full');
+                    }
+                });
     
-    function closeMobileHistory() {
-        if (mobileChatHistory && mobileChatHistorySheet && mobileChatHistoryBackdrop) {
-            mobileChatHistorySheet.classList.add('translate-y-full');
-            mobileChatHistoryBackdrop.classList.remove('opacity-100');
-            mobileChatHistoryBackdrop.classList.add('opacity-0');
-            setTimeout(() => {
-                mobileChatHistory.classList.add('pointer-events-none');
-                document.body.style.overflow = '';
-            }, 300);
-        }
-    }
+                // X click => close
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', function() {
+                        if (window.innerWidth < 768) {
+                            sidebar.classList.add('-translate-x-full');
+                        }
+                    });
+                }
     
-    if (mobileHistoryToggle) {
-        mobileHistoryToggle.addEventListener('click', openMobileHistory);
-    }
-    
-    if (closeMobileHistoryBtn) {
-        closeMobileHistoryBtn.addEventListener('click', closeMobileHistory);
-    }
-    
-    // Close on backdrop click
-    if (mobileChatHistoryBackdrop) {
-        mobileChatHistoryBackdrop.addEventListener('click', closeMobileHistory);
-    }
-    
-    // Swipe down to close (optional enhancement)
-    let touchStartY = 0;
-    let touchEndY = 0;
-    
-    if (mobileChatHistorySheet) {
-        mobileChatHistorySheet.addEventListener('touchstart', (e) => {
-            touchStartY = e.changedTouches[0].screenY;
-        }, { passive: true });
-        
-        mobileChatHistorySheet.addEventListener('touchend', (e) => {
-            touchEndY = e.changedTouches[0].screenY;
-            const swipeDistance = touchStartY - touchEndY;
-            if (swipeDistance < -100) { // Swipe down
-                closeMobileHistory();
+                // Outside click => close (mobile only)
+                document.addEventListener('click', function(e) {
+                    if (window.innerWidth < 768) {
+                        if (!sidebar.contains(e.target) && !menuBtn.contains(e.target)) {
+                            sidebar.classList.add('-translate-x-full');
+                        }
+                    }
+                });
             }
-        }, { passive: true });
-    }    
-
+        });
     </script>
 
     <script>
@@ -1637,18 +1596,29 @@ if (isLoggedIn) {
         });        
     </script>
 
-    <style>
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0; }
+<style>
+    @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+    }
+    
+    .streaming-cursor {
+        display: inline-block;
+        animation: blink 1s infinite;
+        color: inherit;
+    }
+
+    /* ✅ Desktop pe sidebar hamesha visible + left column */
+    @media (min-width: 768px) {
+        #chatSidebar {
+            position: static;
+            transform: none;
+            display: flex;
+            width: 16rem;      /* md:w-64 */
+            height: 100%;
         }
-        
-        .streaming-cursor {
-            display: inline-block;
-            animation: blink 1s infinite;
-            color: inherit;
-        }
-    </style>
+    }
+</style>    
     <!--Footer-->
     <%- include('footer/footer-conditional') %>
 </body>

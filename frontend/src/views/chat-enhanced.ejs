@@ -70,7 +70,7 @@
 
     <div class="flex w-full min-h-screen md:h-screen">        
         <!-- Mobile Chat Sidebar -->
-        <div id="mobile-chat-sidebar" class="fixed top-0 right-0 h-full w-full sm:w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out lg:hidden border-l border-white/20 dark:border-gray-700">
+        <div id="mobile-chat-sidebar" class="fixed top-16 left-0 h-[calc(100vh-4rem)] w-72 bg-white dark:bg-gray-900 shadow-xl z-40 transform -translate-x-full transition-transform duration-200 ease-out lg:static lg:translate-x-0 lg:w-64 lg:h-full lg:shadow-lg lg:border-r border-gray-200 dark:border-gray-800">            
             <div class="p-4 sm:p-6">
                 <!-- Close Button -->
                 <button id="mobile-chat-close-btn" class="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation">
@@ -97,22 +97,44 @@
                             <span class="text-gray-700 dark:text-gray-300">New Chat</span>
                         </div>
                     </button>
-                    
-                    <button id="mobile-settings-btn" class="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation text-base">
-                        <div class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            </svg>
-                            <span class="text-gray-700 dark:text-gray-300">Settings</span>
-                        </div>
-                    </button>
                 </div>
+
+                                <!-- Quick Style (mobile) -->
+                                <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+                                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Style</h3>
+                                    <div class="flex space-x-2">
+                                        <button id="casualBtnMobile" class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-colors min-h-[44px] touch-manipulation">
+                                            Casual
+                                        </button>
+                                        <button id="formalBtnMobile" class="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-sm hover:bg-purple-200 dark:hover:bg-purple-900/40 transition-colors min-h-[44px] touch-manipulation">
+                                            Formal
+                                        </button>
+                                        <button id="toggleStyleBtnMobile" class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors min-h-[44px] touch-manipulation">
+                                            Auto
+                                        </button>
+                                    </div>
+                                </div>
+                
+                                <!-- Actions (mobile) -->
+                                <div class="mt-4">
+                                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Actions</h3>
+                                    <div class="space-y-2">
+                                        <button id="styleCustomizeBtnMobile" class="w-full text-left px-3 py-2 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation">
+                                            🎨 Style Settings
+                                        </button>
+                                        <button id="learningBtnMobile" class="w-full text-left px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation">
+                                            📊 Twin Settings
+                                        </button>
+                                        <button id="analyticsBtnMobile" class="w-full text-left px-3 py-2 text-sm bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors min-h-[48px] sm:min-h-[44px] touch-manipulation">
+                                            📈 Analytics
+                                        </button>
+                                    </div>
+                                </div>
             </div>
         </div>
 
         <!-- Desktop Sidebar -->
-        <div class="hidden lg:block w-64 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900 overflow-x-hidden">
+        <div class="hidden lg:block w-64 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900 overflow-x-hidden">            
             <div class="p-4 border-b dark:border-gray-700">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">AI Twin Chat</h2>
                 <p class="text-sm text-gray-600 dark:text-gray-300">Enhanced with style learning</p>
@@ -178,7 +200,24 @@
         </div>
 
         <!-- Main Chat Area - Full width remaining space -->
-        <div class="flex-1 flex flex-col w-full min-w-0">            
+        <div class="flex-1 flex flex-col w-full min-w-0">         
+            <!-- Mobile Chat Header with Hamburger -->
+<div class="lg:hidden bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-3 sm:px-4 py-3 flex items-center gap-3">
+    <button
+        id="mobile-chat-menu-btn"
+        class="inline-flex items-center justify-center p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-h-[44px] min-w-[44px] touch-manipulation"
+        aria-label="Open chats list"
+    >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h6"></path>
+        </svg>
+    </button>
+    <div class="flex-1 min-w-0">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white truncate">Enhanced Chat</h2>
+        <p class="text-xs text-gray-600 dark:text-gray-300">AI responses with style learning</p>
+    </div>
+</div>
+
             <!-- Desktop Chat Header -->
             <div class="hidden lg:block bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-4">
                 <div class="flex justify-between items-center">
@@ -346,23 +385,25 @@
     <script>
         // Mobile chat functionality
         function openMobileChatSidebar() {
-            const sidebar = document.getElementById('mobile-chat-sidebar');
-            if (sidebar) {
-                sidebar.classList.remove('translate-x-full');
-                sidebar.classList.add('translate-x-0');
-                document.body.style.overflow = 'hidden';
-            }
-        }
-        
-        function closeMobileChatSidebar() {
-            const sidebar = document.getElementById('mobile-chat-sidebar');
-            if (sidebar) {
-                sidebar.classList.add('translate-x-full');
-                sidebar.classList.remove('translate-x-0');
-                document.body.style.overflow = '';
-            }
-        }
-        
+    const sidebar = document.getElementById('mobile-chat-sidebar');
+    if (sidebar) {
+        // Slide IN from left
+        sidebar.classList.remove('-translate-x-full');
+        sidebar.classList.add('translate-x-0');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeMobileChatSidebar() {
+    const sidebar = document.getElementById('mobile-chat-sidebar');
+    if (sidebar) {
+        // Slide OUT to left again
+        sidebar.classList.add('-translate-x-full');
+        sidebar.classList.remove('translate-x-0');
+        document.body.style.overflow = '';
+    }
+}
+
         // Touch gesture handling for chat
         let chatTouchStartX = 0;
         let chatTouchStartY = 0;
@@ -1483,12 +1524,18 @@ async function loadChatHistory(showLoading = true) {
     }
 }
 
-// Display chat history
 function displayChatHistory(chats) {
-    const container = document.getElementById('chatHistoryItems') || document.getElementById('chatHistoryList');
-    if (!container) return;
-    
-    // Show/hide empty state based on chat list
+    // We want to render history into BOTH:
+    // - Desktop: #chatHistoryItems / #chatHistoryList
+    // - Mobile:  #mobile-chat-history
+    const containers = [
+        document.getElementById('chatHistoryItems') || document.getElementById('chatHistoryList'),
+        document.getElementById('mobile-chat-history')
+    ].filter(Boolean);
+
+    if (containers.length === 0) return;
+
+    // Show/hide empty state based on chat list (desktop state still uses #chatHistoryEmptyState)
     const emptyState = document.getElementById('chatHistoryEmptyState');
     if (chats.length === 0) {
         if (emptyState) emptyState.classList.remove('hidden');
@@ -1496,74 +1543,68 @@ function displayChatHistory(chats) {
         if (emptyState) emptyState.classList.add('hidden');
     }
 
-    // Populate chat items without removing loader/empty nodes
-    container.innerHTML = chats.map(chat => `
-        <div class="chat-item p-3 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg relative group ${chat.publicId === currentChatId ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : ''}" data-chat-id="${chat.publicId}">
-            <div class="flex justify-between items-start min-w-0">
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between gap-2 mb-1 min-w-0">
-                        <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.publicId === currentChatId ? 'text-blue-700 dark:text-blue-400' : 'text-gray-900 dark:text-white'}" id="chat-title-${chat.publicId}">${chat.title || 'Untitled Chat'}</h4>
-                        <div class="flex items-center gap-1 flex-shrink-0">
-                            <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Edit title">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                </svg>
-                            </button>
-                            <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Delete chat">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                            </button>
+    // Render same markup into all containers
+    containers.forEach(container => {
+        container.innerHTML = chats.map(chat => `
+            <div class="chat-item p-3 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg relative group ${chat.publicId === currentChatId ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : ''}" data-chat-id="${chat.publicId}">
+                <div class="flex justify-between items-start min-w-0">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-2 mb-1 min-w-0">
+                            <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.publicId === currentChatId ? 'text-blue-700 dark:text-blue-400' : 'text-gray-900 dark:text-white'}" id="chat-title-${chat.publicId}">${chat.title || 'Untitled Chat'}</h4>
+                            <div class="flex items-center gap-1 flex-shrink-0">
+                                <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Edit title">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </button>
+                                <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Delete chat">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${chat.lastMessage ? (typeof chat.lastMessage === 'string' ? (chat.lastMessage.length > 50 ? chat.lastMessage.substring(0, 50) + '...' : chat.lastMessage) : (chat.lastMessage.content && chat.lastMessage.content.length > 50 ? chat.lastMessage.content.substring(0, 50) + '...' : (chat.lastMessage.content || 'No messages yet'))) : 'No messages yet'}</p>
                     </div>
-<p class="text-xs text-gray-500 dark:text-gray-400 truncate">${chat.lastMessage ? (typeof chat.lastMessage === 'string' ? (chat.lastMessage.length > 50 ? chat.lastMessage.substring(0, 50) + '...' : chat.lastMessage) : (chat.lastMessage.content && chat.lastMessage.content.length > 50 ? chat.lastMessage.content.substring(0, 50) + '...' : (chat.lastMessage.content || 'No messages yet'))) : 'No messages yet'}</p>
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                    <span class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded">${chat.messageCount || 0} messages</span>
                 </div>
             </div>
-            <div class="flex items-center justify-between mt-2">
-                <span class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded">${chat.messageCount || 0} messages</span>
-            </div>
-        </div>
-    `).join('');
+        `).join('');
 
-    // Add click listeners to chat items
-    container.querySelectorAll('.chat-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            // Don't switch if delete or edit button was clicked
-            if (e.target.closest('.delete-chat-btn') || e.target.closest('.edit-chat-btn')) {
-                return;
-            }
-            const chatId = this.dataset.chatId;
-            if (chatId !== currentChatId) {
-                switchToChat(chatId);
-            }
+        // Add click listeners for switching chats
+        container.querySelectorAll('.chat-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                if (e.target.closest('.delete-chat-btn') || e.target.closest('.edit-chat-btn')) return;
+                const chatId = this.dataset.chatId;
+                if (chatId !== currentChatId) {
+                    switchToChat(chatId);
+                }
+            });
         });
-    });
-    
-    // Add click listeners to delete buttons
-    container.querySelectorAll('.delete-chat-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            e.preventDefault();
-            const chatId = this.dataset.chatId;
-            if (chatId && typeof deleteChat === 'function') {
-                deleteChat(chatId);
-            } else {
-                console.error('deleteChat function not found or chatId missing');
-            }
+
+        // Edit / delete buttons
+        container.querySelectorAll('.delete-chat-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                const chatId = this.dataset.chatId;
+                if (chatId && typeof deleteChat === 'function') {
+                    deleteChat(chatId);
+                }
+            });
         });
-    });
-    
-    // Add click listeners to edit buttons
-    container.querySelectorAll('.edit-chat-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            e.preventDefault();
-            const chatId = this.dataset.chatId;
-            if (chatId && typeof editChatTitle === 'function') {
-                editChatTitle(chatId);
-            } else {
-                console.error('editChatTitle function not found or chatId missing');
-            }
+
+        container.querySelectorAll('.edit-chat-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                const chatId = this.dataset.chatId;
+                if (chatId && typeof editChatTitle === 'function') {
+                    editChatTitle(chatId);
+                }
+            });
         });
     });
 }
@@ -1911,7 +1952,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const mobileChatCloseBtn = document.getElementById('mobile-chat-close-btn');
     const mobileHistoryBtn = document.getElementById('mobile-history-btn');
     const mobileNewChatBtn = document.getElementById('mobile-new-chat-btn');
-    const mobileSettingsBtn = document.getElementById('mobile-settings-btn');
     
     if (mobileChatMenuBtn) {
         mobileChatMenuBtn.addEventListener('click', openMobileChatSidebar);
@@ -1927,12 +1967,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (mobileNewChatBtn) {
         mobileNewChatBtn.addEventListener('click', createNewChat);
-    }
-    
-    if (mobileSettingsBtn) {
-        mobileSettingsBtn.addEventListener('click', function() {
-            window.open('/style-customize', '_blank');
-        });
     }
     
     // Touch gesture event listeners
@@ -1981,26 +2015,49 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     })();    
 
-            // Add event listeners for quick action buttons
-            document.getElementById('styleCustomizeBtn').addEventListener('click', function() {
-                window.open('/style-customize', '_blank');
-            });
+    ['styleCustomizeBtn', 'styleCustomizeBtnMobile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('click', function() {
+            window.open('/style-customize', '_blank');
+        });
+    }
+});
 
-            document.getElementById('learningBtn').addEventListener('click', function() {
-                window.open('/twin-settings', '_blank');
-            });
+['learningBtn', 'learningBtnMobile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('click', function() {
+            window.open('/twin-settings', '_blank');
+        });
+    }
+});
 
-            document.getElementById('analyticsBtn').addEventListener('click', function() {
-                window.open('/analytics', '_blank');
-            });
+['analyticsBtn', 'analyticsBtnMobile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('click', function() {
+            window.open('/analytics', '_blank');
+        });
+    }
+});            
 
             // New chat button
             document.getElementById('newChatBtn').addEventListener('click', createNewChat);
 
-            // Quick style buttons
-            document.getElementById('casualBtn').addEventListener('click', () => setStyleMode('casual'));
-            document.getElementById('formalBtn').addEventListener('click', () => setStyleMode('formal'));
-            document.getElementById('toggleStyleBtn').addEventListener('click', () => setStyleMode('auto'));
+// Quick style buttons (desktop + mobile)
+['casualBtn', 'casualBtnMobile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', () => setStyleMode('casual'));
+});
+['formalBtn', 'formalBtnMobile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', () => setStyleMode('formal'));
+});
+['toggleStyleBtn', 'toggleStyleBtnMobile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', () => setStyleMode('auto'));
+});
 
             // Modal event listeners
             const closeModalBtn = document.getElementById('closeModalBtn');
