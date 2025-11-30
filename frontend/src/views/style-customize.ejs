@@ -334,7 +334,13 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
     <script>
     let currentTwinData = null;
     const twinId = '<%= twinId %>';
-    let currentStyleAnchorTab = 'phrases';
+    // ✅ FIX: Read tab from URL on init, default to 'phrases'
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentStyleAnchorTab = urlParams.get('tab') || 'phrases';
+    // Validate tab value
+    if (currentStyleAnchorTab !== 'phrases' && currentStyleAnchorTab !== 'interactions') {
+        currentStyleAnchorTab = 'phrases';
+    }
 
     // Load twin data on page load
     document.addEventListener('DOMContentLoaded', function() {
@@ -342,6 +348,8 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
         setupRangeListeners();
         setupEventListeners();
         loadStyleAnchors();
+        // ✅ FIX: Restore tab state on page load
+        switchStyleAnchorTab(currentStyleAnchorTab, false); // false = don't update URL (already set)
     });
 
     function setupEventListeners() {
@@ -349,7 +357,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
         document.querySelectorAll('.style-anchor-tab').forEach(tab => {
             tab.addEventListener('click', function() {
                 const tabType = this.dataset.tab;
-                switchStyleAnchorTab(tabType);
+                switchStyleAnchorTab(tabType, true); // ✅ true = update URL
             });
         });
 
@@ -385,20 +393,32 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
         }
     }
 
-    function switchStyleAnchorTab(tabType) {
+    function switchStyleAnchorTab(tabType, updateUrl = true) {
         currentStyleAnchorTab = tabType;
+        
+        // ✅ FIX: Update URL query param
+        if (updateUrl) {
+            const url = new URL(window.location);
+            url.searchParams.set('tab', tabType);
+            window.history.replaceState({}, '', url);
+        }
         
         // Update tab styles
         document.querySelectorAll('.style-anchor-tab').forEach(tab => {
-            tab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
-            tab.classList.add('text-gray-600');
+            tab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600', 'dark:text-blue-400', 'dark:border-blue-400');
+            tab.classList.add('text-gray-600', 'dark:text-gray-300');
         });
-        document.getElementById(`tab-${tabType}`).classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-        document.getElementById(`tab-${tabType}`).classList.remove('text-gray-600');
+        const activeTab = document.getElementById(`tab-${tabType}`);
+        if (activeTab) {
+            activeTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600', 'dark:text-blue-400', 'dark:border-blue-400');
+            activeTab.classList.remove('text-gray-600', 'dark:text-gray-300');
+        }
 
         // Show/hide content
-        document.getElementById('phrases-content').style.display = tabType === 'phrases' ? 'block' : 'none';
-        document.getElementById('interactions-content').style.display = tabType === 'interactions' ? 'block' : 'none';
+        const phrasesContent = document.getElementById('phrases-content');
+        const interactionsContent = document.getElementById('interactions-content');
+        if (phrasesContent) phrasesContent.style.display = tabType === 'phrases' ? 'block' : 'none';
+        if (interactionsContent) interactionsContent.style.display = tabType === 'interactions' ? 'block' : 'none';
 
         // Reload data for selected tab
         if (tabType === 'phrases') {

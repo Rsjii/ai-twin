@@ -196,18 +196,24 @@
 
     <script>
         const twinId = '<%= twinPublicId %>';
-        let currentPage = 1;
-        let currentView = 'chat'; // 'chat' | 'user'
+        // ✅ FIX: Read view and page from URL on init
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentPage = parseInt(urlParams.get('page')) || 1;
+        let currentView = urlParams.get('view') || 'chat';
+        // Validate view
+        if (currentView !== 'chat' && currentView !== 'user') {
+            currentView = 'chat';
+        }
         let currentFilters = {
-            userId: '',
-            dateFrom: '',
-            dateTo: '',
-            search: '',
-            sortBy: 'lastActivity',
-            minMessages: '',
-            maxMessages: '',
-            userSortBy: 'lastActivity', // Added for user-wise view
-            participantType: 'all', // ✅ NEW
+            userId: urlParams.get('userId') || '',
+            dateFrom: urlParams.get('dateFrom') || '',
+            dateTo: urlParams.get('dateTo') || '',
+            search: urlParams.get('search') || '',
+            sortBy: urlParams.get('sortBy') || 'lastActivity',
+            minMessages: urlParams.get('minMessages') || '',
+            maxMessages: urlParams.get('maxMessages') || '',
+            userSortBy: urlParams.get('userSortBy') || 'lastActivity',
+            participantType: urlParams.get('participantType') || 'all',
         };
 
         let searchDebounceTimer = null;
@@ -217,10 +223,16 @@
             try {
                 currentPage = page;
                 
+                // ✅ FIX: Update URL with current page and view
+                const url = new URL(window.location);
+                url.searchParams.set('page', page.toString());
+                url.searchParams.set('view', currentView);
+                window.history.replaceState({}, '', url);
+                
                 // Build query params
                 const params = new URLSearchParams({
                     page: page.toString(),
-                    limit: '5',
+                    limit: '10', // ✅ Changed from '5' to '10'
                     view: currentView,
                     sortBy: currentFilters.sortBy
                 });
@@ -412,7 +424,8 @@
             container.innerHTML = users.map(userGroup => `
                 <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 mb-4">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-3">
+                        <!-- ✅ FIX: Wrap profile info in link -->
+                        <a href="/@${escapeHtml(userGroup.user.handle || 'unknown')}" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
                             ${userGroup.user.profileImage ? `
                                 <img src="${escapeHtml(userGroup.user.profileImage)}" alt="${escapeHtml(userGroup.user.name || userGroup.user.handle)}" class="w-12 h-12 rounded-full">
                             ` : `
@@ -424,7 +437,7 @@
                                 <h3 class="font-semibold text-gray-900 dark:text-white">${escapeHtml(userGroup.user.name || userGroup.user.handle || 'Unknown User')}</h3>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">@${escapeHtml(userGroup.user.handle || 'unknown')}</p>
                             </div>
-                        </div>
+                        </a>
                         <div class="text-right">
                             <p class="text-sm text-gray-600 dark:text-gray-400">${userGroup.totalChats} chats</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">${userGroup.totalMessages} messages</p>
@@ -697,30 +710,60 @@
             applyFilters();
         }        
 
+        // ✅ FIX: Optimize toggleView function
         function toggleView(view) {
+            if (currentView === view) return; // ✅ FIX: Don't do anything if already on that view
+            
             currentView = view;
-            // Update button styles
-            if (view === 'chat') {
-                document.getElementById('viewChatBtn').className = 'px-4 py-2 rounded-lg transition-colors bg-primary text-white';
-                document.getElementById('viewUserBtn').className = 'px-4 py-2 rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600';
-                // Hide user sort option
-                const userSortContainer = document.getElementById('userSortByContainer');
-                if (userSortContainer) userSortContainer.classList.add('hidden');
-            } else {
-                document.getElementById('viewChatBtn').className = 'px-4 py-2 rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600';
-                document.getElementById('viewUserBtn').className = 'px-4 py-2 rounded-lg transition-colors bg-primary text-white';
-                // Show user sort option
-                const userSortContainer = document.getElementById('userSortByContainer');
-                if (userSortContainer) userSortContainer.classList.remove('hidden');
-            }
-            // ✅ IMPORTANT: Preserve filters when switching views
-            currentPage = 1;
-            loadPublicChatHistory(1);
+            
+            // ✅ FIX: Update URL immediately (use replaceState for better performance)
+            const url = new URL(window.location.href);
+            url.searchParams.set('view', view);
+            window.history.replaceState({}, '', url.toString());
+            
+            // ✅ FIX: Use requestAnimationFrame for smoother UI updates
+            requestAnimationFrame(() => {
+                // Update button states
+                if (view === 'chat') {
+                    document.getElementById('viewChatBtn').classList.add('bg-primary', 'text-white');
+                    document.getElementById('viewChatBtn').classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                    document.getElementById('viewUserBtn').classList.remove('bg-primary', 'text-white');
+                    document.getElementById('viewUserBtn').classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-300', 'dark:text-gray-300');
+                    document.getElementById('userSortByContainer').classList.add('hidden');
+                } else {
+                    document.getElementById('viewChatBtn').classList.remove('bg-primary', 'text-white');
+                    document.getElementById('viewChatBtn').classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                    document.getElementById('viewUserBtn').classList.add('bg-primary', 'text-white');
+                    document.getElementById('viewUserBtn').classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-300', 'dark:text-gray-300');
+                    document.getElementById('userSortByContainer').classList.remove('hidden');
+                }
+                
+                // ✅ FIX: Load data asynchronously without blocking UI
+                setTimeout(() => {
+                    if (view === 'chat') {
+                        loadPublicChatHistory();
+                    } else {
+                        loadUserWisePublicChats();
+                    }
+                }, 0);
+            });
         }        
 
+        // ✅ FIX: Restore view state on page load
         // Load on page load
         document.addEventListener('DOMContentLoaded', () => {
-            loadPublicChatHistory(1);
+            // ✅ Restore view toggle state from URL
+            if (currentView === 'chat') {
+                document.getElementById('viewChatBtn').classList.add('bg-primary', 'text-white');
+                document.getElementById('viewUserBtn').classList.remove('bg-primary', 'text-white');
+                document.getElementById('userSortByContainer').classList.add('hidden');
+            } else {
+                document.getElementById('viewChatBtn').classList.remove('bg-primary', 'text-white');
+                document.getElementById('viewUserBtn').classList.add('bg-primary', 'text-white');
+                document.getElementById('userSortByContainer').classList.remove('hidden');
+            }
+            
+            loadPublicChatHistory(currentPage);
             
             // ✅ Setup event listeners for buttons
             const viewChatBtn = document.getElementById('viewChatBtn');

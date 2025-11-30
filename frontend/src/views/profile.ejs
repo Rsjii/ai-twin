@@ -705,7 +705,7 @@
                 urlParams.delete('subtab');
             }
             const newUrl = `/profile?${urlParams.toString()}`;
-            window.history.pushState({}, '', newUrl);
+            window.history.replaceState({}, '', newUrl);
         }
         
         // ✅ FIX ISSUE 3: Update switchSettingsTab to preserve in URL
@@ -740,7 +740,7 @@
             urlParams.set('tab', 'settings');
             urlParams.set('subtab', tabName);
             const newUrl = `/profile?${urlParams.toString()}`;
-            window.history.pushState({}, '', newUrl);
+            window.history.replaceState({}, '', newUrl);
         }
         
         // ✅ FIX 1: Define toggleEditMode and cancelEdit OUTSIDE DOMContentLoaded
@@ -872,7 +872,7 @@
         
         // ✅ FIX ISSUE 3: Initialize on page load with URL parameters
         document.addEventListener('DOMContentLoaded', function() {
-            // Get active tab and subtab from URL
+            // ✅ FIX: Get active tab and subtab from URL FIRST (before any other logic)
             const { tab, subtab } = getActiveTabFromURL();
             
             // Main tabs - Add event listeners as backup (in addition to inline onclick)
@@ -893,18 +893,19 @@
                 });
             }
             
-            // ✅ FIX ISSUE 3: Initialize active tab from URL (not hardcoded)
-            if (typeof window.switchTab === 'function') {
+            // ✅ FIX: Initialize active tab from URL (not hardcoded)
+            // This ensures the tab state matches the URL on page load
+            if (tab) {
                 switchTab(tab); // Use tab from URL
             }
             
-            // ✅ FIX ISSUE 3: Initialize settings subtab from URL (not hardcoded to 'account')
+            // ✅ FIX: Initialize settings subtab from URL (not hardcoded to 'account')
             if (tab === 'settings') {
                 const settingsSubtab = subtab || 'account'; // Default to 'account' only if no subtab in URL
                 switchSettingsTab(settingsSubtab);
             } else {
                 // If not on settings tab, still initialize to account (for when user switches to settings)
-            switchSettingsTab('account');
+                // But don't call switchSettingsTab here - it will be called when user clicks settings tab
             }
             
             // Setup settings tab button listeners
@@ -918,8 +919,8 @@
                 });
             });
             
-            // ✅ FIX ISSUE 3: Handle browser back/forward buttons
-            window.addEventListener('popstate', function(event) {
+            // ✅ FIX: Handle browser back/forward buttons
+            window.addEventListener('popstate', function() {
                 const { tab, subtab } = getActiveTabFromURL();
                 switchTab(tab);
                 if (tab === 'settings' && subtab) {
@@ -1227,6 +1228,47 @@
             privacyToggles.forEach(toggle => {
                 toggle.addEventListener('change', checkForChanges);
             });
+
+                        // ✅ FIX: Theme toggle button functionality
+                        const themeToggleBtn = document.getElementById('themeToggleBtn');
+            const themeIconSun = document.getElementById('themeIconSun');
+            const themeIconMoon = document.getElementById('themeIconMoon');
+            
+            function updateThemeIcons() {
+                const currentTheme = localStorage.getItem('theme') || 'light';
+                if (currentTheme === 'dark') {
+                    if (themeIconSun) themeIconSun.classList.remove('hidden');
+                    if (themeIconMoon) themeIconMoon.classList.add('hidden');
+                } else {
+                    if (themeIconSun) themeIconSun.classList.add('hidden');
+                    if (themeIconMoon) themeIconMoon.classList.remove('hidden');
+                }
+            }
+            
+            function toggleTheme() {
+                const currentTheme = localStorage.getItem('theme') || 'light';
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                localStorage.setItem('theme', newTheme);
+                
+                if (newTheme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+                
+                updateThemeIcons();
+            }
+            
+            if (themeToggleBtn) {
+                // Set initial icon state
+                updateThemeIcons();
+                
+                // Add click listener
+                themeToggleBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    toggleTheme();
+                });
+            }
             
             // Initial check (button should be disabled if no changes)
             checkForChanges();

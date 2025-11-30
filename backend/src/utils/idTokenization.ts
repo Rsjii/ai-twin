@@ -336,6 +336,26 @@ export function sanitizePublicChat(publicChat: any): any {
     summary: publicChat.summary,
     showChatHistory: publicChat.showChatHistory
   };
+
+  // ✅ NEW: map DB last_message → lastMessage for frontend
+  if (publicChat.last_message) {
+    // If controller passed plain text
+    if (typeof publicChat.last_message === 'string') {
+      sanitized.lastMessage = {
+        content: publicChat.last_message,
+        createdAt: publicChat.last_message_time || publicChat.lastActivity || publicChat.createdAt,
+        // relativeTime is optional; TimeUtils in frontend will compute if missing
+        relativeTime: undefined
+      };
+    } else {
+      // If controller ever sends structured object
+      sanitized.lastMessage = {
+        content: publicChat.last_message.content,
+        createdAt: publicChat.last_message.createdAt || publicChat.last_message_time || publicChat.lastActivity || publicChat.createdAt,
+        relativeTime: publicChat.last_message.relativeTime
+      };
+    }
+  }
   
   // Tokenize IDs
   if (publicChat.id) {

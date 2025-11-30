@@ -903,49 +903,79 @@ if (window.TimeUtils) {
             });
         }
 
+
 // Find createNewPublicChat function and add error handling
 async function createNewPublicChat() {
     try {
-        // 🔥 If a draft chat already exists, just switch to it
-        if (currentChatId && currentChatId.startsWith('draft_')) {
-            console.log('Draft chat already active:', currentChatId);
-            return;
+        const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
+
+        // ✅ Always clear any old draft / state before starting a truly new chat
+        sessionStorage.removeItem('draftPublicChat');
+
+        // ✅ Ensure we have a visitorId (for anonymous + logged-in consistency)
+        let visitorIdToUse = visitorId || sessionStorage.getItem('visitorId');
+        if (!visitorIdToUse) {
+            visitorIdToUse = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            sessionStorage.setItem('visitorId', visitorIdToUse);
+            visitorId = visitorIdToUse;
         }
-        const existingDraft = sessionStorage.getItem('draftPublicChat');
-        if (existingDraft) {
-            const draft = JSON.parse(existingDraft);
-            currentChatId = draft.chatId;
-            console.log('Reusing existing draft chat:', currentChatId);
-            return;
-        }
 
-        // ✅ Don't create chat immediately - store as draft
-        const draftChatId = `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        sessionStorage.setItem('draftPublicChat', JSON.stringify({
-            chatId: draftChatId,
-            twinToken: currentTwinId,
-            visitorId: visitorId,
-            createdAt: Date.now()
-        }));
-
-        currentChatId = draftChatId;
-
+        // ✅ UI: reset current chat UI to a loading state
         const chatMessages = document.getElementById('chatMessages');
+        const emptyState   = document.getElementById('emptyChatState');
+        const initialLoading = document.getElementById('initialLoadingState');
+        const newChatBtn   = document.getElementById('newPublicChatBtn');
+
         if (chatMessages) chatMessages.innerHTML = '';
-
-        const emptyState = document.getElementById('emptyChatState');
-        if (emptyState) emptyState.classList.remove('hidden');
-
-        const newChatBtn = document.getElementById('newPublicChatBtn');
+        if (emptyState) emptyState.classList.add('hidden');
+        if (initialLoading) initialLoading.classList.remove('hidden');
         if (newChatBtn) newChatBtn.disabled = true;
 
-        console.log('Draft chat created:', draftChatId);
+        // ✅ CRITICAL: Call the dedicated "create new chat" endpoint (always new row)
+        const resp = await fetch('/api/public-chat/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                twinToken: currentTwinId,   // tokenized twin id you already use in URLs
+                visitorId: visitorIdToUse
+            })
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok || !data.success || !data.chatId) {
+            throw new Error(data.error || 'Failed to create new chat');
+        }
+
+        // ✅ Use the NEW chat token going forward
+        currentChatId = data.chatId;
+
+        // ✅ Update URL ?chatId=... so reload/back works per-chat
+        const url = new URL(window.location.href);
+        url.searchParams.set('chatId', data.chatId);
+        window.history.replaceState({}, '', url.toString());
+
+        // ✅ Switch UI to the new chat and refresh sidebar
+        await switchToPublicChat(data.chatId);
+        await loadPublicChatHistory().catch(() => {});
+
+        if (initialLoading) initialLoading.classList.add('hidden');
+        if (newChatBtn) newChatBtn.disabled = false;
     } catch (error) {
-        console.error('Error creating draft chat:', error);
-        alert('Network error. Please try again.');
+        console.error('Error creating new chat:', error);
+        showNotification('Failed to create new chat. Please try again.', 'error');
+
+        const initialLoading = document.getElementById('initialLoadingState');
+        const emptyState     = document.getElementById('emptyChatState');
+        const newChatBtn     = document.getElementById('newPublicChatBtn');
+
+        if (initialLoading) initialLoading.classList.add('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
+        if (newChatBtn) newChatBtn.disabled = false;
     }
 }
+
 
 // Start public chat (load existing or create new one)
         async function startPublicChat() {
@@ -1503,6 +1533,11 @@ async function sendMessage() {
 
         // Event listeners
         document.getElementById('newPublicChatBtn').addEventListener('click', createNewPublicChat);
+        // ✅ Add this line for mobile "New Chat" button:
+const newChatBtnMobile = document.getElementById('newPublicChatBtnMobile');
+if (newChatBtnMobile) {
+    newChatBtnMobile.addEventListener('click', createNewPublicChat);
+}
         document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
         document.getElementById('messageInput').addEventListener('keydown', function(e) {
             // Enter without Shift = submit

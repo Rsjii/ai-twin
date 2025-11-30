@@ -250,92 +250,106 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
 
     // User already authenticated via JWT middleware - skip redundant user check
     // Get user's analytics - ALL QUERIES IN PARALLEL (FAST)
-    let userTwins = 0, userChats = 0, userMessages = 0, userInvitesSent = 0, userInvitesReceived = 0, userEvents = 0;
-    let userEventBreakdown: Record<string, number> = {};
-    let formattedActivity: Array<{description: string, timestamp: Date, metadata: any}> = [];
-    let dailyEventsResult: any | null = null;
-    let topEventTypesResult: any | null = null;
-    
-    try {
-      const [
-        twinsResult,
-        chatsResult,
-        messagesResult,
-        invitesSentResult,
-        invitesReceivedResult,
-        eventsResult,
-        userEventTypesResult,
-        recentActivityResult,
-        dailyEventsQueryResult,
-        topEventTypesQueryResult
-      ] = await Promise.all([
-        db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "userId" = $1', [userId]),
-        db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [userId]),
-        db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [userId]),
-        db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "inviterId" = $1', [userId]),
-        db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "acceptedBy" = $1', [userId]),
-        db.query('SELECT COUNT(*) as count FROM "Event" WHERE "userId" = $1', [userId]),
-        db.query('SELECT type, COUNT(*) as count FROM "Event" WHERE "userId" = $1 GROUP BY type', [userId]),
-        db.query('SELECT type, "createdAt", meta FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 50', [userId]),
-        db.query(`
-          SELECT DATE("createdAt") as date, COUNT(*) as count
-          FROM "Event"
-          WHERE "userId" = $1
-            AND "createdAt" >= NOW() - INTERVAL '30 days'
-          GROUP BY DATE("createdAt")
-          ORDER BY date ASC
-        `, [userId]),
-        db.query(`
-          SELECT type, COUNT(*) as count
-          FROM "Event"
-          WHERE "userId" = $1
-          GROUP BY type
-          ORDER BY count DESC
-          LIMIT 5
-        `, [userId])
-      ]);      
+    let userTwins = 0,
+    userChats = 0,
+    userMessages = 0,
+    userInvitesSent = 0,
+    userInvitesReceived = 0,
+    userEvents = 0,
+    userLikes = 0,
+    userFollowers = 0;
+let userEventBreakdown: Record<string, number> = {};
+let formattedActivity: Array<{description: string, timestamp: Date, metadata: any}> = [];
+let dailyEventsResult: any | null = null;
+let topEventTypesResult: any | null = null;
 
-       // ✅ FIX: Assign query results to outer scope variables
-       dailyEventsResult = dailyEventsQueryResult;
-       topEventTypesResult = topEventTypesQueryResult;
+try {
+  const [
+    twinsResult,
+    chatsResult,
+    messagesResult,
+    invitesSentResult,
+    invitesReceivedResult,
+    eventsResult,
+    likesResult,       // ✅ NEW
+    followersResult,   // ✅ NEW
+    userEventTypesResult,
+    recentActivityResult,
+    dailyEventsQueryResult,
+    topEventTypesQueryResult,
+  ] = await Promise.all([
+    db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "userId" = $1', [userId]),
+    db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [userId]),
+    db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [userId]),
+    db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "inviterId" = $1', [userId]),
+    db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "acceptedBy" = $1', [userId]),
+    db.query('SELECT COUNT(*) as count FROM "Event" WHERE "userId" = $1', [userId]),
+    // ✅ NEW: real likes on this user’s twins
+    db.query(`
+      SELECT COUNT(*) as count
+      FROM "TwinLike" tl
+      JOIN "Twin" t ON tl."twinId" = t.id
+      WHERE t."userId" = $1
+    `, [userId]),
+    // ✅ NEW: real followers of this user’s twins
+    db.query(`
+      SELECT COUNT(*) as count
+      FROM "TwinFollow" tf
+      JOIN "Twin" t ON tf."twinId" = t.id
+      WHERE t."userId" = $1
+    `, [userId]),
+    db.query('SELECT type, COUNT(*) as count FROM "Event" WHERE "userId" = $1 GROUP BY type', [userId]),
+    db.query('SELECT type, "createdAt", meta FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 50', [userId]),
+    db.query(`
+      SELECT DATE("createdAt") as date, COUNT(*) as count
+      FROM "Event"
+      WHERE "userId" = $1
+        AND "createdAt" >= NOW() - INTERVAL '30 days'
+      GROUP BY DATE("createdAt")
+      ORDER BY date ASC
+    `, [userId]),
+    db.query(`
+      SELECT type, COUNT(*) as count
+      FROM "Event"
+      WHERE "userId" = $1
+      GROUP BY type
+      ORDER BY count DESC
+      LIMIT 5
+    `, [userId]),
+  ]);
 
-      // Parse all results
-      userTwins = parseInt(twinsResult.rows[0].count);
-      userChats = parseInt(chatsResult.rows[0].count);
-      userMessages = parseInt(messagesResult.rows[0].count);
-      userInvitesSent = parseInt(invitesSentResult.rows[0].count);
-      userInvitesReceived = parseInt(invitesReceivedResult.rows[0].count);
-      userEvents = parseInt(eventsResult.rows[0].count);
+  // ✅ Assign daily/top event results
+  dailyEventsResult = dailyEventsQueryResult;
+  topEventTypesResult = topEventTypesQueryResult;
 
-      console.log('[ANALYTICS] Query results:', {
-        userTwins,
-        userChats,
-        userMessages,
-        userInvitesSent,
-        userInvitesReceived,
-        userEvents,
-        eventTypesCount: userEventTypesResult.rows.length,
-        recentActivityCount: recentActivityResult.rows.length,
-      });
+  // ✅ Parse all counts
+  userTwins           = parseInt(twinsResult.rows[0].count, 10);
+  userChats           = parseInt(chatsResult.rows[0].count, 10);
+  userMessages        = parseInt(messagesResult.rows[0].count, 10);
+  userInvitesSent     = parseInt(invitesSentResult.rows[0].count, 10);
+  userInvitesReceived = parseInt(invitesReceivedResult.rows[0].count, 10);
+  userEvents          = parseInt(eventsResult.rows[0].count, 10);
+  userLikes           = parseInt(likesResult.rows[0].count, 10);       // ✅ real likes
+  userFollowers       = parseInt(followersResult.rows[0].count, 10);   // ✅ real followers
 
-      // Process event breakdown (now from parallel query)
-      userEventBreakdown = userEventTypesResult.rows.reduce((acc, event) => {
-        acc[event.type] = parseInt(event.count);
-        return acc;
-      }, {} as Record<string, number>);
+  // Process event breakdown (now from parallel query)
+  userEventBreakdown = userEventTypesResult.rows.reduce((acc, event) => {
+    acc[event.type] = parseInt(event.count);
+    return acc;
+  }, {} as Record<string, number>);
 
-      // Process recent activity (now from parallel query)
-      formattedActivity = recentActivityResult.rows.map(event => ({
-        description: `${event.type} activity`,
-        timestamp: event.createdAt,
-        metadata: event.meta,
-      }));
-    } catch (analyticsError) {
-      logger.error('Error fetching analytics data:', analyticsError);
-      return res.status(500).json({ success: false, error: 'Failed to fetch analytics data' });
-    }
+  // Process recent activity (now from parallel query)
+  formattedActivity = recentActivityResult.rows.map(event => ({
+    description: `${event.type} activity`,
+    timestamp: event.createdAt,
+    metadata: event.meta,
+  }));
+} catch (analyticsError) {
+  logger.error('Error fetching analytics data:', analyticsError);
+  return res.status(500).json({ success: false, error: 'Failed to fetch analytics data' });
+}
 
-    // Build engagementData from dailyEventsResult
+// Build engagementData from dailyEventsResult
 const engagementData = (() => {
   if (!dailyEventsResult || dailyEventsResult.rows.length === 0) {
     return null;
@@ -365,9 +379,11 @@ const responseData = {
     handle: req.user?.handle || 'Unknown',
   }), // ✅ PHASE 5: Use sanitizeUser
   analytics: {
+    // ✅ keep "views" = total events for now (simple proxy)
     totalViews: userEvents || 0,
-    totalLikes: userInvitesReceived || 0,
-    totalFollowers: userInvitesSent || 0,
+    // ✅ FIX: use real likes/followers, not invites
+    totalLikes: userLikes || 0,
+    totalFollowers: userFollowers || 0,
     totalChats: userChats || 0,
     twins: userTwins || 0,
     messages: userMessages || 0,

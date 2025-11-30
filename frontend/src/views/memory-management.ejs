@@ -355,8 +355,22 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
 
     <script>
         const twinId = '<%= twinId %>';
-        let currentMemoryCategory = 'fact';
-        let currentAnchorType = 'phrase';
+        // ✅ FIX: Read tabs from URL on init
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentMemoryCategory = urlParams.get('memoryTab') || 'fact';
+        let currentAnchorType = urlParams.get('anchorTab') || 'phrase';
+        
+        // Validate memory category
+        const validMemoryCategories = ['fact', 'preference', 'interest', 'relationship', 'context'];
+        if (!validMemoryCategories.includes(currentMemoryCategory)) {
+            currentMemoryCategory = 'fact';
+        }
+        
+        // Validate anchor type
+        if (currentAnchorType !== 'phrase' && currentAnchorType !== 'interaction') {
+            currentAnchorType = 'phrase';
+        }
+
         let allMemories = [];
         let allAnchors = [];
 
@@ -1150,11 +1164,14 @@ function displayStyleAnchors(anchors, type) {
                     
                     // Update tab styles
                     document.querySelectorAll('.memory-category-tab').forEach(t => {
-                        t.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
-                        t.classList.add('text-gray-600');
+                        t.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600', 'dark:text-blue-400', 'dark:border-blue-400');
+                        t.classList.add('text-gray-600', 'dark:text-gray-300');
                     });
-                    this.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-                    this.classList.remove('text-gray-600');
+                    this.classList.add('text-blue-600', 'border-b-2', 'border-blue-600', 'dark:text-blue-400', 'dark:border-blue-400');
+                    this.classList.remove('text-gray-600', 'dark:text-gray-300');
+                    
+                    // ✅ Update URL
+                    updateUrlParams();
                     
                     loadMemoryCategory(category);
                 });
@@ -1168,11 +1185,11 @@ function displayStyleAnchors(anchors, type) {
                     
                     // Update tab styles
                     document.querySelectorAll('.style-anchor-tab').forEach(t => {
-                        t.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
-                        t.classList.add('text-gray-600');
+                        t.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600', 'dark:text-blue-400', 'dark:border-blue-400');
+                        t.classList.add('text-gray-600', 'dark:text-gray-300');
                     });
-                    this.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-                    this.classList.remove('text-gray-600');
+                    this.classList.add('text-blue-600', 'border-b-2', 'border-blue-600', 'dark:text-blue-400', 'dark:border-blue-400');
+                    this.classList.remove('text-gray-600', 'dark:text-gray-300');
                     
                     // Show/hide forms
                     if (type === 'phrase') {
@@ -1364,6 +1381,14 @@ function displayStyleAnchors(anchors, type) {
         window.deleteAnchor = deleteAnchor;
         window.showIngestModal = showIngestModal;
         window.hideIngestModal = hideIngestModal;
+
+        // ✅ FIX: Add helper to update URL
+        function updateUrlParams() {
+            const url = new URL(window.location);
+            url.searchParams.set('memoryTab', currentMemoryCategory);
+            url.searchParams.set('anchorTab', currentAnchorType);
+            window.history.replaceState({}, '', url);
+        }
     </script>
 
     <!--Footer-->

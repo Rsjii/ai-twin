@@ -826,30 +826,14 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
     // Get all chats for this visitor with this twin
     let chatsResult;
     if (shouldFilterHistory) {
-      // ✅ Only get the LATEST/MOST RECENT chat if history is disabled
-      logger.info(`[getPublicChatsByTwin] Filtering - showing only latest chat (history disabled)`);
-      chatsResult = await db.query(`
-        SELECT pc.id, pc."messageCount", pc."createdAt", pc."lastActivity", pc."title", pc."userId",
-               m.content as last_message, m."createdAt" as last_message_time
-        FROM "PublicChat" pc
-        LEFT JOIN LATERAL (
-          SELECT content, "createdAt"
-          FROM "PublicMessage" 
-          WHERE "chatId" = pc.id 
-          ORDER BY "createdAt" DESC 
-          LIMIT 1
-        ) m ON true
-        WHERE pc."twinId" = $1 
-          AND (
-            (pc."userId" = $2 AND $2 IS NOT NULL) 
-            OR 
-            (pc."visitorId" = $3 AND $2 IS NULL AND $3 IS NOT NULL)
-          )
-        ORDER BY pc."lastActivity" DESC NULLS LAST, pc."createdAt" DESC
-        LIMIT 1
-      `, [twinId, userId || null, visitorId as string || null]);
+      // ✅ History disabled for non-owner → hide ALL previous chats in sidebar
+      // (User can still see their active conversation via direct chat view)
+      logger.info(`[getPublicChatsByTwin] History disabled - hiding all chats for non-owner viewer`);
+      
+      // Fake an empty result so the mapping below still works
+      chatsResult = { rows: [] } as { rows: any[] };
     } else {
-      // ✅ FIX: Show ALL chats if history is enabled (true) OR user is owner OR null/undefined
+      // ✅ Show ALL chats if history is enabled (true) OR user is owner OR null/undefined
       logger.info(`[getPublicChatsByTwin] Showing all chats (history enabled: ${isHistoryEnabled} or owner: ${isTwinOwner})`);
       chatsResult = await db.query(`
         SELECT pc.id, pc."messageCount", pc."createdAt", pc."lastActivity", pc."title",
