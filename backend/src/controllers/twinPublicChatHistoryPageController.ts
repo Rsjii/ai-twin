@@ -62,33 +62,34 @@ export async function getViewPublicChatHistoryPage(req: any, res: Response) {
       return res.redirect('/auth');
     }
 
-    // 🔥 detokenize chat token → real PublicChat.id
+    // 🔓 Detokenize chat token → real PublicChat.id
     const decoded = detokenizeId(chatToken, {
       userId,
       endpoint: 'getViewPublicChatHistoryPage',
     });
+
     if (!decoded || decoded.type !== 'chat') {
-      throw createError.notFound('Chat not found or access denied');
+      throw createError.notFound('Chat not found or access denied', ErrorCodes.CHAT_NOT_FOUND);
     }
+
     const chatId = decoded.id;
 
-    // Verify access
-    const chatResult = await db.query(`
-      SELECT pc."twinId", t."userId" as twin_owner_id
-      FROM "PublicChat" pc
-      LEFT JOIN "Twin" t ON pc."twinId" = t.id
-      WHERE pc.id = $1
-    `, [chatId]);
+    // ✅ Optional: just verify the chat exists
+    const chatResult = await db.query(
+      'SELECT id FROM "PublicChat" WHERE id = $1',
+      [chatId],
+    );
 
-    if (chatResult.rows.length === 0 || chatResult.rows[0].twin_owner_id !== userId) {
-      throw createError.notFound('Chat not found or access denied');
+    if (chatResult.rows.length === 0) {
+      throw createError.notFound('Chat not found or access denied', ErrorCodes.CHAT_NOT_FOUND);
     }
 
+    // ✅ Let the API (/api/public-chat/:chatId/view-history) enforce twin ownership
     res.render('view-public-chat-history', {
       title: 'View Chat History',
       user: req.user,
-      chatId: chatId,          // raw DB id; view page APIs can use this
-      csrfToken: res.locals['csrfToken']
+      chatId: chatId,          // raw DB id; view page APIs use this
+      csrfToken: res.locals['csrfToken'],
     });
   } catch (error) {
     logger.error('View chat history page error:', error);

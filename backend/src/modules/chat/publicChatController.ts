@@ -1241,6 +1241,7 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
     const dateTo = req.query.dateTo as string | undefined;
     const search = req.query.search as string | undefined;
     const sortBy = (req.query.sortBy as string) || 'lastActivity'; // 'lastActivity' | 'createdAt' | 'messageCount'
+    const participantType = (req.query.participantType as string) || 'all'; // ✅ NEW
 
     if(!userId){
       throw createError.unauthorized('Authentication required');
@@ -1270,6 +1271,33 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
     let whereConditions = ['pc."twinId" = $1'];
     let params: any[] = [twinId];
     let paramIndex = 2;
+
+    // ✅ NEW: hide chat partners who have blocked the twin owner on ANY of their twins
+    // If pc."userId" is NULL (anonymous), we always show it.
+    if (userId) {
+      whereConditions.push(`
+        (
+          pc."userId" IS NULL
+          OR NOT EXISTS (
+            SELECT 1
+            FROM "Twin" t2
+            JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+            WHERE t2."userId" = pc."userId"
+              AND tbu."userId" = $${paramIndex}
+          )
+        )
+      `);
+      params.push(userId);
+      paramIndex++;
+    }
+
+    // ✅ NEW: filter by participant type
+if (participantType === 'loggedIn') {
+  whereConditions.push('pc."userId" IS NOT NULL');
+} else if (participantType === 'anonymous') {
+  whereConditions.push('pc."userId" IS NULL');
+}
+
 
     if (filterUserId) {
       whereConditions.push(`pc."userId" = $${paramIndex}`);
@@ -1345,6 +1373,15 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
         u.name as user_name,
         u."profileImage" as user_profile_image,
         (
+      SELECT t2."publicHandle"
+      FROM "Twin" t2
+      WHERE t2."userId" = u.id
+        AND t2."isPublic" = true
+        AND (t2."blockNonLoggedUsers" = false OR t2."blockNonLoggedUsers" IS NULL)
+      ORDER BY t2."createdAt" DESC
+      LIMIT 1
+    ) as user_public_twin_handle,
+        (
           SELECT content 
           FROM "PublicMessage" 
           WHERE "chatId" = pc.id 
@@ -1371,18 +1408,37 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `, [...params, limit, offset]);    
 
-    const chats = chatsResult.rows.map(chat => sanitizePublicChat({
-      id: chat.id,
-      twinId: chat.twinId,
-      userId: chat.userId,
-      visitorId: chat.visitorId,
-      messageCount: chat.messageCount || 0,
-      createdAt: chat.createdAt,
-      lastActivity: chat.lastActivity,
-      title: chat.title || 'Untitled Chat',
-      last_message: chat.last_message_content,
-      last_message_time: chat.last_message_time
-    }));    
+const chats = chatsResult.rows.map(chatRow => {
+  // Base sanitized chat (tokens, no raw IDs)
+  const base = sanitizePublicChat({
+    id: chatRow.id,
+    twinId: chatRow.twinId,
+    userId: chatRow.userId,
+    visitorId: chatRow.visitorId,
+    messageCount: chatRow.messageCount || 0,
+    createdAt: chatRow.createdAt,
+    lastActivity: chatRow.lastActivity,
+    title: chatRow.title || 'Untitled Chat',
+    last_message: chatRow.last_message_content,
+    last_message_time: chatRow.last_message_time
+  });
+
+  // ✅ Attach user object if logged-in user exists
+  const user = chatRow.user_id ? {
+    publicId: tokenizeId(chatRow.user_id, 'user'),
+    handle: chatRow.user_handle,
+    name: chatRow.user_name,
+    profileImage: chatRow.user_profile_image,
+    publicTwinHandle: chatRow.user_public_twin_handle || null,
+  } : null;
+
+  return {
+    ...base,
+    user,               // used by twin-public-chat-history.ejs
+    // keep visitor info for anonymous UI if needed
+    visitorId: base.visitorId ?? null,
+  };
+});  
 
     res.json({
       success: true,
@@ -1403,7 +1459,8 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
         dateFrom,
         dateTo,
         search,
-        sortBy
+        sortBy,
+        participantType
       }
     });
 
@@ -1459,6 +1516,21 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
     let whereConditions = ['pc."twinId" = $1', 'pc."userId" IS NOT NULL'];
     let params: any[] = [twinId];
     let paramIndex = 2;
+
+    // ✅ NEW: hide users who have blocked the twin owner on ANY of their twins
+    if (userId) {
+      whereConditions.push(`
+        NOT EXISTS (
+          SELECT 1
+          FROM "Twin" t2
+          JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+          WHERE t2."userId" = pc."userId"
+            AND tbu."userId" = $${paramIndex}
+        )
+      `);
+      params.push(userId);
+      paramIndex++;
+    }
 
     if (dateFrom) {
       whereConditions.push(`pc."createdAt" >= $${paramIndex}::timestamptz`);
@@ -1519,6 +1591,14 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
         u.handle as user_handle,
         u.name as user_name,
         u."profileImage" as user_profile_image,
+        -- ✅ NEW: Get user's first public twin handle
+        (SELECT t."publicHandle" 
+         FROM "Twin" t 
+         WHERE t."userId" = u.id 
+           AND t."isPublic" = true
+           AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)
+         ORDER BY t."createdAt" DESC 
+         LIMIT 1) as user_public_twin_handle,
         COUNT(DISTINCT pc.id) as total_chats,
         SUM(pc."messageCount") as total_messages,
         MAX(COALESCE(pc."lastActivity", pc."createdAt")) as last_activity
@@ -1563,9 +1643,20 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
     const usersWithChats = await Promise.all(
       usersResult.rows.map(async (userRow) => {
         // Build WHERE conditions for individual user chats (apply ALL filters)
-        let chatWhereConditions = ['pc."twinId" = $1', 'pc."userId" = $2'];
-        let chatParams: any[] = [twinId, userRow.user_id];
-        let chatParamIndex = 3;
+        let chatWhereConditions = [
+          'pc."twinId" = $1',
+          'pc."userId" = $2',
+          // ✅ NEW: hide this user entirely if they have blocked the owner
+          `NOT EXISTS (
+            SELECT 1
+            FROM "Twin" t2
+            JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+            WHERE t2."userId" = pc."userId"
+              AND tbu."userId" = $3
+          )`
+        ];
+        let chatParams: any[] = [twinId, userRow.user_id, userId];
+        let chatParamIndex = 4;
 
         // Apply date filters to individual chats
         if (dateFrom) {
@@ -1640,7 +1731,8 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
             publicId: tokenizeId(userRow.user_id, 'user'),
             handle: userRow.user_handle,
             name: userRow.user_name,
-            profileImage: userRow.user_profile_image
+            profileImage: userRow.user_profile_image,
+            publicTwinHandle: userRow.user_public_twin_handle || null // ✅ NEW: Include twin handle
           },
           totalChats: parseInt(userRow.total_chats || '0', 10),
           totalMessages: parseInt(userRow.total_messages || '0', 10),
@@ -1708,22 +1800,21 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
     // Get chat with twin info
     const chatResult = await db.query(`
       SELECT 
-        pc.id, 
-        pc."twinId", 
-        pc."visitorId", 
-        pc."messageCount", 
-        pc."userId",
-        pc."title",
-        pc."createdAt",
-        pc."lastActivity",
-        t."publicHandle", 
-        t."sampleReply", 
-        t."showChatHistory",
+        pc.id, pc."twinId", pc."visitorId", pc."messageCount", 
+        pc."title", pc."createdAt", pc."lastActivity",
+        t."publicHandle" as publicHandle,
         t."userId" as twin_owner_id,
         u.id as user_id,
         u.handle as user_handle,
         u.name as user_name,
-        u."profileImage" as user_profile_image
+        u."profileImage" as user_profile_image,
+        -- ✅ NEW: Get user's public twin handle
+        (SELECT t2."publicHandle" 
+         FROM "Twin" t2 
+         WHERE t2."userId" = u.id 
+           AND t2."isPublic" = true
+         ORDER BY t2."createdAt" DESC 
+         LIMIT 1) as user_public_twin_handle
       FROM "PublicChat" pc
       LEFT JOIN "Twin" t ON pc."twinId" = t.id
       LEFT JOIN "User" u ON pc."userId" = u.id
@@ -1764,7 +1855,8 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
           publicId: tokenizeId(chat.user_id, 'user'),
           handle: chat.user_handle,
           name: chat.user_name,
-          profileImage: chat.user_profile_image
+          profileImage: chat.user_profile_image,
+          publicTwinHandle: chat.user_public_twin_handle || null // ✅ NEW
         } : null,
         isAnonymous: !chat.userId && !!chat.visitorId,
         visitorId: chat.visitorId

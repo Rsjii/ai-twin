@@ -87,212 +87,240 @@
                                 <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg">@<%= twin.publicHandle %></h1>
                             </div>
                             
-                            <p class="text-base sm:text-lg md:text-xl opacity-90 mb-3 text-white/90">
-                                Created by 
-                                <a href="/user/<%= twin.userHandle %>" 
-                                   class="font-semibold text-white hover:text-yellow-200 underline transition-colors">
-                                    @<%= twin.userHandle || 'Unknown' %>
-                                </a>
-                            </p>                          
-                            
-                            <% if (twin.bio) { %>
-                                <p class="text-lg opacity-90 max-w-2xl text-white/90 leading-relaxed"><%= twin.bio %></p>
+                            <% if (typeof hasNoTwin !== 'undefined' && hasNoTwin && userInfo) { %>
+                                <!-- ✅ Placeholder: User has no public twin yet -->
+                                <div class="text-center py-12">
+                                    <div class="max-w-md mx-auto">
+                                        <div class="w-24 h-24 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center">
+                                            <span class="text-4xl">👤</span>
+                                        </div>
+                                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">@<%= userInfo.handle %></h2>
+                                        <% if (userInfo.name && userInfo.name !== userInfo.handle) { %>
+                                            <p class="text-gray-600 dark:text-gray-400 mb-4"><%= userInfo.name %></p>
+                                        <% } %>
+                                        <% if (userInfo.bio) { %>
+                                            <p class="text-gray-600 dark:text-gray-400 mb-6"><%= userInfo.bio %></p>
+                                        <% } %>
+                                        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                                            <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                                                ℹ️ This user hasn't created a public twin yet.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% } else if (twin) { %>
+                                <!-- ✅ Existing twin profile content -->
+                                <p class="text-base sm:text-lg md:text-xl opacity-90 mb-3 text-white/90">
+                                    Created by 
+                                    <% if (twin.userHandle) { %>
+                                        <span class="font-semibold text-white">
+                                            @<%= twin.userHandle || 'Unknown' %>
+                                        </span>
+                                    <% } %>
+                                </p>
+                                <% if (twin.bio) { %>
+                                    <p class="text-lg opacity-90 max-w-2xl text-white/90 leading-relaxed"><%= twin.bio %></p>
+                                <% } %>
                             <% } %>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Stats - Enhanced Cards -->
-            <div class="px-6 py-6 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700">
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-                    <div class="text-center p-3 sm:p-4 rounded-xl bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 border border-pink-200 dark:border-pink-800 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                        <div class="w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg flex items-center justify-center shadow-lg">
-                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <% const showTwinSections = !hasNoTwin && twin; %>
+
+            <% if (showTwinSections) { %>
+                <!-- Stats - Enhanced Cards -->
+                <div class="px-6 py-6 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                        <div class="text-center p-3 sm:p-4 rounded-xl bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 border border-pink-200 dark:border-pink-800 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                            <div class="w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg flex items-center justify-center shadow-lg">
+                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1"><%= twin.likeCount || 0 %></div>
+                            <div class="text-xs font-medium text-gray-600 dark:text-gray-400">Likes</div>
+                        </div>                    
+                        <div class="text-center p-3 sm:p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                            <div class="w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center shadow-lg">
+                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                                </svg>
+                            </div>
+                            <div class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1"><%= twin.followCount || 0 %></div>
+                            <div class="text-xs font-medium text-gray-600 dark:text-gray-400">Followers</div>
+                        </div>                    
+                        <div class="text-center p-3 sm:p-4 rounded-xl bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 border border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                            <div class="w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-purple-500 to-violet-500 rounded-lg flex items-center justify-center shadow-lg">
+                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1"><%= twin.chatCount %></div>
+                            <div class="text-xs font-medium text-gray-600 dark:text-gray-400">Chats</div>
+                        </div>
+                    </div>
+                </div>            
+
+                <!-- Sample Reply - Enhanced -->
+                <% if (twin.sampleReply) { %>
+                    <div class="px-8 py-8 bg-white dark:bg-gray-800">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                            <div class="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center mr-3">
+                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            Sample Response
+                        </h3>
+                        <div class="bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl p-6 border-2 border-gray-200 dark:border-gray-600 shadow-inner">
+                            <p class="text-gray-700 dark:text-gray-200 italic text-lg leading-relaxed">"<%= twin.sampleReply %>"</p>
+                        </div>
+                    </div>
+                <% } %>
+
+                <!-- Action Buttons - Enhanced with Gradients -->
+                <div class="px-8 py-8 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
+                        <button id="chatNowBtn" class="flex-1 bg-gradient-to-r from-primary via-indigo-600 to-accent text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                            <span>Chat Now</span>
+                        </button>
+                        <button id="likeBtn" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.likesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>" 
+                            <% if (twin.likesDisabled || twin.isOwnTwin) { %>
+                                disabled
+                                title="<%= twin.isOwnTwin ? 'You cannot like your own twin' : 'Liking is disabled for this twin' %>"
+                                data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'likes_disabled' %>"
+                            <% } %>
+                        >
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
                             </svg>
-                        </div>
-                        <div class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1"><%= twin.likeCount || 0 %></div>
-                        <div class="text-xs font-medium text-gray-600 dark:text-gray-400">Likes</div>
-                    </div>                    
-                    <div class="text-center p-3 sm:p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                        <div class="w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center shadow-lg">
-                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <span>Like</span>
+                        </button>
+                        <button id="followBtn" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.followsDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
+                            <% if (twin.followsDisabled || twin.isOwnTwin) { %>
+                                disabled
+                                title="<%= twin.isOwnTwin ? 'You cannot follow your own twin' : 'Following is disabled for this twin' %>"
+                                data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'follows_disabled' %>"
+                            <% } %>
+                        >
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
                             </svg>
-                        </div>
-                        <div class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1"><%= twin.followCount || 0 %></div>
-                        <div class="text-xs font-medium text-gray-600 dark:text-gray-400">Followers</div>
-                    </div>                    
-                    <div class="text-center p-3 sm:p-4 rounded-xl bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 border border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                        <div class="w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-purple-500 to-violet-500 rounded-lg flex items-center justify-center shadow-lg">
-                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
-                            </svg>
-                        </div>
-                        <div class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1"><%= twin.chatCount %></div>
-                        <div class="text-xs font-medium text-gray-600 dark:text-gray-400">Chats</div>
+                            <span>Follow</span>
+                        </button>
                     </div>
-                </div>
-            </div>            
-
-            <!-- Sample Reply - Enhanced -->
-            <% if (twin.sampleReply) { %>
-                <div class="px-8 py-8 bg-white dark:bg-gray-800">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
-                        <div class="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center mr-3">
-                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
+                    
+                    <!-- Share Section - Enhanced -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                        <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"></path>
                             </svg>
+                            Share this twin
+                        </h4>
+                        <div class="flex flex-wrap gap-2 sm:gap-3">
+                            <div class="flex flex-wrap gap-2 sm:gap-3">
+                                <button data-share-platform="twitter" class="bg-gradient-to-r from-blue-400 to-blue-500 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                    <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
+                                        disabled
+                                        title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
+                                        data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
+                                    <% } %>
+                                >
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"></path></svg>
+                                    <span>Twitter</span>
+                                </button>
+                                <button data-share-platform="facebook" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                    <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
+                                        disabled
+                                        title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
+                                        data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
+                                    <% } %>
+                                >
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h1z"></path></svg>
+                                    <span>Facebook</span>
+                                </button>
+                                <button data-share-platform="whatsapp" class="bg-gradient-to-r from-green-500 to-green-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                    <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
+                                        disabled
+                                        title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
+                                        data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
+                                    <% } %>
+                                >
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"></path></svg>
+                                    <span>WhatsApp</span>
+                                </button>
+                                <button data-share-action="copy" class="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                    <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
+                                        disabled
+                                        title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
+                                        data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
+                                    <% } %>
+                                >
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path></svg>
+                                    <span>Copy Link</span>
+                                </button>
+                            </div>                        
+                        </div>                        
                         </div>
-                        Sample Response
-                    </h3>
-                    <div class="bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl p-6 border-2 border-gray-200 dark:border-gray-600 shadow-inner">
-                        <p class="text-gray-700 dark:text-gray-200 italic text-lg leading-relaxed">"<%= twin.sampleReply %>"</p>
                     </div>
                 </div>
             <% } %>
 
-            <!-- Action Buttons - Enhanced with Gradients -->
-            <div class="px-8 py-8 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
-                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
-                    <button id="chatNowBtn" class="flex-1 bg-gradient-to-r from-primary via-indigo-600 to-accent text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                        </svg>
-                        <span>Chat Now</span>
-                    </button>
-                    <button id="likeBtn" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.likesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>" 
-                        <% if (twin.likesDisabled || twin.isOwnTwin) { %>
-                            disabled
-                            title="<%= twin.isOwnTwin ? 'You cannot like your own twin' : 'Liking is disabled for this twin' %>"
-                            data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'likes_disabled' %>"
-                        <% } %>
-                    >
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
-                        </svg>
-                        <span>Like</span>
-                    </button>
-                    <button id="followBtn" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.followsDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
-                        <% if (twin.followsDisabled || twin.isOwnTwin) { %>
-                            disabled
-                            title="<%= twin.isOwnTwin ? 'You cannot follow your own twin' : 'Following is disabled for this twin' %>"
-                            data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'follows_disabled' %>"
-                        <% } %>
-                    >
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-                        </svg>
-                        <span>Follow</span>
-                    </button>
-                </div>
-                
-                <!-- Share Section - Enhanced -->
-                <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                    <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"></path>
-                        </svg>
-                        Share this twin
-                    </h4>
-                    <div class="flex flex-wrap gap-2 sm:gap-3">
-                        <div class="flex flex-wrap gap-2 sm:gap-3">
-                            <button data-share-platform="twitter" class="bg-gradient-to-r from-blue-400 to-blue-500 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
-                                <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
-                                    disabled
-                                    title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
-                                    data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
-                                <% } %>
-                            >
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"></path></svg>
-                                <span>Twitter</span>
-                            </button>
-                            <button data-share-platform="facebook" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
-                                <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
-                                    disabled
-                                    title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
-                                    data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
-                                <% } %>
-                            >
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h1z"></path></svg>
-                                <span>Facebook</span>
-                            </button>
-                            <button data-share-platform="whatsapp" class="bg-gradient-to-r from-green-500 to-green-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
-                                <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
-                                    disabled
-                                    title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
-                                    data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
-                                <% } %>
-                            >
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"></path></svg>
-                                <span>WhatsApp</span>
-                            </button>
-                            <button data-share-action="copy" class="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
-                                <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
-                                    disabled
-                                    title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
-                                    data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
-                                <% } %>
-                            >
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path></svg>
-                                <span>Copy Link</span>
-                            </button>
-                        </div>                        
-                    </div>                        
+            <!-- Chat Modal (Hidden by default) -->
+            <div id="chatModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[9999] flex items-center justify-center p-4">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl dark:shadow-gray-900">
+                    <div class="p-6 border-b dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800 flex-shrink-0">
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Chat with @<%= twin.publicHandle %></h3>
+                        <button id="closeChatBtn" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Chat Messages Area -->
+                    <div id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-4 min-h-[250px] max-h-[350px] bg-gray-50">
+                        <!-- Messages will be loaded here -->
+                    </div>
+                    
+                    <!-- Chat Input -->
+                    <div class="p-6 border-t bg-white flex-shrink-0">
+                        <form id="chatForm" class="space-y-4">
+                            <div class="flex space-x-4">
+                                <input 
+                                    type="text" 
+                                    id="messageInput" 
+                                    placeholder="Type your message..." 
+                                    class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    maxlength="1000"
+                                    required
+                                >
+                                <button type="submit" id="sendMessageBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                                    Send
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500">You can chat with this AI twin without logging in!</p>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Chat Modal (Hidden by default) -->
-        <div id="chatModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[9999] flex items-center justify-center p-4">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl dark:shadow-gray-900">
-                <div class="p-6 border-b dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800 flex-shrink-0">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Chat with @<%= twin.publicHandle %></h3>
-                    <button id="closeChatBtn" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-2">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-                
-                <!-- Chat Messages Area -->
-                <div id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-4 min-h-[250px] max-h-[350px] bg-gray-50">
-                    <!-- Messages will be loaded here -->
-                </div>
-                
-                <!-- Chat Input -->
-                <div class="p-6 border-t bg-white flex-shrink-0">
-                    <form id="chatForm" class="space-y-4">
-                        <div class="flex space-x-4">
-                            <input 
-                                type="text" 
-                                id="messageInput" 
-                                placeholder="Type your message..." 
-                                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                maxlength="1000"
-                                required
-                            >
-                            <button type="submit" id="sendMessageBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
-                                Send
-                            </button>
-                        </div>
-                        <p class="text-xs text-gray-500">You can chat with this AI twin without logging in!</p>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let currentChatId = null;
-        // ✅ PHASE 2: Use tokenized twinPublicId instead of raw twin.id
-        let currentTwinId = '<%= typeof twinPublicId !== 'undefined' ? twinPublicId : (twin.publicId || '') %>';
-        let visitorId = null;
-        let isChatting = false;
-        let hasLiked = false;
-        let hasFollowed = false;        
+        <% if (showTwinSections) { %>
+<script>
+    let currentChatId = null;
+    // ✅ PHASE 2: Use tokenized twinPublicId instead of raw twin.id
+    let currentTwinId = '<%= typeof twinPublicId !== 'undefined' ? twinPublicId : (twin.publicId || '') %>';
+    let visitorId = null;
+    let isChatting = false;
+    let hasLiked = false;
+    let hasFollowed = false;        
 
 // Chat modal functionality
 document.getElementById('chatNowBtn').addEventListener('click', function() {
@@ -1149,7 +1177,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-</script>    
-<script src="/utils/timeUtils.js"></script>
+</script>
+<% } %>
 </body>
 </html>

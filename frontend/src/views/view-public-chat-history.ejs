@@ -82,7 +82,7 @@
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-4">
                         ${chat.user ? `
-                            <a href="/user/${chat.user.handle}" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                            <a href="/@${escapeHtml(chat.user.handle || 'unknown')}" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
                                 ${chat.user.profileImage ? `
                                     <img src="${escapeHtml(chat.user.profileImage)}" alt="${escapeHtml(chat.user.name || chat.user.handle)}" class="w-12 h-12 rounded-full">
                                 ` : `
@@ -95,7 +95,7 @@
                                     <p class="text-xs text-gray-500 dark:text-gray-400">@${escapeHtml(chat.user.handle || 'unknown')}</p>
                                 </div>
                             </a>
-                        ` : `
+                        ` : `             
                             <div class="flex items-center gap-3">
                                 <div class="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
                                     <span class="text-gray-600 dark:text-gray-300 font-semibold">?</span>

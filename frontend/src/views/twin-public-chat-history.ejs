@@ -150,6 +150,16 @@
                                     <option value="90days">Last 90 days</option>
                                 </select>
                             </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Participants</label>
+                                <select 
+                                    id="filterParticipantType"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                                    <option value="all">All (anonymous + logged-in)</option>
+                                    <option value="loggedIn">Logged-in only</option>
+                                    <option value="anonymous">Anonymous only</option>
+                                </select>
+                            </div>
                         </div>
                     </details>
                 </div>
@@ -196,7 +206,8 @@
             sortBy: 'lastActivity',
             minMessages: '',
             maxMessages: '',
-            userSortBy: 'lastActivity' // Added for user-wise view
+            userSortBy: 'lastActivity', // Added for user-wise view
+            participantType: 'all', // ✅ NEW
         };
 
         let searchDebounceTimer = null;
@@ -225,6 +236,10 @@
                 if (currentView === 'user' && currentFilters.userSortBy) {
                     params.append('userSortBy', currentFilters.userSortBy);
                 }
+                // ✅ NEW: Participant type filter
+                if (currentFilters.participantType && currentFilters.participantType !== 'all') {
+                    params.append('participantType', currentFilters.participantType);
+                }
 
                 const endpoint = currentView === 'user' 
                     ? `/api/public-chat/twin/${twinId}/user-chats?${params.toString()}`
@@ -235,6 +250,7 @@
                 });
                 
                 const data = await response.json();
+                console.log('[HISTORY] pagination =', data.pagination, 'chatsLen =', data.chats?.length);
 
                 if (data.success) {
                     if (currentView === 'user') {
@@ -278,7 +294,7 @@
                         <div class="flex-1">
                             <div class="flex items-center gap-3 mb-2">
                                 ${chat.user ? `
-                                    <a href="/user/${escapeHtml(chat.user.handle)}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                                    <a href="/@${escapeHtml(chat.user.handle || 'unknown')}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
                                         ${chat.user.profileImage ? `
                                             <img src="${escapeHtml(chat.user.profileImage)}" alt="${escapeHtml(chat.user.name || chat.user.handle)}" class="w-10 h-10 rounded-full">
                                         ` : `
@@ -292,6 +308,7 @@
                                         </div>
                                     </a>
                                 ` : `
+                                    <!-- Anonymous user -->
                                     <div class="flex items-center gap-2">
                                         <div class="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
                                             <span class="text-gray-600 dark:text-gray-300 font-semibold">?</span>
@@ -510,6 +527,7 @@
             // ✅ NEW: Advanced filters
             currentFilters.minMessages = document.getElementById('filterMinMessages')?.value || '';
             currentFilters.maxMessages = document.getElementById('filterMaxMessages')?.value || '';
+            currentFilters.participantType = document.getElementById('filterParticipantType')?.value || 'all'; // ✅ NEW
             currentPage = 1;
             updateActiveFiltersDisplay();
             loadPublicChatHistory(1);
@@ -566,6 +584,13 @@
                     key: 'maxMessages',
                     label: `Max: ${currentFilters.maxMessages} messages`,
                     value: currentFilters.maxMessages
+                });
+            }
+            if (currentFilters.participantType && currentFilters.participantType !== 'all') {
+                activeFilters.push({
+                    key: 'participantType',
+                    label: `Participants: ${currentFilters.participantType}`,
+                    value: currentFilters.participantType
                 });
             }
             
@@ -625,6 +650,10 @@
                     document.getElementById('filterMaxMessages').value = '';
                     currentFilters.maxMessages = '';
                     break;
+                case 'participantType':
+                    document.getElementById('filterParticipantType').value = 'all';
+                    currentFilters.participantType = 'all';
+                    break;
             }
             updateActiveFiltersDisplay();
             applyFilters();
@@ -639,7 +668,8 @@
                 sortBy: 'lastActivity',
                 minMessages: '',
                 maxMessages: '',
-                userSortBy: 'lastActivity' // Added for user-wise view
+                userSortBy: 'lastActivity', // Added for user-wise view
+                participantType: 'all' // ✅ RESET
             };
             
             // Clear all input fields
@@ -651,6 +681,7 @@
             const filterMinMessages = document.getElementById('filterMinMessages');
             const filterMaxMessages = document.getElementById('filterMaxMessages');
             const quickDatePreset = document.getElementById('quickDatePreset');
+            const filterParticipantType = document.getElementById('filterParticipantType');
             
             if (filterSearch) filterSearch.value = '';
             if (filterDateFrom) filterDateFrom.value = '';
@@ -660,6 +691,7 @@
             if (filterMinMessages) filterMinMessages.value = '';
             if (filterMaxMessages) filterMaxMessages.value = '';
             if (quickDatePreset) quickDatePreset.value = '';
+            if (filterParticipantType) filterParticipantType.value = 'all';
             
             updateActiveFiltersDisplay();
             applyFilters();
@@ -819,6 +851,14 @@
             
             if (filterMaxMessages) {
                 filterMaxMessages.addEventListener('change', () => {
+                    applyFilters();
+                });
+            }
+
+            // ✅ NEW: Participant type filter - auto-apply on change
+            const filterParticipantType = document.getElementById('filterParticipantType');
+            if (filterParticipantType) {
+                filterParticipantType.addEventListener('change', () => {
                     applyFilters();
                 });
             }

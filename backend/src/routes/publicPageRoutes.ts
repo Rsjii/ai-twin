@@ -27,7 +27,9 @@ router.get('/public-twin/chat/:twinToken/:chatToken', generateCSRFToken, getPubl
 // Public Chat History page
 router.get('/public-chat/history', generateCSRFToken, getPublicChatHistoryPage);
 
-router.get('/user/:handle', generateCSRFToken, publicPageController.getUserProfile);
+// DISABLED: User profile route - use twin profiles instead
+// router.get('/user/:handle', generateCSRFToken, publicPageController.getUserProfile);
+
 
 export default router;
 

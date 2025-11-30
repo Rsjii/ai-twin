@@ -38,7 +38,7 @@ export async function getPublicProfile(req: any, res: Response) {
     const { handle } = req.params;
     const userId = req.user?.id || null;
     
-    // Build query conditionally to avoid PostgreSQL type inference issue
+    // ✅ NEW: First try to find twin by publicHandle
     let query: string;
     let params: any[];
     
@@ -73,10 +73,91 @@ export async function getPublicProfile(req: any, res: Response) {
       params = [handle];
     }
     
-    const publicTwin = await db.query(query, params);
+    let publicTwin = await db.query(query, params);
 
+    // ✅ NEW: If no twin found, check if handle matches a user (for backward compatibility)
     if (publicTwin.rows.length === 0) {
-      throw createError.notFound('This twin profile is not public or does not exist');
+      const userResult = await db.query(`
+        SELECT id, handle, name, "profileImage", bio, "createdAt"
+        FROM "User"
+        WHERE handle = $1
+      `, [handle]);
+
+      if (userResult.rows.length > 0) {
+        const user = userResult.rows[0];
+        
+        // ✅ Check if user has any public twin
+        let userTwinsQuery: string;
+        let userTwinsParams: any[];
+        
+        if (userId) {
+          userTwinsQuery = `
+            SELECT 
+              t.id, t."userId", t."publicHandle", t.bio, t."profileImage", t.verified, 
+              t."likeCount", t."followCount", t."chatCount", t."sampleReply", t."createdAt",
+              t."allowShares", t."allowLikes", t."allowFollows", t."requireLogin",
+              u.id as "userId", u.handle as "userHandle", u.name as "userName"
+            FROM "Twin" t
+            JOIN "User" u ON t."userId" = u.id
+            WHERE t."userId" = $1 
+              AND t."isPublic" = true
+              AND NOT EXISTS (
+                SELECT 1 FROM "TwinBlockedUsers" tbu
+                WHERE tbu."twinId" = t.id AND tbu."userId" = $2
+              )
+            ORDER BY t."createdAt" DESC
+            LIMIT 1
+          `;
+          userTwinsParams = [user.id, userId];
+        } else {
+          userTwinsQuery = `
+            SELECT 
+              t.id, t."userId", t."publicHandle", t.bio, t."profileImage", t.verified, 
+              t."likeCount", t."followCount", t."chatCount", t."sampleReply", t."createdAt",
+              t."allowShares", t."allowLikes", t."allowFollows", t."requireLogin",
+              u.id as "userId", u.handle as "userHandle", u.name as "userName"
+            FROM "Twin" t
+            JOIN "User" u ON t."userId" = u.id
+            WHERE t."userId" = $1 
+              AND t."isPublic" = true
+              AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)
+            ORDER BY t."createdAt" DESC
+            LIMIT 1
+          `;
+          userTwinsParams = [user.id];
+        }
+        
+        const userTwins = await db.query(userTwinsQuery, userTwinsParams);
+        
+        if (userTwins.rows.length > 0) {
+          // User has a public twin - redirect to it
+          return res.redirect(`/@${userTwins.rows[0].publicHandle}`);
+        } else {
+          // ✅ User exists but has no public twin - show "no twin yet" profile
+          const isOwner = userId && userId === user.id;
+
+          return res.render('public-profile', {
+            title: `@${handle} - AI Twin`,
+            user: req.user || null,
+            twin: null, // ❗ We'll guard all twin-based UI in EJS
+            userInfo: {
+              handle: user.handle,
+              name: user.name || user.handle,
+              profileImage: user.profileImage,
+              bio: user.bio,
+              createdAt: user.createdAt,
+              isOwner,
+            },
+            hasNoTwin: true,
+            twinPublicId: null,
+            viewer: req.user ? { id: req.user.id, handle: req.user.handle } : null,
+            csrfToken: res.locals['csrfToken'],
+          });
+        }
+      } else {
+        // Neither twin nor user found
+        throw createError.notFound('This profile does not exist');
+      }
     }
 
     const twin = publicTwin.rows[0];
@@ -93,16 +174,16 @@ export async function getPublicProfile(req: any, res: Response) {
       }
     }
     
-    // Check if viewer is the owner
+    // ✅ Check if viewer is the owner
     const isOwner = userId && userId === twin.userId;
-    const isOwnTwin = isOwner; // ✅ NEW: Alias for clarity
+    const isOwnTwin = isOwner;
     
-    // ✅ NEW: Calculate disabled flags (inverse of allow flags)
+    // ✅ Calculate disabled flags (inverse of allow flags)
     const likesDisabled = !(twin.allowLikes ?? true);
     const followsDisabled = !(twin.allowFollows ?? true);
     const sharesDisabled = !(twin.allowShares ?? true);
     
-    // ✅ FIX: Get user's like/follow status (if logged in)
+    // ✅ Get user's like/follow status (if logged in)
     let hasLiked = false;
     let hasFollowed = false;
     
@@ -115,9 +196,6 @@ export async function getPublicProfile(req: any, res: Response) {
       hasLiked = likeStatus.rows.length > 0;
       hasFollowed = followStatus.rows.length > 0;
     }
-    
-    // Ensure userName and userHandle are available
-
     
     // ✅ PHASE 2: Tokenize twin.id before passing to view
     const twinPublicId = tokenizeId(twin.id, 'twin');
@@ -145,14 +223,16 @@ export async function getPublicProfile(req: any, res: Response) {
         userHandle: twin.userHandle || 'Unknown',
         userName: twin.userName || twin.userHandle || 'Unknown',
         isOwner: isOwner,
-        isOwnTwin: isOwnTwin,  // ✅ NEW: Add isOwnTwin flag
-        likesDisabled: likesDisabled,  // ✅ NEW: Add disabled flags
-        followsDisabled: followsDisabled,  // ✅ NEW
-        sharesDisabled: sharesDisabled,  // ✅ NEW
-        hasLiked: hasLiked,  // ✅ ADD: Include initial like state
-        hasFollowed: hasFollowed  // ✅ ADD: Include initial follow state
-      },      
-      twinPublicId: twinPublicId, // ✅ Pass tokenized ID separately for JS
+        isOwnTwin: isOwnTwin,
+        likesDisabled: likesDisabled,
+        followsDisabled: followsDisabled,
+        sharesDisabled: sharesDisabled,
+        hasLiked: hasLiked,
+        hasFollowed: hasFollowed
+      },
+      userInfo: null, // ✅ No user info when twin exists
+      hasNoTwin: false, // ✅ Twin exists
+      twinPublicId: twinPublicId,
       viewer: req.user ? {
         id: req.user.id,
         handle: req.user.handle
@@ -229,9 +309,13 @@ export async function getUserProfile(req: any, res: Response) {
         FROM "Twin" t
         WHERE t."userId" = $1 
           AND t."isPublic" = true
+           AND NOT EXISTS (
+        SELECT 1 FROM "TwinBlockedUsers" tbu
+        WHERE tbu."twinId" = t.id AND tbu."userId" = $2
+      )
         ORDER BY t."createdAt" DESC
       `;
-      twinsParams = [user.id];
+      twinsParams = [user.id, userId];
     } else {
       // Non-logged user - hide twins where blockNonLoggedUsers = true
       twinsQuery = `
