@@ -2,8 +2,7 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title><%= title %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title><%= title %></title>
     <link rel="stylesheet" href="/css/output.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="/utils/timeUtils.js"></script>
@@ -54,7 +53,7 @@
     <%- include('header') %>
 
     <!-- Main Content -->
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <div class="max-w-5xl mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8">
         <!-- Twin Profile Card -->
         <div class="bg-white dark:bg-gray-800 rounded-3xl card-shadow dark:shadow-gray-900 overflow-hidden border border-gray-100 dark:border-gray-700">
             <!-- Profile Header - Enhanced Gradient -->
@@ -132,7 +131,7 @@
             <% if (showTwinSections) { %>
                 <!-- Stats - Enhanced Cards -->
                 <div class="px-6 py-6 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700">
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
                         <div class="text-center p-3 sm:p-4 rounded-xl bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 border border-pink-200 dark:border-pink-800 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
                             <div class="w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg flex items-center justify-center shadow-lg">
                                 <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">

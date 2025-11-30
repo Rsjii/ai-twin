@@ -2,8 +2,7 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title><%= typeof title !== 'undefined' ? title : 'Your Chat History - AI Twin' %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title><%= typeof title !== 'undefined' ? title : 'Your Chat History - AI Twin' %></title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="/utils/timeUtils.js"></script>
     <script>
@@ -27,7 +26,7 @@
     <%- include('header') %>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8">
         <!-- Header -->
         <div class="mb-8">
             <div class="flex items-center justify-between">
@@ -64,7 +63,7 @@
                 </div>
                 <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-3">No Chats Yet</h3>
                 <p class="text-gray-600 dark:text-gray-300 mb-6">Start exploring AI twins and begin conversations to see them here!</p>
-                <a href="/discover" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Discover Twins">
+                <a href="/discover" class="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium min-h-[44px] touch-manipulation text-base" aria-label="Discover Twins">
                     <span>🔍</span>
                     <span>Discover Twins</span>
                 </a>
@@ -80,7 +79,7 @@
                 </div>
 
         <!-- Twin Cards Grid -->
-        <div id="twinsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 hidden">
+        <div id="twinsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 hidden">
             <!-- Twin cards will be populated here by JS -->
         </div>
     </div>

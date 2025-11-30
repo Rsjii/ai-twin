@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title><%= title %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title><%= title %></title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>    
     <script src="/utils/timeUtils.js"></script>
@@ -147,7 +146,7 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">            
 <!-- Line 145: Users Card -->
-<a href="/admin/analytics/page/users" class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block" data-type="users">
+<a href="/admin/analytics/page/users" class="metric-card bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block" data-type="users">
     <div class="flex items-center">
         <div class="p-2 bg-blue-100 rounded-lg">
             <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -155,15 +154,15 @@
             </svg>
         </div>
         <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600">Total Users</p>
-            <p class="text-2xl font-bold text-gray-900" id="totalUsers">-</p>
-            <p class="text-xs text-gray-500 mt-1">Click for details</p>
+            <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Users</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white" id="totalUsers">-</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Click for details</p>
         </div>
     </div>
 </a>
 
 <!-- Line 160: Twins Card -->
-<a href="/admin/analytics/page/twins" class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block" data-type="twins">
+<a href="/admin/analytics/page/twins" class="metric-card bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block" data-type="twins">
     <div class="flex items-center">
         <div class="p-2 bg-green-100 rounded-lg">
             <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,7 +178,7 @@
 </a>
 
 <!-- Line 175: Chats Card -->
-<a href="/admin/analytics/page/chats" class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block" data-type="chats">
+<a href="/admin/analytics/page/chats" class="metric-card bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block" data-type="chats">
     <div class="flex items-center">
         <div class="p-2 bg-purple-100 rounded-lg">
             <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -195,7 +194,7 @@
 </a>
 
 <!-- Line 190: Messages Card -->
-<a href="/admin/analytics/page/messages" class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block" data-type="messages">
+<a href="/admin/analytics/page/messages" class="metric-card bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block" data-type="messages">
     <div class="flex items-center">
         <div class="p-2 bg-orange-100 rounded-lg">
             <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,7 +212,7 @@
 <!-- Existing cards ... Users / Twins / Chats / Messages -->
 
 <a href="/admin/analytics/events/explorer?eventType=API_ERROR"
-   class="metric-card bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block"
+   class="metric-card bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block"
    data-type="errors">
     <div class="flex items-center">
         <div class="p-2 bg-red-100 rounded-lg">

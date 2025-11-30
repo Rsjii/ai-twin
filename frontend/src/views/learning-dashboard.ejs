@@ -2,8 +2,7 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Learning Dashboard - AI Twin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Learning Dashboard - AI Twin</title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>
@@ -464,7 +463,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
   <!--Header-->
   <%- include('header') %>    
   
-    <div class="container mx-auto px-4 py-8">
+    <div class="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <!-- Header -->
         <div class="mb-8">
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Twin Settings</h1>
@@ -506,14 +505,14 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
   <div class="mb-6 sm:mb-8 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-4 sm:p-6 border border-blue-200 dark:border-blue-800">
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Navigation</h3>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 quick-nav-grid">
-      <a href="/ai-edit" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02] min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="AI Edit">
+      <a href="/ai-edit" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-3 sm:p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02] min-h-[44px] touch-manipulation" aria-label="AI Edit">
         <div class="text-center">
           <div class="text-2xl mb-2">🤖</div>
           <h4 class="text-sm font-medium text-gray-900 dark:text-white">AI Edit</h4>
           <p class="text-xs text-gray-600 dark:text-gray-300">Edit system prompt & persona</p>
         </div>
       </a>
-      <a href="/style-customize" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02] min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="Style Customize">
+      <a href="/style-customize" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-3 sm:p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02] min-h-[44px] touch-manipulation" aria-label="Style Customize">
         <div class="text-center">
           <div class="text-2xl mb-2">🎨</div>
           <h4 class="text-sm font-medium text-gray-900 dark:text-white">Style Customize</h4>
@@ -522,7 +521,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
       </a>
       <% /* TODO(V2): Memory Management button */ %>
       <% if (FEATURE_FLAGS.memoryUI) { %>
-      <a href="/memory-management" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02] min-h-[48px] sm:min-h-[44px] touch-manipulation" aria-label="Memory Management">
+      <a href="/memory-management" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-3 sm:p-4 shadow-lg dark:shadow-gray-900 hover:shadow-xl transition-all duration-300 border border-white/20 dark:border-gray-700 quick-nav-item hover:scale-[1.02] min-h-[44px] touch-manipulation" aria-label="Memory Management">
         <div class="text-center">
           <div class="text-2xl mb-2">🧠</div>
           <h4 class="text-sm font-medium text-gray-900 dark:text-white">Memory Management</h4>

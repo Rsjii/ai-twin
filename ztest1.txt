@@ -64,9 +64,9 @@
 //DONE 55. analytics me view full detailed direct hi dikhao
 56. console . repeated code hatao clean karo files simplify karo , dao banao simple samjh me aaye bulky nhi
 //DONE 57. user apne twin se hui chat dekh saktaa
-58. incomplete data aa rha analytics,  twin/manage
+//VERIFY 58. incomplete data aa rha analytics,  twin/manage
 //DONE 59. block logged out ka bhi option ho 
-60. analytics dasboard sahi krooo
+//DONE 60. analytics dasboard sahi krooo
 //DONE 61. block /unblock na chal raha hai
 //DONE 62. kisi user twin ko like ya follow kiya hai to wo dicover me dikhna chaiye done or not not any confusion
 //DONE 63. public profile me like twin work hi nahi kar rahe
@@ -83,7 +83,7 @@
 //DONE 74. create twin coming in footer jab already twin hai
 75. public chat width kam
 76. kuch jagah color issue hai like footer me dark theme sahi karo
-77. analytics me chart dikhe 
+//DONE 77. analytics me chart dikhe 
 //DONE 78. analytics slow kyu load ho raha hai
 79. admin analytics , paages par koi jaa na paaye usse pata hi na chale ki ye admin page hai error 404 not u are authorized papta chal jaayega , apan kaise ensure karege kisi access na ho paaye
 80. google analytics
@@ -94,7 +94,7 @@
 85. signup me dark theme me email color wrong hai
 //DONE 86. regenerate prompt me usi ko font badal ke dikha rahe
 87. public vhat dark theme color text
-88. ingest memory cross nahi hota hai
+//LATER 88. ingest memory cross nahi hota hai
 //DONE 89. private chat me yaar chats me thida sahi nahi dikh rahi, regenerate chat multiple instnaces dikh rahe
 90. duplicate content ye kya hai saala 
 {
@@ -139,7 +139,7 @@ b. agar show chat hisory false ho to bhi acche se pan previous hatwa sakte new s
 115. /twin/create par header alag , no dark theme
 116. kayi baar freeaxe ho jaata hai
 117. loading states + erroe states + env wise
-118. filtering ke logic sahi chal dahboard discover no logged blocked sabke liye
+//VERIFY && DEKHO 118. filtering ke logic sahi chal dahboard discover no logged blocked sabke liye
 
 
 
@@ -192,3 +192,49 @@ Agar speed important hai to backend me ye cheezein optimize karni padengi (front
 Frontend side se ab jo humne kiya hai:
 - Left sidebar loader sirf “major load” pe aata hai, har message pe blink nahi karega.
 - Right side loading + typing indicator sahi kaam kar rahe hain; delay ka asli reason backend/LLM latency hai.
+
+
+
+
+
+
+
+
+
+
+
+//SERVER STOPPING ERRROS
+Why server ruk gaya?
+Error log se dikhta hai:
+detokenizeId: Decryption failed → createError.validation('Invalid twin token') throw hua.
+Ye throw getPublicChatPage ke andar hua.
+catch block me tum ye kar rahe ho:
+Ye function hamesha throw karta hai.
+getPublicChatPage ek async Express route hai. Jab async handler ke andar se error throw hota hai, Express 4 us promise rejection ko auto catch nahi karta (koi express-async-errors bhi nahi hai).
+Result: Unhandled rejection / uncaught error → Node process hi exit ho gaya → tumko server dubara start karna padta hai.
+Summary: Error sahi hai (“invalid twin token”), lekin hamari error‑handling pattern galat hai: async route ke catch me handleControllerError se phir se throw karne ki wajah se process crash ho raha hai.
+Minimal fix – is route pe server crash band karo
+Isko theek karne ka seedha tareeka: getPublicChatPage ke catch me throw mat karo, balki error ko Express ke global error middleware tak next(err) se bhejo.
+Step 1: import update
+backend/src/modules/twin/publicTwinController.ts ke top pe (jahan handleControllerError import hai) tum ye add/replace karo:
+(Ya agar baaki functions me handleControllerError use nahi karna hai to usko baad me cleanup kar sakte ho.)
+Step 2: getPublicChatPage ke catch block ko change karo
+Abhi file me ye hoga (line ~551–553):
+Apply to publicTwinCo...
+Isko replace karo is se:
+Apply to publicTwinCo...
+Bas itna change:
+Ab koi bhi createError.validation('Invalid twin token') / detokenizeId error:
+catch me aayega.
+next(error) se Express ke global errorHandler (errors.ts ka errorHandler) tak jaayega.
+Response 400/500 bhejega, process nahi marega, server chalti rahegi.
+
+
+Long‑term clean pattern (TODO)
+Abhi aur bhi controllers handleControllerError use kar rahe hain async routes me.
+Same pattern waha bhi crash cause ban sakta hai, agar waha koi AppError throw ho:
+Ideal pattern:
+Ya ek naya helper handleControllerErrorWithNext(error, next, message) bana ke sab jagah use karo.
+Filhaal, jo crash tumne dekha woh specifically getPublicChatPage se aaya tha; upar wala change lagate hi:
+Invalid / corrupted twin token pe sirf 400/500 response aayega,
+server band nahi hoga, restart ki need nahi hogi

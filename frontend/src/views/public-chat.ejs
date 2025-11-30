@@ -2,8 +2,7 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">    
-    <title>Chat with <%= twin.publicHandle %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Chat with <%= twin.publicHandle %></title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="/utils/timeUtils.js?v=<%= new Date().getTime() %>"></script>
     <script>
@@ -56,7 +55,7 @@
     <!--Header-->
     <%- include('header') %>
 
-    <div class="flex flex-col md:flex-row h-screen">
+    <div class="flex flex-col md:flex-row min-h-screen md:h-screen">        
         <!-- Chat Sidebar -->
         <div id="chatSidebar" class="hidden md:flex md:w-64 flex-col bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900 overflow-x-hidden">            
             <div class="p-4 border-b dark:border-gray-700">
@@ -90,7 +89,7 @@
         <!-- Main Chat Area -->
         <div class="flex-1 flex flex-col w-full md:w-auto">            
             <!-- Chat Header -->
-            <div class="bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex items-center gap-3">
+            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-b dark:border-gray-700 flex items-center gap-2 sm:gap-3">
                 <a href="/@<%= twin.publicHandle %>" class="flex-shrink-0 hover:opacity-80 transition-opacity" title="View @<%= twin.publicHandle %> profile" aria-label="View @<%= twin.publicHandle %> profile">
                     <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all">
                         <%= twin.publicHandle ? twin.publicHandle.charAt(0).toUpperCase() : 'T' %>
@@ -109,7 +108,7 @@
             </div>      
 
             <!-- Chat Messages -->
-            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-gray-50 dark:bg-gray-900">
                 <!-- Initial loading state -->
                 <div id="initialLoadingState" class="hidden">
                     <%- include('components/loading-skeleton', { type: 'list', count: 6 }) %>
@@ -140,18 +139,18 @@
             
             <!-- Chat Input -->
             <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-t dark:border-gray-700 shadow-lg dark:shadow-gray-900">
-                <form id="chatForm" class="flex gap-2 sm:gap-4">
+                <form id="chatForm" class="flex gap-2 sm:gap-3 md:gap-4">                    
                     <textarea 
                         type="text" 
                         id="messageInput" 
                         placeholder="Type your message..." 
-                        class="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none"
+                        class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none"
                         rows="1"
                         maxlength="1000"
                         required
                         style="font-size: 16px; min-height: 44px;"
                     ></textarea>
-                    <button type="submit" id="sendMessageBtn" class="bg-blue-600 dark:bg-blue-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold min-h-[44px] min-w-[60px]">
+                    <button type="submit" id="sendMessageBtn" class="bg-blue-600 dark:bg-blue-500 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold min-h-[44px] min-w-[60px] sm:min-w-[80px] touch-manipulation text-base flex items-center justify-center">
                         Send
                     </button>
                 </form>

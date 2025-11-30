@@ -91,7 +91,7 @@
             </div>
 
             <!-- RIGHT SECTION: Theme Toggle + User Menu -->
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2 sm:space-x-4">
                 
                 <!-- ✅ Theme Toggle (ALWAYS VISIBLE - for ALL users, logged in or not) -->
                 <button 
@@ -203,14 +203,24 @@
                     </div>
                 <% } else { %>
                     <!-- Not Logged In: Show Discover + Login/Signup Button -->
-                    <div class="flex items-center space-x-3">
-                        <a href="/discover" class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium">
+                    <div class="flex items-center space-x-2 sm:space-x-3">
+                        <!-- Discover: desktop / tablet only -->
+                        <a
+                            href="/discover"
+                            class="hidden sm:inline-flex px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium"
+                        >
                             Discover
                         </a>
-                        <a href="/auth" class="px-6 py-2.5 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all duration-300 font-medium">
+                    
+                        <!-- Login / Signup: primary action, always visible -->
+                        <a
+                            href="/auth"
+                            class="px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all duration-300 font-medium
+                                   text-sm sm:text-base min-h-[44px] flex items-center justify-center"
+                        >
                             Login / Signup
                         </a>
-                    </div>
+                    </div>                    
                 <% } %>
             </div>
         </div>
