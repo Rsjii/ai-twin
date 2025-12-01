@@ -59,9 +59,9 @@
         <!-- Chat Sidebar -->
         <div
         id="chatSidebar"
-        class="fixed top-16 left-0 h-[calc(100vh-4rem)] w-72 bg-white dark:bg-gray-800 shadow-xl z-40 transform -translate-x-full transition-transform duration-200 ease-out flex flex-col overflow-x-hidden md:static md:transform-none md:w-64 md:h-full md:shadow-lg md:border-r border-gray-200 dark:border-gray-800"   
+        class="fixed top-16 bottom-0 left-0 w-72 bg-white dark:bg-gray-800 shadow-xl z-40 transform -translate-x-full transition-transform duration-200 ease-out flex flex-col overflow-x-hidden md:static md:transform-none md:w-64 md:h-full md:shadow-lg md:border-r border-gray-200 dark:border-gray-800"   
     >    
-    <div class="p-4 border-b dark:border-gray-700 relative">
+    <div class="p-4 border-b dark:border-gray-700 relative flex-shrink-0">
         <!-- Mobile close button (X) -->
         <button
             id="mobile-public-chat-close-btn"
@@ -104,7 +104,7 @@
         </div>
         
         <!-- Main Chat Area -->
-        <div class="flex-1 flex flex-col w-full md:w-auto">            
+        <div class="flex-1 flex flex-col w-full md:w-auto h-[calc(100vh-5rem)] md:h-auto">            
             <!-- Chat Header -->
             <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-b dark:border-gray-700 flex items-center gap-2 sm:gap-3">
                 <!-- Mobile Hamburger (left) -->

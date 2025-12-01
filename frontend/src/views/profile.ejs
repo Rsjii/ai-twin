@@ -87,7 +87,7 @@
                 <div id="tab-profile-content" class="tab-content <%= activeTab === 'profile' ? '' : 'hidden' %>">
                     <form id="profileForm">
                         <!-- Edit Profile Button -->
-                        <div class="flex justify-between items-center mb-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                             <div>
                                 <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Profile Information</h2>
                                 <p class="text-gray-600 dark:text-gray-300 text-sm">Update your personal details</p>
@@ -95,7 +95,7 @@
                             <button 
                                 type="button"
                                 id="editProfileBtn"
-                                class="bg-gradient-to-r from-primary to-accent text-white py-2.5 px-4 sm:px-6 rounded-xl hover:from-secondary hover:to-primary transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 min-h-[44px] touch-manipulation text-base flex items-center justify-center whitespace-nowrap"
+                                class="w-full sm:w-auto bg-gradient-to-r from-primary to-accent text-white py-2.5 px-4 sm:px-6 rounded-xl hover:from-secondary hover:to-primary transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 min-h-[44px] touch-manipulation text-base flex items-center justify-center whitespace-nowrap"
                             >
                                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -249,30 +249,30 @@
                 <div id="tab-settings-content" class="tab-content <%= activeTab === 'settings' ? '' : 'hidden' %>">
                     <!-- Settings Tabs Navigation -->
                     <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
-                        <nav class="flex space-x-1" aria-label="Settings Tabs">
+                        <nav class="flex overflow-x-auto scrollbar-hide space-x-2 -mx-2 px-2" aria-label="Settings Tabs">
                             <button 
                                 data-settings-tab="account"
-                                class="settings-tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                                class="settings-tab-btn flex-shrink-0 px-3 py-2 text-xs sm:text-sm font-medium rounded-full transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"
                             >
                                 Account & Security
                             </button>
                             <% if (hasTwins && twin) { %>
                             <button 
                                 data-settings-tab="twin"
-                                class="settings-tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                                class="settings-tab-btn flex-shrink-0 px-3 py-2 text-xs sm:text-sm font-medium rounded-full transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"
                             >
                                 Twin Visibility
                             </button>
                             <button 
                                 data-settings-tab="privacy"
-                                class="settings-tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                                class="settings-tab-btn flex-shrink-0 px-3 py-2 text-xs sm:text-sm font-medium rounded-full transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"
                             >
                                 Privacy & Interactions
                             </button>
                             <% } %>
                             <button 
                                 data-settings-tab="appearance"
-                                class="settings-tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                                class="settings-tab-btn flex-shrink-0 px-3 py-2 text-xs sm:text-sm font-medium rounded-full transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"
                             >
                                 Appearance
                             </button>
@@ -363,11 +363,11 @@
                 </div>
             </div>            
             
-            <div class="flex gap-3">
-                <button type="submit" class="flex-1 bg-gradient-to-r from-primary to-accent text-white py-3 px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button type="submit" class="w-full sm:flex-1 bg-gradient-to-r from-primary to-accent text-white py-3 px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">
                     Update Password
                 </button>
-                <button type="button" id="cancelChangePasswordBtn" class="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium">
+                <button type="button" id="cancelChangePasswordBtn" class="w-full sm:w-auto px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium">
                     Cancel
                 </button>
             </div>
@@ -422,7 +422,7 @@
                                 
                                 <div class="p-4 sm:p-6">
                                     <div class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-4 sm:p-6 border-2 border-blue-200 dark:border-blue-800">
-                                        <div class="flex items-center justify-between mb-4">
+                                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                                             <div class="flex-1">
                                                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center">
                                                     <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -438,10 +438,12 @@
                                                     <% } %>
                                                 </p>
                                             </div>
-                                            <label class="relative inline-flex items-center cursor-pointer ml-4">
+                                            <div class="flex sm:justify-end">
+                                                <label class="relative inline-flex items-center cursor-pointer">
                                                 <input type="checkbox" id="isPublicToggle" <%= twin.isPublic ? 'checked' : '' %> class="sr-only peer">
                                                 <div class="w-14 h-7 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500 dark:peer-checked:bg-green-600"></div>
                                             </label>
+                                            </div>
                                         </div>
                                         
                                         <% if (!twin.isPublic) { %>
@@ -501,7 +503,7 @@
                                             </svg>
                                             Chat Settings
                                         </h3>
-                                        <div class="space-y-4 pl-7">
+                                        <div class="space-y-4 px-4">
                                             
                                             <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                                                 <div class="flex-1">

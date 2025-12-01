@@ -95,26 +95,34 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
   
   <!-- Quick Actions -->
   <div class="mb-6 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 dark:border-gray-700 shadow-md dark:shadow-gray-900">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center space-x-4">
-        <a href="/twin-settings" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md flex items-center min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Back to Learning Dashboard">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <!-- Buttons row -->
+      <div class="flex flex-row flex-wrap items-center gap-2 sm:gap-4">
+        <a href="/twin-settings"
+           class="inline-flex items-center justify-center bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base"
+           aria-label="Back to Twin Settings">
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
           </svg>
           Back to Twin Settings
         </a>
-        <a href="/ai-edit" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="AI Edit">
+        <a href="/ai-edit"
+           class="inline-flex items-center justify-center bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base"
+           aria-label="AI Edit">
           AI Edit
         </a>
         <% /* TODO(V2): Memory Management button */ %>
         <% if (FEATURE_FLAGS.memoryUI) { %>
-                    <a href="/memory-management" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Memory Management">
-                        Memory Management
-                    </a>
+          <a href="/memory-management"
+             class="inline-flex items-center justify-center bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base"
+             aria-label="Memory Management">
+            Memory Management
+          </a>
         <% } %>
       </div>
-      <div class="text-sm text-gray-600 dark:text-gray-300">
-        <span class="font-medium">Twin ID:</span> <%= twinId %>
+      <!-- Twin ID -->
+      <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-all">
+        <span class="font-medium">Twin ID:</span> <span><%= twinId %></span>
       </div>
     </div>
   </div>
@@ -300,18 +308,31 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
 
 
         <!-- Action Buttons -->
-        <div class="flex justify-between items-center">
-            <button id="previewChangesBtn" class="bg-gradient-to-r from-primary to-accent text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Preview Changes">
+        <!-- Desktop: All 3 in one row -->
+        <div class="hidden md:flex md:items-center md:gap-3">
+            <button id="previewChangesBtn" class="flex-1 bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base" aria-label="Preview Changes">
                 Preview Changes
             </button>
-            <div class="space-x-4">
-                <button id="resetChangesBtn" class="bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-6 py-2 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Reset Changes">
+            <button id="resetChangesBtn" class="flex-1 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-6 py-3 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base" aria-label="Reset Changes">
+                Reset
+            </button>
+            <button id="saveChangesBtn" class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base" aria-label="Save Changes">
+                Save Changes
+            </button>
+        </div>
+        <!-- Mobile: Preview+Reset row 1, Save row 2 -->
+        <div class="flex flex-col gap-3 md:hidden">
+            <div class="flex flex-row gap-3">
+                <button id="previewChangesBtnMobile" class="flex-1 bg-gradient-to-r from-primary to-accent text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[48px] touch-manipulation text-base" aria-label="Preview Changes">
+                    Preview Changes
+                </button>
+                <button id="resetChangesBtnMobile" class="flex-1 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-6 py-2 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md min-h-[48px] touch-manipulation text-base" aria-label="Reset Changes">
                     Reset
                 </button>
-                <button id="saveChangesBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Save Changes">
-                    Save Changes
-                </button>
             </div>
+            <button id="saveChangesBtnMobile" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[48px] touch-manipulation text-base" aria-label="Save Changes">
+                Save Changes
+            </button>
         </div>
 
         <!-- Preview Section -->
@@ -387,6 +408,37 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 e.preventDefault();
                 e.stopPropagation();
                 console.log('Save button clicked');
+                saveChanges();
+            });
+        }
+
+        // Mobile button handlers
+        const previewBtnMobile = document.getElementById('previewChangesBtnMobile');
+        if (previewBtnMobile) {
+            previewBtnMobile.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Preview button clicked (mobile)');
+                previewChanges();
+            });
+        }
+
+        const resetBtnMobile = document.getElementById('resetChangesBtnMobile');
+        if (resetBtnMobile) {
+            resetBtnMobile.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Reset button clicked (mobile)');
+                resetChanges();
+            });
+        }
+
+        const saveBtnMobile = document.getElementById('saveChangesBtnMobile');
+        if (saveBtnMobile) {
+            saveBtnMobile.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Save button clicked (mobile)');
                 saveChanges();
             });
         }

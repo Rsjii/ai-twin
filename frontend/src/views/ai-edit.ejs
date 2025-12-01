@@ -96,20 +96,24 @@
   
   <!-- Quick Actions -->
   <div class="mb-6 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 dark:border-gray-700 shadow-md dark:shadow-gray-900">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center space-x-4">
-        <a href="/twin-settings" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md flex items-center">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <!-- Buttons row (always in one row, will wrap only on very small screens) -->
+      <div class="flex flex-row flex-wrap items-center gap-2 sm:gap-4">
+        <a href="/twin-settings"
+           class="inline-flex items-center justify-center bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
           </svg>
           Back to Twin Settings
         </a>
-        <a href="/style-customize" class="bg-gradient-to-r from-accent to-purple-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md">
+        <a href="/style-customize"
+           class="inline-flex items-center justify-center bg-gradient-to-r from-accent to-purple-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
           Style Customize
         </a>
       </div>
-      <div class="text-sm text-gray-600 dark:text-gray-300">
-        <span class="font-medium">Twin ID:</span> <%= twinId %>
+      <!-- Twin ID (right on desktop, may wrap below on very small screens) -->
+      <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-all">
+        <span class="font-medium">Twin ID:</span> <span><%= twinId %></span>
       </div>
     </div>
   </div>
@@ -194,18 +198,31 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">
-            <button id="previewChangesBtn" class="bg-gradient-to-r from-primary to-accent text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base w-full sm:w-auto">
+        <!-- Desktop: All 3 in one row -->
+        <div class="hidden md:flex md:items-center md:gap-3">
+            <button id="previewChangesBtn" class="flex-1 bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
                 Preview Changes
             </button>
-            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-                <button id="resetChangesBtn" class="bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base w-full sm:w-auto">
+            <button id="resetChangesBtn" class="flex-1 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-6 py-3 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
+                Reset
+            </button>
+            <button id="saveChangesBtn" class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
+                Save Changes
+            </button>
+        </div>
+        <!-- Mobile: Preview+Reset row 1, Save row 2 -->
+        <div class="flex flex-col gap-3 md:hidden">
+            <div class="flex flex-row gap-3">
+                <button id="previewChangesBtnMobile" class="flex-1 bg-gradient-to-r from-primary to-accent text-white px-4 py-2.5 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
+                    Preview Changes
+                </button>
+                <button id="resetChangesBtnMobile" class="flex-1 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
                     Reset
                 </button>
-                <button id="saveChangesBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base w-full sm:w-auto">
-                    Save Changes
-                </button>
             </div>
+            <button id="saveChangesBtnMobile" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2.5 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
+                Save Changes
+            </button>
         </div>
     </div>
 
@@ -250,6 +267,31 @@
         const saveBtn = document.getElementById('saveChangesBtn');
         if (saveBtn) {
             saveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                saveChanges();
+            });
+        }
+
+        // Mobile button handlers
+        const previewBtnMobile = document.getElementById('previewChangesBtnMobile');
+        if (previewBtnMobile) {
+            previewBtnMobile.addEventListener('click', function(e) {
+                e.preventDefault();
+                previewChanges();
+            });
+        }
+
+        const resetBtnMobile = document.getElementById('resetChangesBtnMobile');
+        if (resetBtnMobile) {
+            resetBtnMobile.addEventListener('click', function(e) {
+                e.preventDefault();
+                resetChanges();
+            });
+        }
+
+        const saveBtnMobile = document.getElementById('saveChangesBtnMobile');
+        if (saveBtnMobile) {
+            saveBtnMobile.addEventListener('click', function(e) {
                 e.preventDefault();
                 saveChanges();
             });
