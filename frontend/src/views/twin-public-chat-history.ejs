@@ -31,149 +31,136 @@
             </div>
         </div>
 
-        <!-- Filters -->
-        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6 mb-6">
-            <div class="flex flex-wrap items-center gap-4 mb-4">
-                <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">View:</span>
-                    <button 
-                        id="viewChatBtn" 
-                        class="px-4 py-2 rounded-lg transition-colors bg-primary text-white"
+        <!-- View Toggle (Chat-wise / User-wise) -->
+        <div class="flex items-center gap-2 mb-3 sm:mb-4">
+            <span class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">View:</span>
+            <button 
+                id="viewChatBtn" 
+                class="px-3 py-1.5 rounded-full text-xs sm:text-sm bg-primary text-white"
+            >
+                Chat-wise
+            </button>
+            <button 
+                id="viewUserBtn" 
+                class="px-3 py-1.5 rounded-full text-xs sm:text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+            >
+                User-wise
+            </button>
+        </div>
+
+        <!-- Quick Filters Row (mobile-friendly, Amazon-style) -->
+        <div class="flex items-center gap-2 mb-4 sm:mb-6">
+            <!-- Left: Filters button to open full filter screen -->
+            <button
+                id="openTwinFiltersSheetBtn"
+                class="flex-shrink-0 inline-flex items-center justify-center px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs sm:text-sm text-gray-700 dark:text-gray-200 shadow-sm touch-manipulation"
+                type="button"
+            >
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M3 4h18M4 8h16M5 12h14M6 16h12M7 20h10"></path>
+                </svg>
+                <span>Filters</span>
+            </button>
+
+            <!-- Right: horizontal scrollable chips -->
+            <div class="flex-1 overflow-x-auto scrollbar-hide">
+                <div class="flex flex-row gap-2">
+                    <!-- Time chips -->
+                    <button
+                        class="twin-filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-primary/40 bg-primary/10 text-primary dark:border-primary/40 dark:bg-primary/20 dark:text-primary whitespace-nowrap touch-manipulation"
+                        data-filter-type="time"
+                        data-filter-value="all"
                     >
-                        Chat-wise
+                        All time
                     </button>
-                    <button 
-                        id="viewUserBtn" 
-                        class="px-4 py-2 rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                    <button
+                        class="twin-filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 whitespace-nowrap touch-manipulation"
+                        data-filter-type="time"
+                        data-filter-value="today"
                     >
-                        User-wise
+                        Today
                     </button>
-                </div>
-                <div class="flex-1"></div>
-                <button 
-                    id="clearFiltersBtn"
-                    class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                >
-                    Clear Filters
-                </button>
-            </div>
-            <div id="activeFiltersContainer" class="flex flex-wrap gap-2 mb-4"></div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search Messages</label>
-                    <input 
-                        type="text" 
-                        id="filterSearch"
-                        placeholder="Search in messages..."
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    <button
+                        class="twin-filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 whitespace-nowrap touch-manipulation"
+                        data-filter-type="time"
+                        data-filter-value="7days"
                     >
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date From</label>
-                    <input 
-                        type="date" 
-                        id="filterDateFrom"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        Last 7 days
+                    </button>
+                    <button
+                        class="twin-filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 whitespace-nowrap touch-manipulation"
+                        data-filter-type="time"
+                        data-filter-value="30days"
                     >
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date To</label>
-                    <input 
-                        type="date" 
-                        id="filterDateTo"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        Last 30 days
+                    </button>
+
+                    <!-- Sort chip -->
+                    <button
+                        class="twin-filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 whitespace-nowrap touch-manipulation"
+                        data-filter-type="sort"
+                        data-filter-value="messageCount"
                     >
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sort By</label>
-                    <select 
-                        id="filterSortBy"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                        <option value="lastActivity">Last Activity</option>
-                        <option value="createdAt">Date Created</option>
-                        <option value="messageCount">Message Count</option>
-                    </select>
-                </div>
-                <!-- User Sort (always rendered, hidden when view is 'chat') -->
-                <div id="userSortByContainer" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sort Users By</label>
-                    <select 
-                        id="filterUserSortBy"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                        <option value="lastActivity">Last Activity</option>
-                        <option value="totalMessages">Total Messages</option>
-                        <option value="totalChats">Total Chats</option>
-                    </select>
-                </div>
-                <!-- Advanced Filters -->
-                <div class="md:col-span-2 lg:col-span-4">
-                    <details class="group">
-                        <summary class="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary flex items-center gap-2">
-                            <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                            Advanced Filters
-                        </summary>
-                        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Min Messages</label>
-                                <input 
-                                    type="number" 
-                                    id="filterMinMessages"
-                                    min="0"
-                                    placeholder="0"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                >
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Messages</label>
-                                <input 
-                                    type="number" 
-                                    id="filterMaxMessages"
-                                    min="0"
-                                    placeholder="Any"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                >
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quick Date</label>
-                                <select 
-                                    id="quickDatePreset"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                >
-                                    <option value="">Select preset</option>
-                                    <option value="today">Today</option>
-                                    <option value="7days">Last 7 days</option>
-                                    <option value="30days">Last 30 days</option>
-                                    <option value="90days">Last 90 days</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Participants</label>
-                                <select 
-                                    id="filterParticipantType"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                                    <option value="all">All (anonymous + logged-in)</option>
-                                    <option value="loggedIn">Logged-in only</option>
-                                    <option value="anonymous">Anonymous only</option>
-                                </select>
-                            </div>
-                        </div>
-                    </details>
+                        Most messages
+                    </button>
+
+                    <!-- Participant chips (chat-wise only) -->
+                    <div class="twin-filter-chat-only flex gap-2">
+                        <button
+                            class="twin-filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 whitespace-nowrap touch-manipulation"
+                            data-filter-type="participant"
+                            data-filter-value="loggedIn"
+                        >
+                            Logged-in
+                        </button>
+                        <button
+                            class="twin-filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 whitespace-nowrap touch-manipulation"
+                            data-filter-type="participant"
+                            data-filter-value="anonymous"
+                        >
+                            Anonymous
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="mt-4">
-                <button 
-                    id="applyFiltersBtn"
-                    class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors"
-                    title="Filters apply automatically. Click to apply manually."
-                >
-                    Apply Filters
-                </button>
-            </div>
-        </div>                
+        </div>
+
+        <!-- Hidden filter inputs (for JavaScript compatibility - synced with quick filters and mobile sheet) -->
+        <div class="hidden">
+            <input type="text" id="filterSearch" value="">
+            <input type="date" id="filterDateFrom" value="">
+            <input type="date" id="filterDateTo" value="">
+            <select id="filterSortBy">
+                <option value="lastActivity">Last Activity</option>
+                <option value="createdAt">Date Created</option>
+                <option value="messageCount">Message Count</option>
+            </select>
+            <select id="filterUserSortBy">
+                <option value="lastActivity">Last Activity</option>
+                <option value="totalMessages">Total Messages</option>
+                <option value="totalChats">Total Chats</option>
+            </select>
+            <input type="number" id="filterMinMessages" value="">
+            <input type="number" id="filterMaxMessages" value="">
+            <select id="quickDatePreset">
+                <option value="">Select preset</option>
+                <option value="today">Today</option>
+                <option value="7days">Last 7 days</option>
+                <option value="30days">Last 30 days</option>
+                <option value="90days">Last 90 days</option>
+            </select>
+            <select id="filterParticipantType">
+                <option value="all">All (anonymous + logged-in)</option>
+                <option value="loggedIn">Logged-in only</option>
+                <option value="anonymous">Anonymous only</option>
+            </select>
+            <div id="activeFiltersContainer"></div>
+            <div id="participantFilterContainer"></div>
+            <div id="userSortByContainer" class="hidden"></div>
+            <button id="applyFiltersBtn"></button>
+            <button id="clearFiltersBtn"></button>
+        </div>
 
         <!-- Chats List -->
         <div id="chatsContainer" class="space-y-4 mb-8">
@@ -190,6 +177,94 @@
             scrollToTop: true,
             className: 'mt-8'
         }) %>
+
+        <!-- Full Filter Sheet (mobile-friendly, slides up from bottom) -->
+        <div id="twinFiltersSheetOverlay" class="fixed inset-0 z-40 bg-black/40 hidden">
+            <div class="absolute inset-x-0 bottom-0 bg-white dark:bg-gray-900 rounded-t-2xl max-h-[80vh] shadow-2xl flex flex-col">
+                <!-- Header -->
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">Filters</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Refine your public chat history</p>
+                    </div>
+                    <button id="closeTwinFiltersSheetBtn"
+                            class="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-300"
+                            type="button">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Filter content -->
+                <div class="flex-1 overflow-y-auto px-4 py-3 space-y-4 text-sm">
+                    <!-- Search -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Search Messages</label>
+                        <input
+                            type="text"
+                            id="twinFilterSheetSearch"
+                            placeholder="Search in messages..."
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                        >
+                    </div>
+
+                    <!-- Quick date -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Quick Date</label>
+                        <select
+                            id="twinFilterSheetQuickDate"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                        >
+                            <option value="">None</option>
+                            <option value="today">Today</option>
+                            <option value="7days">Last 7 days</option>
+                            <option value="30days">Last 30 days</option>
+                            <option value="90days">Last 90 days</option>
+                        </select>
+                    </div>
+
+                    <!-- Sort -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Sort By</label>
+                        <select
+                            id="twinFilterSheetSortBy"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                        >
+                            <option value="lastActivity">Last Activity</option>
+                            <option value="createdAt">Date Created</option>
+                            <option value="messageCount">Message Count</option>
+                        </select>
+                    </div>
+
+                    <!-- Participants (chat-wise only) -->
+                    <div id="twinFilterSheetParticipantBlock">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Participants</label>
+                        <select
+                            id="twinFilterSheetParticipantType"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                        >
+                            <option value="all">All (anonymous + logged-in)</option>
+                            <option value="loggedIn">Logged-in only</option>
+                            <option value="anonymous">Anonymous only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Footer buttons -->
+                <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+                    <button id="twinFiltersClearBtn"
+                            class="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-xs sm:text-sm text-gray-700 dark:text-gray-200">
+                        Clear
+                    </button>
+                    <button id="twinFiltersApplyBtn"
+                            class="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-xs sm:text-sm text-white font-semibold shadow-md">
+                        Apply
+                    </button>
+                </div>
+            </div>
+        </div>
     </main>
 
     <%- include('footer/footer-conditional-private') %>
@@ -232,9 +307,9 @@
                 // Build query params
                 const params = new URLSearchParams({
                     page: page.toString(),
-                    limit: '10', // ✅ Changed from '5' to '10'
+                    limit: '10',
                     view: currentView,
-                    sortBy: currentFilters.sortBy
+                    sortBy: currentView === 'user' ? currentFilters.userSortBy : currentFilters.sortBy
                 });
                 
                 if (currentFilters.userId) params.append('userId', currentFilters.userId);
@@ -262,13 +337,13 @@
                 });
                 
                 const data = await response.json();
-                console.log('[HISTORY] pagination =', data.pagination, 'chatsLen =', data.chats?.length);
+                console.log('[HISTORY] pagination =', data.pagination, 'chatsLen =', data.chats?.length, 'usersLen =', data.users?.length);
 
                 if (data.success) {
                     if (currentView === 'user') {
-                        displayUsers(data.users);
+                        displayUsers(data.users || []);
                     } else {
-                        displayChats(data.chats);
+                        displayChats(data.chats || []);
                     }
                     
                     // Initialize pagination
@@ -282,7 +357,7 @@
                 console.error('Load public chat history error:', error);
                 showError('Network error. Please try again.');
             }
-        }
+        }        
 
         function displayChats(chats) {
             const container = document.getElementById('chatsContainer');
@@ -334,27 +409,25 @@
                             </div>
                             <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mt-2">
                                 <span>${chat.messageCount} messages</span>
-                                <span>•</span>
-                                <span class="timestamp-display" data-timestamp="${chat.createdAt}" data-format="date"></span>                                
                                 ${chat.lastMessage ? `
                                     <span>•</span>
-                                    <span class="timestamp-display" data-timestamp="${chat.lastMessage.createdAt}" data-format="smart" data-prefix="Last: "></span>                                    
+                                    <span class="timestamp-display" data-timestamp="${chat.lastMessage.createdAt}" data-format="relative"></span>                                    
                                 ` : ''}
-                            </div>
+                            </div>                                                     
                             ${chat.lastMessage ? `
                                 <p class="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">${escapeHtml(chat.lastMessage.content)}</p>
                             ` : ''}
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                             <a 
                                 href="/public-chat-history/view/${chat.publicId}" 
-                                class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors whitespace-nowrap"
+                                class="w-full sm:w-auto px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors whitespace-nowrap text-center"
                             >
                                 View Chat
                             </a>
                             <button 
                                 id="deleteChatBtn_${chat.publicId}"
-                                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                class="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
                                 title="Delete Chat"
                             >
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -370,28 +443,27 @@
             if (window.TimeUtils) {
                 container.querySelectorAll('.timestamp-display').forEach(el => {
                     const timestamp = el.dataset.timestamp;
-                    const format = el.dataset.format || 'smart';
-                    const prefix = el.dataset.prefix || '';
+                    const format = el.dataset.format || 'relative';
                     if (timestamp) {
                         try {
                             let displayTime, fullTime;
-                            if (format === 'smart') {
-                                displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                            if (format === 'relative') {
+                                displayTime = window.TimeUtils.formatRelativeTime(timestamp);
                                 fullTime = window.TimeUtils.formatFullDateTime(timestamp);
-                            } else if (format === 'date') {
-                                displayTime = window.TimeUtils.formatDateOnly(timestamp);
+                            } else if (format === 'smart') {
+                                displayTime = window.TimeUtils.formatSmartTime(timestamp);
                                 fullTime = window.TimeUtils.formatFullDateTime(timestamp);
                             } else {
-                                displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                                displayTime = window.TimeUtils.formatRelativeTime(timestamp);
                                 fullTime = window.TimeUtils.formatFullDateTime(timestamp);
                             }
-                            el.textContent = prefix + displayTime;
+                            el.textContent = displayTime;
                             el.title = fullTime;
                         } catch (e) {
                             console.error('Error formatting timestamp:', e);
                         }
                     }
-                });
+                });            
             }
             
             // Add delete button listeners
@@ -448,8 +520,8 @@
                             <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                                 <div class="flex-1">
                                     <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(chat.title)}</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${chat.messageCount} messages • <span class="timestamp-display" data-timestamp="${chat.lastActivity}" data-format="smart"></span></p>
-                                </div>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${chat.messageCount} messages • <span class="timestamp-display" data-timestamp="${chat.lastActivity}" data-format="relative"></span></p>
+                                </div>                                
                                 <a href="/public-chat-history/view/${chat.publicId}" class="px-3 py-1 bg-primary text-white rounded-lg hover:bg-secondary transition-colors text-sm">
                                     View
                                 </a>
@@ -465,7 +537,7 @@
                     const timestamp = el.dataset.timestamp;
                     if (timestamp) {
                         try {
-                            const displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                            const displayTime = window.TimeUtils.formatRelativeTime(timestamp);
                             const fullTime = window.TimeUtils.formatFullDateTime(timestamp);
                             el.textContent = displayTime;
                             el.title = fullTime;
@@ -474,7 +546,7 @@
                         }
                     }
                 });
-            }
+            }            
         }
 
         function escapeHtml(text) {
@@ -543,6 +615,7 @@
             currentFilters.participantType = document.getElementById('filterParticipantType')?.value || 'all'; // ✅ NEW
             currentPage = 1;
             updateActiveFiltersDisplay();
+            updateQuickFilterChipsFromState();
             loadPublicChatHistory(1);
         }
 
@@ -707,12 +780,289 @@
             if (filterParticipantType) filterParticipantType.value = 'all';
             
             updateActiveFiltersDisplay();
+            updateQuickFilterChipsFromState();
             applyFilters();
-        }        
+        }
+
+        // Quick filters (chips + sheet) helpers
+        function updateQuickFilterChipsFromState() {
+            const quickPresetEl = document.getElementById('quickDatePreset');
+            const quickPreset = quickPresetEl ? quickPresetEl.value || '' : '';
+            const participant = currentFilters.participantType || 'all';
+            const sortBy = currentFilters.sortBy || 'lastActivity';
+
+            document.querySelectorAll('.twin-filter-chip').forEach(chip => {
+                const type = chip.dataset.filterType;
+                const value = chip.dataset.filterValue;
+                let active = false;
+
+                if (type === 'time') {
+                    if (!quickPreset && !currentFilters.dateFrom && !currentFilters.dateTo) {
+                        active = (value === 'all');
+                    } else if (quickPreset === 'today') {
+                        active = (value === 'today');
+                    } else if (quickPreset === '7days') {
+                        active = (value === '7days');
+                    } else if (quickPreset === '30days') {
+                        active = (value === '30days');
+                    }
+                } else if (type === 'sort') {
+                    active = (value === sortBy);
+                } else if (type === 'participant') {
+                    active = (value === participant);
+                }
+
+                // Prevent participant chips from being "active" in user view
+                if (currentView === 'user' && type === 'participant') {
+                    active = false;
+                }
+
+                if (active) {
+                    chip.classList.add(
+                        'border-primary/40','bg-primary/10','text-primary',
+                        'dark:border-primary/40','dark:bg-primary/20','dark:text-primary'
+                    );
+                    chip.classList.remove(
+                        'border-gray-200','dark:border-gray-700',
+                        'bg-white','dark:bg-gray-900',
+                        'text-gray-700','dark:text-gray-300'
+                    );
+                } else {
+                    chip.classList.remove(
+                        'border-primary/40','bg-primary/10','text-primary',
+                        'dark:border-primary/40','dark:bg-primary/20','dark:text-primary'
+                    );
+                    chip.classList.add(
+                        'border-gray-200','dark:border-gray-700',
+                        'bg-white','dark:bg-gray-900',
+                        'text-gray-700','dark:text-gray-300'
+                    );
+                }
+            });
+        }
+
+        function setupQuickFilterUI() {
+            // Chips click → map to existing inputs + applyFilters
+            document.querySelectorAll('.twin-filter-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const type = chip.dataset.filterType;
+                    const value = chip.dataset.filterValue;
+
+                    if (type === 'time') {
+                        const quickPreset = document.getElementById('quickDatePreset');
+                        const dateFrom = document.getElementById('filterDateFrom');
+                        const dateTo = document.getElementById('filterDateTo');
+
+                        if (value === 'all') {
+                            if (quickPreset) quickPreset.value = '';
+                            if (dateFrom) dateFrom.value = '';
+                            if (dateTo) dateTo.value = '';
+                            applyFilters();
+                        } else {
+                            if (quickPreset) {
+                                quickPreset.value = value;
+                                quickPreset.dispatchEvent(new Event('change'));
+                            }
+                        }
+                    } else if (type === 'sort') {
+                        if (currentView === 'chat') {
+                            const filterSortBy = document.getElementById('filterSortBy');
+                            if (filterSortBy) {
+                                filterSortBy.value = value; // e.g. 'messageCount'
+                                applyFilters();
+                            }
+                        } else {
+                            // user-wise: map 'messageCount' → 'totalMessages' for userSortBy
+                            const userSortBy = document.getElementById('filterUserSortBy');
+                            if (userSortBy) {
+                                userSortBy.value = (value === 'messageCount') ? 'totalMessages' : value;
+                                applyFilters();
+                            }
+                        }
+                    } else if (type === 'participant') {
+                        // Only meaningful in chat-wise view
+                        if (currentView === 'chat') {
+                            const filterParticipantType = document.getElementById('filterParticipantType');
+                            if (filterParticipantType) {
+                                filterParticipantType.value = value; // 'loggedIn' | 'anonymous'
+                                applyFilters();
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Bottom sheet open/close
+            const sheet = document.getElementById('twinFiltersSheetOverlay');
+            const openBtn = document.getElementById('openTwinFiltersSheetBtn');
+            const closeBtn = document.getElementById('closeTwinFiltersSheetBtn');
+
+            if (openBtn && sheet) {
+                openBtn.addEventListener('click', () => {
+                    // Sync sheet controls from current state
+                    const baseSearch = document.getElementById('filterSearch');
+                    const sheetSearch = document.getElementById('twinFilterSheetSearch');
+                    if (baseSearch && sheetSearch) sheetSearch.value = baseSearch.value || '';
+
+                    const quickPreset = document.getElementById('quickDatePreset');
+                    const sheetQuick = document.getElementById('twinFilterSheetQuickDate');
+                    if (quickPreset && sheetQuick) sheetQuick.value = quickPreset.value || '';
+
+                    const sheetSort = document.getElementById('twinFilterSheetSortBy');
+                    if (sheetSort) {
+                        if (currentView === 'chat') {
+                            sheetSort.value = currentFilters.sortBy || 'lastActivity';
+                        } else {
+                            // user-wise
+                            sheetSort.value = currentFilters.userSortBy || 'lastActivity';
+                        }
+                    }
+
+                    const sheetParticipant = document.getElementById('twinFilterSheetParticipantType');
+                    if (sheetParticipant) sheetParticipant.value = currentFilters.participantType || 'all';
+
+                    sheet.classList.remove('hidden');
+                });
+            }
+            if (closeBtn && sheet) {
+                closeBtn.addEventListener('click', () => {
+                    sheet.classList.add('hidden');
+                });
+            }
+            if (sheet) {
+                sheet.addEventListener('click', (e) => {
+                    if (e.target === sheet) {
+                        sheet.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Sheet controls → bridge to existing inputs
+            const sheetSearch = document.getElementById('twinFilterSheetSearch');
+            if (sheetSearch) {
+                sheetSearch.addEventListener('input', () => {
+                    const baseSearch = document.getElementById('filterSearch');
+                    if (baseSearch) {
+                        baseSearch.value = sheetSearch.value;
+                        clearTimeout(searchDebounceTimer);
+                        searchDebounceTimer = setTimeout(() => {
+                            applyFilters();
+                        }, 500);
+                    }
+                });
+            }
+
+            const sheetQuick = document.getElementById('twinFilterSheetQuickDate');
+            if (sheetQuick) {
+                sheetQuick.addEventListener('change', () => {
+                    const quickPreset = document.getElementById('quickDatePreset');
+                    if (quickPreset) {
+                        quickPreset.value = sheetQuick.value;
+                        quickPreset.dispatchEvent(new Event('change'));
+                    }
+                });
+            }
+
+            const sheetSort = document.getElementById('twinFilterSheetSortBy');
+            if (sheetSort) {
+                sheetSort.addEventListener('change', () => {
+                    if (currentView === 'chat') {
+                        const filterSortBy = document.getElementById('filterSortBy');
+                        if (filterSortBy) {
+                            filterSortBy.value = sheetSort.value;
+                            applyFilters();
+                        }
+                    } else {
+                        const userSortBy = document.getElementById('filterUserSortBy');
+                        if (userSortBy) {
+                            userSortBy.value = (sheetSort.value === 'messageCount')
+                                ? 'totalMessages'
+                                : sheetSort.value;
+                            applyFilters();
+                        }
+                    }
+                });
+            }
+
+            const sheetParticipant = document.getElementById('twinFilterSheetParticipantType');
+            if (sheetParticipant) {
+                sheetParticipant.addEventListener('change', () => {
+                    if (currentView === 'chat') {
+                        const filterParticipantType = document.getElementById('filterParticipantType');
+                        if (filterParticipantType) {
+                            filterParticipantType.value = sheetParticipant.value;
+                            applyFilters();
+                        }
+                    }
+                });
+            }
+
+            const clearBtn = document.getElementById('twinFiltersClearBtn');
+            const applyBtn = document.getElementById('twinFiltersApplyBtn');
+
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    clearFilters();
+                    if (sheet) sheet.classList.add('hidden');
+                });
+            }
+            if (applyBtn) {
+                applyBtn.addEventListener('click', () => {
+                    applyFilters();
+                    if (sheet) sheet.classList.add('hidden');
+                });
+            }
+        }
+
+        function syncViewSpecificFilterVisibility() {
+            const participantContainer = document.getElementById('participantFilterContainer');
+            const participantSheetBlock = document.getElementById('twinFilterSheetParticipantBlock');
+
+            // Quick chips: chat-only participant chips
+            document.querySelectorAll('.twin-filter-chat-only').forEach(el => {
+                if (currentView === 'chat') {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+
+            // Desktop participant select
+            if (participantContainer) {
+                if (currentView === 'chat') {
+                    participantContainer.classList.remove('hidden');
+                } else {
+                    participantContainer.classList.add('hidden');
+                }
+            }
+
+            // Sheet participants
+            if (participantSheetBlock) {
+                if (currentView === 'chat') {
+                    participantSheetBlock.classList.remove('hidden');
+                } else {
+                    participantSheetBlock.classList.add('hidden');
+                }
+            }
+
+            // User-wise view: participants filter logically 'all'
+            if (currentView === 'user') {
+                currentFilters.participantType = 'all';
+            }
+        }
 
         // ✅ FIX: Optimize toggleView function
         function toggleView(view) {
             if (currentView === view) return; // ✅ FIX: Don't do anything if already on that view
+            
+            // ✅ FIX: Show loading state immediately
+            const container = document.getElementById('chatsContainer');
+            container.innerHTML = `
+                <div class="text-center py-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                    <p class="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+                </div>
+            `;
             
             currentView = view;
             
@@ -721,32 +1071,31 @@
             url.searchParams.set('view', view);
             window.history.replaceState({}, '', url.toString());
             
-            // ✅ FIX: Use requestAnimationFrame for smoother UI updates
-            requestAnimationFrame(() => {
-                // Update button states
-                if (view === 'chat') {
-                    document.getElementById('viewChatBtn').classList.add('bg-primary', 'text-white');
-                    document.getElementById('viewChatBtn').classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
-                    document.getElementById('viewUserBtn').classList.remove('bg-primary', 'text-white');
-                    document.getElementById('viewUserBtn').classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-300', 'dark:text-gray-300');
-                    document.getElementById('userSortByContainer').classList.add('hidden');
-                } else {
-                    document.getElementById('viewChatBtn').classList.remove('bg-primary', 'text-white');
-                    document.getElementById('viewChatBtn').classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
-                    document.getElementById('viewUserBtn').classList.add('bg-primary', 'text-white');
-                    document.getElementById('viewUserBtn').classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-300', 'dark:text-gray-300');
-                    document.getElementById('userSortByContainer').classList.remove('hidden');
-                }
-                
-                // ✅ FIX: Load data asynchronously without blocking UI
-                setTimeout(() => {
-                    if (view === 'chat') {
-                        loadPublicChatHistory();
-                    } else {
-                        loadUserWisePublicChats();
-                    }
-                }, 0);
-            });
+            // ✅ FIX: Update button states synchronously
+            if (view === 'chat') {
+                document.getElementById('viewChatBtn').classList.add('bg-primary', 'text-white');
+                document.getElementById('viewChatBtn').classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                document.getElementById('viewUserBtn').classList.remove('bg-primary', 'text-white');
+                document.getElementById('viewUserBtn').classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-300', 'dark:text-gray-300');
+                document.getElementById('userSortByContainer').classList.add('hidden');
+            } else {
+                document.getElementById('viewChatBtn').classList.remove('bg-primary', 'text-white');
+                document.getElementById('viewChatBtn').classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                document.getElementById('viewUserBtn').classList.add('bg-primary', 'text-white');
+                document.getElementById('viewUserBtn').classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-300', 'dark:text-gray-300');
+                document.getElementById('userSortByContainer').classList.remove('hidden');
+            }
+
+            syncViewSpecificFilterVisibility();
+            updateQuickFilterChipsFromState();
+            
+            // ✅ FIX: Load data immediately without setTimeout
+            currentPage = 1;
+            if (view === 'chat') {
+                loadPublicChatHistory(1);
+            } else {
+                loadPublicChatHistory(1); // This will call user-wise endpoint based on currentView
+            }
         }        
 
         // ✅ FIX: Restore view state on page load
@@ -934,6 +1283,13 @@
                     userSortContainer.classList.add('hidden');
                 }
             }
+
+            // View-specific visibility (participants, chat-only chips)
+            syncViewSpecificFilterVisibility();
+            
+            // Quick filters (chips + sheet)
+            updateQuickFilterChipsFromState();
+            setupQuickFilterUI();
         });
     </script>    
 </body>

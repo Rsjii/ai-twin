@@ -979,15 +979,18 @@
                     </div>
                     <span class="text-lg font-semibold text-gray-900 dark:text-white">Trending Now</span>
                 </div>
-                <a href="/discover" class="text-sm text-primary hover:text-secondary font-medium transition-colors">
-                    View All →
-                </a>
             </div>
             <div id="trendingCarousel" class="relative">
                 <div id="trendingCards" class="flex gap-6 overflow-x-auto pb-4 scrollbar-hide" style="scroll-behavior: smooth;">
                     <!-- Trending twin cards will be loaded here via JS -->
                 </div>
-            </div>            
+            </div>      
+            <div class="mt-4 text-center">
+                <a href="/discover" class="text-sm text-primary hover:text-secondary font-medium transition-colors">
+                    View All →
+                </a>
+            </div>
+  
         </div>
         
         <!-- RIGHT BOX: You Recently Chatted With -->
@@ -999,7 +1002,7 @@
                     </div>
                     <span class="text-lg font-semibold text-gray-900 dark:text-white">You Recently Chatted With</span>
                 </div>
-                <div id="recentInteractions" class="space-y-3">
+                <div id="recentInteractions" class="flex gap-6 overflow-x-auto pb-4 scrollbar-hide" style="scroll-behavior: smooth;">
                     <!-- Recent interaction cards will be loaded here via JS -->
                 </div>
                 <div class="mt-4 text-center">
@@ -1008,7 +1011,7 @@
                     </a>
                 </div>
             </div>
-        </div>
+        </div>        
     </div>
 </div>         
 
@@ -1063,7 +1066,7 @@
 </main>
 
 <script>
-    const MAX_RECENT_CHATS = 1;
+    const MAX_RECENT_CHATS = 2;
     // Set CSRF token from server
     window.csrfToken = '<%= csrfToken %>';
     console.log('✅ CSRF Token set:', window.csrfToken);
@@ -1270,7 +1273,7 @@ function renderRecentInteractions(chats) {
     
     if (!chats || chats.length === 0) {
         container.innerHTML = `
-            <div class="bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 rounded-xl p-8 border border-primary/10 dark:border-primary/20 text-center">
+            <div class="bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 rounded-xl p-8 border border-primary/10 dark:border-primary/20 text-center min-w-[280px] flex-shrink-0">
                 <div class="w-16 h-16 bg-gradient-to-r from-primary/20 to-accent/20 dark:from-primary/30 dark:to-accent/30 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg class="w-8 h-8 text-primary dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
@@ -1295,7 +1298,7 @@ function renderRecentInteractions(chats) {
     
     chats.forEach(({ twin, latestChat, lastMessage, totalMessages }) => {
         const card = document.createElement('div');
-        card.className = 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-4 border border-white/40 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 hover:shadow-lg transition-all duration-300 group';
+        card.className = 'min-w-[280px] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-4 border border-white/40 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 hover:shadow-lg transition-all duration-300 group flex-shrink-0';
         
         
         // Avatar initial
@@ -1369,6 +1372,7 @@ function renderRecentInteractions(chats) {
             button.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
+                const hasChatId = !!chatId && chatId !== '';
                 console.log('🔘 Button clicked:', { chatId, twinId, hasChatId: !!chatId && chatId !== '' });
                 // Use closure variables directly, not from attributes
                 const url = hasChatId
@@ -1412,9 +1416,31 @@ function renderRecentInteractions(chats) {
             }
         }
     });
+    
+    // Add "Chat with more twins" placeholder card on the right
+    const placeholderCard = document.createElement('div');
+    placeholderCard.className = 'min-w-[280px] bg-gradient-to-br from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 backdrop-blur-sm rounded-xl p-6 border-2 border-dashed border-primary/30 dark:border-primary/40 hover:border-primary/50 dark:hover:border-primary/60 hover:shadow-lg transition-all duration-300 flex-shrink-0 flex flex-col items-center justify-center cursor-pointer group';
+    placeholderCard.innerHTML = `
+        <div class="w-16 h-16 bg-gradient-to-r from-primary/20 to-accent/20 dark:from-primary/30 dark:to-accent/30 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <span class="text-3xl">💬</span>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 text-center">Chat with More Twins</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-300 text-center mb-4">Discover and start conversations with exciting AI twins</p>
+        <a href="/discover" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
+            <span>🔍</span>
+            <span>Explore Now</span>
+        </a>
+    `;
+    
+    // Add click handler for placeholder card
+    placeholderCard.addEventListener('click', function(e) {
+        if (!e.target.closest('a')) {
+            window.location.href = '/discover';
+        }
+    });
+    
+    container.appendChild(placeholderCard);
 }
-
-
     
     // Load discover section on page load
     document.addEventListener('DOMContentLoaded', function() {

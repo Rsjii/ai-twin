@@ -48,6 +48,61 @@
             <!-- Stats will be populated by JS -->
         </div>        
 
+                <!-- Quick Filters Row (mobile-friendly, Amazon-style) -->
+                <div class="flex items-center gap-2 mb-3 sm:mb-4">
+                    <!-- Left: Filters button to open full filter screen -->
+                    <button
+                        id="openFiltersSheetBtn"
+                        class="flex-shrink-0 inline-flex items-center justify-center px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs sm:text-sm text-gray-700 dark:text-gray-200 shadow-sm touch-manipulation"
+                        type="button"
+                    >
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 4h18M4 8h16M5 12h14M6 16h12M7 20h10"></path>
+                        </svg>
+                        <span>Filters</span>
+                    </button>
+        
+                    <!-- Right: horizontal scrollable filter chips -->
+                    <div class="flex-1 overflow-x-auto scrollbar-hide">
+                        <div id="filterChipsRow" class="flex flex-row gap-2">
+                            <!-- Time filters -->
+                            <button
+                                class="filter-chip active flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-primary/40 bg-primary/10 text-primary dark:border-primary/40 dark:bg-primary/20 dark:text-primary whitespace-nowrap touch-manipulation"
+                                data-filter-type="time" data-filter-value="all">
+                                All time
+                            </button>
+                            <button
+                                class="filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 whitespace-nowrap touch-manipulation"
+                                data-filter-type="time" data-filter-value="today">
+                                Today
+                            </button>
+                            <button
+                                class="filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 whitespace-nowrap touch-manipulation"
+                                data-filter-type="time" data-filter-value="7">
+                                Last 7 days
+                            </button>
+                            <button
+                                class="filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 whitespace-nowrap touch-manipulation"
+                                data-filter-type="time" data-filter-value="30">
+                                Last 30 days
+                            </button>
+        
+                            <!-- Sort filters -->
+                            <button
+                                class="filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 whitespace-nowrap touch-manipulation"
+                                data-filter-type="sort" data-filter-value="messages">
+                                Most messages
+                            </button>
+                            <button
+                                class="filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 whitespace-nowrap touch-manipulation"
+                                data-filter-type="sort" data-filter-value="chats">
+                                Most chats
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
         <!-- Loading State -->
         <div id="loadingState" class="hidden">
             <%- include('components/loading-skeleton', { type: 'twin-card', count: 8 }) %>
@@ -87,6 +142,11 @@
     <script>
         // Set CSRF token from server
         window.csrfToken = '<%= csrfToken || "" %>';
+
+        // Global filter state
+        let allChatsData = [];
+        let activeTimeFilter = 'all';      // 'all' | 'today' | '7' | '30'
+               let activeSortFilter = null;       // null | 'messages' | 'chats'
 
         // Load chat history on page load
         async function loadChatHistory() {
@@ -147,11 +207,14 @@
                     totalMessages += twinMessages || 0;
                 });
 
+                 // Save original data for filtering
+                 allChatsData = data.chats || [];
+
                 // Render stats
                 renderStats(totalTwins, totalChats, totalMessages);
 
-                // Render twin cards
-                renderTwinCards(data.chats);
+                // Render with current filters
+                renderWithFilters();
 
                 // Show grid
                 emptyState.classList.add('hidden');
@@ -331,13 +394,261 @@
                     }
                 });
             }
-        }        
+        }     
+        
+        function renderWithFilters() {
+            if (!Array.isArray(allChatsData) || allChatsData.length === 0) {
+                const twinsGrid = document.getElementById('twinsGrid');
+                if (twinsGrid) twinsGrid.innerHTML = '';
+                return;
+            }
+
+            let filtered = [...allChatsData];
+            filtered = applyTimeFilter(filtered);
+            filtered = applySortFilter(filtered);
+            renderTwinCards(filtered);
+        }
+
+        function applyTimeFilter(chats) {
+            if (activeTimeFilter === 'all') return chats;
+
+            const now = new Date();
+            const msPerDay = 24 * 60 * 60 * 1000;
+
+            return chats.filter(({ latestChat, lastMessage }) => {
+                const ts = latestChat?.lastActivity || lastMessage?.createdAt;
+                if (!ts) return false;
+                const diffDays = (now - new Date(ts)) / msPerDay;
+
+                if (activeTimeFilter === 'today') return diffDays <= 1;
+                if (activeTimeFilter === '7') return diffDays <= 7;
+                if (activeTimeFilter === '30') return diffDays <= 30;
+                return true;
+            });
+        }
+
+        function applySortFilter(chats) {
+            if (!activeSortFilter) return chats;
+
+            const arr = [...chats];
+            if (activeSortFilter === 'messages') {
+                arr.sort((a, b) => (b.totalMessages || 0) - (a.totalMessages || 0));
+            } else if (activeSortFilter === 'chats') {
+                arr.sort((a, b) => (b.totalChats || 0) - (a.totalChats || 0));
+            }
+            return arr;
+        }
+
+        function syncChipActiveStates() {
+            // main row chips
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                const type = chip.dataset.filterType;
+                const value = chip.dataset.filterValue;
+                let active = false;
+
+                if (type === 'time') {
+                    active = (value === activeTimeFilter);
+                } else if (type === 'sort') {
+                    active = (value === activeSortFilter);
+                }
+
+                if (active) {
+                    chip.classList.add('border-primary/40','bg-primary/10','text-primary','dark:border-primary/40','dark:bg-primary/20','dark:text-primary');
+                    chip.classList.remove('border-gray-200','dark:border-gray-700','bg-white','dark:bg-gray-900','text-gray-700','dark:text-gray-300');
+                } else {
+                    chip.classList.remove('border-primary/40','bg-primary/10','text-primary','dark:border-primary/40','dark:bg-primary/20','dark:text-primary');
+                    chip.classList.add('border-gray-200','dark:border-gray-700','bg-white','dark:bg-gray-900','text-gray-700','dark:text-gray-300');
+                }
+            });
+
+            // sheet chips
+            document.querySelectorAll('.filter-chip-sheet').forEach(chip => {
+                const type = chip.dataset.filterType;
+                const value = chip.dataset.filterValue;
+                let active = false;
+
+                if (type === 'time') {
+                    active = (value === activeTimeFilter);
+                } else if (type === 'sort') {
+                    active = (value === activeSortFilter);
+                }
+
+                if (active) {
+                    chip.classList.add('border-primary/40','bg-primary/10','text-primary','dark:border-primary/40','dark:bg-primary/20','dark:text-primary');
+                    chip.classList.remove('border-gray-200','dark:border-gray-700','bg-white','dark:bg-gray-800','text-gray-700','dark:text-gray-300');
+                } else {
+                    chip.classList.remove('border-primary/40','bg-primary/10','text-primary','dark:border-primary/40','dark:bg-primary/20','dark:text-primary');
+                    chip.classList.add('border-gray-200','dark:border-gray-700','bg-white','dark:bg-gray-800','text-gray-700','dark:text-gray-300');
+                }
+            });
+        }
+
+        function setupFilterEvents() {
+            // Main row chips
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const type = chip.dataset.filterType;
+                    const value = chip.dataset.filterValue;
+
+                    if (type === 'time') {
+                        activeTimeFilter = value;
+                    } else if (type === 'sort') {
+                        activeSortFilter = (activeSortFilter === value ? null : value);
+                    }
+
+                    syncChipActiveStates();
+                    renderWithFilters();
+                });
+            });
+
+            // Sheet chips
+            document.querySelectorAll('.filter-chip-sheet').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const type = chip.dataset.filterType;
+                    const value = chip.dataset.filterValue;
+
+                    if (type === 'time') {
+                        activeTimeFilter = value;
+                    } else if (type === 'sort') {
+                        activeSortFilter = (activeSortFilter === value ? null : value);
+                    }
+
+                    syncChipActiveStates();
+                });
+            });
+
+            // Open / Close sheet
+            const sheet = document.getElementById('filtersSheetOverlay');
+            const openBtn = document.getElementById('openFiltersSheetBtn');
+            const closeBtn = document.getElementById('closeFiltersSheetBtn');
+
+            if (openBtn && sheet) {
+                openBtn.addEventListener('click', () => {
+                    sheet.classList.remove('hidden');
+                    syncChipActiveStates();
+                });
+            }
+            if (closeBtn && sheet) {
+                closeBtn.addEventListener('click', () => {
+                    sheet.classList.add('hidden');
+                });
+            }
+            if (sheet) {
+                sheet.addEventListener('click', (e) => {
+                    if (e.target === sheet) {
+                        sheet.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Clear / Apply in sheet
+            const clearBtn = document.getElementById('clearFiltersBtn');
+            const applyBtn = document.getElementById('applyFiltersBtn');
+
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    activeTimeFilter = 'all';
+                    activeSortFilter = null;
+                    syncChipActiveStates();
+                });
+            }
+
+            if (applyBtn && sheet) {
+                applyBtn.addEventListener('click', () => {
+                    syncChipActiveStates();
+                    renderWithFilters();
+                    sheet.classList.add('hidden');
+                });
+            }
+        }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
             loadChatHistory();
+            setupFilterEvents();
         });
     </script>
+
+        <!-- Full Filter Sheet (mobile-style, slides up from bottom) -->
+        <div id="filtersSheetOverlay" class="fixed inset-0 z-40 bg-black/40 hidden">
+            <div class="absolute inset-x-0 bottom-0 bg-white dark:bg-gray-900 rounded-t-2xl max-h-[80vh] shadow-2xl flex flex-col">
+                <!-- Header -->
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">Filters</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Refine your public chat history</p>
+                    </div>
+                    <button id="closeFiltersSheetBtn"
+                            class="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-300"
+                            type="button">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+    
+                <!-- Filter content -->
+                <div class="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+                    <!-- Time filter group -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Time</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                class="filter-chip-sheet active px-3 py-1.5 rounded-full text-xs border border-primary/40 bg-primary/10 text-primary dark:border-primary/40 dark:bg-primary/20 dark:text-primary"
+                                data-filter-type="time" data-filter-value="all">
+                                All time
+                            </button>
+                            <button
+                                class="filter-chip-sheet px-3 py-1.5 rounded-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                data-filter-type="time" data-filter-value="today">
+                                Today
+                            </button>
+                            <button
+                                class="filter-chip-sheet px-3 py-1.5 rounded-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                data-filter-type="time" data-filter-value="7">
+                                Last 7 days
+                            </button>
+                            <button
+                                class="filter-chip-sheet px-3 py-1.5 rounded-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                data-filter-type="time" data-filter-value="30">
+                                Last 30 days
+                            </button>
+                        </div>
+                    </div>
+    
+                    <!-- Sort group -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Sort by</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                class="filter-chip-sheet px-3 py-1.5 rounded-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                data-filter-type="sort" data-filter-value="messages">
+                                Most messages
+                            </button>
+                            <button
+                                class="filter-chip-sheet px-3 py-1.5 rounded-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                data-filter-type="sort" data-filter-value="chats">
+                                Most chats
+                            </button>
+                        </div>
+                    </div>
+                </div>
+    
+                <!-- Footer buttons -->
+                <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+                    <button id="clearFiltersBtn"
+                            class="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-xs sm:text-sm text-gray-700 dark:text-gray-200">
+                        Clear
+                    </button>
+                    <button id="applyFiltersBtn"
+                            class="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-xs sm:text-sm text-white font-semibold shadow-md">
+                        Apply
+                    </button>
+                </div>
+            </div>
+        </div>
+
     <!--Footer-->
     <%- include('footer/footer-conditional-private') %>
 </body>
