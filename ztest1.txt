@@ -141,17 +141,19 @@ b. agar show chat hisory false ho to bhi acche se pan previous hatwa sakte new s
 117. loading states + erroe states + env wise
 //VERIFY && DEKHO 118. filtering ke logic sahi chal dahboard discover no logged blocked sabke liye
 119. 
-dashboard -> discover all twins dark theme me text dark
-my twin-> recent chat s -> har chat ke saamne public likha
+dashboard// discover all twins dark theme me text dark
+//DONE ->  my twin-> recent chat s -> har chat ke saamne public likha
 analytics -> recent activity me pagination + kaya rakhna iakso  + kya rakhna + bottom me debug tools inka kya karna + view public chats ka link hona chahiye isme + uske related data
-allow share hata de kya
+//VERIFY// allow share hata de kya
 twinsettings sync onw hata de
 rlative time kaha kaha public chat hisory+ bahut se hai
 jyaada bada hai to aage ka dot dot dikhao all possible places
-dahobaord -> tredning now -> view all niche karo
+//DONE// dahobaord -> tredning now -> view all niche karo
 enhanced chat me lasy me style + options usko kaise karna
 twin id in ai -edit dikh trahi
 hover effect form submit me, change ho tabhi color green ho warna grey
+prod data saaf karo
+email change dena kya
 
 ### 1. Enhanced‑chat itna slow kyu hai?
 

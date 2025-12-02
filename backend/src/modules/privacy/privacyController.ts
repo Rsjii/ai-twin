@@ -27,7 +27,6 @@ const updatePrivacySettingsSchema = z.object({
     blockNonLoggedUsers: z.boolean().optional(),
     allowLikes: z.boolean().optional(),
     allowFollows: z.boolean().optional(),
-    allowShares: z.boolean().optional(),
     blockSpecificUsers: z.array(z.string()).optional(),
   })
 });
@@ -96,11 +95,13 @@ export const updatePrivacySettings = async (req: Request, res: Response) => {
       paramIndex++;
     }
 
-    if (settings.allowShares !== undefined) {
-      updateFields.push(`"allowShares" = $${paramIndex}`);
-      updateValues.push(settings.allowShares);
-      paramIndex++;
-    }
+    // ✅ REMOVED: allowShares update from UI
+    // Users can't change this setting from UI anymore
+    // if (settings.allowShares !== undefined) {
+    //   updateFields.push(`"allowShares" = $${paramIndex}`);
+    //   updateValues.push(settings.allowShares);
+    //   paramIndex++;
+    // }
 
     if (updateFields.length === 0) {
       return res.status(400).json({ error: 'No valid settings provided' });

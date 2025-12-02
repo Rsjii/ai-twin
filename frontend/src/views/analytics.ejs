@@ -68,10 +68,10 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
     function showTopContentEmpty() { showEmpty('topContent'); }
     function showTopContentError() { showError('topContent'); }
     
-    function showRecentActivityLoading() { showLoading('recentActivity'); }
-    function hideRecentActivityLoading() { hideLoading('recentActivity'); }
-    function showRecentActivityEmpty() { showEmpty('recentActivity'); }
-    function showRecentActivityError() { showError('recentActivity'); }
+    function showPeriodSummaryLoading() { showLoading('periodSummary'); }
+    function hidePeriodSummaryLoading() { hideLoading('periodSummary'); }
+    function showPeriodSummaryEmpty() { showEmpty('periodSummary'); }
+    function showPeriodSummaryError() { showError('periodSummary'); }
     
     // Debug function to check user data
     async function debugUserData() {
@@ -116,7 +116,7 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
     showOverviewLoading();
     showChartLoading();
     showTopContentLoading();
-    showRecentActivityLoading();
+    showPeriodSummaryLoading();
     hideOverviewError();
     
     const elements = {
@@ -129,7 +129,7 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
         satisfactionScore: document.getElementById('satisfactionScore'),
         overviewContainer: document.getElementById('overviewContainer'),
         topContent: document.getElementById('topContent'),
-        recentActivity: document.getElementById('recentActivity'),
+        periodSummary: document.getElementById('periodSummary'),
         chartContainer: document.getElementById('chartContainer')
     };
 
@@ -138,7 +138,7 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
         totalLikes: !!elements.totalLikes,
         chartContainer: !!elements.chartContainer,
         topContent: !!elements.topContent,
-        recentActivity: !!elements.recentActivity
+        periodSummary: !!elements.periodSummary
     });
 
     try {
@@ -204,8 +204,7 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                 engagementDataValues: data.analytics?.engagementData?.values ? data.analytics.engagementData.values.length : 0,
                 hasTopContent: Array.isArray(data.analytics?.topContent),
                 topContentLength: data.analytics?.topContent?.length || 0,
-                hasRecentActivity: Array.isArray(data.analytics?.recentActivity),
-                recentActivityLength: data.analytics?.recentActivity?.length || 0
+                hasPeriodSummary: !!data.analytics?.periodSummary
             });
         } catch (err) {
             console.error('[ANALYTICS_DATA] Failed to parse /api/metrics/user JSON', err);
@@ -424,36 +423,24 @@ if (elements.chartContainer) {
             console.error('[ANALYTICS] ❌ Top content container not found');
         }
 
-        // Recent Activity
-        console.log('[ANALYTICS] Processing recent activity...');
-        hideRecentActivityLoading();
-        if (elements.recentActivity) {
-            elements.recentActivity.classList.remove('hidden');
-            if (data.analytics?.recentActivity && Array.isArray(data.analytics.recentActivity) && data.analytics.recentActivity.length > 0) {
-                console.log('[ANALYTICS] ✅ Recent activity found:', data.analytics.recentActivity.length, 'items');
-                const fragment = document.createDocumentFragment();
-                data.analytics.recentActivity.forEach((activity) => {
-                    if (!activity || !activity.description) return;
-                    const timestamp = activity.timestamp ? TimeUtils.formatTimeWithContext(activity.timestamp) : 'Unknown time';
-                    const div = document.createElement('div');
-                    div.className = 'flex items-center space-x-3';
-                    div.innerHTML =
-                        `<div class="w-2 h-2 bg-blue-500 rounded-full"></div>` +
-                        `<div class="flex-1">` +
-                        `<p class="text-sm text-gray-900 dark:text-white">${activity.description}</p>` +
-                        `<p class="text-xs text-gray-500 dark:text-gray-400">${timestamp}</p>` +
-                        `</div>`;
-                    fragment.appendChild(div);
-                });
-                elements.recentActivity.innerHTML = '';
-                elements.recentActivity.appendChild(fragment);
-                console.log('[ANALYTICS] ✅ Recent activity rendered');
+        // ✅ NEW: Period Summary
+        console.log('[ANALYTICS] Processing period summary...');
+        hidePeriodSummaryLoading();
+        if (elements.periodSummary) {
+            elements.periodSummary.classList.remove('hidden');
+            
+            const periodSummary = data.analytics?.periodSummary;
+            if (periodSummary) {
+                console.log('[ANALYTICS] ✅ Period summary found');
+                // Store data globally for toggle
+                window.analyticsData = data;
+                renderPeriodSummary(periodSummary, window.currentPeriod || 7);
             } else {
-                console.warn('[ANALYTICS] ⚠️ No recent activity data');
-                showRecentActivityEmpty();
+                console.warn('[ANALYTICS] ⚠️ No period summary data');
+                showPeriodSummaryEmpty();
             }
         } else {
-            console.error('[ANALYTICS] ❌ Recent activity container not found');
+            console.error('[ANALYTICS] ❌ Period summary container not found');
         }
         
         console.log('[ANALYTICS] ========== END loadAnalytics (SUCCESS) ==========');
@@ -465,13 +452,121 @@ if (elements.chartContainer) {
         showOverviewError();
         showChartError();
         showTopContentError();
-        showRecentActivityError();
+        showPeriodSummaryError();
         console.log('[ANALYTICS] ========== END loadAnalytics (ERROR) ==========');
     }
-}            
+}
 
+// ✅ NEW: Function to render period summary
+function renderPeriodSummary(periodSummary, selectedPeriod) {
+    const container = document.getElementById('periodSummary');
+    if (!container) return;
+    
+    const periodData = selectedPeriod === 7 ? periodSummary.period7Days : periodSummary.period30Days;
+    
+    if (!periodData) {
+        showPeriodSummaryEmpty();
+        return;
+    }
+    
+    const summaryCards = [
+        {
+            label: 'New Chats',
+            value: periodData.newChats || 0,
+            icon: '💬',
+            bgClass: 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20',
+            borderClass: 'border-blue-200 dark:border-blue-800',
+            textClass: 'text-blue-600 dark:text-blue-400'
+        },
+        {
+            label: 'New Likes',
+            value: periodData.newLikes || 0,
+            icon: '❤️',
+            bgClass: 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20',
+            borderClass: 'border-red-200 dark:border-red-800',
+            textClass: 'text-red-600 dark:text-red-400'
+        },
+        {
+            label: 'New Followers',
+            value: periodData.newFollowers || 0,
+            icon: '👥',
+            bgClass: 'bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20',
+            borderClass: 'border-purple-200 dark:border-purple-800',
+            textClass: 'text-purple-600 dark:text-purple-400'
+        },
+        {
+            label: 'Shares',
+            value: periodData.newShares || 0,
+            icon: '🔗',
+            bgClass: 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20',
+            borderClass: 'border-green-200 dark:border-green-800',
+            textClass: 'text-green-600 dark:text-green-400'
+        },
+        {
+            label: 'Messages',
+            value: periodData.newMessages || 0,
+            icon: '📨',
+            bgClass: 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20',
+            borderClass: 'border-orange-200 dark:border-orange-800',
+            textClass: 'text-orange-600 dark:text-orange-400'
+        }
+    ];
+    
+    container.innerHTML = summaryCards.map(card => `
+        <div class="${card.bgClass} rounded-xl p-4 border ${card.borderClass}">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-2xl">${card.icon}</span>
+                <span class="text-2xl sm:text-3xl font-bold ${card.textClass}">${card.value}</span>
+            </div>
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">${card.label}</p>
+        </div>
+    `).join('');
+    
+    container.classList.remove('hidden');
+}
+
+// ✅ NEW: Helper function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+    // ✅ NEW: Period toggle handler
+    window.currentPeriod = 7;
+    
     // Load analytics on page load and add click handlers
     document.addEventListener('DOMContentLoaded', () => {
+        // Setup period toggle
+        const toggle7 = document.getElementById('periodToggle7');
+        const toggle30 = document.getElementById('periodToggle30');
+        
+        if (toggle7 && toggle30) {
+            toggle7.addEventListener('click', () => {
+                window.currentPeriod = 7;
+                toggle7.classList.add('bg-primary', 'text-white');
+                toggle7.classList.remove('text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-200', 'dark:hover:bg-gray-600');
+                toggle30.classList.remove('bg-primary', 'text-white');
+                toggle30.classList.add('text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-200', 'dark:hover:bg-gray-600');
+                
+                if (window.analyticsData?.analytics?.periodSummary) {
+                    renderPeriodSummary(window.analyticsData.analytics.periodSummary, 7);
+                }
+            });
+            
+            toggle30.addEventListener('click', () => {
+                window.currentPeriod = 30;
+                toggle30.classList.add('bg-primary', 'text-white');
+                toggle30.classList.remove('text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-200', 'dark:hover:bg-gray-600');
+                toggle7.classList.remove('bg-primary', 'text-white');
+                toggle7.classList.add('text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-200', 'dark:hover:bg-gray-600');
+                
+                if (window.analyticsData?.analytics?.periodSummary) {
+                    renderPeriodSummary(window.analyticsData.analytics.periodSummary, 30);
+                }
+            });
+        }
+        
         loadAnalytics();
         
         // Get twinId from global variable (set by script tag outside template string)

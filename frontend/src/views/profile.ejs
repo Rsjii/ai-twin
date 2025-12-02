@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title><%= title %></title>
     <link rel="stylesheet" href="/css/output.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script type="module" src="/js/form-dirty-state.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -571,17 +572,6 @@
                                                     <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-blue-500"></div>
                                                 </label>
                                             </div>
-                                            
-                                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                                <div class="flex-1">
-                                                    <h4 class="font-semibold text-gray-900 dark:text-white">Allow Shares</h4>
-                                                    <p class="text-sm text-gray-600 dark:text-gray-300">Let others share your twin profile</p>
-                                                </div>
-                                                <label class="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" id="allowShares" <%= (twin.allowShares !== false) ? 'checked' : '' %> class="privacy-toggle sr-only peer">
-                                                    <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-blue-500"></div>
-                                                </label>
-                                            </div>
                                         </div>
                                     </div>
                                     
@@ -745,6 +735,8 @@
         }
         
         // ✅ FIX 1: Define toggleEditMode and cancelEdit OUTSIDE DOMContentLoaded
+        let profileFormTracker = null;
+        
         function toggleEditMode() {
             const form = document.getElementById('profileForm');
             if (!form) return;
@@ -775,6 +767,18 @@
             if (editBtn) editBtn.classList.add('hidden');
             if (cancelBtn) cancelBtn.classList.remove('hidden');
             if (saveBtn) saveBtn.classList.remove('hidden');
+            
+            // ✅ Initialize dirty form tracking when entering edit mode
+            if (!profileFormTracker && saveBtn) {
+                import('/js/form-dirty-state.js').then(({ initDirtyForm }) => {
+                    profileFormTracker = initDirtyForm('#profileForm', '#saveBtn');
+                    if (profileFormTracker) {
+                        profileFormTracker.update(); // Update button state
+                    }
+                });
+            } else if (profileFormTracker) {
+                profileFormTracker.update(); // Update button state
+            }
         }
 
         function cancelEdit() {
@@ -808,6 +812,11 @@
             if (editBtn) editBtn.classList.remove('hidden');
             if (cancelBtn) cancelBtn.classList.add('hidden');
             if (saveBtn) saveBtn.classList.add('hidden');
+            
+            // ✅ Reset dirty form tracking when canceling
+            if (profileFormTracker) {
+                profileFormTracker.reset();
+            }
         }
 
         // ✅ Make these available globally
@@ -1020,6 +1029,10 @@
                         
                         if (response.ok) {
                             showNotification('Profile updated successfully!', 'success');
+                            // ✅ Reset dirty form tracking after successful save
+                            if (profileFormTracker) {
+                                profileFormTracker.reset();
+                            }
                             // ✅ FIX 3: Reload after short delay to show updated image
                             setTimeout(() => {
                                 window.location.reload();
@@ -1187,8 +1200,7 @@
                 requireLogin: document.getElementById('requireLogin')?.checked ?? false,
                 blockNonLoggedUsers: document.getElementById('blockNonLoggedUsers')?.checked ?? false,
                 allowLikes: document.getElementById('allowLikes')?.checked ?? true,
-                allowFollows: document.getElementById('allowFollows')?.checked ?? true,
-                allowShares: document.getElementById('allowShares')?.checked ?? true
+                allowFollows: document.getElementById('allowFollows')?.checked ?? true
             };
             
             // Function to check if values changed
@@ -1200,8 +1212,7 @@
                     requireLogin: document.getElementById('requireLogin')?.checked ?? false,
                     blockNonLoggedUsers: document.getElementById('blockNonLoggedUsers')?.checked ?? false,
                     allowLikes: document.getElementById('allowLikes')?.checked ?? true,
-                    allowFollows: document.getElementById('allowFollows')?.checked ?? true,
-                    allowShares: document.getElementById('allowShares')?.checked ?? true
+                    allowFollows: document.getElementById('allowFollows')?.checked ?? true
                 };
                 
                 const hasChanges = 
@@ -1209,8 +1220,7 @@
                     currentValues.requireLogin !== initialValues.requireLogin ||
                     currentValues.blockNonLoggedUsers !== initialValues.blockNonLoggedUsers ||
                     currentValues.allowLikes !== initialValues.allowLikes ||
-                    currentValues.allowFollows !== initialValues.allowFollows ||
-                    currentValues.allowShares !== initialValues.allowShares;
+                    currentValues.allowFollows !== initialValues.allowFollows;
                 
                 if (hasChanges && savePrivacyBtn) {
                     // Enable button - change color and make clickable
@@ -1295,8 +1305,7 @@
                             requireLogin: document.getElementById('requireLogin')?.checked ?? false,
                             blockNonLoggedUsers: document.getElementById('blockNonLoggedUsers')?.checked ?? false,
                             allowLikes: document.getElementById('allowLikes')?.checked ?? true,
-                            allowFollows: document.getElementById('allowFollows')?.checked ?? true,
-                            allowShares: document.getElementById('allowShares')?.checked ?? true
+                            allowFollows: document.getElementById('allowFollows')?.checked ?? true
                         };
                         
                         // ✅ FIX: Use correct endpoint and method

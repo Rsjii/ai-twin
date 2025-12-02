@@ -176,46 +176,58 @@
             </div>
         </div>
         
-        <!-- Recent Activity -->
+        <!-- ✅ NEW: Period Summary Section (replaces Recent Activity) -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 mb-6 sm:mb-8">
-            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-wrap gap-3">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Activity Summary</h3>
+                <!-- Period Toggle -->
+                <div class="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                    <button id="periodToggle7" class="px-3 py-1.5 text-sm font-medium rounded-md transition-all bg-primary text-white" data-period="7">
+                        7 Days
+                    </button>
+                    <button id="periodToggle30" class="px-3 py-1.5 text-sm font-medium rounded-md transition-all text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600" data-period="30">
+                        30 Days
+                    </button>
+                </div>
             </div>
             <div class="p-6">
-                <!-- Loading State for Recent Activity -->
-                <div id="recentActivityLoadingState" class="hidden space-y-4">
-                    <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-12 animate-pulse"></div>
-                    <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-12 animate-pulse"></div>
-                    <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-12 animate-pulse"></div>
-                    <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-12 animate-pulse"></div>
-                    <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-12 animate-pulse"></div>
+                <!-- Loading State -->
+                <div id="periodSummaryLoadingState" class="hidden">
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                        <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-24 animate-pulse"></div>
+                        <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-24 animate-pulse"></div>
+                        <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-24 animate-pulse"></div>
+                        <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-24 animate-pulse"></div>
+                        <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-24 animate-pulse"></div>
+                    </div>
                 </div>
                 
-                <!-- Recent Activity Container -->
-                <div id="recentActivity" class="space-y-4">
-                    <p class="text-gray-500 dark:text-gray-400">Loading recent activity...</p>
+                <!-- Period Summary Container -->
+                <div id="periodSummary" class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                    <!-- Will be populated by JavaScript -->
                 </div>
                 
-                <!-- Empty State for Recent Activity -->
-                <div id="recentActivityEmptyState" class="hidden text-center py-12">
-                    <div class="text-4xl mb-4">📋</div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No recent activity</h3>
-                    <p class="text-gray-600 dark:text-gray-400">Recent activity will appear here as you use the platform.</p>
+                <!-- Empty State -->
+                <div id="periodSummaryEmptyState" class="hidden text-center py-12">
+                    <div class="text-4xl mb-4">📊</div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No activity yet</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Activity summary will appear here once people start engaging with your twin.</p>
                 </div>
                 
-                <!-- Error State for Recent Activity -->
-                <div id="recentActivityErrorState" class="hidden text-center py-12">
+                <!-- Error State -->
+                <div id="periodSummaryErrorState" class="hidden text-center py-12">
                     <div class="text-4xl mb-4">⚠️</div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to load activity</h3>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4">We encountered an error while loading recent activity. Please try again.</p>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to load summary</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">We encountered an error while loading activity summary. Please try again.</p>
                     <p class="text-sm text-gray-600 dark:text-gray-400">
                         Please <a href="javascript:location.reload()" class="text-primary hover:text-secondary underline font-medium cursor-pointer">reload the page</a> to try again.
-                    </p>                    
+                    </p>
                 </div>
             </div>
         </div>
         
         <!-- Debug Section -->
+        <% if (process.env.NODE_ENV !== 'production' || (typeof user !== 'undefined' && user?.isAdmin)) { %>
         <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mt-6">
             <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-2">Debug Tools</h3>
             <p class="text-sm text-yellow-700 dark:text-yellow-300 mb-4">Use these tools to debug analytics data</p>
@@ -231,5 +243,13 @@
                 </button>
             </div>
         </div>
+        <% } else { %>
+        <!-- Support message for production users -->
+        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-6">
+            <p class="text-sm text-blue-700 dark:text-blue-300">
+                Having trouble? <a href="/contact" class="text-blue-600 dark:text-blue-400 hover:underline font-medium">Contact support</a>
+            </p>
+        </div>
+        <% } %>
     </div>
 </div>

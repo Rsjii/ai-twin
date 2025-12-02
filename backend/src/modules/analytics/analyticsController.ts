@@ -259,9 +259,10 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
     userLikes = 0,
     userFollowers = 0;
 let userEventBreakdown: Record<string, number> = {};
-let formattedActivity: Array<{description: string, timestamp: Date, metadata: any}> = [];
 let dailyEventsResult: any | null = null;
 let topEventTypesResult: any | null = null;
+// ✅ NEW: Period summary for 7/30 days (only engagement events)
+let periodSummary: { period7Days: any, period30Days: any } | null = null;
 
 try {
   const [
@@ -271,12 +272,14 @@ try {
     invitesSentResult,
     invitesReceivedResult,
     eventsResult,
-    likesResult,       // ✅ NEW
-    followersResult,   // ✅ NEW
+    likesResult,
+    followersResult,
     userEventTypesResult,
-    recentActivityResult,
     dailyEventsQueryResult,
     topEventTypesQueryResult,
+    // ✅ NEW: Period summaries (only engagement events)
+    summary7DaysResult,
+    summary30DaysResult,
   ] = await Promise.all([
     db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "userId" = $1', [userId]),
     db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [userId]),
@@ -284,14 +287,12 @@ try {
     db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "inviterId" = $1', [userId]),
     db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "acceptedBy" = $1', [userId]),
     db.query('SELECT COUNT(*) as count FROM "Event" WHERE "userId" = $1', [userId]),
-    // ✅ NEW: real likes on this user’s twins
     db.query(`
       SELECT COUNT(*) as count
       FROM "TwinLike" tl
       JOIN "Twin" t ON tl."twinId" = t.id
       WHERE t."userId" = $1
     `, [userId]),
-    // ✅ NEW: real followers of this user’s twins
     db.query(`
       SELECT COUNT(*) as count
       FROM "TwinFollow" tf
@@ -299,7 +300,6 @@ try {
       WHERE t."userId" = $1
     `, [userId]),
     db.query('SELECT type, COUNT(*) as count FROM "Event" WHERE "userId" = $1 GROUP BY type', [userId]),
-    db.query('SELECT type, "createdAt", meta FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 50', [userId]),
     db.query(`
       SELECT DATE("createdAt") as date, COUNT(*) as count
       FROM "Event"
@@ -316,6 +316,32 @@ try {
       ORDER BY count DESC
       LIMIT 5
     `, [userId]),
+    // ✅ NEW: Last 7 days summary (only engagement events)
+    db.query(`
+      SELECT 
+        COUNT(CASE WHEN type = 'public_chat_started' THEN 1 END) as new_chats,
+        COUNT(CASE WHEN type = 'twin_liked' THEN 1 END) as new_likes,
+        COUNT(CASE WHEN type = 'twin_followed' THEN 1 END) as new_followers,
+        COUNT(CASE WHEN type = 'twin_shared' THEN 1 END) as new_shares,
+        COUNT(CASE WHEN type = 'message_approved' THEN 1 END) as new_messages
+      FROM "Event"
+      WHERE "userId" = $1
+        AND "createdAt" >= NOW() - INTERVAL '7 days'
+        AND type IN ('public_chat_started', 'twin_liked', 'twin_followed', 'twin_shared', 'message_approved')
+    `, [userId]),
+    // ✅ NEW: Last 30 days summary (only engagement events)
+    db.query(`
+      SELECT 
+        COUNT(CASE WHEN type = 'public_chat_started' THEN 1 END) as new_chats,
+        COUNT(CASE WHEN type = 'twin_liked' THEN 1 END) as new_likes,
+        COUNT(CASE WHEN type = 'twin_followed' THEN 1 END) as new_followers,
+        COUNT(CASE WHEN type = 'twin_shared' THEN 1 END) as new_shares,
+        COUNT(CASE WHEN type = 'message_approved' THEN 1 END) as new_messages
+      FROM "Event"
+      WHERE "userId" = $1
+        AND "createdAt" >= NOW() - INTERVAL '30 days'
+        AND type IN ('public_chat_started', 'twin_liked', 'twin_followed', 'twin_shared', 'message_approved')
+    `, [userId]),
   ]);
 
   // ✅ Assign daily/top event results
@@ -329,21 +355,32 @@ try {
   userInvitesSent     = parseInt(invitesSentResult.rows[0].count, 10);
   userInvitesReceived = parseInt(invitesReceivedResult.rows[0].count, 10);
   userEvents          = parseInt(eventsResult.rows[0].count, 10);
-  userLikes           = parseInt(likesResult.rows[0].count, 10);       // ✅ real likes
-  userFollowers       = parseInt(followersResult.rows[0].count, 10);   // ✅ real followers
+  userLikes           = parseInt(likesResult.rows[0].count, 10);
+  userFollowers       = parseInt(followersResult.rows[0].count, 10);
 
-  // Process event breakdown (now from parallel query)
+  // ✅ NEW: Build period summary
+  periodSummary = {
+    period7Days: {
+      newChats: parseInt(summary7DaysResult.rows[0].new_chats || 0, 10),
+      newLikes: parseInt(summary7DaysResult.rows[0].new_likes || 0, 10),
+      newFollowers: parseInt(summary7DaysResult.rows[0].new_followers || 0, 10),
+      newShares: parseInt(summary7DaysResult.rows[0].new_shares || 0, 10),
+      newMessages: parseInt(summary7DaysResult.rows[0].new_messages || 0, 10),
+    },
+    period30Days: {
+      newChats: parseInt(summary30DaysResult.rows[0].new_chats || 0, 10),
+      newLikes: parseInt(summary30DaysResult.rows[0].new_likes || 0, 10),
+      newFollowers: parseInt(summary30DaysResult.rows[0].new_followers || 0, 10),
+      newShares: parseInt(summary30DaysResult.rows[0].new_shares || 0, 10),
+      newMessages: parseInt(summary30DaysResult.rows[0].new_messages || 0, 10),
+    }
+  };
+
+  // Process event breakdown
   userEventBreakdown = userEventTypesResult.rows.reduce((acc, event) => {
     acc[event.type] = parseInt(event.count);
     return acc;
   }, {} as Record<string, number>);
-
-  // Process recent activity (now from parallel query)
-  formattedActivity = recentActivityResult.rows.map(event => ({
-    description: `${event.type} activity`,
-    timestamp: event.createdAt,
-    metadata: event.meta,
-  }));
 } catch (analyticsError) {
   logger.error('Error fetching analytics data:', analyticsError);
   return res.status(500).json({ success: false, error: 'Failed to fetch analytics data' });
@@ -390,7 +427,7 @@ const responseData = {
     invitesSent: userInvitesSent || 0,
     invitesReceived: userInvitesReceived || 0,
     events: userEvents || 0,
-    recentActivity: formattedActivity || [],
+    periodSummary: periodSummary || null, // ✅ NEW: Period summary
     engagementData: engagementData || null,
     topContent
   },
@@ -414,6 +451,7 @@ const responseData = {
       keys: Object.keys(userEventBreakdown),
       values: Object.values(userEventBreakdown)
     });
+    console.log('[BACKEND_ANALYTICS] Period summary:', periodSummary);
     
     try {
       logger.info('[ANALYTICS_USER:RESPONSE]', {
@@ -425,6 +463,7 @@ const responseData = {
           twins: responseData.analytics.twins,
         },
         eventBreakdownKeys: Object.keys(responseData.eventBreakdown),
+        periodSummary: responseData.analytics.periodSummary,
       });
     } catch (logErr) {
       logger.warn('[ANALYTICS_USER] Failed to log RESPONSE:', logErr);
@@ -441,7 +480,7 @@ const responseData = {
         twins: responseData.analytics.twins,
         messages: responseData.analytics.messages,
         events: responseData.analytics.events,
-        recentActivityCount: responseData.analytics.recentActivity.length,
+        periodSummary: responseData.analytics.periodSummary,
         hasEngagementData: !!responseData.analytics.engagementData,
         engagementDataLabelsCount: responseData.analytics.engagementData?.labels?.length || 0,
         engagementDataValuesCount: responseData.analytics.engagementData?.values?.length || 0,

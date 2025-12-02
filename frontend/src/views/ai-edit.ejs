@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="/css/output.css">
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="/utils/timeUtils.js"></script>
+    <script type="module" src="/js/form-dirty-state.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -206,7 +207,7 @@
             <button id="resetChangesBtn" class="flex-1 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-6 py-3 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
                 Reset
             </button>
-            <button id="saveChangesBtn" class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
+            <button id="saveChangesBtn" class="flex-1 bg-gray-400 cursor-not-allowed opacity-50 text-white px-6 py-3 rounded-xl transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base" disabled>
                 Save Changes
             </button>
         </div>
@@ -220,15 +221,19 @@
                     Reset
                 </button>
             </div>
-            <button id="saveChangesBtnMobile" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2.5 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
+            <button id="saveChangesBtnMobile" class="w-full bg-gray-400 cursor-not-allowed opacity-50 text-white px-4 py-2.5 rounded-xl transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base" disabled>
                 Save Changes
             </button>
         </div>
     </div>
 
-    <script>
+    <script type="module">
+    import { initDirtyForm } from '/js/form-dirty-state.js';
+    
     let currentTwinData = null;
     const twinId = '<%= twinId %>';
+    let dirtyFormTracker = null;
+    let dirtyFormTrackerMobile = null;
 
     // Load twin data on page load
     document.addEventListener('DOMContentLoaded', function() {
@@ -244,6 +249,16 @@
                 });
             }
         });
+        
+        // ✅ Initialize dirty form tracking after form is populated
+        // Wait for data to load and form to be populated
+        setTimeout(() => {
+            const container = document.querySelector('.container');
+            if (container) {
+                dirtyFormTracker = initDirtyForm(container, '#saveChangesBtn', '#resetChangesBtn');
+                dirtyFormTrackerMobile = initDirtyForm(container, '#saveChangesBtnMobile', '#resetChangesBtnMobile');
+            }
+        }, 800);
     });
 
     function setupEventListeners() {
@@ -469,6 +484,9 @@ async function saveChanges() {
         const data = await response.json();
         if (data.success) {
             alert('Changes saved successfully!');
+            // ✅ Reset dirty form tracking after successful save
+            if (dirtyFormTracker) dirtyFormTracker.reset();
+            if (dirtyFormTrackerMobile) dirtyFormTrackerMobile.reset();
             loadTwinData();
         } else {
             alert('Error: ' + (data.error || 'Failed to save changes'));

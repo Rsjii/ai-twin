@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="/css/output.css">
     <script src="/utils/timeUtils.js"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script type="module" src="/js/form-dirty-state.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -316,7 +317,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
             <button id="resetChangesBtn" class="flex-1 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-6 py-3 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base" aria-label="Reset Changes">
                 Reset
             </button>
-            <button id="saveChangesBtn" class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base" aria-label="Save Changes">
+            <button id="saveChangesBtn" class="flex-1 bg-gray-400 cursor-not-allowed opacity-50 text-white px-6 py-3 rounded-xl transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base" aria-label="Save Changes" disabled>
                 Save Changes
             </button>
         </div>
@@ -330,7 +331,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                     Reset
                 </button>
             </div>
-            <button id="saveChangesBtnMobile" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[48px] touch-manipulation text-base" aria-label="Save Changes">
+            <button id="saveChangesBtnMobile" class="w-full bg-gray-400 cursor-not-allowed opacity-50 text-white px-6 py-2 rounded-xl transition-all font-medium shadow-md min-h-[48px] touch-manipulation text-base" aria-label="Save Changes" disabled>
                 Save Changes
             </button>
         </div>
@@ -351,9 +352,13 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
         </div>
     </div>
 
-    <script>
+    <script type="module">
+    import { initDirtyForm } from '/js/form-dirty-state.js';
+    
     let currentTwinData = null;
     const twinId = '<%= twinId %>';
+    let dirtyFormTracker = null;
+    let dirtyFormTrackerMobile = null;
     // ✅ FIX: Read tab from URL on init, default to 'phrases'
     const urlParams = new URLSearchParams(window.location.search);
     let currentStyleAnchorTab = urlParams.get('tab') || 'phrases';
@@ -370,6 +375,15 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
         loadStyleAnchors();
         // ✅ FIX: Restore tab state on page load
         switchStyleAnchorTab(currentStyleAnchorTab, false); // false = don't update URL (already set)
+        
+        // ✅ Initialize dirty form tracking after form is populated
+        setTimeout(() => {
+            const container = document.querySelector('.container');
+            if (container) {
+                dirtyFormTracker = initDirtyForm(container, '#saveChangesBtn', '#resetChangesBtn');
+                dirtyFormTrackerMobile = initDirtyForm(container, '#saveChangesBtnMobile', '#resetChangesBtnMobile');
+            }
+        }, 800);
     });
 
     function setupEventListeners() {
@@ -740,6 +754,9 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 const data = await response.json();
                 if (data.success) {
                     alert('Changes saved successfully!');
+                    // ✅ Reset dirty form tracking after successful save
+                    if (dirtyFormTracker) dirtyFormTracker.reset();
+                    if (dirtyFormTrackerMobile) dirtyFormTrackerMobile.reset();
                     loadTwinData();
                 } else {
                     alert('Error: ' + (data.error || 'Failed to save changes'));
