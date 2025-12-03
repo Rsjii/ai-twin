@@ -51,15 +51,15 @@
         })();
     </script>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900">
+<body class="bg-gray-100 dark:bg-gray-900 h-screen overflow-hidden flex flex-col">    
     <!--Header-->
     <%- include('header') %>
 
-    <div class="flex flex-col md:flex-row min-h-screen md:h-screen">        
+    <div class="flex flex-col md:flex-row w-full flex-1 min-h-0 overflow-hidden">        
         <!-- Chat Sidebar -->
         <div
         id="chatSidebar"
-        class="fixed top-16 bottom-0 left-0 w-72 bg-white dark:bg-gray-800 shadow-xl z-40 transform -translate-x-full transition-transform duration-200 ease-out flex flex-col overflow-x-hidden md:static md:transform-none md:w-64 md:h-full md:shadow-lg md:border-r border-gray-200 dark:border-gray-800"   
+        class="fixed top-16 bottom-0 left-0 w-72 bg-white dark:bg-gray-800 shadow-xl z-40 transform -translate-x-full transition-transform duration-200 ease-out flex flex-col min-h-0 overflow-x-hidden md:static md:transform-none md:w-64 md:h-full md:shadow-lg md:border-r border-gray-200 dark:border-gray-800"   
     >    
     <div class="p-4 border-b dark:border-gray-700 relative flex-shrink-0">
         <!-- Mobile close button (X) -->
@@ -82,7 +82,7 @@
             <!-- Chat History List -->
             <div
             id="publicChatHistoryList"
-            class="p-4 space-y-2 overflow-y-auto overflow-x-hidden flex-1 md:flex-none md:max-h-96"
+            class="flex-1 min-h-0 p-4 space-y-2 overflow-y-auto overflow-x-hidden"       
         >                
                 <!-- Loading state -->
                 <div id="chatHistoryLoadingState" class="hidden">
@@ -104,9 +104,9 @@
         </div>
         
         <!-- Main Chat Area -->
-        <div class="flex-1 flex flex-col w-full md:w-auto h-[calc(100vh-5rem)] md:h-auto">            
+        <div class="flex-1 flex flex-col w-full min-w-0 min-h-0">                 
             <!-- Chat Header -->
-            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-b dark:border-gray-700 flex items-center gap-2 sm:gap-3">
+            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-b dark:border-gray-700 flex items-center gap-2 sm:gap-3 flex-shrink-0">               
                 <!-- Mobile Hamburger (left) -->
                 <button
                     id="mobile-public-chat-menu-btn"
@@ -138,7 +138,7 @@
             </div>            
 
             <!-- Chat Messages -->
-            <div id="chatMessages" class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-gray-50 dark:bg-gray-900">
+            <div id="chatMessages" class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-gray-50 dark:bg-gray-900">            
                 <!-- Initial loading state -->
                 <div id="initialLoadingState" class="hidden">
                     <%- include('components/loading-skeleton', { type: 'list', count: 6 }) %>
@@ -168,7 +168,7 @@
             </div>
             
             <!-- Chat Input -->
-            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-t dark:border-gray-700 shadow-lg dark:shadow-gray-900">
+            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-t dark:border-gray-700 shadow-lg dark:shadow-gray-900 w-full flex-shrink-0">                
                 <form id="chatForm" class="flex gap-2 sm:gap-3 md:gap-4">                    
                     <textarea 
                         type="text" 
@@ -1618,8 +1618,6 @@ if (isLoggedIn) {
             height: 100%;
         }
     }
-</style>    
-    <!--Footer-->
-    <%- include('footer/footer-conditional') %>
+</style>
 </body>
 </html>
