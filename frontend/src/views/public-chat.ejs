@@ -59,25 +59,35 @@
         <!-- Chat Sidebar -->
         <div
         id="chatSidebar"
-        class="fixed top-16 bottom-0 left-0 w-72 bg-white dark:bg-gray-800 shadow-xl z-40 transform -translate-x-full transition-transform duration-200 ease-out flex flex-col min-h-0 overflow-x-hidden md:static md:transform-none md:w-64 md:h-full md:shadow-lg md:border-r border-gray-200 dark:border-gray-800"   
+        class="fixed top-16 bottom-0 left-0 w-72 bg-white dark:bg-gray-800 shadow-xl z-40 transform -translate-x-full transition-transform duration-200 ease-out flex flex-col min-h-0 overflow-x-hidden md:static md:transform-none md:w-64 md:h-full md:shadow-lg md:border-r border-gray-200 dark:border-gray-700"   
     >    
-    <div class="p-4 border-b dark:border-gray-700 relative flex-shrink-0">
-        <!-- Mobile close button (X) -->
+    <div class="p-4 border-b border-gray-200 dark:border-gray-700 relative flex-shrink-0">        
+        <!-- New Chat (public) -->
         <button
-            id="mobile-public-chat-close-btn"
-            class="md:hidden absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 rounded-lg bg-white/80 dark:bg-gray-900/80 shadow min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
-            aria-label="Close chat history"
+            id="newPublicChatBtn"
+            class="w-full bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-lg hover:shadow-md transition-all duration-200 font-medium text-sm min-h-[40px]"           
+            aria-label="Start new chat"
         >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-        </button>
-    
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Chat with <%= twin.publicHandle %></h2>
-        <button id="newPublicChatBtn" class="w-full mt-2 bg-blue-600 dark:bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors" aria-label="Start new chat">
             + New Chat
         </button>
-    </div>            
+
+        <!-- Search Chats (public) -->
+        <div class="mt-3">
+            <div class="relative">
+                <span class="pointer-events-none absolute pl-4 inset-y-0 left-3 flex items-center text-gray-400 dark:text-gray-500 text-xs">
+                    🔍
+                </span>
+                <input
+                    id="publicChatSearchInput"
+                    type="text"
+                    placeholder="Search chats"
+                    class="w-full pl-12 pr-3 py-2 text-xs rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"                
+                />
+            </div>
+        </div>
+    </div>          
+    
+    
 
             <!-- Chat History List -->
             <div
@@ -106,7 +116,7 @@
         <!-- Main Chat Area -->
         <div class="flex-1 flex flex-col w-full min-w-0 min-h-0">                 
             <!-- Chat Header -->
-            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-b dark:border-gray-700 flex items-center gap-2 sm:gap-3 flex-shrink-0">               
+            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 sm:gap-3 flex-shrink-0">                
                 <!-- Mobile Hamburger (left) -->
                 <button
                     id="mobile-public-chat-menu-btn"
@@ -168,19 +178,19 @@
             </div>
             
             <!-- Chat Input -->
-            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-t dark:border-gray-700 shadow-lg dark:shadow-gray-900 w-full flex-shrink-0">                
+            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-900 w-full flex-shrink-0">                
                 <form id="chatForm" class="flex gap-2 sm:gap-3 md:gap-4">                    
                     <textarea 
                         type="text" 
                         id="messageInput" 
                         placeholder="Type your message..." 
-                        class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none"
+                        class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none"                        
                         rows="1"
                         maxlength="1000"
                         required
                         style="font-size: 16px; min-height: 44px;"
                     ></textarea>
-                    <button type="submit" id="sendMessageBtn" class="bg-blue-600 dark:bg-blue-500 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold min-h-[44px] min-w-[60px] sm:min-w-[80px] touch-manipulation text-base flex items-center justify-center">
+                    <button type="submit" id="sendMessageBtn" class="bg-gradient-to-r from-primary to-accent text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold min-h-[44px] min-w-[60px] sm:min-w-[80px] touch-manipulation text-base flex items-center justify-center">                        
                         Send
                     </button>
                 </form>
@@ -192,7 +202,6 @@
         // Mobile public chat sidebar toggle (ChatGPT-style, like enhanced chat)
         document.addEventListener('DOMContentLoaded', function() {
             const menuBtn  = document.getElementById('mobile-public-chat-menu-btn');
-            const closeBtn = document.getElementById('mobile-public-chat-close-btn');
             const sidebar  = document.getElementById('chatSidebar');
     
             if (menuBtn && sidebar) {
@@ -206,15 +215,6 @@
                     }
                 });
     
-                // X click => close
-                if (closeBtn) {
-                    closeBtn.addEventListener('click', function() {
-                        if (window.innerWidth < 768) {
-                            sidebar.classList.add('-translate-x-full');
-                        }
-                    });
-                }
-    
                 // Outside click => close (mobile only)
                 document.addEventListener('click', function(e) {
                     if (window.innerWidth < 768) {
@@ -225,14 +225,44 @@
                 });
             }
         });
-    </script>
+    </script>    
 
     <script>
         let currentChatId = null;
+        // ✅ All chats cache for search/filter
+        let publicAllChats = [];
         // ✅ PHASE 2: Use tokenized twinPublicId instead of raw twin.id
         let currentTwinId = '<%= typeof twinPublicId !== 'undefined' ? twinPublicId : (twin.publicId || '') %>';
         let visitorId = null;
         let isChatting = false;
+            // ✅ Global human‑friendly relative time (used by sidebar + messages)
+    function formatRelativeLabel(timestamp) {
+        try {
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) return '';
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const diffHr  = Math.floor(diffMin / 60);
+            const diffDay = Math.floor(diffHr / 24);
+            const diffMonth = Math.floor(diffDay / 30);
+            const diffYear  = Math.floor(diffDay / 365);
+
+            if (diffSec < 60) return 'Just now';
+            if (diffMin < 60) return `${diffMin} min${diffMin > 1 ? 's' : ''} ago`;
+            if (diffHr  < 24) return `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`;
+            if (diffDay < 7)  return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+
+            const weeks = Math.floor(diffDay / 7);
+            if (diffDay < 30) return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+            if (diffMonth < 12) return `${diffMonth} month${diffMonth > 1 ? 's' : ''} ago`;
+            return `${diffYear} year${diffYear > 1 ? 's' : ''} ago`;
+        } catch (e) {
+            console.error('Error in formatRelativeLabel:', e);
+            return '';
+        }
+    }
     
 // ✅ NEW: Check if login is required on page load - SIMPLE MESSAGE
 <% if (typeof requiresLogin !== 'undefined' && requiresLogin) { %>
@@ -253,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Login Required</h3>
                 <p class="text-gray-600 dark:text-gray-300 mb-4">You need to login to chat with this twin.</p>
-                <a href="/auth?redirect=/public-twin/chat/<%= twinPublicId %>" class="inline-block bg-blue-600 dark:bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold">
+                <a href="/auth?redirect=/public-twin/chat/<%= twinPublicId %>" class="inline-block bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">                    
                     Go to Login
                 </a>
             </div>
@@ -329,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     </div>
                                     <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Use Enhanced Chat</h3>
                                     <p class="text-gray-600 dark:text-gray-300 mb-4">You cannot chat with your own twin in public chat. Please use Enhanced Chat for a better experience.</p>
-                                    <a href="/chat-enhanced?twinId=${currentTwinId}" class="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    <a href="/chat-enhanced?twinId=${currentTwinId}" class="inline-block px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">                                       
                                         Go to Enhanced Chat
                                     </a>
                                 </div>
@@ -459,6 +489,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (data.success) {
                     console.log('[loadPublicChatHistory] Displaying chats:', data.chats);
+                     // ✅ Cache all chats for search/filter
+                     publicAllChats = Array.isArray(data.chats) ? data.chats : [];
                     // ✅ Call display function AFTER setting server time
                     displayPublicChatHistory(data.chats);                    
                     
@@ -521,7 +553,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             try {
                 container.innerHTML = chatsToDisplay.map(chat => `
-    <div class="chat-item p-3 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg relative group ${chat.publicId === currentChatId ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700' : ''}" data-chat-id="${chat.publicId}">
+    <div class="chat-item p-3 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg relative group ${chat.publicId === currentChatId ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700' : ''}" data-chat-id="${chat.publicId}">        
         <div class="flex justify-between items-start min-w-0">
             <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between gap-2 mb-1 min-w-0">
@@ -544,32 +576,39 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <div class="flex items-center justify-between mt-2">
             <span class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded">${chat.messageCount || 0} messages</span>
-            ${chat.lastMessage ? `<div class="text-xs text-gray-400 dark:text-gray-500 chat-timestamp" data-timestamp="${escapeHtml(chat.lastMessage.createdAt)}" data-relative-time="${escapeHtml(chat.lastMessage.relativeTime || '')}"></div>` : ''}
+            ${chat.lastMessage && chat.lastMessage.createdAt
+                ? `<div class="text-xs text-gray-400 dark:text-gray-500 chat-timestamp" data-timestamp="${escapeHtml(chat.lastMessage.createdAt)}"></div>`
+                : ''}
         </div>
     </div>
 `).join('');
 
-// ✅ FIX: Format timestamps client-side after rendering
+// ✅ Format timestamps client-side after rendering (relative time only)
 if (window.TimeUtils) {
     container.querySelectorAll('.chat-timestamp').forEach(el => {
         const timestamp = el.dataset.timestamp;
-        const relativeTime = el.dataset.relativeTime;
-        
         if (timestamp) {
             try {
-                // Use relativeTime from backend if available, otherwise format client-side
-                const displayTime = relativeTime || window.TimeUtils.formatSmartTime(timestamp);
-                const fullTime = window.TimeUtils.formatFullDateTime(timestamp);
-                
-                el.textContent = displayTime;
-                el.title = fullTime;
+                const displayTime = formatRelativeLabel(timestamp); // e.g. "1 month ago"
+                const fullTime = window.TimeUtils.formatFullDateTime
+                    ? window.TimeUtils.formatFullDateTime(timestamp)
+                    : '';
+
+                el.textContent = displayTime || 'Just now';
+                // Tooltip pe agar chaho to exact; warna bhi relative:
+                el.title = fullTime || displayTime || 'Just now';
             } catch (e) {
                 console.error('Error formatting timestamp:', e);
-                el.textContent = relativeTime || 'Just now';
+                el.textContent = 'Just now';
+                el.title = 'Just now';
             }
+        } else {
+            el.textContent = 'Just now';
+            el.title = 'Just now';
         }
     });
-}                
+}
+
                 console.log('[displayPublicChatHistory] HTML rendered, adding event listeners');
 
                 // Add event listeners for chat items
@@ -1019,7 +1058,7 @@ async function createNewPublicChat() {
         let timeDisplay = '';
         if (timestamp && window.TimeUtils) {
             try {
-                timeDisplay = window.TimeUtils.formatSmartTime(timestamp);
+                timeDisplay = formatRelativeLabel(timestamp);
             } catch (e) {
                 console.error('Error formatting time:', e);
             }
@@ -1077,7 +1116,7 @@ async function createNewPublicChat() {
     let timeDisplay = '';
     if (timestamp && window.TimeUtils) {
         try {
-            timeDisplay = window.TimeUtils.formatSmartTime(timestamp);
+            timeDisplay = formatRelativeLabel(timestamp);
         } catch (e) {
             console.error('Error formatting time:', e);
         }
@@ -1619,5 +1658,39 @@ if (isLoggedIn) {
         }
     }
 </style>
+
+    <!-- Public Chat – sidebar search -->
+    <script>
+        // Public Chat – sidebar search
+        let publicSearchTimeout;
+        const publicSearchInput = document.getElementById('publicChatSearchInput');
+
+        function applyPublicChatSearch(query) {
+            if (!Array.isArray(publicAllChats)) return;
+            const q = (query || '').trim().toLowerCase();
+            const source = publicAllChats;
+            const filtered = q
+                ? source.filter(chat => {
+                    const title = (chat.title || '').toLowerCase();
+                    const lastRaw = chat.lastMessage
+                        ? (typeof chat.lastMessage === 'string'
+                            ? chat.lastMessage
+                            : (chat.lastMessage.content || ''))
+                        : '';
+                    const last = lastRaw.toLowerCase();
+                    return title.includes(q) || last.includes(q);
+                })
+                : source;
+            displayPublicChatHistory(filtered);
+        }
+
+        if (publicSearchInput) {
+            publicSearchInput.addEventListener('input', (e) => {
+                const value = e.target.value;
+                if (publicSearchTimeout) clearTimeout(publicSearchTimeout);
+                publicSearchTimeout = setTimeout(() => applyPublicChatSearch(value), 150);
+            });
+        }
+    </script>
 </body>
 </html>

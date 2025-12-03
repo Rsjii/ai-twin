@@ -69,84 +69,97 @@
     </div>    
 
     <div class="flex w-full flex-1 min-h-0 overflow-hidden">        
-        <!-- Mobile Chat Sidebar -->
-        <div id="mobile-chat-sidebar" class="fixed top-16 bottom-0 left-0 w-72 bg-white dark:bg-gray-900 shadow-xl z-40 transform -translate-x-full transition-transform duration-200 ease-out lg:static lg:translate-x-0 lg:w-64 lg:h-full lg:shadow-lg lg:border-r border-gray-200 dark:border-gray-800 flex flex-col min-h-0">
-            <!-- ⬇️ TOP SECTION: New Chat + Quick Actions (FIXED) -->
-            <div class="p-4 sm:p-6 space-y-6 flex-shrink-0">
-                <!-- Quick Actions (New Chat) -->
-                <div class="mb-3">
-                    <button id="mobile-new-chat-btn" class="w-full text-left px-4 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg transition-all duration-200 hover:shadow-md min-h-[48px] sm:min-h-[44px] touch-manipulation text-base">
-                        <div class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                            </svg>
-                            <span class="font-medium">New Chat</span>
-                        </div>
-                    </button>
-                </div>
+<!-- Mobile Chat Sidebar -->
+<div id="mobile-chat-sidebar" class="fixed top-16 bottom-0 left-0 w-72 bg-white dark:bg-gray-800 shadow-xl z-40 transform -translate-x-full transition-transform duration-200 ease-out lg:static lg:translate-x-0 lg:w-64 lg:h-full lg:shadow-lg lg:border-r border-gray-200 dark:border-gray-700 flex flex-col min-h-0">    
+    <!-- ⬇️ TOP SECTION: New Chat + Search + Quick Actions (FIXED) -->
+    <div class="p-3 sm:p-4 space-y-2 flex-shrink-0">
+        <!-- New Chat -->
+        <button id="mobile-new-chat-btn" class="w-full bg-gradient-to-r from-primary to-accent text-white py-2 px-3 rounded-lg transition-all duration-200 hover:shadow-md font-medium text-sm min-h-[40px] touch-manipulation">
+            <div class="flex items-center space-x-2">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                </svg>
+                <span>New Chat</span>
+            </div>
+        </button>
+
+        <!-- Search Chats (mobile) -->
+        <div>
+            <div class="relative">
+                <span class="pointer-events-none absolute pl-3 inset-y-0 left-2.5 flex items-center text-gray-400 dark:text-gray-500 text-xs">
+                    🔍
+                </span>
+                <input
+                    id="enhancedChatSearchMobile"
+                    type="text"
+                    placeholder="Search chats"
+                    class="w-full pl-12 pr-3 py-2 text-xs rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"                
+                />
+            </div>
+        </div>
                 
-                <!-- Mobile Quick Actions (collapsible, default closed) -->
-                <div class="md:hidden mb-5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900/40">
+        <!-- Mobile Quick Actions (collapsible, default closed) -->
+        <div class="md:hidden border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900/40">
+            <button
+                id="mobileQuickActionsToggle"
+                type="button"
+                class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-200 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors min-h-[40px]"
+            >
+                <span class="flex items-center gap-2">
+                    <span>⚡</span>
+                    <span>Quick Actions</span>
+                </span>
+                <svg id="mobileQuickActionsIcon" class="w-3 h-3 text-gray-500 dark:text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            <div id="mobileQuickActionsContent" class="hidden border-t border-gray-200 dark:border-gray-700">
+                <div class="px-2 py-2 space-y-1">
                     <button
-                        id="mobileQuickActionsToggle"
+                        id="styleCustomizeBtnMobile"
                         type="button"
-                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-t-lg text-xs font-semibold text-gray-700 dark:text-gray-200 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        class="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium text-gray-800 dark:text-gray-100 hover:bg-white/70 dark:hover:bg-gray-800 transition-colors"
                     >
                         <span class="flex items-center gap-2">
-                            <span>⚡</span>
-                            <span>Quick Actions</span>
+                            <span>🎨</span>
+                            <span>Style Settings</span>
                         </span>
-                        <svg id="mobileQuickActionsIcon" class="w-3 h-3 text-gray-500 dark:text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                         </svg>
                     </button>
-                    <div id="mobileQuickActionsContent" class="hidden border-t border-gray-200 dark:border-gray-700">
-                        <div class="px-2 py-2 space-y-1">
-                            <button
-                                id="styleCustomizeBtnMobile"
-                                type="button"
-                                class="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium text-gray-800 dark:text-gray-100 hover:bg-white/70 dark:hover:bg-gray-800 transition-colors"
-                            >
-                                <span class="flex items-center gap-2">
-                                    <span>🎨</span>
-                                    <span>Style Settings</span>
-                                </span>
-                                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </button>
 
-                            <button
-                                id="learningBtnMobile"
-                                type="button"
-                                class="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium text-gray-800 dark:text-gray-100 hover:bg-white/70 dark:hover:bg-gray-800 transition-colors"
-                            >
-                                <span class="flex items-center gap-2">
-                                    <span>📊</span>
-                                    <span>Twin Settings</span>
-                                </span>
-                                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </button>
+                    <button
+                        id="learningBtnMobile"
+                        type="button"
+                        class="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium text-gray-800 dark:text-gray-100 hover:bg-white/70 dark:hover:bg-gray-800 transition-colors"
+                    >
+                        <span class="flex items-center gap-2">
+                            <span>📊</span>
+                            <span>Twin Settings</span>
+                        </span>
+                        <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
 
-                            <button
-                                id="analyticsBtnMobile"
-                                type="button"
-                                class="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium text-gray-800 dark:text-gray-100 hover:bg-white/70 dark:hover:bg-gray-800 transition-colors"
-                            >
-                                <span class="flex items-center gap-2">
-                                    <span>📈</span>
-                                    <span>Analytics</span>
-                                </span>
-                                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
+                    <button
+                        id="analyticsBtnMobile"
+                        type="button"
+                        class="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium text-gray-800 dark:text-gray-100 hover:bg-white/70 dark:hover:bg-gray-800 transition-colors"
+                    >
+                        <span class="flex items-center gap-2">
+                            <span>📈</span>
+                            <span>Analytics</span>
+                        </span>
+                        <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
+        </div>
+    </div>            
 
             <!-- ⬇️ BOTTOM SECTION: SIRF CHAT HISTORY SCROLL HOGA -->
             <div class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 pb-6">
@@ -159,51 +172,33 @@
             </div>
         </div>
 
-        <!-- Desktop Sidebar -->
-<div class="hidden lg:block w-64 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900 overflow-x-hidden flex flex-col min-h-0">
-    <!-- ⬇️ TOP: New Chat + Quick Actions (FIXED) -->
-<div class="sticky top-0 z-10 bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex-shrink-0 space-y-4">        
+<!-- Desktop Sidebar -->
+<div class="hidden lg:block w-64 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900 overflow-x-hidden flex flex-col min-h-0">    
+    <!-- ⬇️ TOP: New Chat + Search (FIXED) -->
+    <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 p-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 space-y-2">        
         <!-- New Chat (fixed) -->
         <button
             id="newChatBtn"
-            class="w-full bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold min-h-[48px] sm:min-h-[44px] touch-manipulation text-base"
+            class="w-full bg-gradient-to-r from-primary to-accent text-white py-2 px-3 rounded-lg hover:shadow-md transition-all duration-200 font-medium text-sm min-h-[40px] touch-manipulation"
         >
-                    + New Chat
+            + New Chat
         </button>
 
-        <!-- Quick Actions (Collapsible, fixed) -->
+        <!-- Search Chats (desktop) -->
         <div>
-            <button
-                id="sidebarMenuBtn"
-                class="w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex items-center justify-between min-h-[44px] touch-manipulation"
-            >
-                <span class="font-medium">Quick Actions</span>
-                <svg id="sidebarMenuIcon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-            </button>
-            <div id="sidebarMenuContent" class="hidden mt-2 space-y-2">
-                <button
-                    id="styleCustomizeBtn"
-                    class="w-full text-left px-3 py-2 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors min-h-[44px] touch-manipulation"
-                >
-                    🎨 Style Settings
-                </button>
-                <button
-                    id="learningBtn"
-                    class="w-full text-left px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors min-h-[44px] touch-manipulation"
-                >
-                    📊 Twin Settings
-                </button>
-                <button
-                    id="analyticsBtn"
-                    class="w-full text-left px-3 py-2 text-sm bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors min-h-[44px] touch-manipulation"
-                >
-                    📈 Analytics
-                </button>
+            <div class="relative">
+                <span class="pointer-events-none absolute inset-y-0 pl-3 left-2.5 flex items-center text-gray-400 dark:text-gray-500 text-xs">
+                    🔍
+                </span>
+                <input
+                    id="enhancedChatSearchDesktop"
+                    type="text"
+                    placeholder="Search chats"
+                    class="w-full pl-12 pr-3 py-2 text-xs rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"                
+                />
             </div>
         </div>
-            </div>
+    </div>            
             
     <!-- ⬇️ CHAT LIST: sirf ye scroll hoga -->
     <div id="chatHistoryList" class="flex-1 min-h-0 p-4 space-y-2 overflow-y-auto overflow-x-hidden">
@@ -264,7 +259,49 @@
                             <p class="text-sm text-gray-600 dark:text-gray-300">AI responses with style learning and corrections</p>
                         </div>                        
                     </div>
-                    <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-3">
+                        <!-- Desktop Quick Actions Button with Dropdown -->
+                        <div class="relative">
+                            <button
+                                id="desktopQuickActionsButton"
+                                type="button"
+                                class="inline-flex items-center px-3 py-1 rounded-full border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors min-h-[32px]"
+                            >
+                                <span>⚡ Quick Actions</span>
+                                <svg class="w-3 h-3 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            
+                            <!-- Desktop Quick Actions Dropdown (hidden by default) -->
+                            <div id="desktopQuickActionsDropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                                <button
+                                    id="styleCustomizeBtn"
+                                    class="w-full text-left px-4 py-3 text-sm font-medium flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                                    type="button"
+                                >
+                                    <span>🎨</span>
+                                    <span>Style Settings</span>
+                                </button>
+                                <button
+                                    id="learningBtn"
+                                    class="w-full text-left px-4 py-3 text-sm font-medium flex items-center gap-2 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
+                                    type="button"
+                                >
+                                    <span>📊</span>
+                                    <span>Twin Settings</span>
+                                </button>
+                                <button
+                                    id="analyticsBtn"
+                                    class="w-full text-left px-4 py-3 text-sm font-medium flex items-center gap-2 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+                                    type="button"
+                                >
+                                    <span>📈</span>
+                                    <span>Analytics</span>
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Desktop Tone Button with Dropdown -->
                         <div class="relative">
                             <button
@@ -313,7 +350,7 @@
                         <div class="text-sm text-gray-600 dark:text-gray-300">
                             <span id="criticScore">Score: -</span>
                         </div>
-                    </div>
+                    </div>                    
                 </div>
             </div>
 
@@ -379,27 +416,26 @@
                         </div>
 
             <!-- Chat Input -->
-            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-t dark:border-gray-700 shadow-lg dark:shadow-gray-900 w-full flex-shrink-0">       
-    <form id="messageForm" class="flex gap-2 sm:gap-3 md:gap-4">
-        <textarea 
-            id="messageInput" 
-            name="message"
-            placeholder="Type your message here..."
-            class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base min-h-[44px]"
-            style="font-size: 16px;"
-            rows="2"
-            maxlength="300"
-            required
-        ></textarea>
-        <button type="submit" class="bg-gradient-to-r from-primary to-accent text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold min-h-[44px] touch-manipulation text-base flex items-center justify-center whitespace-nowrap">            
-            Send
-        </button>
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-    </form>
-    <div class="mt-2 text-sm text-gray-500 dark:text-gray-400 text-right">
-        <span id="charCount">0</span> / 300 characters
-    </div>
-</div>        </div>
+            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-900 w-full flex-shrink-0">                
+                <form id="messageForm" class="flex gap-2 sm:gap-3 md:gap-4">
+                    <textarea 
+                        id="messageInput" 
+                        name="message"
+                        placeholder="Type your message..."
+                        class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none"                        
+                        rows="1"
+                        maxlength="300"
+                        required
+                        style="font-size: 16px; min-height: 44px;"
+                    ></textarea>
+                    <button type="submit" class="bg-gradient-to-r from-primary to-accent text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold min-h-[44px] min-w-[60px] sm:min-w-[80px] touch-manipulation text-base flex items-center justify-center">            
+                        Send
+                    </button>
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                </form>
+            </div>   
+
+</div>
     </div>
 
     <% /* TODO(V2): Enhanced Response Feedback Modal */ %>
@@ -585,11 +621,42 @@ function closeMobileChatSidebar() {
             }
         }
 
-        // Global variables
-        let currentChatId = null;
-        let currentResponse = null;
-        let currentResponseId = null;
-        let responseMetadata = null;
+// Global variables
+let currentChatId = null;
+let currentResponse = null;
+let currentResponseId = null;
+let responseMetadata = null;
+let enhancedAllChats = [];
+
+// Human-friendly relative time (no exact clock times)
+function formatRelativeLabel(timestamp) {
+    try {
+        const date = new Date(timestamp);
+        if (isNaN(date.getTime())) return '';
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffSec = Math.floor(diffMs / 1000);
+        const diffMin = Math.floor(diffSec / 60);
+        const diffHr  = Math.floor(diffMin / 60);
+        const diffDay = Math.floor(diffHr / 24);
+        const diffMonth = Math.floor(diffDay / 30);
+        const diffYear  = Math.floor(diffDay / 365);
+
+        if (diffSec < 60) return 'Just now';
+        if (diffMin < 60) return `${diffMin} min${diffMin > 1 ? 's' : ''} ago`;
+        if (diffHr  < 24) return `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`;
+        if (diffDay < 7)  return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+
+        const weeks = Math.floor(diffDay / 7);
+        if (diffDay < 30) return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+        if (diffMonth < 12) return `${diffMonth} month${diffMonth > 1 ? 's' : ''} ago`;
+        return `${diffYear} year${diffYear > 1 ? 's' : ''} ago`;
+    } catch (e) {
+        console.error('Error in formatRelativeLabel:', e);
+        return '';
+    }
+}
+
 
 async function upvoteResponse(responseId) {
     await submitFeedback(responseId, 'positive', null);
@@ -774,15 +841,15 @@ async function regenerateResponse(responseId) {
                 messageWrapper.className = 'flex justify-start';
                 
                 const messageContent = document.createElement('div');
-                messageContent.className = 'max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white';
-                messageContent.innerHTML = `<p class="text-sm dark:text-white">${data.response}</p>`;
-                
+                messageContent.className = 'max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200';
+                messageContent.innerHTML = `<p class="text-sm">${data.response}</p>`;                
+
                 // Add timestamp
                 if (window.TimeUtils) {
                     const timestampEl = document.createElement('div');
                     timestampEl.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
                     const timestamp = data.timestamp || new Date().toISOString();
-                    timestampEl.textContent = window.TimeUtils.formatSmartTime(timestamp);
+                    timestampEl.textContent = formatRelativeLabel(timestamp);
                     timestampEl.title = window.TimeUtils.formatFullDateTime(timestamp);
                     messageContent.appendChild(timestampEl);
                 }
@@ -999,8 +1066,8 @@ function addMessageToChat(sender, content, isTyping = false, metadata = null, ti
     const messageContent = document.createElement('div');
     messageContent.className = `max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${
         sender === 'user' 
-            ? 'bg-blue-600 dark:bg-blue-500 text-white' 
-            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white'
+            ? 'bg-blue-600 text-white' 
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200'    
     }`;
     
     // ✅ Create actions container for AI messages (so buttons can be added later)
@@ -1017,15 +1084,15 @@ function addMessageToChat(sender, content, isTyping = false, metadata = null, ti
         `;
     } else {
     messageContent.innerHTML = `
-                <p class="text-sm dark:text-white">${content}</p>
+                <p class="text-sm">${content}</p>
     `;
     }
 
      // Add timestamp if provided
      if (timestamp && window.TimeUtils) {
         const timestampEl = document.createElement('div');
-        timestampEl.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
-        timestampEl.textContent = window.TimeUtils.formatSmartTime(timestamp);
+        timestampEl.className = 'text-xs mt-1 opacity-70';
+        timestampEl.textContent = formatRelativeLabel(timestamp);
         timestampEl.title = window.TimeUtils.formatFullDateTime(timestamp);
         messageContent.appendChild(timestampEl);
     }
@@ -1065,8 +1132,8 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
     const messageContent = document.createElement('div');
     messageContent.className = `max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${
         sender === 'user' 
-            ? 'bg-blue-600 dark:bg-blue-500 text-white' 
-            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white'
+            ? 'bg-blue-600 text-white' 
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200'    
     }`;
     
     // ✅ FIX: Create actions container OUTSIDE messageContent (so it doesn't get wiped)
@@ -1108,15 +1175,15 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
         } else {
             // Typing complete - show final text with timestamp
             messageContent.innerHTML = `
-                <p class="text-sm dark:text-white">${fullText}</p>
-            `;
+                <p class="text-sm">${fullText}</p>
+            `;            
             
             // Add timestamp if TimeUtils is available
             if (window.TimeUtils) {
                 const timestampEl = document.createElement('div');
-                timestampEl.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
+                timestampEl.className = 'text-xs mt-1 opacity-70';
                 const timestamp = metadata?.timestamp || new Date().toISOString();
-                timestampEl.textContent = window.TimeUtils.formatSmartTime(timestamp);
+                timestampEl.textContent = formatRelativeLabel(timestamp);
                 timestampEl.title = window.TimeUtils.formatFullDateTime(timestamp);
                 messageContent.appendChild(timestampEl);
             }
@@ -1458,8 +1525,8 @@ async function loadCurrentChatMessages() {
     const messageContent = document.createElement('div');
     messageContent.className = `max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${
         sender === 'user' 
-            ? 'bg-blue-600 dark:bg-blue-500 text-white' 
-            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white'
+            ? 'bg-blue-600 text-white' 
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200'    
     }`;
     
     // ✅ Create actions container for AI messages
@@ -1474,8 +1541,8 @@ async function loadCurrentChatMessages() {
     // Add timestamp if available
     if (msg.createdAt && window.TimeUtils) {
         const timestampEl = document.createElement('div');
-        timestampEl.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
-        timestampEl.textContent = window.TimeUtils.formatSmartTime(msg.createdAt);
+        timestampEl.className = 'text-xs mt-1 opacity-70';
+        timestampEl.textContent = formatRelativeLabel(msg.createdAt);
         timestampEl.title = window.TimeUtils.formatFullDateTime(msg.createdAt);
         messageContent.appendChild(timestampEl);
     }
@@ -1593,7 +1660,7 @@ async function loadChatMessages() {
                     if (msg.createdAt && window.TimeUtils) {
                         const timestampEl = document.createElement('div');
                         timestampEl.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
-                        timestampEl.textContent = window.TimeUtils.formatSmartTime(msg.createdAt);
+                        timestampEl.textContent = formatRelativeLabel(msg.createdAt);
                         timestampEl.title = window.TimeUtils.formatFullDateTime(msg.createdAt);
                         messageContent.appendChild(timestampEl);
                     }
@@ -1659,8 +1726,9 @@ async function loadChatHistory(showLoading = true) {
         
         if (response.ok) {
             const data = await response.json();
-            displayChatHistory(data.chats);
-            return data.chats; // Return chats for caller to use
+            enhancedAllChats = Array.isArray(data.chats) ? data.chats : [];
+            displayChatHistory(enhancedAllChats);
+            return enhancedAllChats; // Return chats for caller to use
         }
         return [];
     } catch (error) {
@@ -1716,14 +1784,48 @@ function displayChatHistory(chats) {
                                 </button>
                             </div>
                         </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${chat.lastMessage ? (typeof chat.lastMessage === 'string' ? chat.lastMessage : (chat.lastMessage.content || 'No messages yet')) : 'No messages yet'}</p>              
+                        <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
+                            ${chat.lastMessage
+                                ? (typeof chat.lastMessage === 'string'
+                                    ? chat.lastMessage
+                                    : (chat.lastMessage.content || 'No messages yet'))
+                                : 'No messages yet'}
+                        </p>
                     </div>
                 </div>
                 <div class="flex items-center justify-between mt-2">
                     <span class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded">${chat.messageCount || 0} messages</span>
+                    ${chat.lastMessage && chat.lastMessage.createdAt
+                        ? `<div class="text-xs text-gray-400 dark:text-gray-500 chat-timestamp" data-timestamp="${chat.lastMessage.createdAt}"></div>`
+                        : ''}
                 </div>
             </div>
         `).join('');
+
+        // ✅ Format timestamps client-side after rendering (relative time only)
+        if (window.TimeUtils) {
+            container.querySelectorAll('.chat-timestamp').forEach(el => {
+                const timestamp = el.dataset.timestamp;
+                if (timestamp) {
+                    try {
+                        const displayTime = formatRelativeLabel(timestamp); // e.g. "1 month ago"
+                        const fullTime = window.TimeUtils.formatFullDateTime
+                            ? window.TimeUtils.formatFullDateTime(timestamp)
+                            : '';
+
+                        el.textContent = displayTime || 'Just now';
+                        el.title = fullTime || displayTime || 'Just now';
+                    } catch (e) {
+                        console.error('Error formatting timestamp:', e);
+                        el.textContent = 'Just now';
+                        el.title = 'Just now';
+                    }
+                } else {
+                    el.textContent = 'Just now';
+                    el.title = 'Just now';
+                }
+            });
+        }
 
         // Add click listeners for switching chats
         container.querySelectorAll('.chat-item').forEach(item => {
@@ -2187,21 +2289,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // New chat button
             document.getElementById('newChatBtn').addEventListener('click', createNewChat);
 
-                        // Sidebar menu toggle
-                        const sidebarMenuBtn = document.getElementById('sidebarMenuBtn');
-            if (sidebarMenuBtn) {
-                sidebarMenuBtn.addEventListener('click', function() {
-                    const content = document.getElementById('sidebarMenuContent');
-                    const icon = document.getElementById('sidebarMenuIcon');
-                    if (content) {
-                        content.classList.toggle('hidden');
-                        if (icon) {
-                            icon.classList.toggle('rotate-180');
-                        }
-                    }
-                });
-            }
-
             // "More Settings" button handler
             const styleSettingsToggle = document.getElementById('styleSettingsToggle');
             if (styleSettingsToggle) {
@@ -2223,38 +2310,68 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                             });
                         }
-            // Quick Actions buttons (desktop + mobile)
-    ['styleCustomizeBtn', 'styleCustomizeBtnMobile'].forEach(id => {
+
+// Desktop Quick Actions Dropdown (with mutual exclusivity)
+const desktopQuickActionsButton = document.getElementById('desktopQuickActionsButton');
+const desktopQuickActionsDropdown = document.getElementById('desktopQuickActionsDropdown');
+const desktopToneButton = document.getElementById('desktopToneButton');
+const desktopToneDropdown = document.getElementById('desktopToneDropdown');
+
+// Function to close all desktop dropdowns
+function closeAllDesktopDropdowns() {
+    if (desktopQuickActionsDropdown) desktopQuickActionsDropdown.classList.add('hidden');
+    if (desktopToneDropdown) desktopToneDropdown.classList.add('hidden');
+}
+
+// Quick Actions button handler
+if (desktopQuickActionsButton && desktopQuickActionsDropdown) {
+    desktopQuickActionsButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = desktopQuickActionsDropdown.classList.contains('hidden');
+        closeAllDesktopDropdowns();
+        if (isHidden) {
+            desktopQuickActionsDropdown.classList.remove('hidden');
+        }
+    });
+}
+
+// Quick Actions buttons (desktop dropdown only)
+['styleCustomizeBtn', 'learningBtn', 'analyticsBtn'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-                    el.addEventListener('click', () => {
-            window.open('/style-customize', '_blank');
+        el.addEventListener('click', () => {
+            if (id === 'styleCustomizeBtn') {
+                window.open('/style-customize', '_blank');
+            } else if (id === 'learningBtn') {
+                window.open('/twin-settings', '_blank');
+            } else if (id === 'analyticsBtn') {
+                window.open('/analytics', '_blank');
+            }
+            closeAllDesktopDropdowns();
         });
     }
 });
 
-['learningBtn', 'learningBtnMobile'].forEach(id => {
+// Mobile Quick Actions buttons (mobile sidebar only)
+['styleCustomizeBtnMobile', 'learningBtnMobile', 'analyticsBtnMobile'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-                    el.addEventListener('click', () => {
-            window.open('/twin-settings', '_blank');
+        el.addEventListener('click', () => {
+            if (id === 'styleCustomizeBtnMobile') {
+                window.open('/style-customize', '_blank');
+            } else if (id === 'learningBtnMobile') {
+                window.open('/twin-settings', '_blank');
+            } else if (id === 'analyticsBtnMobile') {
+                window.open('/analytics', '_blank');
+            }
         });
     }
 });
 
-['analyticsBtn', 'analyticsBtnMobile'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-                    el.addEventListener('click', () => {
-            window.open('/analytics', '_blank');
-        });
-    }
-});            
 
     // Mobile Tone sheet (open/close + selection)
     const mobileToneButton = document.getElementById('mobileToneButton');
     const mobileToneLabel = document.getElementById('mobileToneLabel');
-    const desktopToneButton = document.getElementById('desktopToneButton');
     const desktopToneLabel = document.getElementById('desktopToneLabel');
     const toneSheet = document.getElementById('toneSheet');
     const toneSheetOverlay = document.getElementById('toneSheetOverlay');
@@ -2267,45 +2384,53 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-        // Desktop Tone Dropdown (instead of bottom sheet)
-        const desktopToneDropdown = document.getElementById('desktopToneDropdown');
     
-    if (desktopToneButton && desktopToneDropdown) {
-        desktopToneButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent closing when clicking button
-            desktopToneDropdown.classList.toggle('hidden');
-        });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!desktopToneButton.contains(e.target) && !desktopToneDropdown.contains(e.target)) {
-                desktopToneDropdown.classList.add('hidden');
+// Desktop Tone Dropdown (with mutual exclusivity)
+if (desktopToneButton && desktopToneDropdown) {
+    desktopToneButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = desktopToneDropdown.classList.contains('hidden');
+        closeAllDesktopDropdowns();
+        if (isHidden) {
+            desktopToneDropdown.classList.remove('hidden');
+        }
+    });
+    
+    // Handle tone selection in dropdown
+    desktopToneDropdown.querySelectorAll('[data-tone-mode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.getAttribute('data-tone-mode') || 'auto';
+            
+            // Call existing style logic
+            setStyleMode(mode);
+            
+            const pretty =
+                mode === 'casual' ? 'Casual' :
+                mode === 'formal' ? 'Formal' :
+                'Auto';
+            
+            // Update desktop label
+            if (desktopToneLabel) {
+                desktopToneLabel.textContent = `Tone: ${pretty}`;
             }
+            
+            // Close dropdown
+            closeAllDesktopDropdowns();
         });
-        
-        // Handle tone selection in dropdown
-        desktopToneDropdown.querySelectorAll('[data-tone-mode]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const mode = btn.getAttribute('data-tone-mode') || 'auto';
-                
-                // Call existing style logic
-                setStyleMode(mode);
-                
-                const pretty =
-                    mode === 'casual' ? 'Casual' :
-                    mode === 'formal' ? 'Formal' :
-                    'Auto';
-                
-                // Update desktop label
-                if (desktopToneLabel) {
-                    desktopToneLabel.textContent = `Tone: ${pretty}`;
-                }
-                
-                // Close dropdown
-                desktopToneDropdown.classList.add('hidden');
-            });
-        });
+    });
+}
+
+// Close dropdowns when clicking outside (both Quick Actions and Tone)
+document.addEventListener('click', (e) => {
+    if (desktopQuickActionsButton && desktopToneButton) {
+        if (!desktopQuickActionsButton.contains(e.target) && 
+            !desktopQuickActionsDropdown?.contains(e.target) &&
+            !desktopToneButton.contains(e.target) && 
+            !desktopToneDropdown?.contains(e.target)) {
+            closeAllDesktopDropdowns();
+        }
     }
+});
 
     function closeToneSheet() {
         if (toneSheet && toneSheetOverlay) {
@@ -2659,6 +2784,40 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
 
 
 }); // Close DOMContentLoaded function
+
+// Enhanced Chat – sidebar search (desktop + mobile)
+let enhancedSearchTimeout;
+const enhancedSearchInputs = [
+    document.getElementById('enhancedChatSearchDesktop'),
+    document.getElementById('enhancedChatSearchMobile')
+].filter(Boolean);
+
+function applyEnhancedChatSearch(query) {
+    if (!Array.isArray(enhancedAllChats)) return;
+    const q = (query || '').trim().toLowerCase();
+    const source = enhancedAllChats;
+    const filtered = q
+        ? source.filter(chat => {
+            const title = (chat.title || '').toLowerCase();
+            const lastRaw = chat.lastMessage
+                ? (typeof chat.lastMessage === 'string'
+                    ? chat.lastMessage
+                    : (chat.lastMessage.content || ''))
+                : '';
+            const last = lastRaw.toLowerCase();
+            return title.includes(q) || last.includes(q);
+        })
+        : source;
+    displayChatHistory(filtered);
+}
+
+enhancedSearchInputs.forEach(input => {
+    input.addEventListener('input', (e) => {
+        const value = e.target.value;
+        if (enhancedSearchTimeout) clearTimeout(enhancedSearchTimeout);
+        enhancedSearchTimeout = setTimeout(() => applyEnhancedChatSearch(value), 150);
+    });
+});
 
 </script>
 

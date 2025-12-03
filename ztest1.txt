@@ -154,6 +154,9 @@ twin id in ai -edit dikh trahi
 hover effect form submit me, change ho tabhi color green ho warna grey
 prod data saaf karo
 email change dena kya
+left me global navbar
+//DONE// public + enhanced right niche full scroll kyu ho raha
+chats ko chatgpt jaisa banao
 
 ### 1. Enhanced‑chat itna slow kyu hai?
 
