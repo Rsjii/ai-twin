@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response, NextFunction} from 'express';
 import { db, userQueries } from '../config/database';
 import { logger } from '../config/logger';
 import { AppError, createError } from '../utils/errors';
@@ -214,124 +214,230 @@ export async function getActivityFeedPage(req: any, res: Response) {
   }
 }
 
-// Add to existing analyticsPageController.ts
-export async function getAnalyticsDetails(req: any, res: Response) {
+
+// Analytics details page (likers / followers / chatters)
+export async function getAnalyticsDetails(req: any, res: Response, next: NextFunction) {
   try {
-    const { type, twinId, page = 1, limit = 50, search = '' } = req.query;
-    
-    // Get user's twin IDs
+    const { type, twinId, page = 1, limit = 2, search = '' } = req.query;
+
+    // 1) Auth check
+    if (!req.user || !req.user.id) {
+      return res.redirect('/auth');
+    }
+
+    // 2) Type validation (CRITICAL)
+    const validTypes = ['likers', 'followers', 'chatters'];
+    if (!type || !validTypes.includes(type as string)) {
+      logger.warn('getAnalyticsDetails: Invalid type', {
+        type,
+        userId: req.user.id,
+        path: req.path,
+      });
+
+      return res.status(400).render('error', {
+        title: 'Invalid Request',
+        message: 'Invalid analytics type. Must be likers, followers, or chatters.',
+        user: req.user,
+        csrfToken: res.locals['csrfToken'],
+      });
+    }
+
+    // 3) User twins load
     const userTwins = await db.query(
       'SELECT id FROM "Twin" WHERE "userId" = $1',
-      [req.user.id]
+      [req.user.id],
     );
-    
-    const twinIds = userTwins.rows.map(t => t.id);
-    
- // ✅ PHASE 3: If specific twinId provided (as token), detokenize and verify
- let targetTwinId = null;
- if (twinId) {
-   // ✅ Detokenize the token to get actual twin ID
-   const decoded = detokenizeId(twinId as string);
-   if (!decoded || decoded.type !== 'twin') {
-     return res.status(400).json({ 
-       error: 'Invalid twin token', 
-       errorCode: 'INVALID_INPUT' 
-     });
-   }
-   const actualTwinId = decoded.id;
-   
-   // Verify user owns this twin
-   if (twinIds.includes(actualTwinId)) {
-     targetTwinId = actualTwinId;
-   } else {
-     return res.status(403).json({ error: 'Access denied' });
-   }
- }    
-    
-    // Fetch data based on type
-    let data = [];
+    const twinIds = userTwins.rows.map((t: any) => t.id);
+
+    // 4) अगर user के पास कोई twin नहीं
+    if (twinIds.length === 0) {
+      logger.info('getAnalyticsDetails: User has no twins', { userId: req.user.id });
+
+      return res.render('analytics-details', {
+        title: `Analytics Details - ${type}`,
+        user: req.user,
+        type,
+        data: [],
+        pagination: { page: 1, limit: 50, total: 0 },
+        csrfToken: res.locals['csrfToken'],
+      });
+    }
+
+// 5) twinId token हो तो verify करें (optional filter)
+// ✅ FIX: If invalid, just ignore and show all twins (don't crash)
+let targetTwinIds = twinIds;
+if (twinId) {
+  try {
+    const decoded = detokenizeId(twinId as string);
+    if (decoded && decoded.type === 'twin') {
+      const actualTwinId = decoded.id;
+      if (twinIds.includes(actualTwinId)) {
+        targetTwinIds = [actualTwinId];
+      } else {
+        logger.warn('getAnalyticsDetails: User does not own this twin', {
+          twinId: actualTwinId,
+          userId: req.user.id,
+        });
+        // Continue with all twins instead of error
+      }
+    } else {
+      logger.warn('getAnalyticsDetails: Invalid twin token type', {
+        userId: req.user.id,
+      });
+      // Continue with all twins instead of error
+    }
+  } catch (e) {
+    logger.warn('getAnalyticsDetails: Failed to detokenize twinId, ignoring', {
+      error: e instanceof Error ? e.message : 'Unknown error',
+      userId: req.user.id,
+    });
+    // ✅ FIX: Don't return error, just continue with all twins
+    // Continue with all twins instead of crashing
+  }
+}
+
+
+    // 6) Pagination
+    const parsedPage = parseInt(page as string) || 1;
+    const parsedLimit = parseInt(limit as string) || 2;
+    const offset = (parsedPage - 1) * parsedLimit;
+
+    let data: any[] = [];
     let total = 0;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    
+
+    // 7) Data fetch per type
     if (type === 'likers') {
-      // Get likers data with pagination
       const result = await db.query(
-        `SELECT u.id, u.name, u.handle, u."profileImage", tl."createdAt" as likedAt
+        `SELECT 
+           u.id, u.name, u.handle, u."profileImage", 
+           tl."createdAt" as likedAt,
+           COALESCE(
+             (SELECT t."publicHandle" 
+              FROM "Twin" t 
+              WHERE t."userId" = u.id 
+                AND t."isPublic" = true 
+              ORDER BY t."createdAt" DESC 
+              LIMIT 1),
+             NULL
+           ) as "twinPublicHandle"
          FROM "TwinLike" tl
          JOIN "User" u ON tl."userId" = u.id
          WHERE tl."twinId" = ANY($1::text[])
          ${search ? `AND (u.name ILIKE $2 OR u.handle ILIKE $2)` : ''}
          ORDER BY tl."createdAt" DESC
          LIMIT $${search ? '3' : '2'} OFFSET $${search ? '4' : '3'}`,
-        search ? [twinIds, `%${search}%`, limit, offset] : [twinIds, limit, offset]
+        search
+          ? [targetTwinIds, `%${search}%`, parsedLimit, offset]
+          : [targetTwinIds, parsedLimit, offset],
       );
-      data = result.rows;
-      
+
+      data = result.rows || [];
+
       const countResult = await db.query(
-        `SELECT COUNT(*) FROM "TwinLike" WHERE "twinId" = ANY($1::text[])`,
-        [twinIds]
+        `SELECT COUNT(*) as count FROM "TwinLike" WHERE "twinId" = ANY($1::text[])`,
+        [targetTwinIds],
       );
-      total = parseInt(countResult.rows[0].count);
-} else if (type === 'followers') {
-  // Get followers data with pagination
-  const result = await db.query(
-    `SELECT u.id, u.name, u.handle, u."profileImage", tf."createdAt" as followedAt
-     FROM "TwinFollow" tf
-     JOIN "User" u ON tf."userId" = u.id
-     WHERE tf."twinId" = ANY($1::text[])
-     ${search ? `AND (u.name ILIKE $2 OR u.handle ILIKE $2)` : ''}
-     ORDER BY tf."createdAt" DESC
-     LIMIT $${search ? '3' : '2'} OFFSET $${search ? '4' : '3'}`,
-    search ? [twinIds, `%${search}%`, limit, offset] : [twinIds, limit, offset]
-  );
-  data = result.rows;
-  
-  const countResult = await db.query(
-    `SELECT COUNT(*) FROM "TwinFollow" WHERE "twinId" = ANY($1::text[])`,
-    [twinIds]
-  );
-  total = parseInt(countResult.rows[0].count);
-} else if (type === 'chatters') {
-  // Get chatters data with pagination
-  const result = await db.query(
-    `SELECT DISTINCT
-      u.id,
-      u.name,
-      u.handle,
-      u."profileImage",
-      MAX(c."createdAt") as "lastChatAt",
-      MIN(c."createdAt") as "firstChatAt",
-      COUNT(DISTINCT c.id) as "chatCount",
-      COUNT(DISTINCT m.id) as "messageCount"
-     FROM "Chat" c
-     JOIN "User" u ON c."userId" = u.id
-     LEFT JOIN "Message" m ON c.id = m."chatId"
-     WHERE c."twinId" = ANY($1::text[])
-     ${search ? `AND (u.name ILIKE $2 OR u.handle ILIKE $2)` : ''}
-     GROUP BY u.id, u.name, u.handle, u."profileImage"
-     ORDER BY "lastChatAt" DESC
-     LIMIT $${search ? '3' : '2'} OFFSET $${search ? '4' : '3'}`,
-    search ? [twinIds, `%${search}%`, limit, offset] : [twinIds, limit, offset]
-  );
-  data = result.rows;
-  
-  const countResult = await db.query(
-    `SELECT COUNT(DISTINCT c."userId") FROM "Chat" c WHERE c."twinId" = ANY($1::text[])`,
-    [twinIds]
-  );
-  total = parseInt(countResult.rows[0].count);
-}    
-    
-    res.render('analytics-details', {
+      total = parseInt(countResult.rows[0]?.count || '0');
+    } else if (type === 'followers') {
+      const result = await db.query(
+        `SELECT 
+           u.id, u.name, u.handle, u."profileImage", 
+           tf."createdAt" as followedAt,
+           COALESCE(
+             (SELECT t."publicHandle" 
+              FROM "Twin" t 
+              WHERE t."userId" = u.id 
+                AND t."isPublic" = true 
+              ORDER BY t."createdAt" DESC 
+              LIMIT 1),
+             NULL
+           ) as "twinPublicHandle"
+         FROM "TwinFollow" tf
+         JOIN "User" u ON tf."userId" = u.id
+         WHERE tf."twinId" = ANY($1::text[])
+         ${search ? `AND (u.name ILIKE $2 OR u.handle ILIKE $2)` : ''}
+         ORDER BY tf."createdAt" DESC
+         LIMIT $${search ? '3' : '2'} OFFSET $${search ? '4' : '3'}`,
+        search
+          ? [targetTwinIds, `%${search}%`, parsedLimit, offset]
+          : [targetTwinIds, parsedLimit, offset],
+      );
+
+      data = result.rows || [];
+
+      const countResult = await db.query(
+        `SELECT COUNT(*) as count FROM "TwinFollow" WHERE "twinId" = ANY($1::text[])`,
+        [targetTwinIds],
+      );
+      total = parseInt(countResult.rows[0]?.count || '0');
+    } else if (type === 'chatters') {
+      const result = await db.query(
+        `SELECT DISTINCT
+            u.id,
+            u.name,
+            u.handle,
+            u."profileImage",
+            MAX(c."createdAt") as "lastChatAt",
+            MIN(c."createdAt") as "firstChatAt",
+            COUNT(DISTINCT c.id) as "chatCount",
+            COUNT(DISTINCT m.id) as "messageCount",
+            COALESCE(
+              (SELECT t."publicHandle" 
+               FROM "Twin" t 
+               WHERE t."userId" = u.id 
+                 AND t."isPublic" = true 
+               ORDER BY t."createdAt" DESC 
+               LIMIT 1),
+              NULL
+            ) as "twinPublicHandle"
+         FROM "Chat" c
+         JOIN "User" u ON c."userId" = u.id
+         LEFT JOIN "Message" m ON c.id = m."chatId"
+         WHERE c."twinId" = ANY($1::text[])
+         ${search ? `AND (u.name ILIKE $2 OR u.handle ILIKE $2)` : ''}
+         GROUP BY u.id, u.name, u.handle, u."profileImage"
+         ORDER BY "lastChatAt" DESC
+         LIMIT $${search ? '3' : '2'} OFFSET $${search ? '4' : '3'}`,
+        search
+          ? [targetTwinIds, `%${search}%`, parsedLimit, offset]
+          : [targetTwinIds, parsedLimit, offset],
+      );
+      
+      data = result.rows || [];
+
+      const countResult = await db.query(
+        `SELECT COUNT(DISTINCT c."userId") as count FROM "Chat" c WHERE c."twinId" = ANY($1::text[])`,
+        [targetTwinIds],
+      );
+      total = parseInt(countResult.rows[0]?.count || '0');
+    } else {
+      data = [];
+      total = 0;
+    }
+
+    if (!Array.isArray(data)) {
+      data = [];
+    }
+
+    return res.render('analytics-details', {
       title: `Analytics Details - ${type}`,
       user: req.user,
-      type: type,
-      data: data,
-      pagination: { page: parseInt(page), limit: parseInt(limit), total },
-      csrfToken: res.locals['csrfToken']
+      type,
+      data,
+      pagination: {
+        page: parsedPage,
+        limit: parsedLimit,
+        total,
+      },
+      csrfToken: res.locals['csrfToken'],
     });
   } catch (error) {
-    logger.error('Get analytics details error:', error);
-    handleControllerError(error, 'Failed to load analytics details');
+    logger.error('getAnalyticsDetails: Unhandled error', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.user?.id,
+      path: req.path,
+    });
+    return next(error);
   }
 }

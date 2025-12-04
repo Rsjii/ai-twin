@@ -587,11 +587,10 @@ function escapeHtml(text) {
                 
                 // Direct redirect to analytics/details (NO popup)
                 card.element.addEventListener('click', function() {
-                    const twinId = this.getAttribute('data-twin-id');
                     const listType = this.getAttribute('data-list-type');
-                    if (twinId && listType) {
+                    if (listType) {
                         // Direct redirect to details page (use string concatenation instead of template literal)
-                        window.location.href = '/analytics/details?type=' + listType + '&twinId=' + twinId;
+                        window.location.href = '/analytics/details?type=' + listType;
                     }                            
                 });                    
             }

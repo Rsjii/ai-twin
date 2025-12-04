@@ -165,6 +165,8 @@ piche button pe kaha jaana chahiye ye bhi dekna sab
 slow kyu + optomize kaise
 public profile apni bhi kaha se dekh sakte hona chahiye
 discover me hover waaala
+sabki tewin profile should actually exists
+twinId wagerah abhi hbi dikha rahe kya url me , ye word hi nahi hona chahiye jasie abhi /analtyics/details?type= me kar rhe
 
 ### 1. Enhanced‑chat itna slow kyu hai?
 
