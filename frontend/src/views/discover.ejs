@@ -671,31 +671,27 @@ function setupInfiniteScroll() {
         likeBtn.disabled = true;
         likeBtn.classList.add('opacity-50', 'cursor-not-allowed');
         
-        // ✅ FIX: Show state + disabled reason in tooltip
-        const likeState = twin.hasLiked ? 'Liked' : 'Not liked';
-        const disabledReason = twin.isOwnTwin ? 'You cannot like your own twin' : 'Liking is disabled for this twin';
-        likeBtn.setAttribute('title', `${likeState} • ${disabledReason}`);
-        likeBtn.setAttribute('aria-label', `${likeState} - ${disabledReason}`);
-        likeBtn.setAttribute('data-disabled-reason', twin.isOwnTwin ? 'own_twin' : 'likes_disabled');
-        
-        const likeWrapper = likeBtn.closest('.like-wrapper') || likeBtn.parentElement;
-        if (likeWrapper) {
-            likeWrapper.setAttribute('data-tooltip', `${likeState} • ${disabledReason}`);
+        // ✅ FIX: Show disabled reason in tooltip (clean, per-action) - SET DIRECTLY ON BUTTON
+        if (twin.isOwnTwin) {
+            likeBtn.setAttribute('title', 'You cannot like your own twin');
+            likeBtn.setAttribute('aria-label', 'You cannot like your own twin');
+            likeBtn.setAttribute('data-tooltip', 'You cannot like your own twin');
+        } else {
+            likeBtn.setAttribute('title', 'Liking is disabled for this twin');
+            likeBtn.setAttribute('aria-label', 'Liking is disabled for this twin');
+            likeBtn.setAttribute('data-tooltip', 'Liking is disabled for this twin');
         }
+        likeBtn.setAttribute('data-disabled-reason', twin.isOwnTwin ? 'own_twin' : 'likes_disabled');
     } else {
         likeBtn.disabled = false;
         likeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         likeBtn.removeAttribute('data-disabled-reason');
         
-        // ✅ FIX: Show state even when not disabled
-        const likeState = twin.hasLiked ? 'Liked' : 'Not liked';
+        // ✅ FIX: Show state even when not disabled (clean, per-action) - SET DIRECTLY ON BUTTON
+        const likeState = twin.hasLiked ? 'Liked - Click to unlike' : 'Not liked - Click to like';
         likeBtn.setAttribute('title', likeState);
         likeBtn.setAttribute('aria-label', `${likeState} @${twin.publicHandle}`);
-        
-        const likeWrapper = likeBtn.closest('.like-wrapper') || likeBtn.parentElement;
-        if (likeWrapper) {
-            likeWrapper.setAttribute('data-tooltip', likeState);
-        }
+        likeBtn.setAttribute('data-tooltip', likeState);        
     }
     
     // 2) Check if follows are disabled for this twin
@@ -703,31 +699,27 @@ function setupInfiniteScroll() {
         followBtn.disabled = true;
         followBtn.classList.add('opacity-50', 'cursor-not-allowed');
         
-        // ✅ FIX: Show state + disabled reason in tooltip
-        const followState = twin.hasFollowed ? 'Following' : 'Not following';
-        const disabledReason = twin.isOwnTwin ? 'You cannot follow your own twin' : 'Following is disabled for this twin';
-        followBtn.setAttribute('title', `${followState} • ${disabledReason}`);
-        followBtn.setAttribute('aria-label', `${followState} - ${disabledReason}`);
-        followBtn.setAttribute('data-disabled-reason', twin.isOwnTwin ? 'own_twin' : 'follows_disabled');
-        
-        const followWrapper = followBtn.closest('.follow-wrapper') || followBtn.parentElement;
-        if (followWrapper) {
-            followWrapper.setAttribute('data-tooltip', `${followState} • ${disabledReason}`);
+        // ✅ FIX: Show disabled reason in tooltip (clean, per-action) - SET DIRECTLY ON BUTTON
+        if (twin.isOwnTwin) {
+            followBtn.setAttribute('title', 'You cannot follow your own twin');
+            followBtn.setAttribute('aria-label', 'You cannot follow your own twin');
+            followBtn.setAttribute('data-tooltip', 'You cannot follow your own twin');
+        } else {
+            followBtn.setAttribute('title', 'Following is disabled for this twin');
+            followBtn.setAttribute('aria-label', 'Following is disabled for this twin');
+            followBtn.setAttribute('data-tooltip', 'Following is disabled for this twin');
         }
+        followBtn.setAttribute('data-disabled-reason', twin.isOwnTwin ? 'own_twin' : 'follows_disabled');
     } else {
         followBtn.disabled = false;
         followBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         followBtn.removeAttribute('data-disabled-reason');
         
-        // ✅ FIX: Show state even when not disabled
-        const followState = twin.hasFollowed ? 'Following' : 'Not following';
+        // ✅ FIX: Show state even when not disabled (clean, per-action) - SET DIRECTLY ON BUTTON
+        const followState = twin.hasFollowed ? 'Following - Click to unfollow' : 'Not following - Click to follow';
         followBtn.setAttribute('title', followState);
         followBtn.setAttribute('aria-label', `${followState} @${twin.publicHandle}`);
-        
-        const followWrapper = followBtn.closest('.follow-wrapper') || followBtn.parentElement;
-        if (followWrapper) {
-            followWrapper.setAttribute('data-tooltip', followState);
-        }
+        followBtn.setAttribute('data-tooltip', followState);        
     }
     
     // 3) Check if shares are disabled for this twin
@@ -735,30 +727,28 @@ function setupInfiniteScroll() {
         shareBtn.disabled = true;
         shareBtn.classList.add('opacity-50', 'cursor-not-allowed');
         
-        // ✅ FIX: Show disabled reason in tooltip
-        const disabledReason = twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin';
-        shareBtn.setAttribute('title', disabledReason);
-        shareBtn.setAttribute('aria-label', `Sharing disabled - ${disabledReason}`);
-        shareBtn.setAttribute('data-disabled-reason', twin.isOwnTwin ? 'own_twin' : 'shares_disabled');
-        
-        const shareWrapper = shareBtn.closest('.share-wrapper') || shareBtn.parentElement;
-        if (shareWrapper) {
-            shareWrapper.setAttribute('data-tooltip', disabledReason);
+        // ✅ FIX: Show disabled reason in tooltip (clean, per-action) - SET DIRECTLY ON BUTTON
+        if (twin.isOwnTwin) {
+            shareBtn.setAttribute('title', 'You cannot share your own twin');
+            shareBtn.setAttribute('aria-label', 'You cannot share your own twin');
+            shareBtn.setAttribute('data-tooltip', 'You cannot share your own twin');
+        } else {
+            shareBtn.setAttribute('title', 'Sharing is disabled for this twin');
+            shareBtn.setAttribute('aria-label', 'Sharing is disabled for this twin');
+            shareBtn.setAttribute('data-tooltip', 'Sharing is disabled for this twin');
         }
+        shareBtn.setAttribute('data-disabled-reason', twin.isOwnTwin ? 'own_twin' : 'shares_disabled');
     } else {
         shareBtn.disabled = false;
         shareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         shareBtn.removeAttribute('data-disabled-reason');
         
-        // ✅ FIX: Show normal state
-        shareBtn.setAttribute('title', 'Share this twin');
+        // ✅ FIX: Show normal state (clean, per-action) - SET DIRECTLY ON BUTTON
+        shareBtn.setAttribute('title', 'Share this twin profile');
         shareBtn.setAttribute('aria-label', `Share @${twin.publicHandle} profile`);
-        
-        const shareWrapper = shareBtn.closest('.share-wrapper') || shareBtn.parentElement;
-        if (shareWrapper) {
-            shareWrapper.setAttribute('data-tooltip', 'Share this twin');
-        }
+        shareBtn.setAttribute('data-tooltip', 'Share this twin profile');        
     }
+    
     
     // ✅ FIX: Set initial button states - ALWAYS show liked/followed state first
     // Then apply disabled styling on top if needed
@@ -910,12 +900,9 @@ function setupInfiniteScroll() {
                         button.classList.add('bg-red-600', 'text-white', 'dark:bg-red-500', 'shadow-md');
                         button.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>';                        
 
-                        // ✅ FIX: Update tooltip to show "Liked" state
-                        button.setAttribute('title', 'Liked');
-                        const likeWrapper = button.closest('.like-wrapper') || button.parentElement;
-                        if (likeWrapper) {
-                            likeWrapper.setAttribute('data-tooltip', 'Liked');
-                        }
+                        // ✅ FIX: Update tooltip to show "Liked" state - SET DIRECTLY ON BUTTON
+                        button.setAttribute('title', 'Liked - Click to unlike');
+                        button.setAttribute('data-tooltip', 'Liked - Click to unlike');                        
 
                         const card = button.closest('.twin-card');
                         const twinHandle = card.querySelector('.twin-handle').textContent;
@@ -925,12 +912,9 @@ function setupInfiniteScroll() {
                         button.classList.add('bg-gradient-to-r', 'from-gray-100', 'to-gray-200', 'dark:from-gray-700', 'dark:to-gray-600', 'text-gray-700', 'dark:text-gray-300');
                         button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>';                        
 
-                        // ✅ FIX: Update tooltip to show "Not liked" state
-                        button.setAttribute('title', 'Not liked');
-                        const likeWrapper = button.closest('.like-wrapper') || button.parentElement;
-                        if (likeWrapper) {
-                            likeWrapper.setAttribute('data-tooltip', 'Not liked');
-                        }
+                        // ✅ FIX: Update tooltip to show "Not liked" state - SET DIRECTLY ON BUTTON
+                        button.setAttribute('title', 'Not liked - Click to like');
+                        button.setAttribute('data-tooltip', 'Not liked - Click to like');                        
 
                         const card = button.closest('.twin-card');
                         const twinHandle = card.querySelector('.twin-handle').textContent;
@@ -996,12 +980,9 @@ function setupInfiniteScroll() {
                         button.classList.add('bg-blue-600', 'text-white', 'dark:bg-blue-500', 'shadow-md');
                         button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';                        
 
-                        // ✅ FIX: Update tooltip to show "Following" state
-                        button.setAttribute('title', 'Following');
-                        const followWrapper = button.closest('.follow-wrapper') || button.parentElement;
-                        if (followWrapper) {
-                            followWrapper.setAttribute('data-tooltip', 'Following');
-                        }
+                        // ✅ FIX: Update tooltip to show "Following" state - SET DIRECTLY ON BUTTON
+                        button.setAttribute('title', 'Following - Click to unfollow');
+                        button.setAttribute('data-tooltip', 'Following - Click to unfollow');                        
 
                         const card = button.closest('.twin-card');
                         const twinHandle = card.querySelector('.twin-handle').textContent;
@@ -1011,12 +992,9 @@ function setupInfiniteScroll() {
                         button.classList.add('bg-gradient-to-r', 'from-gray-100', 'to-gray-200', 'dark:from-gray-700', 'dark:to-gray-600', 'text-gray-700', 'dark:text-gray-300');
                         button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>';                        
 
-                        // ✅ FIX: Update tooltip to show "Not following" state
-                        button.setAttribute('title', 'Not following');
-                        const followWrapper = button.closest('.follow-wrapper') || button.parentElement;
-                        if (followWrapper) {
-                            followWrapper.setAttribute('data-tooltip', 'Not following');
-                        }
+                        // ✅ FIX: Update tooltip to show "Not following" state - SET DIRECTLY ON BUTTON
+                        button.setAttribute('title', 'Not following - Click to follow');
+                        button.setAttribute('data-tooltip', 'Not following - Click to follow');                        
 
                         const card = button.closest('.twin-card');
                         const twinHandle = card.querySelector('.twin-handle').textContent;
