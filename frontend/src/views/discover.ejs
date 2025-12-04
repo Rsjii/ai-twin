@@ -654,6 +654,7 @@ function setupInfiniteScroll() {
         if (twin.sampleReply.length > maxLength) {
             const truncated = twin.sampleReply.substring(0, maxLength) + '...';
             sampleTextEl.textContent = truncated;
+            sampleTextEl.classList.add('line-clamp-2');
             sampleTextEl.setAttribute('data-full-text', twin.sampleReply);
             sampleTextEl.setAttribute('data-truncated', 'true');
             sampleTextEl.classList.add('cursor-pointer', 'hover:underline');

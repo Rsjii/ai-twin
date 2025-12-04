@@ -33,6 +33,10 @@
             background: #e5e7eb;
             color: #6b7280;
         }
+        .dark .step-pending {
+            background: #374151;
+            color: #9ca3af;
+        }
         .tone-slider {
             -webkit-appearance: none;
             appearance: none;
@@ -40,6 +44,9 @@
             border-radius: 5px;
             background: #e5e7eb;
             outline: none;
+        }
+        .dark .tone-slider {
+            background: #374151;
         }
         .tone-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -109,27 +116,27 @@
                 <div class="flex items-center justify-center space-x-2 md:space-x-4 overflow-x-auto pb-4">
                     <div class="flex items-center space-x-2">
                         <div id="step1" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-active">1</div>
-                        <span class="hidden md:block text-sm font-medium text-gray-700">Basic Info</span>
+                        <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300">Basic Info</span>
                     </div>
-                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                    <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
                     <div class="flex items-center space-x-2">
                         <div id="step2" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">2</div>
-                        <span class="hidden md:block text-sm font-medium text-gray-700">Style</span>
+                        <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300">Style</span>
                     </div>
-                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                    <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
                     <div class="flex items-center space-x-2">
                         <div id="step3" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">3</div>
-                        <span class="hidden md:block text-sm font-medium text-gray-700">Interests</span>
+                        <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300">Interests</span>
                     </div>
-                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                    <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
                     <div class="flex items-center space-x-2">
                         <div id="step4" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">4</div>
-                        <span class="hidden md:block text-sm font-medium text-gray-700">Samples</span>
+                        <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300">Samples</span>
                     </div>
-                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                    <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
                     <div class="flex items-center space-x-2">
                         <div id="step5" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">5</div>
-                        <span class="hidden md:block text-sm font-medium text-gray-700">Preview</span>
+                        <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300">Preview</span>
                     </div>
                 </div>
             </div>
@@ -203,27 +210,27 @@
                                 <div class="space-y-6">
                                     <div class="tone-slider-group">
                                         <div class="flex justify-between items-center mb-2">
-                                            <label class="text-sm font-medium text-gray-700">Casual</label>
+                                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Casual</label>
                                             <span id="formalCasualValue" class="text-sm text-primary font-semibold">50</span>
-                                            <label class="text-sm font-medium text-gray-700">Formal</label>
+                                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Formal</label>
                                         </div>
                                         <input type="range" id="formalCasual" name="formalCasual" min="0" max="100" value="50" class="tone-slider w-full">
                                     </div>
 
                                     <div class="tone-slider-group">
                                         <div class="flex justify-between items-center mb-2">
-                                            <label class="text-sm font-medium text-gray-700">Playful</label>
+                                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Playful</label>
                                             <span id="seriousPlayfulValue" class="text-sm text-primary font-semibold">50</span>
-                                            <label class="text-sm font-medium text-gray-700">Serious</label>
+                                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Serious</label>
                                         </div>
                                         <input type="range" id="seriousPlayful" name="seriousPlayful" min="0" max="100" value="50" class="tone-slider w-full">
                                     </div>
 
                                     <div class="tone-slider-group">
                                         <div class="flex justify-between items-center mb-2">
-                                            <label class="text-sm font-medium text-gray-700">Diplomatic</label>
+                                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Diplomatic</label>
                                             <span id="directDiplomaticValue" class="text-sm text-primary font-semibold">50</span>
-                                            <label class="text-sm font-medium text-gray-700">Direct</label>
+                                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Direct</label>
                                         </div>
                                         <input type="range" id="directDiplomatic" name="directDiplomatic" min="0" max="100" value="50" class="tone-slider w-full">
                                     </div>
@@ -232,12 +239,12 @@
 
                             <!-- Language Preferences -->
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Language Preferences</h3>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Language Preferences</h3>
                                 <div class="grid md:grid-cols-2 gap-6">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Greeting Style *</label>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Greeting Style *</label>
                                         <select id="greetingStyle" name="greetingStyle" required
-                                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                                                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white">
                                             <option value="">Select greeting style</option>
                                             <option value="formal">Formal: "Hello", "Good morning"</option>
                                             <option value="casual">Casual: "Hey", "Hi there"</option>
@@ -245,9 +252,9 @@
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Closing Style *</label>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Closing Style *</label>
                                         <select id="closingStyle" name="closingStyle" required
-                                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                                                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white">
                                             <option value="">Select closing style</option>
                                             <option value="formal">Formal: "Best regards", "Sincerely"</option>
                                             <option value="casual">Casual: "Talk soon", "Catch you later"</option>
@@ -259,48 +266,48 @@
 
                             <!-- Additional Preferences -->
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Additional Preferences</h3>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Additional Preferences</h3>
                                 <div class="space-y-4">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Emoji Usage *</label>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Emoji Usage *</label>
                                         <div class="flex space-x-4">
                                             <label class="flex items-center">
                                                 <input type="radio" name="emojiUsage" value="high" class="mr-2" required>
-                                                <span class="text-sm">High: Use emojis frequently 😊</span>
+                                                <span class="text-sm text-gray-700 dark:text-gray-300">High: Use emojis frequently 😊</span>
                                             </label>
                                             <label class="flex items-center">
                                                 <input type="radio" name="emojiUsage" value="medium" class="mr-2" required>
-                                                <span class="text-sm">Medium: Occasional emojis</span>
+                                                <span class="text-sm text-gray-700 dark:text-gray-300">Medium: Occasional emojis</span>
                                             </label>
                                             <label class="flex items-center">
                                                 <input type="radio" name="emojiUsage" value="low" class="mr-2" required>
-                                                <span class="text-sm">Low: Rarely use emojis</span>
+                                                <span class="text-sm text-gray-700 dark:text-gray-300">Low: Rarely use emojis</span>
                                             </label>
                                         </div>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Response Length *</label>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Response Length *</label>
                                         <div class="flex space-x-4">
                                             <label class="flex items-center">
                                                 <input type="radio" name="responseLength" value="short" class="mr-2" required>
-                                                <span class="text-sm">Short: Brief, concise responses</span>
+                                                <span class="text-sm text-gray-700 dark:text-gray-300">Short: Brief, concise responses</span>
                                             </label>
                                             <label class="flex items-center">
                                                 <input type="radio" name="responseLength" value="medium" class="mr-2" required>
-                                                <span class="text-sm">Medium: Balanced length</span>
+                                                <span class="text-sm text-gray-700 dark:text-gray-300">Medium: Balanced length</span>
                                             </label>
                                             <label class="flex items-center">
                                                 <input type="radio" name="responseLength" value="long" class="mr-2" required>
-                                                <span class="text-sm">Long: Detailed, thorough responses</span>
+                                                <span class="text-sm text-gray-700 dark:text-gray-300">Long: Detailed, thorough responses</span>
                                             </label>
                                         </div>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Common Phrases (Optional)</label>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Common Phrases (Optional)</label>
                                         <input type="text" id="commonPhrases" name="commonPhrases"
-                                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                                               class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                                                placeholder="e.g., 'Thanks!', 'No worries', 'Absolutely!'">
-                                        <p class="text-xs text-gray-500 mt-1">Enter phrases you commonly use, separated by commas</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Enter phrases you commonly use, separated by commas</p>
                                     </div>
                                 </div>
                             </div>
@@ -311,61 +318,61 @@
                     <div id="step3-content" class="step-content hidden">
                         <div class="mb-8">
                             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Interests & Context</h1>
-                            <p class="text-gray-600">Help your AI twin understand your interests and context.</p>
+                            <p class="text-gray-600 dark:text-gray-300">Help your AI twin understand your interests and context.</p>
                         </div>
 
                         <div class="space-y-8">
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Interests & Hobbies *</h3>
-                                <p class="text-sm text-gray-600 mb-4">Select at least 3 interests:</p>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Interests & Hobbies *</h3>
+                                <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">Select at least 3 interests:</p>
                                 <div class="grid md:grid-cols-3 gap-4">
-                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                                         <input type="checkbox" name="interests" value="technology" class="mr-3">
-                                        <span class="text-sm">Technology & AI</span>
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Technology & AI</span>
                                     </label>
-                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                                         <input type="checkbox" name="interests" value="sports" class="mr-3">
-                                        <span class="text-sm">Sports & Fitness</span>
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Sports & Fitness</span>
                                     </label>
-                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                                         <input type="checkbox" name="interests" value="arts" class="mr-3">
-                                        <span class="text-sm">Arts & Culture</span>
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Arts & Culture</span>
                                     </label>
-                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                                         <input type="checkbox" name="interests" value="travel" class="mr-3">
-                                        <span class="text-sm">Travel & Adventure</span>
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Travel & Adventure</span>
                                     </label>
-                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                                         <input type="checkbox" name="interests" value="food" class="mr-3">
-                                        <span class="text-sm">Food & Cooking</span>
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Food & Cooking</span>
                                     </label>
-                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                                         <input type="checkbox" name="interests" value="music" class="mr-3">
-                                        <span class="text-sm">Music & Entertainment</span>
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Music & Entertainment</span>
                                     </label>
-                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                                         <input type="checkbox" name="interests" value="books" class="mr-3">
-                                        <span class="text-sm">Books & Reading</span>
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Books & Reading</span>
                                     </label>
-                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                                         <input type="checkbox" name="interests" value="gaming" class="mr-3">
-                                        <span class="text-sm">Gaming</span>
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Gaming</span>
                                     </label>
-                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                                         <input type="checkbox" name="interests" value="business" class="mr-3">
-                                        <span class="text-sm">Business & Entrepreneurship</span>
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Business & Entrepreneurship</span>
                                     </label>
-                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                                         <input type="checkbox" name="interests" value="science" class="mr-3">
-                                        <span class="text-sm">Science & Nature</span>
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Science & Nature</span>
                                     </label>
                                 </div>
                             </div>
 
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Target Audience *</h3>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Target Audience *</h3>
                                 <select id="targetAudience" name="targetAudience" required
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                                        class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white">
                                     <option value="">Select target audience</option>
                                     <option value="friends-family">Friends and family</option>
                                     <option value="colleagues">Professional colleagues</option>
@@ -376,9 +383,9 @@
                             </div>
 
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Topics to Avoid (Optional)</h3>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Topics to Avoid (Optional)</h3>
                                 <textarea id="topicsToAvoid" name="topicsToAvoid" rows="3"
-                                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                                          class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                                           placeholder="List any topics your AI twin should avoid or be careful about..."></textarea>
                             </div>
                         </div>
@@ -388,33 +395,33 @@
                     <div id="step4-content" class="step-content hidden">
                         <div class="mb-8">
                             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Text Samples</h1>
-                            <p class="text-gray-600">Provide real examples of your writing. This is the most important step for accuracy!</p>
-                            <p class="text-sm text-red-600 mt-2 font-medium">* Required - At least 2 samples needed</p>
+                            <p class="text-gray-600 dark:text-gray-300">Provide real examples of your writing. This is the most important step for accuracy!</p>
+                            <p class="text-sm text-red-600 dark:text-red-400 mt-2 font-medium">* Required - At least 2 samples needed</p>
                         </div>
 
                         <div class="space-y-8">
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Sample 1: Email or Message *</h3>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Sample 1: Email or Message *</h3>
                                 <textarea id="sample1" name="sample1" required rows="4"
-                                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                                          class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                                           placeholder="Paste a real email or message you've written..."></textarea>
-                                <p class="text-xs text-gray-500 mt-1">This helps us understand your writing style</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This helps us understand your writing style</p>
                             </div>
 
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Sample 2: Social Media Post or Text *</h3>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Sample 2: Social Media Post or Text *</h3>
                                 <textarea id="sample2" name="sample2" required rows="4"
-                                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                                          class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                                           placeholder="Paste a social media post, tweet, or casual text message..."></textarea>
-                                <p class="text-xs text-gray-500 mt-1">Shows your casual communication style</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Shows your casual communication style</p>
                             </div>
 
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Sample 3: Additional (Optional but Recommended)</h3>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Sample 3: Additional (Optional but Recommended)</h3>
                                 <textarea id="sample3" name="sample3" rows="4"
-                                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                                          class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                                           placeholder="Any other writing sample - professional, creative, etc..."></textarea>
-                                <p class="text-xs text-gray-500 mt-1">More samples = better accuracy</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">More samples = better accuracy</p>
                             </div>
                         </div>
                     </div>
@@ -422,24 +429,24 @@
                     <!-- Step 5: Preview & Confirm -->
                     <div id="step5-content" class="step-content hidden">
                         <div class="mb-8">
-                            <h1 class="text-3xl font-bold text-gray-900 mb-2">Your AI Twin Preview</h1>
-                            <p class="text-gray-600">Review your settings. You can edit them anytime after creation.</p>
+                            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Your AI Twin Preview</h1>
+                            <p class="text-gray-600 dark:text-gray-300">Review your settings. You can edit them anytime after creation.</p>
                         </div>
 
                         <div class="space-y-6">
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
-                                <div id="previewBasicInfo" class="space-y-2 text-sm text-gray-700"></div>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h3>
+                                <div id="previewBasicInfo" class="space-y-2 text-sm text-gray-700 dark:text-gray-300"></div>
                             </div>
 
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Communication Style</h3>
-                                <div id="previewStyle" class="space-y-2 text-sm text-gray-700"></div>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Communication Style</h3>
+                                <div id="previewStyle" class="space-y-2 text-sm text-gray-700 dark:text-gray-300"></div>
                             </div>
 
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Interests</h3>
-                                <div id="previewInterests" class="text-sm text-gray-700"></div>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Interests</h3>
+                                <div id="previewInterests" class="text-sm text-gray-700 dark:text-gray-300"></div>
                             </div>
 
                             <div class="bg-gradient-to-r from-primary to-accent rounded-xl p-6 text-white">
@@ -458,8 +465,8 @@
                     </div>
 
                     <!-- Navigation Buttons -->
-                    <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
-                        <button type="button" id="prevBtn" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold hidden">
+                    <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <button type="button" id="prevBtn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-semibold hidden">
                             ← Previous
                         </button>
                         <div class="flex-1"></div>

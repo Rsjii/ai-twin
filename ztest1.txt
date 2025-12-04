@@ -50,7 +50,7 @@
 //ALMOST DONE => 41. bacha hai kahi dekh lege41. time bhi add karna
 //DONE 42. chats me kitni detail dekh paaye
 //BETTER => msg top par aaye /////43. apne twin se chat par redirect to the chat-enhanced with a message
-44. mobile viewwww
+//VERIFY 44. mobile viewwww
 //VERIFY 45. dicover me kis basis par alag sections me twin aate
 //ALMOST DONE => learning-dahboard me dekh lo ////////46. color theme
 //VERIFY 47. dashboard a-z
@@ -78,10 +78,10 @@
 //VERIFY 69. bas manage publci chat history dekho
 70. disable chat waali chiz alag from the blockk
 71. validation sabb
-72. fb jaisi profile type ho jaah user aur users kya kya kar sakte hai per user decide kar sake , yaani ek user like nahi , ek follow nahi ,advanced settings
-73. dashboard -> recently chatted -> multiple dikhe chats like tredning waali left me jo hai mere dada 
+//OUT_OFSCOPE 72. fb jaisi profile type ho jaah user aur users kya kya kar sakte hai per user decide kar sake , yaani ek user like nahi , ek follow nahi ,advanced settings
+//DONE 73. dashboard -> recently chatted -> multiple dikhe chats like tredning waali left me jo hai mere dada 
 //DONE 74. create twin coming in footer jab already twin hai
-75. public chat width kam
+//DONE 75. public chat width kam
 76. kuch jagah color issue hai like footer me dark theme sahi karo
 //DONE 77. analytics me chart dikhe 
 //DONE 78. analytics slow kyu load ho raha hai
@@ -110,7 +110,7 @@
 }
 
 91. moderation pe ruk kyu jaata hai mect chat mana karde we cannot answer this , na regenerate chale na koi button dikhe
-92. errors me requestID source bheja jaaye to pata chale kaha se aaya kis functoin file line
+//NNED_VERIFICATION 92. errors me requestID source bheja jaaye to pata chale kaha se aaya kis functoin file line
 //DONE 93. prod par ednpoint sahi
 //VERIFY 94. id wagerah usrs ko na dikhee
 95. deployment dockerfile
@@ -146,19 +146,28 @@ dashboard// discover all twins dark theme me text dark
 analytics -> recent activity me pagination + kaya rakhna iakso  + kya rakhna + bottom me debug tools inka kya karna + view public chats ka link hona chahiye isme + uske related data
 //VERIFY// allow share hata de kya
 twinsettings sync onw hata de
-rlative time kaha kaha public chat hisory+ bahut se hai
-jyaada bada hai to aage ka dot dot dikhao all possible places
+//VERIFY// rlative time kaha kaha public chat hisory+ bahut se hai
+//VERIFY// jyaada bada hai to aage ka dot dot dikhao all possible places
 //DONE// dahobaord -> tredning now -> view all niche karo
-enhanced chat me lasy me style + options usko kaise karna
+//DONE// enhanced chat me lasy me style + options usko kaise karna
 twin id in ai -edit dikh trahi
-hover effect form submit me, change ho tabhi color green ho warna grey
+//VERIFY// hover effect form submit me, change ho tabhi color green ho warna grey
 prod data saaf karo
-email change dena kya
+//LATER email change dena kya
 left me global navbar
 //DONE// public + enhanced right niche full scroll kyu ho raha
-chats ko chatgpt jaisa banao
+//VERIFY// chats ko chatgpt jaisa banao
+onboarding dekhan sahi se
+memory working all fine
+puri profile bina bane back kiya -> otp -pe aaya -> login pe par profile ban gayi , why?
+/onboarding me back kiya to direct dahboard par saala par previous steps pe jaana chahiye
+piche button pe kaha jaana chahiye ye bhi dekna sab
+slow kyu + optomize kaise
+public profile apni bhi kaha se dekh sakte hona chahiye
+discover me hover waaala
 
 ### 1. Enhanced‑chat itna slow kyu hai?
+
 
 Logs me clearly dikh raha hai:
 
