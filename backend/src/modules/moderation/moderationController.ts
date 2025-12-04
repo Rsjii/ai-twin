@@ -377,6 +377,14 @@ async function performAIModeration(content: string, contentType: string) {
 }
 
 async function detectSpam(content: string, userId?: string, twinId?: string) {
+  return {
+    isSpam: false,
+    confidence: 0,
+    reasons: [] as string[],
+    suggestions: [] as string[],
+  };
+
+  //NOT NEEDED FOR MVP
   const reasons: string[] = [];
   const suggestions: string[] = [];
   let confidence = 0.5;
@@ -400,6 +408,8 @@ async function detectSpam(content: string, userId?: string, twinId?: string) {
       confidence = 0.8;
     }
   }
+  //NOT NEEDED FOR MVP
+  /*
 
   // Check for duplicate content
   if (userId) {
@@ -419,6 +429,7 @@ async function detectSpam(content: string, userId?: string, twinId?: string) {
       confidence = 0.9;
     }
   }
+    */
 
   return {
     isSpam,
