@@ -63,15 +63,23 @@
                         <!-- Profile Image - Larger and Better -->
                         <div class="relative">
                             <div class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-xl bg-white bg-opacity-20 backdrop-blur-lg flex items-center justify-center overflow-hidden border-3 border-white border-opacity-30 shadow-xl transform hover:scale-105 transition-transform duration-300">                                
-                                <% if (twin.profileImage) { %>
-                                    <img src="<%= twin.profileImage %>" alt="<%= twin.publicHandle %>" class="w-full h-full object-cover" loading="lazy">
-                                <% } else { %>
+                                <% if (twin && twin.profileImage) { %>
+                                    <img src="<%= twin.profileImage %>" alt="<%= twin.publicHandle || userInfo?.handle || 'Profile' %>" class="w-full h-full object-cover" loading="lazy">
+                                <% } else if (twin && twin.publicHandle) { %>
                                     <div class="w-full h-full bg-gradient-to-br from-white/40 to-white/20 flex items-center justify-center">
                                         <span class="text-3xl md:text-4xl font-bold text-white"><%= twin.publicHandle.charAt(0).toUpperCase() %></span>                                        
                                     </div>
+                                <% } else if (userInfo && userInfo.handle) { %>
+                                    <div class="w-full h-full bg-gradient-to-br from-white/40 to-white/20 flex items-center justify-center">
+                                        <span class="text-3xl md:text-4xl font-bold text-white"><%= userInfo.handle.charAt(0).toUpperCase() %></span>                                        
+                                    </div>
+                                <% } else { %>
+                                    <div class="w-full h-full bg-gradient-to-br from-white/40 to-white/20 flex items-center justify-center">
+                                        <span class="text-3xl md:text-4xl font-bold text-white">👤</span>                                        
+                                    </div>
                                 <% } %>
                             </div>                            
-                            <% if (twin.verified) { %>
+                            <% if (twin && twin.verified) { %>
                                 <div class="absolute -bottom-2 -right-2 w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
                                     <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
@@ -80,48 +88,57 @@
                             <% } %>
                         </div>
                         
-                        <!-- Profile Info - Enhanced -->
-                        <div class="flex-1 text-center md:text-left">
-                            <div class="flex flex-col md:flex-row items-center md:items-center space-y-2 md:space-y-0 md:space-x-3 mb-4">
-                                <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg">@<%= twin.publicHandle %></h1>
-                            </div>
-                            
-                            <% if (typeof hasNoTwin !== 'undefined' && hasNoTwin && userInfo) { %>
-                                <!-- ✅ Placeholder: User has no public twin yet -->
-                                <div class="text-center py-12">
-                                    <div class="max-w-md mx-auto">
-                                        <div class="w-24 h-24 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center">
-                                            <span class="text-4xl">👤</span>
-                                        </div>
-                                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">@<%= userInfo.handle %></h2>
-                                        <% if (userInfo.name && userInfo.name !== userInfo.handle) { %>
-                                            <p class="text-gray-600 dark:text-gray-400 mb-4"><%= userInfo.name %></p>
-                                        <% } %>
-                                        <% if (userInfo.bio) { %>
-                                            <p class="text-gray-600 dark:text-gray-400 mb-6 line-clamp-3"><%= userInfo.bio %></p>                                        
-                                        <% } %>
-                                        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                                            <p class="text-sm text-yellow-800 dark:text-yellow-200">
-                                                ℹ️ This user hasn't created a public twin yet.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } else if (twin) { %>
-                                <!-- ✅ Existing twin profile content -->
-                                <p class="text-base sm:text-lg md:text-xl opacity-90 mb-3 text-white/90">
-                                    Created by 
-                                    <% if (twin.userHandle) { %>
-                                        <span class="font-semibold text-white">
-                                            @<%= twin.userHandle || 'Unknown' %>
-                                        </span>
-                                    <% } %>
-                                </p>
-                                <% if (twin.bio) { %>
-                                    <p class="text-lg opacity-90 max-w-2xl text-white/90 leading-relaxed line-clamp-3"><%= twin.bio %></p>                                
-                                <% } %>
-                            <% } %>
-                        </div>
+<!-- Profile Info - Enhanced -->
+<div class="flex-1 text-center md:text-left">
+    <div class="flex flex-col md:flex-row items-center md:items-center space-y-2 md:space-y-0 md:space-x-3 mb-4">
+        <% if (!hasNoTwin && twin && twin.publicHandle) { %>
+            <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg">@<%= twin.publicHandle %></h1>
+        <% } else if (userInfo && userInfo.handle) { %>
+            <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg">@<%= userInfo.handle %></h1>
+        <% } else { %>
+            <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg">Profile</h1>
+        <% } %>
+    </div>
+    
+    <% if (typeof hasNoTwin !== 'undefined' && hasNoTwin && userInfo) { %>
+        <!-- Clean no‑twin view: single profile card -->
+        <div class="text-center py-10">
+            <div class="max-w-md mx-auto">
+                <div class="w-24 h-24 mx-auto mb-4 bg-gradient-to-br from-primary/30 to-accent/30 rounded-full flex items-center justify-center text-3xl text-white font-bold shadow-xl">
+                    <%= (userInfo.handle || 'U').charAt(0).toUpperCase() %>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-1"><%= userInfo.name || userInfo.handle %></h2>
+                <% if (userInfo.bio) { %>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4 line-clamp-3"><%= userInfo.bio %></p>
+                <% } %>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                    Joined: <span class="timestamp-display" data-timestamp="<%= userInfo.createdAt %>" data-format="date"></span>
+                </p>
+                <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-sm text-yellow-800 dark:text-yellow-200">
+                    <% if (userInfo.isOwner) { %>
+                        You haven't created a public twin yet. Go to <a href="/twin/create" class="underline font-semibold">Onboarding</a> to create one.
+                    <% } else { %>
+                        This user hasn't created a public twin yet. Check back later!
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    <% } else if (twin) { %>
+        <!-- ✅ Existing twin profile content -->
+        <p class="text-base sm:text-lg md:text-xl opacity-90 mb-3 text-white/90">
+            Created by 
+            <% if (twin.userHandle) { %>
+                <span class="font-semibold text-white">
+                    @<%= twin.userHandle || 'Unknown' %>
+                </span>
+            <% } %>
+        </p>
+        <% if (twin.bio) { %>
+            <p class="text-lg opacity-90 max-w-2xl text-white/90 leading-relaxed line-clamp-3"><%= twin.bio %></p>                                
+        <% } %>
+    <% } %>
+</div>     
+                   
                     </div>
                 </div>
             </div>
@@ -237,41 +254,41 @@
                         </h4>
                         <div class="flex flex-wrap gap-2 sm:gap-3">
                             <div class="flex flex-wrap gap-2 sm:gap-3">
-                                <button data-share-platform="twitter" class="bg-gradient-to-r from-blue-400 to-blue-500 text-white w-10 h-10 sm:w-auto sm:h-auto px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
-                                    <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
+                                <button data-share-platform="twitter" class="bg-gradient-to-r from-blue-400 to-blue-500 text-white w-10 h-10 sm:w-auto sm:h-auto px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation <%= twin.sharesDisabled ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                    <% if (twin.sharesDisabled) { %>
                                         disabled
-                                        title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
-                                        data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
+                                        title="Sharing is disabled for this twin"
+                                        data-disabled-reason="shares_disabled"
                                     <% } %>
                                 >
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"></path></svg>
                                     <span class="hidden sm:inline">Twitter</span>
                                 </button>
-                                <button data-share-platform="facebook" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white w-10 h-10 sm:w-auto sm:h-auto px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
-                                    <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
+                                <button data-share-platform="facebook" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white w-10 h-10 sm:w-auto sm:h-auto px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation <%= twin.sharesDisabled ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                    <% if (twin.sharesDisabled) { %>
                                         disabled
-                                        title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
-                                        data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
+                                        title="Sharing is disabled for this twin"
+                                        data-disabled-reason="shares_disabled"
                                     <% } %>
                                 >
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h1z"></path></svg>
                                     <span class="hidden sm:inline">Facebook</span>
                                 </button>
-                                <button data-share-platform="whatsapp" class="bg-gradient-to-r from-green-500 to-green-600 text-white w-10 h-10 sm:w-auto sm:h-auto px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
-                                    <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
+                                <button data-share-platform="whatsapp" class="bg-gradient-to-r from-green-500 to-green-600 text-white w-10 h-10 sm:w-auto sm:h-auto px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation <%= twin.sharesDisabled ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                    <% if (twin.sharesDisabled) { %>
                                         disabled
-                                        title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
-                                        data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
+                                        title="Sharing is disabled for this twin"
+                                        data-disabled-reason="shares_disabled"
                                     <% } %>
                                 >
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"></path></svg>
                                     <span class="hidden sm:inline">WhatsApp</span>
                                 </button>
-                                <button data-share-action="copy" class="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= (twin.sharesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
-                                    <% if (twin.sharesDisabled || twin.isOwnTwin) { %>
+                                <button data-share-action="copy" class="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105 font-medium text-sm flex items-center space-x-2 min-h-[44px] touch-manipulation <%= twin.sharesDisabled ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                    <% if (twin.sharesDisabled) { %>
                                         disabled
-                                        title="<%= twin.isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin' %>"
-                                        data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'shares_disabled' %>"
+                                        title="Sharing is disabled for this twin"
+                                        data-disabled-reason="shares_disabled"
                                     <% } %>
                                 >
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path></svg>
@@ -285,6 +302,7 @@
             <% } %>
 
             <!-- Chat Modal (Hidden by default) -->
+            <% if (showTwinSections && twin) { %>
             <div id="chatModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[9999] flex items-center justify-center p-4">
                 <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl dark:shadow-gray-900">
                     <div class="p-6 border-b dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800 flex-shrink-0">
@@ -322,36 +340,53 @@
                     </div>
                 </div>
             </div>
-        </div>
+            <% } %>
 
-        <% if (showTwinSections) { %>
+        <% if (showTwinSections && twin) { %>
 <script>
-    let currentChatId = null;
-    // ✅ PHASE 2: Use tokenized twinPublicId instead of raw twin.id
-    let currentTwinId = '<%= typeof twinPublicId !== 'undefined' ? twinPublicId : (twin.publicId || '') %>';
-    let visitorId = null;
-    let isChatting = false;
-    let hasLiked = false;
-    let hasFollowed = false;        
+    // ✅ Safe defaults for when twin exists
+let currentChatId = null;
+let currentTwinId = '<%= typeof twinPublicId !== "undefined" ? twinPublicId : (twin.publicId || "") %>';
+let visitorId = null;
+let isChatting = false;
+
+// Global interaction state
+let hasLiked = false;
+let hasFollowed = false;
+
+// ✅ All flags as real booleans
+const requireLogin   = <%- JSON.stringify(!!twin.requireLogin) %>;
+const twinPublicHandle = '<%= twin.publicHandle || "" %>';
+const isOwnTwin      = <%- JSON.stringify(!!twin.isOwnTwin) %>;
+const likesDisabled  = <%- JSON.stringify(!!twin.likesDisabled) %>;
+const followsDisabled= <%- JSON.stringify(!!twin.followsDisabled) %>;
+const sharesDisabled = <%- JSON.stringify(!!twin.sharesDisabled) %>;
+const serverHasLiked = <%- JSON.stringify(!!twin.hasLiked) %>;
+const serverHasFollowed = <%- JSON.stringify(!!twin.hasFollowed) %>;
 
 // Chat modal functionality
 document.getElementById('chatNowBtn').addEventListener('click', function() {
-    const requireLogin = <%= twin.requireLogin ? 'true' : 'false' %>;
     const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
     
+    // ✅ If this is your own twin, never go to public chat – show message + enhanced chat
+    if (isOwnTwin) {
+        showNotification('You cannot chat with your own twin in public chat. Redirecting to Enhanced Chat...', 'info');
+        setTimeout(() => {
+            window.location.href = '/chat-enhanced?twinId=' + currentTwinId;
+        }, 800);
+        return;
+    }
+
     if (requireLogin && !isLoggedIn) {
-        const shouldLogin = confirm('You need to login to chat with this twin. Do you want to continue to login?');
-        
+        const shouldLogin = confirm('You need to login to chat with this twin. Go to login?');
         if (shouldLogin) {
-            // ✅ PHASE 2: Use token in redirect URL
             window.location.href = '/auth?redirect=/public-twin/chat/<%= twinPublicId %>&message=Please login to chat with this twin';
-        } else {
+        }
             return;
         }
-    } else {
-        // ✅ PHASE 2: Use token in chat URL
-        window.location.href = '<% if (twin.isOwner) { %>/chat-enhanced?twinId=<%= twinPublicId %><% } else { %>/public-twin/chat/<%= twinPublicId %><% } %>';
-    }
+
+    // Non-owner → public chat
+    window.location.href = '/public-twin/chat/<%= twinPublicId %>';
 });
 
         document.getElementById('closeChatBtn').addEventListener('click', function() {
@@ -615,7 +650,7 @@ async function createNewPublicChat() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                twinId: currentTwinId,
+                twinToken: currentTwinId,
                 visitorId: visitorId
             })
         });
@@ -783,7 +818,7 @@ async function toggleLike(twinToken, button) {
                 `;
                 
                 // ✅ Show notification
-                showNotification(`❤️ You liked @<%= twin.publicHandle %>`, 'success');
+                showNotification(`❤️ You liked @${twinPublicHandle}`, 'success');
             } else {
                 button.classList.remove('bg-red-100', 'text-red-600', 'dark:bg-red-900/30', 'dark:text-red-400');
                 button.classList.add('bg-gradient-to-r', 'from-pink-500', 'to-rose-500', 'text-white');
@@ -795,7 +830,7 @@ async function toggleLike(twinToken, button) {
                 `;
                 
                 // ✅ Show notification
-                showNotification(`💔 You unliked @<%= twin.publicHandle %>`, 'info');
+                showNotification(`💔 You unliked @${twinPublicHandle}`, 'info');
             }
             
             // Update like count
@@ -856,7 +891,7 @@ async function toggleFollow(twinToken, button) {
                 `;
                 
                 // ✅ Show notification
-                showNotification(`👥 You are now following @<%= twin.publicHandle %>`, 'success');
+                showNotification(`👥 You are now following @${twinPublicHandle}`, 'success');
             } else {
                 button.classList.remove('bg-blue-100', 'text-blue-600', 'dark:bg-blue-900/30', 'dark:text-blue-400');
                 button.classList.add('bg-gradient-to-r', 'from-blue-500', 'to-indigo-500', 'text-white');
@@ -868,7 +903,7 @@ async function toggleFollow(twinToken, button) {
                 `;
                 
                 // ✅ Show notification
-                showNotification(`👋 You unfollowed @<%= twin.publicHandle %>`, 'info');
+                showNotification(`👋 You unfollowed @${twinPublicHandle}`, 'info');
             }
             
             // Update follow count
@@ -941,16 +976,13 @@ function showNotification(message, type = 'success') {
 async function shareTwin(platform) {
     try {
         // ✅ FIX: Check allowShares BEFORE making API call
-        // Get allowShares from twin data (should be available from page load)
-        const twinAllowShares = <%= twin.allowShares !== false ? 'true' : 'false' %>;
-        
-        if (twinAllowShares === false) {
+        if (sharesDisabled) {
             alert('Shares are disabled for this twin. You cannot share this profile.');
             return;
         }
         
         // ✅ PHASE 2: Double-check with API (for security)
-        const response = await fetch(`/api/share/content/<%= twin.publicHandle %>?platform=${platform}`, {
+        const response = await fetch(`/api/share/content/${twinPublicHandle}?platform=${platform}`, {
             credentials: 'include'
         });
         
@@ -966,8 +998,8 @@ async function shareTwin(platform) {
         }
 
         const shareUrl = window.location.href;
-        const title = `Check out @<%= twin.publicHandle %> on Twinverse!`;
-        const text = `<%= twin.bio || 'AI Twin' %> - Chat with this AI twin!`;
+        const title = `Check out @${twinPublicHandle} on Twinverse!`;
+        const text = `<%= twin && twin.bio ? twin.bio : 'AI Twin' %> - Chat with this AI twin!`;
         
         let shareWindow = '';
         
@@ -1002,9 +1034,7 @@ async function shareTwin(platform) {
             try {
 
                 // ✅ FIX: Check allowShares BEFORE copying
-        const twinAllowShares = <%= twin.allowShares !== false ? 'true' : 'false' %>;
-        
-        if (twinAllowShares === false) {
+        if (sharesDisabled) {
             alert('Shares are disabled for this twin. You cannot share this profile.');
             return;
         }
@@ -1038,10 +1068,7 @@ async function shareTwin(platform) {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // ✅ FIX: Use server-side initial state (more reliable than API call)
-    const serverHasLiked = <%= typeof twin.hasLiked !== 'undefined' ? (twin.hasLiked ? 'true' : 'false') : 'false' %>;
-    const serverHasFollowed = <%= typeof twin.hasFollowed !== 'undefined' ? (twin.hasFollowed ? 'true' : 'false') : 'false' %>;
-    
+    // ✅ FIX: Use server-side initial state (already defined above)
     hasLiked = serverHasLiked === 'true';
     hasFollowed = serverHasFollowed === 'true';
     
@@ -1054,19 +1081,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const followBtn = document.getElementById('followBtn');
     const shareButtons = document.querySelectorAll('[data-share-platform], [data-share-action="copy"]');
     
-    // Get flags from EJS
-    const isOwnTwin = <%= typeof twin.isOwnTwin !== 'undefined' ? twin.isOwnTwin : 'false' %> === 'true';
-    const likesDisabled = <%= typeof twin.likesDisabled !== 'undefined' ? twin.likesDisabled : 'false' %> === 'true';
-    const followsDisabled = <%= typeof twin.followsDisabled !== 'undefined' ? twin.followsDisabled : 'false' %> === 'true';
-    const sharesDisabled = <%= typeof twin.sharesDisabled !== 'undefined' ? twin.sharesDisabled : 'false' %> === 'true';
-    
     // 1) Check if likes are disabled for this twin
     if (likesDisabled || isOwnTwin) {
         if (likeBtn) {
             likeBtn.disabled = true;
             likeBtn.classList.add('opacity-50', 'cursor-not-allowed');
             likeBtn.setAttribute('title', isOwnTwin ? 'You cannot like your own twin' : 'Liking is disabled for this twin');
-            likeBtn.setAttribute('aria-label', `Liking disabled for @<%= twin.publicHandle %>`);
+            likeBtn.setAttribute('aria-label', `Liking disabled for @${twinPublicHandle}`);
             likeBtn.setAttribute('data-disabled-reason', isOwnTwin ? 'own_twin' : 'likes_disabled');
         }
     } else {
@@ -1083,7 +1104,7 @@ document.addEventListener('DOMContentLoaded', function() {
             followBtn.disabled = true;
             followBtn.classList.add('opacity-50', 'cursor-not-allowed');
             followBtn.setAttribute('title', isOwnTwin ? 'You cannot follow your own twin' : 'Following is disabled for this twin');
-            followBtn.setAttribute('aria-label', `Following disabled for @<%= twin.publicHandle %>`);
+            followBtn.setAttribute('aria-label', `Following disabled for @${twinPublicHandle}`);
             followBtn.setAttribute('data-disabled-reason', isOwnTwin ? 'own_twin' : 'follows_disabled');
         }
     } else {
@@ -1094,13 +1115,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // 3) Check if shares are disabled for this twin
-    if (sharesDisabled || isOwnTwin) {
+    // 3) Check if shares are disabled for this twin (removed isOwnTwin check)
+    if (sharesDisabled) {
         shareButtons.forEach(shareBtn => {
             shareBtn.disabled = true;
             shareBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            shareBtn.setAttribute('title', isOwnTwin ? 'You cannot share your own twin' : 'Sharing is disabled for this twin');
-            shareBtn.setAttribute('data-disabled-reason', isOwnTwin ? 'own_twin' : 'shares_disabled');
+            shareBtn.setAttribute('title', 'Sharing is disabled for this twin');
+            shareBtn.setAttribute('data-disabled-reason', 'shares_disabled');
         });
     } else {
         shareButtons.forEach(shareBtn => {

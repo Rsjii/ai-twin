@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS "User" (
     "active" BOOLEAN NOT NULL DEFAULT false,
     "referralCode" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastHandleChangeAt" TIMESTAMPTZ NULL,
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
@@ -210,6 +211,14 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename = 'User' AND indexname = 'User_referralCode_idx') THEN
         CREATE UNIQUE INDEX "User_referralCode_idx" ON "User"("referralCode");
     END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'lastHandleChangeAt') THEN
+        ALTER TABLE "User" ADD COLUMN "lastHandleChangeAt" TIMESTAMPTZ NULL;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'profileCompleted') THEN
+        ALTER TABLE "User" ADD COLUMN "profileCompleted" BOOLEAN NOT NULL DEFAULT false;
+    END IF;
 END $$;
 
 -- AddForeignKey
@@ -278,7 +287,7 @@ export const userQueries = {
 
   findByEmail: async (email: string) => {
     const result = await db.query(
-      'SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE email = $1',
+      'SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage", "lastHandleChangeAt", "profileCompleted" FROM "User" WHERE email = $1',
       [email]
     );
     return result.rows[0];
@@ -316,13 +325,32 @@ export const userQueries = {
     return result.rows[0];
   },
 
-  updateProfile: async (email: string, name: string, handle: string, dob: string, phone: string, bio: string, profileImage?: string | null) => {
+  updateProfile: async (
+    email: string,
+    name: string,
+    handle: string,
+    dob: string | null,
+    phone: string,
+    bio: string,
+    profileImage?: string | null
+  ) => {
     const result = await db.query(
-      'UPDATE "User" SET name = $1, handle = $2, dob = $3, phone = $4, bio = $5, "profileImage" = $6 WHERE email = $7 RETURNING *',
-      [name, handle, dob, phone, bio, profileImage || null, email]
-    );
+      `UPDATE "User"
+       SET
+         name = $1,
+         handle = $2,
+         dob = COALESCE(NULLIF($3::text, '')::date, dob),
+         phone = $4,
+         bio = $5,
+         "profileImage" = $6,
+         "profileCompleted" = true
+       WHERE email = $7
+       RETURNING *`,
+      [name, handle, dob || null, phone, bio, profileImage || null, email]
+    );    
     return result.rows[0];
   }
+
 };
 
 export const twinQueries = {
@@ -489,79 +517,93 @@ export const otpQueries = {
   }
 };
 
-// Public Twin Queries
+// Public Twin Queries - Updated to use TwinProfile
 export const publicTwinQueries = {
-  makePublic: async (twinId: string, publicHandle: string, bio?: string, profileImage?: string) => {
+  makePublic: async (twinId: string, bio?: string, profileImage?: string) => {
+    // ✅ Update Twin directly
     const result = await db.query(
-      'UPDATE "Twin" SET "isPublic" = true, "publicHandle" = $1, "bio" = $2, "profileImage" = $3 WHERE id = $4 RETURNING *',
-      [publicHandle, bio || null, profileImage || null, twinId]
+      `UPDATE "Twin"
+       SET "isPublic" = true,
+           bio = COALESCE($2, bio),
+           "profileImage" = COALESCE($3, "profileImage"),
+           "updatedAt" = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [twinId, bio || null, profileImage || null]
     );
     return result.rows[0];
   },
 
   makePrivate: async (twinId: string) => {
+    // ✅ Update Twin directly
     const result = await db.query(
-      'UPDATE "Twin" SET "isPublic" = false, "publicHandle" = null WHERE id = $1 RETURNING *',
+      `UPDATE "Twin"
+       SET "isPublic" = false,
+           "publicHandle" = NULL,
+           "updatedAt" = NOW()
+       WHERE id = $1
+       RETURNING *`,
       [twinId]
     );
     return result.rows[0];
   },
 
-  findByPublicHandle: async (publicHandle: string) => {
+  findByPublicHandle: async (handle: string) => {
+    // ✅ In new world, handle = User.handle (not Twin.publicHandle)
     const result = await db.query(
-      `SELECT t.*, u.handle as userHandle, u.name as userName 
-       FROM "Twin" t 
-       JOIN "User" u ON t."userId" = u.id 
-       WHERE t."publicHandle" = $1 
+      `SELECT 
+         t.*,
+         u.handle as "userHandle",
+         u.name   as "userName"
+       FROM "Twin" t
+       JOIN "User" u ON t."userId" = u.id
+       WHERE u.handle = $1
          AND t."isPublic" = true
          AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)`,
-      [publicHandle]
+      [handle]
     );
     return result.rows[0];
   },  
 
   getPublicTwins: async (limit = 20, offset = 0) => {
+    // ✅ Use Twin directly
     const result = await db.query(
-      `SELECT t.*, u.handle as userHandle, u.name as userName 
-       FROM "Twin" t 
-       JOIN "User" u ON t."userId" = u.id 
-       WHERE t."isPublic" = true 
-         AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)       
-       ORDER BY t."likeCount" DESC, t."chatCount" DESC, t."createdAt" DESC 
+      `SELECT 
+         t.*,
+         u.handle as "userHandle",
+         u.name   as "userName"
+       FROM "Twin" t
+       JOIN "User" u ON t."userId" = u.id
+       WHERE t."isPublic" = true
+         AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)
+       ORDER BY t."likeCount" DESC, t."chatCount" DESC, t."createdAt" DESC
        LIMIT $1 OFFSET $2`,
       [limit, offset]
     );
     return result.rows;
   },
 
-  updateProfile: async (twinId: string, bio?: string, profileImage?: string, publicHandle?: string) => {
-    const updates = [];
-    const values = [];
-    let paramCount = 1;
+  updateProfile: async (twinId: string, bio?: string, profileImage?: string) => {
+    // ✅ Update Twin directly (no publicHandle changes - URLs are /@user.handle)
+    const updates: string[] = [];
+    const values: any[] = [];
+    let i = 1;
 
     if (bio !== undefined) {
-      updates.push(`"bio" = $${paramCount}`);
+      updates.push(`bio = $${i++}`);
       values.push(bio);
-      paramCount++;
     }
     if (profileImage !== undefined) {
-      updates.push(`"profileImage" = $${paramCount}`);
+      updates.push(`"profileImage" = $${i++}`);
       values.push(profileImage);
-      paramCount++;
     }
-    if (publicHandle !== undefined) {
-      updates.push(`"publicHandle" = $${paramCount}`);
-      values.push(publicHandle);
-      paramCount++;
-    }
+    if (!updates.length) throw new Error('No fields to update');
 
-    if (updates.length === 0) {
-      throw new Error('No fields to update');
-    }
+    updates.push(`"updatedAt" = NOW()`);
 
     values.push(twinId);
     const result = await db.query(
-      `UPDATE "Twin" SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      `UPDATE "Twin" SET ${updates.join(', ')} WHERE id = $${i} RETURNING *`,
       values
     );
     return result.rows[0];

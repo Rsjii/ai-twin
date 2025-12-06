@@ -785,15 +785,24 @@ const twinResult = await db.query(`
 export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { twinToken } = req.params;
-    const { visitorId } = req.query;
+    const { visitorId, twinId: rawTwinId } = req.query as { visitorId?: string; twinId?: string };
     const userId = req.user?.id;
 
-    // ✅ PHASE 2: Detokenize twinToken to get actual twinId
-    const decoded = detokenizeId(twinToken);
-    if (!decoded || decoded.type !== 'twin') {
-      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    let twinId: string | null = null;
+
+    // 1) Prefer raw DB id agar query param se mila (publicTwinDbId se)
+    if (rawTwinId && typeof rawTwinId === 'string' && rawTwinId.trim() !== '') {
+      twinId = rawTwinId.trim();
+      logger.info('[getPublicChatsByTwin] Using raw twinId from query', { twinId });
+    } else {
+      // 2) Nahi mila to purana twinToken → detokenize
+      const decoded = detokenizeId(twinToken);
+      if (!decoded || decoded.type !== 'twin') {
+        throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+      }
+      twinId = decoded.id;
+      logger.info('[getPublicChatsByTwin] Decoded twinToken', { twinToken, twinId });
     }
-    const twinId = decoded.id;
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
@@ -803,7 +812,15 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
     `, [twinId]);
 
     if (twinResult.rows.length === 0) {
-      throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
+      // 🔸 Soft-fail: twin nahi mila to empty history bhejo, server crash mat karo
+      logger.warn('[getPublicChatsByTwin] Twin not found or not public, returning empty history', { twinId });
+
+      return res.json({
+        success: true,
+        twin: null,
+        chats: [],
+        serverTime: new Date().toISOString()
+      });
     }
 
     const twin = twinResult.rows[0];
@@ -847,6 +864,7 @@ export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Respo
           LIMIT 1
         ) m ON true
         WHERE pc."twinId" = $1 
+          AND pc."messageCount" > 0
           AND (
             (pc."userId" = $2 AND $2 IS NOT NULL) 
             OR 
@@ -899,17 +917,31 @@ export const createNewPublicChat = async (req: AuthenticatedRequest, res: Respon
   try {
     const { twinToken, twinId: rawTwinId, visitorId } = req.body;
 
-    const raw = twinToken || rawTwinId;
-    if (!raw) {
-      throw createError.validation('Twin token is required', ErrorCodes.INVALID_INPUT);
+    let twinId: string | null = null;
+
+    // 1) Prefer raw DB id if provided (publicTwinDbId from getPublicChatPage)
+    if (rawTwinId && typeof rawTwinId === 'string' && rawTwinId.trim() !== '') {
+      twinId = rawTwinId.trim();
+      logger.info(`[createNewPublicChat] Using raw DB id: ${twinId}`);
     }
 
-    // ✅ Detokenize if needed
-    const decoded = detokenizeId(raw);
-    if (!decoded || decoded.type !== 'twin') {
-      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    // 2) Otherwise, fall back to token (older callers)
+    if (!twinId) {
+      const raw = twinToken;
+      if (!raw || typeof raw !== 'string') {
+        throw createError.validation('Twin token or ID is required', ErrorCodes.INVALID_INPUT);
+      }
+
+      const decoded = detokenizeId(raw, {
+        userId: req.user?.id,
+        endpoint: 'createNewPublicChat',
+      });
+      if (!decoded || decoded.type !== 'twin' || !decoded.id) {
+        throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+      }
+      twinId = decoded.id;
+      logger.info(`[createNewPublicChat] Decoded from token: ${twinId}`);
     }
-    const twinId = decoded.id;
 
     const userId = req.user?.id || undefined;
     logger.info(`[createNewPublicChat] Twin: ${twinId}, UserId: ${userId || 'anonymous'}, VisitorId: ${visitorId || 'none'}`);

@@ -614,7 +614,9 @@ function setupInfiniteScroll() {
     const clone = template.content.cloneNode(true);
     
     // Update twin data
-    clone.querySelector('.twin-handle').textContent = twin.publicHandle;
+// ✅ FIX: Use userHandle as fallback
+    const displayHandle = twin.publicHandle || twin.userHandle || 'Unknown';
+    clone.querySelector('.twin-handle').textContent = displayHandle;    
     clone.querySelector('.creator-name').textContent = twin.userName || twin.userHandle;
     clone.querySelector('.twin-bio').textContent = twin.bio || 'No bio available';
     clone.querySelector('.like-count').textContent = twin.likeCount || 0;
@@ -820,7 +822,14 @@ function setupInfiniteScroll() {
         if (e.target.closest('button') || e.target.closest('a')) {
             return;
         }
-        window.location.href = `/@${twin.publicHandle}`;
+// ✅ FIX: Use userHandle instead of publicHandle (which can be null)
+const profileHandle = twin.userHandle || twin.publicHandle;
+    if (profileHandle) {
+        window.location.href = `/@${profileHandle}`;
+    } else {
+        console.error('No handle available for twin:', twin);
+        showNotification('Profile not available', 'error');
+    }        
     });
     
     // ✅ FIX ISSUE 2: Prevent click on disabled buttons + show error on click attempt

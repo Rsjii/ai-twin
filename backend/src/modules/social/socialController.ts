@@ -850,23 +850,26 @@ export const getTwinChatters = async (req: Request, res: Response) => {
     if (twinResult.rows.length === 0) {
       return res.status(404).json({ error: 'Twin not found' });
     }
+
+    const twinOwnerId = twinResult.rows[0].userId;
     
-    // Get users who have chatted with this twin
-    const chattersResult = await db.query(
-      `SELECT DISTINCT
-        u.id,
-        u.name,
-        u.handle,
-        u."profileImage",
-        MAX(c."createdAt") as "lastChatAt",
-        COUNT(DISTINCT c.id) as "chatCount"
-       FROM "Chat" c
-       JOIN "User" u ON c."userId" = u.id
-       WHERE c."twinId" = $1
-       GROUP BY u.id, u.name, u.handle, u."profileImage"
-       ORDER BY "lastChatAt" DESC
-       LIMIT 100`,
-      [twinId]
+// Get users who have chatted with this twin (PUBLIC chats only, excluding owner)
+const chattersResult = await db.query(
+  `SELECT DISTINCT
+      u.id,
+      u.name,
+      u.handle,
+      u."profileImage",
+      MAX(c."createdAt") as "lastChatAt",
+      COUNT(DISTINCT c.id) as "chatCount"
+   FROM "PublicChat" c
+   JOIN "User" u ON c."userId" = u.id
+   WHERE c."twinId" = $1
+     AND u.id <> $2        -- ❌ owner ko hatao
+   GROUP BY u.id, u.name, u.handle, u."profileImage"
+   ORDER BY "lastChatAt" DESC
+   LIMIT 100`,
+  [twinId, twinOwnerId]      
     );
     
     res.json({

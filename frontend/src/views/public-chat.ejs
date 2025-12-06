@@ -231,8 +231,10 @@
         let currentChatId = null;
         // ✅ All chats cache for search/filter
         let publicAllChats = [];
-        // ✅ PHASE 2: Use tokenized twinPublicId instead of raw twin.id
-        let currentTwinId = '<%= typeof twinPublicId !== 'undefined' ? twinPublicId : (twin.publicId || '') %>';
+        // ✅ Tokenized twin id (URL / APIs ke liye)
+        let currentTwinId = '<%= typeof twinPublicId !== "undefined" ? twinPublicId : (twin.publicId || "") %>';
+        // ✅ Raw DB id of the viewed twin (backend validated in getPublicChatPage)
+        let currentTwinDbId = '<%= typeof publicTwinDbId !== "undefined" && publicTwinDbId ? publicTwinDbId : "" %>';
         let visitorId = null;
         let isChatting = false;
             // ✅ Global human‑friendly relative time (used by sidebar + messages)
@@ -423,8 +425,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Build query params - backend will use userId from JWT cookie if available
                 const params = new URLSearchParams();
+                // ✅ For logged-out case hum already early-return kar rahe hain above
+                // (yaha sirf logged-in aaega)
                 if (visitorId && !isLoggedIn) {
                     params.append('visitorId', visitorId);
+                }
+                
+                // ✅ IMPORTANT: raw DB twin id bhi bhejo, taaki backend token pe depend na kare
+                if (currentTwinDbId) {
+                    params.append('twinId', currentTwinDbId);
                 }
                 
                 const response = await fetch(`/api/public-chat/twin/${currentTwinId}/chats?${params.toString()}`);
@@ -559,7 +568,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="flex items-center justify-between gap-2 mb-1 min-w-0">
                     <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.publicId === currentChatId ? 'text-blue-700 dark:text-blue-400' : 'text-gray-900 dark:text-white'}" id="public-chat-title-${chat.publicId}">${escapeHtml(chat.title || 'Chat #' + (chat.publicId ? chat.publicId.slice(-6) : ''))}</h4>
                     <div class="flex items-center gap-1 flex-shrink-0">
-                        <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Edit title">
+                            <button class="edit-chat-btn text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Edit title">                            
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                             </svg>
@@ -934,7 +943,8 @@ async function createNewPublicChat() {
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({
-                twinToken: currentTwinId,   // tokenized twin id you already use in URLs
+                // ✅ Use raw DB id for creation (token sirf URLs/histories ke liye)
+                twinId: currentTwinDbId,
                 visitorId: visitorIdToUse
             })
         });

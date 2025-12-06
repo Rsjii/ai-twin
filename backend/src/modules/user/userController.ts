@@ -236,13 +236,23 @@ export const deleteAccount = async (req: AuthenticatedRequest, res: Response) =>
 
     logger.info(`User account deleted: ${userId}`);
 
-    // Clear session
-    req.session?.destroy(() => {});
+// Clear JWT cookie (same options as logout)
+res.clearCookie('jwtToken', {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict',
+  path: '/',
+});
 
-    res.json({
-      success: true,
-      message: 'Account deleted successfully'
-    });
+// Also clear session (you already do this)
+req.session?.destroy(() => {});
+
+// Respond with redirect hint
+res.json({
+  success: true,
+  message: 'Account deleted successfully',
+  redirect: '/auth',
+});    
 
   } catch (error) {
     logger.error('Delete account error:', error);

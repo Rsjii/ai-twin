@@ -127,7 +127,7 @@
             if (response.ok) {
                 showSuccess('OTP verification successful! Redirecting to dashboard...');
                 setTimeout(() => {
-                    window.location.href = '/dashboard';
+                    window.location.replace('/dashboard');
                 }, 2000);
             } else {
                 showError(result.error || 'Invalid verification code');

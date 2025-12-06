@@ -27,12 +27,61 @@ const signupVerifySchema = z.object({
 });
 
 const completeProfileSchema = z.object({
-  email: z.string().email('Invalid email format'),
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  handle: z.string().min(3, 'Handle must be at least 3 characters').max(30, 'Handle must be less than 30 characters'),
-  dob: z.string().optional(),
+  email: z.string().email('Valid email is required'),
+  name: z.string()
+    .min(1, 'Name is required')
+    .min(3, 'Name must be at least 3 characters')
+    .max(50, 'Name is too long'),
+  handle: z.string()
+    .min(1, 'Username is required')
+    .min(3, 'Username must be at least 3 characters')
+    .max(20, 'Username must be at most 20 characters')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+    dob: z.string()
+    .min(1, 'Date of birth is required')
+    // 1) Valid date format
+    .refine((val) => {
+      const date = new Date(val);
+      return !isNaN(date.getTime());
+    }, {
+      message: 'Date of birth must be a valid date'
+    })
+    // 2) Not in future
+    .refine((val) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dobDate = new Date(val);
+      dobDate.setHours(0, 0, 0, 0);
+      return dobDate <= today;
+    }, {
+      message: 'Date of birth cannot be in the future'
+    })
+    // 3) Minimum age 13 years
+    .refine((val) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dobDate = new Date(val);
+      dobDate.setHours(0, 0, 0, 0);
+      const minAge = new Date(today);
+      minAge.setFullYear(today.getFullYear() - 13);
+      return dobDate <= minAge;
+    }, {
+      message: 'You must be at least 13 years old'
+    })
+    // 4) Maximum age 150 years
+    .refine((val) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dobDate = new Date(val);
+      dobDate.setHours(0, 0, 0, 0);
+      const maxAge = new Date(today);
+      maxAge.setFullYear(today.getFullYear() - 150);
+      return dobDate >= maxAge;
+    }, {
+      message: 'Date of birth is too far in the past (maximum 150 years)'
+    }),    
   phone: z.string().optional(),
-  bio: z.string().optional(),
+  bio: z.string().max(300, 'Bio must be at most 300 characters').optional(),
   profileImage: z.string().nullable().optional(),
 });
 
@@ -197,36 +246,51 @@ export const signupVerify = async (req: Request, res: Response, next: NextFuncti
 
 export const completeProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log('🔵 [COMPLETE_PROFILE] Starting profile completion...');
     const { email, name, handle, dob, phone, bio, profileImage } = completeProfileSchema.parse(req.body);
+    console.log('🔵 [COMPLETE_PROFILE] Input data:', { email, name, handle, hasBio: !!bio });
     
     // Update user profile (provide defaults for optional fields)
+    console.log('🔵 [COMPLETE_PROFILE] Updating user profile in database...');
     await userQueries.updateProfile(
       email.toLowerCase(), 
       name, 
       handle || '', 
-      dob || '', 
+      dob || null, 
       phone || '', 
       bio || '', 
       profileImage || null
     );
+    console.log('🔵 [COMPLETE_PROFILE] User profile updated successfully');
     
     // Find user and generate JWT
+    console.log('🔵 [COMPLETE_PROFILE] Fetching user from database...');
     const user = await userQueries.findByEmail(email.toLowerCase());
+    if (!user) {
+      console.error('❌ [COMPLETE_PROFILE] User not found after update!');
+      throw createError.notFound('User not found');
+    }
+    console.log('🔵 [COMPLETE_PROFILE] User found:', { userId: user.id, email: user.email, handle: user.handle });
+    
+    // ✅ Profile exists via User.handle - no TwinProfile needed
+    // Profile URL /@handle works immediately after signup
     
     // Generate JWT token
+    console.log('🔵 [COMPLETE_PROFILE] Generating JWT token...');
     const token = generateJWT({
       userId: user.id,
       email: user.email,
       handle: user.handle || ''
     });
+    console.log('🔵 [COMPLETE_PROFILE] JWT token generated');
     
     // Set JWT token in cookie
     res.cookie('jwtToken', token, {
       httpOnly: true,
       secure: process.env['NODE_ENV'] === 'production',
-      sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict', // ✅ Change: 'lax' for production
+      sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/' // ✅ ADD: Explicit path      
+      path: '/'
     });
 
     // Log profile completed event
@@ -239,6 +303,7 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
       logger.warn('Failed to log profile_completed event:', eventError);
     }
 
+    console.log('✅ [COMPLETE_PROFILE] Profile completion successful, redirecting to dashboard');
     res.json({ 
       message: 'Profile completed successfully', 
       redirect: '/dashboard',
@@ -251,8 +316,29 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
       }
     });
   } catch (error) {
+    console.error('❌ [COMPLETE_PROFILE] Error:', error);
     logger.error('Complete profile error:', error);
-    handleErrorWithResponse(error, res, 'Failed to complete profile. Please try again.');
+
+    // ✅ Show field-level validation errors instead of generic 500
+    if (error instanceof z.ZodError) {
+      // Format errors for frontend
+      const fieldErrors: Record<string, string> = {};
+      error.errors.forEach((err) => {
+        const field = err.path[0] as string;
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = err.message;
+        }
+      });
+      
+      return res.status(400).json({
+        error: 'Validation failed',
+        errorCode: ErrorCodes.VALIDATION_ERROR,
+        details: error.errors,  // Full error details
+        fieldErrors: fieldErrors,  // Simplified field -> message map
+      });
+    }
+
+    handleErrorWithResponse(error, res, 'Failed to complete profile. Please try again.');    
   }
 };
 
@@ -440,17 +526,21 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       handle: user.handle
     });
 
-    res.json({ 
-      message: 'Login successful', 
-      redirect: '/dashboard',
-      token: token,
-      user: {
-        id: user.id,
-        email: user.email,
-        handle: user.handle,
-        name: user.name
-      }
-    });
+    const nextRedirect = user.profileCompleted
+    ? '/dashboard'
+    : '/signup/profile?email=' + encodeURIComponent(user.email);
+  
+  res.json({ 
+    message: 'Login successful', 
+    redirect: nextRedirect,
+    token: token,
+    user: {
+      id: user.id,
+      email: user.email,
+      handle: user.handle,
+      name: user.name
+    }
+  });    
   } catch (error) {
     logger.error('Login error:', error);
     handleErrorWithResponse(error, res, 'Failed to login. Please try again.');
@@ -521,17 +611,21 @@ export const loginVerify = async (req: Request, res: Response, next: NextFunctio
       logger.warn('Failed to log login event:', eventError);
     }
 
-    res.json({ 
-      message: 'Login successful', 
-      redirect: '/dashboard',
-      token: token,
-      user: {
-        id: user.id,
-        email: user.email,
-        handle: user.handle,
-        name: user.name
-      }
-    });
+    const nextRedirect = user.profileCompleted
+    ? '/dashboard'
+    : '/signup/profile?email=' + encodeURIComponent(user.email);
+  
+  res.json({ 
+    message: 'Login successful', 
+    redirect: nextRedirect,
+    token: token,
+    user: {
+      id: user.id,
+      email: user.email,
+      handle: user.handle,
+      name: user.name
+    }
+  });    
   } catch (error) {
     logger.error('Login verify error:', error);
     handleErrorWithResponse(error, res, 'Failed to verify login. Please try again.');

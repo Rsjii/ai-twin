@@ -13,10 +13,15 @@ import { tokenizeId } from '../utils/idTokenization';
  */
 export async function getDashboard(req: any, res: Response) {
   try {
+    console.log('🟢 [DASHBOARD] Starting dashboard load...');
+    
     // Check if user is authenticated via JWT
     if (!req.user) {
+      console.log('❌ [DASHBOARD] No user found, redirecting to auth');
       return res.redirect('/auth');
     }
+    
+    console.log('🟢 [DASHBOARD] User authenticated:', { userId: req.user.id, email: req.user.email });
 
      // Set no-cache headers to prevent browser from caching protected pages
      res.set({
@@ -26,17 +31,41 @@ export async function getDashboard(req: any, res: Response) {
     });
     
     // Fetch full user data from database
+    console.log('🟢 [DASHBOARD] Fetching user data from database...');
     const fullUser = await userQueries.findByEmail(req.user.email);
     if (!fullUser) {
+      console.error('❌ [DASHBOARD] User not found in database');
+    
+      // Clear JWT + session to break the loop
+      res.clearCookie('jwtToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict',
+        path: '/',
+      });
+      if (req.session) {
+        req.session.destroy(() => {});
+      }
+    
       return res.redirect('/auth');
     }
+
+    console.log('🟢 [DASHBOARD] User found:', { userId: fullUser.id, handle: fullUser.handle, name: fullUser.name });
     
+    // ✅ Profile exists via User.handle - no TwinProfile needed
     // Check if user has created any twins
+    console.log('🟢 [DASHBOARD] Checking for existing twins...');
     const userTwins = await twinQueries.findByUserId(fullUser.id);
     const hasTwins = userTwins.length > 0;
+    console.log('🟢 [DASHBOARD] Twin check result:', { hasTwins, twinCount: userTwins.length });
     
     // Get single twin (first twin) - since only one twin per user allowed
     const twin = hasTwins ? userTwins[0] : null;
+    if (twin) {
+      console.log('🟢 [DASHBOARD] Twin found:', { twinId: twin.id, isPublic: twin.isPublic });
+    } else {
+      console.log('🟢 [DASHBOARD] No twin exists yet (this is OK - profile should still exist)');
+    }
 
     //Phase 3: Tokenize twinId
     const twinPublicId = twin && twin.id ? tokenizeId(twin.id, 'twin') : null;
@@ -53,32 +82,46 @@ export async function getDashboard(req: any, res: Response) {
     };
     
     try {
-      const [chatsResult, eventsResult, twinStatsResult] = await Promise.all([
-        // Total chats count
-        db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [fullUser.id]),
+      const [eventsResult, twinStatsResult] = await Promise.all([
         // Total events (views) count
-        db.query('SELECT COUNT(*) as count FROM "Event" WHERE "userId" = $1', [fullUser.id]),
+        db.query(
+          `SELECT COUNT(*) as count 
+           FROM "Event" 
+           WHERE "userId" = $1
+             AND type IN (
+               'public_chat_started',
+               'chat_started'
+             )`,
+          [fullUser.id]
+        ),        
         // Twin stats (if twin exists)
         twin ? db.query(`
-          SELECT "likeCount", "followCount", "chatCount"
+          SELECT 
+            "likeCount", 
+            "followCount", 
+            (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1 AND "userId" <> $2) as "chatCount"
           FROM "Twin"
           WHERE id = $1
-        `, [twin.id]) : Promise.resolve({ rows: [] })
+        `, [twin.id, fullUser.id]) : Promise.resolve({ rows: [] })        
       ]);
       
-      if (chatsResult && chatsResult.rows && chatsResult.rows[0]) {
-        stats.totalChats = parseInt(chatsResult.rows[0].count || '0', 10);
-      }
+      // Default
+      stats.totalChats = 0;
+      
       if (eventsResult && eventsResult.rows && eventsResult.rows[0]) {
         stats.totalViews = parseInt(eventsResult.rows[0].count || '0', 10);
       }
       
       if (twin && twinStatsResult && twinStatsResult.rows && twinStatsResult.rows.length > 0) {
         const twinData = twinStatsResult.rows[0];
+        stats.totalChats = twinData.chatCount || 0;      // ✅ only chats involving your twin
         stats.totalLikes = twinData.likeCount || 0;
         stats.totalFollowers = twinData.followCount || 0;
       }
+      
+      console.log('🟢 [DASHBOARD] Stats fetched:', stats);
     } catch (error) {
+      console.error('❌ [DASHBOARD] Error fetching stats:', error);
       logger.warn('Error fetching stats:', {
         error: error instanceof Error ? error.message : 'Unknown error',
         userId: fullUser.id
@@ -105,7 +148,9 @@ export async function getDashboard(req: any, res: Response) {
           updatedAt: normalizeTimestamp(chat.updatedAt)
         }));
       }
+      console.log('🟢 [DASHBOARD] Recent activity fetched:', { count: recentActivity.length });
     } catch (error) {
+      console.error('❌ [DASHBOARD] Error fetching recent activity:', error);
       logger.warn('Error fetching recent activity:', {
         error: error instanceof Error ? error.message : 'Unknown error',
         userId: fullUser.id
@@ -121,6 +166,13 @@ export async function getDashboard(req: any, res: Response) {
       profileImage: fullUser.profileImage,
     };
     
+    console.log('✅ [DASHBOARD] Rendering dashboard with data:', {
+      userId: user.id,
+      hasTwins,
+      hasTwin: !!twin,
+      stats
+    });
+    
     res.render('dashboard', {
       title: 'Dashboard - AI Twin',
       user: user,
@@ -134,6 +186,7 @@ export async function getDashboard(req: any, res: Response) {
       csrfToken: res.locals['csrfToken']
     });
   } catch (error) {
+    console.error('❌ [DASHBOARD] Dashboard error:', error);
     logger.error('Dashboard page error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       userId: req.user?.id,

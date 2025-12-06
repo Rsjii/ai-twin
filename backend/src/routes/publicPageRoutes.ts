@@ -3,6 +3,8 @@ import { generateCSRFToken } from '../middleware/csrf';
 import * as publicPageController from '../controllers/publicPageController';
 import { getPublicChatPage } from '../modules/twin/publicTwinController';
 import { getPublicChatHistoryPage } from '../controllers/publicChatHistoryPageController';
+import { getMyProfile } from '../controllers/publicPageController';
+import { requireJWTFromCookie } from '../middleware/jwtCookie';
 
 const router = Router();
 
@@ -29,6 +31,8 @@ router.get('/public-chat/history', generateCSRFToken, getPublicChatHistoryPage);
 
 // DISABLED: User profile route - use twin profiles instead
 // router.get('/user/:handle', generateCSRFToken, publicPageController.getUserProfile);
+
+router.get('/profile/my', requireJWTFromCookie, generateCSRFToken, getMyProfile);
 
 
 export default router;

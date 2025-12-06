@@ -293,12 +293,21 @@ export const getShareableContent = async (req: Request, res: Response) => {
 
     // Get public twin by handle
     const twinResult = await db.query(`
-      SELECT t.id, t."publicHandle", t."bio", t."likeCount", t."followCount", t."chatCount", t."allowShares",
-             u.handle as "userHandle", u.name as "userName"
+      SELECT 
+        t.id,
+        t."publicHandle",
+        t."bio",
+        t."likeCount",
+        t."followCount",
+        t."chatCount",
+        t."allowShares",
+        u.handle as "userHandle",
+        u.name   as "userName"
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
-      WHERE t."publicHandle" = $1 AND t."isPublic" = true
-    `, [handle]);
+      WHERE u.handle = $1
+        AND t."isPublic" = true
+    `, [handle]);    
 
     if (twinResult.rows.length === 0) {
       return res.status(404).json({ error: 'Public twin not found' });

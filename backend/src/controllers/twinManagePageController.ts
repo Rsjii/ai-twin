@@ -33,8 +33,7 @@ export async function getTwinManage(req: any, res: Response) {
     const analyticsResult = await fastQuery(`
       SELECT 
         -- Total chats: both PublicChat and private Chat
-        (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1) + 
-        (SELECT COUNT(*) FROM "Chat" WHERE "twinId" = $1 AND "userId" = $2) as chats,
+        (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1 AND "userId" <> $2) as chats,
         -- Views: not tracked, return 0
         0 as views,
         -- Likes: from TwinLike table (used everywhere in codebase)
@@ -84,17 +83,18 @@ export async function getTwinManage(req: any, res: Response) {
       recentChats = [];
     }
 
-    // Fetch public status - query from Twin table (used everywhere, no separate PublicTwin table)
+    // ✅ Fetch public status from Twin
     let publicTwin = null;
     try {
       const publicTwinResult = await fastQuery(`
         SELECT 
-          id,
-          "publicHandle" as handle,
-          "isPublic" as is_public,
-          "createdAt" as created_at
-        FROM "Twin" 
-        WHERE id = $1 AND "isPublic" = true
+          t.id,
+          u.handle as handle,
+          t."isPublic" as is_public,
+          t."createdAt" as created_at
+        FROM "Twin" t
+        JOIN "User" u ON t."userId" = u.id
+        WHERE t.id = $1 AND t."isPublic" = true
       `, [twinId]);
       publicTwin = publicTwinResult.rows.length > 0 ? publicTwinResult.rows[0] : null;
     } catch (error) {

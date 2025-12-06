@@ -147,33 +147,29 @@ export async function validatePublicTwinToken(
     resourceType: 'twin'
   });
 
-  const twinResult = await db.query(`
-    SELECT id, "isPublic", "blockNonLoggedUsers"
-    FROM "Twin"
-    WHERE id = $1
-  `, [twinId]);
+  const twinRes = await db.query(
+    `SELECT id, "isPublic", "blockNonLoggedUsers"
+     FROM "Twin"
+     WHERE id = $1
+     LIMIT 1`,
+    [twinId]
+  );
 
-  if (twinResult.rows.length === 0) {
-    logger.warn('validatePublicTwinToken: Twin not found', {
-      twinId,
-      endpoint
-    });
+  if (twinRes.rows.length === 0) {
+    logger.warn('validatePublicTwinToken: Twin not found', { twinId, endpoint });
     throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
   }
 
-  const twin = twinResult.rows[0];
+  const twin = twinRes.rows[0];
 
   if (!twin.isPublic) {
-    logger.warn('validatePublicTwinToken: Twin is not public', {
-      twinId,
-      endpoint
-    });
+    logger.warn('validatePublicTwinToken: Twin is not public', { twinId, endpoint });
     throw createError.forbidden('Twin is not public', ErrorCodes.FORBIDDEN);
   }
 
   return {
     twinId,
     isPublic: twin.isPublic,
-    blockNonLoggedUsers: twin.blockNonLoggedUsers
+    blockNonLoggedUsers: twin.blockNonLoggedUsers || false
   };
 }

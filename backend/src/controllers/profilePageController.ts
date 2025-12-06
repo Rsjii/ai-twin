@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { userQueries, twinQueries } from '../config/database';
+import { userQueries, twinQueries, db } from '../config/database';
 import { logger } from '../config/logger';
 import { AppError, createError } from '../utils/errors';
 import { handleControllerError } from '../utils/errorHandler';
@@ -18,9 +18,52 @@ export async function getProfile(req: any, res: Response) {
       return res.redirect('/auth');
     }
 
-    const userTwins = await twinQueries.findByUserId(user.id);
-    const twin = userTwins.length > 0 ? userTwins[0] : null;
-    const hasTwins = !!twin;
+    // ✅ Query Twin directly (single twin per user)
+    const twinRes = await db.query(
+      `SELECT 
+         id,
+         "userId",
+         "styleVector",
+         "sampleReply",
+         "personaData",
+         "systemPrompt",
+         "createdAt",
+         "isPublic",
+         "publicHandle",
+         bio,
+         "profileImage",
+         "likeCount",
+         "followCount",
+         "chatCount",
+         verified,
+         "showChatHistory",
+         "requireLogin",
+         "blockNonLoggedUsers",
+         "allowLikes",
+         "allowFollows",
+         "allowShares"
+       FROM "Twin"
+       WHERE "userId" = $1
+       LIMIT 1`,
+      [user.id]
+    );
+
+    let twin: any = null;
+    let hasTwins = false;
+
+    if (twinRes.rows.length > 0) {
+      const row = twinRes.rows[0];
+      hasTwins = true;
+      twin = {
+        ...row,
+        // expose counts & flags with defaults
+        likeCount: row.likeCount || 0,
+        followCount: row.followCount || 0,
+        chatCount: row.chatCount || 0,
+        verified: row.verified || false
+      };
+    }
+
     const activeTab = req.query.tab || 'profile';
 
     const userWithDefaults = {

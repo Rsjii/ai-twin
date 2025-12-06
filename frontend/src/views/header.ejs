@@ -75,15 +75,15 @@
               <% if (isAuthenticated) { %>
                   <nav class="hidden md:flex items-center space-x-1">
                       <a href="/dashboard" 
-                         class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-4 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 <%= isDashboard ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
+                         class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-4 py-2 rounded-lg <%= isDashboard ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
                           Dashboard
                       </a>
                       <a href="/discover" 
-                         class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-4 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 <%= isDiscover ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
+                         class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-4 py-2 rounded-lg <%= isDiscover ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
                           Discover
                       </a>
                       <a href="/chat-enhanced" 
-                         class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-4 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 <%= isChat ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
+                         class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium px-4 py-2 rounded-lg <%= isChat ? 'text-primary dark:text-blue-400 bg-white/50 dark:bg-gray-800' : '' %>">
                           Chat
                       </a>
                   </nav>
@@ -425,12 +425,12 @@
                 (linkPath === '/chat-enhanced' && (currentPath === '/chat-enhanced' || currentPath.startsWith('/chat/')));
             
             if (isActive) {
-                link.classList.add('text-primary', 'dark:text-blue-400', 'bg-white/50', 'dark:bg-gray-800');
-                link.classList.remove('text-gray-600', 'dark:text-gray-300');
+                link.classList.add('text-primary', 'dark:text-blue-400');
+                link.classList.remove('text-gray-600', 'dark:text-gray-300', 'bg-white/50', 'dark:bg-gray-800');
             } else {
                 link.classList.remove('text-primary', 'dark:text-blue-400', 'bg-white/50', 'dark:bg-gray-800');
                 link.classList.add('text-gray-600', 'dark:text-gray-300');
-            }
+            }            
         });
     });
 </script>

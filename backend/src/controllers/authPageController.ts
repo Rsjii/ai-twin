@@ -1,37 +1,62 @@
 import { Response } from 'express';
+import { userQueries } from '../config/database';
+import { logger } from '../config/logger';
 
 /**
  * Unified Auth page - Login/Signup
  */
-export function getAuth(req: any, res: Response) {
-  if (req.user) {
-    return res.redirect('/dashboard');
+export async function getAuth(req: any, res: Response) {
+  try {
+    if (req.user && req.user.email) {
+      // User has a JWT; check if profile is completed
+      const fullUser = await userQueries.findByEmail(req.user.email);
+
+      if (fullUser && fullUser.profileCompleted) {
+        // Fully onboarded → send to dashboard
+        return res.redirect('/dashboard');
+      }
+
+      // Incomplete or missing user → clear auth and show auth page
+      res.clearCookie('jwtToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict',
+        path: '/',
+      });
+
+      if (req.session) {
+        req.session.destroy(() => {});
+      }
+    }
+
+    // Show login/signup page
+    return res.render('auth', {
+      title: 'Login / Signup - AI Twin',
+      user: null,
+      csrfToken: res.locals['csrfToken'],
+    });
+  } catch (err) {
+    logger.error('getAuth error:', err);
+    return res.render('auth', {
+      title: 'Login / Signup - AI Twin',
+      user: null,
+      csrfToken: res.locals['csrfToken'],
+    });
   }
-  res.render('auth', {
-    title: 'Login / Signup - AI Twin',
-    user: null,
-    csrfToken: res.locals['csrfToken'],
-  });
 }
 
 /**
  * Login page - Redirects to unified auth
  */
 export function getLogin(req: any, res: Response) {
-  if (req.user) {
-    return res.redirect('/dashboard');
-  }
-  res.redirect('/auth');
+  return getAuth(req, res);
 }
 
 /**
  * Signup page - Redirects to unified auth
  */
 export function getSignup(req: any, res: Response) {
-  if (req.user) {
-    return res.redirect('/dashboard');
-  }
-  res.redirect('/auth');
+  return getAuth(req, res);
 }
 
 /**
@@ -69,7 +94,17 @@ export function getVerifyOtp(req: any, res: Response) {
  * Signup Profile Completion page
  */
 export function getSignupProfile(req: any, res: Response) {
-  const email = req.query['email'] as string;
+  let email = req.query['email'] as string;
+
+  // 2) If not in query but user is authenticated via JWT cookie, use that
+  if (!email && req.user && req.user.email) {
+    email = req.user.email;
+  }  
+  
+  // 3) If still no email, send back to auth
+  if (!email) {
+    return res.redirect('/auth');
+  }
   
   res.render('signup-profile', {
     title: 'Complete Profile - AI Twin',

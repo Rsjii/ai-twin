@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { logEvent } from '../../services/eventLogger';
 import path from 'path';
 import fs from 'fs';
+import {db} from '../../config/database';
 
 const updateHandleSchema = z.object({
   handle: z.string().min(3, 'Handle must be at least 3 characters').max(20, 'Handle too long').regex(/^[a-zA-Z0-9_-]+$/, 'Handle can only contain letters, numbers, hyphens, and underscores'),
@@ -193,12 +194,30 @@ export const updateProfile = async (req: Request, res: Response) => {
     // ✅ FIX: Parse form data (can be from multipart/form-data or JSON)
     const updateProfileSchema = z.object({
       name: z.string().min(2, 'Name must be at least 2 characters').optional(),
-      handle: z.string().min(3, 'Handle must be at least 3 characters').max(20, 'Handle too long').regex(/^[a-zA-Z0-9_\s-]+$/, 'Handle can only contain letters, numbers, spaces, hyphens, and underscores').optional(),
-      dob: z.string().optional(),
+    
+      // ✅ tighten: no spaces, only a-z0-9_ and hyphen if you want
+      handle: z.string()
+        .min(3, 'Handle must be at least 3 characters')
+        .max(20, 'Handle must be at most 20 characters')
+        .regex(/^[a-zA-Z0-9_]+$/, 'Handle can only contain letters, numbers, and underscores')
+        .optional(),
+    
+      dob: z.string().optional()
+        .refine((value) => {
+          if (!value) return true;
+          const d = new Date(value);
+          if (Number.isNaN(d.getTime())) return false;
+          const today = new Date();
+          if (d > today) return false;                     // future date
+          const ageMs = today.getTime() - d.getTime();
+          const ageYears = ageMs / (1000 * 60 * 60 * 24 * 365.25);
+          return ageYears >= 13;                          // min age 13
+        }, 'Please enter a valid date of birth (must be at least 13 years old and not in the future)'),
+    
       phone: z.string().optional(),
       bio: z.string().max(500, 'Bio too long').optional(),
       profileImage: z.string().nullable().optional(),
-    });
+    });    
 
     // ✅ FIX: Parse from req.body (multer will parse multipart/form-data)
     const { name, handle, dob, phone, bio, profileImage } = updateProfileSchema.parse(req.body);
@@ -209,9 +228,24 @@ export const updateProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    const now = new Date();
+    const HANDLE_COOLDOWN_DAYS = 45;
+
     // Check if handle is already taken (if provided and different from current)
     if (handle && handle !== currentUser.handle) {
-      const { db } = await import('../../config/database');
+
+      // ✅ 1) Rate limit: disallow if changed in last 45 days
+  if (currentUser.lastHandleChangeAt) {
+    const last = new Date(currentUser.lastHandleChangeAt);
+    const diffMs = now.getTime() - last.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    if (diffDays < HANDLE_COOLDOWN_DAYS) {
+      const remaining = Math.ceil(HANDLE_COOLDOWN_DAYS - diffDays);
+      return res.status(400).json({
+        error: `You can change your username again in ${remaining} day(s).`
+      });
+    }
+  }
       const handleCheck = await db.query('SELECT id FROM "User" WHERE handle = $1 AND id != $2', [handle, req.user.userId]);
       
       if (handleCheck.rows.length > 0) {
@@ -240,6 +274,14 @@ export const updateProfile = async (req: Request, res: Response) => {
       finalBio,
       finalProfileImage
     );
+
+    // ✅ If handle changed, store timestamp
+if (finalHandle !== currentUser.handle) {
+  await db.query(
+    'UPDATE "User" SET "lastHandleChangeAt" = NOW() WHERE id = $1',
+    [currentUser.id]
+  );
+}
 
     return res.json({
       success: true,

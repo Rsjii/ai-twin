@@ -100,7 +100,8 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
      0,     // chatCount - default to 0
      new Date()
    ]);
-
+    
+    // ✅ Twin created - profile URL is /@user.handle (no TwinProfile needed)
     
     // Create a mock twin object for testing
     const twin = {

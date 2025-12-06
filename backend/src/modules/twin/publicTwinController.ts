@@ -14,10 +14,7 @@ import { EVENT_TYPES } from '../../config/constants';
 // Validation schemas
 const makePublicSchema = z.object({
   twinId: z.string().min(1, 'Twin ID is required'),
-  publicHandle: z.string()
-    .min(3, 'Handle must be at least 3 characters')
-    .max(30, 'Handle must be less than 30 characters')
-    .regex(/^[a-zA-Z0-9_-]+$/, 'Handle can only contain letters, numbers, hyphens, and underscores'),
+  // ✅ REMOVED: publicHandle - always use user.handle for consistent URLs
   bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
   profileImage: z.string().url('Profile image must be a valid URL').optional()
 });
@@ -39,62 +36,79 @@ export const makeTwinPublic = async (req: Request, res: Response, next: NextFunc
       throw createError.unauthorized('Authentication required');
     }
 
-    const { twinId, publicHandle, bio, profileImage } = makePublicSchema.parse(req.body);
+    const { twinId, bio, profileImage } = makePublicSchema.parse(req.body);
+
+    logger.info('Making twin public - request received', {
+      twinId,
+      userId: req.user.id,
+      bio: bio?.substring(0, 50),
+      hasProfileImage: !!profileImage
+    });
 
     await verifyTwinOwnership(twinId, req.user.id);
 
-    // Get twin data after verification
-    const twinResult = await db.query(`
-      SELECT id, "isPublic", "publicHandle"
-      FROM "Twin"
-      WHERE id = $1
-      LIMIT 1
-    `, [twinId]);
+    // ✅ Check Twin directly
+    const twinResult = await db.query(
+      `SELECT id, "userId", "isPublic" FROM "Twin" WHERE id = $1`,
+      [twinId]
+    );
+    if (twinResult.rows.length === 0) {
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
+    }
 
     const twin = twinResult.rows[0];
 
-    // Check if already public
+    // Idempotent: already public
     if (twin.isPublic) {
-      throw createError.conflict('Twin is already public');
+      return res.status(200).json({
+        success: true,
+        message: 'Twin is already public'
+      });
     }
 
-    // Check if handle is already taken
-    const existingHandle = await db.query(`
-      SELECT id FROM "Twin" WHERE "publicHandle" = $1 AND id != $2
-    `, [publicHandle, twin.id]);
-
-    if (existingHandle.rows.length > 0) {
-      throw createError.conflict('This handle is already taken');
-    }
-
-    // Make twin public
-    const updatedTwin = await publicTwinQueries.makePublic(
-      twin.id,
-      publicHandle,
-      bio,
-      profileImage
+    // Always use user.handle as "public" identity
+    const userRes = await db.query(
+      `SELECT handle FROM "User" WHERE id = $1`,
+      [twin.userId]
     );
+    const userHandle = userRes.rows[0]?.handle || '';
 
-    // Log event
+    const updated = await publicTwinQueries.makePublic(twinId, bio, profileImage);
+
+    // ✅ Guard: agar update nahi hua to error throw karo
+if (!updated || !updated.isPublic) {
+  logger.error('makeTwinPublic: Twin update failed', {
+    twinId,
+    updated
+  });
+  throw createError.internal('Failed to make twin public. Please try again.');
+}
+
     await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_MADE_PUBLIC, {
-      publicTwinId: twin.id,
-      publicHandle,
+      publicTwinId: twinId,
+      handle: userHandle,
       bioLength: bio?.length || 0
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Twin is now public!',
       twin: {
-        id: updatedTwin.id,
-        publicHandle: updatedTwin.publicHandle,
-        bio: updatedTwin.bio,
-        profileImage: updatedTwin.profileImage,
-        isPublic: updatedTwin.isPublic
+        id: updated.id,
+        isPublic: updated.isPublic,
+        bio: updated.bio,
+        profileImage: updated.profileImage,
+        // for front-end display only
+        publicHandle: userHandle
       }
     });
 
   } catch (error) {
+    logger.error('Error making twin public', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.user?.id
+    });
     handleControllerError(error, 'Failed to make twin public');
   }
 };
@@ -114,33 +128,28 @@ export const makeTwinPrivate = async (req: Request, res: Response, next: NextFun
 
     await verifyTwinOwnership(twinId, req.user.id);
 
-    // Get twin data after verification
-    const twinResult = await db.query(`
-      SELECT id, "isPublic"
-      FROM "Twin"
-      WHERE id = $1
-      LIMIT 1
-    `, [twinId]);
+    const twinRes = await db.query(
+      `SELECT id, "isPublic" FROM "Twin" WHERE id = $1`,
+      [twinId]
+    );
+    if (twinRes.rows.length === 0) {
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
+    }
 
-    const twin = twinResult.rows[0];
-
-    if (!twin.isPublic) {
+    if (!twinRes.rows[0].isPublic) {
       throw createError.conflict('Twin is already private');
     }
 
-    // Make twin private
-    await publicTwinQueries.makePrivate(twin.id);
+    await publicTwinQueries.makePrivate(twinId);
 
-    // Log event
     await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_MADE_PRIVATE, {
-      publicTwinId: twin.id
+      publicTwinId: twinId
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Twin is now private'
     });
-
   } catch (error) {
     handleControllerError(error, 'Failed to make twin private');
   }
@@ -154,38 +163,26 @@ export const updateTwinProfile = async (req: Request, res: Response, next: NextF
     }
 
     const updateData = updateProfileSchema.parse(req.body);
+    // We ignore updateData.publicHandle – only one username = User.handle.
 
-    // Get user's twin
-    const twinResult = await db.query(`
-      SELECT id, "isPublic", "publicHandle"
+    const twinRes = await db.query(
+      `SELECT id, "userId"
       FROM "Twin"
       WHERE "userId" = $1
-      LIMIT 1
-    `, [req.user.id]);
+       LIMIT 1`,
+      [req.user.id]
+    );
 
-    if (twinResult.rows.length === 0) {
+    if (twinRes.rows.length === 0) {
       throw createError.notFound('No twin found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
-    const twin = twinResult.rows[0];
+    const twin = twinRes.rows[0];
 
-    // If updating public handle, check if it's available
-    if (updateData.publicHandle && updateData.publicHandle !== twin.publicHandle) {
-      const existingHandle = await db.query(`
-        SELECT id FROM "Twin" WHERE "publicHandle" = $1 AND id != $2
-      `, [updateData.publicHandle, twin.id]);
-
-      if (existingHandle.rows.length > 0) {
-        throw createError.conflict('This handle is already taken');
-      }
-    }
-
-    // Update profile
     const updatedTwin = await publicTwinQueries.updateProfile(
       twin.id,
       updateData.bio,
-      updateData.profileImage,
-      updateData.publicHandle
+      updateData.profileImage
     );
 
     res.json({
@@ -193,13 +190,11 @@ export const updateTwinProfile = async (req: Request, res: Response, next: NextF
       message: 'Profile updated successfully',
       twin: {
         id: updatedTwin.id,
-        publicHandle: updatedTwin.publicHandle,
         bio: updatedTwin.bio,
         profileImage: updatedTwin.profileImage,
         isPublic: updatedTwin.isPublic
       }
     });
-
   } catch (error) {
     handleControllerError(error, 'Failed to update twin profile');
   }
@@ -248,16 +243,32 @@ export const getMyTwinProfile = async (req: Request, res: Response, next: NextFu
       });
     }
 
-    const twinResult = await db.query(`
-      SELECT t.*, u.handle as userHandle, u.name as userName
+    const twinRes = await db.query(
+      `SELECT 
+         t.id,
+         t."userId",
+         t."isPublic",
+         t.bio,
+         t."profileImage",
+         t."likeCount",
+         t."followCount",
+         t."chatCount",
+         t.verified,
+         t."styleVector",
+         t."sampleReply",
+         t."personaData",
+         t."systemPrompt",
+         t."createdAt",
+         u.handle as "userHandle",
+         u.name   as "userName"
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
       WHERE t."userId" = $1
-      LIMIT 1
-    `, [req.user.id]);
+       LIMIT 1`,
+      [req.user.id]
+    );
 
-    if (twinResult.rows.length === 0) {
-      // Return JSON instead of throwing - user doesn't have a twin yet
+    if (twinRes.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'No twin found. Please create a twin first.',
@@ -266,37 +277,43 @@ export const getMyTwinProfile = async (req: Request, res: Response, next: NextFu
       });
     }
 
-    const twin = twinResult.rows[0];
+    const row = twinRes.rows[0];
+    const twinPublicId = tokenizeId(row.id, 'twin');
 
-    // Get User's personaData and onboarding status
-    const userResult = await db.query(`
-      SELECT "personaData", "onboardingCompleted" 
+    const userMetaRes = await db.query(
+      `SELECT "personaData", "onboardingCompleted"
       FROM "User" 
-      WHERE id = $1
-    `, [req.user.id]);
-    
-    const userData = userResult?.rows?.[0] || {};
-
-    const sanitizedTwin = sanitizeTwin(twin);
+       WHERE id = $1`,
+      [req.user.id]
+    );
+    const userMeta = userMetaRes.rows[0] || {};
 
     res.json({
       success: true,
       twin: {
-        ...sanitizedTwin, // ✅ Already has publicId, no raw id
-        styleVector: twin.styleVector,
-        sampleReply: twin.sampleReply,
-        personaData: twin.personaData,
-        systemPrompt: twin.systemPrompt,
-        createdAt: twin.createdAt,
-        userHandle: twin.userHandle,
-        userName: twin.userName
+        id: twinPublicId,
+        publicId: twinPublicId,
+        isPublic: row.isPublic,
+        publicHandle: row.userHandle,   // ✅ always user.handle
+        bio: row.bio,
+        profileImage: row.profileImage,
+        likeCount: row.likeCount || 0,
+        followCount: row.followCount || 0,
+        chatCount: row.chatCount || 0,
+        verified: row.verified || false,
+        styleVector: row.styleVector,
+        sampleReply: row.sampleReply,
+        personaData: row.personaData,
+        systemPrompt: row.systemPrompt,
+        createdAt: row.createdAt,
+        userHandle: row.userHandle,
+        userName: row.userName
       },
       user: {
-        personaData: userData.personaData,
-        onboardingCompleted: userData.onboardingCompleted || false
+        personaData: userMeta.personaData,
+        onboardingCompleted: userMeta.onboardingCompleted || false
       }
     });
-
   } catch (error: any) {
     logger.error('getMyTwinProfile error:', error);
     handleControllerError(error, 'Failed to get twin profile');
@@ -352,12 +369,18 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
       }
     }
     
-// First, check if twin exists and get basic info
-const twinCheck = await db.query(`
-  SELECT id, "isPublic", "blockNonLoggedUsers", "publicHandle"
-  FROM "Twin" t
-  WHERE t.id = $1
-`, [twinId]);
+// ✅ Check twin existence + visibility from Twin
+const twinCheck = await db.query(
+  `SELECT 
+     id,
+     "isPublic",
+     "blockNonLoggedUsers",
+     "requireLogin"
+   FROM "Twin"
+   WHERE id = $1
+   LIMIT 1`,
+  [twinId]
+);
 
 if (twinCheck.rows.length === 0) {
   logger.warn('getPublicChatPage: Twin not found', { twinId, userId });
@@ -369,7 +392,7 @@ const twinInfo = twinCheck.rows[0];
 // ✅ Check blockNonLoggedUsers for non-logged users
 if (!userId && twinInfo.blockNonLoggedUsers === true) {
   logger.warn('getPublicChatPage: Non-logged user blocked', { twinId });
-  return res.status(403).render('403',{
+  return res.status(403).render('403', {
     title: 'Access Denied',
     message: 'This twin requires you to be logged in to access',
     csrfToken: res.locals['csrfToken'],
@@ -377,12 +400,13 @@ if (!userId && twinInfo.blockNonLoggedUsers === true) {
   });
 }
 
-// ✅ Check if user is blocked (only if logged in)
+// ✅ Check if user is blocked (uses Twin.id directly)
 if (userId) {
-  const blockedCheck = await db.query(`
-    SELECT id FROM "TwinBlockedUsers"
-    WHERE "twinId" = $1 AND "userId" = $2
-  `, [twinId, userId]);
+  const blockedCheck = await db.query(
+    `SELECT id FROM "TwinBlockedUsers"
+     WHERE "twinId" = $1 AND "userId" = $2`,
+    [twinId, userId]
+  );
   
   if (blockedCheck.rows.length > 0) {
     logger.warn('getPublicChatPage: Blocked user tried to access', { twinId, userId });
@@ -395,21 +419,28 @@ if (userId) {
   }
 }
 
-// Check if twin is public
+// ✅ Check if twin is public
 if (!twinInfo.isPublic) {
   logger.warn('getPublicChatPage: Twin is not public', { twinId, userId, isPublic: twinInfo.isPublic });
   throw createError.notFound('Twin is not public', ErrorCodes.TWIN_NOT_FOUND);
 }
 
-// Note: blockNonLoggedUsers only affects discover page visibility, not direct access
-// Non-logged users can still access public chat pages directly via URL
-
-// Get full twin details (we know it exists and is accessible)
-const twinResult = await db.query(`
-  SELECT id, "publicHandle", "sampleReply", "isPublic", "profileImage", bio, "requireLogin"
-  FROM "Twin" t
-  WHERE t.id = $1
-`, [twinId]);
+// ✅ Load display fields from Twin (join with User to get handle)
+const twinResult = await db.query(
+  `SELECT 
+     COALESCE(t."publicHandle", u.handle) AS "publicHandle",
+     t."isPublic",
+     t."profileImage",
+     t.bio,
+     t."requireLogin",
+     t."sampleReply",
+     u.handle AS "userHandle",
+     u.name   AS "userName"
+   FROM "Twin" t
+   JOIN "User" u ON t."userId" = u.id
+   WHERE t.id = $1`,
+  [twinId]
+);
 
 if (twinResult.rows.length === 0) {
   logger.error('getPublicChatPage: Unexpected error - twin disappeared', { twinId, userId });
@@ -544,7 +575,10 @@ const twin = twinResult.rows[0];
       initialChatId: initialChatIdToken,  // ✅ Always a token if set, null otherwise
       requiresLogin: twin.requireLogin && !userId,
       hasTwins: hasTwins,
+      // ✅ viewer ka apna twin (agar ho) – purana behaviour same
       twinId: userTwinId,
+      // ✅ NEW: jis twin ko dekh rahe ho uska raw DB id (backend validated in getPublicChatPage)
+      publicTwinDbId: twinId,
       csrfToken: req.csrfToken?.() || ''
     });
     

@@ -398,7 +398,7 @@ if (toggleSignupPassword) {
                     if (response.ok) {
                         showFlashMessage('Login successful!', 'success');
                         setTimeout(() => {
-                            window.location.href = result.redirect || '/dashboard';
+                            window.location.replace(result.redirect || '/dashboard');
                         }, 1000);
                     } else {
                         showFlashMessage(result.error || 'Invalid email or password', 'error');

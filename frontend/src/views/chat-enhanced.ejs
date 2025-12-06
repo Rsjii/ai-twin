@@ -1771,18 +1771,26 @@ function displayChatHistory(chats) {
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-2 mb-1 min-w-0">
                             <h4 class="font-medium text-sm flex-1 min-w-0 truncate ${chat.publicId === currentChatId ? 'text-blue-700 dark:text-blue-400' : 'text-gray-900 dark:text-white'}" id="chat-title-${chat.publicId}">${chat.title || 'Untitled Chat'}</h4>
-                            <div class="flex items-center gap-1 flex-shrink-0">
-                                <button class="edit-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Edit title">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                    </svg>
-                                </button>
-                                <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Delete chat">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                </button>
-                            </div>
+<div class="flex items-center gap-1 flex-shrink-0">
+    <button
+        class="edit-chat-btn invisible group-hover:visible transition-opacity text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 pointer-events-auto relative z-10 cursor-pointer"
+        data-chat-id="${chat.publicId}"
+        title="Edit title"
+    >
+        <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+        </svg>
+    </button>
+    <button
+        class="delete-chat-btn invisible group-hover:visible transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto relative z-10 cursor-pointer"
+        data-chat-id="${chat.publicId}"
+        title="Delete chat"
+    >
+        <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        </svg>
+    </button>
+</div>
                         </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
                             ${chat.lastMessage
@@ -1827,41 +1835,47 @@ function displayChatHistory(chats) {
             });
         }
 
+        // ✅ NEW: Edit / delete button listeners (desktop + mobile, har render pe fresh)
+        container.querySelectorAll('.edit-chat-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const chatId = btn.dataset.chatId;
+                if (chatId && typeof editChatTitle === 'function') {
+                    editChatTitle(chatId, btn);
+                }
+            });
+        });
+
+        container.querySelectorAll('.delete-chat-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const chatId = btn.dataset.chatId;
+                if (chatId && typeof deleteChat === 'function') {
+                    deleteChat(chatId);
+                } else {
+                    console.error('deleteChat function not found or chatId missing');
+                }
+            });
+        });
+
         // Add click listeners for switching chats
         container.querySelectorAll('.chat-item').forEach(item => {
             item.addEventListener('click', function(e) {
-                if (e.target.closest('.delete-chat-btn') || e.target.closest('.edit-chat-btn')) return;
+                if (e.target.closest('.delete-chat-btn') || e.target.closest('.edit-chat-btn')) {
+                    return; // button click already handled above
+                }
                 const chatId = this.dataset.chatId;
                 if (chatId !== currentChatId) {
                     switchToChat(chatId);
                 }
             });
-        });
-
-        // Edit / delete buttons
-        container.querySelectorAll('.delete-chat-btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                e.preventDefault();
-                const chatId = this.dataset.chatId;
-                if (chatId && typeof deleteChat === 'function') {
-                    deleteChat(chatId);
-                }
-            });
-        });
-
-        container.querySelectorAll('.edit-chat-btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                e.preventDefault();
-                const chatId = this.dataset.chatId;
-                if (chatId && typeof editChatTitle === 'function') {
-                    editChatTitle(chatId);
-                }
-            });
-        });
+        });        
     });
 }
+
+
 
 // Switch to different chat
 async function switchToChat(chatId) {
@@ -1993,51 +2007,74 @@ async function deleteChat(chatId) {
     }
 }
 
+
 // Edit chat title function
-async function editChatTitle(chatId) {
-    const titleElement = document.getElementById(`chat-title-${chatId}`);
-    if (!titleElement) {
-        console.error('Title element not found');
+async function editChatTitle(chatId, sourceEl) {
+    // 1️⃣ Jis item pe click hua, usi ko prefer karo (desktop / mobile dono me safe)
+    let chatItem = null;
+    if (sourceEl && sourceEl.closest) {
+        chatItem = sourceEl.closest('.chat-item');
+    }
+    if (!chatItem) {
+        // Fallback: pehla matching chat-item (old delegations ke liye)
+        chatItem = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
+    }
+    if (!chatItem) {
+        console.error('Chat item not found for chatId:', chatId);
         return;
     }
-    
+
+    const titleElement = chatItem.querySelector('h4[id^="chat-title-"]');
+    if (!titleElement) {
+        console.error('Title element not found for chatId:', chatId);
+        return;
+    }
+
+    // 2️⃣ Multiple inputs / re‑entry guard
+    const existingInput = chatItem.querySelector('input[type="text"]');
+    if (existingInput) {
+        existingInput.focus();
+        existingInput.select();
+        return;
+    }
+
+    if (titleElement.style.display === 'none') {
+        return; // already editing
+    }
+
     const currentTitle = titleElement.textContent.trim();
-    
-    // Create input field
+
+    // 3️⃣ Input create + replace
     const input = document.createElement('input');
     input.type = 'text';
     input.value = currentTitle;
     input.className = 'font-medium text-sm flex-1 px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500';
     input.style.minWidth = '100px';
     input.style.maxWidth = '200px';
-    
-    // Replace title with input
+
     const parent = titleElement.parentElement;
-    const originalTitle = titleElement.textContent;
     titleElement.style.display = 'none';
     parent.insertBefore(input, titleElement);
     input.focus();
     input.select();
-    
-    // Save on Enter or blur
+
+    // 4️⃣ Save / cancel logic (same as pehle, bus titleElement/chatItem wale references use karo)
     const saveTitle = async () => {
         const newTitle = input.value.trim();
-        
+
         if (newTitle === currentTitle) {
-            // No change, just restore
             input.remove();
             titleElement.style.display = '';
             return;
         }
-        
+
         if (!newTitle) {
-            // Empty title, restore original
             input.remove();
             titleElement.style.display = '';
             showNotification('Title cannot be empty', 'error');
             return;
         }
-        
+
         try {
             const response = await fetch(`/api/chats/${chatId}/title`, {
                 method: 'PUT',
@@ -2048,20 +2085,17 @@ async function editChatTitle(chatId) {
                 credentials: 'include',
                 body: JSON.stringify({ title: newTitle })
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to update title');
             }
-            
-            // Update title in UI
+
             titleElement.textContent = newTitle;
             input.remove();
             titleElement.style.display = '';
-            
+
             showNotification('Title updated successfully', 'success');
-            
-            // Reload chat history to reflect changes
             await loadChatHistory(false);
         } catch (error) {
             console.error('Error updating title:', error);
@@ -2070,7 +2104,7 @@ async function editChatTitle(chatId) {
             titleElement.style.display = '';
         }
     };
-    
+
     input.addEventListener('blur', saveTitle);
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -2082,6 +2116,7 @@ async function editChatTitle(chatId) {
         }
     });
 }
+
 
 // Create new enhanced chat (draft-only; real chat on first message)
 async function createNewChat() {
@@ -2157,49 +2192,11 @@ function removeDraftFromSidebar(chatId) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // ✅ PHASE 2: Check for redirect message in URL (run FIRST)
-    const urlParams = new URLSearchParams(window.location.search);
-    const message = urlParams.get('message');
-    
-    if (message) {
-        // Show banner with message
-        const banner = document.getElementById('redirectMessageBanner');
-        const messageText = document.getElementById('redirectMessageText');
-        const closeBtn = document.getElementById('closeMessageBanner');
-        
-        if (banner && messageText) {
-            messageText.textContent = decodeURIComponent(message);
-            banner.classList.remove('hidden');
-            
-            // Close button functionality
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => {
-                    banner.classList.add('hidden');
-                    // Remove message from URL without reload
-                    const newUrl = window.location.pathname + (urlParams.get('twinId') ? `?twinId=${urlParams.get('twinId')}` : '');
-                    window.history.replaceState({}, '', newUrl);
-                });
-            }
-            
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                if (banner && !banner.classList.contains('hidden')) {
-                    banner.classList.add('hidden');
-                    // Remove message from URL
-                    const newUrl = window.location.pathname + (urlParams.get('twinId') ? `?twinId=${urlParams.get('twinId')}` : '');
-                    window.history.replaceState({}, '', newUrl);
-                }
-            }, 5000);
-        } else {
-            console.error('Banner elements not found');
-        }
-    }
-    
     // ✅ FIX: Get chat ID from EJS variable and validate
     const chatIdFromServer = '<%= chatId || "" %>';
     currentChatId = (chatIdFromServer && chatIdFromServer !== 'null' && chatIdFromServer !== 'undefined' && chatIdFromServer.trim() !== '') ? chatIdFromServer : null;
     
-    console.log('Enhanced chat initialized with chatId:', currentChatId);
+    console.log('Enhanced chat initialized with chatId:', currentChatId);    
                 
     // Mobile event listeners
     const mobileChatMenuBtn = document.getElementById('mobile-chat-menu-btn');

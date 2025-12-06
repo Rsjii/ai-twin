@@ -390,9 +390,9 @@ if (twinId) {
                LIMIT 1),
               NULL
             ) as "twinPublicHandle"
-         FROM "Chat" c
+         FROM "PublicChat" c
          JOIN "User" u ON c."userId" = u.id
-         LEFT JOIN "Message" m ON c.id = m."chatId"
+         LEFT JOIN "PublicMessage" m ON c.id = m."chatId"
          WHERE c."twinId" = ANY($1::text[])
          ${search ? `AND (u.name ILIKE $2 OR u.handle ILIKE $2)` : ''}
          GROUP BY u.id, u.name, u.handle, u."profileImage"
@@ -404,13 +404,15 @@ if (twinId) {
       );
       
       data = result.rows || [];
-
+    
       const countResult = await db.query(
-        `SELECT COUNT(DISTINCT c."userId") as count FROM "Chat" c WHERE c."twinId" = ANY($1::text[])`,
+        `SELECT COUNT(DISTINCT c."userId") as count FROM "PublicChat" c WHERE c."twinId" = ANY($1::text[])`,
         [targetTwinIds],
       );
       total = parseInt(countResult.rows[0]?.count || '0');
-    } else {
+    }      
+
+   else {
       data = [];
       total = 0;
     }

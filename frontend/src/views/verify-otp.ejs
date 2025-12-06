@@ -149,7 +149,7 @@
                     
                     if (response.ok) {
                         alert('OTP verified successfully!');
-                        window.location.href = redirectUrl;
+                        window.location.replace(redirectUrl);
                     } else {
                         alert(result.error || 'Invalid OTP');
                     }

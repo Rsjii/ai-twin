@@ -180,6 +180,85 @@ app.use(session({
   },
 }));
 
+// ✅ GLOBAL: block access for users with incomplete profile (except auth/signup + static)
+app.use(async (req, res, next) => {
+  try {
+    const path = req.path || '';
+
+    // 0) Always skip static assets (CSS/JS/images/fonts/uploads/etc.)
+    const isStatic =
+      path.startsWith('/css/') ||
+      path.startsWith('/js/') ||
+      path.startsWith('/images/') ||
+      path.startsWith('/uploads/') ||
+      path.startsWith('/utils/') ||
+      path.startsWith('/favicon') ||
+      path.endsWith('.png') ||
+      path.endsWith('.jpg') ||
+      path.endsWith('.jpeg') ||
+      path.endsWith('.svg') ||
+      path.endsWith('.ico') ||
+      path.endsWith('.woff') ||
+      path.endsWith('.woff2') ||
+      path.endsWith('.ttf');
+
+    if (isStatic) {
+      return next(); // let express.static handle it
+    }
+
+    // 1) If not logged in, nothing to do
+    if (!req.user || !req.user.email) {
+      return next();
+    }
+
+    // 2) Routes where incomplete profile is allowed
+    const allowedPrefixes = [
+      '/auth',
+      '/login',
+      '/signup',
+      '/signup/profile',   // profile completion page
+      '/signup/verify',
+      '/forgot-password',
+      '/reset-password',
+      '/api/auth',         // login/signup/otp/profile APIs
+    ];
+
+    const isAllowed = allowedPrefixes.some(prefix => path.startsWith(prefix));
+    if (isAllowed) {
+      return next();
+    }
+
+    // 3) For everything else: check profileCompleted
+    const { userQueries } = await import('./config/database');
+    const fullUser = await userQueries.findByEmail(req.user.email);
+
+    if (!fullUser) {
+      // User row missing: clear auth and send to /auth
+      res.clearCookie('jwtToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict',
+        path: '/',
+      });
+      if (req.session) {
+        req.session.destroy(() => {});
+      }
+      return res.redirect('/auth');
+    }
+
+    if (!fullUser.profileCompleted) {
+      // ❗ As per your requirement: any other endpoint/back → go to auth
+      return res.redirect('/auth');
+    }
+
+    // Profile completed → proceed
+    return next();
+  } catch (err) {
+    console.error('ProfileCompletionGuard error:', err);
+    return res.redirect('/auth');
+  }
+});
+
 // After session middleware, before routes
 app.use((req, res, next) => {
   // Paths that should NEVER be cached even for anonymous
@@ -372,29 +451,33 @@ app.post('/api/chats/:id/generate-title', requireJWTFromCookie, generateChatTitl
 
 // View engine setup
 app.set('view engine', 'ejs');
-// ✅ FIX: Use absolute path resolution with proper production handling
+// ✅ FIX: Views path - handle both dev (src) and production (dist) correctly
+// If running from dist/, go up 2 levels. If from src/, go up 1 level.
 const viewsPath = path.resolve(__dirname, '../../frontend/src/views');
-app.set('views', viewsPath);
 
-// ✅ ADD: Disable EJS caching in development, enable in production
-if (config.nodeEnv === 'production') {
-  logger.info('Views path:', viewsPath);
-  // Verify path exists
-  const fs = require('fs');
-  if (!fs.existsSync(viewsPath)) {
-    logger.error('Views path does not exist:', viewsPath);
-  }
+app.set('views', viewsPath);
+logger.info('Views directory set to:', viewsPath);
+
+// ✅ FIX: ALWAYS disable EJS cache for development (even if NODE_ENV is set wrong)
+app.set('view cache', false);
+logger.info('EJS view cache DISABLED. Views path:', viewsPath);
+
+// Verify path exists
+if (!fs.existsSync(viewsPath)) {
+  logger.error('❌ Views path does not exist:', viewsPath);
+  logger.error('Current __dirname:', __dirname);
+  logger.error('Resolved viewsPath:', viewsPath);
 } else {
-  // Development: disable caching for hot reload
-  app.set('view cache', false);
+  logger.info('✅ Views path verified:', viewsPath);
 }
 
-// Static files with cache headers
-app.use(express.static(path.resolve(__dirname, '../../frontend/src/public'), {
-  maxAge: '1y',
-  etag: true,
-  lastModified: true,
-}));
+// ✅ FIX: Disable static file cache in development
+const staticOptions = config.nodeEnv === 'production' 
+  ? { maxAge: '1y', etag: true, lastModified: true }
+  : { maxAge: 0, etag: false, lastModified: false }; // No cache in dev
+
+app.use(express.static(path.resolve(__dirname, '../../frontend/src/public'), staticOptions));
+logger.info('Static files cache:', config.nodeEnv === 'production' ? 'ENABLED (1y)' : 'DISABLED (dev mode)');
 
 // ✅ SIMPLE STATIC SERVE FOR UPLOADS
 const uploadsPath = path.resolve(process.cwd(), 'public/uploads');
@@ -411,7 +494,6 @@ app.use('/utils', express.static(path.resolve(__dirname, '../public/utils')));
 if(config.nodeEnv === 'production'){
   const utilsPath = path.resolve(__dirname, '../public/utils');
   logger.info(`📁 Utils path: ${utilsPath}`);
-  const fs = require('fs');
   if (fs.existsSync(utilsPath)) {
     logger.info(`✅ Utils directory exists`);
     logger.info(`📁 Utils files: ${fs.readdirSync(utilsPath).join(', ')}`);

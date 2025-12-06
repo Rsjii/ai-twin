@@ -14,7 +14,6 @@ const twinService = new TwinService();
 const enhancedOnboardingSchema = z.object({
   basicInfo: z.object({
     fullName: z.string().min(1, 'Full name is required'),
-    username: z.string().min(3, 'Username must be at least 3 characters'),
     bio: z.string().min(50, 'Bio must be at least 50 characters').max(150, 'Bio must not exceed 150 characters'),
     primaryUseCase: z.string().min(1, 'Primary use case is required')
   }),
@@ -146,6 +145,8 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
 
     const result = await db.query(insertQuery, insertParams);
 
+    // ✅ Twin created - profile URL is /@user.handle (no TwinProfile needed)
+
     // Log twin creation event
     await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.ENHANCED_TWIN_CREATED, { 
       publicTwinId: twinId,
@@ -196,12 +197,11 @@ async function updateUserProfile(userId: string, data: any) {
       UPDATE "User" 
       SET 
         name = $1,
-        handle = $2,
-        bio = $3,
-        "personaData" = $4,
-        "onboardingCompleted" = $5,
-        "updatedAt" = $6
-      WHERE id = $7
+        bio = $2,
+        "personaData" = $3,
+        "onboardingCompleted" = $4,
+        "updatedAt" = $5
+      WHERE id = $6
     `;
     
     const personaData = {
@@ -214,7 +214,6 @@ async function updateUserProfile(userId: string, data: any) {
 
     updateParams = [
       data.basicInfo.fullName,
-      data.basicInfo.username,
       data.basicInfo.bio,
       JSON.stringify(personaData),
       data.onboardingCompleted,
@@ -227,14 +226,12 @@ async function updateUserProfile(userId: string, data: any) {
       UPDATE "User" 
       SET 
         name = $1,
-        handle = $2,
-        bio = $3
-      WHERE id = $4
+        bio = $2
+      WHERE id = $3
     `;
     
     updateParams = [
       data.basicInfo.fullName,
-      data.basicInfo.username,
       data.basicInfo.bio,
       userId
     ];
@@ -247,7 +244,6 @@ function createPersonaData(data: any) {
   return {
     // Basic Information
     name: data.basicInfo.fullName,
-    username: data.basicInfo.username,
     bio: data.basicInfo.bio,
     primaryUseCase: data.basicInfo.primaryUseCase,
 

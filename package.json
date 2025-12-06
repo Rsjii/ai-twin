@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=backend",
+    "dev:clean": "npm run clear-cache && npm run dev",
     "build": "npm run build:css && npm run build --workspace=backend",
     "build:css": "npm run build --workspace=frontend",
     "start": "npm run start --workspace=backend",
@@ -19,6 +20,7 @@
     "prisma:studio": "npm run prisma:studio --workspace=backend",
     "setup": "node scripts/setup.js",
     "clean": "node scripts/clean.js",
+    "clear-cache": "node scripts/clear-cache.js",
     "migrate:style-learning": "node run-style-learning-migration.js",
     "migrate:all": "npm run migrate:basic && npm run migrate:public && npm run migrate:onboarding && npm run migrate:chat-vector && npm run migrate:style-learning"
 

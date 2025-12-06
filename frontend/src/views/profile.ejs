@@ -173,10 +173,15 @@
                                         readonly
                                         class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white"
                                     >
+                                    <p id="nameError" class="mt-1 text-xs text-red-500 hidden"></p>
                                 </div>
                                 
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Handle</label>
+                                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                                    <span>Handle</span>
+                                    <span class="text-[11px] text-gray-400 dark:text-gray-500">
+                                        You can change this only once every 45 days
+                                    </span>
+                                </label>
                                     <input 
                                         type="text" 
                                         id="handle" 
@@ -185,6 +190,7 @@
                                         readonly
                                         class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white"
                                     >
+                                    <p id="handleError" class="mt-1 text-xs text-red-500 hidden"></p>
                                 </div>
                                 
                                 <div class="space-y-2">
@@ -209,6 +215,7 @@
                                         readonly
                                         class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white"
                                     >
+                                    <p id="dobError" class="mt-1 text-xs text-red-500 hidden"></p>
                                 </div>
                             </div>
                             
@@ -221,6 +228,7 @@
                                     readonly
                                     class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 resize-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                                     placeholder="Tell us about yourself..."><%= user.bio || '' %></textarea>
+                                    <p id="bioError" class="mt-1 text-xs text-red-500 hidden"></p>
                             </div>
                         </div>
                         
@@ -429,30 +437,34 @@
                                                     <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                     </svg>
-                                                    Make Twin Public
+                                                    Twin Visibility
                                                 </h3>
                                                 <p class="text-sm text-gray-600 dark:text-gray-300">
-                                                    <% if (twin.isPublic) { %>
+                                                  <% if (twin && twin.isPublic) { %>
                                                         Your twin is currently <span class="font-semibold text-green-600 dark:text-green-400">PUBLIC</span>. Others can discover and chat with it.
                                                     <% } else { %>
                                                         Your twin is currently <span class="font-semibold text-gray-600 dark:text-gray-400">PRIVATE</span>. Make it public to let others discover and chat with it.
                                                     <% } %>
                                                 </p>
+                                                
                                             </div>
                                             <div class="flex sm:justify-end">
-                                                <label class="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" id="isPublicToggle" <%= twin.isPublic ? 'checked' : '' %> class="sr-only peer">
-                                                <div class="w-14 h-7 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-300 after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500 dark:peer-checked:bg-green-600"></div>
-                                            </label>
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
+                                                 <%= twin.isPublic ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                                                   : 'bg-gray-100 text-gray-600 dark:bg-gray-800/60 dark:text-gray-300' %>">
+                                                    <span class="w-2 h-2 rounded-full mr-2 <%= twin.isPublic ? 'bg-green-500' : 'bg-gray-400' %>"></span>
+                                                    <%= twin.isPublic ? 'Public' : 'Private' %>
+                                                </span>
                                             </div>
                                         </div>
                                         
                                         <% if (!twin.isPublic) { %>
                                             <div id="makePublicForm" class="mt-4 space-y-4 p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700">
-                                                <div>
-                                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Public Handle <span class="text-red-500">*</span></label>
-                                                    <input type="text" id="publicHandle" placeholder="e.g., coolcompanion240" class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white" pattern="[a-zA-Z0-9_-]+" minlength="3" maxlength="30">
-                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">3-30 characters, letters, numbers, hyphens, underscores only</p>
+                                                <!-- ✅ REMOVED: Public Handle input - backend uses user.handle automatically -->
+                                                <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                                    <p class="text-sm text-blue-800 dark:text-blue-300">
+                                                        <strong>Profile URL:</strong> Your profile will be accessible at <code class="bg-white dark:bg-gray-800 px-2 py-1 rounded">/@<%= user.handle %></code>
+                                                    </p>
                                                 </div>
                                                 <div>
                                                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Bio (Optional)</label>
@@ -471,7 +483,13 @@
                                                         Copy Link
                                                     </button>
                                                 </div>
-                                                <input type="text" id="publicLinkInput" value="/public-twin/<%= twin.publicHandle %>" readonly class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white">
+                                                <input
+                                                type="text"
+                                                id="publicLinkInput"
+                                                value="/@<%= user.handle %>"
+                                                readonly
+                                                class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-white"
+                                              />                                                
                                                 <button id="makeTwinPrivateBtn" class="mt-3 w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-all font-semibold">
                                                     Make Twin Private
                                                 </button>
@@ -1039,6 +1057,54 @@
                             }, 1500);
                         } else {
                             showNotification(result.error || 'Failed to update profile', 'error');
+                             // ✅ Clear previous field errors
+                            ['name','handle','dob','bio'].forEach((field) => {
+                                const el = document.getElementById(field + 'Error');
+                                if (el) {
+                                    el.textContent = '';
+                                    el.classList.add('hidden');
+                                }
+                            });
+
+                            // 1) Special case: handle already taken
+                            if (result.error === 'Handle already taken') {
+                                const el = document.getElementById('handleError');
+                                if (el) {
+                                    el.textContent = 'This username is already taken.';
+                                    el.classList.remove('hidden');
+                                }
+                                showNotification('Username is already taken', 'error');
+                                return;
+                            }
+
+                            // 1.b) Special case: handle cooldown (45 days)
+                            if (result.error && result.error.includes('You can change your username again in')) {
+                                const el = document.getElementById('handleError');
+                                if (el) {
+                                    el.textContent = result.error;
+                                    el.classList.remove('hidden');
+                                }
+                                showNotification(result.error, 'error');
+                                return;
+                            }
+
+                            // 2) Zod validation errors (details[])
+                            if (result.details && Array.isArray(result.details)) {
+                                result.details.forEach((err) => {
+                                    const field = err.path && err.path[0];
+                                    if (!field) return;
+                                    const el = document.getElementById(field + 'Error');
+                                    if (el) {
+                                        el.textContent = err.message || 'Invalid value';
+                                        el.classList.remove('hidden');
+                                    }
+                                });
+                                showNotification(result.error || 'Please fix the highlighted fields', 'error');
+                                return;
+                            }
+
+                            // 3) Fallback generic error
+                            showNotification(result.error || 'Failed to update profile', 'error');
                         }
                     } catch (error) {
                         console.error('Profile update error:', error);
@@ -1129,7 +1195,144 @@
             // ✅ Remove profile image button (initial attachment)
             attachRemoveButtonListener();
         
-            // ... rest of existing code for change password form, etc. ...
+            // ===== Account & Security – Change Password =====
+            const showChangePasswordBtn = document.getElementById('showChangePasswordBtn');
+            const changePasswordFormContainer = document.getElementById('changePasswordFormContainer');
+            const changePasswordForm = document.getElementById('changePasswordForm');
+            const cancelChangePasswordBtn = document.getElementById('cancelChangePasswordBtn');
+
+            if (showChangePasswordBtn && changePasswordFormContainer) {
+                showChangePasswordBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    changePasswordFormContainer.classList.remove('hidden');
+                    const currentInput = document.getElementById('currentPassword');
+                    if (currentInput) currentInput.focus();
+                });
+            }
+
+            if (cancelChangePasswordBtn && changePasswordFormContainer && changePasswordForm) {
+                cancelChangePasswordBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    changePasswordFormContainer.classList.add('hidden');
+                    changePasswordForm.reset();
+                });
+            }
+
+            // Helper for password show/hide toggles
+            function setupPasswordToggle(inputId, buttonId, eyeClosedId, eyeOpenId) {
+                const input = document.getElementById(inputId);
+                const btn = document.getElementById(buttonId);
+                const eyeClosed = document.getElementById(eyeClosedId);
+                const eyeOpen = document.getElementById(eyeOpenId);
+                if (!input || !btn || !eyeClosed || !eyeOpen) return;
+
+                btn.addEventListener('click', () => {
+                    const isHidden = input.type === 'password';
+                    input.type = isHidden ? 'text' : 'password';
+                    eyeClosed.classList.toggle('hidden', !isHidden);
+                    eyeOpen.classList.toggle('hidden', isHidden);
+                });
+            }
+
+            // Eye toggles for 3 password fields
+            setupPasswordToggle('currentPassword', 'toggleCurrentPassword', 'currentPasswordEyeClosed', 'currentPasswordEyeOpen');
+            setupPasswordToggle('newPassword', 'toggleNewPassword', 'newPasswordEyeClosed', 'newPasswordEyeOpen');
+            setupPasswordToggle('confirmPassword', 'toggleConfirmPassword', 'confirmPasswordEyeClosed', 'confirmPasswordEyeOpen');
+
+            if (changePasswordForm) {
+                changePasswordForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const currentPassword = document.getElementById('currentPassword').value.trim();
+                    const newPassword = document.getElementById('newPassword').value.trim();
+                    const confirmPassword = document.getElementById('confirmPassword').value.trim();
+
+                    if (!currentPassword || !newPassword || !confirmPassword) {
+                        showNotification('Please fill all password fields.', 'error');
+                        return;
+                    }
+                    if (newPassword !== confirmPassword) {
+                        showNotification('New password and confirm password do not match.', 'error');
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch('/auth/change-password', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': '<%= csrfToken %>'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({ currentPassword, newPassword })
+                        });
+                        const data = await res.json();
+                        if (!res.ok || !data.success) {
+                            showNotification(data.error || 'Failed to change password', 'error');
+                            return;
+                        }
+                        showNotification('Password changed successfully.', 'success');
+                        changePasswordForm.reset();
+                        changePasswordFormContainer.classList.add('hidden');
+                    } catch (err) {
+                        console.error('Change password error:', err);
+                        showNotification('Network error. Please try again.', 'error');
+                    }
+                });
+            }
+
+            // ===== Account Management – Export Data =====
+            const exportDataBtn = document.getElementById('exportDataBtn');
+            if (exportDataBtn) {
+                exportDataBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    try {
+                        // Trigger download in a new tab
+                        window.open('/api/user/export-data', '_blank');
+                        showNotification('Export started. If download does not start, please check pop‑up blocker.', 'info');
+                    } catch (err) {
+                        console.error('Export data error:', err);
+                        showNotification('Failed to start export. Please try again.', 'error');
+                    }
+                });
+            }
+
+            // ===== Account Management – Delete Account =====
+            const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+            if (deleteAccountBtn) {
+                deleteAccountBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const c1 = confirm('This will permanently delete your account and all data. Continue?');
+                    if (!c1) return;
+                    const c2 = confirm('Last confirm. Are you absolutely sure?');
+                    if (!c2) return;
+
+                    const password = prompt('Optional: enter your password to confirm (leave blank if you signed up with OTP only).') || undefined;
+
+                    try {
+                        const res = await fetch('/api/user/account', {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': '<%= csrfToken %>'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({ password })
+                        });
+                        const data = await res.json();
+                        if (!res.ok || !data.success) {
+                            showNotification(data.error || 'Failed to delete account', 'error');
+                            return;
+                        }
+                        showNotification('Account deleted successfully. Redirecting...', 'success');
+                        setTimeout(() => {
+                            window.location.href = '/auth';
+                        }, 1500);
+                    } catch (err) {
+                        console.error('Delete account error:', err);
+                        showNotification('Network error. Please try again.', 'error');
+                    }
+                });
+            }
             
             // ✅ FIX ISSUE 3: Privacy settings form - preserve tab on reload
             const privacySettingsForm = document.getElementById('privacySettingsForm');
@@ -1523,6 +1726,140 @@
             // Initial load
             loadBlockedUsers();
         })();
+        
+        // ✅ Make Twin Public handler - uses user.handle automatically
+        const makeTwinPublicBtn = document.getElementById('makeTwinPublicBtn');
+        if (makeTwinPublicBtn) {
+            makeTwinPublicBtn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                
+                const currentTwinId = '<%= typeof twinId !== "undefined" && twinId ? twinId : "" %>';
+                if (!currentTwinId) {
+                    showNotification('Twin ID not found', 'error');
+                    return;
+                }
+                
+                console.log('Making twin public with ID:', currentTwinId);
+                
+                const bio = document.getElementById('publicBio')?.value || '';
+                
+                // Disable button during submission
+                makeTwinPublicBtn.disabled = true;
+                const originalText = makeTwinPublicBtn.textContent;
+                makeTwinPublicBtn.textContent = 'Making Public...';
+                
+                try {
+                    const response = await fetch('/api/public-twin/make-public', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': '<%= csrfToken %>'
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            twinId: currentTwinId,
+                            bio: bio
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    console.log('Make public response:', result);
+                    
+                    if (response.ok && result.success) {
+                        showNotification('Twin made public successfully!', 'success');
+                        // ✅ Force page reload to show updated status
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        showNotification(result.error || result.message || 'Failed to make twin public', 'error');
+                        makeTwinPublicBtn.disabled = false;
+                        makeTwinPublicBtn.textContent = originalText;
+                    }
+                } catch (error) {
+                    console.error('Make twin public error:', error);
+                    showNotification('Network error. Please try again.', 'error');
+                    makeTwinPublicBtn.disabled = false;
+                    makeTwinPublicBtn.textContent = originalText;
+                }
+            });
+        }
+
+        // ✅ Copy Public Link handler
+const copyPublicLinkBtn = document.getElementById('copyPublicLinkBtn');
+if (copyPublicLinkBtn) {
+  copyPublicLinkBtn.addEventListener('click', async function (e) {
+    e.preventDefault();
+
+    const publicLinkInput = document.getElementById('publicLinkInput');
+    if (!publicLinkInput) {
+      showNotification('Public link not found', 'error');
+      return;
+    }
+
+    const url = window.location.origin + publicLinkInput.value;
+    try {
+      await navigator.clipboard.writeText(url);
+      showNotification('Profile link copied to clipboard!', 'success');
+    } catch (error) {
+      console.error('Copy to clipboard error:', error);
+      showNotification('Failed to copy link. Please copy manually: ' + url, 'error');
+    }
+  });
+}
+
+// ✅ Make Twin Private handler
+const makeTwinPrivateBtn = document.getElementById('makeTwinPrivateBtn');
+if (makeTwinPrivateBtn) {
+  makeTwinPrivateBtn.addEventListener('click', async function (e) {
+    e.preventDefault();
+
+    const currentTwinId = '<%= typeof twinId !== "undefined" && twinId ? twinId : "" %>';
+    if (!currentTwinId) {
+      showNotification('Twin ID not found', 'error');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to make your twin private? Others will no longer be able to discover it.')) {
+      return;
+    }
+
+    makeTwinPrivateBtn.disabled = true;
+    const originalText = makeTwinPrivateBtn.textContent;
+    makeTwinPrivateBtn.textContent = 'Making Private...';
+
+    try {
+      const response = await fetch('/api/public-twin/make-private', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': '<%= csrfToken %>'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ twinId: currentTwinId })
+      });
+
+      const result = await response.json();
+      console.log('Make private response:', result);
+
+      if (response.ok && result.success) {
+        showNotification('Twin made private successfully!', 'success');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showNotification(result.error || result.message || 'Failed to make twin private', 'error');
+        makeTwinPrivateBtn.disabled = false;
+        makeTwinPrivateBtn.textContent = originalText;
+      }
+    } catch (error) {
+      console.error('Make twin private error:', error);
+      showNotification('Network error. Please try again.', 'error');
+      makeTwinPrivateBtn.disabled = false;
+      makeTwinPrivateBtn.textContent = originalText;
+    }
+  });
+}
+
+
     </script>
 
     <!--Footer-->

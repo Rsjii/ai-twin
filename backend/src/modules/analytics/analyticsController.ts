@@ -121,7 +121,16 @@ export const debugUserData = async (req: Request, res: Response) => {
     const [twinsResult, chatsResult, eventsResult, invitesSentResult, invitesReceivedResult] = await Promise.all([
       db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "userId" = $1', [userId]),
       db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [userId]),
-      db.query('SELECT COUNT(*) as count FROM "Event" WHERE "userId" = $1', [userId]),
+      db.query(
+        `SELECT COUNT(*) as count 
+         FROM "Event" 
+         WHERE "userId" = $1
+           AND type IN (
+             'public_chat_started',
+             'chat_started'
+           )`,
+        [userId]
+      ),      
       db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "inviterId" = $1', [userId]),
       db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "acceptedBy" = $1', [userId]),
     ]);
@@ -414,11 +423,9 @@ const responseData = {
     id: userId,
     email: req.user?.email || 'Unknown',
     handle: req.user?.handle || 'Unknown',
-  }), // ✅ PHASE 5: Use sanitizeUser
+  }), 
   analytics: {
-    // ✅ keep "views" = total events for now (simple proxy)
     totalViews: userEvents || 0,
-    // ✅ FIX: use real likes/followers, not invites
     totalLikes: userLikes || 0,
     totalFollowers: userFollowers || 0,
     totalChats: userChats || 0,

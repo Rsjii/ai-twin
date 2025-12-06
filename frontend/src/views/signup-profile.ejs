@@ -32,32 +32,56 @@
                 <form id="profileForm">
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
-                        <input type="email" id="profileEmail" name="email" readonly class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white text-base min-h-[44px]" aria-label="Email">
+                        <input
+                        type="email"
+                        id="profileEmail"
+                        name="email"
+                        readonly
+                        value="<%= email || '' %>"
+                        class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white text-base min-h-[44px]"
+                        aria-label="Email"
+                      />                        
+                        <div id="email-error" class="text-red-600 dark:text-red-400 text-sm mt-1 hidden"></div>
                     </div>
                     
                     <div class="mb-4">
                         <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name *</label>
                         <input type="text" id="name" name="name" placeholder="Enter your full name" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-base min-h-[44px] placeholder-gray-400 dark:placeholder-gray-500" required aria-label="Full Name">
+                        <div id="name-error" class="text-red-600 dark:text-red-400 text-sm mt-1 hidden"></div>
                     </div>
                     
                     <div class="mb-4">
                         <label for="handle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username *</label>
                         <input type="text" id="handle" name="handle" placeholder="Choose a username" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-base min-h-[44px] placeholder-gray-400 dark:placeholder-gray-500" required aria-label="Username">
+                        <div id="handle-error" class="text-red-600 dark:text-red-400 text-sm mt-1 hidden"></div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">3-20 characters, letters, numbers, and underscores only</p>
                     </div>                    
                     
                     <div class="mb-4">
-                        <label for="dob" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date of Birth</label>
-                        <input type="date" id="dob" name="dob" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-base min-h-[44px]" aria-label="Date of Birth">
+                        <label for="dob" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Date of Birth *
+                          </label>
+                          <input
+                            type="date"
+                            id="dob"
+                            name="dob"
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-base min-h-[44px]"
+                            aria-label="Date of Birth"
+                          />                        
+                        <div id="dob-error" class="text-red-600 dark:text-red-400 text-sm mt-1 hidden"></div>
                     </div>
                     
                     <div class="mb-4">
                         <label for="phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone Number (Optional)</label>
                         <input type="tel" id="phone" name="phone" placeholder="Enter your phone number" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-base min-h-[44px] placeholder-gray-400 dark:placeholder-gray-500" aria-label="Phone Number">
+                        <div id="phone-error" class="text-red-600 dark:text-red-400 text-sm mt-1 hidden"></div>
                     </div>
                     
                     <div class="mb-4">
                         <label for="bio" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bio (Optional)</label>
                         <textarea id="bio" name="bio" rows="3" placeholder="Tell us about yourself..." class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none text-base placeholder-gray-400 dark:placeholder-gray-500" aria-label="Bio"></textarea>
+                        <div id="bio-error" class="text-red-600 dark:text-red-400 text-sm mt-1 hidden"></div>
                     </div>
                     
                     <div class="mb-4">
@@ -73,7 +97,7 @@
                     </div>
                     
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                </form>
+                </form>                
             </div>
         </div>
     </div>
@@ -81,18 +105,70 @@
     <script>
         window.csrfToken = '<%= csrfToken %>';
         
+        // Helper function to show field errors
+        function showFieldError(fieldName, message) {
+            const errorDiv = document.getElementById(`${fieldName}-error`);
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.classList.remove('hidden');
+                // Add error styling to input
+                const input = document.getElementById(fieldName);
+                if (input) {
+                    input.classList.add('border-red-500', 'dark:border-red-500');
+                    input.classList.remove('border-gray-300', 'dark:border-gray-600');
+                }
+            }
+        }
+        
+        // Helper function to clear all errors
+        function clearAllErrors() {
+            const errorFields = ['email', 'name', 'handle', 'dob', 'phone', 'bio'];
+            errorFields.forEach(field => {
+                const errorDiv = document.getElementById(`${field}-error`);
+                if (errorDiv) {
+                    errorDiv.classList.add('hidden');
+                    errorDiv.textContent = '';
+                }
+                const input = document.getElementById(field);
+                if (input) {
+                    input.classList.remove('border-red-500', 'dark:border-red-500');
+                    input.classList.add('border-gray-300', 'dark:border-gray-600');
+                }
+            });
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             // Get email from URL parameters
             const urlParams = new URLSearchParams(window.location.search);
-            const email = urlParams.get('email');
+            const emailFromUrl = urlParams.get('email');
+            const emailInput = document.getElementById('profileEmail');
             
-            if (email) {
-                document.getElementById('profileEmail').value = decodeURIComponent(email);
+            if (emailFromUrl && emailInput && !emailInput.value) {
+                emailInput.value = decodeURIComponent(emailFromUrl);
             }
+            
+            
+            // Clear errors on input
+            ['name', 'handle', 'dob', 'phone', 'bio'].forEach(field => {
+                const input = document.getElementById(field);
+                if (input) {
+                    input.addEventListener('input', () => {
+                        const errorDiv = document.getElementById(`${field}-error`);
+                        if (errorDiv) {
+                            errorDiv.classList.add('hidden');
+                            input.classList.remove('border-red-500', 'dark:border-red-500');
+                            input.classList.add('border-gray-300', 'dark:border-gray-600');
+                        }
+                    });
+                }
+            });
             
             // Form submission
             document.getElementById('profileForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                
+                // Clear previous errors
+                clearAllErrors();
                 
                 const formData = new FormData(e.target);
                 
@@ -154,9 +230,26 @@
                         }
                         
                         alert('Profile completed successfully!');
-                        window.location.href = result.redirect || '/dashboard';
+                        window.location.replace(result.redirect || '/dashboard');
                     } else {
-                        alert(result.error || 'Failed to complete profile');
+                        // Handle validation errors
+                        if (result.fieldErrors) {
+                            // Show field-specific errors
+                            Object.keys(result.fieldErrors).forEach(field => {
+                                showFieldError(field, result.fieldErrors[field]);
+                            });
+                        } else if (result.details && Array.isArray(result.details)) {
+                            // Fallback: use details array
+                            result.details.forEach((err) => {
+                                const field = err.path[0];
+                                if (field) {
+                                    showFieldError(field, err.message);
+                                }
+                            });
+                        } else {
+                            // Generic error
+                            alert(result.error || 'Failed to complete profile');
+                        }
                     }
                 } catch (error) {
                     console.error('Profile completion error:', error);
@@ -164,6 +257,6 @@
                 }
             });
         });
-    </script>
+    </script>    
 </body>
 </html>
