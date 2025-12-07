@@ -93,7 +93,7 @@
 //DONE 84. /analytics/type me profile hi clcik na ho rahi
 //DONE 85. signup me dark theme me email color wrong hai
 //DONE 86. regenerate prompt me usi ko font badal ke dikha rahe
-87. public vhat dark theme color text
+//DONE 87. public vhat dark theme color text
 //LATER 88. ingest memory cross nahi hota hai
 //DONE 89. private chat me yaar chats me thida sahi nahi dikh rahi, regenerate chat multiple instnaces dikh rahe
 //DONE 90. duplicate content ye kya hai saala 
@@ -123,7 +123,7 @@
 //CHECK => aur kaha add kare 102. filtering wagerah ke options publci chat history + aur jagah
 //DONE 103. reset password different + eye
 104. actual email se jaaye
-105. Enhanced AI Twin Creation full flow
+//DONE 105. Enhanced AI Twin Creation full flow
 //NOT_NEEDED 106. apni profile hide karke anonymous chat ka option bhi de users do, think hona cahiye ya baad me kare
 //ADVANCED 107. leaderboard wagerah dekhl
 //DONE 108. follows enabled hai to saala follow kaise nahi ho raha jya dikkat hai
@@ -150,7 +150,7 @@ twinsettings sync onw hata de
 //VERIFY// jyaada bada hai to aage ka dot dot dikhao all possible places
 //DONE// dahobaord -> tredning now -> view all niche karo
 //DONE// enhanced chat me lasy me style + options usko kaise karna
-twin id in ai -edit dikh trahi
+//DONE// twin id in ai -edit dikh trahi
 //VERIFY// hover effect form submit me, change ho tabhi color green ho warna grey
 //DONE// prod data saaf karo
 //LATER// email change dena kya
@@ -179,15 +179,15 @@ error frontend pe bhejta tu requestId what the hell
 steps onbaording ke beech me relaod par first pe chala gaya, kya e sahi hai
 ai tein preview me saare points dikhane
 //VERIGY_FULL// total views kya hai bc galat calculation
-enhcnaced chat me twin id hai dada fix karo
+//DONE// enhcnaced chat me twin id hai dada fix karo
 //TO_VERIFY// total chats me apni khud ki kyu aa rahi
 recent twins me latest waale aaye
-banda login kare proile na banaye to bi account exist karna chahiye, otp na daal paaye signup pe to kaise karna
+//DONE// banda login kare proile na banaye to bi account exist karna chahiye, otp na daal paaye signup pe to kaise karna
 //DONE// username baar baar change na ho
 //VERIFY// public chat me mpety chts check
 errro 404 sahi se aaye sab jagah blocked ke liye aur sabme bhi
-minimum age rajni profile me? 
-handle me right side me msg type kuch to aaye ki u can change this only once in 45 days / if alreadyc hanegd, u cannot change this for X days
+//VERIFYY// minimum age rajni profile me? 
+//DONE// handle me right side me msg type kuch to aaye ki u can change this only once in 45 days / if alreadyc hanegd, u cannot change this for X days
 //DONE// still profile me maine username chota daala ya bada daala ya dob nahi dsala to error aata hai failed to complete profile error aananc ahiye na sahi se dob s emissing/ username ismmissing/small/big sahi karo
 //DONE// account delete pe direct auth pe aa jaao
 //DONE// still profile me sahi se error nahi aar aha after signup
@@ -195,9 +195,12 @@ handle me right side me msg type kuch to aaye ki u can change this only once in 
 reload , back btn behaviuors all places
 sab pages me footer chahiye kya
 delete pe bhi optp chahiye kyaa
-public chat msg aane ke just baad dark theme me black text + enhanced chat dark theme msg box color white hai
+//VERIFY// public chat msg aane ke just baad dark theme me black text + enhanced chat dark theme msg box color white hai
 online hai dikhana
-
+profile -> phone + settings-> change password
+beter password in signup + change
+naye page me field slider change kari reload pe slider ki poistion wahi par value usme 50 / deafualt aati in /onboarding 
+har chiz ki limit honic ahiye password change reset sab ki dhyaan se dekhna
 
 
 ### 1. Enhanced‑chat itna slow kyu hai?

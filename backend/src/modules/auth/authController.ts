@@ -17,7 +17,11 @@ const emailService = new EmailService();
 
 const signupSchema = z.object({
   email: z.string().email('Invalid email format'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
   referralCode: z.string().optional(),
 });
 
@@ -80,7 +84,40 @@ const completeProfileSchema = z.object({
     }, {
       message: 'Date of birth is too far in the past (maximum 150 years)'
     }),    
-  phone: z.string().optional(),
+  phone: z.string()
+    .optional()
+    .refine((value) => {
+      // ✅ Optional field - allow empty
+      if (!value || value.trim() === '') return true;
+      
+      // ✅ MUST start with +
+      if (!value.trim().startsWith('+')) {
+        return false;
+      }
+      
+      // ✅ Split by space: +[country code] [phone number]
+      const parts = value.trim().split(/\s+/);
+      
+      // ✅ Must have exactly 2 parts: [+countryCode] and [phoneNumber]
+      if (parts.length !== 2) {
+        return false;
+      }
+      
+      const countryCodePart = parts[0]; // e.g. "+91"
+      const phoneNumberPart = parts[1];  // e.g. "1234567890"
+      
+      // ✅ Country code part: must be + followed by 1-3 digits
+      if (!/^\+[1-9]\d{0,2}$/.test(countryCodePart)) {
+        return false; // +1, +91, +123 valid; +0, +01, +0123 invalid
+      }
+      
+      // ✅ Phone number part: must be exactly 10 digits
+      if (!/^\d{10}$/.test(phoneNumberPart)) {
+        return false;
+      }
+      
+      return true;
+    }, 'Phone number must be in format: +[country code] [10 digits] (e.g. +91 1234567890 or +1 1234567890)'),
   bio: z.string().max(300, 'Bio must be at most 300 characters').optional(),
   profileImage: z.string().nullable().optional(),
 });
@@ -89,10 +126,20 @@ const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email format'),
 });
 
-const resetPasswordSchema = z.object({
+// Schema for forgot-password/verify (includes OTP code)
+const forgotPasswordVerifySchema = z.object({
   email: z.string().email('Invalid email format'),
   code: z.string().length(6, 'OTP must be 6 digits').regex(/^\d{6}$/, 'OTP must contain only numbers'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+// Schema for reset-password (no code needed, already verified)
+const resetPasswordSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
 });
 
 export const signup = async (req: Request, res: Response, next: NextFunction) => {
@@ -201,6 +248,17 @@ if (referrerId) {
     });
   } catch (error) {
     logger.error('Signup error:', error);
+    
+    // Handle Zod validation errors with proper messages
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: error.errors[0]?.message || 'Validation failed',
+        errorCode: ErrorCodes.VALIDATION_ERROR,
+        details: error.errors
+      });
+    }
+    
+    // Handle other errors
     handleErrorWithResponse(error, res, 'Failed to signup. Please try again.');
   }
 };
@@ -240,6 +298,17 @@ export const signupVerify = async (req: Request, res: Response, next: NextFuncti
     });
   } catch (error) {
     logger.error('Signup verify error:', error);
+    
+    // Handle Zod validation errors with proper messages
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: error.errors[0]?.message || 'Validation failed',
+        errorCode: ErrorCodes.VALIDATION_ERROR,
+        details: error.errors
+      });
+    }
+    
+    // Handle other errors
     handleErrorWithResponse(error, res, 'Failed to verify signup. Please try again.');
   }
 };
@@ -315,11 +384,11 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
         name: user.name
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ [COMPLETE_PROFILE] Error:', error);
     logger.error('Complete profile error:', error);
 
-    // ✅ Show field-level validation errors instead of generic 500
+    // ✅ 1) Zod validation errors → fieldErrors map (already there)
     if (error instanceof z.ZodError) {
       // Format errors for frontend
       const fieldErrors: Record<string, string> = {};
@@ -333,12 +402,24 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
       return res.status(400).json({
         error: 'Validation failed',
         errorCode: ErrorCodes.VALIDATION_ERROR,
-        details: error.errors,  // Full error details
-        fieldErrors: fieldErrors,  // Simplified field -> message map
+        details: error.errors,
+        fieldErrors: fieldErrors,
       });
     }
 
-    handleErrorWithResponse(error, res, 'Failed to complete profile. Please try again.');    
+    // ✅ 2) NEW: duplicate username / handle (unique constraint)
+    if (error?.code === '23505' && error?.constraint === 'User_handle_key') {
+      return res.status(409).json({
+        error: 'Username is already taken',
+        errorCode: ErrorCodes.VALIDATION_ERROR,
+        fieldErrors: {
+          handle: 'This username is already taken. Please choose another.',
+        },
+      });
+    }
+
+    // ✅ 3) Fallback: other errors
+    handleErrorWithResponse(error, res, 'Failed to complete profile. Please try again.');
   }
 };
 
@@ -378,13 +459,24 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
     });
   } catch (error) {
     logger.error('Forgot password error:', error);
+    
+    // Handle Zod validation errors with proper messages
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: error.errors[0]?.message || 'Validation failed',
+        errorCode: ErrorCodes.VALIDATION_ERROR,
+        details: error.errors
+      });
+    }
+    
+    // Handle other errors
     handleErrorWithResponse(error, res, 'Failed to process forgot password. Please try again.');
   }
 };
 
 export const forgotPasswordVerify = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, code } = signupVerifySchema.parse(req.body);
+    const { email, code } = forgotPasswordVerifySchema.parse(req.body);
     
     // Find valid OTP
     const otpRecord = await otpQueries.findByEmail(email.toLowerCase());
@@ -414,16 +506,25 @@ export const forgotPasswordVerify = async (req: Request, res: Response, next: Ne
     });
   } catch (error) {
     logger.error('Forgot password verify error:', error);
+    
+    // Handle Zod validation errors with proper messages
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: error.errors[0]?.message || 'Validation failed',
+        errorCode: ErrorCodes.VALIDATION_ERROR,
+        details: error.errors
+      });
+    }
+    
+    // Handle other errors
     handleErrorWithResponse(error, res, 'Failed to verify forgot password. Please try again.');
   }
 };
 
 export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password } = z.object({
-      email: z.string().email('Invalid email format'),
-      password: z.string().min(6, 'Password must be at least 6 characters'),
-    }).parse(req.body);
+    // ✅ Use resetPasswordSchema instead of inline schema for consistency
+    const { email, password } = resetPasswordSchema.parse(req.body);
 
     // Check if password is same as current password
     const user = await userQueries.findByEmail(email.toLowerCase());
@@ -451,6 +552,17 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
     });
   } catch (error) {
     logger.error('Reset password error:', error);
+    
+    // Handle Zod validation errors with proper messages
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: error.errors[0]?.message || 'Validation failed',
+        errorCode: ErrorCodes.VALIDATION_ERROR,
+        details: error.errors
+      });
+    }
+    
+    // Handle other errors
     handleErrorWithResponse(error, res, 'Failed to reset password. Please try again.');
   }
 };
@@ -543,6 +655,17 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
   });    
   } catch (error) {
     logger.error('Login error:', error);
+    
+    // Handle Zod validation errors with proper messages
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: error.errors[0]?.message || 'Validation failed',
+        errorCode: ErrorCodes.VALIDATION_ERROR,
+        details: error.errors
+      });
+    }
+    
+    // Handle other errors
     handleErrorWithResponse(error, res, 'Failed to login. Please try again.');
   }
 };
@@ -604,8 +727,7 @@ export const loginVerify = async (req: Request, res: Response, next: NextFunctio
     // Log login event (for OTP-based login)
     try {
       await EventLogger.logLogin(user.id, {
-        source: 'direct',
-        method: 'otp'
+        source: 'direct'
       });
     } catch (eventError) {
       logger.warn('Failed to log login event:', eventError);
@@ -628,13 +750,30 @@ export const loginVerify = async (req: Request, res: Response, next: NextFunctio
   });    
   } catch (error) {
     logger.error('Login verify error:', error);
+    
+    // Handle Zod validation errors with proper messages
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: error.errors[0]?.message || 'Validation failed',
+        errorCode: ErrorCodes.VALIDATION_ERROR,
+        details: error.errors
+      });
+    }
+    
+    // Handle other errors
     handleErrorWithResponse(error, res, 'Failed to verify login. Please try again.');
   }
 };
 
 const changePasswordSchema = z.object({
-  currentPassword: z.string().min(6, 'Current password must be at least 6 characters'),
-  newPassword: z.string().min(6, 'New password must be at least 6 characters'),
+  // ✅ currentPassword: NO length validation - just check if it's not empty
+  // Wrong password will be caught by verifyPassword() check below
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string()
+    .min(8, 'New password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),  
 });
 
 export const changePassword = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

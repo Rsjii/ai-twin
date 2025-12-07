@@ -214,8 +214,42 @@ export const updateProfile = async (req: Request, res: Response) => {
           return ageYears >= 13;                          // min age 13
         }, 'Please enter a valid date of birth (must be at least 13 years old and not in the future)'),
     
-      phone: z.string().optional(),
-      bio: z.string().max(500, 'Bio too long').optional(),
+        phone: z.string()
+        .optional()
+        .refine((value) => {
+          // ✅ Optional field - allow empty
+          if (!value || value.trim() === '') return true;
+          
+          // ✅ MUST start with +
+          if (!value.trim().startsWith('+')) {
+            return false;
+          }
+          
+          // ✅ Split by space: +[country code] [phone number]
+          const parts = value.trim().split(/\s+/);
+          
+          // ✅ Must have exactly 2 parts: [+countryCode] and [phoneNumber]
+          if (parts.length !== 2) {
+            return false;
+          }
+          
+          const countryCodePart = parts[0]; // e.g. "+91"
+          const phoneNumberPart = parts[1];  // e.g. "1234567890"
+          
+          // ✅ Country code part: must be + followed by 1-3 digits (not starting with 0)
+          if (!/^\+[1-9]\d{0,2}$/.test(countryCodePart)) {
+            return false; // +1, +91, +123 valid; +0, +01, +0123 invalid
+          }
+          
+          // ✅ Phone number part: must be exactly 10 digits
+          if (!/^\d{10}$/.test(phoneNumberPart)) {
+            return false;
+          }
+          
+          return true;
+        }, 'Phone number must be in format: +[country code] [10 digits] (e.g. +91 1234567890 or +1 1234567890)'),
+                      
+      bio: z.string().max(300, 'Bio too long').optional(),
       profileImage: z.string().nullable().optional(),
     });    
 

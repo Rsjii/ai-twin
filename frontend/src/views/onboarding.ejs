@@ -466,27 +466,66 @@
         let currentStep = 1;
         const totalSteps = 5;
         let onboardingData = {};
+        const ONBOARDING_DRAFT_KEY = 'onboardingDraft_v1';
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            initializeOnboarding();
-            setupEventListeners();
-            updateProgress();
-        });
+    initializeOnboarding();
+    setupEventListeners();
+    updateProgress();
+
+    // ✅ Auto-save current step data before refresh / close
+    window.addEventListener('beforeunload', function () {
+        try {
+            saveCurrentStepData();     // save fields for currentStep
+            saveOnboardingDraft();     // write to localStorage
+        } catch (e) {
+            console.warn('Failed to auto-save onboarding draft on unload:', e);
+        }
+    });
+});        
 
         function initializeOnboarding() {
-            showStep(1);
-            
-            // Bio character counter
-            const bioTextarea = document.getElementById('bio');
-            const bioCount = document.getElementById('bioCount');
-            bioTextarea.addEventListener('input', function() {
-                bioCount.textContent = this.value.length;
-            });
+    // 1) Try draft from localStorage
+    let draft = null;
+    try {
+        const raw = localStorage.getItem(ONBOARDING_DRAFT_KEY);
+        if (raw) draft = JSON.parse(raw);
+    } catch (e) {
+        console.warn('Failed to parse onboarding draft:', e);
+    }
 
-            // Tone sliders
-            initializeToneSliders();
-        }
+    // 2) Try step from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const stepFromUrl = parseInt(urlParams.get('step') || '1', 10);
+
+    if (draft && draft.currentStep && draft.data) {
+        currentStep = draft.currentStep;
+        onboardingData = draft.data;
+    } else {
+        currentStep = isNaN(stepFromUrl) ? 1 : Math.min(Math.max(stepFromUrl, 1), totalSteps);
+        onboardingData = {};
+    }
+
+    showStep(currentStep);
+    updateProgress();
+    restoreFieldsFromDraft();
+
+    // Ensure history state matches current step
+    if (history.replaceState) {
+        history.replaceState({ step: currentStep }, '', `?step=${currentStep}`);
+    }
+
+    // Bio character counter
+    const bioTextarea = document.getElementById('bio');
+    const bioCount = document.getElementById('bioCount');
+    bioTextarea.addEventListener('input', function() {
+        bioCount.textContent = this.value.length;
+    });
+
+    // Tone sliders
+    initializeToneSliders();
+}        
 
         function setupEventListeners() {
             document.getElementById('nextBtn').addEventListener('click', nextStep);
@@ -565,29 +604,51 @@
             document.getElementById('currentStepNumber').textContent = currentStep;
         }
 
-        function nextStep() {
-            if (validateCurrentStep()) {
-                saveCurrentStepData();
-                
-                if (currentStep < totalSteps) {
-                    currentStep++;
-                    showStep(currentStep);
-                    updateProgress();
-                    
-                    if (currentStep === 5) {
-                        generatePreview();
-                    }
-                }
-            }
+function nextStep() {
+    if (!validateCurrentStep()) return;
+
+    // Save data for the CURRENT step before moving
+    saveCurrentStepData();
+
+    if (currentStep < totalSteps) {
+        // Move to next step
+        currentStep++;
+        showStep(currentStep);
+        updateProgress();
+
+        // ✅ Now save draft for the NEW currentStep
+        saveOnboardingDraft();
+
+        // Update URL/history for back/forward
+        if (history.pushState) {
+            history.pushState({ step: currentStep }, '', `?step=${currentStep}`);
         }
 
-        function prevStep() {
-            if (currentStep > 1) {
-                currentStep--;
-                showStep(currentStep);
-                updateProgress();
-            }
+        if (currentStep === 5) {
+            generatePreview();
         }
+    }
+}
+
+function prevStep() {
+    if (currentStep <= 1) return;
+
+    // Optionally save data for current step before moving back
+    saveCurrentStepData();
+
+    // Move to previous step
+    currentStep--;
+    showStep(currentStep);
+    updateProgress();
+
+    // ✅ Save draft for the NEW currentStep
+    saveOnboardingDraft();
+
+    // Update URL/history
+    if (history.pushState) {
+        history.pushState({ step: currentStep }, '', `?step=${currentStep}`);
+    }
+}
 
         function validateCurrentStep() {
             switch (currentStep) {
@@ -742,6 +803,74 @@
             };
         }
 
+        function saveOnboardingDraft() {
+    try {
+        const draft = {
+            currentStep,
+            data: onboardingData,
+            updatedAt: new Date().toISOString()
+        };
+        localStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify(draft));
+    } catch (e) {
+        console.warn('Failed to save onboarding draft:', e);
+    }
+}
+
+function restoreFieldsFromDraft() {
+    const data = onboardingData || {};
+
+    // Step 1
+    if (data.basicInfo) {
+        document.getElementById('fullName').value = data.basicInfo.fullName || '';
+        document.getElementById('bio').value = data.basicInfo.bio || '';
+        document.getElementById('primaryUseCase').value = data.basicInfo.primaryUseCase || '';
+        const bioCount = document.getElementById('bioCount');
+        if (bioCount) bioCount.textContent = (data.basicInfo.bio || '').length;
+    }
+
+    // Step 2
+    if (data.communicationStyle) {
+        const tone = data.communicationStyle.tone || {};
+        const lang = data.communicationStyle.language || {};
+
+        if (tone.formalCasual != null) document.getElementById('formalCasual').value = tone.formalCasual;
+        if (tone.seriousPlayful != null) document.getElementById('seriousPlayful').value = tone.seriousPlayful;
+        if (tone.directDiplomatic != null) document.getElementById('directDiplomatic').value = tone.directDiplomatic;
+
+        if (lang.greetingStyle) document.getElementById('greetingStyle').value = lang.greetingStyle;
+        if (lang.closingStyle) document.getElementById('closingStyle').value = lang.closingStyle;
+        if (lang.emojiUsage) document.getElementById('emojiUsage').value = lang.emojiUsage;
+        if (lang.responseLength) document.getElementById('responseLength').value = lang.responseLength;
+        if (lang.commonPhrases != null) document.getElementById('commonPhrases').value = lang.commonPhrases;
+    }
+
+    // Step 3
+    if (data.context) {
+        const ctx = data.context;
+        if (Array.isArray(ctx.interests)) {
+            ctx.interests.forEach(value => {
+                const checkbox = document.querySelector(`input[name="interests"][value="${value}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+        }
+        if (ctx.targetAudience) document.getElementById('targetAudience').value = ctx.targetAudience;
+        if (ctx.topicsToAvoid != null) document.getElementById('topicsToAvoid').value = ctx.topicsToAvoid;
+    }
+
+    // Step 4
+    if (data.samples && Array.isArray(data.samples.content)) {
+        const samples = data.samples.content;
+        if (samples[0]) document.getElementById('sample1').value = samples[0].content || '';
+        if (samples[1]) document.getElementById('sample2').value = samples[1].content || '';
+        if (samples[2]) document.getElementById('sample3').value = samples[2].content || '';
+    }
+
+    // If we're on step 5, regenerate preview
+    if (currentStep === 5) {
+        generatePreview();
+    }
+}
+
         function generatePreview() {
             const basicInfo = onboardingData.basicInfo || {};
             const style = onboardingData.communicationStyle || {};
@@ -772,12 +901,17 @@
             `;
         }
 
-        function editSettings() {
-            // ✅ FIX: Go back to step 1 to edit
-            currentStep = 1;
-            showStep(currentStep);
-            updateProgress();
-        }
+function editSettings() {
+    currentStep = 1;
+    showStep(currentStep);
+    updateProgress();
+    saveCurrentStepData();
+    saveOnboardingDraft();
+
+    if (history.pushState) {
+        history.pushState({ step: currentStep }, '', `?step=${currentStep}`);
+    }
+}        
 
         function handleFormSubmission(e) {
             e.preventDefault();
@@ -815,6 +949,14 @@
             .then(result => {
                 if (result.success) {
                     showMessage('Your AI Twin has been created successfully!', 'success');
+
+                    // ✅ Clear onboarding draft once twin is created
+                try {
+                    localStorage.removeItem(ONBOARDING_DRAFT_KEY);
+                } catch (e) {
+                    console.warn('Failed to clear onboarding draft:', e);
+             }
+
                     setTimeout(() => {
                         const twinId = result.twin?.publicId || result.twin?.id;
                         if (twinId) {
@@ -851,6 +993,17 @@
                 messageDiv.remove();
             }, 5000);
         }
+
+        // Handle browser back/forward to move between steps instead of leaving wizard
+window.onpopstate = function (event) {
+    const step = event.state && event.state.step;
+    if (!step) return;
+
+    currentStep = Math.min(Math.max(step, 1), totalSteps);
+    showStep(currentStep);
+    updateProgress();
+    restoreFieldsFromDraft();
+};
     </script>
     <!--Footer-->
     <%- include('footer/footer-conditional-private') %>

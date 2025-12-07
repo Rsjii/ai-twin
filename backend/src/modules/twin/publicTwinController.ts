@@ -233,6 +233,20 @@ export const getPublicTwinProfile = async (req: Request, res: Response, next: Ne
       throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
+    // 🚩 NEW: Check if viewer is blocked (for API consistency)
+    // Note: blockNonLoggedUsers is already filtered in findByPublicHandle query
+    const viewerId = (req as AuthenticatedRequest).user?.id;
+    if (viewerId) {
+      const blockedCheck = await db.query(`
+        SELECT id FROM "TwinBlockedUsers"
+        WHERE "twinId" = $1 AND "userId" = $2
+      `, [publicTwin.id, viewerId]);
+
+      if (blockedCheck.rows.length > 0) {
+        throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
+      }
+    }
+
     // Return public data only (no sensitive information)
     const sanitizedTwin = sanitizeTwin(publicTwin);
     res.json({
@@ -410,12 +424,8 @@ const twinInfo = twinCheck.rows[0];
 // ✅ Check blockNonLoggedUsers for non-logged users
 if (!userId && twinInfo.blockNonLoggedUsers === true) {
   logger.warn('getPublicChatPage: Non-logged user blocked', { twinId });
-  return res.status(403).render('403', {
-    title: 'Access Denied',
-    message: 'This twin requires you to be logged in to access',
-    csrfToken: res.locals['csrfToken'],
-    user: null
-  });
+  // Non-logged viewers should see a simple 404
+  throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);  
 }
 
 // ✅ Check if user is blocked (uses Twin.id directly)
@@ -428,19 +438,15 @@ if (userId) {
   
   if (blockedCheck.rows.length > 0) {
     logger.warn('getPublicChatPage: Blocked user tried to access', { twinId, userId });
-    return res.status(403).render('403', {
-      title: 'Access Denied',
-      message: 'You are blocked from accessing this twin',
-      csrfToken: res.locals['csrfToken'],
-      user: req.user || null
-    });
+ // Pretend the twin does not exist
+ throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);    
   }
 }
 
 // ✅ Check if twin is public
 if (!twinInfo.isPublic) {
   logger.warn('getPublicChatPage: Twin is not public', { twinId, userId, isPublic: twinInfo.isPublic });
-  throw createError.notFound('Twin is not public', ErrorCodes.TWIN_NOT_FOUND);
+  throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
 }
 
 // ✅ Load display fields from Twin (join with User to get handle)

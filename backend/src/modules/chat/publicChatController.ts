@@ -59,7 +59,7 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
 
     // Check if twin exists and is public (allow even if twin doesn't exist - public chat should work)
     const twinResult = await db.query(`
-      SELECT id, "isPublic", "styleVector", "sampleReply", "requireApproval", "requireLogin"
+      SELECT id, "isPublic", "styleVector", "sampleReply", "requireApproval", "requireLogin", "blockNonLoggedUsers"
       FROM "Twin"
       WHERE id = $1 AND "isPublic" = true
     `, [twinId]);
@@ -91,6 +91,11 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
 
     const twin = twinResult.rows[0];
 
+    // 🚩 NEW: non-logged + blockNonLoggedUsers => pretend twin not found
+    if (!userId && twin.blockNonLoggedUsers === true) {
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
+    }
+
     // ✅ PHASE 2: Check requireLogin
     if (twin.requireLogin && !userId) {
       return res.status(401).json({
@@ -108,11 +113,8 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
       `, [twinId, userId]);
 
       if (blockedCheck.rows.length > 0) {
-        return res.status(403).json({
-          success: false,
-          error: 'You are blocked from chatting with this twin',
-          errorCode: 'USER_BLOCKED'
-        });
+      // Blocked users should see generic "not found"
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);        
       }
     }
 
@@ -395,10 +397,10 @@ if (chat.requireLogin && !userId) {
       `, [chat.twinId, chat.userId]);
     
       if (blockedCheck.rows.length > 0) {
-        return res.status(403).json({
+        return res.status(404).json({
           success: false,
-          error: 'You are blocked from chatting with this twin',
-          errorCode: 'USER_BLOCKED'
+          error: 'Public chat not found',
+          errorCode: ErrorCodes.CHAT_NOT_FOUND
         });
       }
     }
@@ -613,6 +615,22 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
 
     const chat = chatResult.rows[0];
     
+    // 🚩 NEW: If viewer is blocked for this twin, pretend the chat does not exist
+    if (userId) {
+      const blockedCheck = await db.query(`
+        SELECT id FROM "TwinBlockedUsers"
+        WHERE "twinId" = $1 AND "userId" = $2
+      `, [chat.twinId, userId]);
+
+      if (blockedCheck.rows.length > 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Public chat not found',
+          errorCode: ErrorCodes.CHAT_NOT_FOUND
+        });
+      }
+    }
+
     // ✅ Allow twin owner to view any chat for their twin (always show all)
     const isTwinOwner = userId && chat.twin_owner_id === userId;
     const isChatOwner = chat.userId === userId;
@@ -719,7 +737,7 @@ export const getPublicChatByTwin = async (req: Request, res: Response, next: Nex
 
 // Allow access to public chat - blockNonLoggedUsers only affects discover visibility
 const twinResult = await db.query(`
-  SELECT id, "isPublic", "publicHandle", "sampleReply"
+  SELECT id, "isPublic", "publicHandle", "sampleReply", "blockNonLoggedUsers"
   FROM "Twin" t
   WHERE t.id = $1 
     AND t."isPublic" = true
@@ -730,6 +748,11 @@ const twinResult = await db.query(`
     }
 
     const twin = twinResult.rows[0];
+
+    // If owner has disabled non-logged access, act as if twin does not exist
+    if (twin.blockNonLoggedUsers === true) {
+      throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
+    }
 
     // Check for existing public chat
     const existingChats = await publicChatQueries.findByTwinAndVisitor(twinId, visitorId as string);
@@ -996,6 +1019,12 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
         JOIN "Twin" t ON pc."twinId" = t.id
         WHERE pc."userId" = $1 
           AND t."isPublic" = true
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "TwinBlockedUsers" tbu
+            WHERE tbu."twinId" = t.id
+              AND tbu."userId" = $1
+          )
         GROUP BY pc."twinId"
       ),
       latest_chats AS (
@@ -1022,6 +1051,12 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
         JOIN "User" u ON t."userId" = u.id
         WHERE pc."userId" = $1 
           AND t."isPublic" = true
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "TwinBlockedUsers" tbu
+            WHERE tbu."twinId" = t.id
+              AND tbu."userId" = $1
+          )
         ORDER BY pc."twinId", pc."lastActivity" DESC
       )
       SELECT 
