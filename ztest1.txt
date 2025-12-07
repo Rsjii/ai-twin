@@ -56,13 +56,13 @@
 //VERIFY 47. dashboard a-z
 //VERIFY 48. sab pages final sturture final theme light dark consistent
 //DONE 49. dashboard me trending ka logic kya hai, discover me bhi kya hai
-50. console / network me kya kya dikhta hai
+//LISTED 50. console / network me kya kya dikhta hai
 //VERIFY 51. sirf twin profile rakhni ya user bhi sochke 
 //DONE 52. pagination chahiye 
 //DONE 53. save priavcy settings me jab tak jcuh edit na ho button alag color edit ho to alag
-54. block btn add karo , twin/user ki profile me
+//LISTED 54. block btn add karo , twin/user ki profile me
 //DONE 55. analytics me view full detailed direct hi dikhao
-56. console . repeated code hatao clean karo files simplify karo , dao banao simple samjh me aaye bulky nhi
+//LISTED 56. console . repeated code hatao clean karo files simplify karo , dao banao simple samjh me aaye bulky nhi
 //DONE 57. user apne twin se hui chat dekh saktaa
 //VERIFY 58. incomplete data aa rha analytics,  twin/manage
 //DONE 59. block logged out ka bhi option ho 
@@ -74,18 +74,18 @@
 //DONE 65. jab saala block hai , to sirf siscover to nahi dikhta, agar uske link par bhi jaaoge tab bhi nahi dikhna chahiye blocked user ke liye got it , no chat allowed ye add karna
 //VERIFY 66. user publcic chat history delete kare , maange kare 
 //DONE 67, view-chat-history me messages time ke according aanic ahahiye abhi sahi nahi aa rahi
-68. ananoymous user data clear ho raha ho , total me dikhe ye ensure hjo raha
+//LISTED 68. ananoymous user data clear ho raha ho , total me dikhe ye ensure hjo raha
 //VERIFY 69. bas manage publci chat history dekho
-70. disable chat waali chiz alag from the blockk
-71. validation sabb
+//LISTED 70. disable chat waali chiz alag from the blockk
+//LISTED 71. validation sabb
 //OUT_OFSCOPE 72. fb jaisi profile type ho jaah user aur users kya kya kar sakte hai per user decide kar sake , yaani ek user like nahi , ek follow nahi ,advanced settings
 //DONE 73. dashboard -> recently chatted -> multiple dikhe chats like tredning waali left me jo hai mere dada 
 //DONE 74. create twin coming in footer jab already twin hai
 //DONE 75. public chat width kam
-76. kuch jagah color issue hai like footer me dark theme sahi karo
+//LISTED 76. kuch jagah color issue hai like footer me dark theme sahi karo
 //DONE 77. analytics me chart dikhe 
 //DONE 78. analytics slow kyu load ho raha hai
-79. admin analytics , paages par koi jaa na paaye usse pata hi na chale ki ye admin page hai error 404 not u are authorized papta chal jaayega , apan kaise ensure karege kisi access na ho paaye
+//TO_CHECK// 79. admin analytics , paages par koi jaa na paaye usse pata hi na chale ki ye admin page hai error 404 not u are authorized papta chal jaayega , apan kaise ensure karege kisi access na ho paaye
 //LATER 80. google analytics
 //VERIFY => ho haya 81. regenerate pe niche waali ud jaaye
 //DONE 82. /twin/manage me publcic hats me private chats na dikjhee
@@ -117,7 +117,7 @@
 //VERIFY 96. settings me reload pe account pe kyu aa jaata like jab public kro
 97. make twin public me same handle daalo existing wala to errror nahi aa rha proper frontend par , uski wajah se atak ja raha hai + {Pattern attribute value [a-zA-Z0-9_-]+ is not a valid regular expression: Uncaught SyntaxError: Invalid regular expression: /[a-zA-Z0-9_-]+/v: Invalid character in character class } logic hai isko sahi karo
 //DONE_CAN_USE_LATER 98. user profile hata deni chahiye i guess only the twin profile , kaise karna hai socho aur batao , fully twin oriednted ya both sochna hoga
-99. prfolie non logged in ke liye block hai to eror 404 aaye na  , link khul hi na raha ye kya baat hai , jaise public chat me aata errro 403
+//DONE 99. prfolie non logged in ke liye block hai to eror 404 aaye na  , link khul hi na raha ye kya baat hai , jaise public chat me aata errro 403
 //VERIFY 100. discover me har twin ka sample rely aata hai, jyada bada ho, apnlimited hi dikaaye na ki pura ensure karo
 //VERIFY 101. dicover me load more ho raha hai kya
 //CHECK => aur kaha add kare 102. filtering wagerah ke options publci chat history + aur jagah
@@ -131,8 +131,8 @@
 110. new msg jab banaye banda 
 a. isko better kar sakte pata chala new msg ban rhi in public + private
 b. agar show chat hisory false ho to bhi acche se pan previous hatwa sakte new se replace kar sakte hai
-111. sirf icon clcik pe profile khulni chahiye ya pure box par for many like Dashboard -> Trending Now , Dashboard -> You recently chatted with
-113. block twin trending now , you recently chatted with in dashboard me na dikhee
+//DONE 111. sirf icon clcik pe profile khulni chahiye ya pure box par for many like Dashboard -> Trending Now , Dashboard -> You recently chatted with
+//DONE 113. block twin trending now , you recently chatted with in dashboard me na dikhee
 //DONE 112. extra bg me white shade ki need nahi hai on top Twin Os , selected section like dashboard
 //DONE 113. public chat history me user wise bhi dikha sakte , along with chat wise + filters 
 //DONE 114. reset password me dark theme
@@ -154,13 +154,13 @@ twinsettings sync onw hata de
 //VERIFY// hover effect form submit me, change ho tabhi color green ho warna grey
 //DONE// prod data saaf karo
 //LATER// email change dena kya
-left me global navbar
+//ADVANCED_FEATURE// left me global navbar
 //DONE// public + enhanced right niche full scroll kyu ho raha
 //VERIFY// chats ko chatgpt jaisa banao
 onboarding dekhan sahi se
 memory working all fine
-puri profile bina bane back kiya -> otp -pe aaya -> login pe par profile ban gayi , why?
-/onboarding me back kiya to direct dahboard par saala par previous steps pe jaana chahiye
+//DONE// puri profile bina bane back kiya -> otp -pe aaya -> login pe par profile ban gayi , why?
+//DONE// /onboarding me back kiya to direct dahboard par saala par previous steps pe jaana chahiye
 piche button pe kaha jaana chahiye ye bhi dekna sab
 slow kyu + optomize kaise
 //DONe public profile apni bhi kaha se dekh sakte hona chahiye
@@ -176,16 +176,16 @@ error frontend pe bhejta tu requestId what the hell
 //VERIFY// madarchod pahle ai twin profile ka url tha use ka user name  ,twin banane ke baad ho gaya twin ka username ek chiz karo yaar
 //VERIFY// twin banane me username puch hi kyu rhe
 //VERIFY// profile view logic bhi sahi hona chahiee kaun dekh paaye
-steps onbaording ke beech me relaod par first pe chala gaya, kya e sahi hai
+//DONE// steps onbaording ke beech me relaod par first pe chala gaya, kya e sahi hai
 ai tein preview me saare points dikhane
 //VERIGY_FULL// total views kya hai bc galat calculation
 //DONE// enhcnaced chat me twin id hai dada fix karo
 //TO_VERIFY// total chats me apni khud ki kyu aa rahi
-recent twins me latest waale aaye
+//DONE + aur bhi check karo// recent twins me latest waale aaye
 //DONE// banda login kare proile na banaye to bi account exist karna chahiye, otp na daal paaye signup pe to kaise karna
 //DONE// username baar baar change na ho
 //VERIFY// public chat me mpety chts check
-errro 404 sahi se aaye sab jagah blocked ke liye aur sabme bhi
+//DONE// errro 404 sahi se aaye sab jagah blocked ke liye aur sabme bhi
 //VERIFYY// minimum age rajni profile me? 
 //DONE// handle me right side me msg type kuch to aaye ki u can change this only once in 45 days / if alreadyc hanegd, u cannot change this for X days
 //DONE// still profile me maine username chota daala ya bada daala ya dob nahi dsala to error aata hai failed to complete profile error aananc ahiye na sahi se dob s emissing/ username ismmissing/small/big sahi karo
@@ -194,13 +194,13 @@ errro 404 sahi se aaye sab jagah blocked ke liye aur sabme bhi
 //DONE// profile -> back -> otp anna chahiye ya kuch aur , twin_create -> back -> pichla step , not dashboard
 reload , back btn behaviuors all places
 sab pages me footer chahiye kya
-delete pe bhi optp chahiye kyaa
+//DONE// delete pe bhi optp chahiye kyaa
 //VERIFY// public chat msg aane ke just baad dark theme me black text + enhanced chat dark theme msg box color white hai
-online hai dikhana
-profile -> phone + settings-> change password
-beter password in signup + change
+//ADVANCED_FEATURE// online hai dikhana
+//DONE// profile -> phone + settings-> change password
+//DONE// beter password in signup + change
 naye page me field slider change kari reload pe slider ki poistion wahi par value usme 50 / deafualt aati in /onboarding 
-har chiz ki limit honic ahiye password change reset sab ki dhyaan se dekhna
+//CHECK_NOW// har chiz ki limit honic ahiye password change reset sab ki dhyaan se dekhna
 
 
 ### 1. Enhanced‑chat itna slow kyu hai?

@@ -20,7 +20,7 @@ export const errorHandlerMiddleware = (
   res: Response,
   next: NextFunction
 ): void => {
-  const isApiRequest = req.path.startsWith('/api/') || req.accepts('json');
+  const isApiRequest = req.path.startsWith('/api/');
   const requestId = (req as any).requestId || null;
 
   if (err instanceof AppError) {

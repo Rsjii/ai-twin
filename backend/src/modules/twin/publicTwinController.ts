@@ -236,6 +236,12 @@ export const getPublicTwinProfile = async (req: Request, res: Response, next: Ne
     // 🚩 NEW: Check if viewer is blocked (for API consistency)
     // Note: blockNonLoggedUsers is already filtered in findByPublicHandle query
     const viewerId = (req as AuthenticatedRequest).user?.id;
+
+    // NEW: For non-logged users, enforce blockNonLoggedUsers → 404
+    if (!viewerId && publicTwin.blockNonLoggedUsers === true) {
+      throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
+    }
+
     if (viewerId) {
       const blockedCheck = await db.query(`
         SELECT id FROM "TwinBlockedUsers"
@@ -365,7 +371,8 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
           path: req.path,
           userId: req.user?.id 
         });
-        throw createError.validation('Twin token is required', ErrorCodes.INVALID_INPUT);
+      // Treat as "not found" so user just sees 404
+      throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);        
       }
 
     const chatIdParam = paramChatToken || req.query.chatId;
@@ -380,7 +387,8 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
     });    
     if (!decoded || decoded.type !== 'twin') {
       logger.warn('getPublicChatPage: Invalid twin token', { twinToken, userId });
-      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+      // Treat as "not found" so user just sees 404
+      throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);      
     }
     const twinId = decoded.id;
 
@@ -416,7 +424,7 @@ const twinCheck = await db.query(
 
 if (twinCheck.rows.length === 0) {
   logger.warn('getPublicChatPage: Twin not found', { twinId, userId });
-  throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
+  throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);
 }
 
 const twinInfo = twinCheck.rows[0];
@@ -425,7 +433,7 @@ const twinInfo = twinCheck.rows[0];
 if (!userId && twinInfo.blockNonLoggedUsers === true) {
   logger.warn('getPublicChatPage: Non-logged user blocked', { twinId });
   // Non-logged viewers should see a simple 404
-  throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);  
+  throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);  
 }
 
 // ✅ Check if user is blocked (uses Twin.id directly)
@@ -439,14 +447,14 @@ if (userId) {
   if (blockedCheck.rows.length > 0) {
     logger.warn('getPublicChatPage: Blocked user tried to access', { twinId, userId });
  // Pretend the twin does not exist
- throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);    
+ throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);    
   }
 }
 
 // ✅ Check if twin is public
 if (!twinInfo.isPublic) {
   logger.warn('getPublicChatPage: Twin is not public', { twinId, userId, isPublic: twinInfo.isPublic });
-  throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
+  throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);
 }
 
 // ✅ Load display fields from Twin (join with User to get handle)
@@ -468,7 +476,7 @@ const twinResult = await db.query(
 
 if (twinResult.rows.length === 0) {
   logger.error('getPublicChatPage: Unexpected error - twin disappeared', { twinId, userId });
-  throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
+  throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);
 }
 
 const twin = twinResult.rows[0];    

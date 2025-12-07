@@ -158,3 +158,51 @@ export const publicChatRateLimitAuthenticated = rateLimit({
     });
   }
 });
+
+
+// NEW: Login attempts limiter (per email/IP)
+export const loginRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  keyGenerator: (req: any) => {
+    const email = (req.body?.email || '').toLowerCase();
+    return email || req.ip || 'unknown';
+  },
+  message: {
+    error: 'Too many login attempts. Please try again later.',
+    retryAfter: '15 minutes',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// NEW: OTP verification limiter (signup/login/forgot-password verify)
+export const otpVerifyRateLimit = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 5,
+  keyGenerator: (req: any) => {
+    const email = (req.body?.email || '').toLowerCase();
+    return email || req.ip || 'unknown';
+  },
+  message: {
+    error: 'Too many OTP verification attempts. Please wait a bit and try again.',
+    retryAfter: '10 minutes',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// NEW: Change password limiter (per authenticated user)
+export const changePasswordRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  keyGenerator: (req: any) => {
+    return req.user?.id || req.user?.userId || req.ip || 'unknown';
+  },
+  message: {
+    error: 'Too many password change attempts. Please try again later.',
+    retryAfter: '1 hour',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});

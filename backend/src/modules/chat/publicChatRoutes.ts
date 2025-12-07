@@ -32,7 +32,7 @@ router.post('/:chatToken/message',
 
 router.get('/:chatToken/history', extractJWTFromCookie, getPublicChatHistory);
 // ✅ PHASE 2: Change :twinId to :twinToken
-router.get('/twin/:twinToken', getPublicChatByTwin);
+router.get('/twin/:twinToken', extractJWTFromCookie, getPublicChatByTwin);
 
 router.get('/twin/:twinToken/chats', extractJWTFromCookie, getPublicChatsByTwin); // Get all chats (optional JWT)
 router.post('/create', extractJWTFromCookie, createNewPublicChat); // Create new chat (optional JWT)

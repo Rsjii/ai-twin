@@ -1298,17 +1298,117 @@
                 });
             }
 
-            // ===== Account Management – Delete Account =====
+            // ===== Account Management – Delete Account (2-Step Confirmation) =====
             const deleteAccountBtn = document.getElementById('deleteAccountBtn');
-            if (deleteAccountBtn) {
-                deleteAccountBtn.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    const c1 = confirm('This will permanently delete your account and all data. Continue?');
-                    if (!c1) return;
-                    const c2 = confirm('Last confirm. Are you absolutely sure?');
-                    if (!c2) return;
+            const deleteAccountModal = document.getElementById('deleteAccountModal');
+            const deleteAccountStep1 = document.getElementById('deleteAccountStep1');
+            const deleteAccountStep2 = document.getElementById('deleteAccountStep2');
+            const deleteAccountPasswordInput = document.getElementById('deleteAccountPassword');
+            const deleteAccountError = document.getElementById('deleteAccountError');
+            const deleteAccountCancel = document.getElementById('deleteAccountCancel');
+            const deleteAccountCancelStep2 = document.getElementById('deleteAccountCancelStep2');
+            const deleteAccountYes = document.getElementById('deleteAccountYes');
+            const deleteAccountConfirm = document.getElementById('deleteAccountConfirm');
+            const toggleDeletePassword = document.getElementById('toggleDeletePassword');
 
-                    const password = prompt('Optional: enter your password to confirm (leave blank if you signed up with OTP only).') || undefined;
+            let currentStep = 1; // Track which step we're on
+
+            function openDeleteModal() {
+                currentStep = 1;
+                showStep1();
+                if (deleteAccountModal) deleteAccountModal.classList.remove('hidden');
+            }
+
+            function closeDeleteModal() {
+                currentStep = 1;
+                if (deleteAccountPasswordInput) deleteAccountPasswordInput.value = '';
+                if (deleteAccountError) {
+                    deleteAccountError.classList.add('hidden');
+                    deleteAccountError.textContent = '';
+                }
+                if (deleteAccountModal) deleteAccountModal.classList.add('hidden');
+            }
+
+            function showStep1() {
+                currentStep = 1;
+                if (deleteAccountStep1) deleteAccountStep1.classList.remove('hidden');
+                if (deleteAccountStep2) deleteAccountStep2.classList.add('hidden');
+                if (deleteAccountError) {
+                    deleteAccountError.classList.add('hidden');
+                    deleteAccountError.textContent = '';
+                }
+            }
+
+            function showStep2() {
+                currentStep = 2;
+                if (deleteAccountStep1) deleteAccountStep1.classList.add('hidden');
+                if (deleteAccountStep2) deleteAccountStep2.classList.remove('hidden');
+                if (deleteAccountPasswordInput) {
+                    deleteAccountPasswordInput.value = '';
+                    deleteAccountPasswordInput.focus();
+                }
+                if (deleteAccountError) {
+                    deleteAccountError.classList.add('hidden');
+                    deleteAccountError.textContent = '';
+                }
+            }
+
+            if (deleteAccountBtn && deleteAccountModal) {
+                deleteAccountBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    openDeleteModal();
+                });
+            }
+
+            // Step 1: Cancel button
+            if (deleteAccountCancel) {
+                deleteAccountCancel.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    closeDeleteModal();
+                });
+            }
+
+            // Step 1: Yes button → go to Step 2
+            if (deleteAccountYes) {
+                deleteAccountYes.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showStep2();
+                });
+            }
+
+            // Step 2: Cancel button → close modal completely
+            if (deleteAccountCancelStep2) {
+                deleteAccountCancelStep2.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    closeDeleteModal();
+                });
+            }
+
+            // Close modal on backdrop click (only on Step 1)
+            if (deleteAccountModal) {
+                deleteAccountModal.addEventListener('click', (e) => {
+                    if (e.target === deleteAccountModal && currentStep === 1) {
+                        closeDeleteModal();
+                    }
+                });
+            }
+
+            // Password show/hide toggle
+            if (toggleDeletePassword && deleteAccountPasswordInput) {
+                toggleDeletePassword.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const isHidden = deleteAccountPasswordInput.type === 'password';
+                    deleteAccountPasswordInput.type = isHidden ? 'text' : 'password';
+                    toggleDeletePassword.textContent = isHidden ? 'Hide' : 'Show';
+                });
+            }
+
+            // Step 2: Confirm delete (final step)
+            if (deleteAccountConfirm) {
+                deleteAccountConfirm.addEventListener('click', async (e) => {
+                    e.preventDefault();
+
+                    const password = deleteAccountPasswordInput ? (deleteAccountPasswordInput.value || null) : null;
 
                     try {
                         const res = await fetch('/api/user/account', {
@@ -1320,17 +1420,26 @@
                             credentials: 'include',
                             body: JSON.stringify({ password })
                         });
+
                         const data = await res.json();
+
                         if (!res.ok || !data.success) {
+                            // Wrong password or error → close modal, user will need to start from Step 1 next time
+                            closeDeleteModal();
                             showNotification(data.error || 'Failed to delete account', 'error');
                             return;
                         }
+
+                        // Success → close modal and redirect
+                        closeDeleteModal();
                         showNotification('Account deleted successfully. Redirecting...', 'success');
                         setTimeout(() => {
                             window.location.href = '/auth';
                         }, 1500);
                     } catch (err) {
                         console.error('Delete account error:', err);
+                        // Network error → close modal
+                        closeDeleteModal();
                         showNotification('Network error. Please try again.', 'error');
                     }
                 });
@@ -1933,6 +2042,107 @@ if (profileImageFile) {
 }
 
     </script>
+
+    <!-- Delete Account Modal (2-Step) -->
+    <div id="deleteAccountModal"
+         class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 border border-gray-200 dark:border-gray-700">
+            
+            <!-- STEP 1: Are you sure? -->
+            <div id="deleteAccountStep1">
+                <!-- Warning Icon -->
+                <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full">
+                    <svg class="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                
+                <h3 class="text-xl font-semibold text-red-600 dark:text-red-400 mb-2 text-center">
+                    Are you sure?
+                </h3>
+                <p class="text-sm text-gray-600 dark:text-gray-300 mb-6 text-center">
+                    This will permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <button
+                        type="button"
+                        id="deleteAccountCancel"
+                        class="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        id="deleteAccountYes"
+                        class="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+                    >
+                        Yes, I'm sure
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 2: Password confirmation -->
+            <div id="deleteAccountStep2" class="hidden">
+                <!-- Warning Icon -->
+                <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full">
+                    <svg class="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                
+                <h3 class="text-xl font-semibold text-red-600 dark:text-red-400 mb-2 text-center">
+                    Confirm deletion
+                </h3>
+                <p class="text-sm text-gray-600 dark:text-gray-300 mb-6 text-center">
+                    Enter your password to confirm account deletion.
+                </p>
+
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                    Current password
+                </label>
+                <div class="relative mb-3">
+                    <input
+                        id="deleteAccountPassword"
+                        type="password"
+                        class="w-full px-3 py-2 pr-12 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-400 dark:focus:border-red-400"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                    />
+                    <button
+                        type="button"
+                        id="toggleDeletePassword"
+                        class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs font-medium transition-colors"
+                        aria-label="Toggle password visibility"
+                    >
+                        Show
+                    </button>
+                </div>
+
+                <p id="deleteAccountError"
+                   class="hidden text-sm text-red-600 dark:text-red-400 mb-3 bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                    <!-- error text injected here -->
+                </p>
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <button
+                        type="button"
+                        id="deleteAccountCancelStep2"
+                        class="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        id="deleteAccountConfirm"
+                        class="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+                    >
+                        Delete account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!--Footer-->
     <%- include('footer/footer-conditional-private') %>

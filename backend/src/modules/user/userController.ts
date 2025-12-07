@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../../types/interfaces';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
-import { createError } from '../../utils/errors';
+import { createError, ErrorCodes, AppError } from '../../utils/errors';
 import { verifyPassword } from '../auth/authService';
 import { userQueries } from '../../config/database';
 
@@ -218,47 +218,90 @@ export const deleteAccount = async (req: AuthenticatedRequest, res: Response) =>
     const userId = req.user.id;
     const { password } = req.body;
 
-    // Verify password if provided
-    if (password) {
-      const user = await userQueries.findByEmail(req.user.email);
-      if (!user || !user.passwordHash) {
-        throw createError.validation('Password verification failed');
+    // Always load user to see if they have a password
+    const user = await userQueries.findByEmail(req.user.email);
+    
+    if (!user) {
+      throw createError.notFound('User not found', ErrorCodes.USER_NOT_FOUND);
+    }
+
+    if (user.passwordHash) {
+      // Email/password account → require password
+      if (!password || typeof password !== 'string' || password.trim() === '') {
+        return res.status(400).json({
+          success: false,
+          error: 'Password is required to delete your account',
+          errorCode: ErrorCodes.VALIDATION_ERROR
+        });
       }
 
       const isValidPassword = await verifyPassword(password, user.passwordHash);
       if (!isValidPassword) {
-        throw createError.validation('Incorrect password');
+        return res.status(400).json({
+          success: false,
+          error: 'Incorrect password. Please enter your correct password to confirm account deletion.',
+          errorCode: ErrorCodes.VALIDATION_ERROR
+        });
       }
     }
+    // If user.passwordHash is null (pure OTP / SSO account), allow delete without password
 
     // Delete user (CASCADE will handle all related data)
-    await db.query('DELETE FROM "User" WHERE id = $1', [userId]);
+    await db.query('DELETE FROM "User" WHERE id = $1', [userId]);    
 
     logger.info(`User account deleted: ${userId}`);
 
-// Clear JWT cookie (same options as logout)
-res.clearCookie('jwtToken', {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict',
-  path: '/',
-});
+    // Clear JWT cookie (same options as logout)
+    res.clearCookie('jwtToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict',
+      path: '/',
+    });
 
-// Also clear session (you already do this)
-req.session?.destroy(() => {});
+    // Also clear session
+    req.session?.destroy(() => {});
 
-// Respond with redirect hint
-res.json({
-  success: true,
-  message: 'Account deleted successfully',
-  redirect: '/auth',
-});    
+    // Respond with redirect hint
+    res.json({
+      success: true,
+      message: 'Account deleted successfully',
+      redirect: '/auth',
+    });    
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Delete account error:', error);
-    if (error instanceof Error && (error.message.includes('unauthorized') || error.message.includes('validation'))) {
-      throw error;
+    
+    // Handle AppError instances directly
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        error: error.message,
+        errorCode: error.errorCode || ErrorCodes.INTERNAL_ERROR
+      });
     }
-    throw createError.internal('Failed to delete account', error);
+    
+    // Handle other errors
+    if (error instanceof Error) {
+      // Check if it's a validation or auth error by message
+      if (error.message.includes('unauthorized') || error.message.includes('validation') || error.message.includes('not found')) {
+        const statusCode = error.message.includes('unauthorized') ? 401 : 
+                          error.message.includes('not found') ? 404 : 400;
+        return res.status(statusCode).json({
+          success: false,
+          error: error.message,
+          errorCode: statusCode === 401 ? ErrorCodes.UNAUTHORIZED : 
+                    statusCode === 404 ? ErrorCodes.NOT_FOUND : 
+                    ErrorCodes.VALIDATION_ERROR
+        });
+      }
+    }
+    
+    // Fallback to internal error
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to delete account. Please try again.',
+      errorCode: ErrorCodes.INTERNAL_ERROR
+    });
   }
 };

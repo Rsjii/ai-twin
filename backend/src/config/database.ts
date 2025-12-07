@@ -549,7 +549,7 @@ export const publicTwinQueries = {
   },
 
   findByPublicHandle: async (handle: string) => {
-    // ✅ In new world, handle = User.handle (not Twin.publicHandle)
+    // handle = User.handle (not Twin.publicHandle)
     const result = await db.query(
       `SELECT 
          t.*,
@@ -558,8 +558,7 @@ export const publicTwinQueries = {
        FROM "Twin" t
        JOIN "User" u ON t."userId" = u.id
        WHERE u.handle = $1
-         AND t."isPublic" = true
-         AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)`,
+         AND t."isPublic" = true`,
       [handle]
     );
     return result.rows[0];

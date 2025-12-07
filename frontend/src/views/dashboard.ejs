@@ -1096,6 +1096,41 @@
     window.csrfToken = '<%= csrfToken %>';
     console.log('✅ CSRF Token set:', window.csrfToken);
     
+    // ✅ Simple toast notification (similar to public-profile)
+    function showNotification(message, type = 'info') {
+        const existing = document.getElementById('dashboard-notification');
+        if (existing) existing.remove();
+
+        const el = document.createElement('div');
+        el.id = 'dashboard-notification';
+        el.className =
+            'fixed top-20 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 ' +
+            (type === 'success'
+                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white');
+
+        const icon = type === 'success' ? '✅' : 'ℹ️';
+        el.innerHTML = `
+            <div class="flex items-center gap-3">
+                <span class="text-xl">${icon}</span>
+                <span class="font-semibold">${message}</span>
+            </div>
+        `;
+
+        document.body.appendChild(el);
+
+        setTimeout(() => {
+            el.style.opacity = '1';
+        }, 10);
+
+        setTimeout(() => {
+            el.style.opacity = '0';
+            setTimeout(() => {
+                if (el.parentNode) el.parentNode.removeChild(el);
+            }, 300);
+        }, 3000);
+    }
+    
     async function startNewChat() {        
         try {
             // Redirect to enhanced chat
@@ -1202,13 +1237,36 @@
         // Add click listener to Chat Now button
         const chatNowBtn = card.querySelector('.chat-now-btn');
         if (chatNowBtn) {
-            chatNowBtn.addEventListener('click', function(e) {
+            chatNowBtn.addEventListener('click', async function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 const twinId = this.getAttribute('data-twin-id');
-                if (twinId) {
-                    window.location.href = `/public-twin/chat/${twinId}`;
+                if (!twinId) return;
+
+                try {
+                    const response = await fetch(`/api/public-twin/check-owner/${twinId}`, {
+                        credentials: 'include'
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.isOwner) {
+                            // ✅ Same behaviour as twin profile / discover
+                            showNotification(
+                                'You cannot chat with your own twin in public chat. Redirecting to Enhanced Chat...',
+                                'info'
+                            );
+                            setTimeout(() => {
+                                window.location.href = '/chat-enhanced';
+                            }, 800);
+                            return;
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error checking own twin from dashboard trending:', err);
                 }
+
+                window.location.href = `/public-twin/chat/${twinId}`;
             });
         }
         
@@ -1421,12 +1479,36 @@ function renderRecentInteractions(chats) {
         // Add click listener to button - use closure variables directly
         const button = card.querySelector('.continue-chat-btn');
         if (button) {
-            button.addEventListener('click', function(e) {
+            button.addEventListener('click', async function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 const hasChatId = !!chatId && chatId !== '';
-                console.log('🔘 Button clicked:', { chatId, twinId, hasChatId: !!chatId && chatId !== '' });
-                // Use closure variables directly, not from attributes
+                console.log('🔘 Button clicked:', { chatId, twinId, hasChatId });
+
+                // ✅ Prevent public self‑chat: redirect to Enhanced Chat with a toast
+                try {
+                    if (twinId) {
+                        const resp = await fetch(`/api/public-twin/check-owner/${twinId}`, {
+                            credentials: 'include'
+                        });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            if (data.isOwner) {
+                                showNotification(
+                                    'You cannot chat with your own twin in public chat. Redirecting to Enhanced Chat...',
+                                    'info'
+                                );
+                                setTimeout(() => {
+                                    window.location.href = '/chat-enhanced';
+                                }, 800);
+                                return;
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error checking own twin from recent chats:', err);
+                }
+
                 const url = hasChatId
                   ? `/public-twin/chat/${twinId}/${encodeURIComponent(chatId)}`
                     : `/public-twin/chat/${twinId}`;

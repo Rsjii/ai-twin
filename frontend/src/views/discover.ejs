@@ -725,21 +725,16 @@ function setupInfiniteScroll() {
     }
     
     // 3) Check if shares are disabled for this twin
-    if (twin.sharesDisabled || twin.isOwnTwin) {
+// ✅ FIX: Users CAN share their own twin (only sharesDisabled blocks it)
+if (twin.sharesDisabled) {
         shareBtn.disabled = true;
         shareBtn.classList.add('opacity-50', 'cursor-not-allowed');
         
         // ✅ FIX: Show disabled reason in tooltip (clean, per-action) - SET DIRECTLY ON BUTTON
-        if (twin.isOwnTwin) {
-            shareBtn.setAttribute('title', 'You cannot share your own twin');
-            shareBtn.setAttribute('aria-label', 'You cannot share your own twin');
-            shareBtn.setAttribute('data-tooltip', 'You cannot share your own twin');
-        } else {
             shareBtn.setAttribute('title', 'Sharing is disabled for this twin');
             shareBtn.setAttribute('aria-label', 'Sharing is disabled for this twin');
             shareBtn.setAttribute('data-tooltip', 'Sharing is disabled for this twin');
-        }
-        shareBtn.setAttribute('data-disabled-reason', twin.isOwnTwin ? 'own_twin' : 'shares_disabled');
+    shareBtn.setAttribute('data-disabled-reason', 'shares_disabled');
     } else {
         shareBtn.disabled = false;
         shareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -803,9 +798,14 @@ function setupInfiniteScroll() {
                 const data = await response.json();
                 
                 if (data.isOwner) {
-                    // ✅ No twinId leaked in URL; just optional message
-                    const msg = encodeURIComponent('You cannot chat with your own twin in public chat. Use Enhanced Chat instead.');
-                    window.location.replace(`/chat-enhanced?message=${msg}`);
+                // ✅ Same UX as twin profile → toast + redirect to Enhanced Chat
+                showNotification(
+                    'You cannot chat with your own twin in public chat. Redirecting to Enhanced Chat...',
+                    'info'
+                );
+                setTimeout(() => {
+                    window.location.href = '/chat-enhanced';
+                }, 800);
                     return;                    
                 }
             } catch (error) {
@@ -861,7 +861,14 @@ const profileHandle = twin.userHandle || twin.publicHandle;
             e.preventDefault();
             return false;
         }
-        shareTwinFromDiscover(twinToken, twin.publicHandle);
+        // ✅ FIX: Use userHandle instead of publicHandle (which can be null)
+        // URLs are now based on userHandle, not publicHandle
+        const shareHandle = twin.userHandle || twin.publicHandle;
+        if (!shareHandle) {
+            showNotification('Cannot share: Profile handle not available', 'error');
+            return;
+        }
+        shareTwinFromDiscover(twinToken, shareHandle);
     });
     document.getElementById('twinsGrid').appendChild(clone);
 }
@@ -1125,10 +1132,11 @@ function clearFilters() {
         }
 
         // Share functionality for discover page
-async function shareTwinFromDiscover(twinToken, publicHandle) {
+async function shareTwinFromDiscover(twinToken, handle) {
     try {
         // ✅ FIX: Check allowShares BEFORE showing prompt
-        const response = await fetch(`/api/share/content/${publicHandle}?platform=copy`, {
+        // handle can be userHandle or publicHandle (userHandle preferred)
+        const response = await fetch(`/api/share/content/${handle}?platform=copy`, {
             credentials: 'include'
         });
         
@@ -1144,7 +1152,7 @@ async function shareTwinFromDiscover(twinToken, publicHandle) {
         }
         
         // Now show share options (only if shares are allowed)
-        const shareUrl = `${window.location.origin}/@${publicHandle}`;
+        const shareUrl = `${window.location.origin}/@${handle}`;
         
         const platform = prompt('Choose platform to share:\n1. Twitter\n2. Facebook\n3. LinkedIn\n4. WhatsApp\n5. Telegram\n6. Copy Link\n\nEnter number (1-6):');
         
@@ -1170,7 +1178,7 @@ async function shareTwinFromDiscover(twinToken, publicHandle) {
             alert('Link copied to clipboard!');
         } else {
             // Get share content for specific platform
-            const platformResponse = await fetch(`/api/share/content/${publicHandle}?platform=${selectedPlatform}`, {
+            const platformResponse = await fetch(`/api/share/content/${handle}?platform=${selectedPlatform}`, {
                 credentials: 'include'
             });
             const platformData = await platformResponse.json();

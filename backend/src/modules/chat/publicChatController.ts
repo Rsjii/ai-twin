@@ -43,7 +43,8 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
     // ✅ PHASE 2: Detokenize twinToken to get actual twinId
     const decoded = detokenizeId(twinToken);
     if (!decoded || decoded.type !== 'twin') {
-      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+      // Treat as "not found" so user just sees 404
+      throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);      
     }
 
     const twinId = decoded.id;
@@ -93,7 +94,7 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
 
     // 🚩 NEW: non-logged + blockNonLoggedUsers => pretend twin not found
     if (!userId && twin.blockNonLoggedUsers === true) {
-      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
+      throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     // ✅ PHASE 2: Check requireLogin
@@ -114,7 +115,7 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
 
       if (blockedCheck.rows.length > 0) {
       // Blocked users should see generic "not found"
-      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);        
+      throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);        
       }
     }
 
@@ -254,13 +255,15 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
     const { message } = sendPublicMessageSchema.parse(req.body);
 
     if (!chatToken) {
-      throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
+      // Treat as "not found" so user just sees 404
+      throw createError.notFound('This chat does not exist', ErrorCodes.CHAT_NOT_FOUND);      
     }
 
     // ✅ PHASE 4: Detokenize chatToken to get actual chatId
     const decoded = detokenizeId(chatToken);
     if (!decoded || decoded.type !== 'chat') {
-      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+      // Treat as "not found" so user just sees 404
+      throw createError.notFound('This chat does not exist', ErrorCodes.CHAT_NOT_FOUND);      
     }
     const chatId = decoded.id;
 
@@ -586,13 +589,13 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
     const userId = req.user?.id; //Get userId if logged in
 
     if (!chatToken) {
-      throw createError.validation('Chat token is required', ErrorCodes.INVALID_INPUT);
+      throw createError.notFound('This chat does not exist', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     // ✅ PHASE 4: Detokenize chatToken to get actual chatId
     const decoded = detokenizeId(chatToken);
     if (!decoded || decoded.type !== 'chat') {
-      throw createError.validation('Invalid chat token', ErrorCodes.INVALID_INPUT);
+      throw createError.notFound('This chat does not exist', ErrorCodes.CHAT_NOT_FOUND);
     }
     const chatId = decoded.id;
 
@@ -731,9 +734,11 @@ export const getPublicChatByTwin = async (req: Request, res: Response, next: Nex
     // ✅ PHASE 2: Detokenize twinToken to get actual twinId
     const decoded = detokenizeId(twinToken);
     if (!decoded || decoded.type !== 'twin') {
-      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+      throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);
     }
     const twinId = decoded.id;
+
+    const userId = req.user?.id;
 
 // Allow access to public chat - blockNonLoggedUsers only affects discover visibility
 const twinResult = await db.query(`
@@ -750,7 +755,7 @@ const twinResult = await db.query(`
     const twin = twinResult.rows[0];
 
     // If owner has disabled non-logged access, act as if twin does not exist
-    if (twin.blockNonLoggedUsers === true) {
+    if (!userId && twin.blockNonLoggedUsers === true) {
       throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
@@ -1318,7 +1323,7 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
     `, [twinId, userId]);
 
     if (twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
+      throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     const twin = twinResult.rows[0];
@@ -1563,7 +1568,7 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
     `, [twinId, userId]);
 
     if (twinResult.rows.length === 0) {
-      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
+      throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     const twin = twinResult.rows[0];
@@ -1878,7 +1883,7 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
     `, [rawChatId]);
 
     if (chatResult.rows.length === 0) {
-      throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
+      throw createError.notFound('This chat does not exist', ErrorCodes.CHAT_NOT_FOUND);
     }
 
     const chat = chatResult.rows[0];

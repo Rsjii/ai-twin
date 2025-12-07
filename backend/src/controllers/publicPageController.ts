@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { db, userQueries } from '../config/database';
 import { logger } from '../config/logger';
-import { AppError, createError } from '../utils/errors';
+import { AppError, createError, ErrorCodes } from '../utils/errors';
 import { handleControllerError } from '../utils/errorHandler';
 import { tokenizeId } from '../utils/idTokenization';
 
@@ -110,21 +110,22 @@ export async function getPublicProfile(req: any, res: Response) {
       });
     }
 
-    // Twin exists
-    const twin = twinRow;
+// Twin exists
+const twin = twinRow;
 
-    // requireLogin: if not logged in and requireLogin true → 401 page
-    if (!viewerId && twin.requireLogin) {
-      return res.status(401).render('error', {
-        title: 'Login Required',
-        message: 'This profile requires you to be logged in to view',
-        user: null,
-        csrfToken: res.locals['csrfToken'] || ''
-      });
-    }
+// ✅ NOTE:
+// - requireLogin should ONLY affect chat, not profile visibility.
+// - Logged‑out users can still view this profile; they just cannot chat
+//   (public chat page + /api/public-chat/start enforce login for chatting).
 
-    // Blocked user check (uses Twin.id)
-    let isBlocked = false;
+// ✅ NEW: If twin blocks non-logged viewers, hide profile completely for guests
+if (!viewerId && twin.blockNonLoggedUsers) {
+  throw createError.notFound('This profile does not exist', ErrorCodes.NOT_FOUND);
+}
+
+// Blocked user check (uses Twin.id)
+let isBlocked = false;
+    
     if (viewerId) {
       const blockedCheck = await db.query(
         `SELECT id FROM "TwinBlockedUsers"
@@ -135,12 +136,7 @@ export async function getPublicProfile(req: any, res: Response) {
     }
 
     if (isBlocked) {
-      return res.status(404).render('error', {
-        title: 'Profile Not Available',
-        message: 'This profile is not available',
-        user: req.user || null,
-        csrfToken: res.locals['csrfToken'] || ''
-      });
+      throw createError.notFound('This profile does not exist', ErrorCodes.NOT_FOUND);
     }
 
     // Private twin: if not owner and !isPublic → show basic user only

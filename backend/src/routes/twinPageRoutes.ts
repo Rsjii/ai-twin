@@ -6,6 +6,7 @@ import * as twinPageController from '../controllers/twinPageController';
 import * as twinManagePageController from '../controllers/twinManagePageController';
 import * as discoverPageController from '../controllers/discoverPageController';
 import { getTwinPublicChatHistoryPage ,getViewPublicChatHistoryPage} from '../controllers/twinPublicChatHistoryPageController';
+import { asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
 
@@ -31,9 +32,9 @@ router.get('/memory-management', requireJWTFromCookie, generateCSRFToken, discov
 router.get('/twin/manage', requireJWTFromCookie, generateCSRFToken, twinManagePageController.getTwinManage);
 
 // Twin Public Chat History page
-router.get('/public-chat-history', requireJWTFromCookie, generateCSRFToken, getTwinPublicChatHistoryPage);
+router.get('/public-chat-history', requireJWTFromCookie, generateCSRFToken, asyncHandler(getTwinPublicChatHistoryPage));
 
 // Twin View Chat History page
-router.get('/public-chat-history/view/:chatToken', requireJWTFromCookie, generateCSRFToken, getViewPublicChatHistoryPage);
+router.get('/public-chat-history/view/:chatToken', requireJWTFromCookie, generateCSRFToken, asyncHandler(getViewPublicChatHistoryPage));
 
 export default router;
