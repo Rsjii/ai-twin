@@ -940,7 +940,7 @@
                     
                     <!-- CTA Buttons -->
                     <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
-                        <a href="/twin/create" class="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-white text-blue-600 rounded-xl font-bold text-base sm:text-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 w-full sm:w-auto justify-center">
+                        <a href="/twin/create" class="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-xl font-bold text-base sm:text-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 w-full sm:w-auto justify-center">                            
                             <span>🚀</span>
                             <span>Create My Twin</span>
                         </a>
@@ -1165,17 +1165,21 @@
         card.className = 'twin-card-discover min-w-[280px] bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-md dark:shadow-gray-900 p-6 border border-white/30 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer flex-shrink-0';
         card.setAttribute('data-twin-id', twin.publicId || twinPublicId);
         
-        // Avatar
-        const avatarInitial = (twin.publicHandle || 'T').charAt(0).toUpperCase();
+         // ✅ Prefer real user handle, then publicHandle, last fallback 'twin'
+    const displayHandle = twin.userHandle || twin.publicHandle || 'twin';
+        
+        // ✅ Prefer user's actual profile image, then twin profile image, else initial
+        const profileImage = twin.userProfileImage || twin.profileImage || null;
+        const avatarInitial = displayHandle.charAt(0).toUpperCase();
         
         card.innerHTML = `
             <div class="flex items-center mb-4">
                 <div class="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg mr-3">
-                    ${twin.profileImage ? `<img src="${twin.profileImage}" alt="${twin.publicHandle}" class="w-12 h-12 rounded-full object-cover" loading="lazy">` : avatarInitial}                    
+                    ${profileImage ? `<img src="${profileImage}" alt="${displayHandle}" class="w-12 h-12 rounded-full object-cover" loading="lazy">` : avatarInitial}                    
                 </div>
                 <div class="flex-1">
                     <div class="flex items-center gap-2">
-                        <h4 class="font-semibold text-gray-900 dark:text-white">@${twin.publicHandle || 'twin'}</h4>
+                        <h4 class="font-semibold text-gray-900 dark:text-white">@${displayHandle}</h4>
                         ${twin.verified ? '<span class="text-primary text-xs">✓</span>' : ''}
                     </div>
                     <p class="text-xs text-gray-500 dark:text-gray-400">${twin.userName || twin.userHandle || 'AI Twin'}</p>
@@ -1214,7 +1218,17 @@
                 return;
             }
             if (e.target.tagName !== 'BUTTON') {
-                window.location.href = '/@' + (twin.publicHandle || 'twin');
+        // OLD:
+        // window.location.href = '/@' + (twin.publicHandle || 'twin');
+
+        // ✅ NEW: prefer real user handle, then fallback to publicHandle, else no-op
+        const profileHandle = twin.userHandle || twin.publicHandle || '';
+        if (profileHandle) {
+            window.location.href = '/@' + profileHandle;
+        } else {
+            console.warn('[createTwinCard] No handle available for profile redirect', twin);
+            alert('Profile is not available for this twin yet.');
+        }
             }
         });
         
@@ -1330,9 +1344,12 @@ function renderRecentInteractions(chats) {
         const card = document.createElement('div');
         card.className = 'min-w-[280px] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-4 border border-white/40 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 hover:shadow-lg transition-all duration-300 group flex-shrink-0';
         
+        // ✅ NEW: decide which handle to use for profile links
+        const profileHandle = twin.userHandle || twin.publicHandle || '';
         
-        // Avatar initial
-        const avatarInitial = (twin.publicHandle || 'T').charAt(0).toUpperCase();
+        // ✅ Prefer user's actual profile image, then twin profile image, else initial
+        const profileImage = twin.userProfileImage || twin.profileImage || null;
+        const avatarInitial = (profileHandle || 'T').charAt(0).toUpperCase();
         
         // Last message preview (truncate to 50 chars)
         const lastMessagePreview = lastMessage?.content 
@@ -1346,17 +1363,17 @@ function renderRecentInteractions(chats) {
         card.innerHTML = `
             <div class="flex items-center gap-4 mb-3">
                 <div class="relative flex-shrink-0">
-                    <div class="twin-avatar-clickable w-14 h-14 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg group-hover:scale-110 transition-transform cursor-pointer" data-twin-handle="${twin.publicHandle || 'twin'}" style="cursor: pointer;">
-                        ${twin.profileImage ? `<img src="${twin.profileImage}" alt="${twin.publicHandle}" class="w-14 h-14 rounded-full object-cover" loading="lazy">` : avatarInitial}                        
+                <div class="twin-avatar-clickable w-14 h-14 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg group-hover:scale-110 transition-transform cursor-pointer" data-profile-handle="${profileHandle}">
+                    ${profileImage ? `<img src="${profileImage}" alt="${twin.publicHandle}" class="w-14 h-14 rounded-full object-cover" loading="lazy">` : avatarInitial}
                     </div>
                     <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-1">
-                        <h4 class="font-semibold text-gray-900 dark:text-white text-sm truncate">@${twin.publicHandle || 'twin'}</h4>
+                    <h4 class="font-semibold text-gray-900 dark:text-white text-sm truncate">@${profileHandle || twin.publicHandle || 'twin'}</h4>
                         ${twin.verified ? '<span class="text-xs text-primary">✓</span>' : ''}
                     </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${twin.bio || 'No bio'}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${twin.userName || twin.userHandle || 'AI Twin'}</p>
                 </div>
             </div>
             
@@ -1385,14 +1402,19 @@ function renderRecentInteractions(chats) {
                 </button>
             
         `;        
-        // Add click listener to avatar/icon for profile
+  // Avatar click → profile
         const avatarElement = card.querySelector('.twin-avatar-clickable');
         if (avatarElement) {
             avatarElement.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                const twinHandle = this.getAttribute('data-twin-handle');
-                window.location.href = `/@${twinHandle}`;
+            const handle = this.getAttribute('data-profile-handle');
+            if (handle) {
+                window.location.href = `/@${handle}`;
+            } else {
+                console.warn('[renderRecentInteractions] No handle available for profile redirect', twin);
+                alert('Profile is not available for this twin yet.');
+            }
             });
         }
         
@@ -1413,15 +1435,18 @@ function renderRecentInteractions(chats) {
             });
         }
         
-        // Also make the card clickable (except button and avatar area) - goes to profile
-        card.style.cursor = 'pointer';
+  // Card click → profile (except when clicking chat button or avatar)
         card.addEventListener('click', function(e) {
-            // Don't trigger if clicking the button or avatar
             if (e.target.closest('.continue-chat-btn') || e.target.closest('.twin-avatar-clickable')) {
                 return;
             }
             console.log('🃏 Card clicked:', { twinId });
-            window.location.href = `/@${twin.publicHandle || 'twin'}`;
+        if (profileHandle) {
+            window.location.href = `/@${profileHandle}`;
+        } else {
+            console.warn('[renderRecentInteractions] No handle available for profile redirect', twin);
+            alert('Profile is not available for this twin yet.');
+        }
         });
         
         container.appendChild(card);        
@@ -1700,7 +1725,8 @@ function displayPublicTwinStatus(twin) {
         try {
             console.log('🚀 Making twin public...');
             
-        const twinId = '<%= twinId %>';
+        // ✅ FIX: Use tokenized ID instead of raw DB ID
+        const twinId = '<%= typeof twinPublicId !== "undefined" ? twinPublicId : (twinId || "") %>';
         if (!twinId) {
             alert('Twin ID not found. Please refresh the page.');
             return;
@@ -1716,7 +1742,7 @@ function displayPublicTwinStatus(twin) {
                 },
             credentials: 'include',
                 body: JSON.stringify({
-                twinId: twinId,
+                twinId: twinId,  // Backend should detokenize this
                 bio: 'Check out my AI twin!'
                 })
             });

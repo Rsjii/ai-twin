@@ -345,12 +345,12 @@ if (toggleSignupPassword) {
                 const signupTab = document.getElementById('signupTab');
                 
                 if (activeTab === 'login') {
-                    loginTab.className = 'px-6 py-2 rounded-full font-semibold transition-all duration-300 bg-white text-primary shadow-sm';
-                    signupTab.className = 'px-6 py-2 rounded-full font-semibold transition-all duration-300 text-gray-600 hover:text-primary';
+                    loginTab.className = 'px-6 py-2 rounded-full font-semibold transition-all duration-300 bg-white dark:bg-gray-800 text-primary dark:text-blue-400 shadow-sm';
+                    signupTab.className = 'px-6 py-2 rounded-full font-semibold transition-all duration-300 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400';
                 } else {
-                    signupTab.className = 'px-6 py-2 rounded-full font-semibold transition-all duration-300 bg-white text-primary shadow-sm';
-                    loginTab.className = 'px-6 py-2 rounded-full font-semibold transition-all duration-300 text-gray-600 hover:text-primary';
-                }
+                    signupTab.className = 'px-6 py-2 rounded-full font-semibold transition-all duration-300 bg-white dark:bg-gray-800 text-primary dark:text-blue-400 shadow-sm';
+                    loginTab.className = 'px-6 py-2 rounded-full font-semibold transition-all duration-300 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400';
+                }                
             }
             
             function showFlashMessage(message, type) {

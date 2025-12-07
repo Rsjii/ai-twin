@@ -166,7 +166,7 @@
                             ? 'bg-blue-600 text-white' 
                             : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border dark:border-gray-700'
                     }">
-                        <p class="text-sm break-words" id="${messageId}-content">${escapeHtml(truncatedContent)}</p>
+                        <p class="text-sm break-words text-gray-800 dark:text-gray-100" id="${messageId}-content">${escapeHtml(truncatedContent)}</p>                        
                         ${isLong ? `
                             <button 
                                 id="${messageId}-expand-btn"

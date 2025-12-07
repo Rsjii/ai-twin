@@ -36,7 +36,25 @@ export const makeTwinPublic = async (req: Request, res: Response, next: NextFunc
       throw createError.unauthorized('Authentication required');
     }
 
-    const { twinId, bio, profileImage } = makePublicSchema.parse(req.body);
+    const { twinId: twinIdInput, bio, profileImage } = makePublicSchema.parse(req.body);
+
+    // ✅ FIX: Detokenize if tokenized ID is provided
+    let twinId: string;
+    try {
+      const decoded = detokenizeId(twinIdInput);
+      if (decoded && decoded.type === 'twin') {
+        twinId = decoded.id;
+        logger.info('Making twin public - detokenized ID', { input: twinIdInput, twinId });
+      } else {
+        // Fallback: assume raw ID (for backward compatibility)
+        twinId = twinIdInput;
+        logger.info('Making twin public - using raw ID (backward compatibility)', { twinId });
+      }
+    } catch (error) {
+      // If detokenization fails, assume it's a raw ID (backward compatibility)
+      twinId = twinIdInput;
+      logger.info('Making twin public - detokenization failed, using as raw ID', { twinId });
+    }
 
     logger.info('Making twin public - request received', {
       twinId,
@@ -554,7 +572,13 @@ const twin = twinResult.rows[0];
 
     const twinPublicId = tokenizeId(twin.id, 'twin');
     
-    // ✅ NEW: For anonymous users, prevent browser caching (back should always reload)
+    // ✅ FIX: Validate twinPublicId was created
+    if (!twinPublicId) {
+      logger.error('[getPublicChatPage] Failed to tokenize twin ID', { twinId: twin.id });
+      throw createError.internal('Failed to generate twin token');
+    }
+    
+    // ✅ NEW: For anonymous users, prevent browser caching (back button always reloads)
     if (!userId) {
       res.set({
         'Cache-Control': 'no-store, no-cache, must-revalidate, private',
@@ -577,8 +601,8 @@ const twin = twinResult.rows[0];
       hasTwins: hasTwins,
       // ✅ viewer ka apna twin (agar ho) – purana behaviour same
       twinId: userTwinId,
-      // ✅ NEW: jis twin ko dekh rahe ho uska raw DB id (backend validated in getPublicChatPage)
-      publicTwinDbId: twinId,
+      // ✅ NEW: pass original URL twin token to frontend
+      twinToken: twinToken,
       csrfToken: req.csrfToken?.() || ''
     });
     

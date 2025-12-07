@@ -7,6 +7,7 @@ import { TwinService } from '../twin/twinService';
 import { featureFlags } from '../../config/featureFlags';
 import { generateId } from '../../utils/idGenerator';
 import { EVENT_TYPES } from '../../config/constants';
+import { tokenizeId } from '../../utils/idTokenization';
 
 const twinService = new TwinService();
 
@@ -157,7 +158,7 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
     res.json({
       success: true,
       twin: {
-        id: twinId,
+        publicId: tokenizeId(twinId, 'twin'),  // ✅ ADD: Always return tokenized ID
         styleVector,
         sampleReply,
         personaData,

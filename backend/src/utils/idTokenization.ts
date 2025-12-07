@@ -267,6 +267,7 @@ export function sanitizeTwin(twin: any): any {
     sharesDisabled: twin.sharesDisabled ?? (twin.allowShares === false),
     userName: twin.userName,
     userHandle: twin.userHandle,
+    userProfileImage: twin.userProfileImage,
   };
   
   // Tokenize IDs

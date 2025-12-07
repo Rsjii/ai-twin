@@ -195,8 +195,8 @@ handle me right side me msg type kuch to aaye ki u can change this only once in 
 reload , back btn behaviuors all places
 sab pages me footer chahiye kya
 delete pe bhi optp chahiye kyaa
-
-
+public chat msg aane ke just baad dark theme me black text + enhanced chat dark theme msg box color white hai
+online hai dikhana
 
 
 

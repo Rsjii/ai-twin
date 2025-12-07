@@ -842,7 +842,7 @@ async function regenerateResponse(responseId) {
                 
                 const messageContent = document.createElement('div');
                 messageContent.className = 'max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200';
-                messageContent.innerHTML = `<p class="text-sm">${data.response}</p>`;                
+                messageContent.innerHTML = `<p class="text-sm text-gray-800 dark:text-gray-100">${data.response}</p>`;                
 
                 // Add timestamp
                 if (window.TimeUtils) {
@@ -1067,7 +1067,7 @@ function addMessageToChat(sender, content, isTyping = false, metadata = null, ti
     messageContent.className = `max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${
         sender === 'user' 
             ? 'bg-blue-600 text-white' 
-            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200'    
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100'  
     }`;
     
     // ✅ Create actions container for AI messages (so buttons can be added later)
@@ -1084,7 +1084,7 @@ function addMessageToChat(sender, content, isTyping = false, metadata = null, ti
         `;
     } else {
     messageContent.innerHTML = `
-                <p class="text-sm">${content}</p>
+                <p class="text-sm text-gray-800 dark:text-gray-100">${content}</p>
     `;
     }
 
@@ -1133,7 +1133,7 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
     messageContent.className = `max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${
         sender === 'user' 
             ? 'bg-blue-600 text-white' 
-            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200'    
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100'
     }`;
     
     // ✅ FIX: Create actions container OUTSIDE messageContent (so it doesn't get wiped)
@@ -1159,7 +1159,7 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
             
             // Show text with blinking cursor
             messageContent.innerHTML = `
-                <p class="text-sm dark:text-white">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
+                <p class="text-sm text-gray-800 dark:text-gray-100">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
             `;
             
             currentWordIndex++;
@@ -1175,7 +1175,7 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
         } else {
             // Typing complete - show final text with timestamp
             messageContent.innerHTML = `
-                <p class="text-sm">${fullText}</p>
+                <p class="text-sm text-gray-800 dark:text-gray-100">${fullText}</p>
             `;            
             
             // Add timestamp if TimeUtils is available
@@ -1526,7 +1526,7 @@ async function loadCurrentChatMessages() {
     messageContent.className = `max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${
         sender === 'user' 
             ? 'bg-blue-600 text-white' 
-            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200'    
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100'    
     }`;
     
     // ✅ Create actions container for AI messages
@@ -1535,7 +1535,7 @@ async function loadCurrentChatMessages() {
     actionsContainer.className = 'mt-2';
     
     messageContent.innerHTML = `
-        <p class="text-sm">${msg.content}</p>
+        <p class="text-sm text-gray-800 dark:text-gray-100">${msg.content}</p>
     `;
     
     // Add timestamp if available
@@ -1649,11 +1649,11 @@ async function loadChatMessages() {
                     messageContent.className = `max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${
                         sender === 'user' 
                             ? 'bg-blue-600 text-white' 
-                            : 'bg-white border border-gray-200'
+                            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100'                    
                     }`;
                     
                     messageContent.innerHTML = `
-                        <p class="text-sm">${msg.content}</p>
+                        <p class="text-sm text-gray-800 dark:text-gray-100">${msg.content}</p>
                     `;
                     
                     // Add timestamp if available

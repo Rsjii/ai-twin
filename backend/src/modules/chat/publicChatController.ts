@@ -785,24 +785,16 @@ const twinResult = await db.query(`
 export const getPublicChatsByTwin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { twinToken } = req.params;
-    const { visitorId, twinId: rawTwinId } = req.query as { visitorId?: string; twinId?: string };
+    const { visitorId } = req.query as { visitorId?: string };
     const userId = req.user?.id;
 
-    let twinId: string | null = null;
-
-    // 1) Prefer raw DB id agar query param se mila (publicTwinDbId se)
-    if (rawTwinId && typeof rawTwinId === 'string' && rawTwinId.trim() !== '') {
-      twinId = rawTwinId.trim();
-      logger.info('[getPublicChatsByTwin] Using raw twinId from query', { twinId });
-    } else {
-      // 2) Nahi mila to purana twinToken → detokenize
-      const decoded = detokenizeId(twinToken);
-      if (!decoded || decoded.type !== 'twin') {
-        throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
-      }
-      twinId = decoded.id;
-      logger.info('[getPublicChatsByTwin] Decoded twinToken', { twinToken, twinId });
+    // ✅ FIX: Only use tokenized ID from path - remove raw ID fallback
+    const decoded = detokenizeId(twinToken);
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
     }
+    const twinId = decoded.id;
+    logger.info('[getPublicChatsByTwin] Decoded twinToken', { twinToken, twinId });
 
     // Check if twin exists and is public
     const twinResult = await db.query(`
@@ -915,33 +907,39 @@ const chats = chatsResult.rows.map(chat => sanitizePublicChat({
 // Create new public chat
 export const createNewPublicChat = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { twinToken, twinId: rawTwinId, visitorId } = req.body;
+    const { twinToken, visitorId } = req.body;
 
-    let twinId: string | null = null;
-
-    // 1) Prefer raw DB id if provided (publicTwinDbId from getPublicChatPage)
-    if (rawTwinId && typeof rawTwinId === 'string' && rawTwinId.trim() !== '') {
-      twinId = rawTwinId.trim();
-      logger.info(`[createNewPublicChat] Using raw DB id: ${twinId}`);
+    // ✅ FIX: Better validation - check for empty string too
+    if (!twinToken || typeof twinToken !== 'string' || twinToken.trim() === '') {
+      logger.warn('[createNewPublicChat] Missing or empty twinToken', { body: req.body });
+      throw createError.validation('Twin token is required', ErrorCodes.INVALID_INPUT);
     }
 
-    // 2) Otherwise, fall back to token (older callers)
-    if (!twinId) {
-      const raw = twinToken;
-      if (!raw || typeof raw !== 'string') {
-        throw createError.validation('Twin token or ID is required', ErrorCodes.INVALID_INPUT);
-      }
-
-      const decoded = detokenizeId(raw, {
+    // ✅ FIX: Add better error logging
+    let decoded;
+    try {
+      decoded = detokenizeId(twinToken, {
         userId: req.user?.id,
         endpoint: 'createNewPublicChat',
       });
-      if (!decoded || decoded.type !== 'twin' || !decoded.id) {
-        throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
-      }
-      twinId = decoded.id;
-      logger.info(`[createNewPublicChat] Decoded from token: ${twinId}`);
+    } catch (detokenizeError) {
+      logger.error('[createNewPublicChat] Detokenization failed', {
+        twinToken: twinToken.substring(0, 20) + '...', // Log partial token for debugging
+        error: detokenizeError instanceof Error ? detokenizeError.message : String(detokenizeError),
+        userId: req.user?.id
+      });
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
     }
+
+    if (!decoded || decoded.type !== 'twin' || !decoded.id) {
+      logger.warn('[createNewPublicChat] Invalid decoded token', {
+        decoded: decoded ? { type: decoded.type, hasId: !!decoded.id } : null,
+        twinToken: twinToken.substring(0, 20) + '...'
+      });
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
+    logger.info(`[createNewPublicChat] Decoded from token: ${twinId}`);
 
     const userId = req.user?.id || undefined;
     logger.info(`[createNewPublicChat] Twin: ${twinId}, UserId: ${userId || 'anonymous'}, VisitorId: ${visitorId || 'none'}`);
@@ -977,6 +975,7 @@ export const createNewPublicChat = async (req: AuthenticatedRequest, res: Respon
 };
 
 // Get all public chats for logged-in user (grouped by twin)
+
 export const getUserPublicChats = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
@@ -986,8 +985,6 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
     const userId = req.user.id;
     logger.info(`[getUserPublicChats] Fetching chats for userId: ${userId}`);
 
-    // Get all public chats for this user, grouped by twin
-    // For each twin, get the latest chat, total chats count, and total messages count
     const chatsResult = await db.query(`
       WITH twin_stats AS (
         SELECT 
@@ -1015,9 +1012,14 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
           t."likeCount",
           t."chatCount",
           t."followCount",
-          t."verified"
+          t."verified",
+          t."userId" as "userId",
+          u.handle as "userHandle",
+          u.name   as "userName",
+          u."profileImage" as "userProfileImage"
         FROM "PublicChat" pc
         JOIN "Twin" t ON pc."twinId" = t.id
+        JOIN "User" u ON t."userId" = u.id
         WHERE pc."userId" = $1 
           AND t."isPublic" = true
         ORDER BY pc."twinId", pc."lastActivity" DESC
@@ -1047,34 +1049,37 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
 
     logger.info(`[getUserPublicChats] Query returned ${chatsResult?.rows?.length || 0} rows`);
 
- // Format response - USE SANITIZATION
- const twinChats = chatsResult.rows.map(row => ({
-  twin: sanitizeTwin({
-    id: row.twinId,
-    publicHandle: row.publicHandle,
-    bio: row.bio,
-    profileImage: row.profileImage,
-    likeCount: row.likeCount || 0,
-    chatCount: row.chatCount || 0,
-    followCount: row.followCount || 0,
-    verified: row.verified || false
-  }),
-  latestChat: sanitizePublicChat({
-    id: row.chat_id,
-    messageCount: row.latest_chat_message_count || 0,
-    createdAt: row.latest_chat_created_at,
-    lastActivity: row.latest_chat_last_activity,
-    title: row.latest_chat_title
-  }),
-  totalChats: parseInt(row.total_chats || '0', 10),
-  totalMessages: parseInt(row.total_messages || '0', 10),
-  lastMessage: row.last_message_content ? {
-    content: row.last_message_content,
-    createdAt: normalizeTimestamp(row.last_message_time),
-    relativeTime: formatRelativeTime(row.last_message_time)
-  } : null
-}));
-
+    // ✅ NOW: send userHandle + userName into sanitizeTwin
+    const twinChats = chatsResult.rows.map(row => ({
+      twin: sanitizeTwin({
+        id: row.twinId,
+        userId: row.userId,
+        publicHandle: row.publicHandle,
+        bio: row.bio,
+        profileImage: row.profileImage,
+        likeCount: row.likeCount || 0,
+        chatCount: row.chatCount || 0,
+        followCount: row.followCount || 0,
+        verified: row.verified || false,
+        userHandle: row.userHandle,
+        userName: row.userName,
+        userProfileImage: row.userProfileImage,
+      }),
+      latestChat: sanitizePublicChat({
+        id: row.chat_id,
+        messageCount: row.latest_chat_message_count || 0,
+        createdAt: row.latest_chat_created_at,
+        lastActivity: row.latest_chat_last_activity,
+        title: row.latest_chat_title
+      }),
+      totalChats: parseInt(row.total_chats || '0', 10),
+      totalMessages: parseInt(row.total_messages || '0', 10),
+      lastMessage: row.last_message_content ? {
+        content: row.last_message_content,
+        createdAt: normalizeTimestamp(row.last_message_time),
+        relativeTime: formatRelativeTime(row.last_message_time)
+      } : null
+    }));
 
     logger.info(`[getUserPublicChats] Found ${twinChats.length} unique twins with chats for userId: ${userId}`);
 
@@ -1082,14 +1087,14 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
       success: true,
       chats: twinChats,
       total: twinChats.length,
-      // ✅ FIX: Send server time so frontend can use it instead of browser time
       serverTime: new Date().toISOString()
     });
-
   } catch (error) {
     handleControllerError(error, 'Failed to get user public chats');
   }
 };
+
+
 
 // Delete public chat
 export const deletePublicChat = async (req: Request, res: Response, next: NextFunction) => {

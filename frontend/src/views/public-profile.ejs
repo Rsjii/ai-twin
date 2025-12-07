@@ -320,7 +320,7 @@
                     </div>
                     
                     <!-- Chat Input -->
-                    <div class="p-6 border-t bg-white flex-shrink-0">
+                    <div class="p-6 border-t bg-white dark:bg-gray-800 flex-shrink-0">
                         <form id="chatForm" class="space-y-4">
                             <div class="flex space-x-4">
                                 <input 
@@ -764,9 +764,9 @@ function displayMessages(messages) {
             } else {
                 messageDiv.className = 'flex justify-start mb-4';
                 messageDiv.innerHTML = `
-                    <div class="bg-white border border-gray-200 px-4 py-3 rounded-lg max-w-xs lg:max-w-md shadow-sm">
-                        <p class="text-sm text-gray-800">${content}</p>
-                        <p class="text-xs text-gray-500 mt-1" title="${timeTooltip}">${timeDisplay}</p>
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-3 rounded-lg max-w-xs lg:max-w-md shadow-sm">
+                        <p class="text-sm text-gray-800 dark:text-gray-200">${content}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" title="${timeTooltip}">${timeDisplay}</p>
                     </div>
                 `;
             }

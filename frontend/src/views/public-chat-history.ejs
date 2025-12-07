@@ -285,12 +285,14 @@
             chats.forEach(({ twin, latestChat, lastMessage, totalChats, totalMessages }) => {
                 const twinToken = twin.publicId;
 
+                // ✅ FIX: Use user handle/profile image (same as dashboard)
+                const profileHandle = twin.userHandle || twin.publicHandle || '';
+                const profileImage = twin.userProfileImage || twin.profileImage || null;
+                const avatarInitial = (profileHandle || 'T').charAt(0).toUpperCase();
+
                 const card = document.createElement('div');
                 card.className = 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl p-6 border border-white/20 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 group';
                 card.setAttribute('data-twin-token', twinToken);
-
-                // Avatar initial
-                const avatarInitial = (twin.publicHandle || 'T').charAt(0).toUpperCase();
 
                 // Last message preview
                 const lastMessagePreview = lastMessage?.content 
@@ -300,8 +302,8 @@
                 card.innerHTML = `
                     <div class="flex items-center gap-4 mb-4">
                         <div class="relative flex-shrink-0">
-                            <div class="twin-avatar-clickable w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:scale-110 transition-transform cursor-pointer" data-twin-handle="${twin.publicHandle || 'twin'}" style="cursor: pointer;">
-                                ${twin.profileImage ? `<img src="${twin.profileImage}" alt="${twin.publicHandle}" class="w-16 h-16 rounded-full object-cover">` : avatarInitial}
+                            <div class="twin-avatar-clickable w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:scale-110 transition-transform cursor-pointer" data-profile-handle="${profileHandle}" style="cursor: pointer;">
+                                ${profileImage ? `<img src="${profileImage}" alt="${profileHandle}" class="w-16 h-16 rounded-full object-cover" loading="lazy">` : avatarInitial}
                             </div>
                             <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 dark:bg-green-600 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center">
                                 <span class="text-xs text-white font-bold">${totalChats || 0}</span>
@@ -309,10 +311,10 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-1">
-                                <h3 class="font-semibold text-gray-900 dark:text-white text-lg truncate">@${twin.publicHandle || 'twin'}</h3>
+                                <h3 class="font-semibold text-gray-900 dark:text-white text-lg truncate">@${profileHandle || 'twin'}</h3>
                                 ${twin.verified ? '<span class="text-sm text-primary dark:text-blue-400">✓</span>' : ''}
                             </div>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">${twin.bio || 'No bio available'}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">${twin.userName || twin.userHandle || 'AI Twin'}</p>
                             <div class="flex items-center gap-3 mt-1">
                                 ${totalChats > 0 ? `<span class="text-xs text-gray-500 dark:text-gray-400">${totalChats} chat${totalChats > 1 ? 's' : ''}</span>` : ''}
                                 ${latestChat?.lastActivity ? `<span class="text-xs text-gray-400 dark:text-gray-500 timestamp-display" data-timestamp="${latestChat.lastActivity}" data-format="smart"></span>` : ''}                                
@@ -336,14 +338,20 @@
                     </button>
                 `;
 
-                // Add click listener to avatar for profile
+                // ✅ FIX: Avatar click → profile (use userHandle with fallback)
                 const avatarElement = card.querySelector('.twin-avatar-clickable');
                 if (avatarElement) {
                     avatarElement.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        const twinHandle = this.getAttribute('data-twin-handle');
-                        window.location.href = `/@${twinHandle}`;
+                        const handle = this.getAttribute('data-profile-handle');
+                        if (handle) {
+                            window.location.href = `/@${handle}`;
+                        } else {
+                            console.warn('[renderTwinCards] No handle available for profile redirect', twin);
+                            // Fallback to public chat page if no handle
+                            window.location.href = `/public-twin/chat/${twinToken}`;
+                        }
                     });
                 }
 
@@ -358,13 +366,18 @@
                     });
                 }
                 
-                // Make card clickable for profile (except button and avatar)
+                // ✅ FIX: Card click → profile (use userHandle with fallback)
                 card.style.cursor = 'pointer';
                 card.addEventListener('click', function(e) {
                     if (e.target.closest('.continue-chat-btn') || e.target.closest('.twin-avatar-clickable')) {
                         return;
                     }
-                    window.location.href = `/@${twin.publicHandle || 'twin'}`;
+                    if (profileHandle) {
+                        window.location.href = `/@${profileHandle}`;
+                    } else {
+                        // Fallback to public chat page if no handle
+                        window.location.href = `/public-twin/chat/${twinToken}`;
+                    }
                 });
 
                 twinsGrid.appendChild(card);

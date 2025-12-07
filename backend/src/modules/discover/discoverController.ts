@@ -239,6 +239,7 @@ console.log('[DISCOVER] Total count query result:', { totalCount, rows: totalCou
         t."allowFollows",      
         u.handle as "userHandle",
         u.name as "userName",
+        u."profileImage" as "userProfileImage",
         COALESCE(
           tp."engagementScore",
           (

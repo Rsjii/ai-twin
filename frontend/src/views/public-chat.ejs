@@ -229,12 +229,9 @@
 
     <script>
         let currentChatId = null;
-        // ✅ All chats cache for search/filter
+        const twinToken = '<%= typeof twinToken !== "undefined" ? twinToken : (typeof twinPublicId !== "undefined" ? twinPublicId : (twin.publicId || "")) %>';
+        let currentTwinId = twinToken;
         let publicAllChats = [];
-        // ✅ Tokenized twin id (URL / APIs ke liye)
-        let currentTwinId = '<%= typeof twinPublicId !== "undefined" ? twinPublicId : (twin.publicId || "") %>';
-        // ✅ Raw DB id of the viewed twin (backend validated in getPublicChatPage)
-        let currentTwinDbId = '<%= typeof publicTwinDbId !== "undefined" && publicTwinDbId ? publicTwinDbId : "" %>';
         let visitorId = null;
         let isChatting = false;
             // ✅ Global human‑friendly relative time (used by sidebar + messages)
@@ -431,11 +428,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     params.append('visitorId', visitorId);
                 }
                 
-                // ✅ IMPORTANT: raw DB twin id bhi bhejo, taaki backend token pe depend na kare
-                if (currentTwinDbId) {
-                    params.append('twinId', currentTwinDbId);
-                }
-                
+                // ✅ FIX: Only use tokenized ID - backend will detokenize from path
                 const response = await fetch(`/api/public-chat/twin/${currentTwinId}/chats?${params.toString()}`);
                 const data = await response.json();
                 
@@ -915,6 +908,13 @@ async function createNewPublicChat() {
     try {
         const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
 
+        // ✅ FIX: Validate currentTwinId before proceeding
+        if (!currentTwinId || currentTwinId.trim() === '') {
+            console.error('[createNewPublicChat] Missing twin ID');
+            alert('Error: Twin ID not found. Please refresh the page.');
+            return;
+        }
+
         // ✅ Always clear any old draft / state before starting a truly new chat
         sessionStorage.removeItem('draftPublicChat');
 
@@ -943,8 +943,8 @@ async function createNewPublicChat() {
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({
-                // ✅ Use raw DB id for creation (token sirf URLs/histories ke liye)
-                twinId: currentTwinDbId,
+                // ✅ FIX: Use tokenized ID - backend will detokenize
+                twinToken: currentTwinId,
                 visitorId: visitorIdToUse
             })
         });
@@ -1059,7 +1059,7 @@ async function createNewPublicChat() {
             <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center space-x-2">
                     <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                    <span class="text-sm">${content}</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-100">${content}</span>
                 </div>
             </div>
         `;
@@ -1078,9 +1078,9 @@ async function createNewPublicChat() {
             <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                 sender === 'human' 
                     ? 'bg-blue-600 text-white' 
-                    : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border dark:border-gray-700'
+                    : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700'                    
             }">
-                <p class="text-sm">${content}</p>
+                <p class="text-sm text-gray-800 dark:text-gray-100">${content}</p>
                 ${timeDisplay ? `<p class="text-xs mt-1 opacity-70" title="${window.TimeUtils?.formatFullDateTime?.(timestamp) || ''}">${timeDisplay}</p>` : ''}
             </div>
         `;
@@ -1114,7 +1114,7 @@ async function createNewPublicChat() {
     messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
         sender === 'user' || sender === 'human' 
             ? 'bg-blue-600 text-white' 
-            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100'            
     }`;
     
     messageDiv.appendChild(messageContent);
@@ -1144,7 +1144,7 @@ async function createNewPublicChat() {
             
             // Show text with blinking cursor
             messageContent.innerHTML = `
-                <p class="text-sm">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
+                <p class="text-sm text-gray-800 dark:text-gray-100">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
             `;
             
             currentWordIndex++;
@@ -1158,7 +1158,7 @@ async function createNewPublicChat() {
         } else {
             // ✅ FIX: Typing complete - show final text WITH timestamp
             messageContent.innerHTML = `
-                <p class="text-sm">${fullText}</p>
+                <p class="text-sm text-gray-800 dark:text-gray-100">${fullText}</p>
                 ${timeDisplay ? `<p class="text-xs mt-1 opacity-70" title="${window.TimeUtils?.formatFullDateTime?.(timestamp) || ''}">${timeDisplay}</p>` : ''}
             `;
             
