@@ -3,6 +3,7 @@ import { requireJWTFromCookie, extractJWTFromCookie } from '../middleware/jwtCoo
 import { generateCSRFToken } from '../middleware/csrf';
 import * as chatPageController from '../controllers/chatPageController';
 import { tokenizeId } from '../utils/idTokenization';
+import { asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
 
@@ -24,10 +25,10 @@ router.get('/chat/history', requireJWTFromCookie, generateCSRFToken, (req: any, 
 });
 
 // Enhanced Chat page - default (no chat specified)
-router.get('/chat-enhanced', requireJWTFromCookie, generateCSRFToken, chatPageController.getChatEnhanced);
+router.get('/chat-enhanced', requireJWTFromCookie, generateCSRFToken, asyncHandler(chatPageController.getChatEnhanced));
 
 // NEW: deep-linkable per-chat URL (tokenized chatId in path)
-router.get('/chat-enhanced/:chatToken', requireJWTFromCookie, generateCSRFToken, chatPageController.getChatEnhanced);
+router.get('/chat-enhanced/:chatToken', requireJWTFromCookie, generateCSRFToken, asyncHandler(chatPageController.getChatEnhanced));
 
 export default router;
 

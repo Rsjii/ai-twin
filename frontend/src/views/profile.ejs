@@ -1165,7 +1165,15 @@
                     removeBtn.setAttribute('data-listener-attached', 'true');
                     removeBtn.addEventListener('click', async function(e) {
                         e.preventDefault();
-                        if (!confirm('Remove your profile picture?')) return;
+
+                        const ok = await window.ModalHelpers.confirm({
+                            title: 'Remove profile picture?',
+                            message: 'This will permanently remove your current profile image.',
+                            confirmLabel: 'Remove',
+                            cancelLabel: 'Cancel',
+                            type: 'danger'
+                        });
+                        if (!ok) return;
 
                         try {
                             const response = await fetch('/api/profile/update', {
@@ -1763,7 +1771,11 @@
                 e.preventDefault();
                 if (!currentTwinId) return;
 
-                const input = prompt('Enter the handle or email of the user you want to block:');
+                const input = await window.ModalHelpers.input({
+                    title: 'Block User',
+                    message: 'Enter the handle or email of the user you want to block:',
+                    placeholder: '@username or email'
+                });                
                 if (!input || !input.trim()) {
                     return;
                 }
@@ -1807,7 +1819,14 @@
                 const userId = btn.getAttribute('data-unblock-user-id');
                 if (!userId) return;
 
-                if (!confirm('Unblock this user?')) return;
+                const ok = await window.ModalHelpers.confirm({
+                    title: 'Unblock this user?',
+                    message: 'They will be able to interact with your twin again.',
+                    confirmLabel: 'Unblock',
+                    cancelLabel: 'Cancel',
+                    type: 'danger'
+                });
+                if (!ok) return;
 
                 try {
                     const response = await fetch('/api/privacy/unblock', {
@@ -1931,7 +1950,14 @@ if (makeTwinPrivateBtn) {
       return;
     }
 
-    if (!confirm('Are you sure you want to make your twin private? Others will no longer be able to discover it.')) {
+    const ok = await window.ModalHelpers.confirm({
+      title: 'Make twin private?',
+      message: 'Others will no longer be able to discover or chat with your twin.',
+      confirmLabel: 'Make Private',
+      cancelLabel: 'Cancel',
+      type: 'danger'
+    });
+    if (!ok) {
       return;
     }
 
@@ -2146,5 +2172,6 @@ if (profileImageFile) {
 
     <!--Footer-->
     <%- include('footer/footer-conditional-private') %>
+    <%- include('partials/modal-helpers') %>
 </body>
 </html>

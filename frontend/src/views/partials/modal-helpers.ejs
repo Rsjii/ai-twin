@@ -1,0 +1,166 @@
+<!-- Global Modal Root -->
+<div id="app-modal-backdrop" class="fixed inset-0 bg-black/50 hidden z-[9999] items-center justify-center">
+    <div id="app-modal-shell" class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full mx-4 p-6 shadow-2xl border border-gray-200 dark:border-gray-700">
+      <h3 id="app-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white mb-2"></h3>
+      <p id="app-modal-message" class="text-sm text-gray-600 dark:text-gray-300 mb-4"></p>
+  
+      <!-- Optional content area for inputs / options -->
+      <div id="app-modal-body" class="mb-4"></div>
+  
+      <div id="app-modal-actions" class="flex justify-end gap-3">
+        <!-- Buttons inserted by JS -->
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    (function () {
+      const backdrop = document.getElementById('app-modal-backdrop');
+      const shell    = document.getElementById('app-modal-shell');
+      const titleEl  = document.getElementById('app-modal-title');
+      const msgEl    = document.getElementById('app-modal-message');
+      const bodyEl   = document.getElementById('app-modal-body');
+      const actionsEl= document.getElementById('app-modal-actions');
+  
+      function openBaseModal({ title, message, bodyHtml = '', actions = [] }) {
+        return new Promise(resolve => {
+          if (!backdrop) return resolve(null);
+  
+          // Reset
+          titleEl.textContent = title || '';
+          msgEl.textContent = message || '';
+          bodyEl.innerHTML = bodyHtml || '';
+          actionsEl.innerHTML = '';
+  
+          // Build buttons
+          actions.forEach(action => {
+            const btn = document.createElement('button');
+            btn.textContent = action.label;
+            btn.className = action.className || 'px-4 py-2 rounded-lg text-sm bg-gray-200';
+            btn.addEventListener('click', () => {
+              close();
+              resolve(action.value);
+            });
+            actionsEl.appendChild(btn);
+          });
+  
+          function onBackdropClick(e) {
+            if (e.target === backdrop) {
+              close();
+              resolve(null);
+            }
+          }
+  
+          function close() {
+            backdrop.classList.add('hidden');
+            backdrop.removeEventListener('click', onBackdropClick);
+          }
+  
+          backdrop.addEventListener('click', onBackdropClick);
+          backdrop.classList.remove('hidden');
+          backdrop.classList.add('flex');
+        });
+      }
+  
+      window.ModalHelpers = {
+        confirm({ title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', type = 'danger' }) {
+          const confirmClass =
+            type === 'danger'
+              ? 'px-4 py-2 rounded-lg text-sm bg-red-600 text-white hover:bg-red-700'
+              : 'px-4 py-2 rounded-lg text-sm bg-primary text-white hover:bg-secondary';
+  
+          return openBaseModal({
+            title,
+            message,
+            bodyHtml: '',
+            actions: [
+              { label: cancelLabel, value: false, className: 'px-4 py-2 rounded-lg text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700' },
+              { label: confirmLabel, value: true, className: confirmClass }
+            ],
+          });
+        },
+  
+        input({ title, message, placeholder = '', defaultValue = '' }) {
+          const inputId = 'app-modal-input';
+          const bodyHtml = `
+            <input
+              id="${inputId}"
+              type="text"
+              class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100"
+              placeholder="${placeholder.replace(/"/g, '&quot;')}"
+              value="${defaultValue.replace(/"/g, '&quot;')}"
+            />
+          `;
+  
+          return new Promise(resolve => {
+            openBaseModal({
+              title,
+              message,
+              bodyHtml,
+              actions: [
+                { label: 'Cancel', value: null, className: 'px-4 py-2 rounded-lg text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700' },
+                { label: 'OK', value: '__OK__', className: 'px-4 py-2 rounded-lg text-sm bg-primary text-white hover:bg-secondary' }
+              ]
+            }).then(val => {
+              if (val !== '__OK__') {
+                resolve(null);
+                return;
+              }
+              const input = document.getElementById(inputId);
+              resolve(input ? input.value : null);
+            });
+          });
+        },
+  
+        options({ title, message, options }) {
+          const bodyHtml = `
+            <div class="space-y-2">
+              ${options
+                .map(
+                  opt => `
+                <button
+                  type="button"
+                  class="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  data-option-value="${opt.key}"
+                >
+                  <span class="flex items-center gap-2">
+                    ${opt.icon ? `<span>${opt.icon}</span>` : ''}
+                    <span>${opt.label}</span>
+                  </span>
+                </button>
+              `
+                )
+                .join('')}
+            </div>
+          `;
+  
+          return new Promise(resolve => {
+            openBaseModal({
+              title,
+              message,
+              bodyHtml,
+              actions: [
+                { label: 'Cancel', value: null, className: 'px-4 py-2 rounded-lg text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700' }
+              ]
+            }).then(val => {
+              // We resolve from click handlers below, not from actions
+              if (val !== null) resolve(val);
+            });
+  
+            // Attach option handlers after DOM is updated
+            setTimeout(() => {
+              const root = document.getElementById('app-modal-body');
+              if (!root) return;
+              root.querySelectorAll('[data-option-value]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                  const v = btn.getAttribute('data-option-value');
+                  document.getElementById('app-modal-backdrop').classList.add('hidden');
+                  resolve(v);
+                });
+              });
+            }, 0);
+          });
+        }
+      };
+    })();
+  </script>

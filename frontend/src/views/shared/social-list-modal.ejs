@@ -56,12 +56,16 @@
             
             if (!modal || !title || !content) {
                 console.error('Modal elements not found', { modal, title, content });
-                alert('Modal not found. Please refresh the page.');
+                if (typeof showNotification === 'function') {
+                    showNotification('Modal not found. Please refresh the page.', 'error');
+                }
                 return;
             }
             
             if (!twinId) {
-                alert('Twin ID not available');
+                if (typeof showNotification === 'function') {
+                    showNotification('Twin ID not available', 'error');
+                }
                 return;
             }
             

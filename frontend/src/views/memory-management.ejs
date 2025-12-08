@@ -728,8 +728,13 @@ function displayStyleAnchors(anchors, type) {
         }
 
         async function editMemory(key, currentValue, category) {
-            const newValue = prompt('Edit memory:', currentValue);
-            if (newValue === null || newValue.trim() === '') return;
+            const newValue = await window.ModalHelpers.input({
+                title: 'Edit Memory',
+                message: 'Enter the new value for this memory:',
+                placeholder: 'Enter memory value...',
+                defaultValue: currentValue
+            });
+            if (!newValue || newValue.trim() === '') return;
 
             try {
                 const response = await fetch(`/api/twin/${twinId}/long-term-memory/${key}`, {
@@ -747,19 +752,26 @@ function displayStyleAnchors(anchors, type) {
 
                 const data = await response.json();
                 if (data.success) {
-                    alert('Memory updated successfully!');
+                    showNotification('Memory updated successfully!', 'success');
                     loadMemoryData();
                 } else {
-                    alert('Error: ' + (data.error || 'Failed to update memory'));
+                    showNotification('Error: ' + (data.error || 'Failed to update memory'), 'error');
                 }
             } catch (error) {
                 console.error('Error updating memory:', error);
-                alert('Error updating memory');
+                showNotification('Error updating memory', 'error');
             }
         }
 
         async function deleteMemory(key) {
-            if (!confirm('Are you sure you want to delete this memory?')) return;
+            const confirmed = await window.ModalHelpers.confirm({
+                title: 'Delete Memory?',
+                message: 'Are you sure you want to delete this memory?',
+                confirmLabel: 'Delete',
+                cancelLabel: 'Cancel',
+                type: 'danger'
+            });
+            if (!confirmed) return;
 
             try {
                 const response = await fetch(`/api/twin/${twinId}/long-term-memory/${key}`, {
@@ -772,20 +784,25 @@ function displayStyleAnchors(anchors, type) {
 
                 const data = await response.json();
                 if (data.success) {
-                    alert('Memory deleted successfully!');
+                    showNotification('Memory deleted successfully!', 'success');
                     loadMemoryData();
                 } else {
-                    alert('Error: ' + (data.error || 'Failed to delete memory'));
+                    showNotification('Error: ' + (data.error || 'Failed to delete memory'), 'error');
                 }
             } catch (error) {
                 console.error('Error deleting memory:', error);
-                alert('Error deleting memory');
+                showNotification('Error deleting memory', 'error');
             }
         }
 
         async function editPhrase(id, currentPhrase) {
-            const newPhrase = prompt('Edit phrase:', currentPhrase);
-            if (newPhrase === null || newPhrase.trim() === '') return;
+            const newPhrase = await window.ModalHelpers.input({
+                title: 'Edit Phrase',
+                message: 'Enter the new phrase:',
+                placeholder: 'Enter phrase...',
+                defaultValue: currentPhrase
+            });
+            if (!newPhrase || newPhrase.trim() === '') return;
 
             try {
                 const response = await fetch(`/api/twin/${twinId}/style-anchors/${id}`, {
@@ -802,23 +819,33 @@ function displayStyleAnchors(anchors, type) {
 
                 const data = await response.json();
                 if (data.success) {
-                    alert('Phrase updated successfully!');
+                    showNotification('Phrase updated successfully!', 'success');
                     loadMemoryData();
                 } else {
-                    alert('Error: ' + (data.error || 'Failed to update phrase'));
+                    showNotification('Error: ' + (data.error || 'Failed to update phrase'), 'error');
                 }
             } catch (error) {
                 console.error('Error updating phrase:', error);
-                alert('Error updating phrase');
+                showNotification('Error updating phrase', 'error');
             }
         }
 
         async function editInteraction(id, currentUtterance, currentReply) {
-            const newUtterance = prompt('Edit user utterance:', currentUtterance);
-            if (newUtterance === null || newUtterance.trim() === '') return;
+            const newUtterance = await window.ModalHelpers.input({
+                title: 'Edit User Utterance',
+                message: 'Enter the new user utterance:',
+                placeholder: 'Enter user utterance...',
+                defaultValue: currentUtterance
+            });
+            if (!newUtterance || newUtterance.trim() === '') return;
 
-            const newReply = prompt('Edit ideal reply:', currentReply);
-            if (newReply === null || newReply.trim() === '') return;
+            const newReply = await window.ModalHelpers.input({
+                title: 'Edit Ideal Reply',
+                message: 'Enter the new ideal reply:',
+                placeholder: 'Enter ideal reply...',
+                defaultValue: currentReply
+            });
+            if (!newReply || newReply.trim() === '') return;
 
             try {
                 const response = await fetch(`/api/twin/${twinId}/style-anchors/${id}`, {
@@ -836,19 +863,26 @@ function displayStyleAnchors(anchors, type) {
 
                 const data = await response.json();
                 if (data.success) {
-                    alert('Interaction updated successfully!');
+                    showNotification('Interaction updated successfully!', 'success');
                     loadMemoryData();
                 } else {
-                    alert('Error: ' + (data.error || 'Failed to update interaction'));
+                    showNotification('Error: ' + (data.error || 'Failed to update interaction'), 'error');
                 }
             } catch (error) {
                 console.error('Error updating interaction:', error);
-                alert('Error updating interaction');
+                showNotification('Error updating interaction', 'error');
             }
         }
 
         async function deleteAnchor(id) {
-            if (!confirm('Are you sure you want to delete this style anchor?')) return;
+            const confirmed = await window.ModalHelpers.confirm({
+                title: 'Delete Style Anchor?',
+                message: 'Are you sure you want to delete this style anchor?',
+                confirmLabel: 'Delete',
+                cancelLabel: 'Cancel',
+                type: 'danger'
+            });
+            if (!confirmed) return;
 
             try {
                 const response = await fetch(`/api/twin/${twinId}/style-anchors/${id}`, {
@@ -861,21 +895,21 @@ function displayStyleAnchors(anchors, type) {
 
                 const data = await response.json();
                 if (data.success) {
-                    alert('Style anchor deleted successfully!');
+                    showNotification('Style anchor deleted successfully!', 'success');
                     loadMemoryData();
                 } else {
-                    alert('Error: ' + (data.error || 'Failed to delete style anchor'));
+                    showNotification('Error: ' + (data.error || 'Failed to delete style anchor'), 'error');
                 }
             } catch (error) {
                 console.error('Error deleting style anchor:', error);
-                alert('Error deleting style anchor');
+                showNotification('Error deleting style anchor', 'error');
             }
         }
 
         async function addMemory() {
             const memoryText = document.getElementById('newMemory')?.value.trim();
             if (!memoryText) {
-                alert('Please enter a memory');
+                showNotification('Please enter a memory', 'error');
                 return;
             }
 
@@ -897,13 +931,13 @@ function displayStyleAnchors(anchors, type) {
                 if (data.success) {
                     document.getElementById('newMemory').value = '';
                     loadMemoryData();
-                    alert('Memory added successfully!');
+                    showNotification('Memory added successfully!', 'success');
                 } else {
-                    alert('Error: ' + (data.error || 'Failed to add memory'));
+                    showNotification('Error: ' + (data.error || 'Failed to add memory'), 'error');
                 }
             } catch (error) {
                 console.error('Error adding memory:', error);
-                alert('Error adding memory');
+                showNotification('Error adding memory', 'error');
             }
         }
 
@@ -911,13 +945,13 @@ function displayStyleAnchors(anchors, type) {
             const phraseEl = document.getElementById('newPhrase');
             if (!phraseEl) {
                 console.error('newPhrase element not found');
-                alert('Form element not found');
+                showNotification('Form element not found', 'error');
                 return;
             }
             
             const phraseText = phraseEl.value.trim();
             if (!phraseText || phraseText.length === 0) {
-                alert('Please enter a phrase');
+                showNotification('Please enter a phrase', 'error');
                 return;
             }
 
@@ -928,7 +962,7 @@ function displayStyleAnchors(anchors, type) {
             });
             
             if (existingPhrase) {
-                alert('This phrase already exists. Please try a different phrase.');
+                showNotification('This phrase already exists. Please try a different phrase.', 'error');
                 return;
             }
 
@@ -953,7 +987,7 @@ function displayStyleAnchors(anchors, type) {
                 if (data.success) {
                     phraseEl.value = '';
                     loadMemoryData();
-                    alert('Phrase added successfully!');
+                    showNotification('Phrase added successfully!', 'success');
                 } else {
                     const errorMsg = data.error || data.message || 'Failed to add phrase';
                     console.error('Backend error response:', data);
@@ -962,9 +996,9 @@ function displayStyleAnchors(anchors, type) {
                     if (errorMsg.includes('duplicate') || errorMsg.includes('constraint') || 
                         (data.details && data.details.code === '23505') ||
                         (data.details && data.details.constraint === 'style_anchors_twin_id_user_utterance_key')) {
-                        alert('Error: Cannot add phrase due to database constraint. There may be an existing phrase with empty user_utterance. Please delete existing phrases first or contact support.');
+                        showNotification('Error: Cannot add phrase due to database constraint. There may be an existing phrase with empty user_utterance. Please delete existing phrases first or contact support.', 'error');
                     } else {
-                        alert('Error: ' + errorMsg);
+                        showNotification('Error: ' + errorMsg, 'error');
                     }
                 }
             } catch (error) {
@@ -973,9 +1007,9 @@ function displayStyleAnchors(anchors, type) {
                 
                 // Check if it's a duplicate key error
                 if (errorMsg.includes('duplicate') || errorMsg.includes('constraint') || errorMsg.includes('23505')) {
-                    alert('Error: Database constraint violation. There may be an existing phrase with empty user_utterance. Please try deleting existing phrases first or contact support.');
+                    showNotification('Error: Database constraint violation. There may be an existing phrase with empty user_utterance. Please try deleting existing phrases first or contact support.', 'error');
                 } else {
-                    alert('Error adding phrase: ' + errorMsg);
+                    showNotification('Error adding phrase: ' + errorMsg, 'error');
                 }
             }
         }
@@ -985,7 +1019,7 @@ function displayStyleAnchors(anchors, type) {
             const idealReplyEl = document.getElementById('newIdealReply');
             
             if (!userUtteranceEl || !idealReplyEl) {
-                alert('Form elements not found');
+                showNotification('Form elements not found', 'error');
                 return;
             }
             
@@ -993,12 +1027,12 @@ function displayStyleAnchors(anchors, type) {
             const idealReply = idealReplyEl.value.trim();
 
             if (!userUtterance || userUtterance.length === 0) {
-                alert('Please enter a user utterance');
+                showNotification('Please enter a user utterance', 'error');
                 return;
             }
             
             if (!idealReply || idealReply.length === 0) {
-                alert('Please enter an ideal reply');
+                showNotification('Please enter an ideal reply', 'error');
                 return;
             }
 
@@ -1009,7 +1043,7 @@ function displayStyleAnchors(anchors, type) {
             });
             
             if (existingInteraction) {
-                alert('An interaction with this user utterance already exists. Please try a different user utterance.');
+                showNotification('An interaction with this user utterance already exists. Please try a different user utterance.', 'error');
                 return;
             }
 
@@ -1034,7 +1068,7 @@ function displayStyleAnchors(anchors, type) {
                     userUtteranceEl.value = '';
                     idealReplyEl.value = '';
                     loadMemoryData();
-                    alert('Interaction added successfully!');
+                    showNotification('Interaction added successfully!', 'success');
                 } else {
                     const errorMsg = data.error || data.message || 'Failed to add interaction';
                     console.error('Backend error response:', data);
@@ -1043,18 +1077,18 @@ function displayStyleAnchors(anchors, type) {
                     if (errorMsg.includes('duplicate') || errorMsg.includes('constraint') || 
                         (data.details && data.details.code === '23505') ||
                         (data.details && data.details.constraint === 'style_anchors_twin_id_user_utterance_key')) {
-                        alert('Error: An interaction with this user utterance already exists. Please try a different user utterance.');
+                        showNotification('Error: An interaction with this user utterance already exists. Please try a different user utterance.', 'error');
                     } else {
-                        alert('Error: ' + errorMsg);
+                        showNotification('Error: ' + errorMsg, 'error');
                     }
                 }
             } catch (error) {
                 console.error('Error adding interaction:', error);
                 const errorMsg = error.message || 'Unknown error';
                 if (errorMsg.includes('duplicate') || errorMsg.includes('constraint') || errorMsg.includes('23505')) {
-                    alert('Error: An interaction with this user utterance already exists. Please try a different user utterance.');
+                    showNotification('Error: An interaction with this user utterance already exists. Please try a different user utterance.', 'error');
                 } else {
-                    alert('Error adding interaction: ' + errorMsg);
+                    showNotification('Error adding interaction: ' + errorMsg, 'error');
                 }
             }
         }
@@ -1295,7 +1329,7 @@ function displayStyleAnchors(anchors, type) {
                 const memoryText = document.getElementById('memoryText').value.trim();
                 
                 if (!memoryText) {
-                    alert('Please enter memory text');
+                    showNotification('Please enter memory text', 'error');
                     return;
                 }
                 
@@ -1356,15 +1390,15 @@ function displayStyleAnchors(anchors, type) {
                     const result = await response.json();
                     
                     if (result.success) {
-                        alert('Memory added successfully!');
+                        showNotification('Memory added successfully!', 'success');
                         hideIngestModal();
                         loadMemoryData();
                     } else {
-                        alert('Error: ' + (result.error || 'Failed to add memory'));
+                        showNotification('Error: ' + (result.error || 'Failed to add memory'), 'error');
                     }
                 } catch (error) {
                     console.error('Error ingesting memory:', error);
-                    alert('Error ingesting memory');
+                    showNotification('Error ingesting memory', 'error');
                 }
             });
         });
@@ -1392,5 +1426,43 @@ function displayStyleAnchors(anchors, type) {
 
     <!--Footer-->
     <%- include('footer/footer-conditional-private') %>
+    <%- include('partials/modal-helpers') %>
+    <script>
+        // Notification function for memory-management
+        function showNotification(message, type = 'success') {
+            const existing = document.getElementById('memory-management-notification');
+            if (existing) existing.remove();
+
+            const el = document.createElement('div');
+            el.id = 'memory-management-notification';
+            el.className = 'fixed top-20 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 ' +
+                (type === 'success' 
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
+                    : type === 'error'
+                    ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
+                    : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white');
+
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            el.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">${icon}</span>
+                    <span class="font-semibold">${message}</span>
+                </div>
+            `;
+
+            document.body.appendChild(el);
+
+            setTimeout(() => {
+                el.style.opacity = '1';
+            }, 10);
+
+            setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                }, 300);
+            }, 3000);
+        }
+    </script>
 </body>
 </html>

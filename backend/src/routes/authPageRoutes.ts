@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { generateCSRFToken } from '../middleware/csrf';
 import * as authPageController from '../controllers/authPageController';
+import { asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
 
 // Unified Auth page (Login/Signup)
-router.get('/auth', authPageController.getAuth);
+router.get('/auth', asyncHandler(authPageController.getAuth));
 
 // Login page - redirects to unified auth
 router.get('/login', authPageController.getLogin);

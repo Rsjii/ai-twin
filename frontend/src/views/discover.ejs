@@ -1144,38 +1144,37 @@ async function shareTwinFromDiscover(twinToken, handle) {
         
         if (!data.success) {
             if (data.errorCode === 'SHARES_DISABLED') {
-                alert('Shares are disabled for this twin. You cannot share this profile.');
+                showNotification('Shares are disabled for this twin. You cannot share this profile.', 'info');
                 return;
             }
-            alert('Error: ' + (data.error || 'Failed to check share availability'));
+            showNotification('Error: ' + (data.error || 'Failed to check share availability'), 'error');
             return;
         }
         
-        // Now show share options (only if shares are allowed)
-        const shareUrl = `${window.location.origin}/@${handle}`;
-        
-        const platform = prompt('Choose platform to share:\n1. Twitter\n2. Facebook\n3. LinkedIn\n4. WhatsApp\n5. Telegram\n6. Copy Link\n\nEnter number (1-6):');
-        
-        if (!platform) return;
-        
-        const platforms = {
-            '1': 'twitter',
-            '2': 'facebook', 
-            '3': 'linkedin',
-            '4': 'whatsapp',
-            '5': 'telegram',
-            '6': 'copy'
-        };
-        
-        const selectedPlatform = platforms[platform];
-        if (!selectedPlatform) {
-            alert('Invalid selection');
-            return;
-        }
-        
+// Now show share options (only if shares are allowed)
+const shareUrl = `${window.location.origin}/@${handle}`;
+
+const selectedPlatform = await window.ModalHelpers.options({
+    title: 'Share this twin',
+    message: 'Where do you want to share?',
+    options: [
+        { key: 'twitter',  label: 'Twitter',  icon: '𝕏' },
+        { key: 'facebook', label: 'Facebook', icon: 'f' },
+        { key: 'linkedin', label: 'LinkedIn', icon: 'in' },
+        { key: 'whatsapp', label: 'WhatsApp', icon: 'WA' },
+        { key: 'telegram', label: 'Telegram', icon: 'TG' },
+        { key: 'copy',     label: 'Copy link', icon: '⧉' }
+    ]
+});
+
+if (!selectedPlatform) {
+    // user cancelled
+    return;
+}        
+
         if (selectedPlatform === 'copy') {
             await navigator.clipboard.writeText(shareUrl);
-            alert('Link copied to clipboard!');
+            showNotification('Link copied to clipboard!', 'success');
         } else {
             // Get share content for specific platform
             const platformResponse = await fetch(`/api/share/content/${handle}?platform=${selectedPlatform}`, {
@@ -1210,9 +1209,9 @@ async function shareTwinFromDiscover(twinToken, handle) {
                 }
             } else {
                 if (platformData.errorCode === 'SHARES_DISABLED') {
-                    alert('Shares are disabled for this twin. You cannot share this profile.');
+                    showNotification('Shares are disabled for this twin. You cannot share this profile.', 'info');
                 } else {
-                    alert('Error: ' + (platformData.error || 'Failed to share'));
+                    showNotification('Error: ' + (platformData.error || 'Failed to share'), 'error');
                 }
             }
         }
@@ -1222,7 +1221,7 @@ async function shareTwinFromDiscover(twinToken, handle) {
         
     } catch (error) {
         console.error('Share error:', error);
-        alert('Failed to share. Please try again.');
+        showNotification('Failed to share. Please try again.', 'error');
     }
 }
 
@@ -1385,5 +1384,6 @@ button.cursor-not-allowed:hover {
     </style>      
     <!-- Footer - Conditional based on authentication and twin status -->
     <%- include('footer/footer-conditional') %>
+    <%- include('partials/modal-helpers') %>
 </body>
 </html>

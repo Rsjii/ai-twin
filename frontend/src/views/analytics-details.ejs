@@ -180,7 +180,11 @@ async function loadData() {
         if (userHandle) {
             window.location.href = `/@${userHandle}`;
         } else {
-            alert('User profile not available');
+            if (typeof showNotification === 'function') {
+                showNotification('User profile not available', 'error');
+            } else {
+                console.error('User profile not available');
+            }
         }
     }
 

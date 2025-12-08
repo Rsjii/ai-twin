@@ -479,31 +479,32 @@ async function saveChanges() {
         
         const data = await response.json();
         if (data.success) {
-            alert('Changes saved successfully!');
+            showNotification('Changes saved successfully!', 'success');
             // ✅ Reset dirty form tracking after successful save
             if (dirtyFormTracker) dirtyFormTracker.reset();
             if (dirtyFormTrackerMobile) dirtyFormTrackerMobile.reset();
             loadTwinData();
         } else {
-            alert('Error: ' + (data.error || 'Failed to save changes'));
+            showNotification('Error: ' + (data.error || 'Failed to save changes'), 'error');
         }
     } catch (error) {
         console.error('Error saving changes:', error);
-            alert('Error saving changes: ' + error.message);
+            showNotification('Error saving changes: ' + error.message, 'error');
     }
 }
     
     function resetChanges() {
         if (currentTwinData) {
             populateForm(currentTwinData);
+            showNotification('Form reset to original values', 'success');
         } else {
-            alert('No data loaded. Please refresh the page.');
+            showNotification('No data loaded. Please refresh the page.', 'error');
         }
     }
 
     function previewChanges() {
     if (!currentTwinData) {
-            alert('Please wait for data to load first');
+            showNotification('Please wait for data to load first', 'info');
         return;
     }
         
@@ -556,9 +557,9 @@ async function saveChanges() {
         });
     
     if (changes.length === 0) {
-        alert('No changes detected');
+        showNotification('No changes detected', 'info');
     } else {
-        alert('Preview Changes:\n\n' + changes.join('\n'));
+        showNotification('Preview Changes:\n\n' + changes.join('\n'), 'info');
     }
 }
 
@@ -570,5 +571,43 @@ async function saveChanges() {
 
     <!--Footer-->
     <%- include('footer/footer-conditional-private') %>
+    <%- include('partials/modal-helpers') %>
+    <script>
+        // Notification function for ai-edit
+        function showNotification(message, type = 'success') {
+            const existing = document.getElementById('ai-edit-notification');
+            if (existing) existing.remove();
+
+            const el = document.createElement('div');
+            el.id = 'ai-edit-notification';
+            el.className = 'fixed top-20 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 ' +
+                (type === 'success' 
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
+                    : type === 'error'
+                    ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
+                    : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white');
+
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            el.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">${icon}</span>
+                    <span class="font-semibold">${message}</span>
+                </div>
+            `;
+
+            document.body.appendChild(el);
+
+            setTimeout(() => {
+                el.style.opacity = '1';
+            }, 10);
+
+            setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                }, 300);
+            }, 3000);
+        }
+    </script>
 </body>
 </html>

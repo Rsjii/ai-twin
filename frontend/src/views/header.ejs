@@ -381,7 +381,11 @@
                     logoutBtn.disabled = false;
                 }
                 
-                alert('Logout failed. Please try again.');
+                if (typeof showNotification === 'function') {
+                    showNotification('Logout failed. Please try again.', 'error');
+                } else {
+                    console.error('Logout failed. Please try again.');
+                }
             }
         } catch (error) {
             console.error('Logout error:', error);
@@ -392,7 +396,11 @@
                 logoutBtn.disabled = false;
             }
             
-            alert('Network error. Please try again.');
+            if (typeof showNotification === 'function') {
+                showNotification('Network error. Please try again.', 'error');
+            } else {
+                console.error('Network error. Please try again.');
+            }
         }
     }    
     // Attach to window for extra safety

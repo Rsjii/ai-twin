@@ -148,17 +148,55 @@
                     const result = await response.json();
                     
                     if (response.ok) {
-                        alert('OTP verified successfully!');
-                        window.location.replace(redirectUrl);
+                        showNotification('OTP verified successfully!', 'success');
+                        setTimeout(() => {
+                            window.location.replace(redirectUrl);
+                        }, 1000);
                     } else {
-                        alert(result.error || 'Invalid OTP');
+                        showNotification(result.error || 'Invalid OTP', 'error');
                     }
                 } catch (error) {
                     console.error('OTP verification error:', error);
-                    alert('Network error. Please try again.');
+                    showNotification('Network error. Please try again.', 'error');
                 }
             });
         });
+    </script>
+    <%- include('partials/modal-helpers') %>
+    <script>
+        // Notification function for verify-otp
+        function showNotification(message, type = 'success') {
+            const existing = document.getElementById('verify-otp-notification');
+            if (existing) existing.remove();
+
+            const el = document.createElement('div');
+            el.id = 'verify-otp-notification';
+            el.className = 'fixed top-20 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 ' +
+                (type === 'success' 
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
+                    : 'bg-gradient-to-r from-red-500 to-rose-500 text-white');
+
+            const icon = type === 'success' ? '✅' : '❌';
+            el.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">${icon}</span>
+                    <span class="font-semibold">${message}</span>
+                </div>
+            `;
+
+            document.body.appendChild(el);
+
+            setTimeout(() => {
+                el.style.opacity = '1';
+            }, 10);
+
+            setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                }, 300);
+            }, 3000);
+        }
     </script>
 </body>
 </html>

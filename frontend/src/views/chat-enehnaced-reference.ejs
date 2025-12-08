@@ -375,7 +375,11 @@ async function upvoteResponse(responseId) {
 async function downvoteResponse(responseId) {
     try {
         // Show review modal for bad responses
-        const review = prompt('What could be improved in this response?');
+        const review = await window.ModalHelpers.input({
+            title: 'What could be improved?',
+            message: 'Please provide feedback on what could be improved in this response:',
+            placeholder: 'Enter your feedback...'
+        });
         
         if (review && review.trim()) {
             await submitFeedback(responseId, 'negative', review);
@@ -931,8 +935,12 @@ async function applyStyleCorrection(knob, delta) {
 }
 
 async function addToAnchors() {
-    const userUtterance = prompt('What did the user say?');
-    if (!userUtterance) return;
+    const userUtterance = await window.ModalHelpers.input({
+        title: 'Add to Anchors',
+        message: 'What did the user say?',
+        placeholder: 'Enter the user utterance...'
+    });
+    if (!userUtterance || !userUtterance.trim()) return;
     
     try {
         const response = await fetch(`/api/enhanced-chat/${currentChatId}/add-anchor`, {
@@ -1386,7 +1394,14 @@ async function switchToChat(chatId) {
 // Delete chat function
 async function deleteChat(chatId) {
     // Show confirmation dialog
-    if (!confirm('Are you sure you want to delete this chat?\n\nThis action cannot be undone.')) {
+    const confirmed = await window.ModalHelpers.confirm({
+        title: 'Delete this chat?',
+        message: 'This action cannot be undone. All messages in this chat will be permanently removed.',
+        confirmLabel: 'Delete',
+        cancelLabel: 'Cancel',
+        type: 'danger'
+    });
+    if (!confirmed) {
         return;
     }
     
@@ -2013,5 +2028,6 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
     </style>
     <!--Footer-->
     <%- include('footer/footer-conditional-private') %>
+    <%- include('partials/modal-helpers') %>
 </body>
 </html>

@@ -265,20 +265,20 @@
                 
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(url).then(() => {
-                        alert('Public link copied to clipboard!');
+                        showNotification('Public link copied to clipboard!', 'success');
                     }).catch(err => {
                         console.error('Copy failed:', err);
-                        alert('Failed to copy link');
+                        showNotification('Failed to copy link', 'error');
                     });
                 } else {
                     // Fallback for older browsers
                     input.select();
                     document.execCommand('copy');
-                    alert('Public link copied to clipboard!');
+                    showNotification('Public link copied to clipboard!', 'success');
                 }
             } catch (error) {
                 console.error('Error copying link:', error);
-                alert('Failed to copy link');
+                showNotification('Failed to copy link', 'error');
             }
         };
     </script>
@@ -287,23 +287,41 @@
     async function confirmDeleteTwin() {
         const twinId = '<%= twinId %>';
         
-        // Double confirmation
-        const confirm1 = confirm('⚠️ WARNING: This will permanently delete your twin and ALL associated data (chats, memories, training). This cannot be undone!\n\nAre you sure you want to continue?');
+        // Step 1: First confirmation
+        const confirm1 = await window.ModalHelpers.confirm({
+            title: '⚠️ WARNING: Delete Twin',
+            message: 'This will permanently delete your twin and ALL associated data (chats, memories, training). This cannot be undone!',
+            confirmLabel: 'Continue',
+            cancelLabel: 'Cancel',
+            type: 'danger'
+        });
         
         if (!confirm1) {
             return;
         }
         
-        const confirm2 = confirm('This is your last chance. Type "DELETE" in the next prompt to confirm.\n\nAre you absolutely sure?');
+        // Step 2: Second confirmation
+        const confirm2 = await window.ModalHelpers.confirm({
+            title: '⚠️ Last Chance',
+            message: 'This is your last chance. Are you absolutely sure you want to permanently delete your twin?',
+            confirmLabel: 'Yes, Delete',
+            cancelLabel: 'Cancel',
+            type: 'danger'
+        });
         
         if (!confirm2) {
             return;
         }
         
-        const finalConfirm = prompt('Type "DELETE" to confirm permanent deletion:');
+        // Step 3: Final confirmation with input
+        const finalConfirm = await window.ModalHelpers.input({
+            title: 'Final Confirmation',
+            message: 'Type "DELETE" (all caps) to confirm permanent deletion:',
+            placeholder: 'Type DELETE here...'
+        });
         
         if (finalConfirm !== 'DELETE') {
-            alert('Deletion cancelled. Your twin is safe.');
+            showNotification('Deletion cancelled. Your twin is safe.', 'info');
             return;
         }
         
@@ -328,15 +346,17 @@
             const data = await response.json();
             
             if (response.ok && data.success) {
-                alert('✅ Twin deleted successfully. Redirecting to onboarding...');
+                showNotification('✅ Twin deleted successfully. Redirecting to onboarding...', 'success');
                 // Redirect to onboarding to create new twin
-                window.location.replace('/onboarding');
+                setTimeout(() => {
+                    window.location.replace('/onboarding');
+                }, 1000);
             } else {
                 throw new Error(data.error || 'Failed to delete twin');
             }
         } catch (error) {
             console.error('Delete twin error:', error);
-            alert('❌ Failed to delete twin: ' + error.message);
+            showNotification('❌ Failed to delete twin: ' + error.message, 'error');
             deleteBtn.disabled = false;
             deleteBtn.innerHTML = originalText;
         }
@@ -421,5 +441,44 @@ document.querySelectorAll('.chat-date').forEach(el => {
 
     <!-- Social List Modal -->
     <%- include('shared/social-list-modal') %>
+    <%- include('partials/modal-helpers') %>
+    
+    <script>
+        // ✅ Notification function for twin-manage
+        function showNotification(message, type = 'success') {
+            const existing = document.getElementById('twin-manage-notification');
+            if (existing) existing.remove();
+
+            const el = document.createElement('div');
+            el.id = 'twin-manage-notification';
+            el.className = 'fixed top-20 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 ' +
+                (type === 'success' 
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
+                    : type === 'error'
+                    ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
+                    : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white');
+
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            el.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">${icon}</span>
+                    <span class="font-semibold">${message}</span>
+                </div>
+            `;
+
+            document.body.appendChild(el);
+
+            setTimeout(() => {
+                el.style.opacity = '1';
+            }, 10);
+
+            setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                }, 300);
+            }, 3000);
+        }
+    </script>
 </body>
 </html>

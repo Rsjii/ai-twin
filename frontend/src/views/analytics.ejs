@@ -80,12 +80,12 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
             const data = await response.json();
             
             if (data.success) {
-                alert('Debug Info:\\nUser: ' + (data.user?.email || 'No user') + '\\nTwins: ' + (data.counts?.twins || 0) + '\\nChats: ' + (data.counts?.chats || 0) + '\\nEvents: ' + (data.counts?.events || 0));
+                showNotification('Debug Info:\nUser: ' + (data.user?.email || 'No user') + '\nTwins: ' + (data.counts?.twins || 0) + '\nChats: ' + (data.counts?.chats || 0) + '\nEvents: ' + (data.counts?.events || 0), 'info');
             } else {
-                alert('Debug failed: ' + data.error);
+                showNotification('Debug failed: ' + data.error, 'error');
             }
         } catch (error) {
-            alert('Debug error: ' + error.message);
+            showNotification('Debug error: ' + error.message, 'error');
         }
     }
     
@@ -101,13 +101,13 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
             const data = await response.json();
             
             if (data.success) {
-                alert('Sample data created successfully! Refreshing analytics...');
+                showNotification('Sample data created successfully! Refreshing analytics...', 'success');
                 loadAnalytics();
             } else {
-                alert('Failed to create sample data: ' + data.error);
+                showNotification('Failed to create sample data: ' + data.error, 'error');
             }
         } catch (error) {
-            alert('Error creating sample data: ' + error.message);
+            showNotification('Error creating sample data: ' + error.message, 'error');
         }
     }
     
@@ -596,6 +596,42 @@ function escapeHtml(text) {
             }
         });
     });
+    
+    // Notification function for analytics
+    function showNotification(message, type = 'success') {
+        const existing = document.getElementById('analytics-notification');
+        if (existing) existing.remove();
+
+        const el = document.createElement('div');
+        el.id = 'analytics-notification';
+        el.className = 'fixed top-20 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 ' +
+            (type === 'success' 
+                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
+                : type === 'error'
+                ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
+                : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white');
+
+        const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+        el.innerHTML = `
+            <div class="flex items-center gap-3">
+                <span class="text-xl">${icon}</span>
+                <span class="font-semibold">${message}</span>
+            </div>
+        `;
+
+        document.body.appendChild(el);
+
+        setTimeout(() => {
+            el.style.opacity = '1';
+        }, 10);
+
+        setTimeout(() => {
+            el.style.opacity = '0';
+            setTimeout(() => {
+                if (el.parentNode) el.parentNode.removeChild(el);
+            }, 300);
+        }, 3000);
+    }
 </script>
 
 <!-- Social List Modal -->

@@ -1137,7 +1137,7 @@
             window.location.href = '/chat-enhanced';
         } catch (error) {
             console.error('Start chat error:', error);
-            alert('Network error. Please try again.');
+            showNotification('Network error. Please try again.', 'error');
         }
     }
     // ===== DISCOVER SECTION FUNCTIONS =====
@@ -1285,7 +1285,7 @@
             window.location.href = '/@' + profileHandle;
         } else {
             console.warn('[createTwinCard] No handle available for profile redirect', twin);
-            alert('Profile is not available for this twin yet.');
+            showNotification('Profile is not available for this twin yet.', 'error');
         }
             }
         });
@@ -1471,7 +1471,7 @@ function renderRecentInteractions(chats) {
                 window.location.href = `/@${handle}`;
             } else {
                 console.warn('[renderRecentInteractions] No handle available for profile redirect', twin);
-                alert('Profile is not available for this twin yet.');
+                showNotification('Profile is not available for this twin yet.', 'error');
             }
             });
         }
@@ -1527,7 +1527,7 @@ function renderRecentInteractions(chats) {
             window.location.href = `/@${profileHandle}`;
         } else {
             console.warn('[renderRecentInteractions] No handle available for profile redirect', twin);
-            alert('Profile is not available for this twin yet.');
+            showNotification('Profile is not available for this twin yet.', 'error');
         }
         });
         
@@ -1646,13 +1646,13 @@ function renderRecentInteractions(chats) {
             
             if (response.ok) {
                 navigator.clipboard.writeText(window.location.origin + result.profileUrl);
-                alert('Profile link copied to clipboard!');
+                showNotification('Profile link copied to clipboard!', 'success');
             } else {
-                alert(result.error || 'Failed to generate profile link');
+                showNotification(result.error || 'Failed to generate profile link', 'error');
             }
         } catch (error) {
             console.error('Generate profile link error:', error);
-            alert('Network error. Please try again.');
+            showNotification('Network error. Please try again.', 'error');
         }
     }
     
@@ -1681,14 +1681,14 @@ async function createInvite() {
             console.log('✅ Referral code:', referralCode);
             await navigator.clipboard.writeText(referralCode);
             console.log('📋 Referral code copied to clipboard!');
-            alert('Referral code copied to clipboard!');
+            showNotification('Referral code copied to clipboard!', 'success');
         } else {
             console.error('❌ API error:', result);
-            alert(result.error || 'Failed to get referral code');
+            showNotification(result.error || 'Failed to get referral code', 'error');
         }
     } catch (error) {
         console.error('💥 Get referral code error:', error);
-        alert('Network error. Please try again.');
+        showNotification('Network error. Please try again.', 'error');
     }
 }
         // Public Twin Management Functions
@@ -1810,7 +1810,7 @@ function displayPublicTwinStatus(twin) {
         // ✅ FIX: Use tokenized ID instead of raw DB ID
         const twinId = '<%= typeof twinPublicId !== "undefined" ? twinPublicId : (twinId || "") %>';
         if (!twinId) {
-            alert('Twin ID not found. Please refresh the page.');
+            showNotification('Twin ID not found. Please refresh the page.', 'error');
             return;
         }
         
@@ -1834,16 +1834,16 @@ function displayPublicTwinStatus(twin) {
             console.log('Response data:', result);
             
             if (response.ok && result.success) {
-                alert('Twin made public successfully!');
+                showNotification('Twin made public successfully!', 'success');
             // ✅ Force page reload to show updated status
             window.location.reload();
             } else {
             console.error('Error response:', result);
-            alert(result.error || result.message || 'Failed to make twin public');
+            showNotification(result.error || result.message || 'Failed to make twin public', 'error');
             }
         } catch (error) {
             console.error('Make twin public error:', error);
-            alert('Network error. Please try again.');
+            showNotification('Network error. Please try again.', 'error');
         }
     }
 
@@ -1852,17 +1852,17 @@ function displayPublicTwinStatus(twin) {
         const url = window.location.origin + '/@' + handle;
         try {
             await navigator.clipboard.writeText(url);
-            alert('Public profile link copied to clipboard!');
+            showNotification('Public profile link copied to clipboard!', 'success');
         } catch (error) {
             console.error('Copy to clipboard error:', error);
-            alert('Failed to copy link. Please copy manually: ' + url);
+            showNotification('Failed to copy link. Please copy manually: ' + url, 'error');
         }
     }
 
     
 
     function editPublicProfile() {
-        alert('Edit profile functionality coming soon!');
+        showNotification('Edit profile functionality coming soon!', 'info');
     }
 
     // ✅ REMOVED: generateHandle() function - no longer needed
@@ -2381,5 +2381,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- Social List Modal -->
 <%- include('shared/social-list-modal') %>
+<%- include('partials/modal-helpers') %>
 </body>
 </html>

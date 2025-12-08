@@ -60,9 +60,7 @@ export async function getAnalytics(req: any, res: Response) {
 export async function getAdminAnalytics(req: any, res: Response) {
   try {
     if (!req.user || !req.user.email || !ADMIN_EMAILS.includes(req.user.email)) {
-      return res.status(404).render('404', {
-        title: 'Page Not Found',
-      });
+      throw createError.notFound('This page does not exist');
     }
 
     const fullUser = await userQueries.findByEmail(req.user.email);
@@ -98,9 +96,7 @@ export async function getAdminAnalytics(req: any, res: Response) {
 export async function getAdminAnalyticsPage(req: any, res: Response) {
   try {
     if (!req.user || !req.user.email || !ADMIN_EMAILS.includes(req.user.email)) {
-      return res.status(404).render('404', {
-        title: 'Page Not Found',
-      });
+      throw createError.notFound('This page does not exist');
     }
 
     const { type } = req.params;
@@ -144,9 +140,7 @@ export async function getAdminAnalyticsPage(req: any, res: Response) {
 export async function getEventExplorerPage(req: any, res: Response) {
   try {
     if (!req.user || !req.user.email || !ADMIN_EMAILS.includes(req.user.email)) {
-      return res.status(404).render('404', {
-        title: 'Page Not Found',
-      });
+      throw createError.notFound('This page does not exist');
     }
 
     const fullUser = await userQueries.findByEmail(req.user.email);
@@ -182,9 +176,7 @@ export async function getEventExplorerPage(req: any, res: Response) {
 export async function getActivityFeedPage(req: any, res: Response) {
   try {
     if (!req.user || !req.user.email || !ADMIN_EMAILS.includes(req.user.email)) {
-      return res.status(404).render('404', {
-        title: 'Page Not Found',
-      });
+      throw createError.notFound('This page does not exist');
     }
 
     const fullUser = await userQueries.findByEmail(req.user.email);
@@ -234,12 +226,9 @@ export async function getAnalyticsDetails(req: any, res: Response, next: NextFun
         path: req.path,
       });
 
-      return res.status(400).render('error', {
-        title: 'Invalid Request',
-        message: 'Invalid analytics type. Must be likers, followers, or chatters.',
-        user: req.user,
-        csrfToken: res.locals['csrfToken'],
-      });
+      throw createError.validation(
+        'Invalid analytics type. Must be likers, followers, or chatters.'
+      );
     }
 
     // 3) User twins load
@@ -440,6 +429,6 @@ if (twinId) {
       userId: req.user?.id,
       path: req.path,
     });
-    return next(error);
+    handleControllerError(error, 'Failed to load analytics details');
   }
 }

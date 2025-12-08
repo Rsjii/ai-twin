@@ -54,8 +54,17 @@ document.getElementById('verifyForm').addEventListener('submit', async (e) => {
     const code = formData.get('code');
     
     // Get email from session or prompt user
-    const email = prompt('Please enter your email address:');
-    if (!email) return;
+    if (typeof window.ModalHelpers === 'undefined') {
+        console.error('ModalHelpers not loaded');
+        showFlashMessage('Please refresh the page and try again', 'error');
+        return;
+    }
+    const email = await window.ModalHelpers.input({
+        title: 'Enter Email',
+        message: 'Please enter your email address:',
+        placeholder: 'your@email.com'
+    });
+    if (!email || !email.trim()) return;
     
     try {
         const response = await fetch('/api/auth/login/verify', {
