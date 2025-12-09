@@ -1,8 +1,10 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { TwinService } from './twinService';
+import { detokenizeId } from '../../utils/idTokenization';
+import { createError, ErrorCodes } from '../../utils/errors';
 
 const twinService = new TwinService();
 
@@ -52,10 +54,19 @@ const updatePersonaSchema = z.object({
 /**
  * Get current twin data for editing
  */
-export const getTwinEditData = async (req: Request, res: Response) => {
+export const getTwinEditData = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
-    const userId = req.user.id;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
+    if (!userId) {
+      throw createError.unauthorized();
+    }
+    const decoded = detokenizeId(twinToken, { userId, endpoint: 'getTwinEditData' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
 
     // Verify twin ownership
     const twinResult = await db.query(`
@@ -65,7 +76,7 @@ export const getTwinEditData = async (req: Request, res: Response) => {
     `, [twinId, userId]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Twin not found or access denied' });
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     const twin = twinResult.rows[0];
@@ -85,40 +96,52 @@ export const getTwinEditData = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Get twin edit data error:', error);
-    res.status(500).json({ error: 'Failed to get twin edit data' });
+    next(error); // ✅ Standardize
   }
 };
 
 /**
  * Update twin style vector
  */
-export const updateTwinStyle = async (req: Request, res: Response) => {
+export const updateTwinStyle = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
-    const userId = req.user.id;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
+    if (!userId) {
+      throw createError.unauthorized();
+    }
+    const decoded = detokenizeId(twinToken, { userId, endpoint: 'updateTwinStyle' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const styleUpdates = updateStyleSchema.parse(req.body);
 
-    // Verify twin ownership
+    // Verify twin ownership and load current style + persona
     const twinResult = await db.query(`
-      SELECT id, "styleVector" FROM "Twin" 
+      SELECT id, "styleVector", "personaData" FROM "Twin" 
       WHERE id = $1 AND "userId" = $2
     `, [twinId, userId]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Twin not found or access denied' });
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
     }
 
-    const currentStyleVector = twinResult.rows[0].styleVector;
-    
+    const currentStyleVector = twinResult.rows[0].styleVector || {};
+    const currentPersonaData = twinResult.rows[0].personaData || null;
+
     // Merge updates with current style vector
     const updatedStyleVector = {
       ...currentStyleVector,
-      ...styleUpdates
+      ...styleUpdates,
     };
 
-    // Regenerate system prompt with new style
-    const newSystemPrompt = await twinService.generateSystemPrompt(updatedStyleVector, twinResult.rows[0].personaData);
+    // Regenerate system prompt with new style + existing persona
+    const newSystemPrompt = await twinService.generateSystemPrompt(
+      updatedStyleVector,
+      currentPersonaData,
+    );
 
     // Update twin in database
     const utcTimestamp = new Date().toISOString();
@@ -136,22 +159,32 @@ export const updateTwinStyle = async (req: Request, res: Response) => {
       message: 'Twin style updated successfully',
       updatedStyleVector,
       newSampleReply,
-      systemPrompt: newSystemPrompt
+      systemPrompt: newSystemPrompt,
     });
-
   } catch (error) {
-    logger.error('Update twin style error:', error);
-    res.status(500).json({ error: 'Failed to update twin style' });
+    if (error instanceof z.ZodError) {
+      return next(createError.validation('Invalid input', error.errors));
+    }
+    next(error);
   }
 };
 
 /**
  * Update twin persona data
  */
-export const updateTwinPersona = async (req: Request, res: Response) => {
+export const updateTwinPersona = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
-    const userId = req.user.id;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
+    if (!userId) {
+      throw createError.unauthorized();
+    }
+    const decoded = detokenizeId(twinToken, { userId, endpoint: 'updateTwinPersona' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const personaUpdates = updatePersonaSchema.parse(req.body.personaData || req.body);
     
     // Verify twin ownership
@@ -161,7 +194,7 @@ export const updateTwinPersona = async (req: Request, res: Response) => {
     `, [twinId, userId]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Twin not found or access denied' });
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     const currentPersonaData = twinResult.rows[0].personaData;
@@ -191,25 +224,33 @@ export const updateTwinPersona = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Update twin persona error:', error);
-    res.status(500).json({ error: 'Failed to update twin persona' });
+    if (error instanceof z.ZodError) {
+      return next(createError.validation('Invalid input', error.errors));
+    }
+    next(error);
   }
 };
 
 /**
  * Preview style changes without saving
  */
-export const previewStyleChanges = async (req: Request, res: Response) => {
+export const previewStyleChanges = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
-    const userId = req.user.id;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
+    if (!userId) {
+      throw createError.unauthorized();
+    }
+    const decoded = detokenizeId(twinToken, { userId, endpoint: 'previewStyleChanges' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const { styleChanges, testMessage } = req.body;
 
     if (!testMessage) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Test message is required' 
-      });
+      throw createError.validation('Test message is required', ErrorCodes.MISSING_REQUIRED_FIELD);
     }
 
     // Verify twin ownership
@@ -219,10 +260,7 @@ export const previewStyleChanges = async (req: Request, res: Response) => {
     `, [twinId, userId]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'Twin not found or access denied' 
-      });
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     const currentStyleVector = twinResult.rows[0].styleVector;
@@ -248,10 +286,6 @@ export const previewStyleChanges = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error('Preview style changes error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to preview style changes' 
-    });
+    next(error);
   }
 };

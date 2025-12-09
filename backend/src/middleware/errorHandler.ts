@@ -3,6 +3,7 @@ import { AppError, ErrorCodes } from '../utils/errors';
 import { logger } from '../config/logger';
 import { EventLogger } from '../services/eventLogger';
 import { EVENT_TYPES } from '../config/constants';
+import { isProd } from '../config/env';
 
 /**
  * Async wrapper utility to catch errors from async route handlers
@@ -24,20 +25,24 @@ export const errorHandlerMiddleware = (
   const requestId = (req as any).requestId || null;
 
   if (err instanceof AppError) {
-    logger.warn(`AppError: ${err.errorCode} - ${err.message}`, {
+    // ✅ Enhanced logging with structured context
+    const userId = (req as any).user?.userId || (req as any).user?.id || null;
+    
+    logger.warn('AppError caught', {
+      errorCode: err.errorCode,
       statusCode: err.statusCode,
+      message: err.message,
       path: req.path,
       method: req.method,
+      userId,
       requestId,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+      ...(err.details && !isProd && { details: err.details }), // Only in dev
     });
 
-    // ✅ NEW: Log API error into Event table for admin analytics
+    // ✅ Event logging (existing, keep as-is)
     try {
-      const userId =
-        (req as any).user?.userId ||
-        (req as any).user?.id ||
-        null;
-
       const meta = {
         path: req.path,
         method: req.method,
@@ -56,11 +61,15 @@ export const errorHandlerMiddleware = (
     }
 
     if (isApiRequest) {
-      return res.status(err.statusCode).json({
+      // ✅ SECURITY: Remove requestId from JSON body, add to header only
+      if (requestId) {
+        res.setHeader('X-Request-Id', requestId);
+      }
+      res.status(err.statusCode).json({
         error: err.message,
         errorCode: err.errorCode,
-        requestId,
       });
+      return;
     }    
 
     if (err.statusCode === 404) {
@@ -93,22 +102,25 @@ export const errorHandlerMiddleware = (
     });
   }
 
-  // Unhandled errors
-  logger.error('Unhandled error:', {
+  // ✅ Enhanced unhandled error logging
+  const userId = (req as any).user?.userId || (req as any).user?.id || null;
+  
+  logger.error('Unhandled error in request handler', {
+    name: err.name,
     message: err.message,
     stack: err.stack,
-    name: err.name,
     path: req.path,
     method: req.method,
+    userId,
     requestId,
+    ip: req.ip,
+    userAgent: req.get('user-agent'),
+    body: isProd ? undefined : req.body, // Only in dev
+    query: isProd ? undefined : req.query, // Only in dev
   });
 
+  // ✅ Event logging for unhandled errors
   try {
-    const userId =
-      (req as any).user?.userId ||
-      (req as any).user?.id ||
-      null;
-
     const meta = {
       path: req.path,
       method: req.method,
@@ -127,11 +139,15 @@ export const errorHandlerMiddleware = (
   }
 
   if (isApiRequest) {
-    return res.status(500).json({
+    // ✅ SECURITY: Remove requestId from JSON body, add to header only
+    if (requestId) {
+      res.setHeader('X-Request-Id', requestId);
+    }
+    res.status(500).json({
       error: 'Internal server error',
       errorCode: ErrorCodes.INTERNAL_ERROR,
-      requestId,
     });
+    return;
   }
 
   return res.status(500).render('error', {

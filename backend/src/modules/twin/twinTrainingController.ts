@@ -1,19 +1,27 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { db, styleAnchorsQueries } from '../../config/database';
 import { logger } from '../../config/logger';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { generateId } from '../../utils/idGenerator';
+import { detokenizeId } from '../../utils/idTokenization';
+import { createError, ErrorCodes } from '../../utils/errors';
 
 /**
  * Add manual training example
  */
-export const addManualTraining = async (req: any, res: Response) => {
+export const addManualTraining = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'addManualTraining' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const userId = req.user.id;
     const { userMessage, idealReply, trainingType } = req.body;
     
-   await verifyTwinOwnership(twinId, userId);
+    await verifyTwinOwnership(twinId, userId);
     
     // Create style anchor for manual training
     const anchorId = generateId.anchor();
@@ -25,21 +33,26 @@ export const addManualTraining = async (req: any, res: Response) => {
     
     res.json({ success: true, message: 'Training example added successfully' });
   } catch (error) {
-    logger.error('Manual training API error:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    next(error);
   }
 };
 
 /**
  * Get messages for a specific chat
  */
-export const getChatMessages = async (req: any, res: Response) => {
+export const getChatMessages = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId, chatId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken, chatId } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'getChatMessages' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const userId = req.user.id;
     
     // Verify ownership using raw SQL
-   await verifyTwinOwnership(twinId, userId);
+    await verifyTwinOwnership(twinId, userId);
     
     // Get messages for the chat using raw SQL
     const messagesResult = await db.query(`
@@ -58,22 +71,27 @@ export const getChatMessages = async (req: any, res: Response) => {
     
     res.json({ success: true, messages });
   } catch (error) {
-    logger.error('Error fetching chat messages:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch chat messages' });
+    next(error);
   }
 };
 
 /**
  * Convert multiple messages to training examples
  */
-export const convertMessagesToTraining = async (req: any, res: Response) => {
+export const convertMessagesToTraining = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'convertMessagesToTraining' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const { messageIds, trainingType } = req.body;
     const userId = req.user.id;
     
     // Verify ownership
-   await verifyTwinOwnership(twinId, userId);
+    await verifyTwinOwnership(twinId, userId);
     
     // Get messages using raw SQL
     const placeholders = messageIds.map((_: any, i: number) => `$${i + 1}`).join(', ');
@@ -106,16 +124,19 @@ export const convertMessagesToTraining = async (req: any, res: Response) => {
         const aiMessage = chatMessages[i + 1];
         
         if (userMessage.sender === 'user' && aiMessage.sender === 'ai') {
-          await styleAnchorsQueries.create({
-            twinId: twinId,
-            userUtterance: userMessage.content,
-            idealReply: aiMessage.content,
-            trainingType: trainingType || 'chat_conversion',
-            metadata: {
+          await styleAnchorsQueries.create(
+            twinId,
+            userMessage.content,
+            aiMessage.content,
+            [trainingType || 'chat_conversion'],
+            'interaction',
+            undefined,
+            undefined,
+            JSON.stringify({
               sourceChatId: chatId,
               sourceMessageIds: [userMessage.id, aiMessage.id]
-            }
-          });
+            })
+          );
           createdAnchors++;
         }
       }
@@ -127,20 +148,25 @@ export const convertMessagesToTraining = async (req: any, res: Response) => {
       createdAnchors 
     });
   } catch (error) {
-    logger.error('Error converting messages to training:', error);
-    res.status(500).json({ success: false, error: 'Failed to convert messages to training' });
+    next(error);
   }
 };
 
 /**
  * Get training effectiveness metrics
  */
-export const getTrainingEffectiveness = async (req: any, res: Response) => {
+export const getTrainingEffectiveness = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'getTrainingEffectiveness' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const userId = req.user.id;
     
-   await verifyTwinOwnership(twinId, userId);
+    await verifyTwinOwnership(twinId, userId);
     
     // Calculate effectiveness score using raw SQL
     const anchorsResult = await db.query(`
@@ -257,17 +283,22 @@ export const getTrainingEffectiveness = async (req: any, res: Response) => {
       goals
     });
   } catch (error) {
-    logger.error('Error calculating training effectiveness:', error);
-    res.status(500).json({ success: false, error: 'Failed to calculate training effectiveness' });
+    next(error);
   }
 };
 
 /**
  * Convert chat message to training example
  */
-export const convertToTraining = async (req: any, res: Response) => {
+export const convertToTraining = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'convertToTraining' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const userId = req.user.id;
     const { messageId, idealReply } = req.body;
     
@@ -283,7 +314,7 @@ export const convertToTraining = async (req: any, res: Response) => {
     `, [messageId, twinId, userId]);
     
     if (!messageResult || messageResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Message not found' });
+      throw createError.notFound('Message not found', ErrorCodes.NOT_FOUND);
     }
     
     // Create style anchor
@@ -296,17 +327,22 @@ export const convertToTraining = async (req: any, res: Response) => {
     
     res.json({ success: true, message: 'Message converted to training example' });
   } catch (error) {
-    logger.error('Convert to training API error:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    next(error);
   }
 };
 
 /**
  * Get training progress
  */
-export const getTrainingProgress = async (req: any, res: Response) => {
+export const getTrainingProgress = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'getTrainingProgress' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const userId = req.user.id;
     
     // Verify ownership
@@ -333,7 +369,7 @@ export const getTrainingProgress = async (req: any, res: Response) => {
     `, [twinId]);
     
     if (!statsResult || !recentResult) {
-      return res.status(500).json({ success: false, error: 'Failed to fetch training data' });
+      throw createError.internal('Failed to fetch training data');
     }
     
     const stats = statsResult.rows[0];
@@ -355,8 +391,7 @@ export const getTrainingProgress = async (req: any, res: Response) => {
       }
     });
   } catch (error) {
-    logger.error('Training progress API error:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    next(error);
   }
 };
 

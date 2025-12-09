@@ -10,6 +10,7 @@ import { createError, ErrorCodes } from '../../utils/errors';
 import { generateId } from '../../utils/idGenerator';
 import { handleControllerError } from '../../utils/errorHandler';
 import { EVENT_TYPES } from '../../config/constants';
+import { detokenizeId } from '../../utils/idTokenization';
 
 const twinService = new TwinService();
 
@@ -38,7 +39,11 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
     LIMIT 1
     `;
 
-  const existingTwinResult = await db.query(existingTwinQuery, [req.user.id]);
+  const userId = (req.user as any)?.id || (req.user as any)?.userId;
+  if (!userId) {
+    throw createError.unauthorized();
+  }
+  const existingTwinResult = await db.query(existingTwinQuery, [userId]);
 
   if (existingTwinResult.rows.length > 0) {
     const existingTwin = existingTwinResult.rows[0];
@@ -57,8 +62,6 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
 
     // Validate samples using safety utils
     const validation = validateTwinSamples(samples);
-    console.log('Samples received for validation:', samples);
-    console.log('Validation result:', validation);
     if (!validation.valid) {
       throw createError.validation('Invalid samples', validation.errors);
     }
@@ -66,7 +69,6 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
     // Check content safety
     const combinedText = samples.join(' ');
     const safetyCheck = isContentSafe(combinedText);
-    console.log('Safety check result:', safetyCheck);
     if (!safetyCheck.safe) {
       throw createError.validation('Content safety check failed', { reasons: safetyCheck.reasons });
     }
@@ -90,7 +92,7 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
 
    const result = await db.query(insertQuery, [
      twinId,
-     req.user.id,
+     userId,
      JSON.stringify(styleVector),
      sampleReply,
      false, // isPublic - default to private
@@ -100,20 +102,20 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
      0,     // chatCount - default to 0
      new Date()
    ]);
-    
+     
     // ✅ Twin created - profile URL is /@user.handle (no TwinProfile needed)
     
     // Create a mock twin object for testing
     const twin = {
       id: twinId,
-      userId: req.user.id,
+      userId: userId,
       styleVector,
       sampleReply,
       createdAt: result.rows[0].createdAt
     };
     
     // Log twin creation event using EventLogger
-    await EventLogger.logTwinCreated(req.user.id, twin.id, {
+    await EventLogger.logTwinCreated(userId, twin.id, {
       samplesCount: samples.length
     });
     
@@ -130,42 +132,36 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
     logger.error('Twin creation error:', error);
     
     // Log the error event
-    if (req.user) {
-      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_CREATION_FAILED, { 
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
+    if (userId) {
+      await EventLogger.logUserEvent(userId, EVENT_TYPES.TWIN_CREATION_FAILED, { 
         error: error instanceof Error ? error.message : 'Unknown error' 
-      });
+      }).catch(() => {}); // Don't let logging errors break the flow
     }
 
-      // ✅ FIX: Handle errors properly
-  if (error instanceof z.ZodError) {
-    return res.status(400).json({ error: 'Invalid input', details: error.errors });
-  }
-  if (error instanceof Error && 'statusCode' in error) {
-    // AppError with statusCode
-    const appError = error as any;
-    return res.status(appError.statusCode || 500).json({ 
-      error: appError.message || 'Failed to create twin' 
-    });
-  }
-  return res.status(500).json({ error: 'Failed to create twin' });
-    
+    // ✅ FIX: Handle errors properly
+    if (error instanceof z.ZodError) {
+      return next(createError.validation('Invalid input', error.errors));
+    }
+    next(error); // ✅ Let errorHandlerMiddleware handle AppError and others
   }
 };
 
 export const getUserTwins = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    logger.debug('Getting user twins:', { userId: req.user?.id });
-    
-    if (!req.user) {
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
+    if (!userId) {
       throw createError.unauthorized();
     }
-
+    
+    logger.debug('Getting user twins:', { userId });
+    
     const twins = await db.query(`
       SELECT id, "styleVector", "sampleReply", "createdAt"
       FROM "Twin"
       WHERE "userId" = $1
       ORDER BY "createdAt" DESC
-    `, [req.user.id]);
+    `, [userId]);
     
     logger.debug('Found twins:', { count: twins.rows.length });
     res.json({ twins: twins.rows });
@@ -176,16 +172,22 @@ export const getUserTwins = async (req: Request, res: Response, next: NextFuncti
 
 export const getTwinById = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
-    
-    if (!req.user) {
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
+    if (!userId) {
       throw createError.unauthorized();
     }
+    const decoded = detokenizeId(twinToken, { userId, endpoint: 'getTwinById' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const id = decoded.id;
 
     const twinResult = await db.query(`
       SELECT * FROM "Twin"
       WHERE id = $1 AND "userId" = $2
-    `, [id, req.user.id]);
+    `, [id, userId]);
     
     const twin = twinResult.rows[0];
     
@@ -203,23 +205,29 @@ export const getTwinById = async (req: Request, res: Response, next: NextFunctio
  * Delete Twin
  * DELETE /api/twin/:id
  */
-export const deleteTwin = async (req: any, res: Response) => {
+export const deleteTwin = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user?.id, endpoint: 'deleteTwin' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('This twin link is invalid or has expired.', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const userId = req.user?.id;
 
     if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
+      throw createError.unauthorized();
     }
 
     // Verify twin exists and belongs to user
     const twin = await twinQueries.findById(twinId);
     if (!twin) {
-      return res.status(404).json({ error: 'Twin not found' });
+      throw createError.notFound('Twin not found', ErrorCodes.TWIN_NOT_FOUND);
     }
 
     if (twin.userId !== userId) {
-      return res.status(403).json({ error: 'You do not have permission to delete this twin' });
+      throw createError.forbidden('You do not have permission to delete this twin');
     }
 
     // Delete twin (CASCADE will handle all related data)
@@ -231,13 +239,7 @@ export const deleteTwin = async (req: any, res: Response) => {
       success: true,
       message: 'Twin deleted successfully'
     });
-  } catch (error: any) {
-    logger.error('Delete twin error:', error);
-    
-    if (error.message?.includes('not found') || error.message?.includes('not owned')) {
-      return res.status(404).json({ error: error.message });
-    }
-    
-    res.status(500).json({ error: 'Failed to delete twin' });
+  } catch (error) {
+    next(error); // ✅ Standardize
   }
 };

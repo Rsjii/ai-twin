@@ -4,7 +4,7 @@ import { logger } from '../config/logger';
 import { AppError, createError, ErrorCodes } from '../utils/errors';
 import { userQueries, twinQueries } from '../config/database';
 import { handleControllerError } from '../utils/errorHandler';
-import { detokenizeId } from '../utils/idTokenization';
+import { detokenizeId, tokenizeId } from '../utils/idTokenization';
 
 /**
  * My Twins page - Redirects to twin management page
@@ -55,6 +55,9 @@ export async function getTwinAiEdit(req: any, res: Response) {
     }
 
     const twin = twinResult.rows[0];
+    
+    // ✅ SECURITY: Tokenize twinId before passing to frontend
+    const twinToken = tokenizeId(twin.id, 'twin');
 
     const user = {
       id: fullUser.id,
@@ -68,7 +71,7 @@ export async function getTwinAiEdit(req: any, res: Response) {
       title: 'AI Edit - AI Twin',
       user,
       hasTwins: true,
-      twinId: twin.id,                 // for private APIs only
+      twinToken: twinToken,  // ✅ SECURITY: Use tokenized ID
       csrfToken: res.locals['csrfToken'],
     });    
   } catch (error) {
@@ -108,6 +111,9 @@ export async function getTwinStyleCustomize(req: any, res: Response) {
     }
 
     const twin = twinResult.rows[0];
+    
+    // ✅ SECURITY: Tokenize twinId before passing to frontend
+    const twinToken = tokenizeId(twin.id, 'twin');
 
     const user = {
       id: fullUser.id,
@@ -121,7 +127,7 @@ export async function getTwinStyleCustomize(req: any, res: Response) {
       title: 'Style Customize - AI Twin',
       user,
       hasTwins: true,
-      twinId: twin.id,                 // for private APIs only
+      twinToken: twinToken,  // ✅ SECURITY: Use tokenized ID
       csrfToken: res.locals['csrfToken'],
     });    
   } catch (error) {
@@ -161,6 +167,9 @@ export async function getTwinLearningDashboard(req: any, res: Response) {
     }
 
     const twin = twinResult.rows[0];
+    
+    // ✅ SECURITY: Tokenize twinId before passing to frontend
+    const twinToken = tokenizeId(twin.id, 'twin');
 
     const user = {
       id: fullUser.id,
@@ -174,7 +183,7 @@ export async function getTwinLearningDashboard(req: any, res: Response) {
       title: 'Learning Dashboard - AI Twin',
       user,
       hasTwins: true,
-      twinId: twin.id,                 // for private APIs only
+      twinToken: twinToken,  // ✅ SECURITY: Use tokenized ID
       csrfToken: res.locals['csrfToken'],
     });
   } catch (error) {

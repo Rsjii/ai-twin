@@ -8,29 +8,30 @@ const router = Router();
 // Unified Auth page (Login/Signup)
 router.get('/auth', asyncHandler(authPageController.getAuth));
 
+// ✅ FIX: Wrap all async controllers
 // Login page - redirects to unified auth
-router.get('/login', authPageController.getLogin);
+router.get('/login', asyncHandler(authPageController.getLogin));
 
 // Signup page - redirects to unified auth
-router.get('/signup', authPageController.getSignup);
+router.get('/signup', asyncHandler(authPageController.getSignup));
 
 // Login Verify OTP page
-router.get('/login/verify', generateCSRFToken, authPageController.getLoginVerify);
+router.get('/login/verify', generateCSRFToken, asyncHandler(authPageController.getLoginVerify));
 
 // Verify OTP page (for signup/forgot password)
-router.get('/verify-otp', generateCSRFToken, authPageController.getVerifyOtp);
+router.get('/verify-otp', generateCSRFToken, asyncHandler(authPageController.getVerifyOtp));
 
 // Signup Profile Completion page
-router.get('/signup/profile', generateCSRFToken, authPageController.getSignupProfile);
+router.get('/signup/profile', generateCSRFToken, asyncHandler(authPageController.getSignupProfile));
 
 // Forgot Password page
-router.get('/forgot-password', generateCSRFToken, authPageController.getForgotPassword);
+router.get('/forgot-password', generateCSRFToken, asyncHandler(authPageController.getForgotPassword));
 
-// Forgot Password Verification page
-router.get('/forgot-password/verify', generateCSRFToken, authPageController.getForgotPasswordVerify);
+// Forgot Password Verify OTP page
+router.get('/forgot-password/verify', generateCSRFToken, asyncHandler(authPageController.getForgotPasswordVerify));
 
 // Reset Password page
-router.get('/reset-password', generateCSRFToken, authPageController.getResetPassword);
+router.get('/reset-password', generateCSRFToken, asyncHandler(authPageController.getResetPassword));
 
 export default router;
 

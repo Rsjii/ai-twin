@@ -11,6 +11,8 @@ import {
 import { fastQuery } from '../../utils/dbUtils';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { generateId } from '../../utils/idGenerator';
+import { detokenizeId } from '../../utils/idTokenization';
+import { createError, ErrorCodes } from '../../utils/errors';
 
 /**
  * Get training templates
@@ -18,7 +20,13 @@ import { generateId } from '../../utils/idGenerator';
 
 export const getTemplates = async (req: any, res: Response) => {
   try {
-    const { id } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user?.id, endpoint: 'getTemplates' });
+    if (!decoded || decoded.type !== 'twin') {
+      return res.status(404).json({ success: false, error: 'Invalid twin token' });
+    }
+    const id = decoded.id;
     const userId = req.user?.id;
     
     if (!userId) {
@@ -67,7 +75,13 @@ export const getTemplates = async (req: any, res: Response) => {
  */
 export const getMilestones = async (req: any, res: Response) => {
   try {
-    const { id } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user?.id, endpoint: 'getMilestones' });
+    if (!decoded || decoded.type !== 'twin') {
+      return res.status(404).json({ success: false, error: 'Invalid twin token' });
+    }
+    const id = decoded.id;
     const userId = req.user?.id;
     
     if (!userId) {
@@ -169,7 +183,13 @@ export const getMilestones = async (req: any, res: Response) => {
  */
 export const setLearningGoal = async (req: any, res: Response) => {
   try {
-    const { id } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user?.id, endpoint: 'setLearningGoal' });
+    if (!decoded || decoded.type !== 'twin') {
+      return res.status(404).json({ success: false, error: 'Invalid twin token' });
+    }
+    const id = decoded.id;
     const { type, target } = req.body;
     const userId = req.user?.id;
     
@@ -211,7 +231,13 @@ export const setLearningGoal = async (req: any, res: Response) => {
  */
 export const getPerformanceMetrics = async (req: any, res: Response) => {
   try {
-    const { id } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user?.id, endpoint: 'getPerformanceMetrics' });
+    if (!decoded || decoded.type !== 'twin') {
+      return res.status(404).json({ success: false, error: 'Invalid twin token' });
+    }
+    const id = decoded.id;
     const userId = req.user?.id;
     
     if (!userId) {
@@ -276,7 +302,13 @@ export const getPerformanceMetrics = async (req: any, res: Response) => {
  */
 export const optimizeMemories = async (req: any, res: Response) => {
   try {
-    const { id } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user?.id, endpoint: 'optimizeMemories' });
+    if (!decoded || decoded.type !== 'twin') {
+      return res.status(404).json({ success: false, error: 'Invalid twin token' });
+    }
+    const id = decoded.id;
     const userId = req.user?.id;
     
     if (!userId) {
@@ -323,7 +355,13 @@ const memoriesResult = {
  */
 export const analyzePerformance = async (req: any, res: Response) => {
   try {
-    const { id } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user?.id, endpoint: 'analyzePerformance' });
+    if (!decoded || decoded.type !== 'twin') {
+      return res.status(404).json({ success: false, error: 'Invalid twin token' });
+    }
+    const id = decoded.id;
     const userId = req.user?.id;
     
     if (!userId) {
@@ -347,7 +385,13 @@ export const analyzePerformance = async (req: any, res: Response) => {
  */
 export const exportAnalytics = async (req: any, res: Response) => {
   try {
-    const { id } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user?.id, endpoint: 'exportAnalytics' });
+    if (!decoded || decoded.type !== 'twin') {
+      return res.status(404).json({ success: false, error: 'Invalid twin token' });
+    }
+    const id = decoded.id;
     const userId = req.user?.id;
     
     if (!userId) {
@@ -371,7 +415,13 @@ export const exportAnalytics = async (req: any, res: Response) => {
  */
 export const resetPerformance = async (req: any, res: Response) => {
   try {
-    const { id } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user?.id, endpoint: 'resetPerformance' });
+    if (!decoded || decoded.type !== 'twin') {
+      return res.status(404).json({ success: false, error: 'Invalid twin token' });
+    }
+    const id = decoded.id;
     const userId = req.user?.id;
     
     if (!userId) {

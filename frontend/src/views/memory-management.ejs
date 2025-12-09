@@ -353,7 +353,8 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
     </div>
 
     <script>
-        const twinId = '<%= twinId %>';
+        // ✅ SECURITY: Use tokenized twinToken instead of raw twinToken
+        const twinToken = '<%= typeof twinToken !== "undefined" ? twinToken : "" %>';
         // ✅ FIX: Read tabs from URL on init
         const urlParams = new URLSearchParams(window.location.search);
         let currentMemoryCategory = urlParams.get('memoryTab') || 'fact';
@@ -375,30 +376,48 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
 
         // Load memory data
         async function loadMemoryData() {
-            // Show loading states
-const memoryLoading = document.getElementById('memoryLoadingState');
-const anchorLoading = document.getElementById('anchorLoadingState');
-if (memoryLoading) memoryLoading.classList.remove('hidden');
-if (anchorLoading) anchorLoading.classList.remove('hidden');
+            // ✅ HARD GUARD: if twinToken is missing/blank, don't call APIs
+            if (!twinToken || typeof twinToken !== 'string' || !twinToken.trim()) {
+                console.warn('[MEMORY] Missing or invalid twinToken, skipping API calls', { twinToken });
 
-// Hide empty and error states
-const memoryEmpty = document.getElementById('memoryEmptyState');
-const memoryError = document.getElementById('memoryErrorState');
-const anchorEmpty = document.getElementById('anchorEmptyState');
-const anchorError = document.getElementById('anchorErrorState');
-if (memoryEmpty) memoryEmpty.classList.add('hidden');
-if (memoryError) memoryError.classList.add('hidden');
-if (anchorEmpty) anchorEmpty.classList.add('hidden');
-if (anchorError) anchorError.classList.add('hidden');
+                const memoryLoading = document.getElementById('memoryLoadingState');
+                const anchorLoading = document.getElementById('anchorLoadingState');
+                const memoryError = document.getElementById('memoryErrorState');
+                const anchorError = document.getElementById('anchorErrorState');
+
+                if (memoryLoading) memoryLoading.classList.add('hidden');
+                if (anchorLoading) anchorLoading.classList.add('hidden');
+                if (memoryError) memoryError.classList.remove('hidden');
+                if (anchorError) anchorError.classList.remove('hidden');
+
+                return;
+            }
+
+            // Show loading states
+            const memoryLoading = document.getElementById('memoryLoadingState');
+            const anchorLoading = document.getElementById('anchorLoadingState');
+            if (memoryLoading) memoryLoading.classList.remove('hidden');
+            if (anchorLoading) anchorLoading.classList.remove('hidden');
+
+            // Hide empty and error states
+            const memoryEmpty = document.getElementById('memoryEmptyState');
+            const memoryError = document.getElementById('memoryErrorState');
+            const anchorEmpty = document.getElementById('anchorEmptyState');
+            const anchorError = document.getElementById('anchorErrorState');
+            if (memoryEmpty) memoryEmpty.classList.add('hidden');
+            if (memoryError) memoryError.classList.add('hidden');
+            if (anchorEmpty) anchorEmpty.classList.add('hidden');
+            if (anchorError) anchorError.classList.add('hidden');
+
             try {
                 // Load all memories and anchors
                 const [longTermMemories, styleAnchors] = await Promise.all([
-                    fetch(`/api/twin/${twinId}/long-term-memory?limit=1000`, {
+                    fetch(`/api/twin/${twinToken}/long-term-memory?limit=1000`, {
                         credentials: 'include',
                         cache: 'no-store',
                         headers: { 'Cache-Control': 'no-cache' },
                     }),
-                    fetch(`/api/twin/${twinId}/style-anchors?limit=1000`, {
+                    fetch(`/api/twin/${twinToken}/style-anchors?limit=1000`, {
                         credentials: 'include',
                         cache: 'no-store',
                         headers: { 'Cache-Control': 'no-cache' },
@@ -411,7 +430,7 @@ if (anchorError) anchorError.classList.add('hidden');
                     anchorsStatus: styleAnchors.status,
                     longTermOk: longTermMemories.ok,
                     anchorsOk: styleAnchors.ok,
-                    twinId: twinId,
+                    twinToken: twinToken,
                 });
 
                 // ✅ Handle 304 or non-OK without crashing
@@ -737,7 +756,7 @@ function displayStyleAnchors(anchors, type) {
             if (!newValue || newValue.trim() === '') return;
 
             try {
-                const response = await fetch(`/api/twin/${twinId}/long-term-memory/${key}`, {
+                const response = await fetch(`/api/twin/${twinToken}/long-term-memory/${key}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -774,7 +793,7 @@ function displayStyleAnchors(anchors, type) {
             if (!confirmed) return;
 
             try {
-                const response = await fetch(`/api/twin/${twinId}/long-term-memory/${key}`, {
+                const response = await fetch(`/api/twin/${twinToken}/long-term-memory/${key}`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-Token': window.csrfToken
@@ -805,7 +824,7 @@ function displayStyleAnchors(anchors, type) {
             if (!newPhrase || newPhrase.trim() === '') return;
 
             try {
-                const response = await fetch(`/api/twin/${twinId}/style-anchors/${id}`, {
+                const response = await fetch(`/api/twin/${twinToken}/style-anchors/${id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -848,7 +867,7 @@ function displayStyleAnchors(anchors, type) {
             if (!newReply || newReply.trim() === '') return;
 
             try {
-                const response = await fetch(`/api/twin/${twinId}/style-anchors/${id}`, {
+                const response = await fetch(`/api/twin/${twinToken}/style-anchors/${id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -885,7 +904,7 @@ function displayStyleAnchors(anchors, type) {
             if (!confirmed) return;
 
             try {
-                const response = await fetch(`/api/twin/${twinId}/style-anchors/${id}`, {
+                const response = await fetch(`/api/twin/${twinToken}/style-anchors/${id}`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-Token': window.csrfToken
@@ -914,7 +933,7 @@ function displayStyleAnchors(anchors, type) {
             }
 
             try {
-                const response = await fetch(`/api/twin/${twinId}/long-term-memory`, {
+                const response = await fetch(`/api/twin/${twinToken}/long-term-memory`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -969,7 +988,7 @@ function displayStyleAnchors(anchors, type) {
             try {
                 // For phrases, we only send type and phrase (same as style-customize.ejs)
                 // Backend will handle setting userUtterance to NULL to avoid constraint violation
-                const response = await fetch(`/api/twin/${twinId}/style-anchors`, {
+                const response = await fetch(`/api/twin/${twinToken}/style-anchors`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1048,7 +1067,7 @@ function displayStyleAnchors(anchors, type) {
             }
 
             try {
-                const response = await fetch(`/api/twin/${twinId}/style-anchors`, {
+                const response = await fetch(`/api/twin/${twinToken}/style-anchors`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1338,7 +1357,7 @@ function displayStyleAnchors(anchors, type) {
                     
                     if (memoryType === 'longterm') {
                         const category = document.getElementById('memoryCategory').value;
-                        response = await fetch(`/api/twin/${twinId}/long-term-memory`, {
+                        response = await fetch(`/api/twin/${twinToken}/long-term-memory`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -1353,7 +1372,7 @@ function displayStyleAnchors(anchors, type) {
                     } else {
                         const anchorType = document.getElementById('anchorType').value;
                         if (anchorType === 'phrase') {
-                            response = await fetch(`/api/twin/${twinId}/style-anchors`, {
+                            response = await fetch(`/api/twin/${twinToken}/style-anchors`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -1371,7 +1390,7 @@ function displayStyleAnchors(anchors, type) {
                             const userUtterance = lines[0] || '';
                             const idealReply = lines.slice(1).join('\n') || lines[0] || '';
                             
-                            response = await fetch(`/api/twin/${twinId}/style-anchors`, {
+                            response = await fetch(`/api/twin/${twinToken}/style-anchors`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -1427,41 +1446,69 @@ function displayStyleAnchors(anchors, type) {
     <!--Footer-->
     <%- include('footer/footer-conditional-private') %>
     <%- include('partials/modal-helpers') %>
+    <!-- ✅ Global Toast / Notification System (for standalone page) -->
     <script>
-        // Notification function for memory-management
-        function showNotification(message, type = 'success') {
-            const existing = document.getElementById('memory-management-notification');
-            if (existing) existing.remove();
+        (function () {
+            window.UI = window.UI || {};
+            if (window.UI.showToast) return; // don't override if layout already defined
 
-            const el = document.createElement('div');
-            el.id = 'memory-management-notification';
-            el.className = 'fixed top-20 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 ' +
-                (type === 'success' 
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
-                    : type === 'error'
-                    ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
-                    : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white');
+            window.UI.showToast = function (message, type = 'success', opts = {}) {
+                const duration = typeof opts.duration === 'number' ? opts.duration : 3000;
+                const existing = document.getElementById('global-toast');
+                if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
 
-            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
-            el.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <span class="text-xl">${icon}</span>
-                    <span class="font-semibold">${message}</span>
-                </div>
-            `;
+                const el = document.createElement('div');
+                el.id = 'global-toast';
+                el.className =
+                    'fixed top-4 right-4 z-50 max-w-sm w-[90vw] sm:w-auto px-4 py-3 sm:px-6 sm:py-4 ' +
+                    'rounded-xl shadow-2xl transition-all duration-300 transform opacity-0 translate-y-2';
 
-            document.body.appendChild(el);
+                let bgClasses, icon;
+                if (type === 'success') {
+                    bgClasses = 'bg-gradient-to-r from-green-500 to-emerald-500 text-white';
+                    icon = '✅';
+                } else if (type === 'error') {
+                    bgClasses = 'bg-gradient-to-r from-red-500 to-rose-500 text-white';
+                    icon = '❌';
+                } else {
+                    bgClasses = 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white';
+                    icon = 'ℹ️';
+                }
 
-            setTimeout(() => {
-                el.style.opacity = '1';
-            }, 10);
+                el.className += ' ' + bgClasses;
+                el.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">${icon}</span>
+                        <div class="flex flex-col text-left">
+                            <span class="font-semibold">${message}</span>
+                        </div>
+                    </div>
+                `;
 
-            setTimeout(() => {
-                el.style.opacity = '0';
+                document.body.appendChild(el);
+
+                requestAnimationFrame(() => {
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                });
+
                 setTimeout(() => {
-                    if (el.parentNode) el.parentNode.removeChild(el);
-                }, 300);
-            }, 3000);
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(-8px)';
+                    setTimeout(() => {
+                        if (el.parentNode) el.parentNode.removeChild(el);
+                    }, 300);
+                }, duration);
+            };
+        })();
+    </script>
+    
+    <script>
+        // ✅ Unified notification wrapper for memory-management
+        function showNotification(message, type = 'success') {
+            if (window.UI && typeof window.UI.showToast === 'function') {
+                window.UI.showToast(message, type);
+            }
         }
     </script>
 </body>

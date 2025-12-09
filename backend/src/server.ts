@@ -1,9 +1,43 @@
 import app from './app';
-import { config } from './config/env';
+import { config, isProd } from './config/env';
 import { logger } from './config/logger';
 import { db } from './config/db';
 import { initializeDatabase } from './config/database';
 import { initializePostHog, shutdownPostHog } from './services/posthogService';
+
+// ✅ NEW: Global process error handlers (MUST be before startServer)
+process.on('uncaughtException', (error: Error) => {
+  logger.error('❌ UNCAUGHT EXCEPTION - Process will exit', {
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+    timestamp: new Date().toISOString(),
+  });
+  
+  // Attempt graceful shutdown
+  shutdownPostHog();
+  
+  // Exit with error code so process manager restarts
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  logger.error('❌ UNHANDLED REJECTION - Process will exit', {
+    reason: reason instanceof Error ? {
+      name: reason.name,
+      message: reason.message,
+      stack: reason.stack,
+    } : reason,
+    promise: promise.toString(),
+    timestamp: new Date().toISOString(),
+  });
+  
+  // Attempt graceful shutdown
+  shutdownPostHog();
+  
+  // Exit with error code so process manager restarts
+  process.exit(1);
+});
 
 // ✅ Pre-warm Groq API function
 async function preWarmGroqAPI(): Promise<void> {

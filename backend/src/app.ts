@@ -526,10 +526,11 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/invite', inviteRoutes);
 app.use('/api/metrics', analyticsRoutes);
 
-// ✅ FIX: always enable admin analytics in dev; use flag only to disable in prod
-if (config.nodeEnv === 'development' || config.enableAdminAnalytics) {
+// ✅ Admin analytics API only for local/staging (never in prod)
+if (config.enableAdminAnalytics) {
   app.use('/api/admin/analytics', adminAnalyticsRoutes);
 }
+
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/memory', memoryRoutes);
 app.use('/api/user', userRoutes);

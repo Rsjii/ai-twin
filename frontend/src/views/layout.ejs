@@ -1055,5 +1055,80 @@
             document.addEventListener('touchend', handleTouchEnd, { passive: true });
             
     </script>
+    
+    <!-- ✅ Global Toast / Notification System -->
+    <script>
+        (function () {
+            window.UI = window.UI || {};
+            if (window.UI.showToast) return; // prevent double-definition
+
+            /**
+             * Show a toast notification
+             * @param {string} message
+             * @param {'success'|'error'|'info'} type
+             * @param {{duration?: number}} opts
+             */
+            window.UI.showToast = function (message, type = 'success', opts = {}) {
+                const duration = typeof opts.duration === 'number' ? opts.duration : 3000;
+
+                // Remove existing toast if any
+                const existing = document.getElementById('global-toast');
+                if (existing && existing.parentNode) {
+                    existing.parentNode.removeChild(existing);
+                }
+
+                // Create toast
+                const el = document.createElement('div');
+                el.id = 'global-toast';
+
+                // ✅ Always top-right, responsive width
+                el.className =
+                    'fixed top-4 right-4 z-50 max-w-sm w-[90vw] sm:w-auto px-4 py-3 sm:px-6 sm:py-4 ' +
+                    'rounded-xl shadow-2xl transition-all duration-300 transform opacity-0 translate-y-2';
+
+                // Color scheme by type
+                let bgClasses;
+                let icon;
+                if (type === 'success') {
+                    bgClasses = 'bg-gradient-to-r from-green-500 to-emerald-500 text-white';
+                    icon = '✅';
+                } else if (type === 'error') {
+                    bgClasses = 'bg-gradient-to-r from-red-500 to-rose-500 text-white';
+                    icon = '❌';
+                } else {
+                    bgClasses = 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white';
+                    icon = 'ℹ️';
+                }
+
+                el.className += ' ' + bgClasses;
+
+                el.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">${icon}</span>
+                        <div class="flex flex-col text-left">
+                            <span class="font-semibold">${message}</span>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(el);
+
+                // Fade in (slide from top)
+                requestAnimationFrame(() => {
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                });
+
+                // Auto-dismiss
+                setTimeout(() => {
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(-8px)';
+                    setTimeout(() => {
+                        if (el.parentNode) el.parentNode.removeChild(el);
+                    }, 300);
+                }, duration);
+            };
+        })();
+    </script>
 </body>
 </html>

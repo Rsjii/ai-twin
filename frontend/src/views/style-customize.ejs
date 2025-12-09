@@ -352,7 +352,8 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
     import { initDirtyForm } from '/js/form-dirty-state.js';
     
     let currentTwinData = null;
-    const twinId = '<%= twinId %>';
+    // ✅ SECURITY: Use tokenized twinToken instead of raw twinToken
+    const twinToken = '<%= typeof twinToken !== "undefined" ? twinToken : "" %>';
     let dirtyFormTracker = null;
     let dirtyFormTrackerMobile = null;
     // ✅ FIX: Read tab from URL on init, default to 'phrases'
@@ -514,7 +515,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
 
     async function loadTwinData() {
         try {
-            const response = await fetch(`/api/twin/${twinId}/edit-data`);
+            const response = await fetch(`/api/twin/${twinToken}/edit-data`);
             const data = await response.json();
             
             if (data.success) {
@@ -574,7 +575,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
 
     async function loadPhrases() {
         try {
-            const response = await fetch(`/api/twin/${twinId}/style-anchors?type=phrase&limit=5`, {
+            const response = await fetch(`/api/twin/${twinToken}/style-anchors?type=phrase&limit=5`, {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -616,7 +617,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
 
     async function loadInteractions() {
         try {
-            const response = await fetch(`/api/twin/${twinId}/style-anchors?type=interaction&limit=5`, {
+            const response = await fetch(`/api/twin/${twinToken}/style-anchors?type=interaction&limit=5`, {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -664,7 +665,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
 
     async function loadStyleAnchorStats() {
         try {
-            const response = await fetch(`/api/twin/${twinId}/style-anchors?limit=1000`, {
+            const response = await fetch(`/api/twin/${twinToken}/style-anchors?limit=1000`, {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -737,7 +738,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
         
         try {
             if (Object.keys(styleUpdates).length > 0) {
-                const response = await fetch(`/api/twin/${twinId}/update-style`, {
+                const response = await fetch(`/api/twin/${twinToken}/update-style`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -795,41 +796,69 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
 <!--Footer-->
 <%- include('footer/footer-conditional-private') %>
 <%- include('partials/modal-helpers') %>
+<!-- ✅ Global Toast / Notification System (for standalone page) -->
 <script>
-    // Notification function for style-customize
-    function showNotification(message, type = 'success') {
-        const existing = document.getElementById('style-customize-notification');
-        if (existing) existing.remove();
+    (function () {
+        window.UI = window.UI || {};
+        if (window.UI.showToast) return; // don't override if layout already defined
 
-        const el = document.createElement('div');
-        el.id = 'style-customize-notification';
-        el.className = 'fixed top-20 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 ' +
-            (type === 'success' 
-                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
-                : type === 'error'
-                ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
-                : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white');
+        window.UI.showToast = function (message, type = 'success', opts = {}) {
+            const duration = typeof opts.duration === 'number' ? opts.duration : 3000;
+            const existing = document.getElementById('global-toast');
+            if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
 
-        const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
-        el.innerHTML = `
-            <div class="flex items-center gap-3">
-                <span class="text-xl">${icon}</span>
-                <span class="font-semibold">${message}</span>
-            </div>
-        `;
+            const el = document.createElement('div');
+            el.id = 'global-toast';
+            el.className =
+                'fixed top-4 right-4 z-50 max-w-sm w-[90vw] sm:w-auto px-4 py-3 sm:px-6 sm:py-4 ' +
+                'rounded-xl shadow-2xl transition-all duration-300 transform opacity-0 translate-y-2';
 
-        document.body.appendChild(el);
+            let bgClasses, icon;
+            if (type === 'success') {
+                bgClasses = 'bg-gradient-to-r from-green-500 to-emerald-500 text-white';
+                icon = '✅';
+            } else if (type === 'error') {
+                bgClasses = 'bg-gradient-to-r from-red-500 to-rose-500 text-white';
+                icon = '❌';
+            } else {
+                bgClasses = 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white';
+                icon = 'ℹ️';
+            }
 
-        setTimeout(() => {
-            el.style.opacity = '1';
-        }, 10);
+            el.className += ' ' + bgClasses;
+            el.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">${icon}</span>
+                    <div class="flex flex-col text-left">
+                        <span class="font-semibold">${message}</span>
+                    </div>
+                </div>
+            `;
 
-        setTimeout(() => {
-            el.style.opacity = '0';
+            document.body.appendChild(el);
+
+            requestAnimationFrame(() => {
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+            });
+
             setTimeout(() => {
-                if (el.parentNode) el.parentNode.removeChild(el);
-            }, 300);
-        }, 3000);
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-8px)';
+                setTimeout(() => {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                }, 300);
+            }, duration);
+        };
+    })();
+</script>
+
+<script>
+    // ✅ Unified notification wrapper for style-customize
+    function showNotification(message, type = 'success') {
+        if (window.UI && typeof window.UI.showToast === 'function') {
+            window.UI.showToast(message, type);
+        }
     }
 </script>
 </body>

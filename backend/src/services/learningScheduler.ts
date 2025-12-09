@@ -17,7 +17,16 @@ export class LearningScheduler {
         logger.info('Running scheduled background learning (updating style vector & prompt from feedback)');
         await backgroundLearningService.processAllTwins();
       } catch (error) {
-        logger.error('Scheduled background learning error:', error);
+        // ✅ Enhanced error logging
+        logger.error('Scheduled background learning error', {
+          error: error instanceof Error ? {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          } : error,
+          timestamp: new Date().toISOString(),
+        });
+        // Don't throw - let interval continue
       }
     }, 12 * 60 * 60 * 1000); // ✅ 12 hours (was 6 hours)
 
@@ -27,7 +36,16 @@ export class LearningScheduler {
         logger.info('Running weekly system prompt updates');
         await systemPromptUpdater.updateAllTwins();
       } catch (error) {
-        logger.error('Weekly system prompt update error:', error);
+        // ✅ Enhanced error logging
+        logger.error('Weekly system prompt update error', {
+          error: error instanceof Error ? {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          } : error,
+          timestamp: new Date().toISOString(),
+        });
+        // Don't throw - let cron continue
       }
     });
 

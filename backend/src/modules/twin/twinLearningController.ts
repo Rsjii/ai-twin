@@ -1,53 +1,58 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { systemPromptUpdater } from '../../services/systemPromptUpdater';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
+import { detokenizeId } from '../../utils/idTokenization';
+import { createError, ErrorCodes } from '../../utils/errors';
+import { isDev } from '../../config/env';
 
 /**
  * Regenerate system prompt for a twin
  */
-export const regeneratePrompt = async (req: any, res: Response) => {
+export const regeneratePrompt = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'regeneratePrompt' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const userId = req.user.id;
     
     // Verify ownership
-   await verifyTwinOwnership(twinId, userId);
+    await verifyTwinOwnership(twinId, userId);
     
     // Update system prompt
     const success = await systemPromptUpdater.updateTwinSystemPrompt(twinId);
     
-    if (success) {
-      res.json({ success: true, message: 'System prompt regenerated successfully' });
-    } else {
-      res.status(500).json({ success: false, error: 'Failed to regenerate system prompt' });
+    if (!success) {
+      throw createError.internal('Failed to regenerate system prompt');
     }
+    
+    res.json({ success: true, message: 'System prompt regenerated successfully' });
   } catch (error) {
-    logger.error('Regenerate prompt API error:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    next(error); // ✅ Let asyncHandler + errorHandlerMiddleware handle it
   }
 };
 
 /**
  * Get learning data for a twin
  */
-export const getLearningData = async (req: any, res: Response) => {
+export const getLearningData = async (req: any, res: Response, next: NextFunction) => {
   try {
-    console.log('[BACKEND_LEARNING] ========== START getLearningData ==========');
-    const { id: twinId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'getLearningData' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const userId = req.user.id;
     
-    console.log('[BACKEND_LEARNING] Request params:', {
-      twinId,
-      userId,
-      hasUser: !!req.user
-    });
-    
     // Verify ownership
-    console.log('[BACKEND_LEARNING] Verifying twin ownership...');
     await verifyTwinOwnership(twinId, userId);
-    console.log('[BACKEND_LEARNING] ✅ Ownership verified');
     
     // Real learning data from database
     const learningData = {
@@ -58,7 +63,6 @@ export const getLearningData = async (req: any, res: Response) => {
     };
 
     try {
-      console.log('[BACKEND_LEARNING] Executing analytics query...');
       // Get real analytics from database
       const analyticsResult = await db.query(`
         SELECT 
@@ -72,22 +76,9 @@ export const getLearningData = async (req: any, res: Response) => {
         WHERE c."twinId" = $1
       `, [twinId]);
 
-      console.log('[BACKEND_LEARNING] Analytics query result:', {
-        hasResult: !!analyticsResult,
-        rowsCount: analyticsResult?.rows?.length || 0,
-        firstRow: analyticsResult?.rows?.[0]
-      });
-
       if (analyticsResult && analyticsResult.rows.length > 0) {
         const analytics = analyticsResult.rows[0];
-        console.log('[BACKEND_LEARNING] Analytics data:', {
-          total_chats: analytics.total_chats,
-          total_messages: analytics.total_messages,
-          positive_feedback: analytics.positive_feedback,
-          negative_feedback: analytics.negative_feedback
-        });
         
-        console.log('[BACKEND_LEARNING] Executing events query...');
         // Get recent learning events
         const eventsResult = await db.query(`
           SELECT 
@@ -99,80 +90,131 @@ export const getLearningData = async (req: any, res: Response) => {
           LIMIT 5
         `, [twinId]);
 
-        console.log('[BACKEND_LEARNING] Events query result:', {
-          hasResult: !!eventsResult,
-          rowsCount: eventsResult?.rows?.length || 0
-        });
-
         learningData.totalInteractions = parseInt(analytics.total_messages) || 0;
         learningData.learningScore = analytics.total_messages > 0 ? 
           Math.round((parseInt(analytics.positive_feedback) / parseInt(analytics.total_messages)) * 100) : 0;
         learningData.styleAccuracy = analytics.total_messages > 0 ? 
           Math.round((parseInt(analytics.positive_feedback) / parseInt(analytics.total_messages)) * 100) : 0;
         
-        console.log('[BACKEND_LEARNING] Calculated learning data:', {
-          totalInteractions: learningData.totalInteractions,
-          learningScore: learningData.learningScore,
-          styleAccuracy: learningData.styleAccuracy
-        });
-        
         if (eventsResult && eventsResult.rows) {
           learningData.events = eventsResult.rows.map((event: any) => ({
             description: event.description,
             timestamp: event.timestamp
           }));
-          console.log('[BACKEND_LEARNING] Events mapped:', learningData.events.length, 'events');
         }
-      } else {
-        console.warn('[BACKEND_LEARNING] ⚠️ No analytics result, using default values');
       }
     } catch (error) {
-      console.error('[BACKEND_LEARNING] ❌ Error loading learning data:', error);
       logger.error('Error loading learning data:', error);
       // Keep default values if error occurs
     }
 
-    console.log('[BACKEND_LEARNING] Final learning data:', learningData);
-    console.log('[BACKEND_LEARNING] ✅ Sending response with status 200');
-    console.log('[BACKEND_LEARNING] ========== END getLearningData (SUCCESS) ==========');
     res.json({ success: true, learning: learningData });
   } catch (error) {
-    console.error('[BACKEND_LEARNING] ========== ERROR in getLearningData ==========');
-    console.error('[BACKEND_LEARNING] Error:', error);
-    console.error('[BACKEND_LEARNING] Error stack:', error instanceof Error ? error.stack : 'No stack');
-    logger.error('Learning data API error:', error);
-    console.log('[BACKEND_LEARNING] ========== END getLearningData (ERROR) ==========');
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    next(error); // ✅ Standardize on next(error)
   }
 };
 
 /**
  * Update learning settings
  */
-export const updateLearningSettings = async (req: any, res: Response) => {
+export const updateLearningSettings = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'updateLearningSettings' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const userId = req.user.id;
     const { autoLearning, learningSensitivity } = req.body;
-    
+
     // Verify ownership
-   await verifyTwinOwnership(twinId, userId);
-    
-    // Update learning settings (implement database storage later)
+    await verifyTwinOwnership(twinId, userId);
+
+    // Load current personaData
+    const twinResult = await db.query(`
+      SELECT "personaData" FROM "Twin"
+      WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+
+    const currentPersona = twinResult.rows[0]?.personaData || {};
+
+    // Merge learning settings into personaData
+    const updatedPersona = {
+      ...currentPersona,
+      learningSettings: {
+        autoLearning: !!autoLearning,
+        learningSensitivity: learningSensitivity || 'medium',
+      },
+    };
+
+    await db.query(`
+      UPDATE "Twin"
+      SET "personaData" = $1
+      WHERE id = $2
+    `, [JSON.stringify(updatedPersona), twinId]);
+
     res.json({ success: true, message: 'Learning settings updated successfully' });
   } catch (error) {
-    logger.error('Learning settings API error:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    next(error);
+  }
+};
+
+/**
+ * Get learning settings
+ */
+export const getLearningSettings = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'getLearningSettings' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
+    const userId = req.user.id;
+
+    await verifyTwinOwnership(twinId, userId);
+
+    const twinResult = await db.query(`
+      SELECT "personaData" FROM "Twin"
+      WHERE id = $1 AND "userId" = $2
+    `, [twinId, userId]);
+
+    const persona = twinResult.rows[0]?.personaData || {};
+    const settings = persona.learningSettings || {
+      autoLearning: false,
+      learningSensitivity: 'medium',
+    };
+
+    res.json({ success: true, settings });
+  } catch (error) {
+    next(error);
   }
 };
 
 /**
  * Get chat history for a twin
  */
-export const getTwinChatHistory = async (req: any, res: Response) => {
+export const getTwinChatHistory = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
-    const { limit = 20, offset = 0 } = req.query;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'getTwinChatHistory' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
+    const { QUERY_LIMITS } = await import('../../config/constants');
+    const { limit = QUERY_LIMITS.CHAT_MESSAGES, offset = 0 } = req.query;
+    
+    const rawLimit = Number(limit) || QUERY_LIMITS.CHAT_MESSAGES;
+    const safeLimit = Math.min(
+      Math.max(rawLimit, 1),
+      QUERY_LIMITS.MAX_PAGE_SIZE,
+    );
+    
+    const safeOffset = Math.max(Number(offset) || 0, 0);
     const userId = req.user.id;
     
     await verifyTwinOwnership(twinId, userId);
@@ -191,10 +233,10 @@ export const getTwinChatHistory = async (req: any, res: Response) => {
       GROUP BY c.id, c."createdAt", c."lastMessage"
       ORDER BY c."createdAt" DESC
       LIMIT $3 OFFSET $4
-    `, [twinId, userId, parseInt(limit as string), parseInt(offset as string)]);
+    `, [twinId, userId, safeLimit, safeOffset]);
     
     if (!chats) {
-      return res.status(500).json({ success: false, error: 'Failed to fetch chats' });
+      throw createError.internal('Failed to fetch chats');
     }
     
     // Format chat data
@@ -212,8 +254,7 @@ export const getTwinChatHistory = async (req: any, res: Response) => {
       total: chatHistory.length 
     });
   } catch (error) {
-    logger.error('Chat history API error:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    next(error);
   }
 };
 

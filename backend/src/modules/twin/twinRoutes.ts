@@ -7,7 +7,8 @@ import {
   regeneratePrompt,
   getLearningData,
   updateLearningSettings,
-  getTwinChatHistory
+  getTwinChatHistory,
+  getLearningSettings,
 } from './twinLearningController';
 import {
   addManualTraining,
@@ -40,6 +41,7 @@ import {
   deleteTwinAnchor,
   getTwinPhrases
 } from './styleAnchorController';
+import { asyncHandler } from '../../middleware/errorHandler';
 
 const router = Router();
 
@@ -48,52 +50,54 @@ router.use(requireJWTFromCookie);
 router.use(generateCSRFToken);
 
 // Twin routes
-router.post('/create', requireJWTFromCookie, createTwin);
-router.get('/', getUserTwins);
-router.get('/:id', getTwinById);
-router.delete('/:id', deleteTwin);
+router.post('/create', requireJWTFromCookie, asyncHandler(createTwin));
+router.get('/', asyncHandler(getUserTwins));
+// ✅ SECURITY: Use tokenized IDs for owner routes
+router.get('/:twinToken', asyncHandler(getTwinById));
+router.delete('/:twinToken', asyncHandler(deleteTwin));
 
 // Twin edit endpoints
-router.get('/:id/edit-data', getTwinEditData);
-router.post('/:id/update-style', updateTwinStyle);
-router.post('/:id/update-persona', updateTwinPersona);
-router.post('/:id/style-preview', previewStyleChanges);
+router.get('/:twinToken/edit-data', asyncHandler(getTwinEditData));
+router.post('/:twinToken/update-style', asyncHandler(updateTwinStyle));
+router.post('/:twinToken/update-persona', asyncHandler(updateTwinPersona));
+router.post('/:twinToken/style-preview', asyncHandler(previewStyleChanges));
 
 // Twin learning endpoints
-router.post('/:id/regenerate-prompt', regeneratePrompt);
-router.get('/:id/learning-data', getLearningData);
-router.post('/:id/learning-settings', updateLearningSettings);
-router.get('/:id/chat-history', getTwinChatHistory);
+router.post('/:twinToken/regenerate-prompt', asyncHandler(regeneratePrompt));
+router.get('/:twinToken/learning-data', asyncHandler(getLearningData));
+router.get('/:twinToken/learning-settings', asyncHandler(getLearningSettings));
+router.post('/:twinToken/learning-settings', asyncHandler(updateLearningSettings));
+router.get('/:twinToken/chat-history', asyncHandler(getTwinChatHistory));
 
 // Twin training endpoints
-router.post('/:id/manual-training', addManualTraining);
-router.get('/:id/chat/:chatId/messages', getChatMessages);
-router.post('/:id/convert-messages-to-training', convertMessagesToTraining);
-router.get('/:id/training/effectiveness', getTrainingEffectiveness);
-router.post('/:id/convert-to-training', convertToTraining);
-router.get('/:id/training-progress', getTrainingProgress);
+router.post('/:twinToken/manual-training', asyncHandler(addManualTraining));
+router.get('/:twinToken/chat/:chatId/messages', asyncHandler(getChatMessages));
+router.post('/:twinToken/convert-messages-to-training', asyncHandler(convertMessagesToTraining));
+router.get('/:twinToken/training/effectiveness', asyncHandler(getTrainingEffectiveness));
+router.post('/:twinToken/convert-to-training', asyncHandler(convertToTraining));
+router.get('/:twinToken/training-progress', asyncHandler(getTrainingProgress));
 
 // Twin performance endpoints
-router.get('/:id/templates', getTemplates);
-router.get('/:id/milestones', getMilestones);
-router.post('/:id/goals', setLearningGoal);
-router.get('/:id/performance', getPerformanceMetrics);
-router.post('/:id/optimize/memories', optimizeMemories);
-router.post('/:id/analyze/performance', analyzePerformance);
-router.get('/:id/export/analytics', exportAnalytics);
-router.post('/:id/reset/performance', resetPerformance);
+router.get('/:twinToken/templates', asyncHandler(getTemplates));
+router.get('/:twinToken/milestones', asyncHandler(getMilestones));
+router.post('/:twinToken/goals', asyncHandler(setLearningGoal));
+router.get('/:twinToken/performance', asyncHandler(getPerformanceMetrics));
+router.post('/:twinToken/optimize/memories', asyncHandler(optimizeMemories));
+router.post('/:twinToken/analyze/performance', asyncHandler(analyzePerformance));
+router.get('/:twinToken/export/analytics', asyncHandler(exportAnalytics));
+router.post('/:twinToken/reset/performance', asyncHandler(resetPerformance));
 
 // Unified Long-Term Memory API
-router.get('/:twinToken/long-term-memory', requireJWTFromCookie, getLongTermMemories);
-router.post('/:twinToken/long-term-memory', requireJWTFromCookie, addLongTermMemory);
-router.put('/:twinToken/long-term-memory/:key', requireJWTFromCookie, updateLongTermMemory);
-router.delete('/:twinToken/long-term-memory/:key', requireJWTFromCookie, deleteLongTermMemory);
+router.get('/:twinToken/long-term-memory', asyncHandler(getLongTermMemories));
+router.post('/:twinToken/long-term-memory', asyncHandler(addLongTermMemory));
+router.put('/:twinToken/long-term-memory/:key', asyncHandler(updateLongTermMemory));
+router.delete('/:twinToken/long-term-memory/:key', asyncHandler(deleteLongTermMemory));
 
 // Style Anchor API
-router.get('/:id/style-anchors', getTwinAnchors);
-router.get('/:id/style-anchors/phrases', getTwinPhrases);
-router.post('/:id/style-anchors', addTwinAnchor);
-router.put('/:id/style-anchors/:anchorId', updateTwinAnchor);
-router.delete('/:id/style-anchors/:anchorId', deleteTwinAnchor);
+router.get('/:twinToken/style-anchors', asyncHandler(getTwinAnchors));
+router.get('/:twinToken/style-anchors/phrases', asyncHandler(getTwinPhrases));
+router.post('/:twinToken/style-anchors', asyncHandler(addTwinAnchor));
+router.put('/:twinToken/style-anchors/:anchorId', asyncHandler(updateTwinAnchor));
+router.delete('/:twinToken/style-anchors/:anchorId', asyncHandler(deleteTwinAnchor));
 
 export default router;

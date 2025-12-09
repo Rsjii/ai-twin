@@ -4,6 +4,22 @@ import { logger } from '../../config/logger';
 import { ADMIN_EMAILS, QUERY_LIMITS } from '../../config/constants';
 import { sanitizeUser, sanitizeTwin, sanitizeChat, sanitizeMessage, sanitizeEvent, sanitizeInvite, tokenizeId, detokenizeId } from '../../utils/idTokenization';
 
+// ✅ Helper function to clamp pagination limits (reusable across all functions)
+function clampPagination(page: any, limit: any, defaultLimit: number = QUERY_LIMITS.RECENT_ITEMS) {
+  const rawPage = Number(page) || 1;
+  const rawLimit = Number(limit) || defaultLimit;
+  
+  const safePage = Math.max(rawPage, 1);
+  const safeLimit = Math.min(
+    Math.max(rawLimit, 1),
+    QUERY_LIMITS.MAX_PAGE_SIZE,
+  );
+  
+  const offset = (safePage - 1) * safeLimit;
+  
+  return { safePage, safeLimit, offset };
+}
+
 // Admin authentication middleware - returns 404 to hide admin pages
 export const requireAdminAuth = (req: Request, res: Response, next: Function) => {
   // Check if user is admin
@@ -870,7 +886,10 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
 // Get detailed users list for admin
 export const getUsersList = async (req: Request, res: Response) => {
   try {
-    const { search, limit = QUERY_LIMITS.DEFAULT_PAGE_SIZE, offset = 0 } = req.query;
+    const { search, page = 1, limit = QUERY_LIMITS.DEFAULT_PAGE_SIZE } = req.query;
+    
+    // Clamp limit: 1..MAX_PAGE_SIZE
+    const { safePage, safeLimit, offset } = clampPagination(page, limit, QUERY_LIMITS.DEFAULT_PAGE_SIZE);
     
     let whereClause = '';
     let queryParams: any[] = [];
@@ -894,7 +913,7 @@ export const getUsersList = async (req: Request, res: Response) => {
       GROUP BY u.id
       ORDER BY u."createdAt" DESC
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
-    `, [...queryParams, parseInt(limit as string), parseInt(offset as string)]);
+    `, [...queryParams, safeLimit, offset]);
     
     const totalUsersResult = await db.query(`
       SELECT COUNT(*) as total FROM "User" u ${whereClause}
@@ -907,8 +926,9 @@ export const getUsersList = async (req: Request, res: Response) => {
         users: usersResult.rows.map(user => sanitizeUser(user, true)), // includeEmail=true for admin
         pagination: {
           total: parseInt(totalUsersResult.rows[0].total),
-          limit: parseInt(limit as string),
-          offset: parseInt(offset as string)
+          currentPage: safePage,
+          totalPages: Math.ceil(parseInt(totalUsersResult.rows[0].total) / safeLimit),
+          itemsPerPage: safeLimit
         }
       }
     });
@@ -1003,10 +1023,10 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
 // Get detailed users page data with pagination
 export const getDetailedUsersPage = async (req: Request, res: Response) => {
   try {
-    console.log('=== GET DETAILED USERS PAGE ===');
-    
     const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC', fromDate = '', toDate = '', minEvents = '' } = req.query;
-    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    
+    // Clamp limit: 1..MAX_PAGE_SIZE
+    const { safePage, safeLimit, offset } = clampPagination(page, limit);
     
     let whereClause = '';
     let queryParams: any[] = [];
@@ -1065,7 +1085,7 @@ export const getDetailedUsersPage = async (req: Request, res: Response) => {
         `u."${safeSortBy}"`
       } ${safeSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
-    `, [...queryParams, parseInt(limit as string), offset]);    
+    `, [...queryParams, safeLimit, offset]);    
     
     // Get total count
     const totalResult = await db.query(`
@@ -1088,7 +1108,6 @@ export const getDetailedUsersPage = async (req: Request, res: Response) => {
       FROM "User" u
     `);
     
-    console.log('Users page data fetched successfully');
     
     // ✅ Sanitize users before returning
     res.json({
@@ -1106,17 +1125,19 @@ export const getDetailedUsersPage = async (req: Request, res: Response) => {
           return sanitized;
         }),
         pagination: {
-          currentPage: parseInt(page as string),
-          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
+          currentPage: safePage,
+          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / safeLimit),
           totalItems: parseInt(totalResult.rows[0].total),
-          itemsPerPage: parseInt(limit as string)
+          itemsPerPage: safeLimit
         },
         summary: summaryResult.rows[0]
       }
     });    
   } catch (error) {
-    console.error('=== ERROR IN GET DETAILED USERS PAGE ===');
-    console.error('Error details:', error);
+    logger.error('Error in getDetailedUsersPage', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
@@ -1127,10 +1148,11 @@ export const getDetailedUsersPage = async (req: Request, res: Response) => {
 // Get detailed twins page data with pagination
 export const getDetailedTwinsPage = async (req: Request, res: Response) => {
   try {
-    console.log('=== GET DETAILED TWINS PAGE ===');
     
     const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC', fromDate = '', toDate = '', isPublic = '', minLikes = '', minChats = '' } = req.query;
-    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    
+    // Clamp limit: 1..MAX_PAGE_SIZE
+    const { safePage, safeLimit, offset } = clampPagination(page, limit);
     
     let whereClause = '';
     let queryParams: any[] = [];
@@ -1205,7 +1227,7 @@ export const getDetailedTwinsPage = async (req: Request, res: Response) => {
         `t."${safeSortBy}"`
       } ${safeSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
-    `, [...queryParams, parseInt(limit as string), offset]);    
+    `, [...queryParams, safeLimit, offset]);    
     
     // Get total count
     const totalResult = await db.query(`
@@ -1224,7 +1246,6 @@ const summaryResult = await db.query(`
   FROM "Twin" t
 `);    
     
-    console.log('Twins page data fetched successfully');
     
     // ✅ Sanitize twins before returning
     res.json({
@@ -1239,21 +1260,23 @@ const summaryResult = await db.query(`
           return sanitized;
         }),
         pagination: {
-          currentPage: parseInt(page as string),
-          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
+          currentPage: safePage,
+          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / safeLimit),
           totalItems: parseInt(totalResult.rows[0].total),
-          itemsPerPage: parseInt(limit as string)
+          itemsPerPage: safeLimit
         },
         summary: summaryResult.rows[0]
       }
     });    
     
   } catch (error) {
-    console.error('=== ERROR IN GET DETAILED TWINS PAGE ===');
-    console.error('Error details:', error);
+    logger.error('Error in getDetailedTwinsPage', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     res.status(500).json({ 
       error: 'Internal server error',
-      details: error.message 
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };
@@ -1261,10 +1284,11 @@ const summaryResult = await db.query(`
 // Get detailed chats page data with pagination
 export const getDetailedChatsPage = async (req: Request, res: Response) => {
   try {
-    console.log('=== GET DETAILED CHATS PAGE ===');
     
     const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC', fromDate = '', toDate = '', twinHandle = '' } = req.query;
-    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    
+    // Clamp limit: 1..MAX_PAGE_SIZE
+    const { safePage, safeLimit, offset } = clampPagination(page, limit);
     
     let whereClause = '';
     let queryParams: any[] = [];
@@ -1323,7 +1347,7 @@ export const getDetailedChatsPage = async (req: Request, res: Response) => {
         `c."${safeSortBy}"`
       } ${safeSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
-    `, [...queryParams, parseInt(limit as string), offset]);    
+    `, [...queryParams, safeLimit, offset]);    
     
     // Get total count
     const totalResult = await db.query(`
@@ -1349,7 +1373,6 @@ const summaryResult = await db.query(`
   FROM "Chat" c
 `);
 
-    console.log('Chats page data fetched successfully');
     
     // ✅ Sanitize chats before returning
     res.json({
@@ -1368,18 +1391,21 @@ const summaryResult = await db.query(`
           return sanitized;
         }),
         pagination: {
-          currentPage: parseInt(page as string),
-          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
+          currentPage: safePage,
+          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / safeLimit),
           totalItems: parseInt(totalResult.rows[0].total),
-          itemsPerPage: parseInt(limit as string)
+          itemsPerPage: safeLimit
         },
         summary: summaryResult.rows[0]
       }
     });
 
   } catch (error) {
-    console.error('=== ERROR IN GET DETAILED CHATS PAGE ===');
-    console.error('Error details:', error);
+    const { logger } = await import('../../config/logger');
+    logger.error('Error in getDetailedChatsPage', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
@@ -1390,10 +1416,11 @@ const summaryResult = await db.query(`
 // Get detailed messages page data with pagination
 export const getDetailedMessagesPage = async (req: Request, res: Response) => {
   try {
-    console.log('=== GET DETAILED MESSAGES PAGE ===');
     
     const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC', fromDate = '', toDate = '', sender = '', approved = '', twinHandle = '' } = req.query;
-    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    
+    // Clamp limit: 1..MAX_PAGE_SIZE
+    const { safePage, safeLimit, offset } = clampPagination(page, limit);
     
     let whereClause = '';
     let queryParams: any[] = [];
@@ -1464,7 +1491,7 @@ export const getDetailedMessagesPage = async (req: Request, res: Response) => {
         `m."${safeSortBy}"`
       } ${safeSortOrder}      
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
-    `, [...queryParams, parseInt(limit as string), offset]);    
+    `, [...queryParams, safeLimit, offset]);    
     
     // Get total count
     const totalResult = await db.query(`
@@ -1485,7 +1512,6 @@ const summaryResult = await db.query(`
   FROM "Message" m
 `);    
     
-    console.log('Messages page data fetched successfully');
     
     // ✅ Sanitize messages before returning and add publicUserId
     res.json({
@@ -1505,18 +1531,20 @@ const summaryResult = await db.query(`
           return sanitized;
         }),
         pagination: {
-          currentPage: parseInt(page as string),
-          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
+          currentPage: safePage,
+          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / safeLimit),
           totalItems: parseInt(totalResult.rows[0].total),
-          itemsPerPage: parseInt(limit as string)
+          itemsPerPage: safeLimit
         },
         summary: summaryResult.rows[0]
       }
     });
     
   } catch (error) {
-    console.error('=== ERROR IN GET DETAILED MESSAGES PAGE ===');
-    console.error('Error details:', error);
+    logger.error('Error in getDetailedMessagesPage', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
@@ -1645,7 +1673,8 @@ export const getEventExplorer = async (req: Request, res: Response) => {
       userId = ''
     } = req.query;
     
-    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    // Clamp limit: 1..MAX_PAGE_SIZE
+    const { safePage, safeLimit, offset } = clampPagination(page, limit, 50);
     const conditions: string[] = [];
     const params: any[] = [];
     let paramIndex = 1;
@@ -1706,7 +1735,7 @@ export const getEventExplorer = async (req: Request, res: Response) => {
       ${whereClause}
       ORDER BY e."createdAt" DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `, [...params, parseInt(limit as string), offset]);
+    `, [...params, safeLimit, offset]);
     
     // Get total count
     const countResult = await db.query(`
@@ -1727,10 +1756,10 @@ export const getEventExplorer = async (req: Request, res: Response) => {
       data: {
         events: eventsResult.rows.map(event => sanitizeEvent(event)),
         pagination: {
-          currentPage: parseInt(page as string),
-          totalPages: Math.ceil(parseInt(countResult.rows[0].total) / parseInt(limit as string)),
+          currentPage: safePage,
+          totalPages: Math.ceil(parseInt(countResult.rows[0].total) / safeLimit),
           totalItems: parseInt(countResult.rows[0].total),
-          itemsPerPage: parseInt(limit as string)
+          itemsPerPage: safeLimit
         },
         eventTypes: typesResult.rows.map(r => r.type)
       }
@@ -1808,7 +1837,6 @@ export const getAdminMessageDetails = async (req: Request, res: Response) => {
 // Get activity feed with filters, pagination and summary
 export const getActivityFeed = async (req: Request, res: Response) => {
   try {
-    console.log('=== GET ACTIVITY FEED ===');
     
     const { 
       page = 1, 
@@ -1819,9 +1847,10 @@ export const getActivityFeed = async (req: Request, res: Response) => {
       userId = ''
     } = req.query;
     
-    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
-    const eventTypesArray = eventTypes 
-    ? (eventTypes as string).split(',').filter(t => t.trim())
+    // Clamp limit: 1..MAX_PAGE_SIZE
+    const { safePage, safeLimit, offset } = clampPagination(page, limit, 50);
+    const eventTypesArray = eventTypes && typeof eventTypes === 'string'
+    ? eventTypes.split(',').filter(t => t.trim())
     : []; // no type filter by default
         
     let whereClause = '';
@@ -1880,7 +1909,7 @@ LEFT JOIN "Twin" t ON
       ${whereClause}
       ORDER BY e."createdAt" DESC
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
-    `, [...queryParams, parseInt(limit as string), offset]);
+    `, [...queryParams, safeLimit, offset]);
     
     // Total count
     const totalResult = await db.query(`
@@ -1913,7 +1942,6 @@ LEFT JOIN "Twin" t ON
       ORDER BY DATE(e."createdAt")
     `, queryParams);
     
-    console.log('Activity feed data fetched successfully');
     
     res.json({
       success: true,
@@ -1924,10 +1952,10 @@ LEFT JOIN "Twin" t ON
           return sanitized;
         }),
         pagination: {
-          currentPage: parseInt(page as string),
-          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / parseInt(limit as string)),
+          currentPage: safePage,
+          totalPages: Math.ceil(parseInt(totalResult.rows[0].total) / safeLimit),
           totalItems: parseInt(totalResult.rows[0].total),
-          itemsPerPage: parseInt(limit as string)
+          itemsPerPage: safeLimit
         },
         summary: summaryResult.rows[0],
         dailyCounts: dailyCountsResult.rows

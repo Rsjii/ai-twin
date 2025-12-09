@@ -968,20 +968,66 @@ async function regenerateResponse(responseId) {
             }
         }
 
-        // Global showNotification function
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
-                type === 'success' ? 'bg-green-500 text-white' : 
-                type === 'error' ? 'bg-red-500 text-white' : 
-                'bg-blue-500 text-white'
-            }`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
+        // ✅ Global Toast / Notification System (for standalone page)
+        (function () {
+            window.UI = window.UI || {};
+            if (window.UI.showToast) return; // don't override if layout already defined
+
+            window.UI.showToast = function (message, type = 'success', opts = {}) {
+                const duration = typeof opts.duration === 'number' ? opts.duration : 3000;
+                const existing = document.getElementById('global-toast');
+                if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+                const el = document.createElement('div');
+                el.id = 'global-toast';
+                el.className =
+                    'fixed top-4 right-4 z-50 max-w-sm w-[90vw] sm:w-auto px-4 py-3 sm:px-6 sm:py-4 ' +
+                    'rounded-xl shadow-2xl transition-all duration-300 transform opacity-0 translate-y-2';
+
+                let bgClasses, icon;
+                if (type === 'success') {
+                    bgClasses = 'bg-gradient-to-r from-green-500 to-emerald-500 text-white';
+                    icon = '✅';
+                } else if (type === 'error') {
+                    bgClasses = 'bg-gradient-to-r from-red-500 to-rose-500 text-white';
+                    icon = '❌';
+                } else {
+                    bgClasses = 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white';
+                    icon = 'ℹ️';
+                }
+
+                el.className += ' ' + bgClasses;
+                el.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">${icon}</span>
+                        <div class="flex flex-col text-left">
+                            <span class="font-semibold">${message}</span>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(el);
+
+                requestAnimationFrame(() => {
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                });
+
+                setTimeout(() => {
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(-8px)';
+                    setTimeout(() => {
+                        if (el.parentNode) el.parentNode.removeChild(el);
+                    }, 300);
+                }, duration);
+            };
+        })();
+
+        // ✅ Unified notification wrapper for chat-enhanced
+        function showNotification(message, type = 'info') {
+            if (window.UI && typeof window.UI.showToast === 'function') {
+                window.UI.showToast(message, type);
+            }
         }
 
         // Move these functions to global scope (outside DOMContentLoaded):

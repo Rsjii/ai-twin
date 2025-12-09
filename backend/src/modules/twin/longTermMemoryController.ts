@@ -1,9 +1,8 @@
 import { Response, NextFunction } from 'express';
 import { memoryService } from '../../services/memoryService';
-import { AppError, createError, ErrorCodes } from '../../utils/errors';
+import { createError, ErrorCodes } from '../../utils/errors';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { generateId } from '../../utils/idGenerator';
-import { handleControllerError } from '../../utils/errorHandler';
 import { detokenizeId } from '../../utils/idTokenization';
 
 /**
@@ -12,20 +11,23 @@ import { detokenizeId } from '../../utils/idTokenization';
  */
 export const getLongTermMemories = async (req: any, res: Response, next: NextFunction) => {
   try {
-    // 🔥 PRIVATE API: id is RAW twinId, no token
-    const { id: twinId } = req.params;
-    const { category, limit = 20, query } = req.query;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user?.id, endpoint: 'getLongTermMemories' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('This twin link is invalid or has expired.', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
+    const { QUERY_LIMITS } = await import('../../config/constants');
+    const { category, limit = QUERY_LIMITS.LONG_TERM_MEMORY, query } = req.query;
+    
+    const rawLimit = Number(limit) || QUERY_LIMITS.LONG_TERM_MEMORY;
+    const safeLimit = Math.min(
+      Math.max(rawLimit, 1),
+      QUERY_LIMITS.MAX_PAGE_SIZE,
+    );
     const userId = req.user?.id || req.userId;
     
-    console.log('[LONG_TERM_MEMORIES:START]', {
-      twinId,
-      userId,
-      category,
-      limit,
-      query,
-      path: req.path,
-      method: req.method,
-    });
     
     if (!userId) {
       throw createError.unauthorized();
@@ -36,13 +38,8 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
       const memories = await memoryService.getRelevantLongTermMemories(
         twinId,
         query,
-        parseInt(limit as string) || 10
+        safeLimit,
       );
-      console.log('[LONG_TERM_MEMORIES] Smart retrieval result:', {
-        memoriesCount: memories.length,
-        query,
-        limit,
-      });
       res.set({
         'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
         'Pragma': 'no-cache',
@@ -55,18 +52,8 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
     const memories = await memoryService.getLongTermMemories(
       twinId,
       category as string | undefined,
-      parseInt(limit as string) || 20
+      safeLimit,
     );
-    
-    console.log('[LONG_TERM_MEMORIES] Query result:', {
-      memoriesCount: memories.length,
-      category,
-      limit,
-      sampleMemory: memories[0] ? {
-        id: memories[0].key || memories[0].id,
-        category: memories[0].category,
-      } : null,
-    });
     
     res.set({
       'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
@@ -75,7 +62,7 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
     });
     res.json({ success: true, memories });
   } catch (error) {
-    handleControllerError(error, 'Failed to get memories');
+    next(error); // ✅ Standardize
   }
 };
 
@@ -85,7 +72,13 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
  */
 export const addLongTermMemory = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;        // RAW twinId
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user?.id, endpoint: 'addLongTermMemory' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const { key, value, category = 'fact' } = req.body;
     const userId = req.user?.id || req.userId;
 
@@ -114,7 +107,7 @@ export const addLongTermMemory = async (req: any, res: Response, next: NextFunct
       memory: { key: finalKey, value: value.trim(), category }
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to store memory');
+    next(error); // ✅ Standardize
   }
 };
 
@@ -124,7 +117,13 @@ export const addLongTermMemory = async (req: any, res: Response, next: NextFunct
  */
 export const updateLongTermMemory = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId, key } = req.params;  // raw twinId
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken, key } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user?.id, endpoint: 'updateLongTermMemory' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const { value, category } = req.body;
     const userId = req.user?.id || req.userId;
     
@@ -152,7 +151,7 @@ export const updateLongTermMemory = async (req: any, res: Response, next: NextFu
       memory: { key, value: value.trim(), category: category || 'fact' }
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to update memory');
+    next(error); // ✅ Standardize
   }
 };
 
@@ -162,7 +161,13 @@ export const updateLongTermMemory = async (req: any, res: Response, next: NextFu
  */
 export const deleteLongTermMemory = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId, key } = req.params;  // raw twinId
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken, key } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user?.id, endpoint: 'deleteLongTermMemory' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const userId = req.user?.id || req.userId;
     
     if (!userId) {
@@ -176,6 +181,6 @@ export const deleteLongTermMemory = async (req: any, res: Response, next: NextFu
     
     res.json({ success: true, message: 'Memory deleted successfully' });
   } catch (error) {
-    handleControllerError(error, 'Failed to delete memory');
+    next(error); // ✅ Standardize
   }
 };

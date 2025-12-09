@@ -26,8 +26,9 @@ export async function getTwinManage(req: any, res: Response) {
 
     const twinId = twin.id;
 
-    //Phase 3: Tokenize twinId
-    const twinPublicId = tokenizeId(twin.id, 'twin');
+    // ✅ SECURITY: Tokenize twinId before passing to frontend
+    const twinToken = tokenizeId(twin.id, 'twin');
+    const twinPublicId = twinToken; // Keep for backward compatibility
     
     // Fetch twin analytics - using CORRECT table names that exist
     const analyticsResult = await fastQuery(`
@@ -137,8 +138,8 @@ export async function getTwinManage(req: any, res: Response) {
       title: 'My Twin - Manage',
       user: user,
       twin: twin,
-      twinId: twinId,
-      twinPublicId: twinPublicId,
+      twinToken: twinToken,  // ✅ SECURITY: Use tokenized ID
+      twinPublicId: twinPublicId, // Keep for backward compatibility
       stats: stats,
       publicTwin: publicTwin,
       recentChats: recentChats,

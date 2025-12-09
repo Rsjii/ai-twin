@@ -1,26 +1,24 @@
 import { Response, NextFunction } from 'express';
 import { styleAnchorsQueries } from '../../config/database';
-import { AppError, createError } from '../../utils/errors';
+import { AppError, createError, ErrorCodes } from '../../utils/errors';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
-import { handleControllerError } from '../../utils/errorHandler';
+import { detokenizeId } from '../../utils/idTokenization';
 
 /**
  * Get all style anchors for a twin
  */
 export const getTwinAnchors = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'getTwinAnchors' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('This twin link is invalid or has expired.', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
     const { limit = 10, offset = 0 } = req.query;
     const userId = req.user.id;
     
-    console.log('[STYLE_ANCHORS:START]', {
-      twinId,
-      userId,
-      limit,
-      offset,
-      path: req.path,
-      method: req.method,
-    });
     
     // Verify twin ownership
     await verifyTwinOwnership(twinId, userId);
@@ -32,17 +30,6 @@ export const getTwinAnchors = async (req: any, res: Response, next: NextFunction
       parseInt(offset as string)
     );
     
-    console.log('[STYLE_ANCHORS] Query result:', {
-      anchorsCount: anchors.length,
-      limit,
-      offset,
-      sampleAnchor: anchors[0] ? {
-        id: anchors[0].id,
-        type: anchors[0].type,
-        phrase: anchors[0].phrase || null,
-      } : null,
-    });
-    
     // ✅ ADD: Cache headers to prevent 304 responses
     res.set({
       'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
@@ -51,7 +38,7 @@ export const getTwinAnchors = async (req: any, res: Response, next: NextFunction
     });
     res.json({ success: true, anchors });
   } catch (error) {
-    handleControllerError(error, 'Failed to get style anchors');
+    next(error); // ✅ Standardize
   }
 };
 
@@ -60,7 +47,13 @@ export const getTwinAnchors = async (req: any, res: Response, next: NextFunction
  */
 export const addTwinAnchor = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'addTwinAnchor' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const { 
       userUtterance = '', 
       idealReply = '', 
@@ -124,7 +117,7 @@ export const addTwinAnchor = async (req: any, res: Response, next: NextFunction)
       message: 'Style anchor added successfully' 
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to add style anchor');
+    next(error); // ✅ Standardize
   }
 };
 
@@ -133,7 +126,13 @@ export const addTwinAnchor = async (req: any, res: Response, next: NextFunction)
  */
 export const updateTwinAnchor = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId, anchorId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken, anchorId } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'updateTwinAnchor' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const { 
       userUtterance = '', 
       idealReply = '', 
@@ -170,7 +169,7 @@ export const updateTwinAnchor = async (req: any, res: Response, next: NextFuncti
       message: 'Style anchor updated successfully' 
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to update style anchor');
+    next(error); // ✅ Standardize
   }
 };
 
@@ -179,7 +178,13 @@ export const updateTwinAnchor = async (req: any, res: Response, next: NextFuncti
  */
 export const deleteTwinAnchor = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId, anchorId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken, anchorId } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'deleteTwinAnchor' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const userId = req.user.id;
     
     // Verify twin ownership
@@ -197,7 +202,7 @@ export const deleteTwinAnchor = async (req: any, res: Response, next: NextFuncti
       message: 'Style anchor deleted successfully' 
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to delete style anchor');
+    next(error); // ✅ Standardize
   }
 };
 
@@ -207,7 +212,13 @@ export const deleteTwinAnchor = async (req: any, res: Response, next: NextFuncti
  */
 export const getTwinPhrases = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { id: twinId } = req.params;
+    // ✅ SECURITY: Detokenize twinToken from URL
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId: req.user.id, endpoint: 'getTwinPhrases' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.validation('Invalid twin token', ErrorCodes.INVALID_INPUT);
+    }
+    const twinId = decoded.id;
     const { limit = 10 } = req.query;
     const userId = req.user.id;
     
@@ -222,6 +233,6 @@ export const getTwinPhrases = async (req: any, res: Response, next: NextFunction
     
     res.json({ success: true, phrases });
   } catch (error) {
-    handleControllerError(error, 'Failed to get phrases');
+    next(error); // ✅ Standardize
   }
 };

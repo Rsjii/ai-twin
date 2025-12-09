@@ -2,7 +2,7 @@ import { Response, NextFunction} from 'express';
 import { db, userQueries } from '../config/database';
 import { logger } from '../config/logger';
 import { AppError, createError } from '../utils/errors';
-import { ADMIN_EMAILS } from '../config/constants';
+import { ADMIN_EMAILS, QUERY_LIMITS} from '../config/constants';
 import { handleControllerError } from '../utils/errorHandler';
 import { detokenizeId, tokenizeId } from '../utils/idTokenization';
 
@@ -286,9 +286,15 @@ if (twinId) {
 }
 
 
-    // 6) Pagination
-    const parsedPage = parseInt(page as string) || 1;
-    const parsedLimit = parseInt(limit as string) || 2;
+    // 6) Pagination with clamped limit
+    const rawPage = Number(page) || 1;
+    const rawLimit = Number(limit) || QUERY_LIMITS.ANALYTICS_DETAILS;
+
+    const parsedPage = Math.max(rawPage, 1);
+    const parsedLimit = Math.min(
+      Math.max(rawLimit, QUERY_LIMITS.MIN_PAGE_SIZE),
+      QUERY_LIMITS.MAX_PAGE_SIZE,
+    );
     const offset = (parsedPage - 1) * parsedLimit;
 
     let data: any[] = [];

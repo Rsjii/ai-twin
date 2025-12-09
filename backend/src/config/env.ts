@@ -5,11 +5,18 @@ import path from 'path';
 const envPath = path.resolve(__dirname, '../../.env');
 dotenv.config({ path: envPath });
 
-// New: normalize NODE_ENV once
+// ✅ Only 2 buckets: non-prod (local + staging) and prod
 const NODE_ENV = process.env['NODE_ENV'] || 'development';
 
-export const isProd = NODE_ENV === 'production';
-export const isDev  = NODE_ENV === 'development';
+// APP_ENV can be:
+// - 'local'   → your laptop / dev
+// - 'staging' → staging server
+// - 'prod'    → real production
+const APP_ENV = process.env['APP_ENV'] || (NODE_ENV === 'production' ? 'prod' : 'local');
+
+export const isProd = APP_ENV === 'prod';
+export const isLocalOrStaging = APP_ENV !== 'prod';
+export const isDev = APP_ENV === 'local';
 export const isTest = NODE_ENV === 'test';
 
 // config now uses NODE_ENV
@@ -46,8 +53,11 @@ export const config = {
   
   // App Configuration
   nodeEnv: NODE_ENV,
+  appEnv: APP_ENV,
   port: Number(process.env['PORT']),
-  enableAdminAnalytics: process.env['ENABLE_ADMIN_ANALYTICS'] === 'true',
+
+  // ✅ Admin analytics only for local + staging, never in prod
+  enableAdminAnalytics: isLocalOrStaging,
   
   // Rate Limiting
   rateLimit: {

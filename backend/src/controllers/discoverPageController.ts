@@ -3,6 +3,7 @@ import { userQueries, twinQueries } from '../config/database';
 import { logger } from '../config/logger';
 import { FEATURE_FLAGS } from '../config/featureFlags';
 import { createError } from '../utils/errors';
+import { tokenizeId } from '../utils/idTokenization';
 /**
  * Discover page
  */
@@ -57,15 +58,6 @@ export async function getDiscover(req: any, res: Response) {
       logger.warn('[PAGE_DISCOVER] Failed to log context:', logError);
     }
 
-    console.log('[PAGE_DISCOVER] Render data:', {
-      user: user ? { id: user.id, email: user.email, handle: user.handle, hasProfileImage: !!user.profileImage } : null,
-      hasTwins,
-      twinId,
-      userFromReq: req.user ? { id: req.user.id, email: req.user.email } : null,
-      userFromLocals: user ? { id: user.id, email: user.email } : null,
-      jwtCookiePresent: !!(req as any).cookies?.['jwtToken'],
-      cookies: Object.keys((req as any).cookies || {}),
-    });
 
     res.render('discover', {
       title: 'Discover AI Twins - Twinverse',
@@ -129,16 +121,15 @@ export async function getMemoryManagement(req: any, res: Response) {
   }
 
   const twinId = twin.id;
+  
+  // ✅ SECURITY: Tokenize twinId before passing to frontend
+  const twinToken = tokenizeId(twin.id, 'twin');
 
-  console.log('[PAGE_MEMORY_MANAGEMENT] Render data:', {
-    user: { id: user.id, email: user.email, hasProfileImage: !!user.profileImage },
-    twinId,
-  });
 
   res.render('memory-management', { 
     title: 'Memory Management - AI Twin',
     user,
-    twinId,                            // used by JS for /api/twin/:id/long-term-memory
+    twinToken: twinToken,  // ✅ SECURITY: Use tokenized ID
     csrfToken: res.locals['csrfToken'],
   });
 }
