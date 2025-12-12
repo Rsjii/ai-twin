@@ -291,22 +291,53 @@ try {
     summary30DaysResult,
   ] = await Promise.all([
     db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "userId" = $1', [userId]),
-    db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [userId]),
+    // ✅ Audience-facing total chats: count public chats on all my twins,
+    //    excluding users who have blocked me via their own twins.
+    db.query(`
+      SELECT COUNT(DISTINCT pc.id) as count
+      FROM "PublicChat" pc
+      JOIN "Twin" t ON pc."twinId" = t.id
+      WHERE t."userId" = $1
+        AND pc."userId" IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "Twin" t2
+          JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+          WHERE t2."userId" = pc."userId"
+            AND tbu."userId" = $1
+        )
+    `, [userId]),
     db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [userId]),
     db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "inviterId" = $1', [userId]),
     db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "acceptedBy" = $1', [userId]),
     db.query('SELECT COUNT(*) as count FROM "Event" WHERE "userId" = $1', [userId]),
+    // ✅ Likes: exclude users who have blocked this owner
     db.query(`
       SELECT COUNT(*) as count
       FROM "TwinLike" tl
       JOIN "Twin" t ON tl."twinId" = t.id
       WHERE t."userId" = $1
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "Twin" t2
+          JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+          WHERE t2."userId" = tl."userId"
+            AND tbu."userId" = $1
+        )
     `, [userId]),
+    // ✅ Followers: exclude users who have blocked this owner
     db.query(`
       SELECT COUNT(*) as count
       FROM "TwinFollow" tf
       JOIN "Twin" t ON tf."twinId" = t.id
       WHERE t."userId" = $1
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "Twin" t2
+          JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+          WHERE t2."userId" = tf."userId"
+            AND tbu."userId" = $1
+        )
     `, [userId]),
     db.query('SELECT type, COUNT(*) as count FROM "Event" WHERE "userId" = $1 GROUP BY type', [userId]),
     db.query(`

@@ -40,59 +40,33 @@ export class SystemPromptUpdater {
 
       const twin = twinResult.rows[0];
 
-// Get from both MemoryLongTerm and StyleAnchors
-const [longTermMemories, styleAnchors] = await Promise.all([
-  db.query(`
-    SELECT value as text, category as bucket, "updatedAt" as ts
-    FROM "MemoryLongTerm"
-    WHERE "twinId" = $1 
-    AND "updatedAt" >= NOW() - INTERVAL '30 days'
-    ORDER BY "updatedAt" DESC
-    LIMIT 10
-  `, [twinId]),
-  db.query(`
-    SELECT phrase as text, 'voice' as bucket, created_at as ts
-    FROM "style_anchors"
-    WHERE twin_id = $1 
-    AND type = 'phrase'
-    AND created_at >= NOW() - INTERVAL '30 days'
-    ORDER BY created_at DESC
-    LIMIT 10
-  `, [twinId])
-]);
+      // ✅ MVP: only MemoryLongTerm (no style_anchors)
+      const longTermMemories = await db.query(`
+        SELECT value as text, category as bucket, "updatedAt" as ts
+        FROM "MemoryLongTerm"
+        WHERE "twinId" = $1
+        AND "updatedAt" >= NOW() - INTERVAL '30 days'
+        ORDER BY "updatedAt" DESC
+        LIMIT 15
+      `, [twinId]);
 
-const memoriesResult = {
-  rows: [
-    ...longTermMemories.rows,
-    ...styleAnchors.rows
-  ].sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime()).slice(0, 20)
-};      
+      const memoriesResult = { rows: longTermMemories.rows };
 
-// Get top style anchors - use correct column names
-const anchorsResult = await db.query(`
-  SELECT user_utterance, ideal_reply, tags, created_at
-  FROM "style_anchors" 
-  WHERE twin_id = $1 
-  ORDER BY created_at DESC
-  LIMIT 10
-`, [twinId]);      
-
-      // Get recent feedback patterns - FIXED: use correct column names
+      // Get recent feedback patterns
       const feedbackResult = await db.query(`
         SELECT knob, AVG(delta) as avg_delta, COUNT(*) as count
-        FROM style_corrections 
-        WHERE twin_id = $1 
+        FROM style_corrections
+        WHERE twin_id = $1
         AND ts >= NOW() - INTERVAL '7 days'
         GROUP BY knob
         HAVING COUNT(*) >= 2
       `, [twinId]);
 
-      // Generate enhanced system prompt
+      // ✅ MVP: deterministic prompt build (no LLM call)
       const enhancedPrompt = await this.generateEnhancedSystemPrompt(
         twin.styleVector,
         twin.personaData,
         memoriesResult.rows,
-        anchorsResult.rows,
         feedbackResult.rows
       );
 
@@ -120,68 +94,36 @@ const anchorsResult = await db.query(`
     styleVector: any,
     personaData: any,
     memories: any[],
-    anchors: any[],
     feedback: any[]
   ): Promise<string> {
     try {
-      // Build memory context - FIXED: use 'text' instead of 'content'
-      const memoryContext = memories.length > 0 ? 
-        `RECENT MEMORIES (use as context):
-${memories.map(m => `- ${m.text}`).join('\n')}` : '';
+      const memoryContext = memories.length > 0
+        ? `RECENT MEMORIES (use as context; don't info-dump):\n${memories.map(m => `- ${m.text}`).join('\n')}`
+        : '';
 
-// Build style anchor context
-const anchorContext = anchors.length > 0 ?
-  `STYLE EXAMPLES (follow these patterns):
-${anchors.map(a => `User: "${a.user_utterance}"\nIdeal Reply: "${a.ideal_reply}"`).join('\n\n')}` : '';
+      const feedbackContext = feedback.length > 0
+        ? `RECENT FEEDBACK PATTERNS (adjust accordingly):\n${feedback.map(f => `- ${f.knob}: ${f.avg_delta > 0 ? 'increase' : 'decrease'} (${f.count} votes)`).join('\n')}`
+        : '';
 
-      // Build feedback context
-      const feedbackContext = feedback.length > 0 ?
-        `RECENT FEEDBACK PATTERNS (adjust accordingly):
-${feedback.map(f => `- ${f.knob}: ${f.avg_delta > 0 ? 'increase' : 'decrease'} (${f.count} votes)`).join('\n')}` : '';
+      // ✅ MVP: no LLM-generated prompt; keep it deterministic & cheap
+      return `You are the user's AI twin. Speak in first person as the user.
+Do not mention you are an AI.
 
-      // Generate enhanced prompt using OpenAI - FIXED: use global openai instance
-      const promptGenerationPrompt = `You are a system prompt optimizer. Create an enhanced system prompt for an AI twin based on the following data:
+STYLE VECTOR:
+${JSON.stringify(styleVector || {})}
 
-CURRENT STYLE VECTOR: ${JSON.stringify(styleVector)}
-PERSONA DATA: ${JSON.stringify(personaData || {})}
+PERSONA:
+${JSON.stringify(personaData || {})}
 
 ${memoryContext}
 
-${anchorContext}
-
 ${feedbackContext}
 
-Create a comprehensive system prompt that:
-1. Incorporates the style vector characteristics
-2. Uses recent memories as context
-3. Follows the style examples provided
-4. Adjusts based on feedback patterns
-5. Maintains the twin's personality
-
-Return only the system prompt, no additional text.`;
-
-      // COMMENTED OUT: OpenAI call - Now using Groq via llmClient
-      // const response = await openai.chat.completions.create({
-      //   model: 'gpt-4o-mini',
-      //   messages: [
-      //     { role: 'system', content: promptGenerationPrompt },
-      //     { role: 'user', content: 'Generate the enhanced system prompt' }
-      //   ],
-      //   temperature: 0.3,
-      //   max_tokens: 1000
-      // });
-
-      // NEW: Using Groq via llmClient
-      const llmResponse = await llmClient.generateResponse([
-        { role: 'system', content: promptGenerationPrompt },
-        { role: 'user', content: 'Generate the enhanced system prompt' }
-      ], {
-        temperature: 0.3,
-        maxTokens: 1000
-      });
-
-      return llmResponse.content || this.generateFallbackPrompt(styleVector, personaData);
-
+RULES:
+- Use the same tone and language as configured.
+- Use memories only when relevant.
+- If unclear, ask 1 concise clarifying question.
+- Avoid unsafe topics per safety settings.`;
     } catch (error) {
       logger.error('Error generating enhanced system prompt:', error);
       return this.generateFallbackPrompt(styleVector, personaData);

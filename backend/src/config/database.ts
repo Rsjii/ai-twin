@@ -514,7 +514,11 @@ export const otpQueries = {
   markAsUsed: async (id: string) => {
     const result = await db.query('UPDATE "OTP" SET used = true WHERE id = $1 RETURNING *', [id]);
     return result.rows[0];
-  }
+  },
+
+  deleteByEmail: async (email: string) => {
+  await db.query(`DELETE FROM "OTP" WHERE email = $1`, [email.toLowerCase()]);
+}
 };
 
 // Public Twin Queries - Updated to use TwinProfile
@@ -753,20 +757,23 @@ export const publicChatQueries = {
   // ✅ NEW: Cleanup old anonymous chats (keep only last N)
   cleanupOldAnonymousChats: async (twinId: string, keepCount: number = 100) => {
     try {
+      logger.info(`[cleanupOldAnonymousChats] 🧹 START cleanup for twin ${twinId}, keeping ${keepCount} chats`);
+      
       // Get IDs of anonymous chats to keep (most recent N)
       const keepResult = await db.query(`
-        SELECT id
+        SELECT id, "visitorId", "createdAt", "lastActivity", "messageCount"
         FROM "PublicChat"
         WHERE "twinId" = $1 
           AND "userId" IS NULL 
           AND "visitorId" IS NOT NULL
-        ORDER BY "lastActivity" DESC, "createdAt" DESC
+        ORDER BY "lastActivity" DESC NULLS LAST, "createdAt" DESC
         LIMIT $2
       `, [twinId, keepCount]);
       
       const keepIds = keepResult.rows.map(row => row.id);
       
       if (keepIds.length === 0) {
+        logger.info(`[cleanupOldAnonymousChats] No anonymous chats to cleanup`);
         return; // No anonymous chats to cleanup
       }
       
@@ -778,6 +785,7 @@ export const publicChatQueries = {
           AND "userId" IS NULL 
           AND "visitorId" IS NOT NULL
           AND id NOT IN (${keepIds.map((_, i) => `$${i + 2}`).join(', ')})
+        RETURNING id, "visitorId", "createdAt"
       `, [twinId, ...keepIds]);
       
       const deletedCount = deleteResult.rowCount || 0;

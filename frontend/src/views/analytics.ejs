@@ -396,32 +396,9 @@ if (elements.chartContainer) {
     showChartEmpty();
 }        
 
-        // Top Performing Content
-        console.log('[ANALYTICS] Processing top content...');
-        hideTopContentLoading();
-        if (elements.topContent) {
-            elements.topContent.classList.remove('hidden');
-            if (data.analytics?.topContent && data.analytics.topContent.length > 0) {
-                console.log('[ANALYTICS] ✅ Top content found:', data.analytics.topContent.length, 'items');
-                const fragment = document.createDocumentFragment();
-                data.analytics.topContent.forEach((item) => {
-                    const div = document.createElement('div');
-                    div.className = 'p-3 bg-gray-50 dark:bg-gray-700 rounded-lg';
-                    div.innerHTML =
-                        `<p class="text-sm font-medium text-gray-900 dark:text-white">${item.title || 'Content'}</p>` +
-                        `<p class="text-xs text-gray-500 dark:text-gray-400">${item.views || 0} views</p>`;
-                    fragment.appendChild(div);
-                });
-                elements.topContent.innerHTML = '';
-                elements.topContent.appendChild(fragment);
-                console.log('[ANALYTICS] ✅ Top content rendered');
-            } else {
-                console.warn('[ANALYTICS] ⚠️ No top content data');
-                showTopContentEmpty();
-            }
-        } else {
-            console.error('[ANALYTICS] ❌ Top content container not found');
-        }
+        // Top Users (this twin)
+        console.log('[ANALYTICS] Processing top users for twin...');
+        await loadTopUsersForTwin(elements);
 
         // ✅ NEW: Period Summary
         console.log('[ANALYTICS] Processing period summary...');
@@ -601,6 +578,144 @@ function escapeHtml(text) {
     function showNotification(message, type = 'success') {
         if (window.UI && typeof window.UI.showToast === 'function') {
             window.UI.showToast(message, type);
+        }
+    }
+
+    // ✅ NEW: Load top users who interacted with this twin (via public chat)
+    async function loadTopUsersForTwin(elements) {
+        const container = elements.topContent || document.getElementById('topContent');
+        hideTopContentLoading();
+
+        if (!container) {
+            console.error('[ANALYTICS] ❌ Top users container (topContent) not found');
+            showTopContentError();
+            return;
+        }
+
+        const twinToken = window.twinIdValue || '';
+        if (!twinToken) {
+            console.warn('[ANALYTICS] ⚠️ No twinIdValue available, showing empty top users');
+            showTopContentEmpty();
+            return;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                page: '1',
+                limit: '5',
+                view: 'user',
+                userSortBy: 'totalMessages',
+                minMessages: '1'
+            });
+
+            const response = await fetch(`/api/public-chat/twin/${twinToken}/user-chats?${params.toString()}`, {
+                method: 'GET',
+                credentials: 'include',
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                console.error('[ANALYTICS] ❌ Top users API failed:', response.status);
+                showTopContentError();
+                return;
+            }
+
+            const data = await response.json();
+            console.log('[ANALYTICS_TOP_USERS] Response:', data);
+
+            const users = Array.isArray(data.users) ? data.users : [];
+            if (users.length === 0) {
+                console.warn('[ANALYTICS] ⚠️ No top users data');
+                showTopContentEmpty();
+                return;
+            }
+
+            container.classList.remove('hidden');
+            container.innerHTML = '';
+
+            const fragment = document.createDocumentFragment();
+
+            users.forEach((group) => {
+                const user = group.user || {};
+                const div = document.createElement('button');
+                div.type = 'button';
+                div.className =
+                    'w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center justify-between ' +
+                    'hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors';
+
+                const name = escapeHtml(user.name || user.handle || 'Unknown user');
+                const handle = escapeHtml(user.handle || '');
+                const totalChats = group.totalChats || 0;
+                const totalMessages = group.totalMessages || 0;
+                const lastActivity = group.lastActivity || null;
+
+                // Format relative time for last activity
+                let lastActiveText = 'Never';
+                if (lastActivity) {
+                    try {
+                        if (window.TimeUtils && typeof window.TimeUtils.formatRelativeTime === 'function') {
+                            lastActiveText = window.TimeUtils.formatRelativeTime(lastActivity);
+                        } else {
+                            // Fallback if TimeUtils not available
+                            const diff = Date.now() - new Date(lastActivity).getTime();
+                            const minutes = Math.floor(diff / (1000 * 60));
+                            const hours = Math.floor(minutes / 60);
+                            const days = Math.floor(hours / 24);
+                            if (minutes < 60) {
+                                lastActiveText = `${minutes}m ago`;
+                            } else if (hours < 24) {
+                                lastActiveText = `${hours}h ago`;
+                            } else {
+                                lastActiveText = `${days}d ago`;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[ANALYTICS] Error formatting last activity:', e);
+                        lastActiveText = 'Unknown';
+                    }
+                }
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        ${user.profileImage
+                            ? `<img src="${escapeHtml(user.profileImage)}" alt="${name}" class="w-8 h-8 rounded-full">`
+                            : `<div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                   <span class="text-primary font-semibold text-sm">${escapeHtml((name || 'U').charAt(0).toUpperCase())}</span>
+                               </div>`
+                        }
+                        <div>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">${name}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                ${handle ? '@' + handle + ' • ' : ''}${totalMessages} messages, ${totalChats} chats
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            Last active: ${escapeHtml(lastActiveText)}
+                        </p>
+                        <p class="text-xs font-medium text-primary dark:text-primary mt-1">View full history →</p>
+                    </div>
+                `;
+
+                // On click → go to public chat history filtered to this user
+                div.addEventListener('click', () => {
+                    if (user.publicId) {
+                        const url = new URL('/public-chat-history', window.location.origin);
+                        url.searchParams.set('view', 'user');
+                        url.searchParams.set('userId', user.publicId);
+                        window.location.href = url.toString();
+                    }
+                });
+
+                fragment.appendChild(div);
+            });
+
+            container.appendChild(fragment);
+            console.log('[ANALYTICS] ✅ Top users rendered');
+        } catch (error) {
+            console.error('[ANALYTICS] ❌ Error loading top users:', error);
+            showTopContentError();
         }
     }
 </script>

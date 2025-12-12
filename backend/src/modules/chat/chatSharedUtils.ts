@@ -96,11 +96,8 @@ export async function checkModerationAndApprove(
   const moderationSettings = await getModerationSettings(twinId);
   const autoModeration = await moderateContentSync(message.trim(), 'message', userId, twinId);
 
-  // Calculate approved status
-  // If requireApproval = false → auto approve (if moderation passes)
-  // If requireApproval = true → require autoModeration.isApproved
-  const requireApproval = requireApprovalOverride ?? moderationSettings.requireApproval;
-  const approved = !requireApproval && autoModeration.isApproved;
+   // ✅ MVP: approval == moderation pass (no manual owner review)
+   const approved = autoModeration.isApproved;
 
   return {
     approved,

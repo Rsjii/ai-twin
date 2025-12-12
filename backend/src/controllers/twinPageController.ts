@@ -90,56 +90,8 @@ export async function getTwinAiEdit(req: any, res: Response) {
  * Twin Style Customize page
  */
 export async function getTwinStyleCustomize(req: any, res: Response) {
-  try {
-    const userId = req.user?.id;
-    if (!userId) return res.redirect('/auth');
-
-    const fullUser = await userQueries.findByEmail(req.user.email);
-    if (!fullUser) return res.redirect('/auth');
-
-    // ✅ Single twin per user (latest)
-    const twinResult = await db.query(`
-      SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version"
-      FROM "Twin"
-      WHERE "userId" = $1
-      ORDER BY "createdAt" DESC
-      LIMIT 1
-    `, [userId]);
-
-    if (twinResult.rows.length === 0) {
-      return res.redirect('/twin/create');
-    }
-
-    const twin = twinResult.rows[0];
-    
-    // ✅ SECURITY: Tokenize twinId before passing to frontend
-    const twinToken = tokenizeId(twin.id, 'twin');
-
-    const user = {
-      id: fullUser.id,
-      email: fullUser.email,
-      handle: fullUser.handle,
-      name: fullUser.name,
-      profileImage: fullUser.profileImage,
-    };
-
-    res.render('style-customize', { 
-      title: 'Style Customize - AI Twin',
-      user,
-      hasTwins: true,
-      twinToken: twinToken,  // ✅ SECURITY: Use tokenized ID
-      csrfToken: res.locals['csrfToken'],
-    });    
-  } catch (error) {
-    logger.error('Style customize route error:', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      userId: req.user?.id,
-      twinId: req.params.id,
-      path: req.path
-    });
-    
-    handleControllerError(error, 'Failed to load style customize page');
-  }
+  // MVP: style-customize page is not used anymore
+  return res.redirect('/twin-settings');
 }
 
 /**
@@ -179,8 +131,8 @@ export async function getTwinLearningDashboard(req: any, res: Response) {
       profileImage: fullUser.profileImage,
     };
 
-    res.render('learning-dashboard', { 
-      title: 'Learning Dashboard - AI Twin',
+    res.render('twin-settings', { 
+      title: 'Twin Settings - AI Twin',
       user,
       hasTwins: true,
       twinToken: twinToken,  // ✅ SECURITY: Use tokenized ID

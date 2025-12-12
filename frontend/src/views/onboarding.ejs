@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="en" id="html-root">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Create Your AI Twin - Onboarding</title>
-    <link rel="stylesheet" href="/css/output.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
+  />
+  <title>Create Your Twin – Onboarding</title>
+  <link rel="stylesheet" href="/css/output.css" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
     <script>
-        // ✅ IMMEDIATE theme application (prevents flash)
-        (function() {
+    (function () {
             const theme = localStorage.getItem('theme') || 'light';
             if (theme === 'dark') {
                 document.documentElement.classList.add('dark');
@@ -15,19 +21,13 @@
         })();
     </script>
     <style>
-        .gradient-text {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
         .step-active {
             background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
+      color: #ffffff;
         }
         .step-completed {
             background: #10b981;
-            color: white;
+      color: #ffffff;
         }
         .step-pending {
             background: #e5e7eb;
@@ -37,57 +37,63 @@
             background: #374151;
             color: #9ca3af;
         }
-        .tone-slider {
-            -webkit-appearance: none;
-            appearance: none;
-            height: 8px;
-            border-radius: 5px;
-            background: #e5e7eb;
-            outline: none;
-        }
-        .dark .tone-slider {
-            background: #374151;
-        }
-        .tone-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #6366f1;
+    .chip {
+      border-radius: 9999px;
+      padding: 0.5rem 0.9rem;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: rgba(255, 255, 255, 0.9);
+      color: #1f2933;
+      font-size: 0.875rem;
             cursor: pointer;
-            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
-        }
-        .tone-slider::-moz-range-thumb {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #6366f1;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+      transition:
+        background 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.1s ease;
+    }
+    .dark .chip {
+      background: #1f2937;
+      color: #e5e7eb;
+      border-color: #4b5563;
+    }
+    .chip.selected {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #ffffff;
+      border-color: transparent;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
         }
         .fade-in {
-            animation: fadeIn 0.5s ease-in;
+      animation: fadeIn 0.3s ease-out;
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
         }
     </style>
+  <script>
+    window.csrfToken = '<%= csrfToken %>';
+  </script>
 </head>
-<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen font-inter">
-    <!-- IMMEDIATE Auth Check -->
+<body
+  class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen font-inter"
+>
+  <!-- Auth check -->
     <script>
-        (function() {
-            const isAuthenticated = <%= typeof user !== 'undefined' && user !== null && typeof user === 'object' && user.id !== undefined && user.id !== null ? 'true' : 'false' %>;
+    (function () {
+      const isAuthenticated =
+        <%= typeof user !== 'undefined' && user !== null && typeof user === 'object' && user.id !== undefined && user.id !== null ? 'true' : 'false' %>;
             const hasAuthToken = localStorage.getItem('jwtToken') || localStorage.getItem('user');
-            
             if (!isAuthenticated && !hasAuthToken) {
                 window.location.replace('/auth');
                 return;
             }
-            
             if (!isAuthenticated) {
                 window.location.replace('/auth');
             }
@@ -97,916 +103,1291 @@
     <!-- Header -->
     <%- include('header') %>    
 
-    <!-- Progress Indicator (Below Header) -->
-    <div class="sticky top-20 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700">
+  <!-- Top progress bar -->
+  <div
+    class="sticky top-20 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700"
+  >
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <div class="flex items-center justify-center space-x-4">
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Step <span id="currentStepNumber">1</span> of 5</span>
+        <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+          >Step <span id="currentStepNumber">1</span> of 5</span
+        >
                 <div class="w-48 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div id="progressBar" class="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500" style="width: 20%"></div>
+          <div
+            id="progressBar"
+            class="h-full bg-gradient-to-r from-primary to-accent transition-all duration-300"
+            style="width: 20%"
+          ></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="px-3 sm:px-4 py-6 sm:py-8 pt-20 sm:pt-24">        
+  <main class="px-3 sm:px-4 py-6 sm:py-8 pt-20 sm:pt-24">
         <div class="max-w-4xl mx-auto">
-            <!-- Progress Steps -->
+      <!-- Step indicators -->
             <div class="mb-8">
-                <div class="flex items-center justify-center space-x-2 md:space-x-4 overflow-x-auto pb-4">
+        <div
+          class="flex items-center justify-center space-x-2 md:space-x-4 overflow-x-auto pb-4"
+        >
                     <div class="flex items-center space-x-2">
-                        <div id="step1" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-active">1</div>
-                        <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300">Basic Info</span>
+            <div
+              id="step1"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-active"
+            >
+              1
+            </div>
+            <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >About You</span
+            >
                     </div>
                     <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
                     <div class="flex items-center space-x-2">
-                        <div id="step2" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">2</div>
-                        <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300">Style</span>
+            <div
+              id="step2"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending"
+            >
+              2
+            </div>
+            <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Chat Style</span
+            >
                     </div>
                     <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
                     <div class="flex items-center space-x-2">
-                        <div id="step3" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">3</div>
-                        <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300">Interests</span>
+            <div
+              id="step3"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending"
+            >
+              3
+            </div>
+            <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Taste</span
+            >
                     </div>
                     <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
                     <div class="flex items-center space-x-2">
-                        <div id="step4" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">4</div>
-                        <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300">Samples</span>
+            <div
+              id="step4"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending"
+            >
+              4
+            </div>
+            <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Rules</span
+            >
                     </div>
                     <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
                     <div class="flex items-center space-x-2">
-                        <div id="step5" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending">5</div>
-                        <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300">Preview</span>
+            <div
+              id="step5"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending"
+            >
+              5
+            </div>
+            <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Preview</span
+            >
                     </div>
                 </div>
             </div>
 
-            <!-- Main Content -->
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 lg:p-8">
+      <!-- Card -->
+      <div
+        class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 lg:p-8"
+      >
                 <form id="onboardingForm">
-                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
                     
-                    <!-- Step 1: Basic Information -->
+          <!-- STEP 1: About you & usage context -->
                     <div id="step1-content" class="step-content fade-in">
                         <div class="mb-8">
-                            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Let's Get Started!</h1>
-                            <p class="text-gray-600 dark:text-gray-300">Tell us about yourself to create your perfect AI twin.</p>
+              <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                About you and where you will use your twin
+              </h1>
+              <p class="text-gray-600 dark:text-gray-300">
+                We use this information to set the right tone and context for your twin.
+              </p>
                         </div>
 
                         <div class="space-y-6">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <!-- Name -->
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Twin Name *</label>
-                                    <input type="text" id="fullName" name="fullName" required
-                                           class="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-base min-h-[44px] bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                                           style="font-size: 16px;"
-                                           placeholder="Enter your twin's name (what should we call your AI twin?)" aria-label="Twin Name">
+                <label
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  for="name"
+                >
+                  Name / nickname *
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder="What do people call you?"
+                  required
+                />
                                 </div>
+
+              <!-- Role -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  What do you do right now? *
+                </label>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <button type="button" class="chip role-chip" data-value="student">
+                    Student
+                  </button>
+                  <button type="button" class="chip role-chip" data-value="job">
+                    Job
+                  </button>
+                  <button type="button" class="chip role-chip" data-value="business">
+                    Business
+                  </button>
+                  <button type="button" class="chip role-chip" data-value="freelancer">
+                    Freelancing / Creator
+                  </button>
+                  <button type="button" class="chip role-chip" data-value="other">
+                    Something else
+                  </button>
+                </div>
+                <input
+                  id="roleOther"
+                  type="text"
+                  class="mt-2 w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 hidden"
+                  placeholder="Optional: describe what you do"
+                />
                             </div>
 
+              <!-- Who you mostly text -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Short Bio *</label>
-                                <textarea id="bio" name="bio" required rows="3"
-                                          class="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-base min-h-[44px] bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                                          style="font-size: 16px;"
-                                          placeholder="Tell us about yourself in 50-150 characters" aria-label="Short Bio"></textarea>
-                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1"><span id="bioCount">0</span>/150 characters</p>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Who will your twin mostly write replies for? *
+                </label>
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" class="chip who-chip" data-value="friends">
+                    Close friends
+                  </button>
+                  <button type="button" class="chip who-chip" data-value="partner">
+                    Partner / crush
+                  </button>
+                  <button type="button" class="chip who-chip" data-value="family">
+                    Family
+                  </button>
+                  <button type="button" class="chip who-chip" data-value="colleagues">
+                    Colleagues / boss
+                  </button>
+                  <button type="button" class="chip who-chip" data-value="clients">
+                    Clients / professional
+                  </button>
+                  <button type="button" class="chip who-chip" data-value="mixed">
+                    Mixed / everyone
+                  </button>
+                </div>
                             </div>
 
+              <!-- Where you will use -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primary Use Case *</label>
-                                <select id="primaryUseCase" name="primaryUseCase" required
-                                        class="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent text-base min-h-[44px] bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" style="font-size: 16px;" aria-label="Primary Use Case">
-                                    <option value="">Select how you'll use your AI twin</option>
-                                    <option value="personal">Personal conversations & chat</option>
-                                    <option value="professional">Professional networking & business</option>
-                                    <option value="customer-service">Customer service & support</option>
-                                    <option value="content-creation">Content creation & social media</option>
-                                    <option value="educational">Educational & learning</option>
-                                </select>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Where will you mostly use your twin’s replies? *
+                </label>
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" class="chip where-chip" data-value="whatsapp">
+                    WhatsApp
+                  </button>
+                  <button type="button" class="chip where-chip" data-value="instagram">
+                    Instagram DM
+                  </button>
+                  <button type="button" class="chip where-chip" data-value="linkedin_email">
+                    LinkedIn / email
+                  </button>
+                  <button type="button" class="chip where-chip" data-value="dating">
+                    Dating apps
+                  </button>
+                  <button type="button" class="chip where-chip" data-value="everywhere">
+                    Everywhere
+                  </button>
+                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Step 2: Communication Style -->
+          <!-- STEP 2: Real chat style (examples) -->
                     <div id="step2-content" class="step-content hidden">
                         <div class="mb-8">
-                            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Communication Style</h1>
-                            <p class="text-gray-600 dark:text-gray-300">How should your AI twin communicate? Adjust these settings to match your style.</p>
+              <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                Show us your real chat style
+              </h1>
+              <p class="text-gray-600 dark:text-gray-300">
+                Paste real examples of how you actually type. This is the most important part for
+                style.
+              </p>
                         </div>
 
-                        <div class="space-y-8">
-                            <!-- Tone Sliders -->
+            <div class="space-y-6">
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tone Preferences</h3>
-                                
-                                <div class="space-y-6">
-                                    <div class="tone-slider-group">
-                                        <div class="flex justify-between items-center mb-2">
-                                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Casual</label>
-                                            <span id="formalCasualValue" class="text-sm text-primary font-semibold">50</span>
-                                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Formal</label>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  Example 1 – Close friend (required)
+                </h3>
+                <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                  Imagine a close friend cancels plans last minute. Type the reply you would
+                  actually send in chat, with your usual wording and tone.
+                </p>
+                <textarea
+                  id="casualSample"
+                  rows="4"
+                  class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder="Type how you would really reply..."
+                  required
+                ></textarea>
+              </div>
+
+              <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  Example 2 – More serious (optional but recommended)
+                </h3>
+                <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                  Now imagine replying to a teacher, manager, or someone in a more serious context.
+                  Type one example reply in your own words. This helps the twin learn your formal
+                  side.
+                </p>
+                <textarea
+                  id="formalSample"
+                  rows="4"
+                  class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder="Type a more formal or work-style message (optional)"
+                ></textarea>
                                         </div>
-                                        <input type="range" id="formalCasual" name="formalCasual" min="0" max="100" value="50" class="tone-slider w-full">
+            </div>
                                     </div>
 
-                                    <div class="tone-slider-group">
-                                        <div class="flex justify-between items-center mb-2">
-                                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Playful</label>
-                                            <span id="seriousPlayfulValue" class="text-sm text-primary font-semibold">50</span>
-                                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Serious</label>
-                                        </div>
-                                        <input type="range" id="seriousPlayful" name="seriousPlayful" min="0" max="100" value="50" class="tone-slider w-full">
+          <!-- STEP 3: Taste & comfort zone -->
+          <div id="step3-content" class="step-content hidden">
+            <div class="mb-8">
+              <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                What you enjoy and what to avoid
+              </h1>
+              <p class="text-gray-600 dark:text-gray-300">
+                This helps your twin know which topics and tone feel natural versus uncomfortable.
+              </p>
                                     </div>
 
-                                    <div class="tone-slider-group">
-                                        <div class="flex justify-between items-center mb-2">
-                                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Diplomatic</label>
-                                            <span id="directDiplomaticValue" class="text-sm text-primary font-semibold">50</span>
-                                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Direct</label>
+            <div class="space-y-6">
+              <!-- Likes -->
+              <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Topics you like (choose a few)
+                </h3>
+                <div class="flex flex-wrap gap-2" id="likesChips">
+                  <button type="button" class="chip like-chip" data-value="startups">
+                    Startups / business
+                  </button>
+                  <button type="button" class="chip like-chip" data-value="tech">
+                    Tech / coding
+                  </button>
+                  <button type="button" class="chip like-chip" data-value="money">
+                    Money / investing
+                  </button>
+                  <button type="button" class="chip like-chip" data-value="fitness">
+                    Fitness / health
+                  </button>
+                  <button type="button" class="chip like-chip" data-value="games_anime">
+                    Games / anime
+                  </button>
+                  <button type="button" class="chip like-chip" data-value="movies_series">
+                    Movies / series
+                  </button>
+                  <button type="button" class="chip like-chip" data-value="music">
+                    Music
+                  </button>
+                  <button type="button" class="chip like-chip" data-value="memes">
+                    Memes & jokes
+                  </button>
+                  <button type="button" class="chip like-chip" data-value="relationships">
+                    Relationships / feelings
+                  </button>
+                  <button type="button" class="chip like-chip" data-value="random_chat">
+                    Random small talk
+                  </button>
                                         </div>
-                                        <input type="range" id="directDiplomatic" name="directDiplomatic" min="0" max="100" value="50" class="tone-slider w-full">
+                <input
+                  id="likeCustom"
+                  type="text"
+                  class="mt-3 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                  placeholder="Other topic you like (press Enter to add)"
+                />
+                <div id="likesCustomList" class="mt-2 flex flex-wrap gap-2"></div>
                                     </div>
+
+              <!-- Avoids -->
+              <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Topics to avoid or keep very light
+                </h3>
+                <div class="flex flex-wrap gap-2" id="avoidChips">
+                  <button type="button" class="chip avoid-chip" data-value="politics">
+                    Politics
+                  </button>
+                  <button type="button" class="chip avoid-chip" data-value="religion">
+                    Religion
+                  </button>
+                  <button type="button" class="chip avoid-chip" data-value="family_drama">
+                    Family drama
+                  </button>
+                  <button type="button" class="chip avoid-chip" data-value="dark_jokes">
+                    Dark jokes
+                  </button>
+                  <button type="button" class="chip avoid-chip" data-value="office_gossip">
+                    Office gossip
+                  </button>
+                  <button type="button" class="chip avoid-chip" data-value="deep_mental_health">
+                    Very personal mental health
+                  </button>
+                                </div>
+                <input
+                  id="avoidCustom"
+                  type="text"
+                  class="mt-3 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                  placeholder="Other topic to avoid (press Enter to add)"
+                />
+                <div id="avoidsCustomList" class="mt-2 flex flex-wrap gap-2"></div>
+                            </div>
+
+              <!-- Humor / strong words / emojis -->
+              <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6 space-y-5">
+                                    <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    How much humour / light teasing do you like?
+                  </label>
+                  <div class="flex flex-wrap gap-2">
+                    <button type="button" class="chip humor-chip" data-humor="none">
+                      Almost no jokes – keep it simple
+                    </button>
+                    <button type="button" class="chip humor-chip" data-humor="normal">
+                      Normal level humour
+                    </button>
+                    <button type="button" class="chip humor-chip" data-humor="high">
+                      A lot of jokes / light roasting is fine
+                    </button>
+                                    </div>
+                </div>
+
+                                    <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Strong words / swearing
+                  </label>
+                  <div class="flex flex-wrap gap-2">
+                    <button type="button" class="chip strong-chip" data-strong="never">
+                      Never use strong language
+                    </button>
+                    <button type="button" class="chip strong-chip" data-strong="some">
+                      A little is okay
+                    </button>
+                    <button type="button" class="chip strong-chip" data-strong="normal">
+                      Normal casual level is fine
+                    </button>
                                 </div>
                             </div>
 
-                            <!-- Language Preferences -->
-                            <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Language Preferences</h3>
-                                <div class="grid md:grid-cols-2 gap-6">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Greeting Style *</label>
-                                        <select id="greetingStyle" name="greetingStyle" required
-                                                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white">
-                                            <option value="">Select greeting style</option>
-                                            <option value="formal">Formal: "Hello", "Good morning"</option>
-                                            <option value="casual">Casual: "Hey", "Hi there"</option>
-                                            <option value="friendly">Friendly: "Hey!", "Hi!"</option>
-                                        </select>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Emojis
+                  </label>
+                  <div class="flex flex-wrap gap-2">
+                    <button type="button" class="chip emoji-chip" data-emoji="low">
+                      Very few emojis
+                    </button>
+                    <button type="button" class="chip emoji-chip" data-emoji="medium">
+                      Sometimes
+                    </button>
+                    <button type="button" class="chip emoji-chip" data-emoji="high">
+                      Quite a lot
+                    </button>
                                     </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Closing Style *</label>
-                                        <select id="closingStyle" name="closingStyle" required
-                                                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white">
-                                            <option value="">Select closing style</option>
-                                            <option value="formal">Formal: "Best regards", "Sincerely"</option>
-                                            <option value="casual">Casual: "Talk soon", "Catch you later"</option>
-                                            <option value="friendly">Friendly: "Take care!", "See you soon!"</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Additional Preferences -->
-                            <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Additional Preferences</h3>
-                                <div class="grid md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Emoji Usage *</label>
-                                        <select id="emojiUsage" name="emojiUsage" required
-                                                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white">
-                                            <option value="">Select emoji usage</option>
-                                            <option value="high">High: Use emojis frequently 😊</option>
-                                            <option value="medium">Medium: Occasional emojis</option>
-                                            <option value="low">Low: Rarely use emojis</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Response Length *</label>
-                                        <select id="responseLength" name="responseLength" required
-                                                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white">
-                                            <option value="">Select response length</option>
-                                            <option value="short">Short: Brief, concise responses</option>
-                                            <option value="medium">Medium: Balanced length</option>
-                                            <option value="long">Long: Detailed, thorough responses</option>
-                                        </select>
-                                        </div>
-                                    </div>
-                                <div class="mt-6">
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Common Phrases (Optional)</label>
-                                        <input type="text" id="commonPhrases" name="commonPhrases"
-                                               class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                                               placeholder="e.g., 'Thanks!', 'No worries', 'Absolutely!'">
-                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Enter phrases you commonly use, separated by commas</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Step 3: Context & Interests -->
-                    <div id="step3-content" class="step-content hidden">
+          <!-- STEP 4: Rules & control -->
+          <div id="step4-content" class="step-content hidden">
                         <div class="mb-8">
-                            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Interests & Context</h1>
-                            <p class="text-gray-600 dark:text-gray-300">Help your AI twin understand your interests and context.</p>
+              <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                Rules and default behaviour
+              </h1>
+              <p class="text-gray-600 dark:text-gray-300">
+                Set clear boundaries and how your twin should usually respond.
+              </p>
                         </div>
 
-                        <div class="space-y-8">
+            <div class="space-y-6">
+              <div class="grid md:grid-cols-2 gap-6">
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Interests & Hobbies *</h3>
-                                <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">Select at least 3 interests:</p>
-                                <!-- ✅ MOBILE FIX: 2 cols on mobile, 3 cols on desktop -->
-                                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                                        <input type="checkbox" name="interests" value="technology" class="mr-2 sm:mr-3">
-                                        <span class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Technology & AI</span>
-                                    </label>
-                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                                        <input type="checkbox" name="interests" value="sports" class="mr-2 sm:mr-3">
-                                        <span class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Sports & Fitness</span>
-                                    </label>
-                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                                        <input type="checkbox" name="interests" value="arts" class="mr-2 sm:mr-3">
-                                        <span class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Arts & Culture</span>
-                                    </label>
-                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                                        <input type="checkbox" name="interests" value="travel" class="mr-2 sm:mr-3">
-                                        <span class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Travel & Adventure</span>
-                                    </label>
-                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                                        <input type="checkbox" name="interests" value="food" class="mr-2 sm:mr-3">
-                                        <span class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Food & Cooking</span>
-                                    </label>
-                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                                        <input type="checkbox" name="interests" value="music" class="mr-2 sm:mr-3">
-                                        <span class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Music & Entertainment</span>
-                                    </label>
-                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                                        <input type="checkbox" name="interests" value="books" class="mr-2 sm:mr-3">
-                                        <span class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Books & Reading</span>
-                                    </label>
-                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                                        <input type="checkbox" name="interests" value="gaming" class="mr-2 sm:mr-3">
-                                        <span class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Gaming</span>
-                                    </label>
-                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                                        <input type="checkbox" name="interests" value="business" class="mr-2 sm:mr-3">
-                                        <span class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Business & Finance</span>
-                                    </label>
-                                    <label class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                                        <input type="checkbox" name="interests" value="science" class="mr-2 sm:mr-3">
-                                        <span class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Science & Nature</span>
-                                    </label>
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    Always do (1–3 short lines)
+                  </h3>
+                  <textarea
+                    id="alwaysRules"
+                    rows="4"
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="Example: Always stay calm and respectful.&#10;Example: Explain things in simple language."
+                  ></textarea>
                                 </div>
+                            <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    Never do (1–3 short lines)
+                  </h3>
+                  <textarea
+                    id="neverRules"
+                    rows="4"
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="Example: Do not insult or attack people.&#10;Example: Do not overshare my personal life."
+                  ></textarea>
+                </div>
                             </div>
 
-                            <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Target Audience *</h3>
-                                <select id="targetAudience" name="targetAudience" required
-                                        class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white">
-                                    <option value="">Select target audience</option>
-                                    <option value="friends-family">Friends and family</option>
-                                    <option value="colleagues">Professional colleagues</option>
-                                    <option value="general-public">General public</option>
-                                    <option value="industry-specific">Specific industry</option>
-                                    <option value="students">Students/learners</option>
-                                </select>
+              <!-- Default behaviour chips -->
+              <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6 space-y-5">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Default reply size
+                  </label>
+                  <div class="flex flex-wrap gap-2">
+                    <button type="button" class="chip reply-size-chip" data-reply-size="short">
+                      Short & to the point
+                    </button>
+                    <button type="button" class="chip reply-size-chip" data-reply-size="normal">
+                      Normal
+                    </button>
+                    <button type="button" class="chip reply-size-chip" data-reply-size="detailed">
+                      A bit more detailed
+                    </button>
+                        </div>
+                    </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Jokes & risk level
+                  </label>
+                  <div class="flex flex-wrap gap-2">
+                    <button type="button" class="chip risk-chip" data-risk="safe">
+                      Very safe / polite
+                    </button>
+                    <button type="button" class="chip risk-chip" data-risk="normal">
+                      Normal
+                    </button>
+                    <button type="button" class="chip risk-chip" data-risk="edgy">
+                      Slightly edgy allowed
+                    </button>
+                        </div>
                             </div>
 
-                            <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Topics to Avoid (Optional)</h3>
-                                <textarea id="topicsToAvoid" name="topicsToAvoid" rows="3"
-                                          class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                                          placeholder="List any topics your AI twin should avoid or be careful about..."></textarea>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Style adaptation
+                  </label>
+                  <div class="flex flex-wrap gap-2">
+                    <button type="button" class="chip adaptation-chip" data-adaptation="mine">
+                      Mostly my style
+                    </button>
+                    <button type="button" class="chip adaptation-chip" data-adaptation="mix">
+                      Mix of both
+                    </button>
+                    <button type="button" class="chip adaptation-chip" data-adaptation="theirs">
+                      Mostly like the other person (tone only)
+                    </button>
+                  </div>
+                            </div>
+
+                <div>
+                  <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <input
+                      id="approvalRequired"
+                      type="checkbox"
+                      class="rounded border-gray-300 dark:border-gray-600"
+                    />
+                    <span>Be extra cautious on sensitive messages (ask a quick confirmation).</span>                    
+                  </label>
+                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Step 4: Text Samples (REQUIRED) -->
-                    <div id="step4-content" class="step-content hidden">
-                        <div class="mb-8">
-                            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Text Samples</h1>
-                            <p class="text-gray-600 dark:text-gray-300">Provide real examples of your writing. This is the most important step for accuracy!</p>
-                            <p class="text-sm text-red-600 dark:text-red-400 mt-2 font-medium">* Required - At least 2 samples needed</p>
-                        </div>
-
-                        <div class="space-y-8">
-                            <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Sample 1: Email or Message *</h3>
-                                <textarea id="sample1" name="sample1" required rows="4"
-                                          class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                                          placeholder="Paste a real email or message you've written..."></textarea>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This helps us understand your writing style</p>
-                            </div>
-
-                            <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Sample 2: Social Media Post or Text *</h3>
-                                <textarea id="sample2" name="sample2" required rows="4"
-                                          class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                                          placeholder="Paste a social media post, tweet, or casual text message..."></textarea>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Shows your casual communication style</p>
-                            </div>
-
-                            <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Sample 3: Additional (Optional but Recommended)</h3>
-                                <textarea id="sample3" name="sample3" rows="4"
-                                          class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                                          placeholder="Any other writing sample - professional, creative, etc..."></textarea>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">More samples = better accuracy</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 5: Preview & Confirm -->
+          <!-- STEP 5: Preview -->
                     <div id="step5-content" class="step-content hidden">
                         <div class="mb-8">
-                            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Your AI Twin Preview</h1>
-                            <p class="text-gray-600 dark:text-gray-300">Review your settings. You can edit them anytime after creation.</p>
+              <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                Your twin summary
+              </h1>
+              <p class="text-gray-600 dark:text-gray-300">
+                Check that this matches how you want your twin to sound. You can always change
+                settings later.
+              </p>
                         </div>
 
                         <div class="space-y-6">
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h3>
-                                <!-- ✅ MOBILE FIX: Bio overflow - add max-height and scroll on mobile -->
-                                <div id="previewBasicInfo" class="space-y-2 text-sm text-gray-700 dark:text-gray-300 max-h-[200px] sm:max-h-none overflow-y-auto sm:overflow-visible"></div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Overview
+                </h3>
+                <div id="previewBasic" class="text-sm text-gray-800 dark:text-gray-200 space-y-1">
+                  <!-- Filled by JS -->
+                </div>
                             </div>
 
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Communication Style</h3>
-                                <div id="previewStyle" class="space-y-2 text-sm text-gray-700 dark:text-gray-300"></div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Topics & tone
+                </h3>
+                <div
+                  id="previewPreferences"
+                  class="text-sm text-gray-800 dark:text-gray-200 space-y-1"
+                >
+                  <!-- Filled by JS -->
+                </div>
                             </div>
 
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Interests</h3>
-                                <div id="previewInterests" class="text-sm text-gray-700 dark:text-gray-300"></div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Rules
+                </h3>
+                <div id="previewRules" class="text-sm text-gray-800 dark:text-gray-200 space-y-1">
+                  <!-- Filled by JS -->
+                </div>
                             </div>
 
                             <div class="bg-gradient-to-r from-primary to-accent rounded-xl p-4 sm:p-6 text-white">
-                                <h3 class="text-lg font-semibold mb-3 sm:mb-4">Ready to Create Your AI Twin?</h3>
-                                <p class="mb-3 sm:mb-4 text-sm sm:text-base">Your AI twin will be created with all the preferences you've selected. You can always modify these settings later.</p>
-                                <!-- ✅ MOBILE FIX: Stack buttons vertically on mobile, horizontal on desktop -->
-                                <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
-                                    <button type="button" id="editSettingsBtn" class="px-4 sm:px-6 py-2.5 sm:py-3 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-all duration-300 font-semibold text-sm sm:text-base text-center">
-                                        Edit Settings
+                <h3 class="text-lg font-semibold mb-3">Ready to create your twin?</h3>
+                <p class="mb-3 text-sm sm:text-base">
+                  Your twin will use this information and your real examples to write replies that
+                  feel like you. You can always edit style, topics and rules later.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                  <button
+                    type="button"
+                    id="editBackBtn"
+                    class="px-4 sm:px-6 py-2.5 bg-white/15 text-white rounded-lg hover:bg-white/25 transition-colors font-semibold text-sm sm:text-base text-center"
+                  >
+                    Go back and edit
                                     </button>
-                                    <button type="submit" id="createTwinBtn" class="px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-primary rounded-lg hover:bg-gray-100 transition-all duration-300 font-semibold text-sm sm:text-base text-center">
-                                        Create My AI Twin
+                  <button
+                    type="submit"
+                    id="createTwinBtn"
+                    class="px-4 sm:px-6 py-2.5 bg-white text-primary rounded-lg hover:bg-gray-100 transition-colors font-semibold text-sm sm:text-base text-center"
+                  >
+                    Create my twin
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Navigation Buttons -->
-                    <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                        <button type="button" id="prevBtn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-semibold hidden">
+          <!-- Navigation -->
+          <div
+            class="flex justify-between items-center mt-8 pt-6 border-top border-gray-200 dark:border-gray-700"
+          >
+            <button
+              type="button"
+              id="prevBtn"
+              class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-semibold hidden"
+            >
                             ← Previous
                         </button>
                         <div class="flex-1"></div>
-                        <button type="button" id="nextBtn" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors font-semibold">
+            <button
+              type="button"
+              id="nextBtn"
+              class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors font-semibold"
+            >
                             Next →
                         </button>
                     </div>
                 </form>
             </div>
         </div>
-    </div>
+  </main>
 
+  <!-- Scripts -->
     <script>
-        // Global variables
+        const ONBOARDING_STORAGE_KEY = 'enhancedOnboarding_v1';
+
         let currentStep = 1;
         const totalSteps = 5;
-        let onboardingData = {};
-        const ONBOARDING_DRAFT_KEY = 'onboardingDraft_v1';
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-    initializeOnboarding();
-    setupEventListeners();
-    updateProgress();
+    const onboardingData = {
+      basicInfo: {},
+      styleSamples: {},
+      preferences: {},
+      rules: {},
+    };
 
-    // ✅ Auto-save current step data before refresh / close
-    window.addEventListener('beforeunload', function () {
-        try {
-            saveCurrentStepData();     // save fields for currentStep
-            saveOnboardingDraft();     // write to localStorage
-        } catch (e) {
-            console.warn('Failed to auto-save onboarding draft on unload:', e);
-        }
+    document.addEventListener('DOMContentLoaded', () => {
+      setupChips();
+      loadOnboardingFromStorage();
+      setupNavigation();
+      updateStepUI();
+
+ // Save latest answers before reload / close
+ window.addEventListener('beforeunload', () => {
+      try {
+        saveCurrentStep();
+        persistOnboardingState();
+      } catch (e) {
+        console.error('Failed to persist onboarding state on unload', e);
+      }
     });
-});        
+  });    
 
-        function initializeOnboarding() {
-    // 1) Try draft from localStorage
-    let draft = null;
-    try {
-        const raw = localStorage.getItem(ONBOARDING_DRAFT_KEY);
-        if (raw) draft = JSON.parse(raw);
-    } catch (e) {
-        console.warn('Failed to parse onboarding draft:', e);
-    }
+    function setupChips() {
+      // single-select groups
+      const singleGroups = [
+        '.role-chip',
+        '.humor-chip',
+        '.strong-chip',
+        '.emoji-chip',
+        '.reply-size-chip',
+        '.risk-chip',
+        '.adaptation-chip',
+      ];
 
-    // 2) Try step from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const stepFromUrl = parseInt(urlParams.get('step') || '1', 10);
+      singleGroups.forEach((selector) => {
+        document.querySelectorAll(selector).forEach((chip) => {
+          chip.addEventListener('click', () => {
+            document.querySelectorAll(selector).forEach((c) => c.classList.remove('selected'));
+            chip.classList.add('selected');
 
-    if (draft && draft.currentStep && draft.data) {
-        currentStep = draft.currentStep;
-        onboardingData = draft.data;
+            // special: role "other" toggles text input
+            if (selector === '.role-chip') {
+              const roleOther = document.getElementById('roleOther');
+              if (!roleOther) return;
+              if (chip.getAttribute('data-value') === 'other') {
+                roleOther.classList.remove('hidden');
     } else {
-        currentStep = isNaN(stepFromUrl) ? 1 : Math.min(Math.max(stepFromUrl, 1), totalSteps);
-        onboardingData = {};
+                roleOther.classList.add('hidden');
+                roleOther.value = '';
+              }
+            }
+          });
+        });
+      });
+
+      // multi-select groups
+      ['.who-chip', '.where-chip', '.like-chip', '.avoid-chip'].forEach((selector) => {
+        document.querySelectorAll(selector).forEach((chip) => {
+          chip.addEventListener('click', () => {
+            chip.classList.toggle('selected');
+          });
+        });
+      });
+
+      // custom like / avoid inputs
+      const likeCustom = document.getElementById('likeCustom');
+      const likesCustomList = document.getElementById('likesCustomList');
+      if (likeCustom && likesCustomList) {
+        likeCustom.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const value = likeCustom.value.trim();
+            if (!value) return;
+            addCustomChip(likesCustomList, value, 'like-custom');
+            likeCustom.value = '';
+          }
+        });
+      }
+
+      const avoidCustom = document.getElementById('avoidCustom');
+      const avoidsCustomList = document.getElementById('avoidsCustomList');
+      if (avoidCustom && avoidsCustomList) {
+        avoidCustom.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const value = avoidCustom.value.trim();
+            if (!value) return;
+            addCustomChip(avoidsCustomList, value, 'avoid-custom');
+            avoidCustom.value = '';
+          }
+        });
+      }
     }
 
-    showStep(currentStep);
-    updateProgress();
-    restoreFieldsFromDraft();
-
-    // Ensure history state matches current step
-    if (history.replaceState) {
-        history.replaceState({ step: currentStep }, '', `?step=${currentStep}`);
+    function addCustomChip(container, text, type) {
+      const span = document.createElement('span');
+      span.className =
+        'inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-xs text-gray-800 dark:text-gray-100';
+      span.setAttribute('data-value', text);
+      span.setAttribute('data-type', type);
+      span.innerHTML = `
+        <span>${escapeHtml(text)}</span>
+        <button type="button" class="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white">&times;</button>
+      `;
+      const btn = span.querySelector('button');
+      btn.addEventListener('click', () => span.remove());
+      container.appendChild(span);
     }
 
-    // Bio character counter
-    const bioTextarea = document.getElementById('bio');
-    const bioCount = document.getElementById('bioCount');
-    bioTextarea.addEventListener('input', function() {
-        bioCount.textContent = this.value.length;
+function persistOnboardingState() {
+    try {
+      const payload = {
+        currentStep,
+        onboardingData,
+      };
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(payload));
+    } catch (e) {
+      console.error('Failed to persist onboarding state', e);
+    }
+  }
+
+  function loadOnboardingFromStorage() {
+    try {
+      const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
+
+      if (parsed.onboardingData && typeof parsed.onboardingData === 'object') {
+        Object.assign(onboardingData, parsed.onboardingData);
+      }
+      if (typeof parsed.currentStep === 'number') {
+        currentStep = Math.min(Math.max(parsed.currentStep, 1), totalSteps);
+      }
+
+      hydrateFromOnboardingData();
+    } catch (e) {
+      console.error('Failed to load onboarding state from storage', e);
+    }
+  }
+
+  function hydrateFromOnboardingData() {
+    restoreStep1();
+    restoreStep2();
+    restoreStep3();
+    restoreStep4();
+  }
+
+  function restoreStep1() {
+    const b = onboardingData.basicInfo || {};
+
+    const nameInput = document.getElementById('name');
+    const roleOther = document.getElementById('roleOther');
+    if (nameInput) nameInput.value = b.name || '';
+
+    // role chips
+    document.querySelectorAll('.role-chip').forEach((chip) => {
+      const val = chip.getAttribute('data-value');
+      const isSelected = val === b.role;
+      chip.classList.toggle('selected', isSelected);
     });
 
-    // Tone sliders
-    initializeToneSliders();
-}        
+    if (roleOther) {
+      if (b.role === 'other') {
+        roleOther.classList.remove('hidden');
+        roleOther.value = b.roleOther || '';
+      } else {
+        roleOther.classList.add('hidden');
+        roleOther.value = '';
+      }
+    }
 
-        function setupEventListeners() {
-            document.getElementById('nextBtn').addEventListener('click', nextStep);
-            document.getElementById('prevBtn').addEventListener('click', prevStep);
-            document.getElementById('onboardingForm').addEventListener('submit', handleFormSubmission);
-            document.getElementById('editSettingsBtn').addEventListener('click', editSettings);
-            
-            // ✅ FIX: Add click handler for createTwinBtn (not just form submit)
-            const createTwinBtn = document.getElementById('createTwinBtn');
-            if (createTwinBtn) {
-                createTwinBtn.addEventListener('click', function(e) {
-                    e.preventDefault(); // Prevent form submission
-                    createAITwin();
-                });
+    // who you text
+    const who = Array.isArray(b.whoYouText) ? b.whoYouText : [];
+    document.querySelectorAll('.who-chip').forEach((chip) => {
+      const val = chip.getAttribute('data-value');
+      chip.classList.toggle('selected', who.includes(val));
+    });
+
+    // where you use
+    const where = Array.isArray(b.whereUse) ? b.whereUse : [];
+    document.querySelectorAll('.where-chip').forEach((chip) => {
+      const val = chip.getAttribute('data-value');
+      chip.classList.toggle('selected', where.includes(val));
+    });
+  }
+
+  function restoreStep2() {
+    const s = onboardingData.styleSamples || {};
+    const casual = document.getElementById('casualSample');
+    const formal = document.getElementById('formalSample');
+    if (casual) casual.value = s.casualSample || '';
+    if (formal) formal.value = s.formalSample || '';
+  }
+
+  function restoreStep3() {
+    const p = onboardingData.preferences || {};
+    const likes = Array.isArray(p.likes) ? [...p.likes] : [];
+    const avoids = Array.isArray(p.avoids) ? [...p.avoids] : [];
+
+    // explicit like chips
+    document.querySelectorAll('.like-chip').forEach((chip) => {
+      const val = chip.getAttribute('data-value');
+      const idx = likes.indexOf(val);
+      const selected = idx !== -1;
+      chip.classList.toggle('selected', selected);
+      if (selected) likes.splice(idx, 1);
+    });
+    // remaining likes → custom chips
+    const likesCustomList = document.getElementById('likesCustomList');
+    if (likesCustomList) {
+      likes.forEach((text) => addCustomChip(likesCustomList, text, 'like-custom'));
+    }
+
+    // explicit avoid chips
+    document.querySelectorAll('.avoid-chip').forEach((chip) => {
+      const val = chip.getAttribute('data-value');
+      const idx = avoids.indexOf(val);
+      const selected = idx !== -1;
+      chip.classList.toggle('selected', selected);
+      if (selected) avoids.splice(idx, 1);
+    });
+    // remaining avoids → custom chips
+    const avoidsCustomList = document.getElementById('avoidsCustomList');
+    if (avoidsCustomList) {
+      avoids.forEach((text) => addCustomChip(avoidsCustomList, text, 'avoid-custom'));
+    }
+
+    // humour / strong words / emoji chips
+    const humor = p.humorLevel;
+    document.querySelectorAll('.humor-chip').forEach((chip) => {
+      chip.classList.toggle(
+        'selected',
+        chip.getAttribute('data-humor') === humor
+      );
+    });
+
+    const strong = p.strongWords;
+    document.querySelectorAll('.strong-chip').forEach((chip) => {
+      chip.classList.toggle(
+        'selected',
+        chip.getAttribute('data-strong') === strong
+      );
+    });
+
+    const emoji = p.emojiPref;
+    document.querySelectorAll('.emoji-chip').forEach((chip) => {
+      chip.classList.toggle(
+        'selected',
+        chip.getAttribute('data-emoji') === emoji
+      );
+    });
+  }
+
+  function restoreStep4() {
+    const r = onboardingData.rules || {};
+
+    const alwaysArea = document.getElementById('alwaysRules');
+    const neverArea = document.getElementById('neverRules');
+
+    if (alwaysArea && Array.isArray(r.always)) {
+      alwaysArea.value = r.always.join('\n');
+    }
+    if (neverArea && Array.isArray(r.never)) {
+      neverArea.value = r.never.join('\n');
+    }
+
+    document.querySelectorAll('.reply-size-chip').forEach((chip) => {
+      chip.classList.toggle(
+        'selected',
+        chip.getAttribute('data-reply-size') === r.replySize
+      );
+    });
+
+    document.querySelectorAll('.risk-chip').forEach((chip) => {
+      chip.classList.toggle(
+        'selected',
+        chip.getAttribute('data-risk') === r.riskLevel
+      );
+    });
+
+    document.querySelectorAll('.adaptation-chip').forEach((chip) => {
+      chip.classList.toggle(
+        'selected',
+        chip.getAttribute('data-adaptation') === r.adaptation
+      );
+    });
+
+    const approval = document.getElementById('approvalRequired');
+    if (approval && typeof r.approvalRequired === 'boolean') {
+      approval.checked = r.approvalRequired;
+    }
+  }
+
+    function setupNavigation() {
+      const nextBtn = document.getElementById('nextBtn');
+      const prevBtn = document.getElementById('prevBtn');
+      const editBackBtn = document.getElementById('editBackBtn');
+      const form = document.getElementById('onboardingForm');
+
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          if (!validateCurrentStep()) return;
+          saveCurrentStep();
+          if (currentStep < totalSteps) {
+            currentStep += 1;
+            if (currentStep === 5) {
+              generatePreview();
             }
-            
-        }
+            updateStepUI();
+          }
+        });
+      }
 
-        function initializeToneSliders() {
-            const sliders = ['formalCasual', 'seriousPlayful', 'directDiplomatic'];
-            sliders.forEach(sliderId => {
-                const slider = document.getElementById(sliderId);
-                const valueSpan = document.getElementById(sliderId + 'Value');
-                slider.addEventListener('input', function() {
-                    valueSpan.textContent = this.value;
-                });
-            });
-        }
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          if (currentStep <= 1) return;
+          saveCurrentStep();
+          currentStep -= 1;
+          updateStepUI();
+        });
+      }
 
-        function showStep(step) {
-            document.querySelectorAll('.step-content').forEach(content => {
-                content.classList.add('hidden');
-            });
-            document.getElementById(`step${step}-content`).classList.remove('hidden');
-            document.getElementById(`step${step}-content`).classList.add('fade-in');
+      if (editBackBtn) {
+        editBackBtn.addEventListener('click', () => {
+          currentStep = 1;
+          updateStepUI();
+        });
+      }
 
-            // Update step indicators
+      if (form) {
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          if (!validateCurrentStep()) return;
+          saveCurrentStep();
+          submitOnboarding();
+        });
+      }
+    }
+
+    function updateStepUI() {
+      // show content
             for (let i = 1; i <= totalSteps; i++) {
-                const stepElement = document.getElementById(`step${i}`);
-                if (i < step) {
-                    stepElement.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-completed';
-                } else if (i === step) {
-                    stepElement.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-active';
+        const content = document.getElementById(`step${i}-content`);
+        if (!content) continue;
+        if (i === currentStep) {
+          content.classList.remove('hidden');
+          content.classList.add('fade-in');
                 } else {
-                    stepElement.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending';
-                }
-            }
-
-            updateNavigationButtons(step);
+          content.classList.add('hidden');
+          content.classList.remove('fade-in');
         }
 
-        function updateNavigationButtons(step) {
+        const dot = document.getElementById(`step${i}`);
+        if (!dot) continue;
+        if (i < currentStep) {
+          dot.className =
+            'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-completed';
+        } else if (i === currentStep) {
+          dot.className =
+            'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-active';
+        } else {
+          dot.className =
+            'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold step-pending';
+        }
+      }
+
             const prevBtn = document.getElementById('prevBtn');
             const nextBtn = document.getElementById('nextBtn');
 
-            if (step > 1) {
-                prevBtn.classList.remove('hidden');
-            } else {
-                prevBtn.classList.add('hidden');
-            }
+      if (prevBtn) {
+        if (currentStep > 1) prevBtn.classList.remove('hidden');
+        else prevBtn.classList.add('hidden');
+      }
 
-            if (step === totalSteps) {
-                // ✅ FIX: Hide nextBtn on step 5 - use buttons inside step 5 instead
-                nextBtn.classList.add('hidden');
-                // Don't change to submit - let createTwinBtn handle it
-            } else {
-                nextBtn.textContent = 'Next →';
-                nextBtn.type = 'button';
-                nextBtn.classList.remove('hidden');
-            }
-        }
+      if (nextBtn) {
+        if (currentStep === totalSteps) nextBtn.classList.add('hidden');
+        else nextBtn.classList.remove('hidden');
+      }
 
-        function updateProgress() {
             const progress = (currentStep / totalSteps) * 100;
-            document.getElementById('progressBar').style.width = `${progress}%`;
-            document.getElementById('currentStepNumber').textContent = currentStep;
-        }
-
-function nextStep() {
-    if (!validateCurrentStep()) return;
-
-    // Save data for the CURRENT step before moving
-    saveCurrentStepData();
-
-    if (currentStep < totalSteps) {
-        // Move to next step
-        currentStep++;
-        showStep(currentStep);
-        updateProgress();
-
-        // ✅ Now save draft for the NEW currentStep
-        saveOnboardingDraft();
-
-        // Update URL/history for back/forward
-        if (history.pushState) {
-            history.pushState({ step: currentStep }, '', `?step=${currentStep}`);
-        }
-
-        if (currentStep === 5) {
-            generatePreview();
-        }
-    }
-}
-
-function prevStep() {
-    if (currentStep <= 1) return;
-
-    // Optionally save data for current step before moving back
-    saveCurrentStepData();
-
-    // Move to previous step
-    currentStep--;
-    showStep(currentStep);
-    updateProgress();
-
-    // ✅ Save draft for the NEW currentStep
-    saveOnboardingDraft();
-
-    // Update URL/history
-    if (history.pushState) {
-        history.pushState({ step: currentStep }, '', `?step=${currentStep}`);
-    }
+      const progressBar = document.getElementById('progressBar');
+      const currentStepNumber = document.getElementById('currentStepNumber');
+      if (progressBar) progressBar.style.width = `${progress}%`;
+      if (currentStepNumber) currentStepNumber.textContent = String(currentStep);
 }
 
         function validateCurrentStep() {
-            switch (currentStep) {
-                case 1:
-                    return validateBasicInfo();
-                case 2:
-                    return validateStyle();
-                case 3:
-                    return validateInterests();
-                case 4:
-                    return validateSamples();
-                case 5:
+      if (currentStep === 1) return validateStep1();
+      if (currentStep === 2) return validateStep2();
+      if (currentStep === 3) return validateStep3();
+      if (currentStep === 4) return validateStep4();
                     return true;
-                default:
-                    return true;
-            }
-        }
+    }
 
-        function validateBasicInfo() {
-            const fullName = document.getElementById('fullName').value.trim();
-            const bio = document.getElementById('bio').value.trim();
-            const primaryUseCase = document.getElementById('primaryUseCase').value;
-
-            if (!fullName || !bio || !primaryUseCase) {
-                showMessage('Please fill in all required fields.', 'error');
+    function validateStep1() {
+      const name = document.getElementById('name').value.trim();
+      const role = getSelectedValue('.role-chip');
+      const who = getSelectedValues('.who-chip');
+      const where = getSelectedValues('.where-chip');
+      if (!name || !role) {
+        showMessage('Please fill in your name and select what you do.', 'error');
                 return false;
             }
-
-            if (bio.length < 50 || bio.length > 150) {
-                showMessage('Bio must be between 50-150 characters.', 'error');
+      if (who.length === 0) {
+        showMessage('Please choose who you mostly text.', 'error');
                 return false;
             }
-
+      if (where.length === 0) {
+        showMessage('Please choose where you will use your twin.', 'error');
+        return false;
+      }
             return true;
         }
 
-        function validateStyle() {
-            const greetingStyle = document.getElementById('greetingStyle').value;
-            const closingStyle = document.getElementById('closingStyle').value;
-            const emojiUsage = document.getElementById('emojiUsage').value;
-            const responseLength = document.getElementById('responseLength').value;
-
-            if (!greetingStyle || !closingStyle || !emojiUsage || !responseLength) {
-                showMessage('Please fill in all required fields.', 'error');
+    function validateStep2() {
+      const casual = document.getElementById('casualSample').value.trim();
+      if (!casual || casual.length < 20) {
+        showMessage('Please enter at least one real friend-style message (20+ characters).', 'error');
                 return false;
             }
-
             return true;
         }
 
-        function validateInterests() {
-            const interests = document.querySelectorAll('input[name="interests"]:checked');
-            const targetAudience = document.getElementById('targetAudience').value;
-
-            if (interests.length < 3) {
-                showMessage('Please select at least 3 interests.', 'error');
+    function validateStep3() {
+      const likes = collectLikes();
+      if (likes.length === 0) {
+        showMessage('Please select at least one topic you like.', 'error');
                 return false;
             }
-
-            if (!targetAudience) {
-                showMessage('Please select your target audience.', 'error');
+      const humor = getSelectedAttr('.humor-chip', 'data-humor');
+      const strong = getSelectedAttr('.strong-chip', 'data-strong');
+      const emoji = getSelectedAttr('.emoji-chip', 'data-emoji');
+      if (!humor || !strong || !emoji) {
+        showMessage('Please choose humour level, strong words preference and emoji usage.', 'error');
                 return false;
             }
-
             return true;
         }
 
-        function validateSamples() {
-            const sample1 = document.getElementById('sample1').value.trim();
-            const sample2 = document.getElementById('sample2').value.trim();
-
-            if (!sample1 || !sample2) {
-                showMessage('Please provide at least 2 text samples. This is required for accuracy!', 'error');
+    function validateStep4() {
+      const replySize = getSelectedAttr('.reply-size-chip', 'data-reply-size');
+      const risk = getSelectedAttr('.risk-chip', 'data-risk');
+      const adaptation = getSelectedAttr('.adaptation-chip', 'data-adaptation');
+      if (!replySize || !risk || !adaptation) {
+        showMessage('Please choose default reply size, risk level and adaptation style.', 'error');
                 return false;
             }
-
-            if (sample1.length < 20 || sample2.length < 20) {
-                showMessage('Each sample should be at least 20 characters long.', 'error');
-                return false;
-            }
-
             return true;
         }
 
-        function saveCurrentStepData() {
-            switch (currentStep) {
-                case 1:
-                    saveBasicInfo();
-                    break;
-                case 2:
-                    saveStyleData();
-                    break;
-                case 3:
-                    saveContextData();
-                    break;
-                case 4:
-                    saveSampleData();
-                    break;
-            }
-        }
+    function saveCurrentStep() {
+      if (currentStep === 1) saveStep1();
+      if (currentStep === 2) saveStep2();
+      if (currentStep === 3) saveStep3();
+      if (currentStep === 4) saveStep4();
+      persistOnboardingState();
+    }
 
-        function saveBasicInfo() {
+    function saveStep1() {
             onboardingData.basicInfo = {
-                fullName: document.getElementById('fullName').value,
-                bio: document.getElementById('bio').value,
-                primaryUseCase: document.getElementById('primaryUseCase').value
-            };
-        }
-
-        function saveStyleData() {
-            onboardingData.communicationStyle = {
-                tone: {
-                    formalCasual: parseInt(document.getElementById('formalCasual').value),
-                    seriousPlayful: parseInt(document.getElementById('seriousPlayful').value),
-                    directDiplomatic: parseInt(document.getElementById('directDiplomatic').value)
-                },
-                language: {
-                    greetingStyle: document.getElementById('greetingStyle').value,
-                    closingStyle: document.getElementById('closingStyle').value,
-                    emojiUsage: document.getElementById('emojiUsage').value,
-                    responseLength: document.getElementById('responseLength').value,
-                    commonPhrases: document.getElementById('commonPhrases').value || ''
-                }
-            };
-        }
-
-        function saveContextData() {
-            const interests = Array.from(document.querySelectorAll('input[name="interests"]:checked'))
-                .map(checkbox => checkbox.value);
-
-            onboardingData.context = {
-                interests: interests,
-                targetAudience: document.getElementById('targetAudience').value,
-                topicsToAvoid: document.getElementById('topicsToAvoid').value || ''
-            };
-        }
-
-        function saveSampleData() {
-            const samples = [];
-            
-            const sample1 = document.getElementById('sample1').value.trim();
-            if (sample1) samples.push({ category: 'email-message', content: sample1 });
-            
-            const sample2 = document.getElementById('sample2').value.trim();
-            if (sample2) samples.push({ category: 'social-media', content: sample2 });
-            
-            const sample3 = document.getElementById('sample3').value.trim();
-            if (sample3) samples.push({ category: 'additional', content: sample3 });
-
-            onboardingData.samples = {
-                content: samples
-            };
-        }
-
-        function saveOnboardingDraft() {
-    try {
-        const draft = {
-            currentStep,
-            data: onboardingData,
-            updatedAt: new Date().toISOString()
-        };
-        localStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify(draft));
-    } catch (e) {
-        console.warn('Failed to save onboarding draft:', e);
-    }
-}
-
-function restoreFieldsFromDraft() {
-    const data = onboardingData || {};
-
-    // Step 1
-    if (data.basicInfo) {
-        document.getElementById('fullName').value = data.basicInfo.fullName || '';
-        document.getElementById('bio').value = data.basicInfo.bio || '';
-        document.getElementById('primaryUseCase').value = data.basicInfo.primaryUseCase || '';
-        const bioCount = document.getElementById('bioCount');
-        if (bioCount) bioCount.textContent = (data.basicInfo.bio || '').length;
+        name: document.getElementById('name').value.trim(),
+        role: getSelectedValue('.role-chip') || '',
+        roleOther: document.getElementById('roleOther').value.trim(),
+        whoYouText: getSelectedValues('.who-chip'),
+        whereUse: getSelectedValues('.where-chip'),
+      };
     }
 
-    // Step 2
-    if (data.communicationStyle) {
-        const tone = data.communicationStyle.tone || {};
-        const lang = data.communicationStyle.language || {};
-
-        if (tone.formalCasual != null) document.getElementById('formalCasual').value = tone.formalCasual;
-        if (tone.seriousPlayful != null) document.getElementById('seriousPlayful').value = tone.seriousPlayful;
-        if (tone.directDiplomatic != null) document.getElementById('directDiplomatic').value = tone.directDiplomatic;
-
-        if (lang.greetingStyle) document.getElementById('greetingStyle').value = lang.greetingStyle;
-        if (lang.closingStyle) document.getElementById('closingStyle').value = lang.closingStyle;
-        if (lang.emojiUsage) document.getElementById('emojiUsage').value = lang.emojiUsage;
-        if (lang.responseLength) document.getElementById('responseLength').value = lang.responseLength;
-        if (lang.commonPhrases != null) document.getElementById('commonPhrases').value = lang.commonPhrases;
+    function saveStep2() {
+      onboardingData.styleSamples = {
+        casualSample: document.getElementById('casualSample').value.trim(),
+        formalSample: document.getElementById('formalSample').value.trim() || undefined,
+      };
     }
 
-    // Step 3
-    if (data.context) {
-        const ctx = data.context;
-        if (Array.isArray(ctx.interests)) {
-            ctx.interests.forEach(value => {
-                const checkbox = document.querySelector(`input[name="interests"][value="${value}"]`);
-                if (checkbox) checkbox.checked = true;
-            });
-        }
-        if (ctx.targetAudience) document.getElementById('targetAudience').value = ctx.targetAudience;
-        if (ctx.topicsToAvoid != null) document.getElementById('topicsToAvoid').value = ctx.topicsToAvoid;
+    function saveStep3() {
+      onboardingData.preferences = {
+        likes: collectLikes(),
+        avoids: collectAvoids(),
+        humorLevel: getSelectedAttr('.humor-chip', 'data-humor') || 'normal',
+        strongWords: getSelectedAttr('.strong-chip', 'data-strong') || 'some',
+        emojiPref: getSelectedAttr('.emoji-chip', 'data-emoji') || 'medium',
+      };
     }
 
-    // Step 4
-    if (data.samples && Array.isArray(data.samples.content)) {
-        const samples = data.samples.content;
-        if (samples[0]) document.getElementById('sample1').value = samples[0].content || '';
-        if (samples[1]) document.getElementById('sample2').value = samples[1].content || '';
-        if (samples[2]) document.getElementById('sample3').value = samples[2].content || '';
+    function saveStep4() {
+      const alwaysText = document.getElementById('alwaysRules').value.trim();
+      const neverText = document.getElementById('neverRules').value.trim();
+      onboardingData.rules = {
+        always: alwaysText
+          ? alwaysText
+              .split('\n')
+              .map((l) => l.trim())
+              .filter(Boolean)
+          : [],
+        never: neverText
+          ? neverText
+              .split('\n')
+              .map((l) => l.trim())
+              .filter(Boolean)
+          : [],
+        replySize: getSelectedAttr('.reply-size-chip', 'data-reply-size') || 'normal',
+        riskLevel: getSelectedAttr('.risk-chip', 'data-risk') || 'safe',
+        adaptation: getSelectedAttr('.adaptation-chip', 'data-adaptation') || 'mix',
+        approvalRequired: document.getElementById('approvalRequired').checked,
+      };
     }
 
-    // If we're on step 5, regenerate preview
-    if (currentStep === 5) {
-        generatePreview();
+    function collectLikes() {
+      const explicit = getSelectedValues('.like-chip');
+      const custom = Array.from(
+        document.querySelectorAll('#likesCustomList [data-type="like-custom"]')
+      ).map((el) => el.getAttribute('data-value'));
+      return [...explicit, ...custom.filter(Boolean)];
     }
-}
 
-        function generatePreview() {
-            const basicInfo = onboardingData.basicInfo || {};
-            const style = onboardingData.communicationStyle || {};
-            const context = onboardingData.context || {};
-
-            // Basic Info Preview
-            document.getElementById('previewBasicInfo').innerHTML = `
-                <p><strong>Name:</strong> ${basicInfo.fullName || 'N/A'}</p>
-                <p><strong>Bio:</strong> ${basicInfo.bio || 'N/A'}</p>
-                <p><strong>Use Case:</strong> ${basicInfo.primaryUseCase || 'N/A'}</p>
-            `;
-
-            // Style Preview
-            const tone = style.tone || {};
-            const lang = style.language || {};
-            document.getElementById('previewStyle').innerHTML = `
-                <p><strong>Tone:</strong> ${tone.formalCasual > 50 ? 'Formal' : 'Casual'}, ${tone.seriousPlayful > 50 ? 'Serious' : 'Playful'}, ${tone.directDiplomatic > 50 ? 'Direct' : 'Diplomatic'}</p>
-                <p><strong>Greeting:</strong> ${lang.greetingStyle || 'N/A'}</p>
-                <p><strong>Emoji Usage:</strong> ${lang.emojiUsage || 'N/A'}</p>
-                <p><strong>Response Length:</strong> ${lang.responseLength || 'N/A'}</p>
-            `;
-
-            // Interests Preview
-            const interests = context.interests || [];
-            document.getElementById('previewInterests').innerHTML = `
-                <p><strong>Interests:</strong> ${interests.join(', ') || 'N/A'}</p>
-                <p><strong>Target Audience:</strong> ${context.targetAudience || 'N/A'}</p>
-            `;
-        }
-
-function editSettings() {
-    currentStep = 1;
-    showStep(currentStep);
-    updateProgress();
-    saveCurrentStepData();
-    saveOnboardingDraft();
-
-    if (history.pushState) {
-        history.pushState({ step: currentStep }, '', `?step=${currentStep}`);
+    function collectAvoids() {
+      const explicit = getSelectedValues('.avoid-chip');
+      const custom = Array.from(
+        document.querySelectorAll('#avoidsCustomList [data-type="avoid-custom"]')
+      ).map((el) => el.getAttribute('data-value'));
+      return [...explicit, ...custom.filter(Boolean)];
     }
-}        
 
-        function handleFormSubmission(e) {
-            e.preventDefault();
-            // ✅ FIX: Don't auto-create on step 5 - only create when button is clicked
-            // Remove this auto-creation logic
-            // if (currentStep === totalSteps) {
-            //     createAITwin();
-            // }
-        }
+    function generatePreview() {
+      // Make sure we pull latest from DOM for steps 1–4
+      saveStep1();
+      saveStep2();
+      saveStep3();
+      saveStep4();
 
-        function createAITwin() {
+      const b = onboardingData.basicInfo || {};
+      const p = onboardingData.preferences || {};
+      const r = onboardingData.rules || {};
+
+      const previewBasic = document.getElementById('previewBasic');
+      const previewPreferences = document.getElementById('previewPreferences');
+      const previewRules = document.getElementById('previewRules');
+
+      const audiences = Array.isArray(b.whoYouText) ? b.whoYouText.join(', ') : 'N/A';
+      const channels = Array.isArray(b.whereUse) ? b.whereUse.join(', ') : 'N/A';
+
+      if (previewBasic) {
+        previewBasic.innerHTML = `
+          <p><strong>Name:</strong> ${escapeHtml(b.name || 'N/A')}</p>
+          <p><strong>Role:</strong> ${escapeHtml(b.role || 'N/A')}</p>
+          <p><strong>Who you mostly text:</strong> ${escapeHtml(audiences)}</p>
+          <p><strong>Where you will use it:</strong> ${escapeHtml(channels)}</p>
+        `;
+      }
+
+      if (previewPreferences) {
+        const likes = Array.isArray(p.likes) ? p.likes.join(', ') : 'N/A';
+        const avoids = Array.isArray(p.avoids) ? p.avoids.join(', ') : 'N/A';
+        previewPreferences.innerHTML = `
+          <p><strong>Likes:</strong> ${escapeHtml(likes)}</p>
+          <p><strong>Topics to avoid:</strong> ${escapeHtml(avoids)}</p>
+          <p><strong>Humour:</strong> ${escapeHtml(p.humorLevel || 'normal')}</p>
+          <p><strong>Strong words:</strong> ${escapeHtml(p.strongWords || 'some')}</p>
+          <p><strong>Emoji usage:</strong> ${escapeHtml(p.emojiPref || 'medium')}</p>
+        `;
+      }
+
+      if (previewRules) {
+        previewRules.innerHTML = `
+          <p><strong>Default reply size:</strong> ${escapeHtml(r.replySize || 'normal')}</p>
+          <p><strong>Risk level:</strong> ${escapeHtml(r.riskLevel || 'safe')}</p>
+          <p><strong>Adaptation:</strong> ${escapeHtml(r.adaptation || 'mix')}</p>
+          <p><strong>Approval required:</strong> ${
+            r.approvalRequired ? 'Yes – drafts only' : 'No'
+          }</p>
+        `;
+      }
+    }
+
+    function submitOnboarding() {
+      const payload = {
+        basicInfo: onboardingData.basicInfo,
+        styleSamples: onboardingData.styleSamples,
+        preferences: onboardingData.preferences,
+        rules: onboardingData.rules,
+        onboardingCompleted: true,
+        completedAt: new Date().toISOString(),
+      };
+
             const createBtn = document.getElementById('createTwinBtn');
-            const originalText = createBtn.textContent;
-            
-            createBtn.textContent = 'Creating Your AI Twin...';
+      const originalText = createBtn ? createBtn.textContent : '';
+      if (createBtn) {
             createBtn.disabled = true;
-
-            // Prepare data for API
-            const twinData = {
-                ...onboardingData,
-                onboardingCompleted: true,
-                completedAt: new Date().toISOString()
-            };
+        createBtn.textContent = 'Creating your twin...';
+      }
 
             fetch('/api/onboarding/create-enhanced-twin', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': document.querySelector('input[name="_csrf"]')?.value || ''
+          'X-CSRF-Token': window.csrfToken || '',
                 },
                 credentials: 'include',
-                body: JSON.stringify(twinData)
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    showMessage('Your AI Twin has been created successfully!', 'success');
-
-                    // ✅ Clear onboarding draft once twin is created
-                try {
-                    localStorage.removeItem(ONBOARDING_DRAFT_KEY);
-                } catch (e) {
-                    console.warn('Failed to clear onboarding draft:', e);
-             }
-
-                    setTimeout(() => {
-                        const twinId = result.twin?.publicId || result.twin?.id;
-                        if (twinId) {
-                            window.location.href = `/chat-enhanced`;
-                        }
-                        else {
-                            window.location.href = '/dashboard';
-                        }
-                    }, 2000);
-                } else {
-                    showMessage(result.error || 'Failed to create AI Twin', 'error');
-                    createBtn.textContent = originalText;
+        body: JSON.stringify(payload),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.success) {
+            showMessage(data.error || 'Failed to create twin.', 'error');
+            if (createBtn) {
                     createBtn.disabled = false;
-                }
-            })
-            .catch(error => {
-                console.error('Error creating twin:', error);
-                showMessage('Network error. Please try again.', 'error');
-                createBtn.textContent = originalText;
+              createBtn.textContent = originalText;
+            }
+            return;
+          }
+          // Clear local saved onboarding so next time starts fresh
+          try {
+            localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+        } catch (e) {
+            console.error('Failed to clear onboarding storage', e);
+        }
+
+          showMessage('Your twin is ready!', 'success');
+          setTimeout(() => {
+            window.location.href = '/chat';
+          }, 1200);
+        })
+        .catch((err) => {
+          console.error(err);
+          showMessage('Network error, please try again.', 'error');
+          if (createBtn) {
                 createBtn.disabled = false;
-            });
-        }
+            createBtn.textContent = originalText;
+          }
+        });
+    }
 
-        function showMessage(message, type = 'info') {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
-                type === 'success' ? 'bg-green-500 text-white' :
-                type === 'error' ? 'bg-red-500 text-white' :
-                'bg-blue-500 text-white'
-            }`;
-            messageDiv.textContent = message;
-            document.body.appendChild(messageDiv);
-            setTimeout(() => {
-                messageDiv.remove();
-            }, 5000);
-        }
+    // Helpers
+    function getSelectedValue(selector) {
+      const el = document.querySelector(selector + '.selected');
+      return el ? el.getAttribute('data-value') : null;
+    }
 
-        // Handle browser back/forward to move between steps instead of leaving wizard
-window.onpopstate = function (event) {
-    const step = event.state && event.state.step;
-    if (!step) return;
+    function getSelectedAttr(selector, attr) {
+      const el = document.querySelector(selector + '.selected');
+      return el ? el.getAttribute(attr) : null;
+    }
 
-    currentStep = Math.min(Math.max(step, 1), totalSteps);
-    showStep(currentStep);
-    updateProgress();
-    restoreFieldsFromDraft();
-};
+    function getSelectedValues(selector) {
+      return Array.from(document.querySelectorAll(selector + '.selected'))
+        .map((el) => el.getAttribute('data-value'))
+        .filter(Boolean);
+    }
+
+    function escapeHtml(text) {
+      if (text == null) return '';
+      const div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+
+    function showMessage(message, type) {
+      const div = document.createElement('div');
+      div.className =
+        'fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg text-sm z-50 ' +
+        (type === 'success'
+          ? 'bg-green-500 text-white'
+          : type === 'error'
+          ? 'bg-red-500 text-white'
+          : 'bg-blue-500 text-white');
+      div.textContent = message;
+      document.body.appendChild(div);
+      setTimeout(() => div.remove(), 4000);
+    }
     </script>
-    <!--Footer-->
+
     <%- include('footer/footer-conditional-private') %>
 </body>
 </html>
-

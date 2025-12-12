@@ -318,19 +318,36 @@ if (twinId) {
          FROM "TwinLike" tl
          JOIN "User" u ON tl."userId" = u.id
          WHERE tl."twinId" = ANY($1::text[])
-         ${search ? `AND (u.name ILIKE $2 OR u.handle ILIKE $2)` : ''}
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "Twin" t2
+            JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+            WHERE t2."userId" = u.id
+              AND tbu."userId" = $2
+          )
+         ${search ? `AND (u.name ILIKE $3 OR u.handle ILIKE $3)` : ''}
          ORDER BY tl."createdAt" DESC
-         LIMIT $${search ? '3' : '2'} OFFSET $${search ? '4' : '3'}`,
+         LIMIT $${search ? '4' : '3'} OFFSET $${search ? '5' : '4'}`,
         search
-          ? [targetTwinIds, `%${search}%`, parsedLimit, offset]
-          : [targetTwinIds, parsedLimit, offset],
+          ? [targetTwinIds, req.user.id, `%${search}%`, parsedLimit, offset]
+          : [targetTwinIds, req.user.id, parsedLimit, offset],
       );
 
       data = result.rows || [];
 
       const countResult = await db.query(
-        `SELECT COUNT(*) as count FROM "TwinLike" WHERE "twinId" = ANY($1::text[])`,
-        [targetTwinIds],
+        `SELECT COUNT(*) as count 
+         FROM "TwinLike" tl
+         JOIN "User" u ON tl."userId" = u.id
+         WHERE tl."twinId" = ANY($1::text[])
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = u.id
+               AND tbu."userId" = $2
+           )`,
+        [targetTwinIds, req.user.id],
       );
       total = parseInt(countResult.rows[0]?.count || '0');
     } else if (type === 'followers') {
@@ -350,19 +367,36 @@ if (twinId) {
          FROM "TwinFollow" tf
          JOIN "User" u ON tf."userId" = u.id
          WHERE tf."twinId" = ANY($1::text[])
-         ${search ? `AND (u.name ILIKE $2 OR u.handle ILIKE $2)` : ''}
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "Twin" t2
+            JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+            WHERE t2."userId" = u.id
+              AND tbu."userId" = $2
+          )
+         ${search ? `AND (u.name ILIKE $3 OR u.handle ILIKE $3)` : ''}
          ORDER BY tf."createdAt" DESC
-         LIMIT $${search ? '3' : '2'} OFFSET $${search ? '4' : '3'}`,
+         LIMIT $${search ? '4' : '3'} OFFSET $${search ? '5' : '4'}`,
         search
-          ? [targetTwinIds, `%${search}%`, parsedLimit, offset]
-          : [targetTwinIds, parsedLimit, offset],
+          ? [targetTwinIds, req.user.id, `%${search}%`, parsedLimit, offset]
+          : [targetTwinIds, req.user.id, parsedLimit, offset],
       );
 
       data = result.rows || [];
 
       const countResult = await db.query(
-        `SELECT COUNT(*) as count FROM "TwinFollow" WHERE "twinId" = ANY($1::text[])`,
-        [targetTwinIds],
+        `SELECT COUNT(*) as count 
+         FROM "TwinFollow" tf
+         JOIN "User" u ON tf."userId" = u.id
+         WHERE tf."twinId" = ANY($1::text[])
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = u.id
+               AND tbu."userId" = $2
+           )`,
+        [targetTwinIds, req.user.id],
       );
       total = parseInt(countResult.rows[0]?.count || '0');
     } else if (type === 'chatters') {
@@ -389,20 +423,37 @@ if (twinId) {
          JOIN "User" u ON c."userId" = u.id
          LEFT JOIN "PublicMessage" m ON c.id = m."chatId"
          WHERE c."twinId" = ANY($1::text[])
-         ${search ? `AND (u.name ILIKE $2 OR u.handle ILIKE $2)` : ''}
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "Twin" t2
+            JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+            WHERE t2."userId" = u.id
+              AND tbu."userId" = $2
+          )
+         ${search ? `AND (u.name ILIKE $3 OR u.handle ILIKE $3)` : ''}
          GROUP BY u.id, u.name, u.handle, u."profileImage"
          ORDER BY "lastChatAt" DESC
-         LIMIT $${search ? '3' : '2'} OFFSET $${search ? '4' : '3'}`,
+         LIMIT $${search ? '4' : '3'} OFFSET $${search ? '5' : '4'}`,
         search
-          ? [targetTwinIds, `%${search}%`, parsedLimit, offset]
-          : [targetTwinIds, parsedLimit, offset],
+          ? [targetTwinIds, req.user.id, `%${search}%`, parsedLimit, offset]
+          : [targetTwinIds, req.user.id, parsedLimit, offset],
       );
       
       data = result.rows || [];
     
       const countResult = await db.query(
-        `SELECT COUNT(DISTINCT c."userId") as count FROM "PublicChat" c WHERE c."twinId" = ANY($1::text[])`,
-        [targetTwinIds],
+        `SELECT COUNT(DISTINCT u.id) as count
+         FROM "PublicChat" c
+         JOIN "User" u ON c."userId" = u.id
+         WHERE c."twinId" = ANY($1::text[])
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = u.id
+               AND tbu."userId" = $2
+           )`,
+        [targetTwinIds, req.user.id],
       );
       total = parseInt(countResult.rows[0]?.count || '0');
     }      
@@ -436,5 +487,165 @@ if (twinId) {
       path: req.path,
     });
     handleControllerError(error, 'Failed to load analytics details');
+  }
+}
+
+/**
+ * Export analytics details as CSV (user-facing, type-wise).
+ * Supports: likers, followers, chatters.
+ */
+export async function exportAnalyticsDetailsCSV(req: any, res: Response) {
+  try {
+    const { type, search = '' } = req.query;
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const validTypes = ['likers', 'followers', 'chatters'];
+    if (!type || !validTypes.includes(type as string)) {
+      return res.status(400).json({ error: 'Invalid analytics type' });
+    }
+
+    // Load all twins for this owner
+    const userTwins = await db.query(
+      'SELECT id FROM "Twin" WHERE "userId" = $1',
+      [req.user.id],
+    );
+    const twinIds = userTwins.rows.map((t: any) => t.id);
+    if (twinIds.length === 0) {
+      return res.status(200)
+        .header('Content-Type', 'text/csv')
+        .header('Content-Disposition', 'attachment; filename="analytics-empty.csv"')
+        .send('message\nNo data available');
+    }
+
+    const targetTwinIds = twinIds;
+    const searchTerm = (search as string).trim();
+    const MAX_ROWS = 1000; // simple safety cap
+
+    let rows: any[] = [];
+
+    if (type === 'likers') {
+      const result = await db.query(
+        `SELECT 
+           u.name, u.handle, u.email, u."profileImage",
+           tl."createdAt" as likedAt
+         FROM "TwinLike" tl
+         JOIN "User" u ON tl."userId" = u.id
+         WHERE tl."twinId" = ANY($1::text[])
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = u.id
+               AND tbu."userId" = $2
+           )
+           ${searchTerm ? `AND (u.name ILIKE $3 OR u.handle ILIKE $3)` : ''}
+         ORDER BY tl."createdAt" DESC
+         LIMIT $${searchTerm ? '4' : '3'}`,
+        searchTerm
+          ? [targetTwinIds, req.user.id, `%${searchTerm}%`, MAX_ROWS]
+          : [targetTwinIds, req.user.id, MAX_ROWS],
+      );
+      rows = result.rows.map(r => ({
+        name: r.name || '',
+        handle: r.handle || '',
+        email: r.email || '',
+        likedAt: r.likedat ? new Date(r.likedat).toISOString() : '',
+      }));
+    } else if (type === 'followers') {
+      const result = await db.query(
+        `SELECT 
+           u.name, u.handle, u.email, u."profileImage",
+           tf."createdAt" as followedAt
+         FROM "TwinFollow" tf
+         JOIN "User" u ON tf."userId" = u.id
+         WHERE tf."twinId" = ANY($1::text[])
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = u.id
+               AND tbu."userId" = $2
+           )
+           ${searchTerm ? `AND (u.name ILIKE $3 OR u.handle ILIKE $3)` : ''}
+         ORDER BY tf."createdAt" DESC
+         LIMIT $${searchTerm ? '4' : '3'}`,
+        searchTerm
+          ? [targetTwinIds, req.user.id, `%${searchTerm}%`, MAX_ROWS]
+          : [targetTwinIds, req.user.id, MAX_ROWS],
+      );
+      rows = result.rows.map(r => ({
+        name: r.name || '',
+        handle: r.handle || '',
+        email: r.email || '',
+        followedAt: r.followedat ? new Date(r.followedat).toISOString() : '',
+      }));
+    } else if (type === 'chatters') {
+      const result = await db.query(
+        `SELECT DISTINCT
+            u.name,
+            u.handle,
+            u.email,
+            COUNT(DISTINCT c.id) as "chatCount",
+            COUNT(DISTINCT m.id) as "messageCount",
+            MAX(c."createdAt") as "lastChatAt"
+         FROM "PublicChat" c
+         JOIN "User" u ON c."userId" = u.id
+         LEFT JOIN "PublicMessage" m ON c.id = m."chatId"
+         WHERE c."twinId" = ANY($1::text[])
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = u.id
+               AND tbu."userId" = $2
+           )
+           ${searchTerm ? `AND (u.name ILIKE $3 OR u.handle ILIKE $3)` : ''}
+         GROUP BY u.name, u.handle, u.email
+         ORDER BY "lastChatAt" DESC
+         LIMIT $${searchTerm ? '4' : '3'}`,
+        searchTerm
+          ? [targetTwinIds, req.user.id, `%${searchTerm}%`, MAX_ROWS]
+          : [targetTwinIds, req.user.id, MAX_ROWS],
+      );
+      rows = result.rows.map(r => ({
+        name: r.name || '',
+        handle: r.handle || '',
+        email: r.email || '',
+        chatCount: r.chatcount,
+        messageCount: r.messagecount,
+        lastChatAt: r.lastchatat ? new Date(r.lastchatat).toISOString() : '',
+      }));
+    }
+
+    const header = Object.keys(rows[0] || { message: 'No data' });
+    const records = rows.length > 0 ? rows : [{ message: 'No data' }];
+
+    // ✅ Simple CSV builder (no external dependency)
+    const escapeCell = (value: any) => {
+      const str = String(value ?? '');
+      // Escape quotes and wrap in quotes if it contains comma, quote or newline
+      if (/[",\n]/.test(str)) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const csvLines: string[] = [];
+    csvLines.push(header.join(',')); // header row
+    for (const row of records) {
+      csvLines.push(header.map(h => escapeCell((row as any)[h])).join(','));
+    }
+
+    res
+      .status(200)
+      .header('Content-Type', 'text/csv')
+      .header('Content-Disposition', `attachment; filename="analytics-${type}.csv"`)
+      .send(csvLines.join('\n'));
+  } catch (error) {
+    logger.error('exportAnalyticsDetailsCSV error:', error);
+    res.status(500).json({ error: 'Failed to export analytics' });
   }
 }

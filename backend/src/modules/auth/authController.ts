@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { userQueries, otpQueries } from '../../config/database';
+import { userQueries, otpQueries, db } from '../../config/database';
 import { EmailService, generateOTP, hashOTP, verifyOTP, hashPassword, verifyPassword , generateInviteCode} from './authService';
 import { logger } from '../../config/logger';
 import { config } from '../../config/env';
@@ -156,12 +156,27 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
     // Check if user already exists
     const existingUser = await userQueries.findByEmail(email.toLowerCase());
     if (existingUser) {
-      logger.warn(`Signup failed: User already exists - ${email}`);
-      return res.status(409).json({
-        error: 'User already exists. Please login instead.',
-        errorCode: 'USER_ALREADY_EXISTS'
-      });
-    }
+      // ✅ NEW: If user exists but NOT verified, allow signup again (delete incomplete user)
+      if (!existingUser.verified) {
+        logger.info(`User ${email} exists but not verified. Deleting incomplete user and allowing fresh signup.`);
+        
+        // Delete incomplete user (cascade will delete related data)
+        await db.query(`DELETE FROM "User" WHERE id = $1`, [existingUser.id]);
+        
+        // Also delete any pending OTP for this email
+        await otpQueries.deleteByEmail(email.toLowerCase());
+        
+        logger.info(`Incomplete user deleted. Proceeding with fresh signup.`);
+        // Continue to create new user below
+      } else {
+        // User exists and is verified → normal error
+        logger.warn(`Signup failed: User already exists and verified - ${email}`);
+        return res.status(409).json({
+          error: 'User already exists. Please login instead.',
+          errorCode: 'USER_ALREADY_EXISTS'
+        });
+      }
+    }    
     
     logger.info(`User does not exist, creating new user: ${email}`);
     
@@ -569,7 +584,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email format'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 const loginVerifySchema = z.object({
@@ -594,8 +609,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     // Check if user is active
     if (!user.active) {
       return res.status(403).json({
-        error: 'Account not activated. Please check your email for activation link.',
-        errorCode: 'ACCOUNT_NOT_ACTIVATED'
+        error: 'Account not activated. Please signup again to activate your account.',
+        errorCode: 'ACCOUNT_NOT_VERIFIED',
       });
     }
     

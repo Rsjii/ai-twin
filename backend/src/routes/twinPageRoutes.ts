@@ -19,8 +19,10 @@ router.get('/twin/create', optionalAuth, generateCSRFToken, twinPageController.g
 // Twin AI Edit page (owner-only, single twin)
 router.get('/ai-edit', requireJWTFromCookie, generateCSRFToken, asyncHandler(twinPageController.getTwinAiEdit));
 
-// Twin Style Customize page
-router.get('/style-customize', requireJWTFromCookie, generateCSRFToken, asyncHandler(twinPageController.getTwinStyleCustomize));
+// Twin Style Customize page (not used in MVP – keep for future, redirect to Twin Settings)
+router.get('/style-customize', requireJWTFromCookie, generateCSRFToken, (_req, res) => {
+  return res.redirect('/twin-settings');
+});
 
 // Twin Settings (MVP-friendly "learning dashboard" shell)
 router.get('/twin-settings', requireJWTFromCookie, generateCSRFToken, asyncHandler(twinPageController.getTwinLearningDashboard));

@@ -24,7 +24,13 @@ const updatePersonaSchema = z.object({
     fullName: z.string().optional(),
     bio: z.string().optional(),
     username: z.string().optional(),
-    primaryUseCase: z.string().optional()
+    primaryUseCase: z.string().optional(),
+
+    // ✅ required by new Twin Settings page
+    name: z.string().optional(),
+    role: z.string().optional(),
+    oneLineBio: z.string().optional(),
+    language: z.enum(['en', 'hi', 'hinglish']).optional(),
   }).optional(),
   communicationStyle: z.object({
     tone: z.object({
@@ -286,6 +292,323 @@ export const previewStyleChanges = async (req: Request, res: Response, next: Nex
     });
 
   } catch (error) {
+    next(error);
+  }
+};
+
+// AI Edit schema
+const aiEditSchema = z.object({
+  draft: z.string().min(1, 'Draft is required').max(2000),
+  contextMessage: z.string().max(2000).optional().default(''),
+  tone: z.enum(['normal', 'softer', 'direct']).optional().default('normal'),
+  keepShort: z.boolean().optional().default(false),
+});
+
+/**
+ * AI Edit - Rewrite draft to sound like user
+ */
+export const aiEditRewrite = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const { draft, contextMessage, tone, keepShort } = aiEditSchema.parse(req.body);
+
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
+    if (!userId) {
+      throw createError.unauthorized();
+    }
+
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId, endpoint: 'aiEditRewrite' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
+
+    // Load twin style + persona
+    const twinResult = await db.query(
+      `SELECT "styleVector", "personaData", "systemPrompt", "tokenLimit"
+       FROM "Twin"
+       WHERE id = $1 AND "userId" = $2`,
+      [twinId, userId],
+    );
+
+    if (twinResult.rows.length === 0) {
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
+    }
+
+    const twin = twinResult.rows[0];
+
+    // Build a single-message context for TwinService
+    const baseInstruction =
+      'Rewrite the user draft so it sounds like them, following their style, preferences, and rules. Keep the meaning the same. Do not add new facts.';
+
+    let toneInstruction = '';
+    if (tone === 'softer') toneInstruction = 'Make tone slightly softer and more polite.';
+    if (tone === 'direct') toneInstruction = 'Make tone a bit more direct and clear.';
+
+    const lengthInstruction = keepShort ? 'Keep it short and crisp.' : '';
+
+    const fullUserMessage = [
+      baseInstruction,
+      toneInstruction,
+      lengthInstruction,
+      contextMessage ? `Other person last message: "${contextMessage}"` : '',
+      `User draft: "${draft}"`,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
+    const twinService = new TwinService();
+
+    const result = await twinService.generateDraftWithContext({
+      styleVector: twin.styleVector,
+      personaData: twin.personaData,
+      systemPrompt:
+        twin.systemPrompt ||
+        'You are the user\'s AI twin. Rewrite messages in their voice without changing meaning.',
+      tokenLimit: twin.tokenLimit || 300,
+      chatMemory: [], // AI Edit is stateless
+      currentMessages: [fullUserMessage],
+      twinId,
+      isFirstMessage: false,
+      sessionMemory: null,
+    });
+
+    const text = typeof result === 'string' ? result.trim() : result.response?.trim() || '';
+
+    res.json({
+      success: true,
+      suggestions: [{ id: 's1', text }],
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return next(createError.validation('Invalid input', error.errors));
+    }
+    next(error);
+  }
+};
+
+// Twin Settings helpers
+function buildDefaultSettings() {
+  return {
+    replyBehavior: {
+      defaultLength: 'normal' as 'short' | 'normal' | 'long',
+      riskLevel: 'safe' as 'safe' | 'normal' | 'edgy',
+      energy: 'normal' as 'calm' | 'normal' | 'high',
+    },
+    adaptation: {
+      enabled: true,
+      styleMix: 50,
+    },
+    safety: {
+      avoidNSFW: true,
+      avoidAbuse: true,
+      avoidPoliticsReligion: true,
+    },
+    memory: {
+      usePersonaMemory: true,
+    },
+  };
+}
+
+const updateSettingsSchema = z.object({
+  replyBehavior: z
+    .object({
+      defaultLength: z.enum(['short', 'normal', 'long']),
+      riskLevel: z.enum(['safe', 'normal', 'edgy']),
+      energy: z.enum(['calm', 'normal', 'high']),
+    })
+    .optional(),
+  adaptation: z
+    .object({
+      enabled: z.boolean(),
+      styleMix: z.number().min(0).max(100),
+    })
+    .optional(),
+  safety: z
+    .object({
+      avoidNSFW: z.boolean(),
+      avoidAbuse: z.boolean(),
+      avoidPoliticsReligion: z.boolean(),
+    })
+    .optional(),
+  memory: z
+    .object({
+      usePersonaMemory: z.boolean(),
+    })
+    .optional(),
+});
+
+/**
+ * GET /api/twin/:twinToken/settings
+ */
+export const getTwinSettings = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id || (req.user as any)?.userId;
+    if (!userId) throw createError.unauthorized();
+
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId, endpoint: 'getTwinSettings' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+
+    const twinId = decoded.id;
+
+    const result = await db.query(
+      `SELECT "personaData" FROM "Twin" WHERE id = $1 AND "userId" = $2`,
+      [twinId, userId],
+    );
+    if (result.rows.length === 0) {
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
+    }
+
+    const pd = result.rows[0].personaData || {};
+    const settings = { ...buildDefaultSettings(), ...(pd.settings || {}) };
+
+    res.json({ success: true, settings });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * PUT /api/twin/:twinToken/settings
+ */
+export const updateTwinSettings = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const partial = updateSettingsSchema.parse(req.body);
+
+    const userId = req.user?.id || (req.user as any)?.userId;
+    if (!userId) throw createError.unauthorized();
+
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId, endpoint: 'updateTwinSettings' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
+
+    const result = await db.query(
+      `SELECT "personaData" FROM "Twin" WHERE id = $1 AND "userId" = $2`,
+      [twinId, userId],
+    );
+    if (result.rows.length === 0) {
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
+    }
+
+    const currentPd = result.rows[0].personaData || {};
+    const currentSettings = { ...buildDefaultSettings(), ...(currentPd.settings || {}) };
+
+    const updatedSettings = {
+      ...currentSettings,
+      ...partial,
+    };
+
+    const updatedPersonaData = {
+      ...currentPd,
+      settings: updatedSettings,
+    };
+
+    await db.query(
+      `UPDATE "Twin"
+       SET "personaData" = $1,
+           "last_updated" = $2::timestamptz
+       WHERE id = $3 AND "userId" = $4`,
+      [JSON.stringify(updatedPersonaData), new Date().toISOString(), twinId, userId],
+    );
+
+    res.json({ success: true, settings: updatedSettings });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return next(createError.validation('Invalid input', err.errors));
+    }
+    next(err);
+  }
+};
+
+// ✅ AI Tools endpoint used by `frontend/src/views/ai-edit.ejs`
+const aiToolsSchema = z.object({
+  mode: z.enum(['tester', 'rewrite']),
+  input: z.string().min(1).max(2000),
+
+  tonePreset: z.enum(['friendly', 'professional', 'witty', 'direct']).optional(),
+  lengthPreset: z.enum(['short', 'normal', 'detailed']).optional(),
+  emojiPreset: z.enum(['off', 'low', 'medium']).optional(),
+  template: z.string().optional(),
+});
+
+export const aiToolsGenerate = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req.user as any)?.id || (req.user as any)?.userId;
+    if (!userId) throw createError.unauthorized();
+
+    const { twinToken } = req.params;
+    const decoded = detokenizeId(twinToken, { userId, endpoint: 'aiToolsGenerate' });
+    if (!decoded || decoded.type !== 'twin') {
+      throw createError.notFound('Invalid twin token', ErrorCodes.TWIN_NOT_FOUND);
+    }
+    const twinId = decoded.id;
+
+    const { mode, input, tonePreset, lengthPreset, emojiPreset, template } = aiToolsSchema.parse(req.body);
+
+    const twinResult = await db.query(`
+      SELECT id, "userId", "styleVector", "personaData", "systemPrompt", "tokenLimit"
+      FROM "Twin"
+      WHERE id = $1 AND "userId" = $2
+      LIMIT 1
+    `, [twinId, userId]);
+
+    if (twinResult.rows.length === 0) {
+      throw createError.notFound('Twin not found or access denied', ErrorCodes.TWIN_NOT_FOUND);
+    }
+
+    const twin = twinResult.rows[0];
+    const styleVector = twin.styleVector || {};
+    const personaData = twin.personaData || {};
+    const systemPrompt = twin.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.";
+    const tokenLimit = twin.tokenLimit || 500;
+
+    const presetLine = [
+      tonePreset ? `Tone preset: ${tonePreset}.` : '',
+      lengthPreset ? `Length: ${lengthPreset}.` : '',
+      emojiPreset ? `Emoji: ${emojiPreset}.` : '',
+      template ? `Template: ${template}.` : '',
+    ].filter(Boolean).join(' ');
+
+    const baseUserMessage =
+      mode === 'tester'
+        ? `Other person said: "${input}". Reply as the user's twin. ${presetLine}`
+        : `Rewrite this message to match the user's twin voice (same meaning, no new facts): "${input}". ${presetLine}`;
+
+    const variants = [
+      { label: 'best', extra: '' },
+      { label: 'short', extra: 'Make it shorter and crisp.' },
+      { label: 'direct', extra: 'Make it more direct but still polite.' },
+    ];
+
+    const results = await Promise.all(
+      variants.map(async (v) => {
+        const r = await twinService.generateDraftWithContext({
+          styleVector,
+          personaData,
+          systemPrompt,
+          tokenLimit,
+          chatMemory: [],
+          currentMessages: [`${baseUserMessage} ${v.extra}`.trim()],
+          twinId,
+          isFirstMessage: false,
+          sessionMemory: null,
+        });
+
+        if (typeof r === 'string') return { label: v.label, text: r };
+        if (r && typeof r === 'object' && (r as any).response) return { label: v.label, text: (r as any).response };
+        return { label: v.label, text: "I'm having trouble thinking right now. Please try again." };
+      })
+    );
+
+    res.json({ success: true, suggestions: results });
+  } catch (error) {
+    if (error instanceof z.ZodError) return next(createError.validation('Invalid input', error.errors));
     next(error);
   }
 };

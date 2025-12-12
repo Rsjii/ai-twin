@@ -57,7 +57,7 @@ const ALGORITHM = 'aes-256-gcm'; // Better than CBC for security
  */
 export type ResourceType = 'user' | 'twin' | 'chat' | 'event' | 'invite';
 
-interface TokenizedId {
+interface TokenizedIdV1 {
   type: ResourceType;
   id: string;
   timestamp: number;
@@ -65,37 +65,29 @@ interface TokenizedId {
 
 /**
  * Convert internal ID to secure public token
- * Uses AES-256-GCM encryption for security
+ * ✅ v2: Uses deterministic HMAC signing (same id/type => same token always)
+ * This ensures tokens match across page loads and API responses
  * 
  * @param id - Internal database ID
  * @param type - Resource type ('user' | 'twin' | 'chat' | 'event' | 'invite')
- * @returns Base64URL-encoded token safe for URLs
+ * @returns Base64URL-encoded token safe for URLs (format: v2.<data>.<signature>)
  * 
  * @example
  * const token = tokenizeId('user-123', 'user');
- * // Returns: 'eyJ...' (opaque token)
+ * // Returns: 'v2.dXNlcjp1c2VyLTEyMw...' (deterministic token)
  */
+// ✅ v2 helpers (deterministic)
+function hmacSign(input: string): string {
+  return crypto.createHmac('sha256', SECRET_KEY).update(input).digest('base64url');
+}
+
 export function tokenizeId(id: string, type: ResourceType = 'user'): string {
   try {
-    const payload: TokenizedId = {
-      type,
-      id,
-      timestamp: Date.now()
-    };
-    
-    const text = JSON.stringify(payload);
-    const key = crypto.scryptSync(SECRET_KEY, 'salt', 32);
-    const iv = crypto.randomBytes(16);
-    
-    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    
-    const authTag = cipher.getAuthTag();
-    
-    // Return: iv:authTag:encrypted (base64 encoded for URL safety)
-    const token = `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
-    return Buffer.from(token).toString('base64url');
+    // ✅ v2 deterministic token: same id/type => same token always
+    const data = `${type}:${id}`;
+    const dataB64 = Buffer.from(data, 'utf8').toString('base64url');
+    const sig = hmacSign(dataB64);
+    return `v2.${dataB64}.${sig}`;
   } catch (error) {
     throw new Error('Failed to tokenize ID');
   }
@@ -114,12 +106,62 @@ export function tokenizeId(id: string, type: ResourceType = 'user'): string {
 // Line 71-102: ENHANCE detokenizeId with logging
 export function detokenizeId(token: string, context?: { userId?: string; endpoint?: string }): { id: string; type: string } | null {
   try {
+    // ✅ v2 parse (deterministic tokens)
+    if (token.startsWith('v2.')) {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        logger.warn('detokenizeId(v2): Malformed token structure', {
+          tokenLength: token.length,
+          context: context || {}
+        });
+        return null;
+      }
+
+      const [, dataB64, sig] = parts;
+      const expected = hmacSign(dataB64);
+      
+      // Use timing-safe comparison to prevent timing attacks
+      const sigBuf = Buffer.from(sig, 'base64url');
+      const expectedBuf = Buffer.from(expected, 'base64url');
+      
+      if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+        logger.warn('detokenizeId(v2): Bad signature', {
+          context: context || {}
+        });
+        return null;
+      }
+
+      const data = Buffer.from(dataB64, 'base64url').toString('utf8'); // "type:id"
+      const idx = data.indexOf(':');
+      if (idx <= 0) {
+        logger.warn('detokenizeId(v2): Invalid data format', {
+          context: context || {}
+        });
+        return null;
+      }
+
+      const type = data.slice(0, idx);
+      const id = data.slice(idx + 1);
+      
+      // ✅ PHASE 6: Add success logging for security audit
+      if (context?.endpoint) {
+        logger.info('detokenizeId(v2): Success', {
+          tokenType: type,
+          endpoint: context.endpoint,
+          userId: context.userId
+        });
+      }
+      
+      return { id, type };
+    }
+
+    // ✅ v1 fallback (your existing AES-GCM decrypt logic for backward compatibility)
     const decoded = Buffer.from(token, 'base64url').toString('utf8');
     const [ivHex, authTagHex, encrypted] = decoded.split(':');
     
     if (!ivHex || !authTagHex || !encrypted) {
       // ✅ PHASE 6: Add logging for malformed tokens
-      logger.warn('detokenizeId: Malformed token structure', {
+      logger.warn('detokenizeId(v1): Malformed token structure', {
         tokenLength: token.length,
         context: context || {}
       });
@@ -136,13 +178,13 @@ export function detokenizeId(token: string, context?: { userId?: string; endpoin
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     
-    const payload: TokenizedId = JSON.parse(decrypted);
+    const payload: TokenizedIdV1 = JSON.parse(decrypted);
     
     // Optional: Check token expiry (e.g., 1 year)
     const maxAge = 365 * 24 * 60 * 60 * 1000; // 1 year
     if (Date.now() - payload.timestamp > maxAge) {
       // ✅ PHASE 6: Add logging for expired tokens
-      logger.warn('detokenizeId: Token expired', {
+      logger.warn('detokenizeId(v1): Token expired', {
         tokenType: payload.type,
         age: Date.now() - payload.timestamp,
         context: context || {}
@@ -151,8 +193,8 @@ export function detokenizeId(token: string, context?: { userId?: string; endpoin
     }
     
     // ✅ PHASE 6: Add success logging for security audit
-    if(context?.endpoint) {
-      logger.info('detokenizeId: Success', {
+    if (context?.endpoint) {
+      logger.info('detokenizeId(v1): Success', {
         tokenType: payload.type,
         endpoint: context.endpoint,
         userId: context.userId
@@ -162,7 +204,7 @@ export function detokenizeId(token: string, context?: { userId?: string; endpoin
     return { id: payload.id, type: payload.type };
   } catch (error) {
     // ✅ PHASE 6: Enhanced error logging
-    logger.error('detokenizeId: Decryption failed', {
+    logger.error('detokenizeId: failed', {
       error: error instanceof Error ? error.message : 'Unknown error',
       context: context || {}
     });

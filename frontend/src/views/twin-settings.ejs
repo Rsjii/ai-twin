@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en" id="html-root">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>Twin Settings - AI Twin</title>
+  <link rel="stylesheet" href="/css/output.css" />
+  <script src="/utils/timeUtils.js"></script>
+  <script>
+    (function () {
+      const theme = localStorage.getItem('theme') || 'light';
+      if (theme === 'dark') document.documentElement.classList.add('dark');
+    })();
+  </script>
+  <script>window.csrfToken = '<%= csrfToken %>';</script>
+</head>
+
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen font-inter">
+  <%- include('header') %>
+
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">Twin Settings</h1>
+          <p class="text-gray-600 dark:text-gray-300">Setup your twin once. Everything else becomes easy.</p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-2">
+          <a href="/ai-edit"
+             class="inline-flex justify-center px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] items-center text-sm">
+            Open AI Tools
+          </a>
+
+          <a href="/analytics"
+             class="inline-flex justify-center px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] items-center text-sm">
+            Open Analytics
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Identity -->
+    <section class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Identity</h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Twin name</label>
+          <input id="twinName" type="text"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]"
+            placeholder="e.g. KS Twin" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
+          <select id="twinRole"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            <option value="">Select</option>
+            <option value="friend">Friend</option>
+            <option value="creator">Creator</option>
+            <option value="support">Customer Support</option>
+            <option value="coach">Coach</option>
+          </select>
+        </div>
+
+        <div class="sm:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">One-line bio</label>
+          <input id="twinBio" type="text"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]"
+            placeholder="e.g. Replies like me on WhatsApp — casual, witty, helpful." />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default language</label>
+          <select id="twinLanguage"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            <option value="">Use existing</option>
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="hinglish">Hinglish</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Voice & Output -->
+    <section id="styleSection" class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Voice & Output</h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tone preset</label>
+          <select id="tonePreset"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            <option value="friendly">Friendly</option>
+            <option value="casual">Casual</option>
+            <option value="witty">Witty</option>
+            <option value="serious">Serious</option>
+            <option value="professional">Professional</option>            
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reply length</label>
+          <select id="replyLengthPreset"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            <option value="brief">Short</option>
+            <option value="detailed">Normal</option>
+            <option value="comprehensive">Detailed</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Emoji level</label>
+          <select id="emojiPreset"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            <option value="off">Off</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+          </select>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This maps to your styleVector’s emoji usage.</p>
+        </div>
+
+        <div class="flex items-center gap-2 pt-6">
+          <input id="askQuestions" type="checkbox" class="rounded border-gray-300 dark:border-gray-600" />
+          <label for="askQuestions" class="text-sm text-gray-700 dark:text-gray-300">Ask questions sometimes (helps engagement)</label>
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-2">
+        <button id="previewStyleBtn" type="button"
+          class="inline-flex justify-center px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] items-center text-sm">
+          Preview reply
+        </button>
+      </div>
+
+      <div id="stylePreviewSection" class="hidden mt-4 p-3 sm:p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Preview</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div>
+            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Current</p>
+            <div id="stylePreviewOriginal" class="p-3 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white min-h-[60px]"></div>
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">With your settings</p>
+            <div id="stylePreviewNew" class="p-3 rounded-lg bg-primary/5 dark:bg-primary/20 text-gray-900 dark:text-white min-h-[60px]"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Boundaries -->
+    <section class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Boundaries</h2>
+
+      <div class="space-y-3">
+        <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <input type="checkbox" id="avoidNSFW" class="rounded border-gray-300 dark:border-gray-600" />
+          <span>Avoid adult / NSFW content</span>
+        </label>
+        <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <input type="checkbox" id="avoidAbuse" class="rounded border-gray-300 dark:border-gray-600" />
+          <span>Avoid heavy swearing / abusive language</span>
+        </label>
+        <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <input type="checkbox" id="avoidPoliticsReligion" class="rounded border-gray-300 dark:border-gray-600" />
+          <span>Avoid deep politics / religion</span>
+        </label>
+      </div>
+
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Never do / never say</label>
+        <textarea id="neverDo" rows="3"
+          class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white"
+          placeholder="e.g. Never flirt. Never mention politics. Never share private info."></textarea>
+      </div>
+    </section>
+
+    <!-- Memory -->
+    <section id="memorySection" class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Memory</h2>
+
+      <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+        <input type="checkbox" id="usePersonaMemory" class="rounded border-gray-300 dark:border-gray-600" />
+        <span>Use memory/persona to personalize replies</span>
+      </label>
+
+      <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
+        <p class="text-sm font-semibold text-gray-900 dark:text-white mb-2">What I remember</p>
+        <ul id="memoryBullets" class="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
+          <li class="text-gray-400 dark:text-gray-500">Loading…</li>
+        </ul>
+      </div>
+
+      <!-- ✅ ADD: Real Memory Manager (MemoryLongTerm CRUD) -->
+      <div class="mt-5">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div class="flex flex-col sm:flex-row gap-2">
+            <select id="ltmCategory" class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
+              <option value="">All</option>
+              <option value="fact">Facts</option>
+              <option value="preference">Preferences</option>
+            </select>
+
+            <input id="ltmSearch" type="text"
+              placeholder="Search memory…"
+              class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]" />
+          </div>
+
+          <button id="ltmRefreshBtn" type="button"
+            class="inline-flex justify-center px-4 py-2 bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors min-h-[44px] items-center text-sm font-medium">
+            Refresh
+          </button>
+        </div>
+
+        <div class="mt-3">
+          <div id="ltmLoading" class="hidden text-sm text-gray-500 dark:text-gray-400">Loading…</div>
+          <div id="ltmList" class="space-y-2"></div>
+        </div>
+
+        <div class="mt-4 p-3 sm:p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Add memory</h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <select id="ltmAddCategory" class="px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white min-h-[44px]">
+              <option value="fact">Fact</option>
+              <option value="preference">Preference</option>
+            </select>
+
+            <input id="ltmAddValue" type="text"
+              placeholder="e.g. I prefer short replies."
+              class="sm:col-span-2 px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white min-h-[44px]" />
+          </div>
+
+          <div class="mt-2">
+            <button id="ltmAddBtn" type="button"
+              class="inline-flex justify-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors min-h-[44px] items-center text-sm font-medium">
+              Add
+            </button>
+          </div>
+
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Tip: In chat you can also type: <code>remember this: ...</code>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Advanced -->
+    <section class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
+      <details>
+        <summary class="cursor-pointer text-lg font-semibold text-gray-900 dark:text-white">Advanced</summary>
+
+        <div class="mt-4">
+          <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <input type="checkbox" id="adaptationEnabled" class="rounded border-gray-300 dark:border-gray-600" />
+            <span>Try to match the other person’s tone & language</span>
+          </label>
+
+          <div id="adaptationSliderContainer" class="mt-3 space-y-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Style mix: <span id="styleMixValue">50</span>
+            </label>
+            <input type="range" id="styleMixSlider" min="0" max="100" value="50"
+              class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span>More like me</span>
+              <span>More like them</span>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- Danger Zone -->
+    <section class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6 mb-6">
+      <h2 class="text-xl font-bold text-red-900 dark:text-red-300 mb-3">⚠️ Danger Zone</h2>
+      <p class="text-gray-700 dark:text-gray-300 mb-4">
+        Resetting deletes chats/memories/training permanently.
+      </p>
+
+      <button id="deleteTwinBtn"
+        class="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold min-h-[48px] sm:min-h-[44px] touch-manipulation text-base">
+        Reset my twin & clear stored info
+      </button>
+    </section>
+
+    <!-- Save -->
+    <div class="mt-6 flex flex-col sm:flex-row gap-3">
+      <button id="twinSettingsSave"
+        class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px]">
+        Save settings
+      </button>
+    </div>
+  </div>
+
+  <%- include('footer/footer-conditional-private') %>
+  <%- include('partials/modal-helpers') %>
+
+  <script>
+    const twinToken = '<%= typeof twinToken !== "undefined" ? twinToken : "" %>';
+
+    let currentSettings = null;
+    let currentPersonaData = null;
+    let currentStyleVector = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+      loadEditData();
+      setupUI();
+      loadLongTermMemoryList(); // ✅ ADD
+    });
+
+    function showNotification(message, type = 'success') {
+      if (window.UI && typeof window.UI.showToast === 'function') return window.UI.showToast(message, type);
+      alert(message);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = String(text ?? '');
+      return div.innerHTML;
+    }
+
+    async function loadSettings() {
+      try {
+        const res = await fetch(`/api/twin/${twinToken}/settings`, { credentials: 'include' });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed');
+        currentSettings = data.settings;
+        populateSettings(currentSettings);
+      } catch (e) {
+        console.error(e);
+        showNotification('Could not load settings.', 'error');
+      }
+    }
+
+    async function loadEditData() {
+      try {
+        const res = await fetch(`/api/twin/${twinToken}/edit-data`, { credentials: 'include' });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed');
+        currentPersonaData = data.twin.personaData || {};
+        currentStyleVector = data.twin.styleVector || {};
+        populateIdentity(currentPersonaData);
+        populateVoice(currentStyleVector, currentPersonaData);
+        populateMemoryPreview(currentPersonaData);
+      } catch (e) {
+        console.error(e);
+        showNotification('Could not load twin data.', 'error');
+      }
+    }
+
+    function populateIdentity(pd) {
+      const basic = (pd && pd.basicInfo) ? pd.basicInfo : {};
+      document.getElementById('twinName').value = basic.name || basic.fullName || '';
+      document.getElementById('twinRole').value = basic.role || '';
+      document.getElementById('twinBio').value = basic.oneLineBio || basic.bio || '';
+      document.getElementById('twinLanguage').value = basic.language || '';
+      document.getElementById('neverDo').value = (pd?.context?.topicsToAvoid || '');
+    }
+
+    function populateVoice(sv, pd) {
+      const tone = sv.tone || 'friendly';
+      const length = sv.response_length_preference || 'detailed';
+      const emoji = typeof sv.emoji_usage === 'number' ? sv.emoji_usage : 0.3;
+      const qfreq = typeof sv.question_frequency === 'number' ? sv.question_frequency : 0.4;
+
+      document.getElementById('tonePreset').value = tone;
+      document.getElementById('replyLengthPreset').value = length;
+
+      // map emoji usage float -> preset
+      document.getElementById('emojiPreset').value =
+        emoji <= 0.05 ? 'off' : emoji <= 0.35 ? 'low' : 'medium';
+
+      document.getElementById('askQuestions').checked = qfreq >= 0.5;
+    }
+
+    function populateSettings(s) {
+      // Boundaries
+      document.getElementById('avoidNSFW').checked = s.safety?.avoidNSFW ?? true;
+      document.getElementById('avoidAbuse').checked = s.safety?.avoidAbuse ?? true;
+      document.getElementById('avoidPoliticsReligion').checked = s.safety?.avoidPoliticsReligion ?? true;
+
+      // Memory
+      document.getElementById('usePersonaMemory').checked = s.memory?.usePersonaMemory ?? true;
+
+      // Advanced adaptation
+      document.getElementById('adaptationEnabled').checked = s.adaptation?.enabled ?? true;
+      toggleAdaptationSlider(s.adaptation?.enabled ?? true);
+
+      const styleMix = s.adaptation?.styleMix ?? 50;
+      document.getElementById('styleMixSlider').value = styleMix;
+      document.getElementById('styleMixValue').textContent = String(styleMix);
+    }
+
+    function populateMemoryPreview(pd) {
+      const bulletsEl = document.getElementById('memoryBullets');
+      const basic = pd?.basicInfo || {};
+      const likes = pd?.preferences?.likes || pd?.context?.interests || [];
+      const avoids = pd?.preferences?.avoids || [];
+
+      const bullets = [];
+      if (basic.role) bullets.push(`Role: ${basic.role}`);
+      if (basic.oneLineBio || basic.bio) bullets.push(`Bio: ${(basic.oneLineBio || basic.bio)}`);
+      if (Array.isArray(likes) && likes.length) bullets.push(`Likes: ${likes.slice(0, 3).join(', ')}`);
+      if (Array.isArray(avoids) && avoids.length) bullets.push(`Avoids: ${avoids.slice(0, 3).join(', ')}`);
+
+      bulletsEl.innerHTML = (bullets.length ? bullets : ['No memory data yet.'])
+        .map(b => `<li>${escapeHtml(b)}</li>`)
+        .join('');
+    }
+
+    function toggleAdaptationSlider(enabled) {
+      const container = document.getElementById('adaptationSliderContainer');
+      if (container) container.style.display = enabled ? 'block' : 'none';
+    }
+
+    function collectSettingsPayload() {
+      return {
+        replyBehavior: currentSettings?.replyBehavior || { defaultLength: 'normal', riskLevel: 'safe', energy: 'normal' },
+        adaptation: {
+          enabled: document.getElementById('adaptationEnabled').checked,
+          styleMix: parseInt(document.getElementById('styleMixSlider').value || '50', 10),
+        },
+        safety: {
+          avoidNSFW: document.getElementById('avoidNSFW').checked,
+          avoidAbuse: document.getElementById('avoidAbuse').checked,
+          avoidPoliticsReligion: document.getElementById('avoidPoliticsReligion').checked,
+        },
+        memory: {
+          usePersonaMemory: document.getElementById('usePersonaMemory').checked,
+        }
+      };
+    }
+
+    function collectStylePayload() {
+      const tone = document.getElementById('tonePreset').value || 'friendly';
+      const response_length_preference = document.getElementById('replyLengthPreset').value || 'detailed';
+
+      const emojiPreset = document.getElementById('emojiPreset').value;
+      const emoji_usage = emojiPreset === 'off' ? 0.0 : emojiPreset === 'low' ? 0.3 : 0.6;
+
+      const askQuestions = document.getElementById('askQuestions').checked;
+      const question_frequency = askQuestions ? 0.6 : 0.2;
+
+      return {
+        tone,
+        response_length_preference,
+        emoji_usage,
+        question_frequency,
+      };
+    }
+
+    function collectPersonaPayload() {
+      const name = document.getElementById('twinName').value.trim();
+      const role = document.getElementById('twinRole').value;
+      const oneLineBio = document.getElementById('twinBio').value.trim();
+      const language = document.getElementById('twinLanguage').value;
+      const topicsToAvoid = document.getElementById('neverDo').value.trim();
+
+      return {
+        basicInfo: {
+          name: name || undefined,
+          role: role || undefined,
+          oneLineBio: oneLineBio || undefined,
+          language: language || undefined,
+        },
+        context: {
+          topicsToAvoid: topicsToAvoid || undefined,
+        }
+      };
+    }
+
+    async function saveAll() {
+      const settingsPayload = collectSettingsPayload();
+      const stylePayload = collectStylePayload();
+      const personaPayload = collectPersonaPayload();
+
+      const [settingsRes, styleRes, personaRes] = await Promise.all([
+        fetch(`/api/twin/${twinToken}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
+          credentials: 'include',
+          body: JSON.stringify(settingsPayload),
+        }),
+        fetch(`/api/twin/${twinToken}/update-style`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
+          credentials: 'include',
+          body: JSON.stringify(stylePayload),
+        }),
+        fetch(`/api/twin/${twinToken}/update-persona`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
+          credentials: 'include',
+          body: JSON.stringify({ personaData: personaPayload }),
+        }),
+      ]);
+
+      const [settingsData, styleData, personaData] = await Promise.all([
+        settingsRes.json(),
+        styleRes.json(),
+        personaRes.json(),
+      ]);
+
+      if (!settingsData.success) throw new Error(settingsData.error || 'Failed to save settings');
+      if (!styleData.success) throw new Error(styleData.error || 'Failed to save style');
+      if (!personaData.success) throw new Error(personaData.error || 'Failed to save persona');
+
+      return true;
+    }
+
+    async function previewStyle() {
+      try {
+        const payload = collectStylePayload();
+        const res = await fetch(`/api/twin/${twinToken}/style-preview`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
+          credentials: 'include',
+          body: JSON.stringify({
+            styleChanges: payload,
+            testMessage: 'Friend says: "Bro are we still meeting tomorrow?"'
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Preview failed');
+
+        document.getElementById('stylePreviewSection').classList.remove('hidden');
+        document.getElementById('stylePreviewOriginal').textContent = data.originalResponse || '';
+        document.getElementById('stylePreviewNew').textContent = data.newResponse || '';
+      } catch (e) {
+        console.error(e);
+        showNotification('Preview failed', 'error');
+      }
+    }
+
+    async function saveToLongTermMemory(value, category) {
+      const v = String(value || '').trim();
+      if (!v) return showNotification('Write something first.', 'info');
+
+      const res = await fetch(`/api/twin/${twinToken}/long-term-memory`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': window.csrfToken,
+        },
+        credentials: 'include',
+        body: JSON.stringify({ value: v, category }),
+      });
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed');
+      return data.memory;
+    }
+
+    function renderLongTermMemories(mems) {
+      const list = document.getElementById('ltmList');
+      if (!list) return;
+
+      if (!mems.length) {
+        list.innerHTML = `<div class="text-sm text-gray-500 dark:text-gray-400">No memories yet.</div>`;
+        return;
+      }
+
+      list.innerHTML = '';
+      mems.forEach((m) => {
+        const key = m.key || m.id;        // backend returns key in most places
+        const value = m.value || m.text;  // depending on path
+        const category = m.category || 'fact';
+
+        const row = document.createElement('div');
+        row.className = 'p-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700';
+
+        row.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1">
+              <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">${escapeHtml(category)}</div>
+              <textarea class="memEdit w-full text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-gray-900 dark:text-white" rows="2">${escapeHtml(value || '')}</textarea>
+            </div>
+            <div class="flex flex-col gap-2">
+              <button type="button" class="memSave px-3 py-2 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 min-h-[36px]">Save</button>
+              <button type="button" class="memDel px-3 py-2 text-xs rounded-lg bg-white/80 dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 min-h-[36px]">Delete</button>
+            </div>
+          </div>
+        `;
+
+        row.querySelector('.memSave')?.addEventListener('click', async () => {
+          const newVal = row.querySelector('.memEdit')?.value || '';
+          try {
+            const res = await fetch(`/api/twin/${twinToken}/long-term-memory/${encodeURIComponent(key)}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
+              credentials: 'include',
+              body: JSON.stringify({ value: newVal, category }),
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Failed');
+            showNotification('Memory updated ✔', 'success');
+          } catch (e) {
+            console.error(e);
+            showNotification('Update failed', 'error');
+          }
+        });
+
+        row.querySelector('.memDel')?.addEventListener('click', async () => {
+          const ok = confirm('Delete this memory?');
+          if (!ok) return;
+          try {
+            const res = await fetch(`/api/twin/${twinToken}/long-term-memory/${encodeURIComponent(key)}`, {
+              method: 'DELETE',
+              headers: { 'X-CSRF-Token': window.csrfToken },
+              credentials: 'include',
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Failed');
+            showNotification('Deleted ✔', 'success');
+            loadLongTermMemoryList();
+          } catch (e) {
+            console.error(e);
+            showNotification('Delete failed', 'error');
+          }
+        });
+
+        list.appendChild(row);
+      });
+    }
+
+    function setupUI() {
+      // Adaptation toggle
+      document.getElementById('adaptationEnabled')?.addEventListener('change', (e) => {
+        toggleAdaptationSlider(e.target.checked);
+      });
+
+      // style mix
+      document.getElementById('styleMixSlider')?.addEventListener('input', (e) => {
+        document.getElementById('styleMixValue').textContent = e.target.value;
+      });
+
+      // preview
+      document.getElementById('previewStyleBtn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        previewStyle();
+      });
+
+      // save
+      document.getElementById('twinSettingsSave')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+          await saveAll();
+          showNotification('Saved ✔', 'success');
+        } catch (err) {
+          console.error(err);
+          showNotification('Save failed', 'error');
+        }
+      });
+
+      // delete/reset (keep your existing confirm flow if you want)
+      document.getElementById('deleteTwinBtn')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const ok = await window.ModalHelpers?.confirm?.({
+          title: '⚠️ Reset Twin',
+          message: 'This will permanently reset your twin and ALL data. This cannot be undone.',
+          confirmLabel: 'Yes, reset',
+          cancelLabel: 'Cancel',
+          type: 'danger'
+        });
+        if (!ok) return;
+
+        try {
+          const res = await fetch(`/api/twin/${twinToken}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
+            credentials: 'include',
+          });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error || 'Failed');
+          showNotification('Twin reset. Redirecting…', 'success');
+          setTimeout(() => window.location.replace('/onboarding'), 800);
+        } catch (err) {
+          console.error(err);
+          showNotification('Reset failed', 'error');
+        }
+      });
+
+      document.getElementById('ltmRefreshBtn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        loadLongTermMemoryList();
+      });
+
+      document.getElementById('ltmCategory')?.addEventListener('change', () => loadLongTermMemoryList());
+      document.getElementById('ltmSearch')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loadLongTermMemoryList();
+      });
+
+      document.getElementById('ltmAddBtn')?.addEventListener('click', async () => {
+        const cat = document.getElementById('ltmAddCategory')?.value || 'fact';
+        const val = (document.getElementById('ltmAddValue')?.value || '').trim();
+        if (!val) return showNotification('Write memory text first.', 'info');
+
+        try {
+          const res = await fetch(`/api/twin/${twinToken}/long-term-memory`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
+            credentials: 'include',
+            body: JSON.stringify({ value: val, category: cat }),
+          });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error || 'Failed');
+
+          document.getElementById('ltmAddValue').value = '';
+          showNotification('Memory added ✔', 'success');
+          loadLongTermMemoryList();
+        } catch (e) {
+          console.error(e);
+          showNotification('Add failed', 'error');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

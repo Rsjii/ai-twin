@@ -50,41 +50,41 @@ export const getMemoryStats = async (req: any, res: Response, next: NextFunction
     `, [twinId]);
     
     // Get StyleAnchors stats
-    const anchorsResult = await db.query(`
-      SELECT 
-        type,
-        COUNT(*) as count
-      FROM "style_anchors"
-      WHERE twin_id = $1
-      GROUP BY type
-    `, [twinId]);
+    // const anchorsResult = await db.query(`
+    //   SELECT 
+    //     type,
+    //     COUNT(*) as count
+    //   FROM "style_anchors"
+    //   WHERE twin_id = $1
+    //   GROUP BY type
+    // `, [twinId]);
     
     console.log('[MEMORY_STATS] Query results:', {
       longTermRows: longTermResult.rows.length,
-      anchorsRows: anchorsResult.rows.length,
+      // anchorsRows: anchorsResult.rows.length,
       longTermData: longTermResult.rows,
-      anchorsData: anchorsResult.rows,
+      // anchorsData: anchorsResult.rows,
     });
     
     const totalMemories = longTermResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
-    const totalAnchors = anchorsResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
+    // const totalAnchors = anchorsResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
     
     const stats = [
       ...longTermResult.rows.map(row => ({
         bucket: row.category === 'fact' ? 'facts' : row.category,
         count: parseInt(row.count)
       })),
-      ...anchorsResult.rows.map(row => ({
-        bucket: row.type === 'phrase' ? 'voice' : row.type,
-        count: parseInt(row.count)
-      }))
+      // ...anchorsResult.rows.map(row => ({
+      //   bucket: row.type === 'phrase' ? 'voice' : row.type,
+      //   count: parseInt(row.count)
+      // }))
     ];
 
     console.log('[MEMORY_STATS] Final response:', {
       success: true,
-      total: totalMemories + totalAnchors,
+      total: totalMemories,
       totalMemories,
-      totalAnchors,
+      // totalAnchors,
       statsCount: stats.length,
       stats,
     });
@@ -97,7 +97,7 @@ export const getMemoryStats = async (req: any, res: Response, next: NextFunction
     
     res.json({
       success: true,
-      total: totalMemories + totalAnchors,
+      total: totalMemories,
       stats
     });
   } catch (error) {
@@ -154,42 +154,28 @@ export const retrieveMemories = async (req: any, res: Response, next: NextFuncti
       
     } else if (bucket === 'voice') {
       // Get from StyleAnchors (phrases)
-      const phrasesResult = await db.query(`
-        SELECT id, phrase, user_utterance, ideal_reply, tags, created_at
-        FROM "style_anchors"
-        WHERE twin_id = $1 AND type = 'phrase'
-        ORDER BY created_at DESC
-        LIMIT $2 OFFSET $3
-      `, [twinId, parseInt(limit as string), parseInt(offset as string)]);
+      // const phrasesResult = await db.query(`
+      //   SELECT id, phrase, user_utterance, ideal_reply, tags, created_at
+      //   FROM "style_anchors"
+      //   WHERE twin_id = $1 AND type = 'phrase'
+      //   ORDER BY created_at DESC
+      //   LIMIT $2 OFFSET $3
+      // `, [twinId, parseInt(limit as string), parseInt(offset as string)]);
       
       res.json({
         success: true,
-        memories: phrasesResult.rows.map(row => ({
-          id: row.id,
-          text: row.phrase || row.user_utterance,
-          bucket: 'voice',
-          createdAt: row.created_at
-        }))
+        memories: []
       });
       
     } else if (bucket === 'all') {
       // Get from both
-      const [longTermResult, phrasesResult] = await Promise.all([
-        db.query(`
-          SELECT key, value, category, "createdAt", "updatedAt"
-          FROM "MemoryLongTerm"
-          WHERE "twinId" = $1
-          ORDER BY "updatedAt" DESC
-          LIMIT $2 OFFSET $3
-        `, [twinId, parseInt(limit as string), parseInt(offset as string)]),
-        db.query(`
-          SELECT id, phrase, user_utterance, ideal_reply, tags, created_at
-          FROM "style_anchors"
-          WHERE twin_id = $1 AND type = 'phrase'
-          ORDER BY created_at DESC
-          LIMIT $2 OFFSET $3
-        `, [twinId, parseInt(limit as string), parseInt(offset as string)])
-      ]);
+      const longTermResult = await db.query(`
+        SELECT key, value, category, "createdAt", "updatedAt"
+        FROM "MemoryLongTerm"
+        WHERE "twinId" = $1
+        ORDER BY "updatedAt" DESC
+        LIMIT $2 OFFSET $3
+      `, [twinId, parseInt(limit as string), parseInt(offset as string)]);
       
       res.json({
         success: true,
@@ -200,12 +186,12 @@ export const retrieveMemories = async (req: any, res: Response, next: NextFuncti
             bucket: 'facts',
             createdAt: row.createdAt
           })),
-          ...phrasesResult.rows.map(row => ({
-            id: row.id,
-            text: row.phrase || row.user_utterance,
-            bucket: 'voice',
-            createdAt: row.created_at
-          }))
+          // ...phrasesResult.rows.map(row => ({
+          //   id: row.id,
+          //   text: row.phrase || row.user_utterance,
+          //   bucket: 'voice',
+          //   createdAt: row.created_at
+          // }))
         ]
       });
     } else {
@@ -269,18 +255,16 @@ export const ingestMemories = async (req: any, res: Response, next: NextFunction
       req.body.key = generateId.fact();
       req.body.category = 'fact';
       req.body.value = text;
-      return addLongTermMemory(req, res);
+      return addLongTermMemory(req, res, next);
       
     } else if (bucket === 'voice') {
-      // Redirect to StyleAnchors
-      const { addTwinAnchor } = await import('../twin/styleAnchorController');
+      // ✅ MVP: map "voice" to long-term preferences (no style_anchors)
+      const { addLongTermMemory } = await import('../twin/longTermMemoryController');
       req.params.twinToken = tokenizeId(twinId, 'twin');
-      req.body.type = 'phrase';
-      req.body.phrase = text;
-      req.body.userUtterance = '';
-      req.body.idealReply = '';
-      req.body.tags = ['migrated'];
-      return addTwinAnchor(req, res);
+      req.body.key = generateId.fact();
+      req.body.category = 'preference';
+      req.body.value = text;
+      return addLongTermMemory(req, res, next);
     }
     
     // Fallback (should never reach here)

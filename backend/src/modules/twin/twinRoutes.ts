@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { createTwin, getUserTwins, getTwinById, deleteTwin } from './twinController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import { generateCSRFToken } from '../../middleware/csrf';
-import { getTwinEditData, updateTwinStyle, updateTwinPersona, previewStyleChanges } from './twinEditController';
+import { getTwinEditData, updateTwinStyle, updateTwinPersona, previewStyleChanges, aiEditRewrite, getTwinSettings, updateTwinSettings, aiToolsGenerate } from './twinEditController';
 import {
   regeneratePrompt,
   getLearningData,
@@ -10,14 +10,15 @@ import {
   getTwinChatHistory,
   getLearningSettings,
 } from './twinLearningController';
-import {
-  addManualTraining,
-  getChatMessages,
-  convertMessagesToTraining,
-  getTrainingEffectiveness,
-  convertToTraining,
-  getTrainingProgress
-} from './twinTrainingController';
+// ❌ MVP: training disabled
+// import {
+//   addManualTraining,
+//   getChatMessages,
+//   convertMessagesToTraining,
+//   getTrainingEffectiveness,
+//   convertToTraining,
+//   getTrainingProgress
+// } from './twinTrainingController';
 import {
   getTemplates,
   getMilestones,
@@ -34,13 +35,6 @@ import {
   updateLongTermMemory,
   deleteLongTermMemory
 } from './longTermMemoryController';
-import {
-  getTwinAnchors,
-  addTwinAnchor,
-  updateTwinAnchor,
-  deleteTwinAnchor,
-  getTwinPhrases
-} from './styleAnchorController';
 import { asyncHandler } from '../../middleware/errorHandler';
 
 const router = Router();
@@ -62,6 +56,16 @@ router.post('/:twinToken/update-style', asyncHandler(updateTwinStyle));
 router.post('/:twinToken/update-persona', asyncHandler(updateTwinPersona));
 router.post('/:twinToken/style-preview', asyncHandler(previewStyleChanges));
 
+// ✅ AI Edit (draft rewrite)
+router.post('/:twinToken/ai-edit', asyncHandler(aiEditRewrite));
+
+// ✅ AI Tools (Tester + Rewrite) — required by your new `ai-edit.ejs`
+router.post('/:twinToken/ai-tools', asyncHandler(aiToolsGenerate));
+
+// ✅ Twin Settings
+router.get('/:twinToken/settings', asyncHandler(getTwinSettings));
+router.put('/:twinToken/settings', asyncHandler(updateTwinSettings));
+
 // Twin learning endpoints
 router.post('/:twinToken/regenerate-prompt', asyncHandler(regeneratePrompt));
 router.get('/:twinToken/learning-data', asyncHandler(getLearningData));
@@ -70,12 +74,13 @@ router.post('/:twinToken/learning-settings', asyncHandler(updateLearningSettings
 router.get('/:twinToken/chat-history', asyncHandler(getTwinChatHistory));
 
 // Twin training endpoints
-router.post('/:twinToken/manual-training', asyncHandler(addManualTraining));
-router.get('/:twinToken/chat/:chatId/messages', asyncHandler(getChatMessages));
-router.post('/:twinToken/convert-messages-to-training', asyncHandler(convertMessagesToTraining));
-router.get('/:twinToken/training/effectiveness', asyncHandler(getTrainingEffectiveness));
-router.post('/:twinToken/convert-to-training', asyncHandler(convertToTraining));
-router.get('/:twinToken/training-progress', asyncHandler(getTrainingProgress));
+// ❌ MVP: training disabled (removes style_anchors dependency + saves cost)
+// router.post('/:twinToken/manual-training', asyncHandler(addManualTraining));
+// router.get('/:twinToken/chat/:chatId/messages', asyncHandler(getChatMessages));
+// router.post('/:twinToken/convert-messages-to-training', asyncHandler(convertMessagesToTraining));
+// router.get('/:twinToken/training/effectiveness', asyncHandler(getTrainingEffectiveness));
+// router.post('/:twinToken/convert-to-training', asyncHandler(convertToTraining));
+// router.get('/:twinToken/training-progress', asyncHandler(getTrainingProgress));
 
 // Twin performance endpoints
 router.get('/:twinToken/templates', asyncHandler(getTemplates));
@@ -94,10 +99,6 @@ router.put('/:twinToken/long-term-memory/:key', asyncHandler(updateLongTermMemor
 router.delete('/:twinToken/long-term-memory/:key', asyncHandler(deleteLongTermMemory));
 
 // Style Anchor API
-router.get('/:twinToken/style-anchors', asyncHandler(getTwinAnchors));
-router.get('/:twinToken/style-anchors/phrases', asyncHandler(getTwinPhrases));
-router.post('/:twinToken/style-anchors', asyncHandler(addTwinAnchor));
-router.put('/:twinToken/style-anchors/:anchorId', asyncHandler(updateTwinAnchor));
-router.delete('/:twinToken/style-anchors/:anchorId', asyncHandler(deleteTwinAnchor));
+// ❌ REMOVE Style Anchor API routes entirely
 
 export default router;

@@ -75,13 +75,14 @@ export const submitResponseFeedback = async (req: Request, res: Response, next: 
     `, [rating === 'up' ? 85 : 25, rating, twinId]);
 
     // If correction text provided, create style anchor using EXISTING table
-    if (correction) {
-      const anchorId = generateId.anchor();
-      await db.query(`
-        INSERT INTO style_anchors (id, twin_id, user_utterance, ideal_reply, tags, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6::timestamptz)
-      `, [anchorId, twinId, 'User feedback', correction, ['user_correction'], utcTimestamp]);
-    }
+    // ❌ MVP: do not create style_anchors from feedback anymore
+    // if (correction) {
+    //   const anchorId = generateId.anchor();
+    //   await db.query(`
+    //     INSERT INTO style_anchors (id, twin_id, user_utterance, ideal_reply, tags, created_at)
+    //     VALUES ($1, $2, $3, $4, $5, $6::timestamptz)
+    //   `, [anchorId, twinId, 'User feedback', correction, ['user_correction'], utcTimestamp]);
+    // }
 
     res.json({
       success: true,

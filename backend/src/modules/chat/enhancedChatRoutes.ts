@@ -3,7 +3,6 @@ import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import {
   generateEnhancedReply,
   applyStyleCorrection,
-  addToAnchors,
   getChatHistory,
   deleteMessagesAfter
 } from './enhancedChatController';
@@ -20,18 +19,17 @@ const router = Router();
 router.use(requireJWTFromCookie);
 
 // Enhanced chat endpoints
-router.get('/:id', getChatHistory);
-router.post('/:id/enhanced-reply', generateEnhancedReply);
-router.post('/:id/style-correct', applyStyleCorrection);
-router.post('/:id/add-anchor', addToAnchors);
+router.get('/:chatToken', getChatHistory);
+router.post('/:chatToken/enhanced-reply', generateEnhancedReply);
+router.post('/:chatToken/style-correct', applyStyleCorrection);
 
 // Feedback and regeneration endpoints
-router.post('/:chatId/regenerate', regenerateResponse);
-router.post('/:chatId/feedback', submitChatFeedback);
-router.get('/:chatId/feedback-status', getChatFeedbackStatus);
-router.post('/:chatId/adjust-tone', adjustTone);
+router.post('/:chatToken/regenerate', regenerateResponse);
+router.post('/:chatToken/feedback', submitChatFeedback);
+router.get('/:chatToken/feedback-status', getChatFeedbackStatus);
+router.post('/:chatToken/adjust-tone', adjustTone);
 
 // Delete messages after endpoint
-router.delete('/:chatId/delete-messages-after', deleteMessagesAfter);
+router.delete('/:chatToken/delete-messages-after', deleteMessagesAfter);
 
 export default router;

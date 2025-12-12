@@ -153,11 +153,16 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
     // Anonymous users: don't reuse, always create new (no check for existing)
 
     // If no existing chat found (logged-in) or anonymous → create new
+// Around line 156-172, update the anonymous chat creation section:
+    // If no existing chat found (logged-in) or anonymous → create new
     if (!publicChat) {
+      const isAnonymous = !userId && !!finalVisitorId;
       logger.info('[startPublicChat] Creating NEW public chat', {
         twinId,
         userId: userId || 'null',
         visitorId: finalVisitorId || 'null',
+        isAnonymous: isAnonymous,
+        willBeAnonymous: !userId && !!finalVisitorId
       });
 
       try {
@@ -166,10 +171,41 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
           finalVisitorId || undefined,
           userId || undefined
         );
+        
+        // ✅ ADD: Detailed logging after creation
         logger.info('[startPublicChat] Chat created successfully', {
           chatId: publicChat.id,
           userId: publicChat.userId || 'null',
+          visitorId: publicChat.visitorId || 'null',
+          twinId: publicChat.twinId,
+          createdAt: publicChat.createdAt,
+          messageCount: publicChat.messageCount || 0,
+          isAnonymous: !publicChat.userId && !!publicChat.visitorId,
+          actualDbValues: {
+            userId: publicChat.userId,
+            visitorId: publicChat.visitorId,
+            twinId: publicChat.twinId
+          }
         });
+        
+        // ✅ ADD: Verify chat exists in DB immediately after creation
+        const verifyResult = await db.query(
+          'SELECT id, "userId", "visitorId", "twinId", "messageCount", "createdAt" FROM "PublicChat" WHERE id = $1',
+          [publicChat.id]
+        );
+        if (verifyResult.rows.length > 0) {
+          logger.info('[startPublicChat] ✅ Verified chat exists in DB after creation', {
+            chatId: publicChat.id,
+            dbUserId: verifyResult.rows[0].userId || 'null',
+            dbVisitorId: verifyResult.rows[0].visitorId || 'null',
+            dbMessageCount: verifyResult.rows[0].messageCount || 0
+          });
+        } else {
+          logger.error('[startPublicChat] ❌ CHAT NOT FOUND IN DB IMMEDIATELY AFTER CREATION!', {
+            chatId: publicChat.id
+          });
+        }
+        
       } catch (createError: any) {
         // ✅ More detailed error logging
         const createErrorMessage = createError?.message || String(createError) || 'Unknown create error';
@@ -188,7 +224,7 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
         
         throw createError; // Re-throw to be caught by outer catch
       }
-    }
+    }    
 
     // Log event (don't fail if this fails)
     if (userId) {
@@ -1366,17 +1402,31 @@ if (participantType === 'loggedIn') {
       paramIndex++;
     }
 
-    if (dateFrom) {
-      whereConditions.push(`pc."createdAt" >= $${paramIndex}::timestamptz`);
-      params.push(dateFrom);
-      paramIndex++;
-    }
+// Around line 1405-1415:
+if (dateFrom) {
+  // ✅ FIX: If dateFrom is date-only (YYYY-MM-DD), treat as start of day UTC
+  // PostgreSQL will handle the conversion, but we ensure it's treated as UTC
+  let dateFromParam = dateFrom;
+  if (typeof dateFrom === 'string' && dateFrom.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    // It's a date-only string, PostgreSQL will interpret as midnight UTC when cast to timestamptz
+    dateFromParam = dateFrom + 'T00:00:00.000Z';
+  }
+  whereConditions.push(`COALESCE(pc."lastActivity", pc."createdAt") >= $${paramIndex}::timestamptz`);
+  params.push(dateFromParam);
+  paramIndex++;
+}
 
-    if (dateTo) {
-      whereConditions.push(`pc."createdAt" <= $${paramIndex}::timestamptz`);
-      params.push(dateTo);
-      paramIndex++;
-    }
+if (dateTo) {
+  // ✅ FIX: If dateTo is date-only (YYYY-MM-DD), treat as end of day UTC
+  let dateToParam = dateTo;
+  if (typeof dateTo === 'string' && dateTo.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    // It's a date-only string, set to end of day
+    dateToParam = dateTo + 'T23:59:59.999Z';
+  }
+  whereConditions.push(`COALESCE(pc."lastActivity", pc."createdAt") <= $${paramIndex}::timestamptz`);
+  params.push(dateToParam);
+  paramIndex++;
+}    
 
     // ✅ Build search condition (search in messages)
     let searchJoin = '';
@@ -1415,6 +1465,25 @@ if (participantType === 'loggedIn') {
     `, params);
 
     const total = parseInt(totalResult.rows[0]?.total || '0', 10);
+
+      // ✅ ADD: Check anonymous chats specifically
+      const anonymousCheck = await db.query(`
+        SELECT COUNT(*) as count, 
+               COUNT(*) FILTER (WHERE pc."messageCount" > 0) as with_messages
+        FROM "PublicChat" pc
+        WHERE pc."twinId" = $1 
+          AND pc."userId" IS NULL 
+          AND pc."visitorId" IS NOT NULL
+      `, [twinId]);
+      
+      logger.info(`[getAllPublicChatsForTwin] 📊 Anonymous chats check:`, {
+        twinId,
+        totalAnonymous: anonymousCheck.rows[0]?.count || 0,
+        anonymousWithMessages: anonymousCheck.rows[0]?.with_messages || 0,
+        totalAfterFilters: total,
+        participantType,
+        whereConditions: whereConditions.join(' AND ')
+      });
 
     // Get all public chats with user/visitor info and message counts
     // ✅ FIX: Remove DISTINCT and use subquery to avoid ORDER BY issues
@@ -1551,10 +1620,29 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
     const dateFrom = req.query.dateFrom as string | undefined;
     const dateTo = req.query.dateTo as string | undefined;
     const search = req.query.search as string | undefined;
-    const sortBy = (req.query.sortBy as string) || 'lastActivity'; // For sorting chats within users
-    const userSortBy = (req.query.userSortBy as string) || 'lastActivity'; // For sorting users: 'lastActivity' | 'totalMessages' | 'totalChats'
+    const sortBy = (req.query.sortBy as string) || 'lastActivity';
+    const userSortBy = (req.query.userSortBy as string) || 'lastActivity';
     const minMessages = req.query.minMessages ? parseInt(req.query.minMessages as string, 10) : undefined;
     const maxMessages = req.query.maxMessages ? parseInt(req.query.maxMessages as string, 10) : undefined;
+
+    // ✅ Optional: filter by a specific participant user (for /public-chat-history?view=user&userId=...)
+    const userFilterToken = req.query.userId as string | undefined;
+    let participantUserId: string | null = null;
+    if (userFilterToken) {
+      try {
+        const decodedUser = detokenizeId(userFilterToken);
+        if (decodedUser && decodedUser.type === 'user') {
+          participantUserId = decodedUser.id;
+        } else {
+          logger.warn('[getUserWisePublicChats] Invalid userId token type', { userFilterToken });
+        }
+      } catch (err) {
+        logger.warn('[getUserWisePublicChats] Failed to detokenize userId filter, ignoring', {
+          userFilterToken,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
 
     if (!userId) {
       throw createError.unauthorized('Authentication required');
@@ -1578,18 +1666,10 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
     let params: any[] = [twinId];
     let paramIndex = 2;
 
-    // ✅ NEW: hide users who have blocked the twin owner on ANY of their twins
-    if (userId) {
-      whereConditions.push(`
-        NOT EXISTS (
-          SELECT 1
-          FROM "Twin" t2
-          JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
-          WHERE t2."userId" = pc."userId"
-            AND tbu."userId" = $${paramIndex}
-        )
-      `);
-      params.push(userId);
+    // ✅ If we're filtering a specific participant, lock to that user
+    if (participantUserId) {
+      whereConditions.push(`pc."userId" = $${paramIndex}`);
+      params.push(participantUserId);
       paramIndex++;
     }
 
@@ -1618,6 +1698,21 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
       paramIndex++;
     }
 
+    // ✅ NEW: Exclude users who have blocked this owner via their own twins
+    // If any twin owned by participant user (pc."userId") has blocked the current owner (userId),
+    // completely hide that participant from this twin's analytics top users.
+    whereConditions.push(`
+      NOT EXISTS (
+        SELECT 1
+        FROM "Twin" t2
+        JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+        WHERE t2."userId" = pc."userId"
+          AND tbu."userId" = $${paramIndex}
+      )
+    `);
+    params.push(userId);
+    paramIndex++;
+
     // Search condition
     let searchJoin = '';
     let searchCondition = '';
@@ -1629,6 +1724,7 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
       params.push(`%${search.trim()}%`);
       paramIndex++;
     }
+
 
     // ✅ NEW: Build ORDER BY clause for USER sorting
     let userOrderByClause = '';

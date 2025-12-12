@@ -178,7 +178,7 @@
             </div>
             
             <!-- Chat Input -->
-            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-900 w-full flex-shrink-0">                
+            <div class="bg-white dark:bg-gray-800 p-3 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:p-4 sm:pb-4 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-900 w-full flex-shrink-0">                
                 <form id="chatForm" class="flex gap-2 sm:gap-3 md:gap-4">                    
                     <textarea 
                         type="text" 
@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     </div>
                                     <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Use Enhanced Chat</h3>
                                     <p class="text-gray-600 dark:text-gray-300 mb-4">You cannot chat with your own twin in public chat. Please use Enhanced Chat for a better experience.</p>
-                                    <a href="/chat-enhanced?twinId=${currentTwinId}" class="inline-block px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">                                       
+                                    <a href="/chat?twinId=${currentTwinId}" class="inline-block px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">                                       
                                         Go to Enhanced Chat
                                     </a>
                                 </div>
@@ -569,7 +569,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                             </svg>
                         </button>
-                        <button class="delete-chat-btn opacity-0 group-hover:opacity-100 transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Delete chat">
+                        <button class="delete-chat-btn invisible group-hover:visible transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Delete chat">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
@@ -769,47 +769,46 @@ if (!confirmed) {
                 }
                 
                 const data = await response.json();
-                
-                // Fade-out animation before removing
+
+                const isCurrent = (chatId === currentChatId) ||
+                    (new URL(window.location.href).searchParams.get('chatId') === chatId);
+
+                console.log('[deletePublicChat] success', { chatId, currentChatId, isCurrent, href: window.location.href });
+
+                if (isCurrent) {
+                    const baseUrl = `/public-twin/chat/${encodeURIComponent(currentTwinId)}`;
+                    console.log('[deletePublicChat] deleting CURRENT chat → redirecting to', baseUrl);
+
+                    try {
+                        const chatMessages = document.getElementById('chatMessages');
+                        if (chatMessages) chatMessages.innerHTML =
+                            '<div class="text-center py-8 text-gray-500 dark:text-gray-400">Chat deleted. Reloading…</div>';
+
+                        const messageInput = document.getElementById('messageInput');
+                        const sendBtn = document.getElementById('sendMessageBtn');
+                        if (messageInput) messageInput.disabled = true;
+                        if (sendBtn) sendBtn.disabled = true;
+                    } catch (e) {
+                        console.error('[deletePublicChat] UI hide failed', e);
+                    }
+
+                    setTimeout(() => window.location.replace(baseUrl), 50);
+                    return;
+                }
+
+                // ✅ Non-current chat delete: just remove from sidebar + refresh list, do NOT reload page
+                document
+                    .querySelectorAll(`.chat-item[data-chat-id="${chatId}"]`)
+                    .forEach(el => el.remove());
+
                 if (chatItem) {
                     chatItem.style.transition = 'opacity 0.3s ease-out';
                     chatItem.style.opacity = '0';
                     await new Promise(resolve => setTimeout(resolve, 300));
+                    chatItem.remove();
                 }
-                
-                // If deleted chat is currently open, switch to another chat
-                if (chatId === currentChatId) {                    
-                    // Get updated chats
-                    const container = document.getElementById('publicChatHistoryList');
-                    const remainingChats = container.querySelectorAll('.chat-item');
-                    
-                    if (remainingChats.length > 0) {
-                        // Switch to first available chat
-                        const firstChatId = remainingChats[0].dataset.chatId;
 
-                        //Right side hatao turant
-                        const messagesContainer = document.getElementById('chatMessages');
-            if (messagesContainer) {
-                messagesContainer.innerHTML = '<div class="text-center py-8 text-gray-500 dark:text-gray-400">Loading next chat...</div>';
-            }
-
-                        await switchToPublicChat(firstChatId);
-                    } else {
-                        // No chats left, create new chat or show empty state
-                        currentChatId = null;
-                        const messagesContainer = document.getElementById('chatMessages');
-                        if (messagesContainer) {
-                            messagesContainer.innerHTML = '<div class="text-center py-8 text-gray-500 dark:text-gray-400">No chats available. Create a new chat to get started.</div>';
-                        }
-                        // Optionally create new chat automatically
-                        await createNewPublicChat();
-                    }
-                } else {
-                    // Just reload the chat history
-                    await loadPublicChatHistory();
-                }
-                
-                // Show success notification
+                await loadPublicChatHistory();
                 showNotification('Chat deleted successfully', 'success');
                 
             } catch (error) {
@@ -1090,7 +1089,7 @@ async function createNewPublicChat() {
                     ? 'bg-blue-600 text-white' 
                     : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700'                    
             }">
-                <p class="text-sm text-gray-800 dark:text-gray-100">${escapeHtml(content)}</p>
+                <p class="text-sm ${sender === 'human' ? 'text-white' : 'text-gray-800 dark:text-gray-100'}">${escapeHtml(content)}</p>
                 ${timeDisplay ? `<p class="text-xs mt-1 opacity-70" title="${window.TimeUtils?.formatFullDateTime?.(timestamp) || ''}">${timeDisplay}</p>` : ''}
             </div>
         `;
@@ -1106,6 +1105,11 @@ async function createNewPublicChat() {
             const message = document.getElementById(messageId);
             if (message) {
                 message.remove();
+            }
+
+            // Also refresh sidebar previews after deletion to stay in sync
+            if (typeof loadPublicChatHistory === 'function') {
+                try { loadPublicChatHistory(); } catch (e) { console.error('Sidebar refresh failed', e); }
             }
         }
 
@@ -1154,7 +1158,7 @@ async function createNewPublicChat() {
             
             // Show text with blinking cursor
             messageContent.innerHTML = `
-                <p class="text-sm text-gray-800 dark:text-gray-100">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
+                <p class="text-sm ${sender === 'user' || sender === 'human' ? 'text-white' : 'text-gray-800 dark:text-gray-100'}">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
             `;
             
             currentWordIndex++;
@@ -1168,7 +1172,7 @@ async function createNewPublicChat() {
         } else {
             // ✅ FIX: Typing complete - show final text WITH timestamp
             messageContent.innerHTML = `
-                <p class="text-sm text-gray-800 dark:text-gray-100">${fullText}</p>
+                <p class="text-sm ${sender === 'user' || sender === 'human' ? 'text-white' : 'text-gray-800 dark:text-gray-100'}">${fullText}</p>
                 ${timeDisplay ? `<p class="text-xs mt-1 opacity-70" title="${window.TimeUtils?.formatFullDateTime?.(timestamp) || ''}">${timeDisplay}</p>` : ''}
             `;
             
@@ -1479,7 +1483,7 @@ async function sendMessage() {
                         }, 800);
                     } else {
                         setTimeout(() => {
-                            window.location.href = `/chat-enhanced?twinId=${currentTwinId}`;
+                            window.location.href = `/chat?twinId=${currentTwinId}`;
                         }, 800);
                     }
                     isChatting = false;

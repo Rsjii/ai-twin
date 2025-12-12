@@ -1,642 +1,557 @@
 <!DOCTYPE html>
 <html lang="en" id="html-root">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>AI Edit - AI Twin</title>
-    <link rel="stylesheet" href="/css/output.css">
-    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>AI Tools - AI Twin</title>
+  <link rel="stylesheet" href="/css/output.css" />
     <script src="/utils/timeUtils.js"></script>
     <script type="module" src="/js/form-dirty-state.js"></script>
     <script>
-        // ✅ IMMEDIATE theme application (prevents flash)
-        (function() {
+    (function () {
             const theme = localStorage.getItem('theme') || 'light';
-            if (theme === 'dark') {
-                document.documentElement.classList.add('dark');
-            }
+      if (theme === 'dark') document.documentElement.classList.add('dark');
         })();
     </script>
-    <script> window.csrfToken = '<%= csrfToken %>';</script>
+  <script>window.csrfToken = '<%= csrfToken %>';</script>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen font-inter">
-    <!-- IMMEDIATE Auth Check -->
-    <script>
-        (function() {
-            const isAuthenticated = <%= typeof user !== 'undefined' && user !== null && typeof user === 'object' && user.id !== undefined && user.id !== null ? 'true' : 'false' %>;
-            const hasAuthToken = localStorage.getItem('jwtToken') || localStorage.getItem('user');
-            
-            if (!isAuthenticated && !hasAuthToken) {
-                window.location.replace('/auth');
-                return;
-            }
-            
-            if (!isAuthenticated) {
-                window.location.replace('/auth');
-            }
-        })();
-    </script>
 
-<%
-  // Feature flags (if not already defined in layout)
-  var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
-    advancedLearningUI: false,
-    memoryUI: false,
-    styleAnchorsUI: false,
-    chatFeedbackUI: false,
-    advancedPublicAnalyticsUI: false
-  };
-%>    
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen font-inter">
     <!--Header-->
     <%- include('header') %>    
 
     <div class="container mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8">        
-        <!-- Page Title Section -->
         <div class="mb-6">
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">AI Edit</h1>
-            <p class="text-gray-600 dark:text-gray-300">Edit your AI twin's personality, prompts, and memory like GPT custom instructions</p>
-        </div>
-
-        <!-- Navigation Breadcrumbs -->
-<div class="mb-6">
-    <nav class="flex" aria-label="Breadcrumb">
-      <ol class="flex items-center space-x-2">
-        <li>
-          <a href="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-            </svg>
-          </a>
-        </li>
-        <li>
-          <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-          </svg>
-        </li>
-        <li>
-          <a href="/my-twins" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">My Twins</a>
-        </li>
-        <li>
-          <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-          </svg>
-        </li>
-        <li>
-          <a href="/twin-settings" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Twin Settings</a>
-        </li>
-        <li>
-          <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-          </svg>
-        </li>
-        <li>
-          <span class="text-gray-900 dark:text-white font-medium">AI Edit</span>
-        </li>
-      </ol>
-    </nav>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">AI Tools</h1>
+      <p class="text-gray-600 dark:text-gray-300">Test your twin + rewrite messages instantly (no extra drama).</p>
   </div>
   
   <!-- Quick Actions -->
   <div class="mb-6 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 dark:border-gray-700 shadow-md dark:shadow-gray-900">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <!-- Buttons row (always in one row, will wrap only on very small screens) -->
       <div class="flex flex-row flex-wrap items-center gap-2 sm:gap-4">
         <a href="/twin-settings"
            class="inline-flex items-center justify-center bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
           </svg>
-          Back to Twin Settings
-        </a>
-        <a href="/style-customize"
-           class="inline-flex items-center justify-center bg-gradient-to-r from-accent to-purple-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
-          Style Customize
+            Twin Settings
+          </a>
+
+          <a href="/analytics"
+             class="inline-flex items-center justify-center bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
+            Open Analytics
         </a>
       </div>
     </div>
   </div>
 
-  <% /* TODO(V2): Recent Memories Preview */ %>
-  <% if (FEATURE_FLAGS.memoryUI) { %>
+    <div class="grid lg:grid-cols-12 gap-4 lg:gap-6">
+      <!-- Main -->
+      <div class="lg:col-span-8 space-y-4">
+        <!-- ✅ Tabs: Reply vs Rewrite -->
+<div class="mb-3 inline-flex rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 overflow-hidden">
+  <button id="tabTester" type="button"
+    class="px-4 py-2 text-sm font-medium bg-blue-600 text-white">
+    Reply (Tester)
+  </button>
+  <button id="tabRewrite" type="button"
+    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+    Rewrite
+  </button>
+</div>
 
-        <!-- Recent Memories Preview (Read-Only) -->
-        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 mb-6 sm:mb-8 border border-white/20 dark:border-gray-700">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold dark:text-white">Recent Memories</h2>
-                <a href="/memory-management" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
-                    Manage All Memories →
-                </a>
-            </div>
-            <div id="recentMemoriesPreview" class="space-y-2 max-h-[200px] overflow-y-auto">
-                <p class="text-gray-500 dark:text-gray-400 text-sm">Loading recent memories...</p>
+        <!-- Quick Tester -->
+        <div id="testerCard" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 border border-white/20 dark:border-gray-700">          
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Quick Tester</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-300">Paste what someone said. Get your twin’s reply.</p>
             </div>
         </div>
 
-    <% } %>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Message you received
+        </label>
+          <textarea id="testerInput" rows="4"
+            placeholder='e.g. "Bro kal plan hai?"'
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base"></textarea>
 
-        <!-- Enhanced Personality & Persona -->
-        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 mb-6 sm:mb-8 border border-white/20 dark:border-gray-700">
-            <h2 class="text-xl font-semibold mb-4 dark:text-white">Personality & Persona</h2>
-            
-            <!-- Basic Information -->
-            <div class="mb-6">
-                <h3 class="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">Basic Information</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
-                    <input type="text" id="fullName" placeholder="Your full name" 
-                           class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base min-h-[44px]"
-                           style="font-size: 16px;">
+          <div class="mt-3 flex flex-wrap gap-2">
+            <select id="testerTone" class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
+              <option value="">Tone (use settings)</option>
+              <option value="friendly">Friendly</option>
+              <option value="professional">Professional</option>
+              <option value="witty">Witty</option>
+              <option value="direct">Direct</option>
+            </select>
+
+            <select id="testerLength" class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
+              <option value="">Length (use settings)</option>
+              <option value="short">Short</option>
+              <option value="normal">Normal</option>
+              <option value="detailed">Detailed</option>
+            </select>
+
+            <select id="testerEmoji" class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
+              <option value="">Emoji (use settings)</option>
+              <option value="off">Off</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+            </select>
                 </div>
-                <div class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Username</label>
-                        <input type="text" id="username" placeholder="Your username" 
-                               class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base min-h-[44px]"
-                               style="font-size: 16px;">
+
+          <div class="mt-4 flex flex-col sm:flex-row gap-2">
+            <button id="testerRun"
+              class="w-full sm:w-auto inline-flex items-center justify-center bg-gradient-to-r from-primary to-accent text-white px-5 py-2.5 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px]">
+              Generate replies
+          </button>
+
+            <button id="testerClear"
+              class="w-full sm:w-auto inline-flex items-center justify-center bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all font-medium min-h-[44px]">
+              Clear
+          </button>
                     </div>
-                    <div class="space-y-2 md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
-                    <textarea id="bio" placeholder="Tell us about yourself" rows="3"
-                              class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base min-h-[44px]"
-                              style="font-size: 16px;"></textarea>
-                </div>
-                    <div class="space-y-2 md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Primary Use Case</label>
-                        <input type="text" id="primaryUseCase" placeholder="What will you use this AI twin for?" 
-                               class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base min-h-[44px]"
-                               style="font-size: 16px;">
-                    </div>
+        
+          <div class="mt-4">
+            <div id="testerLoading" class="hidden text-sm text-gray-500 dark:text-gray-400">Generating…</div>
+            <div id="testerOut" class="space-y-3"></div>
                 </div>
             </div>
         
-            <!-- Context -->
-            <div class="mb-6 border-t dark:border-gray-700 pt-6">
-                <h3 class="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">Context & Interests</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-                <div class="space-y-2 md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Interests (comma-separated)</label>
-                    <input type="text" id="interests" placeholder="technology, music, travel" 
-                           class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base min-h-[44px]"
-                           style="font-size: 16px;">
+        <!-- Rewrite Assistant -->
+        <div id="rewriteCard" class="hidden bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 border border-white/20 dark:border-gray-700">          
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Rewrite Assistant</h2>
+          <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">Write what you want to say. We’ll rewrite it in your twin voice.</p>
+
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Your message
+          </label>
+          <textarea id="rewriteInput" rows="4"
+            placeholder='e.g. "Haan bhai, kal 6 baje milte hai."'
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base"></textarea>
+
+          <div class="mt-3 flex flex-wrap gap-2">
+            <select id="rewriteTone" class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
+              <option value="">Tone (use settings)</option>
+              <option value="friendly">Friendly</option>
+              <option value="professional">Professional</option>
+              <option value="witty">Witty</option>
+              <option value="direct">Direct</option>
+            </select>
+
+            <select id="rewriteLength" class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
+              <option value="">Length (use settings)</option>
+              <option value="short">Short</option>
+              <option value="normal">Normal</option>
+              <option value="detailed">Detailed</option>
+            </select>
+
+            <select id="rewriteEmoji" class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
+              <option value="">Emoji (use settings)</option>
+              <option value="off">Off</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+            </select>
+          </div>
+
+          <div class="mt-4 flex flex-col sm:flex-row gap-2">
+            <button id="rewriteRun"
+              class="w-full sm:w-auto inline-flex items-center justify-center bg-gradient-to-r from-primary to-accent text-white px-5 py-2.5 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px]">
+              Rewrite
+            </button>
+            <button id="rewriteClear"
+              class="w-full sm:w-auto inline-flex items-center justify-center bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all font-medium min-h-[44px]">
+              Clear
+            </button>
                     </div>
-                    <div class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Target Audience</label>
-                        <input type="text" id="targetAudience" placeholder="Who are you communicating with?" 
-                               class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base min-h-[44px]"
-                               style="font-size: 16px;">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Topics to Avoid</label>
-                        <input type="text" id="topicsToAvoid" placeholder="Topics you prefer not to discuss" 
-                               class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-md text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base min-h-[44px]"
-                               style="font-size: 16px;">
-                    </div>
-                </div>
+
+          <div class="mt-4">
+            <div id="rewriteLoading" class="hidden text-sm text-gray-500 dark:text-gray-400">Generating…</div>
+            <div id="rewriteOut" class="space-y-3"></div>
             </div>
         </div>
 
-        <!-- Action Buttons -->
-        <!-- Desktop: All 3 in one row -->
-        <div class="hidden md:flex md:items-center md:gap-3">
-            <button id="previewChangesBtn" class="flex-1 bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
-                Preview Changes
+        <!-- Templates -->
+      <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 border border-white/20 dark:border-gray-700">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Templates</h2>
+          <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">Tap a card to fill your input.</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button type="button" data-template="follow_up"
+              class="templateBtn text-left p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <div class="text-sm font-semibold text-gray-900 dark:text-white">Follow-up</div>
+              <div class="text-xs text-gray-600 dark:text-gray-300">“Hey, just checking in…”</div>
             </button>
-            <button id="resetChangesBtn" class="flex-1 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-6 py-3 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
-                Reset
+
+            <button type="button" data-template="say_no"
+              class="templateBtn text-left p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <div class="text-sm font-semibold text-gray-900 dark:text-white">Say no (polite)</div>
+              <div class="text-xs text-gray-600 dark:text-gray-300">“I can’t right now…”</div>
             </button>
-            <button id="saveChangesBtn" class="flex-1 bg-gray-400 cursor-not-allowed opacity-50 text-white px-6 py-3 rounded-xl transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base" disabled>
-                Save Changes
+
+            <button type="button" data-template="ask_payment"
+              class="templateBtn text-left p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <div class="text-sm font-semibold text-gray-900 dark:text-white">Ask for payment</div>
+              <div class="text-xs text-gray-600 dark:text-gray-300">“Quick reminder about payment…”</div>
             </button>
+
+            <button type="button" data-template="apology"
+              class="templateBtn text-left p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <div class="text-sm font-semibold text-gray-900 dark:text-white">Apology</div>
+              <div class="text-xs text-gray-600 dark:text-gray-300">“Sorry about that…”</div>
+            </button>
+          </div>
         </div>
-        <!-- Mobile: Preview+Reset row 1, Save row 2 -->
-        <div class="flex flex-col gap-3 md:hidden">
-            <div class="flex flex-row gap-3">
-                <button id="previewChangesBtnMobile" class="flex-1 bg-gradient-to-r from-primary to-accent text-white px-4 py-2.5 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
-                    Preview Changes
-                </button>
-                <button id="resetChangesBtnMobile" class="flex-1 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl hover:bg-white dark:hover:bg-gray-700 border border-white/20 dark:border-gray-600 transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
-                    Reset
-                </button>
             </div>
-            <button id="saveChangesBtnMobile" class="w-full bg-gray-400 cursor-not-allowed opacity-50 text-white px-4 py-2.5 rounded-xl transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base" disabled>
-                Save Changes
-            </button>
+
+      <!-- Sidebar -->
+      <aside class="lg:col-span-4 space-y-4 lg:sticky lg:top-6 lg:self-start">
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 border border-white/20 dark:border-gray-700">
+          <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Twin Snapshot</h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Based on your Twin Settings.</p>
+
+          <div id="snapshotBox" class="space-y-1 text-xs text-gray-700 dark:text-gray-300">
+            <p class="text-gray-400 dark:text-gray-500">Loading…</p>
+          </div>
+
+          <div class="mt-4">
+            <a href="/twin-settings"
+              class="inline-flex justify-center w-full px-4 py-2 bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors min-h-[44px] items-center text-sm font-medium">
+              Edit Settings
+            </a>
+          </div>
         </div>
+
+        <!-- Quick Memory -->
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 border border-white/20 dark:border-gray-700">
+          <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-1">Quick Memory</h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Save a fact/preference instantly. (Also works in chat: <code>remember this: ...</code>)</p>
+
+          <textarea id="quickMemValue" rows="3"
+            placeholder="e.g. I prefer short replies. / I hate cold coffee."
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-white/20 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-sm"></textarea>
+
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <button id="quickMemSaveFact" type="button"
+              class="inline-flex justify-center px-3 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors min-h-[44px] items-center text-sm font-medium">
+              Save as Fact
+            </button>
+            <button id="quickMemSavePref" type="button"
+              class="inline-flex justify-center px-3 py-2 bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors min-h-[44px] items-center text-sm font-medium">
+              Save as Preference
+            </button>
+          </div>
+
+          <div class="mt-3">
+            <a href="/twin-settings#memorySection"
+               class="text-sm text-primary hover:text-secondary font-medium transition-colors">
+              Manage all memory →
+            </a>
+          </div>
+        </div>
+      </aside>
     </div>
+  </div>
+
+  <!--Footer-->
+  <%- include('footer/footer-conditional-private') %>
+  <%- include('partials/modal-helpers') %>
 
     <script type="module">
-    import { initDirtyForm } from '/js/form-dirty-state.js';
-    
-    let currentTwinData = null;
-    // ✅ SECURITY: Use tokenized twinToken instead of raw twinToken
     const twinToken = '<%= typeof twinToken !== "undefined" ? twinToken : "" %>';
-    let dirtyFormTracker = null;
-    let dirtyFormTrackerMobile = null;
 
-    // Load twin data on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        loadTwinData();
-        setupEventListeners();
-        
-        // Setup tone slider listeners
-        ['formalCasual', 'seriousPlayful', 'directDiplomatic'].forEach(id => {
-            const slider = document.getElementById(id);
-            if (slider) {
-                slider.addEventListener('input', function() {
-                    document.getElementById(`${id}-value`).textContent = this.value;
-                });
-            }
-        });
-        
-        // ✅ Initialize dirty form tracking after form is populated
-        // Wait for data to load and form to be populated
-        setTimeout(() => {
-            const container = document.querySelector('.container');
-            if (container) {
-                dirtyFormTracker = initDirtyForm(container, '#saveChangesBtn', '#resetChangesBtn');
-                dirtyFormTrackerMobile = initDirtyForm(container, '#saveChangesBtnMobile', '#resetChangesBtnMobile');
-            }
-        }, 800);
-    });
+    const testerInput = document.getElementById('testerInput');
+    const testerRun = document.getElementById('testerRun');
+    const testerClear = document.getElementById('testerClear');
+    const testerLoading = document.getElementById('testerLoading');
+    const testerOut = document.getElementById('testerOut');
 
-    function setupEventListeners() {
-        // Setup Action Buttons
-        const previewBtn = document.getElementById('previewChangesBtn');
-        if (previewBtn) {
-            previewBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                previewChanges();
-            });
-        }
+    const rewriteInput = document.getElementById('rewriteInput');
+    const rewriteRun = document.getElementById('rewriteRun');
+    const rewriteClear = document.getElementById('rewriteClear');
+    const rewriteLoading = document.getElementById('rewriteLoading');
+    const rewriteOut = document.getElementById('rewriteOut');
 
-        const resetBtn = document.getElementById('resetChangesBtn');
-        if (resetBtn) {
-            resetBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                resetChanges();
-            });
-        }
+    const snapshotBox = document.getElementById('snapshotBox');
 
-        const saveBtn = document.getElementById('saveChangesBtn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                saveChanges();
-            });
-        }
+    // ✅ Tabs logic
+const tabTester = document.getElementById('tabTester');
+const tabRewrite = document.getElementById('tabRewrite');
+const testerCard = document.getElementById('testerCard');
+const rewriteCard = document.getElementById('rewriteCard');
 
-        // Mobile button handlers
-        const previewBtnMobile = document.getElementById('previewChangesBtnMobile');
-        if (previewBtnMobile) {
-            previewBtnMobile.addEventListener('click', function(e) {
-                e.preventDefault();
-                previewChanges();
-            });
-        }
+function setTab(mode) {
+  const isTester = mode === 'tester';
 
-        const resetBtnMobile = document.getElementById('resetChangesBtnMobile');
-        if (resetBtnMobile) {
-            resetBtnMobile.addEventListener('click', function(e) {
-                e.preventDefault();
-                resetChanges();
-            });
-        }
+  testerCard?.classList.toggle('hidden', !isTester);
+  rewriteCard?.classList.toggle('hidden', isTester);
 
-        const saveBtnMobile = document.getElementById('saveChangesBtnMobile');
-        if (saveBtnMobile) {
-            saveBtnMobile.addEventListener('click', function(e) {
-                e.preventDefault();
-                saveChanges();
-            });
-        }
-    }
+  // active styles
+  tabTester?.classList.toggle('bg-blue-600', isTester);
+  tabTester?.classList.toggle('text-white', isTester);
+  tabTester?.classList.toggle('text-gray-700', !isTester);
+  tabTester?.classList.toggle('dark:text-gray-200', !isTester);
 
-    async function loadTwinData() {
-        try {
-            const response = await fetch(`/api/twin/${twinToken}/edit-data`);
-            const data = await response.json();
-            
-            if (data.success) {
-                currentTwinData = data.twin;
-                populateForm(data.twin);
-            }
-        } catch (error) {
-            console.error('Error loading twin data:', error);
-        }
-    }
+  tabRewrite?.classList.toggle('bg-blue-600', !isTester);
+  tabRewrite?.classList.toggle('text-white', !isTester);
+  tabRewrite?.classList.toggle('text-gray-700', isTester);
+  tabRewrite?.classList.toggle('dark:text-gray-200', isTester);
+}
 
-    function populateForm(twin) {        
-        const pd = twin.personaData || {};
-        
-        // Basic Info - Support both old structure (basicInfo) and new structure (direct fields)
-        const basicInfo = pd.basicInfo || {};
-        if (document.getElementById('fullName')) document.getElementById('fullName').value = basicInfo.fullName || pd.name || '';
-        if (document.getElementById('bio')) document.getElementById('bio').value = basicInfo.bio || pd.bio || '';
-        if (document.getElementById('username')) document.getElementById('username').value = basicInfo.username || pd.username || '';
-        if (document.getElementById('primaryUseCase')) document.getElementById('primaryUseCase').value = basicInfo.primaryUseCase || pd.primaryUseCase || '';
-        
-        // Context - Interests
-        const interests = pd.context?.interests || pd.interests || [];
-        if (document.getElementById('interests')) document.getElementById('interests').value = Array.isArray(interests) ? interests.join(', ') : '';
-        
-        // Context - Target Audience & Topics to Avoid
-        if (document.getElementById('targetAudience')) document.getElementById('targetAudience').value = pd.context?.targetAudience || '';
-        if (document.getElementById('topicsToAvoid')) document.getElementById('topicsToAvoid').value = pd.context?.topicsToAvoid || '';
-        
-        // Communication Style - Tone
-        const tone = pd.communicationStyle?.tone || {};
-        if (document.getElementById('formalCasual')) {
-            document.getElementById('formalCasual').value = tone.formalCasual || 50;
-            document.getElementById('formalCasual-value').textContent = tone.formalCasual || 50;
-        }
-        if (document.getElementById('seriousPlayful')) {
-            document.getElementById('seriousPlayful').value = tone.seriousPlayful || 50;
-            document.getElementById('seriousPlayful-value').textContent = tone.seriousPlayful || 50;
-        }
-        if (document.getElementById('directDiplomatic')) {
-            document.getElementById('directDiplomatic').value = tone.directDiplomatic || 50;
-            document.getElementById('directDiplomatic-value').textContent = tone.directDiplomatic || 50;
-        }
-        
-        // Communication Style - Language
-        const language = pd.communicationStyle?.language || {};
-        if (document.getElementById('greetingStyle')) document.getElementById('greetingStyle').value = language.greetingStyle || '';
-        if (document.getElementById('closingStyle')) document.getElementById('closingStyle').value = language.closingStyle || '';
-        if (document.getElementById('emojiUsage')) document.getElementById('emojiUsage').value = language.emojiUsage || 'moderate';
-        if (document.getElementById('responseLength')) document.getElementById('responseLength').value = language.responseLength || 'detailed';
-        if (document.getElementById('commonPhrases')) document.getElementById('commonPhrases').value = language.commonPhrases || '';
-        
-        // Load recent memories preview
-        loadRecentMemoriesPreview();
-    }
+tabTester?.addEventListener('click', () => setTab('tester'));
+tabRewrite?.addEventListener('click', () => setTab('rewrite'));
 
+// default
+setTab('tester');
 
-    function updateToneDisplays() {
-        const formalCasual = document.getElementById('formalCasual');
-        const seriousPlayful = document.getElementById('seriousPlayful');
-        const directDiplomatic = document.getElementById('directDiplomatic');
-        
-        if (formalCasual) document.getElementById('formalCasual-value').textContent = formalCasual.value;
-        if (seriousPlayful) document.getElementById('seriousPlayful-value').textContent = seriousPlayful.value;
-        if (directDiplomatic) document.getElementById('directDiplomatic-value').textContent = directDiplomatic.value;
-    }
-
-    function escapeHtml(text) {
-        if (!text) return '';
+      function escapeHtml(text) {
         const div = document.createElement('div');
-        div.textContent = text;
+      div.textContent = String(text ?? '');
         return div.innerHTML;
+      }
+
+    function showToast(message, type = 'info') {
+      if (window.UI && typeof window.UI.showToast === 'function') return window.UI.showToast(message, type);
+      alert(message);
     }
 
-    function escapeForAttribute(text) {
-        if (!text) return '';
-        return String(text)
-            .replace(/&/g, '&amp;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
+    function setLoading(el, isLoading) {
+      if (!el) return;
+      el.classList.toggle('hidden', !isLoading);
     }
 
-    // Load recent memories preview (read-only, all categories mixed)
-    async function loadRecentMemoriesPreview() {
-        try {
-            const response = await fetch(`/api/twin/${twinToken}/long-term-memory?limit=5`, {
-                credentials: 'include'
-            });
-            const data = await response.json();
-            
-            const previewEl = document.getElementById('recentMemoriesPreview');
-            if (!previewEl) return;
-            
-            if (data.success && data.memories && data.memories.length > 0) {
-                const memoriesHTML = data.memories.map(memory => {
-                    const safeValue = escapeHtml(memory.value || memory.text || '');
-                    const category = memory.category || 'fact';
-                    const date = memory.createdAt ? TimeUtils.formatDateOnly(memory.createdAt) : '';                    
+    function renderSuggestions(container, suggestions) {
+      if (!container) return;
+      container.innerHTML = '';
 
-                    return `
-                        <div class="flex items-start p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm">
-                            <div class="flex-1">
-                                <p class="text-gray-900 dark:text-white">${safeValue}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${category} • ${date}</p>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-                previewEl.innerHTML = memoriesHTML;
-            } else {
-                previewEl.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No memories yet</p>';
-            }
-        } catch (error) {
-            console.error('Error loading recent memories:', error);
-            const previewEl = document.getElementById('recentMemoriesPreview');
-            if (previewEl) {
-                previewEl.innerHTML = '<p class="text-red-500 text-sm text-center py-2">Error loading memories</p>';
-            }
-        }
+      (suggestions || []).forEach((s, idx) => {
+        const text = s.text || '';
+        const label = s.label || `option_${idx + 1}`;
+
+        const card = document.createElement('div');
+        card.className = 'border border-white/20 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-900/40';
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-3 mb-2">
+            <div class="text-sm font-semibold text-gray-900 dark:text-white">${escapeHtml(label)}</div>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" class="copyBtn px-3 py-1.5 text-xs rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600">Copy</button>
+              <button type="button" class="useBtn px-3 py-1.5 text-xs rounded-lg bg-blue-600 text-white border border-blue-600 hover:bg-blue-700">Use in Chat</button>
+              <button type="button" class="saveFactBtn px-3 py-1.5 text-xs rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600">Save Fact</button>
+              <button type="button" class="savePrefBtn px-3 py-1.5 text-xs rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600">Save Pref</button>
+            </div>
+          </div>
+          <div class="text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap">${escapeHtml(text)}</div>
+        `;
+
+        card.querySelector('.copyBtn')?.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(text);
+            showToast('Copied ✔', 'success');
+          } catch {
+            showToast('Copy failed', 'error');
+          }
+        });
+
+        card.querySelector('.useBtn')?.addEventListener('click', () => {
+          try { sessionStorage.setItem('enhancedChatDraft', text); } catch {}
+          window.location.href = '/chat';
+        });
+
+        card.querySelector('.saveFactBtn')?.addEventListener('click', async () => {
+          try {
+            await saveToLongTermMemory(text, 'fact');
+            showToast('Saved as fact ✔', 'success');
+        } catch (e) {
+            console.error(e);
+            showToast('Save failed', 'error');
+          }
+        });
+
+        card.querySelector('.savePrefBtn')?.addEventListener('click', async () => {
+          try {
+            await saveToLongTermMemory(text, 'preference');
+            showToast('Saved as preference ✔', 'success');
+          } catch (e) {
+            console.error(e);
+            showToast('Save failed', 'error');
+          }
+        });
+
+        container.appendChild(card);
+      });
     }
 
-async function saveChanges() {
-    const updates = {
-        personaData: {
-            basicInfo: {
-                    fullName: document.getElementById('fullName')?.value || '',
-                    bio: document.getElementById('bio')?.value || '',
-                    username: document.getElementById('username')?.value || '',
-                    primaryUseCase: document.getElementById('primaryUseCase')?.value || ''
-                },
-                communicationStyle: {
-                    tone: {
-                        formalCasual: parseInt(document.getElementById('formalCasual')?.value || 50),
-                        seriousPlayful: parseInt(document.getElementById('seriousPlayful')?.value || 50),
-                        directDiplomatic: parseInt(document.getElementById('directDiplomatic')?.value || 50)
-                    },
-                    language: {
-                        greetingStyle: document.getElementById('greetingStyle')?.value || '',
-                        closingStyle: document.getElementById('closingStyle')?.value || '',
-                        emojiUsage: document.getElementById('emojiUsage')?.value || 'moderate',
-                        responseLength: document.getElementById('responseLength')?.value || 'detailed',
-                        commonPhrases: document.getElementById('commonPhrases')?.value || ''
-                    }
-                },
-                context: {
-                    interests: (document.getElementById('interests')?.value || '').split(',').map(i => i.trim()).filter(i => i),
-                    targetAudience: document.getElementById('targetAudience')?.value || '',
-                    topicsToAvoid: document.getElementById('topicsToAvoid')?.value || ''
-                }
-        }
-    };
-    
-    try {
-        const response = await fetch(`/api/twin/${twinToken}/update-persona`, {
+    async function callAiTools(mode, input, opts) {
+      const res = await fetch(`/api/twin/${twinToken}/ai-tools`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': window.csrfToken
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': window.csrfToken,
             },
-                credentials: 'include',
-            body: JSON.stringify(updates)
+            credentials: 'include',
+            body: JSON.stringify({
+          mode,
+          input,
+          ...opts,
+            }),
+          });
+          const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed');
+      return data.suggestions || [];
+    }
+
+    // Templates
+    document.querySelectorAll('.templateBtn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const t = btn.getAttribute('data-template');
+        const map = {
+          follow_up: 'Hey — just checking in. Did you get a chance to see my last message?',
+          say_no: 'I can’t commit to this right now. Can we do it later?',
+          ask_payment: 'Quick reminder about the payment — can you share an update?',
+          apology: 'Sorry about that — my bad. I’ll fix it right away.',
+        };
+        const fill = map[t] || '';
+        if (rewriteInput) rewriteInput.value = fill;
+        rewriteInput?.focus();
+      });
+    });
+
+    // Tester
+    testerClear?.addEventListener('click', () => {
+      if (testerInput) testerInput.value = '';
+      if (testerOut) testerOut.innerHTML = '';
+    });
+
+    testerRun?.addEventListener('click', async () => {
+      const input = (testerInput?.value || '').trim();
+      if (!input) return showToast('Paste a message first.', 'info');
+
+      setLoading(testerLoading, true);
+      if (testerOut) testerOut.innerHTML = '';
+      try {
+        const suggestions = await callAiTools('tester', input, {
+          tonePreset: document.getElementById('testerTone')?.value || undefined,
+          lengthPreset: document.getElementById('testerLength')?.value || undefined,
+          emojiPreset: document.getElementById('testerEmoji')?.value || undefined,
         });
-        
-        const data = await response.json();
-        if (data.success) {
-            showNotification('Changes saved successfully!', 'success');
-            // ✅ Reset dirty form tracking after successful save
-            if (dirtyFormTracker) dirtyFormTracker.reset();
-            if (dirtyFormTrackerMobile) dirtyFormTrackerMobile.reset();
-            loadTwinData();
-        } else {
-            showNotification('Error: ' + (data.error || 'Failed to save changes'), 'error');
-        }
-    } catch (error) {
-        console.error('Error saving changes:', error);
-            showNotification('Error saving changes: ' + error.message, 'error');
-    }
-}
-    
-    function resetChanges() {
-        if (currentTwinData) {
-            populateForm(currentTwinData);
-            showNotification('Form reset to original values', 'success');
-        } else {
-            showNotification('No data loaded. Please refresh the page.', 'error');
-        }
-    }
+        renderSuggestions(testerOut, suggestions);
+      } catch (e) {
+        console.error(e);
+        showToast('Could not generate replies.', 'error');
+        } finally {
+        setLoading(testerLoading, false);
+      }
+    });
 
-    function previewChanges() {
-    if (!currentTwinData) {
-            showNotification('Please wait for data to load first', 'info');
-        return;
-    }
-        
-        const pd = currentTwinData.personaData || {};
-        const basicInfo = pd.basicInfo || {};
-        const tone = pd.communicationStyle?.tone || {};
-        const language = pd.communicationStyle?.language || {};
-    
-    const current = {
-            fullName: basicInfo.fullName || pd.name || '',
-            username: basicInfo.username || pd.username || '',
-            bio: basicInfo.bio || pd.bio || '',
-            primaryUseCase: basicInfo.primaryUseCase || pd.primaryUseCase || '',
-            formalCasual: tone.formalCasual || 50,
-            seriousPlayful: tone.seriousPlayful || 50,
-            directDiplomatic: tone.directDiplomatic || 50,
-            greetingStyle: language.greetingStyle || '',
-            closingStyle: language.closingStyle || '',
-            emojiUsage: language.emojiUsage || 'moderate',
-            responseLength: language.responseLength || 'detailed',
-            commonPhrases: language.commonPhrases || '',
-            interests: (pd.context?.interests || pd.interests || []).join(', '),
-            targetAudience: pd.context?.targetAudience || '',
-            topicsToAvoid: pd.context?.topicsToAvoid || ''
-    };
-    
-    const updated = {
-            fullName: document.getElementById('fullName')?.value || '',
-            username: document.getElementById('username')?.value || '',
-            bio: document.getElementById('bio')?.value || '',
-            primaryUseCase: document.getElementById('primaryUseCase')?.value || '',
-            formalCasual: parseInt(document.getElementById('formalCasual')?.value || 50),
-            seriousPlayful: parseInt(document.getElementById('seriousPlayful')?.value || 50),
-            directDiplomatic: parseInt(document.getElementById('directDiplomatic')?.value || 50),
-            greetingStyle: document.getElementById('greetingStyle')?.value || '',
-            closingStyle: document.getElementById('closingStyle')?.value || '',
-            emojiUsage: document.getElementById('emojiUsage')?.value || 'moderate',
-            responseLength: document.getElementById('responseLength')?.value || 'detailed',
-            commonPhrases: document.getElementById('commonPhrases')?.value || '',
-            interests: document.getElementById('interests')?.value || '',
-            targetAudience: document.getElementById('targetAudience')?.value || '',
-            topicsToAvoid: document.getElementById('topicsToAvoid')?.value || ''
-    };
-    
-    let changes = [];
-        Object.keys(current).forEach(key => {
-            if (String(current[key]) !== String(updated[key])) {
-                changes.push(`${key}: "${current[key]}" → "${updated[key]}"`);
-            }
+    // Rewrite
+    rewriteClear?.addEventListener('click', () => {
+      if (rewriteInput) rewriteInput.value = '';
+      if (rewriteOut) rewriteOut.innerHTML = '';
+    });
+
+    rewriteRun?.addEventListener('click', async () => {
+      const input = (rewriteInput?.value || '').trim();
+      if (!input) return showToast('Write your message first.', 'info');
+
+      setLoading(rewriteLoading, true);
+      if (rewriteOut) rewriteOut.innerHTML = '';
+      try {
+        const suggestions = await callAiTools('rewrite', input, {
+          tonePreset: document.getElementById('rewriteTone')?.value || undefined,
+          lengthPreset: document.getElementById('rewriteLength')?.value || undefined,
+          emojiPreset: document.getElementById('rewriteEmoji')?.value || undefined,
         });
-    
-    if (changes.length === 0) {
-        showNotification('No changes detected', 'info');
-    } else {
-        showNotification('Preview Changes:\n\n' + changes.join('\n'), 'info');
+        renderSuggestions(rewriteOut, suggestions);
+      } catch (e) {
+        console.error(e);
+        showToast('Could not rewrite.', 'error');
+      } finally {
+        setLoading(rewriteLoading, false);
+      }
+    });
+
+    // Snapshot
+    async function loadSnapshot() {
+      if (!snapshotBox) return;
+      try {
+        const [editRes, settingsRes] = await Promise.all([
+          fetch(`/api/twin/${twinToken}/edit-data`, { credentials: 'include' }),
+          fetch(`/api/twin/${twinToken}/settings`, { credentials: 'include' }),
+        ]);
+        const editData = await editRes.json();
+        const settingsData = await settingsRes.json();
+
+        const pd = editData?.twin?.personaData || {};
+        const sv = editData?.twin?.styleVector || {};
+        const s = settingsData?.settings || {};
+
+        const basic = pd.basicInfo || {};
+        const role = basic.role || basic.primaryUseCase || '—';
+        const language = basic.language || '—';
+        const memoryOn = (s.memory?.usePersonaMemory ?? true) ? 'ON' : 'OFF';
+
+        snapshotBox.innerHTML = `
+          <p><strong>Name:</strong> ${escapeHtml(basic.name || basic.fullName || '—')}</p>
+          <p><strong>Role:</strong> ${escapeHtml(role)}</p>
+          <p><strong>Language:</strong> ${escapeHtml(language)}</p>
+          <p class="mt-2"><strong>Tone:</strong> ${escapeHtml(sv.tone || '—')}</p>
+          <p><strong>Reply length:</strong> ${escapeHtml(sv.response_length_preference || '—')}</p>
+          <p><strong>Memory:</strong> ${escapeHtml(memoryOn)}</p>
+        `;
+      } catch (e) {
+        console.error(e);
+        snapshotBox.innerHTML = `<p class="text-xs text-red-500">Could not load snapshot.</p>`;
+      }
     }
-}
 
-    // Make functions globally accessible
-    window.saveChanges = saveChanges;
-    window.resetChanges = resetChanges;
-    window.previewChanges = previewChanges;
-    </script>
+    loadSnapshot();
 
-    <!--Footer-->
-    <%- include('footer/footer-conditional-private') %>
-    <%- include('partials/modal-helpers') %>
-    <!-- ✅ Global Toast / Notification System (for standalone page) -->
-    <script>
-        (function () {
-            window.UI = window.UI || {};
-            if (window.UI.showToast) return; // don't override if layout already defined
+    // ✅ ADD: save to long-term memory helper
+    async function saveToLongTermMemory(value, category) {
+      const v = String(value || '').trim();
+      if (!v) return showToast('Write something first.', 'info');
 
-            window.UI.showToast = function (message, type = 'success', opts = {}) {
-                const duration = typeof opts.duration === 'number' ? opts.duration : 3000;
-                const existing = document.getElementById('global-toast');
-                if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+      const res = await fetch(`/api/twin/${twinToken}/long-term-memory`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': window.csrfToken,
+            },
+            credentials: 'include',
+        body: JSON.stringify({ value: v, category }),
+      });
 
-                const el = document.createElement('div');
-                el.id = 'global-toast';
-                el.className =
-                    'fixed top-4 right-4 z-50 max-w-sm w-[90vw] sm:w-auto px-4 py-3 sm:px-6 sm:py-4 ' +
-                    'rounded-xl shadow-2xl transition-all duration-300 transform opacity-0 translate-y-2';
+          const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed');
+      return data.memory;
+    }
 
-                let bgClasses, icon;
-                if (type === 'success') {
-                    bgClasses = 'bg-gradient-to-r from-green-500 to-emerald-500 text-white';
-                    icon = '✅';
-                } else if (type === 'error') {
-                    bgClasses = 'bg-gradient-to-r from-red-500 to-rose-500 text-white';
-                    icon = '❌';
-                } else {
-                    bgClasses = 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white';
-                    icon = 'ℹ️';
-                }
+    // ✅ CHANGE: add Save-to-Memory buttons in suggestion cards
+    document.getElementById('quickMemSaveFact')?.addEventListener('click', async () => {
+      try {
+        const v = document.getElementById('quickMemValue')?.value || '';
+        await saveToLongTermMemory(v, 'fact');
+        document.getElementById('quickMemValue').value = '';
+        showToast('Saved ✔', 'success');
+        } catch (e) {
+          console.error(e);
+        showToast('Save failed', 'error');
+      }
+    });
 
-                el.className += ' ' + bgClasses;
-                el.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <span class="text-xl">${icon}</span>
-                        <div class="flex flex-col text-left">
-                            <span class="font-semibold">${message}</span>
-                        </div>
-                    </div>
-                `;
-
-                document.body.appendChild(el);
-
-                requestAnimationFrame(() => {
-                    el.style.opacity = '1';
-                    el.style.transform = 'translateY(0)';
-                });
-
-                setTimeout(() => {
-                    el.style.opacity = '0';
-                    el.style.transform = 'translateY(-8px)';
-                    setTimeout(() => {
-                        if (el.parentNode) el.parentNode.removeChild(el);
-                    }, 300);
-                }, duration);
-            };
-        })();
-    </script>
-    
-    <script>
-        // ✅ Unified notification wrapper for ai-edit
-        function showNotification(message, type = 'success') {
-            if (window.UI && typeof window.UI.showToast === 'function') {
-                window.UI.showToast(message, type);
-            }
-        }
+    document.getElementById('quickMemSavePref')?.addEventListener('click', async () => {
+      try {
+        const v = document.getElementById('quickMemValue')?.value || '';
+        await saveToLongTermMemory(v, 'preference');
+        document.getElementById('quickMemValue').value = '';
+        showToast('Saved ✔', 'success');
+      } catch (e) {
+        console.error(e);
+        showToast('Save failed', 'error');
+      }
+    });
     </script>
 </body>
 </html>

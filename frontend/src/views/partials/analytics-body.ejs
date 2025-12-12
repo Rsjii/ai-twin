@@ -123,38 +123,51 @@
             </div>
             
             <!-- Chart 2: Top Performing Content -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top Performing Content</h3>
-                
-                <!-- Loading State for Top Content -->
-                <div id="topContentLoadingState" class="hidden space-y-3">
-                    <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-16 animate-pulse"></div>
-                    <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-16 animate-pulse"></div>
-                    <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-16 animate-pulse"></div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6 flex flex-col h-full">
+                <div class="flex-1 flex flex-col">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top Users (this twin)</h3>
+                    
+                    <!-- Loading State for Top Content -->
+                    <div id="topContentLoadingState" class="hidden space-y-3">
+                        <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-16 animate-pulse"></div>
+                        <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-16 animate-pulse"></div>
+                        <div class="bg-gray-200 dark:bg-gray-700 rounded-lg h-16 animate-pulse"></div>
+                    </div>
+                    
+                    <!-- Top Content Container -->
+                    <div id="topContent" class="space-y-3">
+                        <!-- Filled by analytics.ejs: top users who chatted with this twin -->
+                        <p class="text-gray-500 dark:text-gray-400">Loading top users...</p>
+                    </div>
+                    
+                    <!-- Empty State for Top Content -->
+                    <div id="topContentEmptyState" class="hidden text-center py-12">
+                        <div class="text-4xl mb-4">📝</div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No users yet</h3>
+                        <p class="text-gray-600 dark:text-gray-400">
+                            Once people start chatting with your twin, your most active users will appear here.
+                        </p>
+                    </div>
+                    
+                    <!-- Error State for Top Content -->
+                    <div id="topContentErrorState" class="hidden text-center py-12">
+                        <div class="text-4xl mb-4">⚠️</div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to load content</h3>
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">We encountered an error while loading content data. Please try again.</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Please <a href="javascript:location.reload()" class="text-primary hover:text-secondary underline font-medium cursor-pointer">reload the page</a> to try again.
+                        </p>                    
+                    </div>
                 </div>
-                
-                <!-- Top Content Container -->
-                <div id="topContent" class="space-y-3">
-                    <p class="text-gray-500 dark:text-gray-400">Loading...</p>
+            
+                <!-- View All Users Link - Fixed at bottom of section -->
+                <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 text-center">
+                    <a href="/public-chat-history?view=user" 
+                       class="text-sm text-primary dark:text-primary hover:underline font-medium">
+                        View all users →
+                    </a>
                 </div>
-                
-                <!-- Empty State for Top Content -->
-                <div id="topContentEmptyState" class="hidden text-center py-12">
-                    <div class="text-4xl mb-4">📝</div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No content data</h3>
-                    <p class="text-gray-600 dark:text-gray-400">Content performance data will appear here once you have enough activity.</p>
-                </div>
-                
-                <!-- Error State for Top Content -->
-                <div id="topContentErrorState" class="hidden text-center py-12">
-                    <div class="text-4xl mb-4">⚠️</div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to load content</h3>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4">We encountered an error while loading content data. Please try again.</p>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                        Please <a href="javascript:location.reload()" class="text-primary hover:text-secondary underline font-medium cursor-pointer">reload the page</a> to try again.
-                    </p>                    
-                </div>
-            </div>
+            </div>            
         </div>
 
         <!-- Feedback Analytics Section -->
@@ -227,7 +240,7 @@
         </div>
         
         <!-- Debug Section -->
-        <% if (process.env.NODE_ENV !== 'production' || (typeof user !== 'undefined' && user?.isAdmin)) { %>
+        <% if (process.env.NODE_ENV !== 'production') { %>
         <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mt-6">
             <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-2">Debug Tools</h3>
             <p class="text-sm text-yellow-700 dark:text-yellow-300 mb-4">Use these tools to debug analytics data</p>

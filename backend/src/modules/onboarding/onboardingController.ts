@@ -11,63 +11,62 @@ import { tokenizeId } from '../../utils/idTokenization';
 
 const twinService = new TwinService();
 
-// Simplified onboarding schema - focused on essential data
+// New onboarding schema matching the 5-step flow
 const enhancedOnboardingSchema = z.object({
   basicInfo: z.object({
-    fullName: z.string().min(1, 'Full name is required'),
-    bio: z.string().min(50, 'Bio must be at least 50 characters').max(150, 'Bio must not exceed 150 characters'),
-    primaryUseCase: z.string().min(1, 'Primary use case is required')
+    name: z.string().min(1, 'Name is required'),
+    role: z.string().min(1, 'Role is required'),
+    roleOther: z.string().optional().default(''),
+    // who you mostly text: friends / partner / family / colleagues / clients / mixed
+    whoYouText: z.array(z.string()).min(1, 'Select at least one audience'),
+    // where you will use twin: whatsapp / instagram / linkedin_email / dating / everywhere
+    whereUse: z.array(z.string()).min(1, 'Select at least one primary channel'),
   }),
-  communicationStyle: z.object({
-    tone: z.object({
-      formalCasual: z.number().min(0).max(100),
-      seriousPlayful: z.number().min(0).max(100),
-      directDiplomatic: z.number().min(0).max(100)
-    }),
-    language: z.object({
-      greetingStyle: z.string().min(1, 'Greeting style is required'),
-      closingStyle: z.string().min(1, 'Closing style is required'),
-      emojiUsage: z.string().min(1, 'Emoji usage is required'),
-      responseLength: z.string().min(1, 'Response length is required'),
-      commonPhrases: z.string().optional()
-    })
+  styleSamples: z.object({
+    casualSample: z.string().min(20, 'Casual sample must be at least 20 characters'),
+    formalSample: z.string().optional(),
   }),
-  context: z.object({
-    interests: z.array(z.string()).min(3, 'Please select at least 3 interests'),
-    targetAudience: z.string().min(1, 'Target audience is required'),
-    topicsToAvoid: z.string().optional()
+  preferences: z.object({
+    // topics user likes (startups, tech, games, etc.)
+    likes: z.array(z.string()).min(1, 'Select at least one topic you like'),
+    // topics to avoid (optional)
+    avoids: z.array(z.string()).optional().default([]),
+    humorLevel: z.enum(['none', 'normal', 'high']),
+    strongWords: z.enum(['never', 'some', 'normal']),
+    emojiPref: z.enum(['low', 'medium', 'high']),
   }),
-  samples: z.object({
-    content: z.array(z.object({
-      category: z.string(),
-      content: z.string().min(20, 'Sample must be at least 20 characters')
-    })).min(2, 'At least 2 text samples are required for accuracy')
+  rules: z.object({
+    always: z.array(z.string()).optional().default([]),
+    never: z.array(z.string()).optional().default([]),
+    replySize: z.enum(['short', 'normal', 'detailed']),
+    riskLevel: z.enum(['safe', 'normal', 'edgy']),
+    adaptation: z.enum(['mine', 'mix', 'theirs']),
+    approvalRequired: z.boolean().optional().default(false),
   }),
   onboardingCompleted: z.boolean(),
-  completedAt: z.string()
+  completedAt: z.string(),
 });
 
 export const createEnhancedTwin = async (req: Request, res: Response) => {
   try {
-    console.log('=== ENHANCED TWIN CREATION ===');
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    logger.info('=== ENHANCED TWIN CREATION (v2) ===');
+    logger.info('Request body:', JSON.stringify(req.body, null, 2));
 
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Validate the enhanced onboarding data
+    // 1) Validate incoming payload against new schema
     const validatedData = enhancedOnboardingSchema.parse(req.body);
-    console.log('Validated data:', validatedData);
+    logger.info('Validated onboarding data:', validatedData);
 
-    // Check if user already has a twin
+    // 2) Enforce one twin per user
     const existingTwinQuery = `
       SELECT id, "createdAt" 
       FROM "Twin" 
       WHERE "userId" = $1 
       LIMIT 1
     `;
-
     const existingTwinResult = await db.query(existingTwinQuery, [req.user.id]);
 
     if (existingTwinResult.rows.length > 0) {
@@ -76,44 +75,54 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
         error: 'User already has a twin. Only one twin per user is allowed.',
         existingTwin: {
           id: existingTwin.id,
-          createdAt: existingTwin.createdAt
-        }
+          createdAt: existingTwin.createdAt,
+        },
       }); 
     }
 
-    // Check if AI generation is enabled
+    // 3) Check feature flag
     if (!featureFlags.ENABLE_AI_GENERATION) {
       return res.status(503).json({ error: 'AI generation is currently disabled' });
     }
 
-    // Update user profile with enhanced data
-    await updateUserProfile(req.user.id, validatedData);
-
-    // Create enhanced persona data
+    // 4) Build personaData object from onboarding payload
     const personaData = createPersonaData(validatedData);
-    console.log('Generated persona data:', personaData);
+    logger.info('Generated persona data:', personaData);
 
-    // Generate system prompt from persona
+    // 5) Generate system prompt from persona
     const systemPrompt = generateSystemPrompt(personaData);
-    console.log('Generated system prompt:', systemPrompt);
+    logger.info('Generated system prompt');
 
-    // Create style vector from enhanced data
+    // 6) Build style vector using user’s real chat samples (casual + optional formal)
     const styleVector = await createEnhancedStyleVector(validatedData);
-    console.log('Generated style vector:', styleVector);
+    logger.info('Generated style vector:', styleVector);
 
-    // Generate sample reply
+    // 7) Generate a sample reply in the user’s style
     const sampleReply = await twinService.generateSampleReply(styleVector);
 
-    // Save enhanced twin to database
+    // 8) Update user profile with persona data and onboardingCompleted flag
+    await updateUserProfile(req.user.id, validatedData);
+
+    // 9) Insert Twin row
     const twinId = generateId.twin();
     
-    // Check if enhanced columns exist, if not use basic insert
-    let insertQuery, insertParams;
+    let insertQuery: string;
+    let insertParams: any[];
     
     try {
-      // Try enhanced insert first
+      // Full insert with persona + systemPrompt + tokenLimit + tier
       insertQuery = `
-        INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "personaData", "systemPrompt", "tokenLimit", "tier", "createdAt")
+        INSERT INTO "Twin" (
+          id,
+          "userId",
+          "styleVector",
+          "sampleReply",
+          "personaData",
+          "systemPrompt",
+          "tokenLimit",
+          "tier",
+          "createdAt"
+        )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING id, "createdAt"
       `;
@@ -124,41 +133,33 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
         sampleReply,
         JSON.stringify(personaData),
         systemPrompt,
-        500, // tokenLimit
-        'free', // tier
-        new Date()
+        500,
+        'free',
+        new Date(),
       ];
-    } catch (error) {
-      // Fallback to basic insert if enhanced columns don't exist
+    } catch (e) {
+      // Fallback: minimal insert if extra columns do not exist
       insertQuery = `
         INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "createdAt")
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id, "createdAt"
       `;
-      insertParams = [
-        twinId,
-        req.user.id,
-        JSON.stringify(styleVector),
-        sampleReply,
-        new Date()
-      ];
+      insertParams = [twinId, req.user.id, JSON.stringify(styleVector), sampleReply, new Date()];
     }
 
     const result = await db.query(insertQuery, insertParams);
 
-    // ✅ Twin created - profile URL is /@user.handle (no TwinProfile needed)
-
-    // Log twin creation event
+    // 10) Event log
     await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.ENHANCED_TWIN_CREATED, { 
       publicTwinId: twinId,
-      personaData: personaData,
-      samplesCount: validatedData.samples.content.length,
+      personaData,
+      samplesCount: countSamples(validatedData.styleSamples),
     });
 
-    res.json({
+    return res.json({
       success: true,
       twin: {
-        publicId: tokenizeId(twinId, 'twin'),  // ✅ ADD: Always return tokenized ID
+        publicId: tokenizeId(twinId, 'twin'),
         styleVector,
         sampleReply,
         personaData,
@@ -166,16 +167,18 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
         createdAt: result.rows[0].createdAt,
       },
     });
-
   } catch (error) {
     logger.error('Enhanced twin creation error:', error);
     
-    // Log the error event
     if (req.user) {
+      try {
       await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_CREATION_FAILED, { 
         error: error instanceof Error ? error.message : 'Unknown error',
-        type: 'enhanced'
+          type: 'enhanced_v2',
       });
+      } catch (e) {
+        logger.warn('Failed to log TWIN_CREATION_FAILED:', e);
+      }
     }
     
     if (error instanceof z.ZodError) {
@@ -184,178 +187,172 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
     if (error instanceof Error) {
       return res.status(400).json({ error: error.message });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
-async function updateUserProfile(userId: string, data: any) {
-  // Try enhanced update first, fallback to basic update
-  let updateQuery, updateParams;
-  
+function countSamples(styleSamples: any): number {
+  let count = 0;
+  if (styleSamples?.casualSample) count += 1;
+  if (styleSamples?.formalSample) count += 1;
+  return count;
+}
+
+// Update User personaData + onboardingCompleted using new shape
+async function updateUserProfile(userId: string, data: z.infer<typeof enhancedOnboardingSchema>) {
+  let updateQuery: string;
+  let updateParams: any[];
+
   try {
-    // Enhanced update with persona data
+    const personaData = createPersonaData(data);
+
     updateQuery = `
       UPDATE "User" 
       SET 
         name = $1,
-        bio = $2,
-        "personaData" = $3,
-        "onboardingCompleted" = $4,
-        "updatedAt" = $5
-      WHERE id = $6
+        "personaData" = $2,
+        "onboardingCompleted" = $3,
+        "updatedAt" = $4
+      WHERE id = $5
     `;
-    
-    const personaData = {
-      basicInfo: data.basicInfo,
-      communicationStyle: data.communicationStyle,
-      context: data.context,
-      samples: data.samples,
-      completedAt: data.completedAt
-    };
 
     updateParams = [
-      data.basicInfo.fullName,
-      data.basicInfo.bio,
+      data.basicInfo.name,
       JSON.stringify(personaData),
       data.onboardingCompleted,
       new Date(),
-      userId
+      userId,
     ];
   } catch (error) {
-    // Fallback to basic update
+    // Fallback: update only name
     updateQuery = `
       UPDATE "User" 
-      SET 
-        name = $1,
-        bio = $2
-      WHERE id = $3
+      SET name = $1
+      WHERE id = $2
     `;
-    
-    updateParams = [
-      data.basicInfo.fullName,
-      data.basicInfo.bio,
-      userId
-    ];
+    updateParams = [data.basicInfo.name, userId];
   }
 
   await db.query(updateQuery, updateParams);
 }
 
-function createPersonaData(data: any) {
+// Build personaData from the new onboarding payload
+function createPersonaData(data: z.infer<typeof enhancedOnboardingSchema>) {
   return {
-    // Basic Information
-    name: data.basicInfo.fullName,
-    bio: data.basicInfo.bio,
-    primaryUseCase: data.basicInfo.primaryUseCase,
-
-    // Communication Style
-    communicationStyle: data.communicationStyle,
-
-    // Context & Interests
-    context: data.context,
-
-    // Writing Samples (most important for accuracy)
-    samples: data.samples,
-
-    // Metadata
+    basicInfo: data.basicInfo,
+    styleSamples: data.styleSamples,
+    preferences: data.preferences,
+    rules: data.rules,
     onboardingCompleted: data.onboardingCompleted,
-    completedAt: data.completedAt
+    completedAt: data.completedAt,
   };
 }
 
-function generateSystemPrompt(personaData: any) {
-  const { name, bio, communicationStyle, context, samples } = personaData;
-  
-  // Build communication style description
-  const styleDesc = buildCommunicationStyle(communicationStyle);
-  
-  // Build context information
-  const contextInfo = buildContextInfo(context);
-  
-  // Reference to samples for style learning
-  const samplesNote = samples && samples.content && samples.content.length > 0 
-    ? `\n\nWRITING SAMPLES REFERENCE:\nYou have ${samples.content.length} writing sample(s) that demonstrate this person's actual writing style. Use these as reference for tone, vocabulary, and communication patterns.`
-    : '';
+// Generate a system prompt based on the new persona shape
+function generateSystemPrompt(personaData: any): string {
+  const { basicInfo, preferences, rules, styleSamples } = personaData || {};
 
-  return `You are ${name}, an AI twin created to represent this person's communication style and personality.
+  const name = basicInfo?.name || 'the user';
+  const role = basicInfo?.role || '';
+  const likes: string[] = preferences?.likes || [];
+  const avoids: string[] = preferences?.avoids || [];
+  const always: string[] = rules?.always || [];
+  const never: string[] = rules?.never || [];
+  const humorLevel = preferences?.humorLevel || 'normal';
+  const strongWords = preferences?.strongWords || 'some';
+  const emojiPref = preferences?.emojiPref || 'medium';
+  const replySize = rules?.replySize || 'normal';
+  const riskLevel = rules?.riskLevel || 'safe';
+  const adaptation = rules?.adaptation || 'mix';
 
-BIO:
-${bio}
+  const likesText = likes.length ? likes.join(', ') : 'none specified';
+  const avoidsText = avoids.length ? avoids.join(', ') : 'none specified';
 
-COMMUNICATION STYLE:
-${styleDesc}
+  const alwaysText =
+    always.length > 0 ? always.map((r) => `- ${r}`).join('\n') : '- (none specified)';
+  const neverText =
+    never.length > 0 ? never.map((r) => `- ${r}`).join('\n') : '- (none specified)';
 
-CONTEXT & INTERESTS:
-${contextInfo}${samplesNote}
+  const casualPresent = !!styleSamples?.casualSample;
+  const formalPresent = !!styleSamples?.formalSample;
 
-INSTRUCTIONS:
-- Always speak in first person as ${name}
-- Match the communication style described above exactly
-- Use the specified tone, language preferences, and response length
-- Be authentic to the person's interests and use case
-- Keep responses natural and conversational
-- Reference the writing samples to match their actual style
-- Remember that you are representing a real person, so be respectful and appropriate
+  return `You are "${name}", an AI twin that writes messages exactly like this person.
 
-Remember: You are ${name}, not an AI assistant. Respond as this person would, maintaining their unique communication style and personality.`;
-}
+BACKGROUND:
+- Role: ${role || 'not specified'}
+- Main audiences: ${Array.isArray(basicInfo?.whoYouText) ? basicInfo.whoYouText.join(', ') : 'not specified'}
+- Main channels: ${Array.isArray(basicInfo?.whereUse) ? basicInfo.whereUse.join(', ') : 'not specified'}
 
-function buildCommunicationStyle(communicationStyle: any) {
-  const { tone, language } = communicationStyle;
-  
-  let style = "Communication Preferences:\n";
-  
-  // Tone sliders
-  style += `- Formality Level: ${tone.formalCasual > 50 ? 'More formal' : 'More casual'} (${tone.formalCasual}/100)\n`;
-  style += `- Tone: ${tone.seriousPlayful > 50 ? 'More serious' : 'More playful'} (${tone.seriousPlayful}/100)\n`;
-  style += `- Approach: ${tone.directDiplomatic > 50 ? 'More direct' : 'More diplomatic'} (${tone.directDiplomatic}/100)\n`;
-  
-  // Language preferences
-  style += `\nLanguage Style:\n`;
-  style += `- Greeting Style: ${language.greetingStyle}\n`;
-  style += `- Closing Style: ${language.closingStyle}\n`;
-  style += `- Emoji Usage: ${language.emojiUsage}\n`;
-  style += `- Response Length: ${language.responseLength}\n`;
-  if (language.commonPhrases) {
-    style += `- Common Phrases: ${language.commonPhrases}\n`;
+PREFERENCES:
+- Topics they enjoy: ${likesText}
+- Topics to avoid or keep light: ${avoidsText}
+- Humor level: ${humorLevel} (none / normal / high)
+- Strong words / swearing: ${strongWords} (never / some / normal)
+- Emoji usage: ${emojiPref} (low / medium / high)
+
+DEFAULT BEHAVIOR:
+- Reply length: ${replySize} (short / normal / detailed)
+- Risk level: ${riskLevel} (safe / normal / edgy)
+- Style adaptation: ${adaptation} (mostly user, mix, or mostly other person)
+- Approval: ${
+  rules?.approvalRequired
+  ? 'For sensitive/risky messages, ask a short confirmation question before finalizing.'
+  : 'You may speak more freely, but still be respectful.'  
   }
-  
-  return style;
+
+ALWAYS DO:
+${alwaysText}
+
+NEVER DO:
+${neverText}
+
+STYLE SAMPLES:
+- Casual chat example provided: ${casualPresent ? 'YES' : 'NO'}
+- More formal example provided: ${formalPresent ? 'YES' : 'NO'}
+Use these implicitly to match phrasing, tone, and flow. Do not quote them directly.
+
+GENERAL INSTRUCTIONS:
+- Always answer in the first person as "${name}".
+- Match their voice, tone, and boundaries reflected above.
+- If you are unsure or the user asks for something that conflicts with the NEVER rules or safety (e.g., explicit adult content, heavy abuse, deep politics/religion if they avoided it), gently refuse and suggest a safer alternative.
+- Keep responses natural and conversational, not robotic.
+- Do not mention that you are an AI or that you are following a prompt.`;
 }
 
-function buildContextInfo(context: any) {
-  let info = "Background & Interests:\n";
-  info += `- Target Audience: ${context.targetAudience}\n`;
-  info += `- Interests: ${context.interests.join(', ')}\n`;
-  if (context.topicsToAvoid) {
-    info += `- Topics to Avoid: ${context.topicsToAvoid}\n`;
+// Build a style vector using the real chat samples via TwinService.extractStyle
+async function createEnhancedStyleVector(data: z.infer<typeof enhancedOnboardingSchema>) {
+  const samples: string[] = [];
+
+  if (data.styleSamples?.casualSample) {
+    samples.push(data.styleSamples.casualSample);
   }
-  
-  return info;
-}
+  if (data.styleSamples?.formalSample) {
+    samples.push(data.styleSamples.formalSample);
+  }
 
+  const combined = samples.join('\n---\n');
 
-async function createEnhancedStyleVector(data: any) {
-  // Create style vector based on simplified onboarding data
-  const styleVector = {
-    // Communication style
-    communicationStyle: data.communicationStyle,
-    
-    // Context information
-    context: data.context,
-    
-    // Sample analysis (most important for accuracy)
-    samples: data.samples.content.length > 0 ? {
-      count: data.samples.content.length,
-      categories: data.samples.content.map((s: any) => s.category),
-      // Samples will be analyzed for actual style patterns
-      hasSamples: true
-    } : null,
-    
-    // Metadata
-    createdAt: new Date().toISOString(),
-    version: '3.0' // Simplified version focused on essentials
-  };
-  
+  if (!combined.trim()) {
+    // Fallback to a default style vector if no samples were provided
+    try {
+      // If TwinService exposes a default helper
+      // @ts-ignore
+      if (typeof twinService.getDefaultStyleVector === 'function') {
+        // @ts-ignore
+        return twinService.getDefaultStyleVector();
+      }
+    } catch {
+      // ignore
+    }
+
+    return {};
+  }
+
+  try {
+    const styleVector = await twinService.extractStyle(combined);
   return styleVector;
+  } catch (e) {
+    logger.warn('Style extraction failed, using empty style vector:', e);
+    return {};
+  }
 }

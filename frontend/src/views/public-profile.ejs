@@ -110,35 +110,40 @@
     <% if (typeof hasNoTwin !== 'undefined' && hasNoTwin && userInfo) { %>
         <!-- Clean no‑twin view: single profile card -->
         <div class="text-center py-10">
-            <div class="max-w-md mx-auto">
-                <div class="w-24 h-24 mx-auto mb-4 bg-gradient-to-br from-primary/30 to-accent/30 rounded-full flex items-center justify-center text-3xl text-white font-bold shadow-xl">
-                    <%= (userInfo.handle || 'U').charAt(0).toUpperCase() %>
-                </div>
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-1"><%= userInfo.name || userInfo.handle %></h2>
-                <% if (userInfo.bio) { %>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4 line-clamp-3"><%= userInfo.bio %></p>
-                <% } %>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                    Joined: <span class="timestamp-display" data-timestamp="<%= userInfo.createdAt %>" data-format="date"></span>
-                </p>
+            <div class="max-w-md mx-auto bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-gray-700 shadow-xl p-6">
+              <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-primary to-accent rounded-2xl flex items-center justify-center text-3xl text-white font-bold shadow-lg">
+                <%= (userInfo.handle || 'U').charAt(0).toUpperCase() %>
+              </div>
 
-                <% if (userInfo.isOwner) { %>
-                    <!-- NEW informational lines - Only shown to owner -->
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                        Public AI Twin status: <span class="font-semibold text-red-500 dark:text-red-400">Not created</span>
-                    </p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                        You can still chat privately, but to let others discover you, create your public AI twin.
-                    </p>
-                <% } %>
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-1"><%= userInfo.name || userInfo.handle %></h2>
+              <% if (userInfo.bio) { %>
+                <p class="text-gray-600 dark:text-gray-400 mb-4"><%= userInfo.bio %></p>
+              <% } %>
 
-                <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-sm text-yellow-800 dark:text-yellow-200">
-                    <% if (userInfo.isOwner) { %>
-                        You haven't created a public twin yet. Go to <a href="/twin/create" class="underline font-semibold">Onboarding</a> to create one.
-                    <% } else { %>
-                        This user hasn't created a public twin yet. Check back later!
-                    <% } %>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mb-5">
+                Joined: 
+                <span class="timestamp-display" 
+                      data-timestamp="<%= userInfo.createdAt %>" 
+                      data-format="date"
+                      data-fallback="<%= new Date(userInfo.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) %>">
+                    <%= new Date(userInfo.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) %>
+                </span>
+            </p>              
+
+              <% if (userInfo.isOwner) { %>
+                <div class="text-left mb-5 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
+                  <p class="text-sm text-gray-800 dark:text-gray-200 font-medium mb-1">Your Public Twin is not created yet.</p>
+                  <p class="text-sm text-gray-600 dark:text-gray-400">Create it to appear in Discover + let others chat with you.</p>
                 </div>
+
+                <a href="/twin/create" class="inline-flex items-center justify-center w-full px-5 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-semibold min-h-[44px]">
+                  Create my Public Twin
+                </a>
+              <% } else { %>
+                <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300">
+                  This user hasn't created a public twin yet.
+                </div>
+              <% } %>
             </div>
         </div>
     <% } else if (twin) { %>
@@ -342,7 +347,7 @@
                                          w-10 h-10 text-xs
                                          sm:w-auto sm:h-11 sm:px-5 sm:py-2.5 sm:text-sm
                                          rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105
-                                         font-medium flex items-center space-x-2 min-h-[44px] touch-manipulation
+                                         font-medium flex items-center justify-center sm:justify-center sm:space-x-2 min-h-[44px] touch-manipulation
                                          <%= twin.sharesDisabled ? 'opacity-50 cursor-not-allowed' : '' %>"
                                   <% if (twin.sharesDisabled) { %>
                                       disabled
@@ -435,7 +440,7 @@ document.getElementById('chatNowBtn').addEventListener('click', function() {
     if (isOwnTwin) {
         showNotification('You cannot chat with your own twin in public chat. Redirecting to Enhanced Chat...', 'info');
         setTimeout(() => {
-            window.location.href = '/chat-enhanced?twinId=' + twinToken;
+            window.location.href = '/chat?twinId=' + twinToken;
         }, 800);
         return;
     }

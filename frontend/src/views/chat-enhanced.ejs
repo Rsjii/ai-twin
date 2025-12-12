@@ -2,7 +2,7 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Enhanced Chat - AI Twin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Chat - AI Twin</title>
     <link rel="stylesheet" href="/css/output.css?v=<%= Date.now() %>">    
     <script src="/utils/timeUtils.js?v=<%= new Date().getTime() %>"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
@@ -237,7 +237,7 @@
         </svg>
     </button>
     <div class="flex-1 min-w-0">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white truncate">Enhanced Chat</h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white truncate">Chat</h2>
         <p class="text-xs text-gray-600 dark:text-gray-300">AI responses with style learning</p>
     </div>
     <!-- Mobile Tone Chip -->
@@ -255,7 +255,7 @@
                 <div class="flex justify-between items-center">
                     <div>
                         <div>
-                            <h1 class="text-xl font-semibold dark:text-white">Enhanced Chat</h1>
+                            <h1 class="text-xl font-semibold dark:text-white">Chat</h1>
                             <p class="text-sm text-gray-600 dark:text-gray-300">AI responses with style learning and corrections</p>
                         </div>                        
                     </div>
@@ -416,7 +416,7 @@
                         </div>
 
             <!-- Chat Input -->
-            <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-900 w-full flex-shrink-0">                
+            <div class="bg-white dark:bg-gray-800 p-3 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:p-4 sm:pb-4 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-900 w-full flex-shrink-0">                
                 <form id="messageForm" class="flex gap-2 sm:gap-3 md:gap-4">
                     <textarea 
                         id="messageInput" 
@@ -812,6 +812,11 @@ async function regenerateResponse(responseId) {
             messages[i].remove();
         }
         
+        // ✅ Refresh sidebar to update message counts after deletion
+        if (currentChatId && typeof loadChatHistory === 'function') {
+            loadChatHistory(false).catch(err => console.error('Sidebar refresh failed', err));
+        }
+        
         // ✅ STEP 2: Regenerate the response (backend will handle deletion from database)
         const response = await fetch(`/api/enhanced-chat/${currentChatId}/enhanced-reply`, {
             method: 'POST',
@@ -830,6 +835,11 @@ async function regenerateResponse(responseId) {
         const data = await response.json();
         
         if (data.success && data.response) {
+            // ✅ Refresh sidebar to update message counts after regeneration
+            if (currentChatId && typeof loadChatHistory === 'function') {
+                loadChatHistory(false).catch(err => console.error('Sidebar refresh failed', err));
+            }
+            
             // ✅ STEP 3: Create NEW response element (don't update old one, it's already deleted)
             // Find the user message element to insert after
             const userMessageElement = document.getElementById(userMessageId);
@@ -1163,6 +1173,16 @@ function removeMessage(messageId) {
     if (message) {
         message.remove();
     }
+
+    // ✅ Keep sidebar previews in sync after deletions
+    if (currentChatId && typeof loadChatHistory === 'function') {
+        try {
+            // Refresh sidebar to update message counts and last message preview
+            loadChatHistory(false).catch(err => console.error('Sidebar refresh failed', err));
+        } catch (e) {
+            console.error('Sidebar preview refresh failed', e);
+        }
+    }
 }
 
 /**
@@ -1209,7 +1229,7 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
             
             // Show text with blinking cursor
             messageContent.innerHTML = `
-                <p class="text-sm text-gray-800 dark:text-gray-100">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
+                <p class="text-sm ${sender === 'user' ? 'text-white' : 'text-gray-800 dark:text-gray-100'}">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
             `;
             
             currentWordIndex++;
@@ -1225,7 +1245,7 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
         } else {
             // Typing complete - show final text with timestamp
             messageContent.innerHTML = `
-                <p class="text-sm text-gray-800 dark:text-gray-100">${fullText}</p>
+                <p class="text-sm ${sender === 'user' ? 'text-white' : 'text-gray-800 dark:text-gray-100'}">${fullText}</p>
             `;            
             
             // Add timestamp if TimeUtils is available
@@ -1941,7 +1961,7 @@ async function switchToChat(chatId) {
 
         // ✅ URL sirf real chats ke liye
         if (chatId && !chatId.startsWith('draft_')) {
-            const newUrl = `/chat-enhanced/${encodeURIComponent(chatId)}`;
+            const newUrl = `/chat/${encodeURIComponent(chatId)}`;
             window.history.pushState({}, '', newUrl);
         }
 
@@ -2015,45 +2035,46 @@ async function deleteChat(chatId) {
         }
         
         const data = await response.json();
-        
-        // Fade-out animation before removing
+
+        const pathParts = window.location.pathname.split('/').filter(Boolean); // ["chat", chatId?]
+        const urlChatId = (pathParts[0] === 'chat' && pathParts[1]) ? pathParts[1] : null;
+        const isCurrent = (chatId === currentChatId) || (urlChatId === chatId);
+
+        console.log('[deleteChat] success', { chatId, currentChatId, urlChatId, isCurrent, href: window.location.href });
+
+        if (isCurrent) {
+            console.log('[deleteChat] deleting CURRENT chat → redirecting to /chat');
+
+            try {
+                const chatMessages = document.getElementById('chatMessages');
+                if (chatMessages) chatMessages.innerHTML =
+                    '<div class="text-center py-8 text-gray-500 dark:text-gray-400">Chat deleted. Reloading…</div>';
+
+                const messageInput = document.getElementById('messageInput');
+                const sendBtn = document.getElementById('sendMessageBtn');
+                if (messageInput) messageInput.disabled = true;
+                if (sendBtn) sendBtn.disabled = true;
+            } catch (e) {
+                console.error('[deleteChat] UI hide failed', e);
+            }
+
+            setTimeout(() => window.location.replace('/chat'), 50);
+            return;
+        }
+
+        // ✅ Non-current chat delete: update sidebar only
+        document
+            .querySelectorAll(`.chat-item[data-chat-id="${chatId}"]`)
+            .forEach(el => el.remove());
+
         if (chatItem) {
             chatItem.style.transition = 'opacity 0.3s ease-out';
             chatItem.style.opacity = '0';
             await new Promise(resolve => setTimeout(resolve, 300));
+            chatItem.remove();
         }
-        
-        // If deleted chat is currently open, switch to another chat
-        if (chatId === currentChatId) {            
-            // Get updated chats from the DOM
-            const container = document.getElementById('chatHistoryItems') || document.getElementById('chatHistoryList');
-            const remainingChats = container ? container.querySelectorAll('.chat-item') : [];
-            
-            if (remainingChats.length > 0) {
-                // Switch to first available chat
-                const firstChatId = remainingChats[0].dataset.chatId;
 
-                // Right side ka hatao
-                const messagesContainer = document.getElementById('chatMessages');
-            if (messagesContainer) {
-                messagesContainer.innerHTML = '<div class="text-center py-8 text-gray-500 dark:text-gray-400">Loading next chat...</div>';
-            }
-
-                await switchToChat(firstChatId);
-            } else {
-                // No chats left, clear current chat
-                currentChatId = null;
-                const messagesContainer = document.getElementById('chatMessages');
-                if (messagesContainer) {
-                    messagesContainer.innerHTML = '<div class="text-center py-8 text-gray-500 dark:text-gray-400">No chats available. Create a new chat to get started.</div>';
-                }
-            }
-        } else {
-            // Just reload the chat history
-            await loadChatHistory(false).catch(()=> {});
-        }
-        
-        // Show success notification
+        await loadChatHistory(false);
         showNotification('Chat deleted successfully', 'success');
         
     } catch (error) {
@@ -2351,7 +2372,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const styleSettingsToggle = document.getElementById('styleSettingsToggle');
             if (styleSettingsToggle) {
                 styleSettingsToggle.addEventListener('click', function() {
-                    window.location.href = '/style-customize';
+                    window.location.href = '/twin-settings#styleSection';
                 });
             }
 
@@ -2399,7 +2420,7 @@ if (desktopQuickActionsButton && desktopQuickActionsDropdown) {
     if (el) {
         el.addEventListener('click', () => {
             if (id === 'styleCustomizeBtn') {
-                window.open('/style-customize', '_blank');
+                window.open('/twin-settings#styleSection', '_blank');
             } else if (id === 'learningBtn') {
                 window.open('/twin-settings', '_blank');
             } else if (id === 'analyticsBtn') {
@@ -2416,7 +2437,7 @@ if (desktopQuickActionsButton && desktopQuickActionsDropdown) {
     if (el) {
         el.addEventListener('click', () => {
             if (id === 'styleCustomizeBtnMobile') {
-                window.open('/style-customize', '_blank');
+                window.open('/twin-settings#styleSection', '_blank');
             } else if (id === 'learningBtnMobile') {
                 window.open('/twin-settings', '_blank');
             } else if (id === 'analyticsBtnMobile') {

@@ -54,5 +54,12 @@ router.get(
   asyncHandler(analyticsPageController.getAnalyticsDetails)
 );
 
+// Type-wise CSV export for analytics details (user-facing)
+router.get(
+  '/analytics/details/export',
+  requireJWTFromCookie,
+  asyncHandler(analyticsPageController.exportAnalyticsDetailsCSV)
+);
+
 export default router;
 

@@ -51,8 +51,8 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
     <div class="container mx-auto px-4 py-8">
         <!-- Page Title Section -->
         <div class="mb-6">
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Style Customize</h1>
-            <p class="text-gray-600 dark:text-gray-300">Customize your AI twin's communication style and personality</p>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Style & Anchors</h1>
+            <p class="text-gray-600 dark:text-gray-300">Control your twin's tone, emojis, roasting level, and typical lines here.</p>
         </div>
 
         <!-- Navigation Breadcrumbs -->
@@ -252,8 +252,8 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
             </div>
         </div>        
 
-        <% /* TODO(V2): Style Anchors Preview - Advanced memory/voice pattern management */ %>
-        <% if (FEATURE_FLAGS.styleAnchorsUI) { %>
+        <!-- Style Anchors Preview - Advanced memory/voice pattern management -->
+        <% if (true) { %>
         <!-- Style Anchors Preview Section -->
         <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 mb-6 sm:mb-8 border border-white/20 dark:border-gray-700">
             <div class="flex justify-between items-center mb-4">
@@ -261,6 +261,29 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 <a href="/memory-management" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
                     Manage All Style Anchors →
                 </a>
+            </div>
+
+            <!-- Add style line UI -->
+            <div class="mt-3 mb-4 space-y-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Add style line (something you say a lot)
+                </label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input
+                        type="text"
+                        id="newPhraseInput"
+                        maxlength="200"
+                        placeholder="e.g. bro this is next level..."
+                        class="flex-1 px-3 py-2 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                    />
+                    <button
+                        type="button"
+                        id="addPhraseBtn"
+                        class="px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-md hover:shadow-lg transition-all text-sm min-h-[40px]"
+                    >
+                        Add style line
+                    </button>
+                </div>
             </div>
 
             <!-- Tabs -->
@@ -334,15 +357,15 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
 
         <!-- Preview Section -->
         <div id="preview-section" class="mt-6 sm:mt-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 border border-white/20 dark:border-gray-700" style="display: none;">
-            <h3 class="text-lg font-semibold mb-4 dark:text-white">Preview Your Changes</h3>
+            <h3 class="text-lg font-semibold mb-4 dark:text-white">Sample reply with current settings</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                    <h4 class="font-medium mb-2">Current Response:</h4>
-                    <div id="original-text" class="p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-white/20"></div>
+                    <h4 class="font-medium mb-2 dark:text-white">Current style:</h4>
+                    <div id="original-text" class="p-4 bg-white/60 dark:bg-gray-700/60 backdrop-blur-sm rounded-xl border border-white/20 dark:border-gray-600 text-gray-900 dark:text-white"></div>
                 </div>
                 <div>
-                    <h4 class="font-medium mb-2">New Response:</h4>
-                    <div id="new-text" class="p-4 bg-primary/10 backdrop-blur-sm rounded-xl border border-primary/20"></div>
+                    <h4 class="font-medium mb-2 dark:text-white">New style with sliders:</h4>
+                    <div id="new-text" class="p-4 bg-primary/10 dark:bg-primary/20 backdrop-blur-sm rounded-xl border border-primary/20 dark:border-primary/30 text-gray-900 dark:text-white"></div>
                 </div>
             </div>
         </div>
@@ -451,6 +474,64 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 e.stopPropagation();
                 console.log('Save button clicked (mobile)');
                 saveChanges();
+            });
+        }
+
+        // Add style line
+        const addPhraseBtn = document.getElementById('addPhraseBtn');
+        if (addPhraseBtn) {
+            addPhraseBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                addNewPhrase();
+            });
+        }
+
+        // Phrases list: Edit / Delete
+        const phrasesListEl = document.getElementById('phrasesList');
+        if (phrasesListEl) {
+            phrasesListEl.addEventListener('click', async (e) => {
+                const target = e.target;
+                if (!(target instanceof HTMLElement)) return;
+
+                const wrapper = target.closest('[data-anchor-id]');
+                if (!wrapper) return;
+                const anchorId = wrapper.getAttribute('data-anchor-id');
+                if (!anchorId) return;
+
+                if (target.classList.contains('delete-phrase-btn')) {
+                    e.preventDefault();
+                    if (!window.confirm('Delete this style line?')) return;
+                    await deleteAnchor(anchorId);
+                    await Promise.all([loadPhrases(), loadStyleAnchorStats()]);
+                } else if (target.classList.contains('edit-phrase-btn')) {
+                    e.preventDefault();
+                    const textEl = wrapper.querySelector('p.text-sm');
+                    const currentText = textEl ? textEl.textContent || '' : '';
+                    const nextText = window.prompt('Edit style line:', currentText);
+                    if (!nextText || !nextText.trim()) return;
+                    await updatePhrase(anchorId, nextText.trim());
+                    await Promise.all([loadPhrases(), loadStyleAnchorStats()]);
+                }
+            });
+        }
+
+        // Interactions list: Delete
+        const interactionsListEl = document.getElementById('interactionsList');
+        if (interactionsListEl) {
+            interactionsListEl.addEventListener('click', async (e) => {
+                const target = e.target;
+                if (!(target instanceof HTMLElement)) return;
+                if (!target.classList.contains('delete-interaction-btn')) return;
+
+                const wrapper = target.closest('[data-anchor-id]');
+                if (!wrapper) return;
+                const anchorId = wrapper.getAttribute('data-anchor-id');
+                if (!anchorId) return;
+
+                e.preventDefault();
+                if (!window.confirm('Delete this interaction anchor?')) return;
+                await deleteAnchor(anchorId);
+                await Promise.all([loadInteractions(), loadStyleAnchorStats()]);
             });
         }
     }
@@ -591,13 +672,26 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                     const tagsDisplay = tags.length > 0 ? tags.map(tag => `<span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded">${escapeHtml(tag)}</span>`).join(' ') : '';
                     
                     return `
-                        <div class="flex justify-between items-start p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <div class="flex justify-between items-start p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                             data-anchor-id="${anchor.id}">
                             <div class="flex-1">
                                 <p class="text-sm text-gray-900 dark:text-white font-medium">${escapeHtml(phrase)}</p>
-                                <div class="flex items-center space-x-2 mt-1">
+                                <div class="flex flex-wrap items-center gap-2 mt-1">
                                     ${tagsDisplay}
                                     <span class="text-xs text-gray-500 dark:text-gray-400">${date}</span>
                                 </div>
+                            </div>
+                            <div class="flex flex-col gap-1 ml-3">
+                                <button
+                                    type="button"
+                                    class="edit-phrase-btn px-2 py-1 text-xs rounded bg-white/80 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    Edit
+                                </button>
+                                <button
+                                    type="button"
+                                    class="delete-phrase-btn px-2 py-1 text-xs rounded bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 hover:bg-red-100 dark:hover:bg-red-900/60">
+                                    Delete
+                                </button>
                             </div>
                         </div>
                     `;
@@ -634,7 +728,8 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                     const tagsDisplay = tags.length > 0 ? tags.map(tag => `<span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded">${escapeHtml(tag)}</span>`).join(' ') : '';
                     
                     return `
-                        <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                             data-anchor-id="${anchor.id}">
                             <div class="mb-2">
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">User:</p>
                                 <p class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(userUtterance)}</p>
@@ -643,9 +738,16 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Ideal Reply:</p>
                                 <p class="text-sm text-gray-900 dark:text-white font-medium">${escapeHtml(idealReply)}</p>
                             </div>
-                            <div class="flex items-center space-x-2">
+                            <div class="flex items-center justify-between mt-1">
+                                <div class="flex flex-wrap gap-2">
                                 ${tagsDisplay}
                                 <span class="text-xs text-gray-500 dark:text-gray-400">${date}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="delete-interaction-btn px-2 py-1 text-xs rounded bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 hover:bg-red-100 dark:hover:bg-red-900/60">
+                                    Delete
+                                </button>
                             </div>
                         </div>
                     `;
@@ -693,43 +795,52 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
         return div.innerHTML;
     }
 
-    function previewChanges() {
+    async function previewChanges() {
         if (!currentTwinData) {
             showNotification('Please wait for data to load first', 'info');
             return;
         }
 
-        const styleVector = currentTwinData.styleVector || {};
-        
-        const current = {
-            formality: styleVector.formality || styleVector.formality_level || 0.5,
-            emoji_usage: styleVector.emoji_usage || 0.3,
-            humor_style: styleVector.humor_style || 'light',
-            question_frequency: styleVector.question_frequency || 0.4,
-            response_length_preference: styleVector.response_length_preference || 'detailed',
-            tone: styleVector.tone || 'casual'
-        };
-        
-        const updated = {
-            formality: parseFloat(document.getElementById('formality')?.value || 0.5),
-            emoji_usage: parseFloat(document.getElementById('emoji_usage')?.value || 0.3),
-            humor_style: document.getElementById('humor_style')?.value || 'light',
-            question_frequency: parseFloat(document.getElementById('question_frequency')?.value || 0.4),
-            response_length_preference: document.getElementById('response_length_preference')?.value || 'detailed',
-            tone: document.getElementById('tone')?.value || 'casual'
-        };
-        
-        let changes = [];
-        Object.keys(current).forEach(key => {
-            if (String(current[key]) !== String(updated[key])) {
-                changes.push(`${key}: "${current[key]}" → "${updated[key]}"`);
+        // Build styleChanges object from current sliders/selects
+        const styleChanges = getStyleChanges();
+
+        try {
+            const response = await fetch(`/api/twin/${twinToken}/style-preview`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken,
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    styleChanges,
+                    testMessage: 'Friend says: "Bro are we still meeting tomorrow?"',
+                }),
+            });
+
+            const data = await response.json();
+            if (!data.success) {
+                showNotification(data.error || 'Could not generate preview, please try again.', 'error');
+                return;
             }
-        });
-        
-        if (changes.length === 0) {
-            showNotification('No changes detected', 'info');
-        } else {
-            showNotification('Preview Changes:\n\n' + changes.join('\n'), 'info');
+
+            const original = data.originalResponse || '';
+            const updated = data.newResponse || '';
+
+            const previewSection = document.getElementById('preview-section');
+            const originalEl = document.getElementById('original-text');
+            const newEl = document.getElementById('new-text');
+
+            if (previewSection) previewSection.style.display = 'block';
+            if (originalEl) originalEl.textContent = original;
+            if (newEl) newEl.textContent = updated;
+
+            if (!original && !updated) {
+                showNotification('Preview came back empty, please try again later.', 'info');
+            }
+        } catch (error) {
+            console.error('Style preview error:', error);
+            showNotification('Preview could not be loaded.', 'error');
         }
     }
 
@@ -784,6 +895,88 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
             showNotification('Form reset to original values', 'success');
         } else {
             showNotification('No data loaded. Please refresh the page.', 'error');
+        }
+    }
+
+    async function addNewPhrase() {
+        const input = document.getElementById('newPhraseInput');
+        if (!input) return;
+        const phrase = (input.value || '').trim();
+        if (!phrase) {
+            showNotification('Please type a style line first.', 'info');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/twin/${twinToken}/style-anchors`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken,
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    type: 'phrase',
+                    phrase,
+                    tags: ['manual'],
+                }),
+            });
+            const data = await res.json();
+            if (!data.success) {
+                showNotification(data.error || 'Could not add style line.', 'error');
+                return;
+            }
+            input.value = '';
+            showNotification('Style line added.', 'success');
+            await Promise.all([loadPhrases(), loadStyleAnchorStats()]);
+        } catch (err) {
+            console.error('addNewPhrase error:', err);
+            showNotification('Server error while adding style line.', 'error');
+        }
+    }
+
+    async function deleteAnchor(anchorId) {
+        try {
+            const res = await fetch(`/api/twin/${twinToken}/style-anchors/${anchorId}`, {
+                method: 'DELETE',
+                headers: { 'X-CSRF-Token': window.csrfToken },
+                credentials: 'include',
+            });
+            const data = await res.json();
+            if (!data.success) {
+                showNotification(data.error || 'Delete failed.', 'error');
+            } else {
+                showNotification('Anchor deleted.', 'success');
+            }
+        } catch (err) {
+            console.error('deleteAnchor error:', err);
+            showNotification('Server error while deleting anchor.', 'error');
+        }
+    }
+
+    async function updatePhrase(anchorId, phrase) {
+        try {
+            const res = await fetch(`/api/twin/${twinToken}/style-anchors/${anchorId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken,
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    type: 'phrase',
+                    phrase,
+                }),
+            });
+            const data = await res.json();
+            if (!data.success) {
+                showNotification(data.error || 'Update failed.', 'error');
+            } else {
+                showNotification('Style line updated.', 'success');
+            }
+        } catch (err) {
+            console.error('updatePhrase error:', err);
+            showNotification('Server error while updating anchor.', 'error');
         }
     }
 

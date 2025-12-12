@@ -19,6 +19,7 @@ import { detokenizeId, tokenizeId } from '../../utils/idTokenization';
 import * as chatUtils from './chatSharedUtils';
 import { EventLogger } from '../../services/eventLogger';
 import { EVENT_TYPES } from '../../config/constants';
+import { memoryService } from '../../services/memoryService'; // ✅ ADD
 
 const twinService = new TwinService();
 
@@ -86,7 +87,7 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
         try {
           await EventLogger.logUserEvent(userId, EVENT_TYPES.MESSAGE_BLOCKED, {
             reason: 'restricted_content',
-            source: 'enhanced_chat',
+            source: 'dashboard', // ✅ MVP: use valid source type
             chatId: chat.id,
             requestId: (req as any).requestId || null,
           });
@@ -138,6 +139,99 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
 
       // koi aur validation error → normal error flow
       throw error;
+    }
+    
+    // ✅ MVP: explicit "remember" command (no LLM call, saves to MemoryLongTerm)
+    if (!regenerate) {
+      const rememberMatch = message.match(/^\s*(remember this|remember|note)\s*:\s*(.+)$/i);
+      if (rememberMatch && rememberMatch[2]) {
+        const rememberedText = rememberMatch[2].trim();
+        const now = new Date().toISOString();
+
+        try {
+          // store as long-term fact
+          await memoryService.storeLongTermMemory(
+            chat.twin_id,
+            generateId.fact(),
+            rememberedText,
+            'fact',
+            'manual',
+          );
+
+          // cap: keep newest 200 memories (cheap + only runs on "remember")
+          await db.query(
+            `
+            DELETE FROM "MemoryLongTerm"
+            WHERE id IN (
+              SELECT id
+              FROM "MemoryLongTerm"
+              WHERE "twinId" = $1
+              ORDER BY "updatedAt" DESC
+              OFFSET 200
+            )
+            `,
+            [chat.twin_id],
+          );
+        } catch (err) {
+          logger.warn('[REMEMBER] Failed to store long-term memory:', err);
+          // still respond OK (don't break chat)
+        }
+
+        // persist in chat so user sees it
+        const ack = "Got it — I'll remember that.";
+        try {
+          const userMessageId = generateId.message();
+          const aiMessageId = generateId.message();
+
+          await db.query(
+            `INSERT INTO "Message" (id, "chatId", content, sender, "createdAt")
+             VALUES ($1, $2, $3, 'human', $4::timestamptz)`,
+            [userMessageId, chatId, message, now],
+          );
+
+          await db.query(
+            `INSERT INTO "Message" (id, "chatId", content, sender, "createdAt")
+             VALUES ($1, $2, $3, 'twin', $4::timestamptz)`,
+            [aiMessageId, chatId, ack, now],
+          );
+
+          await db.query(
+            `UPDATE "Chat"
+             SET "messageCount" = "messageCount" + 1,
+                 "lastMessage" = $1,
+                 "updatedAt" = $2::timestamptz
+             WHERE id = $3`,
+            [ack, now, chatId],
+          );
+
+          return res.json({
+            success: true,
+            response: ack,
+            messageId: aiMessageId,
+            intent: 'remember',
+            criticScore: null,
+            latency: 0,
+            generatedTitle: null,
+            isFirstMessage: false,
+            timestamp: now,
+            serverTime: now,
+          });
+        } catch (err) {
+          logger.warn('[REMEMBER] Failed to persist remember messages:', err);
+          return res.json({
+            success: true,
+            response: ack,
+            messageId: null,
+            intent: 'remember',
+            criticScore: null,
+            latency: 0,
+            generatedTitle: null,
+            isFirstMessage: false,
+            timestamp: now,
+            serverTime: now,
+          });
+        }
+      }
     }
     
     // ✅ NEW: If regenerating, delete the old AI response and all messages after it
@@ -210,20 +304,27 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     }
     
     // 2. Get chat history for context (BEFORE saving user message)
+    const MAX_CONTEXT_MESSAGES = 20; // ✅ MVP: hard cap for token/cost control
+
     const messagesResult = await db.query(`
       SELECT content, sender, "createdAt"
       FROM "Message"
       WHERE "chatId" = $1
-      ORDER BY "createdAt" ASC
-    `, [chatId]);
+      ORDER BY "createdAt" DESC
+      LIMIT $2
+    `, [chatId, MAX_CONTEXT_MESSAGES]);
+
+    // reverse to chronological order
+    const chatHistory = messagesResult.rows
+      .slice()
+      .reverse()
+      .map(msg => ({
+        content: msg.content,
+        sender: msg.sender,
+        timestamp: msg.createdAt
+      }));
     
-    const chatHistory = messagesResult.rows.map(msg => ({
-      content: msg.content,
-      sender: msg.sender,
-      timestamp: msg.createdAt
-    }));
-    
-    logger.info('📚 Chat history loaded:', chatHistory.length, 'messages');
+    logger.info('📚 Chat history loaded (capped):', chatHistory.length, 'messages');
     
     // 3. Simple intent classification
     const intent = classifyIntent(message);
@@ -234,14 +335,34 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     let generatedTitle: string | null = null;
     const shouldGenerateTitle = isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '');
     
+    // ✅ MVP: add long-term memory facts in prompt (small + capped)
+    const usePersonaMemory = (chat.personaData?.settings?.memory?.usePersonaMemory ?? true) === true;
+    let memoryBlock = '';
+    if (usePersonaMemory) {
+      try {
+        const mems = await memoryService.getRelevantLongTermMemories(chat.twin_id, message, 5);
+        if (mems && mems.length) {
+          memoryBlock =
+            `\n\nUSER FACTS (use when relevant; don't say "I remember/ memory"; don't info-dump):\n` +
+            mems.map(m => `- ${m.value}`).join('\n');
+        }
+      } catch (e) {
+        logger.warn('[MEMORY] Failed to load long-term memories:', e);
+      }
+    }
+
+    const runtimeSystemPrompt =
+      (chat.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.") +
+      memoryBlock;
+    
     try {
       const twinService = new TwinService();
       const draftResult = await twinService.generateDraftWithContext({
         styleVector: chat.styleVector,
         personaData: chat.personaData,
-        systemPrompt: chat.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.",
+        systemPrompt: runtimeSystemPrompt, // ✅ use runtime prompt
         tokenLimit: chat.tokenLimit || 500,
-        chatMemory: chatHistory,
+        chatMemory: chatHistory,           // ✅ capped
         currentMessages: [message],
         twinId: chat.twin_id,
         isFirstMessage: shouldGenerateTitle

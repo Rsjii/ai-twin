@@ -37,7 +37,7 @@ const analyticsLimit = typeof pagination !== 'undefined' && pagination.limit ? p
     const type = urlParams.get('type') || analyticsTypeValue;
     let currentPage = analyticsPageValue;
     let currentSearch = urlParams.get('search') || '';
-    let currentLimit = parseInt(analyticsLimit) || parseInt(urlParams.get('limit')) || 50;
+    let currentLimit = parseInt('<%= analyticsLimit %>') || parseInt(urlParams.get('limit')) || 50;    
 
     function formatTime(date) {
         if (!date) return 'N/A';
@@ -191,7 +191,7 @@ async function loadData() {
     // ✅ FIX: Initialize pagination from DOM data (like public-chat-history)
     function initAnalyticsPaginationFromDOM() {
         const paginationDataEl = document.getElementById('analyticsPaginationData');
-        if (!paginationDataEl || typeof window.initAnalyticsPaginationPagination !== 'function') {
+        if (!paginationDataEl || typeof window.initAnalyticsPagination !== 'function') {
             return;
         }
 
@@ -200,7 +200,7 @@ async function loadData() {
         const itemsPerPage = parseInt(paginationDataEl.dataset.itemsPerPage) || 50;
         const totalPages = itemsPerPage > 0 ? Math.ceil(totalItems / itemsPerPage) : 0;
 
-        window.initAnalyticsPaginationPagination({
+        window.initAnalyticsPagination({
             pagination: {
                 currentPage,
                 totalPages,
@@ -215,6 +215,19 @@ async function loadData() {
         changePage(page);
     };
 
+    function exportAnalyticsCSV() {
+        const params = new URLSearchParams(window.location.search);
+        const type = params.get('type') || analyticsTypeValue;
+        if (!type) return;
+
+        const exportParams = new URLSearchParams();
+        exportParams.set('type', type);
+        const search = params.get('search');
+        if (search) exportParams.set('search', search);
+
+        window.location.href = '/analytics/details/export?' + exportParams.toString();
+    }
+
 
 // Add event listeners for buttons
 document.addEventListener('DOMContentLoaded', function() {
@@ -224,6 +237,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
     const clearBtn = document.getElementById('clearBtn');
+    const exportCSVBtn = document.getElementById('exportCSVBtn');
     
     if (searchInput) {
         searchInput.value = currentSearch;
@@ -240,6 +254,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (clearBtn) {
         clearBtn.addEventListener('click', clearSearch);
+    }
+    
+    if (exportCSVBtn) {
+        exportCSVBtn.addEventListener('click', exportAnalyticsCSV);
     }
     
 
