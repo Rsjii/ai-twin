@@ -162,7 +162,7 @@
               3
             </div>
             <span class="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >Taste</span
+              >Preferences & Tone</span
             >
                     </div>
                     <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
@@ -203,10 +203,10 @@
                     <div id="step1-content" class="step-content fade-in">
                         <div class="mb-8">
               <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                About you and where you will use your twin
+                About you
               </h1>
               <p class="text-gray-600 dark:text-gray-300">
-                We use this information to set the right tone and context for your twin.
+                Tell us about yourself so we can personalize your twin.
               </p>
                         </div>
 
@@ -258,56 +258,24 @@
                 />
                             </div>
 
-              <!-- Who you mostly text -->
-                            <div>
+              <!-- Purpose -->
+              <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Who will your twin mostly write replies for? *
+                  What do you want your twin to help you with? (optional)
                 </label>
-                <div class="flex flex-wrap gap-2">
-                  <button type="button" class="chip who-chip" data-value="friends">
-                    Close friends
-                  </button>
-                  <button type="button" class="chip who-chip" data-value="partner">
-                    Partner / crush
-                  </button>
-                  <button type="button" class="chip who-chip" data-value="family">
-                    Family
-                  </button>
-                  <button type="button" class="chip who-chip" data-value="colleagues">
-                    Colleagues / boss
-                  </button>
-                  <button type="button" class="chip who-chip" data-value="clients">
-                    Clients / professional
-                  </button>
-                  <button type="button" class="chip who-chip" data-value="mixed">
-                    Mixed / everyone
-                  </button>
-                </div>
-                            </div>
-
-              <!-- Where you will use -->
-                            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Where will you mostly use your twin’s replies? *
-                </label>
-                <div class="flex flex-wrap gap-2">
-                  <button type="button" class="chip where-chip" data-value="whatsapp">
-                    WhatsApp
-                  </button>
-                  <button type="button" class="chip where-chip" data-value="instagram">
-                    Instagram DM
-                  </button>
-                  <button type="button" class="chip where-chip" data-value="linkedin_email">
-                    LinkedIn / email
-                  </button>
-                  <button type="button" class="chip where-chip" data-value="dating">
-                    Dating apps
-                  </button>
-                  <button type="button" class="chip where-chip" data-value="everywhere">
-                    Everywhere
-                  </button>
-                </div>
-                            </div>
+                <select
+                  id="purpose"
+                  class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="">Select (optional)</option>
+                  <option value="just_chat">Just chat</option>
+                  <option value="practice">Practice conversations</option>
+                  <option value="brainstorm">Brainstorm ideas</option>
+                  <option value="advice">Get advice</option>
+                  <option value="remember">Remember things</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
                         </div>
                     </div>
 
@@ -329,8 +297,7 @@
                   Example 1 – Close friend (required)
                 </h3>
                 <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                  Imagine a close friend cancels plans last minute. Type the reply you would
-                  actually send in chat, with your usual wording and tone.
+                  Paste real messages you've sent to friends, family, or colleagues. This is the most important part for style.
                 </p>
                 <textarea
                   id="casualSample"
@@ -346,9 +313,7 @@
                   Example 2 – More serious (optional but recommended)
                 </h3>
                 <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                  Now imagine replying to a teacher, manager, or someone in a more serious context.
-                  Type one example reply in your own words. This helps the twin learn your formal
-                  side.
+                  Optional: A more formal message (work email, professional context). This helps the twin learn your formal side.
                 </p>
                 <textarea
                   id="formalSample"
@@ -364,7 +329,7 @@
           <div id="step3-content" class="step-content hidden">
             <div class="mb-8">
               <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                What you enjoy and what to avoid
+                What you like & how you communicate
               </h1>
               <p class="text-gray-600 dark:text-gray-300">
                 This helps your twin know which topics and tone feel natural versus uncomfortable.
@@ -452,59 +417,44 @@
                 <div id="avoidsCustomList" class="mt-2 flex flex-wrap gap-2"></div>
                             </div>
 
-              <!-- Humor / strong words / emojis -->
-              <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6 space-y-5">
-                                    <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    How much humour / light teasing do you like?
-                  </label>
-                  <div class="flex flex-wrap gap-2">
-                    <button type="button" class="chip humor-chip" data-humor="none">
-                      Almost no jokes – keep it simple
-                    </button>
-                    <button type="button" class="chip humor-chip" data-humor="normal">
-                      Normal level humour
-                    </button>
-                    <button type="button" class="chip humor-chip" data-humor="high">
-                      A lot of jokes / light roasting is fine
-                    </button>
-                                    </div>
+              <!-- Tone & Language Style -->
+              <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Tone & language style *
+                </label>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  How do you usually communicate? This affects humor and swearing in your twin's responses.
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" class="chip tone-style-chip" data-tone-style="polite">
+                    Polite & respectful
+                  </button>
+                  <button type="button" class="chip tone-style-chip" data-tone-style="normal">
+                    Normal & friendly
+                  </button>
+                  <button type="button" class="chip tone-style-chip" data-tone-style="casual">
+                    Casual & relaxed
+                  </button>
                 </div>
+              </div>
 
-                                    <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Strong words / swearing
-                  </label>
-                  <div class="flex flex-wrap gap-2">
-                    <button type="button" class="chip strong-chip" data-strong="never">
-                      Never use strong language
-                    </button>
-                    <button type="button" class="chip strong-chip" data-strong="some">
-                      A little is okay
-                    </button>
-                    <button type="button" class="chip strong-chip" data-strong="normal">
-                      Normal casual level is fine
-                    </button>
-                                </div>
-                            </div>
-
-                                    <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Emojis
-                  </label>
-                  <div class="flex flex-wrap gap-2">
-                    <button type="button" class="chip emoji-chip" data-emoji="low">
-                      Very few emojis
-                    </button>
-                    <button type="button" class="chip emoji-chip" data-emoji="medium">
-                      Sometimes
-                    </button>
-                    <button type="button" class="chip emoji-chip" data-emoji="high">
-                      Quite a lot
-                    </button>
-                                    </div>
-                                </div>
-                            </div>
+              <!-- Emojis -->
+              <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Emojis *
+                </label>
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" class="chip emoji-chip" data-emoji="low">
+                    Very few emojis
+                  </button>
+                  <button type="button" class="chip emoji-chip" data-emoji="medium">
+                    Sometimes
+                  </button>
+                  <button type="button" class="chip emoji-chip" data-emoji="high">
+                    Quite a lot
+                  </button>
+                </div>
+              </div>
                         </div>
                     </div>
 
@@ -566,51 +516,26 @@
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Jokes & risk level
+                    Engagement style *
                   </label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    How should your twin engage with you? This controls whether your twin asks questions to keep conversations going.
+                  </p>
                   <div class="flex flex-wrap gap-2">
-                    <button type="button" class="chip risk-chip" data-risk="safe">
-                      Very safe / polite
+                    <button type="button" class="chip engagement-style-chip" data-engagement-style="ask_questions">
+                      Ask questions to keep conversation going
                     </button>
-                    <button type="button" class="chip risk-chip" data-risk="normal">
-                      Normal
+                    <button type="button" class="chip engagement-style-chip" data-engagement-style="natural">
+                      Respond naturally without forcing questions
                     </button>
-                    <button type="button" class="chip risk-chip" data-risk="edgy">
-                      Slightly edgy allowed
-                    </button>
-                        </div>
-                            </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Style adaptation
-                  </label>
-                  <div class="flex flex-wrap gap-2">
-                    <button type="button" class="chip adaptation-chip" data-adaptation="mine">
-                      Mostly my style
-                    </button>
-                    <button type="button" class="chip adaptation-chip" data-adaptation="mix">
+                    <button type="button" class="chip engagement-style-chip" data-engagement-style="mix">
                       Mix of both
                     </button>
-                    <button type="button" class="chip adaptation-chip" data-adaptation="theirs">
-                      Mostly like the other person (tone only)
-                    </button>
                   </div>
-                            </div>
-
-                <div>
-                  <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input
-                      id="approvalRequired"
-                      type="checkbox"
-                      class="rounded border-gray-300 dark:border-gray-600"
-                    />
-                    <span>Be extra cautious on sensitive messages (ask a quick confirmation).</span>                    
-                  </label>
                 </div>
-                            </div>
-                        </div>
-                    </div>
+              </div>
+            </div>
+          </div>
 
           <!-- STEP 5: Preview -->
                     <div id="step5-content" class="step-content hidden">
@@ -709,6 +634,7 @@
   <!-- Scripts -->
     <script>
         const ONBOARDING_STORAGE_KEY = 'enhancedOnboarding_v1';
+        const ONBOARDING_USER_ID = <%- JSON.stringify(user?.id || null) %>; // ✅ ADD (prevents cross-user restore)
 
         let currentStep = 1;
         const totalSteps = 5;
@@ -720,8 +646,68 @@
       rules: {},
     };
 
+    // ✅ ADD: helpers to validate restore
+    function isNonEmptyString(v) {
+      return typeof v === 'string' && v.trim().length > 0;
+    }
+
+    function isStep1Complete(d) {
+      const b = d?.basicInfo || {};
+      return isNonEmptyString(b.name) && isNonEmptyString(b.role);
+    }
+
+    function isStep2Complete(d) {
+      const s = d?.styleSamples || {};
+      return isNonEmptyString(s.casualSample) && s.casualSample.trim().length >= 20;
+    }
+
+    function isStep3Complete(d) {
+      const p = d?.preferences || {};
+      const toneOk = ['polite', 'normal', 'casual'].includes(p.toneStyle);
+      const emojiOk = ['low', 'medium', 'high'].includes(p.emojiPref);
+      return Array.isArray(p.likes) && p.likes.length > 0 && toneOk && emojiOk;
+    }
+
+    function isStep4Complete(d) {
+      const r = d?.rules || {};
+      const replyOk = ['short', 'normal', 'detailed'].includes(r.replySize);
+      const engageOk = ['ask_questions', 'natural', 'mix'].includes(r.engagementStyle);
+      return replyOk && engageOk;
+    }
+
+    function clampStep(step, data) {
+      let s = typeof step === 'number' ? step : 1;
+      s = Math.min(Math.max(s, 1), totalSteps);
+
+      if (s >= 2 && !isStep1Complete(data)) s = 1;
+      if (s >= 3 && !isStep2Complete(data)) s = 2;
+      if (s >= 4 && !isStep3Complete(data)) s = 3;
+      if (s >= 5 && !isStep4Complete(data)) s = 4;
+
+      return s;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       setupChips();
+      
+      // ✅ NEW: Safety check - if user has no twin (fresh start), clear old localStorage
+      // Backend already checks and redirects if twin exists, so if we're here, user has no twin
+      // Clear any stale onboarding data from previous twin deletion
+      try {
+        const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          // If stored userId matches current user but we're on onboarding (no twin exists),
+          // it means twin was deleted - clear the stale data
+          if (parsed && parsed.userId === ONBOARDING_USER_ID && ONBOARDING_USER_ID) {
+            localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+            console.log('Cleared stale onboarding data after twin deletion');
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to check/clear onboarding localStorage:', e);
+      }
+      
       loadOnboardingFromStorage();
       setupNavigation();
       updateStepUI();
@@ -741,12 +727,10 @@
       // single-select groups
       const singleGroups = [
         '.role-chip',
-        '.humor-chip',
-        '.strong-chip',
+        '.tone-style-chip',
         '.emoji-chip',
         '.reply-size-chip',
-        '.risk-chip',
-        '.adaptation-chip',
+        '.engagement-style-chip',
       ];
 
       singleGroups.forEach((selector) => {
@@ -771,7 +755,7 @@
       });
 
       // multi-select groups
-      ['.who-chip', '.where-chip', '.like-chip', '.avoid-chip'].forEach((selector) => {
+      ['.like-chip', '.avoid-chip'].forEach((selector) => {
         document.querySelectorAll(selector).forEach((chip) => {
           chip.addEventListener('click', () => {
             chip.classList.toggle('selected');
@@ -827,6 +811,8 @@
 function persistOnboardingState() {
     try {
       const payload = {
+        userId: ONBOARDING_USER_ID,   // ✅ ADD
+        savedAt: Date.now(),          // ✅ ADD
         currentStep,
         onboardingData,
       };
@@ -840,19 +826,37 @@ function persistOnboardingState() {
     try {
       const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
       if (!raw) return;
+
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object') return;
 
-      if (parsed.onboardingData && typeof parsed.onboardingData === 'object') {
-        Object.assign(onboardingData, parsed.onboardingData);
+      // ✅ NEW: If different user (or legacy without userId), wipe
+      if (ONBOARDING_USER_ID && parsed.userId && parsed.userId !== ONBOARDING_USER_ID) {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+        return;
       }
-      if (typeof parsed.currentStep === 'number') {
-        currentStep = Math.min(Math.max(parsed.currentStep, 1), totalSteps);
+      if (ONBOARDING_USER_ID && !parsed.userId) {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+        return;
       }
 
+      const incoming = parsed.onboardingData;
+      if (!incoming || typeof incoming !== 'object') {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+        return;
+      }
+
+      Object.assign(onboardingData, incoming);
+
+      currentStep = clampStep(parsed.currentStep, onboardingData);
+
       hydrateFromOnboardingData();
+
+      // ✅ NEW: If restored on step 5, regenerate preview so it’s not empty
+      if (currentStep === 5) generatePreview();
     } catch (e) {
       console.error('Failed to load onboarding state from storage', e);
+      try { localStorage.removeItem(ONBOARDING_STORAGE_KEY); } catch {}
     }
   }
 
@@ -868,7 +872,10 @@ function persistOnboardingState() {
 
     const nameInput = document.getElementById('name');
     const roleOther = document.getElementById('roleOther');
+    const purposeSelect = document.getElementById('purpose');
+    
     if (nameInput) nameInput.value = b.name || '';
+    if (purposeSelect) purposeSelect.value = b.purpose || '';
 
     // role chips
     document.querySelectorAll('.role-chip').forEach((chip) => {
@@ -886,20 +893,6 @@ function persistOnboardingState() {
         roleOther.value = '';
       }
     }
-
-    // who you text
-    const who = Array.isArray(b.whoYouText) ? b.whoYouText : [];
-    document.querySelectorAll('.who-chip').forEach((chip) => {
-      const val = chip.getAttribute('data-value');
-      chip.classList.toggle('selected', who.includes(val));
-    });
-
-    // where you use
-    const where = Array.isArray(b.whereUse) ? b.whereUse : [];
-    document.querySelectorAll('.where-chip').forEach((chip) => {
-      const val = chip.getAttribute('data-value');
-      chip.classList.toggle('selected', where.includes(val));
-    });
   }
 
   function restoreStep2() {
@@ -943,20 +936,12 @@ function persistOnboardingState() {
       avoids.forEach((text) => addCustomChip(avoidsCustomList, text, 'avoid-custom'));
     }
 
-    // humour / strong words / emoji chips
-    const humor = p.humorLevel;
-    document.querySelectorAll('.humor-chip').forEach((chip) => {
+    // tone style / emoji chips
+    const toneStyle = p.toneStyle;
+    document.querySelectorAll('.tone-style-chip').forEach((chip) => {
       chip.classList.toggle(
         'selected',
-        chip.getAttribute('data-humor') === humor
-      );
-    });
-
-    const strong = p.strongWords;
-    document.querySelectorAll('.strong-chip').forEach((chip) => {
-      chip.classList.toggle(
-        'selected',
-        chip.getAttribute('data-strong') === strong
+        chip.getAttribute('data-tone-style') === toneStyle
       );
     });
 
@@ -989,24 +974,13 @@ function persistOnboardingState() {
       );
     });
 
-    document.querySelectorAll('.risk-chip').forEach((chip) => {
+    document.querySelectorAll('.engagement-style-chip').forEach((chip) => {
       chip.classList.toggle(
         'selected',
-        chip.getAttribute('data-risk') === r.riskLevel
+        chip.getAttribute('data-engagement-style') === r.engagementStyle
       );
     });
 
-    document.querySelectorAll('.adaptation-chip').forEach((chip) => {
-      chip.classList.toggle(
-        'selected',
-        chip.getAttribute('data-adaptation') === r.adaptation
-      );
-    });
-
-    const approval = document.getElementById('approvalRequired');
-    if (approval && typeof r.approvalRequired === 'boolean') {
-      approval.checked = r.approvalRequired;
-    }
   }
 
     function setupNavigation() {
@@ -1113,20 +1087,10 @@ function persistOnboardingState() {
     function validateStep1() {
       const name = document.getElementById('name').value.trim();
       const role = getSelectedValue('.role-chip');
-      const who = getSelectedValues('.who-chip');
-      const where = getSelectedValues('.where-chip');
       if (!name || !role) {
         showMessage('Please fill in your name and select what you do.', 'error');
                 return false;
             }
-      if (who.length === 0) {
-        showMessage('Please choose who you mostly text.', 'error');
-                return false;
-            }
-      if (where.length === 0) {
-        showMessage('Please choose where you will use your twin.', 'error');
-        return false;
-      }
             return true;
         }
 
@@ -1145,11 +1109,10 @@ function persistOnboardingState() {
         showMessage('Please select at least one topic you like.', 'error');
                 return false;
             }
-      const humor = getSelectedAttr('.humor-chip', 'data-humor');
-      const strong = getSelectedAttr('.strong-chip', 'data-strong');
+      const toneStyle = getSelectedAttr('.tone-style-chip', 'data-tone-style');
       const emoji = getSelectedAttr('.emoji-chip', 'data-emoji');
-      if (!humor || !strong || !emoji) {
-        showMessage('Please choose humour level, strong words preference and emoji usage.', 'error');
+      if (!toneStyle || !emoji) {
+        showMessage('Please choose tone & language style and emoji usage.', 'error');
                 return false;
             }
             return true;
@@ -1157,14 +1120,13 @@ function persistOnboardingState() {
 
     function validateStep4() {
       const replySize = getSelectedAttr('.reply-size-chip', 'data-reply-size');
-      const risk = getSelectedAttr('.risk-chip', 'data-risk');
-      const adaptation = getSelectedAttr('.adaptation-chip', 'data-adaptation');
-      if (!replySize || !risk || !adaptation) {
-        showMessage('Please choose default reply size, risk level and adaptation style.', 'error');
-                return false;
-            }
-            return true;
-        }
+      const engagementStyle = getSelectedAttr('.engagement-style-chip', 'data-engagement-style');
+      if (!replySize || !engagementStyle) {
+        showMessage('Please choose default reply size and engagement style.', 'error');
+        return false;
+      }
+      return true;
+    }
 
     function saveCurrentStep() {
       if (currentStep === 1) saveStep1();
@@ -1179,8 +1141,7 @@ function persistOnboardingState() {
         name: document.getElementById('name').value.trim(),
         role: getSelectedValue('.role-chip') || '',
         roleOther: document.getElementById('roleOther').value.trim(),
-        whoYouText: getSelectedValues('.who-chip'),
-        whereUse: getSelectedValues('.where-chip'),
+        purpose: document.getElementById('purpose').value || undefined,
       };
     }
 
@@ -1195,8 +1156,7 @@ function persistOnboardingState() {
       onboardingData.preferences = {
         likes: collectLikes(),
         avoids: collectAvoids(),
-        humorLevel: getSelectedAttr('.humor-chip', 'data-humor') || 'normal',
-        strongWords: getSelectedAttr('.strong-chip', 'data-strong') || 'some',
+        toneStyle: getSelectedAttr('.tone-style-chip', 'data-tone-style') || 'normal',
         emojiPref: getSelectedAttr('.emoji-chip', 'data-emoji') || 'medium',
       };
     }
@@ -1218,9 +1178,7 @@ function persistOnboardingState() {
               .filter(Boolean)
           : [],
         replySize: getSelectedAttr('.reply-size-chip', 'data-reply-size') || 'normal',
-        riskLevel: getSelectedAttr('.risk-chip', 'data-risk') || 'safe',
-        adaptation: getSelectedAttr('.adaptation-chip', 'data-adaptation') || 'mix',
-        approvalRequired: document.getElementById('approvalRequired').checked,
+        engagementStyle: getSelectedAttr('.engagement-style-chip', 'data-engagement-style') || 'mix',
       };
     }
 
@@ -1255,38 +1213,33 @@ function persistOnboardingState() {
       const previewPreferences = document.getElementById('previewPreferences');
       const previewRules = document.getElementById('previewRules');
 
-      const audiences = Array.isArray(b.whoYouText) ? b.whoYouText.join(', ') : 'N/A';
-      const channels = Array.isArray(b.whereUse) ? b.whereUse.join(', ') : 'N/A';
+      const purposeText = b.purpose ? b.purpose.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Not specified';
 
       if (previewBasic) {
         previewBasic.innerHTML = `
           <p><strong>Name:</strong> ${escapeHtml(b.name || 'N/A')}</p>
           <p><strong>Role:</strong> ${escapeHtml(b.role || 'N/A')}</p>
-          <p><strong>Who you mostly text:</strong> ${escapeHtml(audiences)}</p>
-          <p><strong>Where you will use it:</strong> ${escapeHtml(channels)}</p>
+          <p><strong>Purpose:</strong> ${escapeHtml(purposeText)}</p>
         `;
       }
 
       if (previewPreferences) {
         const likes = Array.isArray(p.likes) ? p.likes.join(', ') : 'N/A';
         const avoids = Array.isArray(p.avoids) ? p.avoids.join(', ') : 'N/A';
+        const toneStyleText = p.toneStyle === 'polite' ? 'Polite & respectful' : p.toneStyle === 'normal' ? 'Normal & friendly' : 'Casual & relaxed';
         previewPreferences.innerHTML = `
           <p><strong>Likes:</strong> ${escapeHtml(likes)}</p>
           <p><strong>Topics to avoid:</strong> ${escapeHtml(avoids)}</p>
-          <p><strong>Humour:</strong> ${escapeHtml(p.humorLevel || 'normal')}</p>
-          <p><strong>Strong words:</strong> ${escapeHtml(p.strongWords || 'some')}</p>
+          <p><strong>Tone & language:</strong> ${escapeHtml(toneStyleText)}</p>
           <p><strong>Emoji usage:</strong> ${escapeHtml(p.emojiPref || 'medium')}</p>
         `;
       }
 
       if (previewRules) {
+        const engagementText = r.engagementStyle === 'ask_questions' ? 'Ask questions' : r.engagementStyle === 'natural' ? 'Respond naturally' : 'Mix of both';
         previewRules.innerHTML = `
           <p><strong>Default reply size:</strong> ${escapeHtml(r.replySize || 'normal')}</p>
-          <p><strong>Risk level:</strong> ${escapeHtml(r.riskLevel || 'safe')}</p>
-          <p><strong>Adaptation:</strong> ${escapeHtml(r.adaptation || 'mix')}</p>
-          <p><strong>Approval required:</strong> ${
-            r.approvalRequired ? 'Yes – drafts only' : 'No'
-          }</p>
+          <p><strong>Engagement style:</strong> ${escapeHtml(engagementText)}</p>
         `;
       }
     }

@@ -14,9 +14,10 @@ const updateStyleSchema = z.object({
   emoji_usage: z.number().min(0).max(1).optional(),
   humor_style: z.enum(['none', 'light', 'moderate', 'heavy']).optional(),
   question_frequency: z.number().min(0).max(1).optional(),
-  response_length_preference: z.enum(['brief', 'detailed', 'comprehensive']).optional(),
-  tone: z.enum(['casual', 'witty', 'serious', 'friendly', 'professional']).optional(),
-  sentence_length: z.enum(['short', 'medium', 'long']).optional()
+  response_length_preference: z.enum(['brief', 'detailed', 'comprehensive', 'short', 'normal', 'detailed']).optional(), // ✅ ADD: support new values
+  tone: z.enum(['casual', 'witty', 'serious', 'friendly', 'professional', 'polite', 'normal']).optional(), // ✅ ADD: support new values
+  sentence_length: z.enum(['short', 'medium', 'long']).optional(),
+  engagementStyle: z.enum(['ask_questions', 'natural', 'mix']).optional(), // ✅ ADD
 });
 
 const updatePersonaSchema = z.object({
@@ -31,6 +32,7 @@ const updatePersonaSchema = z.object({
     role: z.string().optional(),
     oneLineBio: z.string().optional(),
     language: z.enum(['en', 'hi', 'hinglish']).optional(),
+    purpose: z.string().optional(), // ✅ ADD
   }).optional(),
   communicationStyle: z.object({
     tone: z.object({
@@ -45,6 +47,18 @@ const updatePersonaSchema = z.object({
       responseLength: z.string().optional(),
       commonPhrases: z.string().optional()
     }).optional()
+  }).optional(),
+  preferences: z.object({
+    likes: z.array(z.string()).optional(),
+    avoids: z.array(z.string()).optional(),
+    toneStyle: z.enum(['polite', 'normal', 'casual']).optional(), // ✅ ADD
+    emojiPref: z.enum(['low', 'medium', 'high']).optional(), // ✅ ADD
+  }).optional(),
+  rules: z.object({
+    always: z.array(z.string()).optional(),
+    never: z.array(z.string()).optional(),
+    replySize: z.enum(['short', 'normal', 'detailed']).optional(), // ✅ ADD
+    engagementStyle: z.enum(['ask_questions', 'natural', 'mix']).optional(), // ✅ ADD
   }).optional(),
   context: z.object({
     interests: z.array(z.string()).optional(),
@@ -124,6 +138,18 @@ export const updateTwinStyle = async (req: Request, res: Response, next: NextFun
     const twinId = decoded.id;
     const styleUpdates = updateStyleSchema.parse(req.body);
 
+    // Map engagementStyle to question_frequency if provided
+    if ((styleUpdates as any).engagementStyle) {
+      const eng = (styleUpdates as any).engagementStyle;
+      if (eng === 'ask_questions') {
+        styleUpdates.question_frequency = 0.7;
+      } else if (eng === 'natural') {
+        styleUpdates.question_frequency = 0.2;
+      } else {
+        styleUpdates.question_frequency = 0.5;
+      }
+    }
+
     // Verify twin ownership and load current style + persona
     const twinResult = await db.query(`
       SELECT id, "styleVector", "personaData" FROM "Twin" 
@@ -143,19 +169,50 @@ export const updateTwinStyle = async (req: Request, res: Response, next: NextFun
       ...styleUpdates,
     };
 
-    // Regenerate system prompt with new style + existing persona
+    // ✅ SYNC: Sync tone and engagementStyle to personaData
+    let updatedPersonaData = currentPersonaData;
+    if (styleUpdates.tone && currentPersonaData) {
+      const toneValue = styleUpdates.tone as 'polite' | 'normal' | 'casual';
+      updatedPersonaData = {
+        ...currentPersonaData,
+        preferences: {
+          ...currentPersonaData.preferences,
+          toneStyle: toneValue,
+        }
+      };
+    }
+
+    if ((styleUpdates as any).engagementStyle && updatedPersonaData) {
+      updatedPersonaData = {
+        ...updatedPersonaData,
+        rules: {
+          ...updatedPersonaData.rules,
+          engagementStyle: (styleUpdates as any).engagementStyle,
+        }
+      };
+    }
+
+    // Regenerate system prompt with new style + updated persona
     const newSystemPrompt = await twinService.generateSystemPrompt(
       updatedStyleVector,
-      currentPersonaData,
+      updatedPersonaData,
     );
 
-    // Update twin in database
+    // Update twin in database (sync personaData if it was modified)
     const utcTimestamp = new Date().toISOString();
-    await db.query(`
-      UPDATE "Twin" 
-      SET "styleVector" = $1, "systemPrompt" = $2, "last_updated" = $3::timestamptz, "style_version" = "style_version" + 1
-      WHERE id = $4
-    `, [JSON.stringify(updatedStyleVector), newSystemPrompt, utcTimestamp, twinId]);
+    if (updatedPersonaData !== currentPersonaData) {
+      await db.query(`
+        UPDATE "Twin" 
+        SET "styleVector" = $1, "personaData" = $2, "systemPrompt" = $3, "last_updated" = $4::timestamptz, "style_version" = "style_version" + 1
+        WHERE id = $5
+      `, [JSON.stringify(updatedStyleVector), JSON.stringify(updatedPersonaData), newSystemPrompt, utcTimestamp, twinId]);
+    } else {
+      await db.query(`
+        UPDATE "Twin" 
+        SET "styleVector" = $1, "systemPrompt" = $2, "last_updated" = $3::timestamptz, "style_version" = "style_version" + 1
+        WHERE id = $4
+      `, [JSON.stringify(updatedStyleVector), newSystemPrompt, utcTimestamp, twinId]);
+    }
 
     // Generate new sample reply
     const newSampleReply = await twinService.generateSampleReply(updatedStyleVector);
@@ -405,7 +462,9 @@ function buildDefaultSettings() {
       avoidPoliticsReligion: true,
     },
     memory: {
-      usePersonaMemory: true,
+      enabled: true,
+      allowPublicContribution: false,
+      autoExtractFacts: false,
     },
   };
 }
@@ -431,11 +490,13 @@ const updateSettingsSchema = z.object({
       avoidPoliticsReligion: z.boolean(),
     })
     .optional(),
-  memory: z
-    .object({
-      usePersonaMemory: z.boolean(),
-    })
-    .optional(),
+    memory: z
+      .object({
+        enabled: z.boolean(),
+        allowPublicContribution: z.boolean().optional(),
+        autoExtractFacts: z.boolean().optional(),
+      })
+      .optional(),
 });
 
 /**
@@ -531,8 +592,8 @@ const aiToolsSchema = z.object({
   mode: z.enum(['tester', 'rewrite']),
   input: z.string().min(1).max(2000),
 
-  tonePreset: z.enum(['friendly', 'professional', 'witty', 'direct']).optional(),
-  lengthPreset: z.enum(['short', 'normal', 'detailed']).optional(),
+  tonePreset: z.enum(['polite', 'normal', 'casual']).optional(), // ✅ CHANGE
+  lengthPreset: z.enum(['short', 'normal', 'detailed']).optional(), // ✅ CHANGE
   emojiPreset: z.enum(['off', 'low', 'medium']).optional(),
   template: z.string().optional(),
 });

@@ -20,6 +20,13 @@ async function clearAllData() {
     
     // Clear all tables in correct order (respecting foreign keys)
     const tables = [
+      // New style learning tables (clear first)
+      'ai_runs',
+      'style_corrections', 
+      'mem_chunks',
+      'style_anchors',
+      
+      // Existing tables
       'Message',
       'Chat', 
       'Twin',
@@ -42,6 +49,18 @@ async function clearAllData() {
     await client.query('SET session_replication_role = DEFAULT;');
     
     console.log('🎉 Database cleanup completed successfully!');
+    console.log('📊 Cleared tables:');
+    console.log('   - ai_runs (AI performance tracking)');
+    console.log('   - style_corrections (User feedback)');
+    console.log('   - mem_chunks (Memory system)');
+    console.log('   - style_anchors (Teaching examples)');
+    console.log('   - Message (Chat messages)');
+    console.log('   - Chat (Chat sessions)');
+    console.log('   - Twin (AI twins)');
+    console.log('   - Event (Analytics events)');
+    console.log('   - Invite (Invitation system)');
+    console.log('   - OTP (One-time passwords)');
+    console.log('   - User (User accounts)');
     
   } catch (error) {
     console.error('❌ Error during cleanup:', error);
@@ -54,12 +73,14 @@ async function clearAllData() {
 async function main() {
   try {
     console.log('🚀 Starting database reset...');
+    console.log('⚠️  This will clear ALL data from the database!');
     
     await clearAllData();
     
     console.log('\n🎯 Database has been completely cleared!');
-    console.log('📝 All users, twins, chats, messages, and other data have been removed.');
-    console.log('🔄 You can now start fresh with new users.');
+    console.log('📝 All users, twins, chats, messages, and style learning data have been removed.');
+    console.log('🔄 You can now start fresh with new users and style learning.');
+    console.log('💡 The database structure (tables) remains intact - only data is cleared.');
     
   } catch (error) {
     console.error('💥 Failed to clear database:', error);

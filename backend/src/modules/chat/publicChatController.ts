@@ -505,22 +505,24 @@ if (chat.requireLogin && !userId) {
       });
     }
 
-    // ✅ Build context (no session memory for public chat)
+    // ✅ Get session memory for public chat (isolated per chat)
+    const sessionMemory = await chatUtils.getSessionMemoryForContext(chatId).catch(() => null);
+
+    // ✅ Build context (with session memory for public chat - isolated per chat)
     const context = chatUtils.buildChatContext({
       styleVector: chat.styleVector,
       personaData: chat.personaData,
-      // ⚠️ FIX: Only pass systemPrompt if it exists (don't use fallback)
-      // This ensures persona path is only used when both personaData AND systemPrompt exist
-      systemPrompt: chat.systemPrompt, // Remove the fallback || "You are a helpful AI assistant..."
+      systemPrompt: chat.systemPrompt,
       tokenLimit: chat.tokenLimit || 500,
       chatMemory: recentMessages.map(msg => ({
         content: msg.content,
         sender: msg.sender,
-        timestamp: msg.createdAt // Keep as Date for internal AI service use
+        timestamp: msg.createdAt
       })),
       currentMessages: [message.trim()],
       twinId: chat.twinId,
-      isFirstMessage: shouldGenerateTitle
+      isFirstMessage: shouldGenerateTitle,
+      sessionMemory: sessionMemory, // ✅ ADD: Session memory for public chat (isolated)
     });
 
     // ✅ Generate AI response
@@ -555,37 +557,34 @@ if (chat.requireLogin && !userId) {
       updatedAtField: 'lastActivity'
     });
 
-    // ✅ Check if user wants to save something (ChatGPT-style "remember this")
-    if (chat.twinId) {
-      const rememberPatterns = [
-        /remember\s+(?:that|this|my|i|me|my\s+name)/i,
-        /save\s+(?:this|it|that|my\s+name)/i,
-        /don'?t\s+forget/i,
-        /keep\s+in\s+mind/i,
-        /memorize/i,
-        /store\s+(?:this|it|that)/i,
-        /isko\s+yaad\s+rakho/i,
-        /yaad\s+rakhna/i
-      ];
+    // ✅ Update session memory for public chat (isolated per chat)
+    (async () => {
+      try {
+        const allMessagesResult = await db.query(`
+          SELECT content, sender, "createdAt"
+          FROM "PublicMessage"
+          WHERE "chatId" = $1
+          ORDER BY "createdAt" ASC
+        `, [chatId]);
 
-      const shouldExtractFacts = rememberPatterns.some(pattern => pattern.test(message));
+        const allMessages = allMessagesResult.rows.map(msg => ({
+          content: msg.content,
+          sender: msg.sender,
+          timestamp: msg.createdAt
+        }));
 
-      if (shouldExtractFacts) {
-        logger.info('✅ User requested to remember something - extracting facts');
-        
-        // ✅ Get recent messages for context
-        const recentMessages = await chatUtils.getRecentMessages(chatId, 'PublicMessage', 5);
-        const contextText = recentMessages.map(m => m.content).join('\n');
-        
-        // Extract facts from context (async, don't block response)
         const { memoryService } = await import('../../services/memoryService');
-        memoryService.extractLongTermFacts(chat.twinId, contextText)
-          .then(() => {
-            logger.info(`✅ Facts extracted from user's "remember this" request for twin ${chat.twinId}`);
-          })
-          .catch(err => logger.error('Fact extraction failed:', err));
+        await memoryService.createOrUpdateSessionMemory(chatId, allMessages);
+        logger.info(`Session memory updated for public chat ${chatId} with ${allMessages.length} messages`);
+      } catch (error) {
+        logger.error('Session memory update failed for public chat:', error);
+        // Don't fail - response already sent
       }
-    }
+    })();
+
+    // ✅ Memory write DISABLED in public chat (owner-only feature)
+    // Public users cannot use "remember this" - silently ignored
+    logger.debug('Public chat: Memory write requests are ignored (owner-only feature)');
 
     // ✅ Send response
     res.json({

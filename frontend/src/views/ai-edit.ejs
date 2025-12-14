@@ -39,7 +39,7 @@
           </a>
 
           <a href="/analytics"
-             class="inline-flex items-center justify-center bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">
+          class="inline-flex items-center justify-center bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base">            
             Open Analytics
         </a>
       </div>
@@ -52,7 +52,7 @@
         <!-- ✅ Tabs: Reply vs Rewrite -->
 <div class="mb-3 inline-flex rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 overflow-hidden">
   <button id="tabTester" type="button"
-    class="px-4 py-2 text-sm font-medium bg-blue-600 text-white">
+  class="px-4 py-2 text-sm font-medium bg-primary text-white">    
     Reply (Tester)
   </button>
   <button id="tabRewrite" type="button"
@@ -80,10 +80,9 @@
           <div class="mt-3 flex flex-wrap gap-2">
             <select id="testerTone" class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
               <option value="">Tone (use settings)</option>
-              <option value="friendly">Friendly</option>
-              <option value="professional">Professional</option>
-              <option value="witty">Witty</option>
-              <option value="direct">Direct</option>
+              <option value="polite">Polite & respectful</option>
+              <option value="normal">Normal & friendly</option>
+              <option value="casual">Casual & relaxed</option>
             </select>
 
             <select id="testerLength" class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
@@ -134,10 +133,9 @@
           <div class="mt-3 flex flex-wrap gap-2">
             <select id="rewriteTone" class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
               <option value="">Tone (use settings)</option>
-              <option value="friendly">Friendly</option>
-              <option value="professional">Professional</option>
-              <option value="witty">Witty</option>
-              <option value="direct">Direct</option>
+              <option value="polite">Polite & respectful</option>
+              <option value="normal">Normal & friendly</option>
+              <option value="casual">Casual & relaxed</option>
             </select>
 
             <select id="rewriteLength" class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
@@ -288,12 +286,12 @@ function setTab(mode) {
   rewriteCard?.classList.toggle('hidden', isTester);
 
   // active styles
-  tabTester?.classList.toggle('bg-blue-600', isTester);
+  tabTester?.classList.toggle('bg-primary', isTester);
   tabTester?.classList.toggle('text-white', isTester);
   tabTester?.classList.toggle('text-gray-700', !isTester);
   tabTester?.classList.toggle('dark:text-gray-200', !isTester);
 
-  tabRewrite?.classList.toggle('bg-blue-600', !isTester);
+  tabRewrite?.classList.toggle('bg-primary', !isTester);
   tabRewrite?.classList.toggle('text-white', !isTester);
   tabRewrite?.classList.toggle('text-gray-700', isTester);
   tabRewrite?.classList.toggle('dark:text-gray-200', isTester);
@@ -490,14 +488,21 @@ setTab('tester');
         const basic = pd.basicInfo || {};
         const role = basic.role || basic.primaryUseCase || '—';
         const language = basic.language || '—';
-        const memoryOn = (s.memory?.usePersonaMemory ?? true) ? 'ON' : 'OFF';
+        const purpose = basic.purpose ? basic.purpose.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : '—'; // ✅ ADD
+        const toneStyle = pd.preferences?.toneStyle || sv.tone || '—'; // ✅ FIX: use toneStyle
+        const replySize = pd.rules?.replySize || sv.response_length_preference || '—'; // ✅ FIX: use replySize
+        const engagementStyle = pd.rules?.engagementStyle || '—'; // ✅ ADD
+        const memoryEnabled = s.memory?.enabled !== false; // Default true
+        const memoryOn = memoryEnabled ? 'ON' : 'OFF';
 
         snapshotBox.innerHTML = `
           <p><strong>Name:</strong> ${escapeHtml(basic.name || basic.fullName || '—')}</p>
           <p><strong>Role:</strong> ${escapeHtml(role)}</p>
+          <p><strong>Purpose:</strong> ${escapeHtml(purpose)}</p>
           <p><strong>Language:</strong> ${escapeHtml(language)}</p>
-          <p class="mt-2"><strong>Tone:</strong> ${escapeHtml(sv.tone || '—')}</p>
-          <p><strong>Reply length:</strong> ${escapeHtml(sv.response_length_preference || '—')}</p>
+          <p class="mt-2"><strong>Tone:</strong> ${escapeHtml(toneStyle === 'polite' ? 'Polite & respectful' : toneStyle === 'normal' ? 'Normal & friendly' : toneStyle === 'casual' ? 'Casual & relaxed' : toneStyle)}</p>
+          <p><strong>Reply length:</strong> ${escapeHtml(replySize === 'short' ? 'Short' : replySize === 'normal' ? 'Normal' : replySize === 'detailed' ? 'Detailed' : replySize)}</p>
+          <p><strong>Engagement:</strong> ${escapeHtml(engagementStyle === 'ask_questions' ? 'Ask questions' : engagementStyle === 'natural' ? 'Natural' : engagementStyle === 'mix' ? 'Mix' : '—')}</p>
           <p><strong>Memory:</strong> ${escapeHtml(memoryOn)}</p>
         `;
       } catch (e) {

@@ -347,6 +347,13 @@
             const data = await response.json();
             
             if (response.ok && data.success) {
+                // ✅ FIX: Clear onboarding localStorage before redirect
+                try {
+                    localStorage.removeItem('enhancedOnboarding_v1');
+                } catch (e) {
+                    console.warn('Failed to clear onboarding localStorage:', e);
+                }
+                
                 showNotification('✅ Twin deleted successfully. Redirecting to onboarding...', 'success');
                 // Redirect to onboarding to create new twin
                 setTimeout(() => {

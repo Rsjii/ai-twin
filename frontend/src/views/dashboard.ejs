@@ -831,7 +831,7 @@
                 <!-- Quick Actions (4 Buttons in 2x2 Grid) - Mobile Responsive -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <!-- Start Chat -->
-                    <a href="/chat-enhanced" class="flex items-center justify-center space-x-2 px-4 py-3 bg-white/80 dark:bg-gray-700/80 backdrop-blur-xl text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 hover:text-white dark:hover:text-white hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium border border-white/20 dark:border-gray-600 group">
+                    <a href="/chat" class="flex items-center justify-center space-x-2 px-4 py-3 bg-white/80 dark:bg-gray-700/80 backdrop-blur-xl text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 hover:text-white dark:hover:text-white hover:scale-105 hover:shadow-xl transition-all duration-300 font-medium border border-white/20 dark:border-gray-600 group">
                         <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                         </svg>
@@ -1004,15 +1004,15 @@
                     <span class="text-lg font-semibold text-gray-900 dark:text-white">Trending Now</span>
                 </div>
             </div>
-            <div id="trendingCarousel" class="relative">
-                <div id="trendingCards" class="flex gap-6 overflow-x-auto pb-4 scrollbar-hide" style="scroll-behavior: smooth;">
-                    <!-- Trending twin cards will be loaded here via JS -->
-                </div>
-            </div>      
-            <div class="mt-4 text-center">
-                <a href="/discover" class="text-sm text-primary hover:text-secondary font-medium transition-colors">
-                    View All →
-                </a>
+                <div id="trendingCarousel" class="relative">
+                    <div id="trendingCards" class="flex gap-6 overflow-x-auto pb-4 scrollbar-hide" style="scroll-behavior: smooth;">
+                        <!-- Trending twin cards will be loaded here via JS -->
+                    </div>
+                </div>      
+                <div class="mt-4 text-center">
+                    <a href="/discover" class="text-sm text-primary hover:text-secondary font-medium transition-colors">
+                        View All →
+                    </a>
             </div>
   
         </div>
@@ -1026,13 +1026,13 @@
                     </div>
                     <span class="text-lg font-semibold text-gray-900 dark:text-white">You Recently Chatted With</span>
                 </div>
-                <div id="recentInteractions" class="flex gap-6 overflow-x-auto pb-4 scrollbar-hide" style="scroll-behavior: smooth;">
-                    <!-- Recent interaction cards will be loaded here via JS -->
-                </div>
-                <div class="mt-4 text-center">
-                    <a href="/public-chat/history" class="text-sm text-primary hover:text-secondary font-medium transition-colors">
-                        View All Chats →
-                    </a>
+                    <div id="recentInteractions" class="flex gap-6 overflow-x-auto pb-4 scrollbar-hide" style="scroll-behavior: smooth;">
+                        <!-- Recent interaction cards will be loaded here via JS -->
+                    </div>
+                    <div class="mt-4 text-center">
+                        <a href="/public-chat/history" class="text-sm text-primary hover:text-secondary font-medium transition-colors">
+                            View All Chats →
+                        </a>
                 </div>
             </div>
         </div>        
@@ -1044,7 +1044,7 @@
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-bold text-gray-900 dark:text-white">Recent Chats</h2>
                 <% if (typeof hasTwins !== 'undefined' && hasTwins) { %>
-                <a href="/chat-enhanced" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+                <a href="/chat" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
                     View All →
                 </a>
                 <% } %>
@@ -1052,7 +1052,7 @@
             <div id="chatsList" class="space-y-3">
                 <% if (recentActivity && recentActivity.length > 0) { %>
                     <% recentActivity.forEach(chat => { %>
-                        <a href="/chat-enhanced/<%= chat.publicId %>" 
+                        <a href="/chat/<%= chat.publicId %>" 
                            class="block p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <div class="flex items-center justify-between">
                                 <div>
@@ -1075,7 +1075,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                         </svg>
                         <p class="text-gray-500 dark:text-gray-400 mb-4">No chats yet</p>
-                        <a href="/chat-enhanced" class="inline-block px-6 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">                            
+                        <a href="/chat" class="inline-block px-6 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">                            
                             Start Your First Chat
                         </a>
                     </div>
@@ -1090,7 +1090,7 @@
 </main>
 
 <script>
-    const MAX_RECENT_CHATS = 2;
+    const MAX_RECENT_CHATS = 5;
     const userHasTwin = <%= hasTwins ? 'true' : 'false' %>;  // ✅ add this
     // Set CSRF token from server
     window.csrfToken = '<%= csrfToken %>';
@@ -1134,7 +1134,7 @@
     async function startNewChat() {        
         try {
             // Redirect to enhanced chat
-            window.location.href = '/chat-enhanced';
+            window.location.href = '/chat';
         } catch (error) {
             console.error('Start chat error:', error);
             showNotification('Network error. Please try again.', 'error');
@@ -1145,7 +1145,7 @@
     // Load trending twins for Discover section
     async function loadTrendingTwins() {
         try {
-            const response = await fetch('/api/discover/trending?limit=8&offset=0');
+            const response = await fetch('/api/discover/trending?limit=5&offset=0');
             const data = await response.json();
             
             if (data.success && data.twins && data.twins.length > 0) {
@@ -1209,29 +1209,29 @@
         
         card.innerHTML = `
             <div class="flex items-center mb-4">
-                <div class="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg mr-3">
-                    ${profileImage ? `<img src="${profileImage}" alt="${displayHandle}" class="w-12 h-12 rounded-full object-cover" loading="lazy">` : avatarInitial}                    
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center gap-2">
-                        <h4 class="font-semibold text-gray-900 dark:text-white">@${displayHandle}</h4>
-                        ${twin.verified ? '<span class="text-primary text-xs">✓</span>' : ''}
+                    <div class="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg mr-3">
+                        ${profileImage ? `<img src="${profileImage}" alt="${displayHandle}" class="w-12 h-12 rounded-full object-cover" loading="lazy">` : avatarInitial}                    
                     </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">${twin.userName || twin.userHandle || 'AI Twin'}</p>
+                <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <h4 class="font-semibold text-gray-900 dark:text-white">@${displayHandle}</h4>
+                            ${twin.verified ? '<span class="text-primary text-xs">✓</span>' : ''}
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${twin.userName || twin.userHandle || 'AI Twin'}</p>
+                    </div>
                 </div>
-            </div>
-            
+                
             <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 line-clamp-2">${twin.bio || 'No bio available'}</p>
-            
+                
             <div class="flex items-center gap-4 mb-4 text-xs text-gray-500 dark:text-gray-400">
-                <span>❤️ ${twin.likeCount || 0}</span>
-                <span>💬 ${twin.chatCount || 0}</span>
-                <span>👥 ${twin.followCount || 0}</span>
-            </div>
-            
+                    <span>❤️ ${twin.likeCount || 0}</span>
+                    <span>💬 ${twin.chatCount || 0}</span>
+                    <span>👥 ${twin.followCount || 0}</span>
+                </div>
+                
             <button class="chat-now-btn w-full px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm" data-twin-id="${twin.publicId || twinPublicId}">
-                💬 Chat Now
-            </button>            
+                    💬 Chat Now
+                </button>
         `;
         
         // Add click listener to Chat Now button
@@ -1257,7 +1257,7 @@
                                 'info'
                             );
                             setTimeout(() => {
-                                window.location.href = '/chat-enhanced';
+                                window.location.href = '/chat';
                             }, 800);
                             return;
                         }
@@ -1400,61 +1400,55 @@ function renderRecentInteractions(chats) {
     
     chats.forEach(({ twin, latestChat, lastMessage, totalMessages }) => {
         const card = document.createElement('div');
-        card.className = 'min-w-[280px] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-4 border border-white/40 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 hover:shadow-lg transition-all duration-300 group flex-shrink-0';
-        
+        card.className = 'min-w-[280px] bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-md dark:shadow-gray-900 p-6 border border-white/30 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group flex-shrink-0';
+
         // ✅ NEW: decide which handle to use for profile links
         const profileHandle = twin.userHandle || twin.publicHandle || '';
         
         // ✅ Prefer user's actual profile image, then twin profile image, else initial
         const profileImage = twin.userProfileImage || twin.profileImage || null;
         const avatarInitial = (profileHandle || 'T').charAt(0).toUpperCase();
-        
-        // Last message preview (truncate to 50 chars)
-        const lastMessagePreview = lastMessage?.content 
-            ? (lastMessage.content.length > 50 ? lastMessage.content.substring(0, 50) + '...' : lastMessage.content)
-            : 'Continue conversation...';
-        
+                
         // Store chatId and twinId for click handlers
         const chatId = latestChat?.publicId || latestChat?.id || '';
         const twinId = twin.publicId || twinPublicId;
         
         card.innerHTML = `
             <div class="flex items-center gap-4 mb-3">
-                <div class="relative flex-shrink-0">
-                <div class="twin-avatar-clickable w-14 h-14 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg group-hover:scale-110 transition-transform cursor-pointer" data-profile-handle="${profileHandle}">
-                    ${profileImage ? `<img src="${profileImage}" alt="${twin.publicHandle}" class="w-14 h-14 rounded-full object-cover" loading="lazy">` : avatarInitial}
+                    <div class="relative flex-shrink-0">
+                        <div class="twin-avatar-clickable w-14 h-14 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg group-hover:scale-110 transition-transform cursor-pointer" data-profile-handle="${profileHandle}">
+                            ${profileImage ? `<img src="${profileImage}" alt="${twin.publicHandle}" class="w-14 h-14 rounded-full object-cover" loading="lazy">` : avatarInitial}
+                        </div>
+                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
                     </div>
-                    <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-1">
-                    <h4 class="font-semibold text-gray-900 dark:text-white text-sm truncate">@${profileHandle || twin.publicHandle || 'twin'}</h4>
-                        ${twin.verified ? '<span class="text-xs text-primary">✓</span>' : ''}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h4 class="font-semibold text-gray-900 dark:text-white text-sm truncate">@${profileHandle || twin.publicHandle || 'twin'}</h4>
+                            ${twin.verified ? '<span class="text-xs text-primary">✓</span>' : ''}
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${twin.userName || twin.userHandle || 'AI Twin'}</p>
                     </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${twin.userName || twin.userHandle || 'AI Twin'}</p>
                 </div>
-            </div>
-            
-            ${latestChat ? `
+                
+                ${latestChat ? `
                 <div class="mb-3 p-2 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg">
                     <div class="flex items-center justify-between mb-1">
                         <p class="text-xs font-medium text-gray-700 dark:text-gray-300">Total Messages</p>
                         <span class="text-xs bg-primary/10 dark:bg-primary/20 text-primary dark:text-blue-400 px-2 py-0.5 rounded-full">${totalMessages || 0} msgs</span>
                     </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${lastMessagePreview}</p>
                     ${lastMessage?.createdAt ? `
-<div class="flex items-center gap-1 mt-1">
-        <span class="text-xs text-gray-500 dark:text-gray-400">Last chatted at:</span>
-        <p class="text-xs text-gray-400 dark:text-gray-500 recent-chat-timestamp" 
-           data-timestamp="${lastMessage.createdAt}" 
-           data-relative-time="${lastMessage.relativeTime || ''}">
-        </p>
-    </div>
-` : ''}
+                    <div class="flex items-center gap-1 mt-1">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Last chatted at:</span>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 recent-chat-timestamp" 
+                           data-timestamp="${lastMessage.createdAt}" 
+                           data-relative-time="${lastMessage.relativeTime || ''}">
+                        </p>
+                    </div>
+                    ` : ''}
                 </div>
-            ` : ''}
-            
-           <button data-twin-id="${twinId}" data-chat-id="${chatId}"
+                ` : ''}
+                
+                <button data-twin-id="${twinId}" data-chat-id="${chatId}"
                         class="continue-chat-btn w-full px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
                     💬 Continue Chat
                 </button>
@@ -1499,7 +1493,7 @@ function renderRecentInteractions(chats) {
                                     'info'
                                 );
                                 setTimeout(() => {
-                                    window.location.href = '/chat-enhanced';
+                                    window.location.href = '/chat';
                                 }, 800);
                                 return;
                             }
@@ -1773,8 +1767,8 @@ function displayPublicTwinStatus(twin) {
             '<a href="/ai-edit" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
             'Edit Twin Style' +
             '</a>' +
-            '<a href="/style-customize" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
-            'Style Sandbox' +
+            '<a href="/twin-settings#styleSection" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
+            'Style & Tone' +
             '</a>' +
             '<a href="/analytics" class="bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-center">' +
             'Learning Progress' +

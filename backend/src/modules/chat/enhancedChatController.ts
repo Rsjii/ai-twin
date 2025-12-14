@@ -335,8 +335,9 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     let generatedTitle: string | null = null;
     const shouldGenerateTitle = isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '');
     
-    // ✅ MVP: add long-term memory facts in prompt (small + capped)
-    const usePersonaMemory = (chat.personaData?.settings?.memory?.usePersonaMemory ?? true) === true;
+    // ✅ Get memory enabled status from personaData.settings (single source of truth)
+    const memoryEnabled = chat.personaData?.settings?.memory?.enabled !== false; // Default true
+    const usePersonaMemory = memoryEnabled;
     let memoryBlock = '';
     if (usePersonaMemory) {
       try {

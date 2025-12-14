@@ -82,6 +82,22 @@
             <option value="hinglish">Hinglish</option>
           </select>
         </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            What do you want your twin to help you with? (optional)
+          </label>
+          <select id="twinPurpose"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            <option value="">Not specified</option>
+            <option value="just_chat">Just chat</option>
+            <option value="practice">Practice conversations</option>
+            <option value="brainstorm">Brainstorm ideas</option>
+            <option value="advice">Get advice</option>
+            <option value="remember">Remember things</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
       </div>
     </section>
 
@@ -94,11 +110,9 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tone preset</label>
           <select id="tonePreset"
             class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
-            <option value="friendly">Friendly</option>
-            <option value="casual">Casual</option>
-            <option value="witty">Witty</option>
-            <option value="serious">Serious</option>
-            <option value="professional">Professional</option>            
+            <option value="polite">Polite & respectful</option>
+            <option value="normal">Normal & friendly</option>
+            <option value="casual">Casual & relaxed</option>
           </select>
         </div>
 
@@ -106,9 +120,9 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reply length</label>
           <select id="replyLengthPreset"
             class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
-            <option value="brief">Short</option>
-            <option value="detailed">Normal</option>
-            <option value="comprehensive">Detailed</option>
+            <option value="short">Short & to the point</option>
+            <option value="normal">Normal</option>
+            <option value="detailed">A bit more detailed</option>
           </select>
         </div>
 
@@ -123,9 +137,17 @@
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This maps to your styleVector’s emoji usage.</p>
         </div>
 
-        <div class="flex items-center gap-2 pt-6">
-          <input id="askQuestions" type="checkbox" class="rounded border-gray-300 dark:border-gray-600" />
-          <label for="askQuestions" class="text-sm text-gray-700 dark:text-gray-300">Ask questions sometimes (helps engagement)</label>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Engagement style *
+          </label>
+          <select id="engagementStyle"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            <option value="ask_questions">Ask questions to keep conversation going</option>
+            <option value="natural">Respond naturally without forcing questions</option>
+            <option value="mix">Mix of both</option>
+          </select>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This controls whether your twin asks questions to keep conversations going.</p>
         </div>
       </div>
 
@@ -182,10 +204,16 @@
     <section id="memorySection" class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Memory</h2>
 
-      <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-        <input type="checkbox" id="usePersonaMemory" class="rounded border-gray-300 dark:border-gray-600" />
-        <span>Use memory/persona to personalize replies</span>
-      </label>
+      <div class="space-y-3">
+        <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+          <input type="checkbox" id="memoryEnabled" class="rounded border-gray-300 dark:border-gray-600" />
+          <span>Enable memory to personalize replies</span>
+        </label>
+        
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          When enabled, your twin remembers facts and preferences from conversations.
+        </p>
+      </div>
 
       <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
         <p class="text-sm font-semibold text-gray-900 dark:text-white mb-2">What I remember</p>
@@ -359,23 +387,31 @@
       document.getElementById('twinRole').value = basic.role || '';
       document.getElementById('twinBio').value = basic.oneLineBio || basic.bio || '';
       document.getElementById('twinLanguage').value = basic.language || '';
+      document.getElementById('twinPurpose').value = basic.purpose || ''; // ✅ ADD
       document.getElementById('neverDo').value = (pd?.context?.topicsToAvoid || '');
     }
 
     function populateVoice(sv, pd) {
-      const tone = sv.tone || 'friendly';
-      const length = sv.response_length_preference || 'detailed';
+      // Get tone from personaData.preferences.toneStyle (onboarding) or styleVector.tone (legacy)
+      const toneStyle = pd?.preferences?.toneStyle || sv.tone || 'normal';
+      const length = sv.response_length_preference || 'normal';
       const emoji = typeof sv.emoji_usage === 'number' ? sv.emoji_usage : 0.3;
       const qfreq = typeof sv.question_frequency === 'number' ? sv.question_frequency : 0.4;
 
-      document.getElementById('tonePreset').value = tone;
-      document.getElementById('replyLengthPreset').value = length;
+      // Map toneStyle to tone preset
+      document.getElementById('tonePreset').value = toneStyle; // polite/normal/casual
+      
+      // Map length
+      const lengthMap = { 'brief': 'short', 'detailed': 'normal', 'comprehensive': 'detailed' };
+      document.getElementById('replyLengthPreset').value = lengthMap[length] || length || 'normal';
 
       // map emoji usage float -> preset
       document.getElementById('emojiPreset').value =
         emoji <= 0.05 ? 'off' : emoji <= 0.35 ? 'low' : 'medium';
 
-      document.getElementById('askQuestions').checked = qfreq >= 0.5;
+      // Map question_frequency to engagementStyle
+      const engagementStyle = pd?.rules?.engagementStyle || (qfreq >= 0.5 ? 'ask_questions' : qfreq <= 0.2 ? 'natural' : 'mix');
+      document.getElementById('engagementStyle').value = engagementStyle;
     }
 
     function populateSettings(s) {
@@ -384,8 +420,9 @@
       document.getElementById('avoidAbuse').checked = s.safety?.avoidAbuse ?? true;
       document.getElementById('avoidPoliticsReligion').checked = s.safety?.avoidPoliticsReligion ?? true;
 
-      // Memory
-      document.getElementById('usePersonaMemory').checked = s.memory?.usePersonaMemory ?? true;
+      // Memory - read from settings.memory.enabled (single source of truth)
+      const memoryEnabled = s.memory?.enabled !== false; // Default true
+      document.getElementById('memoryEnabled').checked = memoryEnabled;
 
       // Advanced adaptation
       document.getElementById('adaptationEnabled').checked = s.adaptation?.enabled ?? true;
@@ -419,6 +456,8 @@
     }
 
     function collectSettingsPayload() {
+      const memoryEnabled = document.getElementById('memoryEnabled').checked;
+      
       return {
         replyBehavior: currentSettings?.replyBehavior || { defaultLength: 'normal', riskLevel: 'safe', energy: 'normal' },
         adaptation: {
@@ -431,26 +470,30 @@
           avoidPoliticsReligion: document.getElementById('avoidPoliticsReligion').checked,
         },
         memory: {
-          usePersonaMemory: document.getElementById('usePersonaMemory').checked,
+          enabled: memoryEnabled,
+          allowPublicContribution: false,
+          autoExtractFacts: false,
         }
       };
     }
 
     function collectStylePayload() {
-      const tone = document.getElementById('tonePreset').value || 'friendly';
-      const response_length_preference = document.getElementById('replyLengthPreset').value || 'detailed';
+      const tone = document.getElementById('tonePreset').value || 'normal';
+      const response_length_preference = document.getElementById('replyLengthPreset').value || 'normal';
+      const engagementStyle = document.getElementById('engagementStyle').value || 'mix';
 
       const emojiPreset = document.getElementById('emojiPreset').value;
       const emoji_usage = emojiPreset === 'off' ? 0.0 : emojiPreset === 'low' ? 0.3 : 0.6;
 
-      const askQuestions = document.getElementById('askQuestions').checked;
-      const question_frequency = askQuestions ? 0.6 : 0.2;
+      // Map engagementStyle to question_frequency
+      const question_frequency = engagementStyle === 'ask_questions' ? 0.7 : engagementStyle === 'natural' ? 0.2 : 0.5;
 
       return {
         tone,
         response_length_preference,
         emoji_usage,
         question_frequency,
+        engagementStyle, // ✅ ADD: pass to backend
       };
     }
 
@@ -459,6 +502,7 @@
       const role = document.getElementById('twinRole').value;
       const oneLineBio = document.getElementById('twinBio').value.trim();
       const language = document.getElementById('twinLanguage').value;
+      const purpose = document.getElementById('twinPurpose').value;
       const topicsToAvoid = document.getElementById('neverDo').value.trim();
 
       return {
@@ -467,6 +511,7 @@
           role: role || undefined,
           oneLineBio: oneLineBio || undefined,
           language: language || undefined,
+          purpose: purpose || undefined,
         },
         context: {
           topicsToAvoid: topicsToAvoid || undefined,
@@ -677,6 +722,12 @@
           });
           const data = await res.json();
           if (!data.success) throw new Error(data.error || 'Failed');
+          // ✅ FIX: Clear onboarding localStorage before redirect
+          try {
+            localStorage.removeItem('enhancedOnboarding_v1');
+          } catch (e) {
+            console.warn('Failed to clear onboarding localStorage:', e);
+          }
           showNotification('Twin reset. Redirecting…', 'success');
           setTimeout(() => window.location.replace('/onboarding'), 800);
         } catch (err) {

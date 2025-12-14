@@ -1,3 +1,10 @@
 ---
+description: Prevent automatic command execution
+globs: ["**/*"]
 alwaysApply: true
 ---
+- Do not run any shell or CLI command automatically.
+- Instead, output the exact command in a fenced code block (```bash ...```).
+- Always ask the user: “Should I run this? (y/n)”.
+- Only proceed when the user confirms explicitly.
+- If the command is risky (migration, npm install, deploy), include a short explanation of what it does.

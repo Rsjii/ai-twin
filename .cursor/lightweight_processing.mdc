@@ -1,3 +1,9 @@
 ---
+description: Avoid heavy repo-wide processing
+globs: ["**/*"]
 alwaysApply: true
 ---
+- Never scan or open the entire project at once.
+- Use ARCH_MAP.md or make one and check yourself which files to scan else ask the user which files to open.
+- Do not re-generate or reformat entire files unless explicitly told.
+- When in doubt, insert TODO comments instead of guessing large code.

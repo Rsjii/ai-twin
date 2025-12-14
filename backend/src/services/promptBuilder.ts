@@ -105,6 +105,10 @@ export class PromptBuilder {
         availableBudget: tokenBudget 
       });
 
+      // ✅ Check if memory is enabled before loading long-term memories
+      // Use personaData.settings from context (single source of truth - no duplicate storage)
+      const memoryEnabled = personaData?.settings?.memory?.enabled !== false; // Default true
+
       // OPTIMIZED: Retrieve all memory contexts in parallel (including feedback)
       const sessionMemoryPromise = providedSessionMemory 
         ? Promise.resolve(providedSessionMemory)
@@ -112,7 +116,7 @@ export class PromptBuilder {
       
       const [sessionMemory, longTermMemories, stylePatterns, feedbackContext] = await Promise.all([
         sessionMemoryPromise,
-        this.getLongTermMemories(twinId, currentMessages.join(' ')),
+        memoryEnabled ? this.getLongTermMemories(twinId, currentMessages.join(' ')) : Promise.resolve([]),
         this.getStylePatterns(twinId, currentMessages.join(' ')),
         this.getFeedbackContext(twinId) // ✅ Now parallel instead of sequential
       ]);

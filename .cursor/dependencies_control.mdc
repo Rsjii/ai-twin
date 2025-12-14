@@ -1,3 +1,7 @@
 ---
+description: Restrict new dependencies
+globs: ["backend/**", "frontend/**"]
 alwaysApply: true
 ---
+- Do not add or remove dependencies unless the user types "/deps ok".
+- When suggesting a new dependency, explain why it is needed, possible alternatives, and the impact on bundle size/cost.

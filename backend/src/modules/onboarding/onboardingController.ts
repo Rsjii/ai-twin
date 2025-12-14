@@ -17,10 +17,7 @@ const enhancedOnboardingSchema = z.object({
     name: z.string().min(1, 'Name is required'),
     role: z.string().min(1, 'Role is required'),
     roleOther: z.string().optional().default(''),
-    // who you mostly text: friends / partner / family / colleagues / clients / mixed
-    whoYouText: z.array(z.string()).min(1, 'Select at least one audience'),
-    // where you will use twin: whatsapp / instagram / linkedin_email / dating / everywhere
-    whereUse: z.array(z.string()).min(1, 'Select at least one primary channel'),
+    purpose: z.string().optional(), // NEW: what twin helps with
   }),
   styleSamples: z.object({
     casualSample: z.string().min(20, 'Casual sample must be at least 20 characters'),
@@ -31,17 +28,14 @@ const enhancedOnboardingSchema = z.object({
     likes: z.array(z.string()).min(1, 'Select at least one topic you like'),
     // topics to avoid (optional)
     avoids: z.array(z.string()).optional().default([]),
-    humorLevel: z.enum(['none', 'normal', 'high']),
-    strongWords: z.enum(['never', 'some', 'normal']),
+    toneStyle: z.enum(['polite', 'normal', 'casual']), // NEW: replaces humor + strongWords
     emojiPref: z.enum(['low', 'medium', 'high']),
   }),
   rules: z.object({
     always: z.array(z.string()).optional().default([]),
     never: z.array(z.string()).optional().default([]),
     replySize: z.enum(['short', 'normal', 'detailed']),
-    riskLevel: z.enum(['safe', 'normal', 'edgy']),
-    adaptation: z.enum(['mine', 'mix', 'theirs']),
-    approvalRequired: z.boolean().optional().default(false),
+    engagementStyle: z.enum(['ask_questions', 'natural', 'mix']), // NEW: question frequency
   }),
   onboardingCompleted: z.boolean(),
   completedAt: z.string(),
@@ -149,10 +143,45 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
 
     const result = await db.query(insertQuery, insertParams);
 
-    // 10) Event log
+    // 10) Initialize default settings with new memory structure
+    // ✅ FIX: Store settings in personaData (not separate column - single source of truth)
+    const defaultSettings = {
+      replyBehavior: {
+        defaultLength: 'normal',
+        riskLevel: 'safe',
+        energy: 'normal',
+      },
+      adaptation: {
+        enabled: true,
+        styleMix: 50,
+      },
+      safety: {
+        avoidNSFW: true,
+        avoidAbuse: true,
+        avoidPoliticsReligion: true,
+      },
+      memory: {
+        enabled: true, // ✅ Default: memory enabled
+        allowPublicContribution: false,
+        autoExtractFacts: false,
+      },
+    };
+
+    // Update personaData with settings (single source of truth)
+    const updatedPersonaData = {
+      ...personaData,
+      settings: defaultSettings,
+    };
+
+    await db.query(
+      `UPDATE "Twin" SET "personaData" = $1 WHERE id = $2`,
+      [JSON.stringify(updatedPersonaData), twinId]
+    );
+
+    // 11) Event log
     await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.ENHANCED_TWIN_CREATED, { 
       publicTwinId: twinId,
-      personaData,
+      personaData: updatedPersonaData,
       samplesCount: countSamples(validatedData.styleSamples),
     });
 
@@ -162,7 +191,7 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
         publicId: tokenizeId(twinId, 'twin'),
         styleVector,
         sampleReply,
-        personaData,
+        personaData: updatedPersonaData,
         systemPrompt,
         createdAt: result.rows[0].createdAt,
       },
@@ -258,12 +287,14 @@ function generateSystemPrompt(personaData: any): string {
   const avoids: string[] = preferences?.avoids || [];
   const always: string[] = rules?.always || [];
   const never: string[] = rules?.never || [];
-  const humorLevel = preferences?.humorLevel || 'normal';
-  const strongWords = preferences?.strongWords || 'some';
+  const toneStyle = preferences?.toneStyle || 'normal';
   const emojiPref = preferences?.emojiPref || 'medium';
   const replySize = rules?.replySize || 'normal';
-  const riskLevel = rules?.riskLevel || 'safe';
-  const adaptation = rules?.adaptation || 'mix';
+  const engagementStyle = rules?.engagementStyle || 'mix';
+
+  // Map toneStyle to humor/strong words for backward compatibility
+  const humorLevel = toneStyle === 'polite' ? 'none' : toneStyle === 'normal' ? 'normal' : 'high';
+  const strongWords = toneStyle === 'polite' ? 'never' : toneStyle === 'normal' ? 'some' : 'normal';
 
   const likesText = likes.length ? likes.join(', ') : 'none specified';
   const avoidsText = avoids.length ? avoids.join(', ') : 'none specified';
@@ -276,29 +307,24 @@ function generateSystemPrompt(personaData: any): string {
   const casualPresent = !!styleSamples?.casualSample;
   const formalPresent = !!styleSamples?.formalSample;
 
+  const purposeText = basicInfo?.purpose ? basicInfo.purpose.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'General conversation';
+
   return `You are "${name}", an AI twin that writes messages exactly like this person.
 
 BACKGROUND:
 - Role: ${role || 'not specified'}
-- Main audiences: ${Array.isArray(basicInfo?.whoYouText) ? basicInfo.whoYouText.join(', ') : 'not specified'}
-- Main channels: ${Array.isArray(basicInfo?.whereUse) ? basicInfo.whereUse.join(', ') : 'not specified'}
+- Purpose: ${purposeText}
 
 PREFERENCES:
 - Topics they enjoy: ${likesText}
 - Topics to avoid or keep light: ${avoidsText}
-- Humor level: ${humorLevel} (none / normal / high)
-- Strong words / swearing: ${strongWords} (never / some / normal)
+- Tone & language style: ${toneStyle} (polite & respectful / normal & friendly / casual & relaxed)
 - Emoji usage: ${emojiPref} (low / medium / high)
 
 DEFAULT BEHAVIOR:
 - Reply length: ${replySize} (short / normal / detailed)
-- Risk level: ${riskLevel} (safe / normal / edgy)
-- Style adaptation: ${adaptation} (mostly user, mix, or mostly other person)
-- Approval: ${
-  rules?.approvalRequired
-  ? 'For sensitive/risky messages, ask a short confirmation question before finalizing.'
-  : 'You may speak more freely, but still be respectful.'  
-  }
+- Engagement style: ${engagementStyle === 'ask_questions' ? 'Ask questions to keep conversation going' : engagementStyle === 'natural' ? 'Respond naturally without forcing questions' : 'Mix of both'}
+- Memory: Enabled (remembers facts and preferences from conversations)
 
 ALWAYS DO:
 ${alwaysText}
@@ -350,7 +376,20 @@ async function createEnhancedStyleVector(data: z.infer<typeof enhancedOnboarding
 
   try {
     const styleVector = await twinService.extractStyle(combined);
-  return styleVector;
+    
+    // Map engagementStyle to question_frequency
+    const engagementStyle = data.rules?.engagementStyle || 'mix';
+    if (styleVector) {
+      if (engagementStyle === 'ask_questions') {
+        styleVector.question_frequency = 0.7; // High question frequency
+      } else if (engagementStyle === 'natural') {
+        styleVector.question_frequency = 0.2; // Low question frequency
+      } else {
+        styleVector.question_frequency = 0.5; // Mix
+      }
+    }
+    
+    return styleVector;
   } catch (e) {
     logger.warn('Style extraction failed, using empty style vector:', e);
     return {};
