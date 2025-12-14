@@ -25,10 +25,20 @@ export class EmailService {
 
   async sendOTP(email: string, code: string, type: 'signup' | 'login' | 'forgot' = 'login'): Promise<boolean> {
     try {
+      // ✅ Check if SMTP credentials are configured
+      if (!config.mail.smtp.host || !config.mail.smtp.user || !config.mail.smtp.pass) {
+        logger.error('SMTP credentials not configured. Missing:', {
+          host: !config.mail.smtp.host,
+          user: !config.mail.smtp.user,
+          pass: !config.mail.smtp.pass
+        });
+        return false;
+      }
+
       // ✅ Production: Must send email
       if (config.nodeEnv === 'production') {
         const mailOptions = {
-          from: config.mail.from,
+          from: config.mail.from || config.mail.smtp.user,
           to: email,
           subject: 'Your AI Twin Verification Code',
           html: `
@@ -84,12 +94,25 @@ export class EmailService {
         };
 
         try {
+          logger.info(`Attempting to send OTP email to ${email} via ${config.mail.smtp.host}:${config.mail.smtp.port}`);
           await this.transporter.sendMail(mailOptions);
-          logger.info(`OTP email sent successfully to ${email}`);
+          logger.info(`✅ OTP email sent successfully to ${email}`);
           return true;
         } catch (error: any) {
-          logger.error(`Failed to send OTP email to ${email}:`, error?.message || error);
-          return false;
+          const errorDetails = {
+            message: error?.message || 'Unknown error',
+            code: error?.code || 'NO_CODE',
+            command: error?.command || 'N/A',
+            response: error?.response || 'N/A',
+            responseCode: error?.responseCode || 'N/A',
+            responseMessage: error?.responseMessage || 'N/A',
+            stack: error?.stack ? error.stack.substring(0, 500) : 'N/A'
+          };
+          
+          logger.error(`❌ Failed to send OTP email to ${email}:`, errorDetails);
+          logger.error(`Full error object:`, JSON.stringify(errorDetails, null, 2));
+          
+          return false;          
         }
       }
       
@@ -98,7 +121,7 @@ export class EmailService {
       return true;
       
     } catch (error) {
-      logger.error('Failed to send OTP email:', error);
+      logger.error('Failed to send OTP email (outer catch):', error);
       return false;
     }
   }  

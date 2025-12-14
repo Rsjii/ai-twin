@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { signup, signupVerify, completeProfile, login, loginVerify, forgotPassword, forgotPasswordVerify, resetPassword, logout, changePassword } from './authController';
+import { signup, signupVerify, completeProfile, login, loginVerify, forgotPassword, forgotPasswordVerify, resetPassword, logout, changePassword, resendOTP } from './authController';
 import {
     otpRequestRateLimit,
     loginRateLimit,
@@ -34,5 +34,8 @@ router.post('/change-password', requireJWTFromCookie, sanitizeInput, validateCSR
 
 // Logout
 router.post('/logout', logout);
+
+// Resend OTP
+router.post('/resend-otp', sanitizeInput, otpRequestRateLimit, resendOTP);
 
 export default router;

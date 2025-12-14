@@ -12,9 +12,6 @@
                         We sent a 6-digit code to:
                     </p>
                     <p class="font-medium text-gray-900 dark:text-white"><%= email || 'your email' %></p>
-                    <div class="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-600 rounded text-sm text-blue-800 dark:text-blue-300">
-                        <strong>Development Mode:</strong> Check the server console for your OTP code
-                    </div>
                 </div>
                 
                 <form id="verifyForm">
@@ -47,10 +44,17 @@
                     <input type="hidden" name="email" value="<%= email || '' %>">
                 </form>
                 
+                <!-- ✅ ADD: Resend OTP Button (Visible by default with timer) -->
+                <div class="mt-4 text-center">
+                    <button type="button" id="resendOtpBtn" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium disabled:text-gray-400 disabled:cursor-not-allowed" aria-label="Resend OTP">
+                        Didn't receive code?
+                    </button>
+                    <span id="resendTimer" class="text-sm text-gray-500 ml-2"></span>
+                </div>
+                
                 <div class="mt-6 text-center">
                     <p class="text-sm text-gray-600 dark:text-gray-300">
-                        Didn't receive the code? 
-                        <a href="/login" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">Try again</a>
+                        <a href="/login" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">← Back to Login</a>
                     </p>
                 </div>
             </div>
@@ -78,6 +82,9 @@
         document.getElementById('errorMessage').classList.add('hidden');
         document.getElementById('successMessage').classList.add('hidden');
     }
+    
+    // ✅ ADD: Start timer immediately when page loads (30 seconds cooldown)
+    startResendTimer(30);
     
     // Auto-focus on code input
     document.getElementById('code').focus();
@@ -107,12 +114,13 @@
         hideMessages();
         
         try {
-            console.log('Verifying code:', code, 'for email:', email);
+            const csrfToken = document.querySelector('input[name="_csrf"]').value;
             
-            const response = await fetch('/test-otp', {
+            const response = await fetch('/api/auth/login/verify', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
                 },
                 body: JSON.stringify({ 
                     email: email,
@@ -120,9 +128,7 @@
                 })
             });
             
-            console.log('Response status:', response.status);
             const result = await response.json();
-            console.log('Response data:', result);
             
             if (response.ok) {
                 showSuccess('OTP verification successful! Redirecting to dashboard...');
@@ -130,7 +136,17 @@
                     window.location.replace('/dashboard');
                 }, 2000);
             } else {
-                showError(result.error || 'Invalid verification code');
+                // ✅ HANDLE OTP_EXPIRED and OTP_ALREADY_USED specially
+                if (result.errorCode === 'OTP_EXPIRED' || result.errorCode === 'OTP_ALREADY_USED') {
+                    showError(result.error || 'OTP expired. Please resend.');
+                    // Resend button already visible, just ensure it's enabled if timer expired
+                    const resendBtn = document.getElementById('resendOtpBtn');
+                    if (resendBtn && !resendBtn.disabled) {
+                        // Timer might have expired, button should be clickable
+                    }
+                } else {
+                    showError(result.error || 'Invalid verification code');
+                }
             }
         } catch (error) {
             console.error('Verification error:', error);
@@ -140,5 +156,103 @@
             verifyBtn.disabled = false;
         }
     });
+    
+    // ✅ ADD: Resend OTP Handler
+    const resendBtn = document.getElementById('resendOtpBtn');
+    if (resendBtn) {
+        resendBtn.addEventListener('click', async () => {
+            const email = document.querySelector('input[name="email"]').value;
+            const timerSpan = document.getElementById('resendTimer');
+            const csrfToken = document.querySelector('input[name="_csrf"]').value;
+            
+            if (!email) {
+                showError('Email not found. Please go back and try again.');
+                return;
+            }
+            
+            // Disable button
+            resendBtn.disabled = true;
+            const originalHTML = resendBtn.innerHTML;
+            resendBtn.innerHTML = 'Sending...';
+            
+            try {
+                // ✅ UPDATE: Use dedicated resend endpoint
+                const response = await fetch('/api/auth/resend-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({ 
+                        email: email,
+                        type: 'login'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showSuccess('New OTP sent to your email!');
+                     // ✅ UPDATE: Show "Sent!" before starting timer
+                    resendBtn.innerHTML = '✓ Sent!';
+                    resendBtn.disabled = true;
+    
+                     // Wait a moment to show "Sent!" then start timer
+                    setTimeout(() => {
+                        // ✅ RESTART timer after successful resend (30 seconds)
+                        startResendTimer(30);
+                    }, 1000); // 1 second delay to show "Sent!"
+
+                } else {
+                    // ✅ HANDLE rate limiting errors
+                    if (response.status === 429) {
+                        const retryAfter = response.headers.get('Retry-After') || '10 minutes';
+                        showError(`Too many requests. Please wait ${retryAfter} before trying again.`);
+                    } else {
+                        showError(result.error || 'Failed to resend OTP');
+                    }
+                    resendBtn.disabled = false;
+                    resendBtn.innerHTML = originalHTML;
+                }
+            } catch (error) {
+                console.error('Resend OTP error:', error);
+                showError('Network error. Please try again.');
+                resendBtn.disabled = false;
+                resendBtn.innerHTML = originalHTML;
+            }
+        });
+    }
+    
+    // ✅ UPDATE: Countdown Timer Function (improved)
+    function startResendTimer(seconds) {
+        const resendBtn = document.getElementById('resendOtpBtn');
+        const timerSpan = document.getElementById('resendTimer');
+        
+        if (!resendBtn || !timerSpan) return;
+        
+        // Clear any existing timer
+        if (window.resendTimerInterval) {
+            clearInterval(window.resendTimerInterval);
+        }
+        
+        resendBtn.disabled = true;
+        resendBtn.classList.remove('hidden');
+        timerSpan.classList.remove('hidden');
+        
+        let remaining = seconds;
+        timerSpan.textContent = `Resend in ${remaining}s`;
+        
+        window.resendTimerInterval = setInterval(() => {
+            remaining--;
+            if (remaining > 0) {
+                timerSpan.textContent = `Resend in ${remaining}s`;
+            } else {
+                clearInterval(window.resendTimerInterval);
+                timerSpan.classList.add('hidden');
+                resendBtn.disabled = false;
+                resendBtn.innerHTML = 'Didn\'t receive code?';
+            }
+        }, 1000);
+    }
     </script>
     ` }) %>

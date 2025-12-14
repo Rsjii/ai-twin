@@ -85,10 +85,7 @@ export function getVerifyOtp(req: any, res: Response) {
     user: null,
     csrfToken: res.locals['csrfToken'],
     email: email,
-    type: type,
-    // ✅ Development: Pass fixed OTP for display
-    // ✅ Production: undefined (user must check email)
-    devOTP: process.env.NODE_ENV === 'development' ? '123456' : undefined
+    type: type
   });
 }
 

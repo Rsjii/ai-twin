@@ -249,13 +249,14 @@ if (referrerId) {
     
     if (config.nodeEnv === 'production') {
       if (!emailSent) {
-        logger.error(`Email send failed for ${email} in production`);
+        logger.error(`Email send failed for ${email} in production. Check SMTP configuration.`);
         return res.status(500).json({
-          error: 'Failed to send verification email. Please try again.',
-          errorCode: 'EMAIL_SEND_FAILED'
+          error: 'Failed to send verification email. Please check your email configuration or try again later.',
+          errorCode: 'EMAIL_SEND_FAILED',
+          details: 'SMTP email service is not configured or email sending failed. Please contact support.'
         });
       }
-      logger.info(`Email sent successfully to ${email}`);
+      logger.info(`✅ Email sent successfully to ${email}`);
     } else {
       // Development: OTP is fixed, no email needed
       logger.info(`Development mode: OTP ${otp} generated (not sent via email)`);
@@ -294,6 +295,25 @@ export const signupVerify = async (req: Request, res: Response, next: NextFuncti
       return res.status(400).json({
         error: 'Invalid or expired OTP',
         errorCode: 'INVALID_OTP'
+      });
+    }
+    
+    // ✅ Check if OTP is expired
+    const now = new Date();
+    if (new Date(otpRecord.expiresAt) < now) {
+      logger.warn(`OTP expired for ${email}. ExpiresAt: ${otpRecord.expiresAt}, Now: ${now}`);
+      return res.status(400).json({
+        error: 'OTP has expired. Please request a new one.',
+        errorCode: 'OTP_EXPIRED'
+      });
+    }
+    
+    // ✅ Check if OTP is already used
+    if (otpRecord.used) {
+      logger.warn(`OTP already used for ${email}`);
+      return res.status(400).json({
+        error: 'This OTP has already been used. Please request a new one.',
+        errorCode: 'OTP_ALREADY_USED'
       });
     }
     
@@ -469,13 +489,14 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
     
     if (config.nodeEnv === 'production') {
       if (!emailSent) {
-        logger.error(`Email send failed for ${email} in production`);
+        logger.error(`Email send failed for ${email} in production. Check SMTP configuration.`);
         return res.status(500).json({
-          error: 'Failed to send verification email. Please try again.',
-          errorCode: 'EMAIL_SEND_FAILED'
+          error: 'Failed to send verification email. Please check your email configuration or try again later.',
+          errorCode: 'EMAIL_SEND_FAILED',
+          details: 'SMTP email service is not configured or email sending failed. Please contact support.'
         });
       }
-      logger.info(`Email sent successfully to ${email}`);
+      logger.info(`✅ Email sent successfully to ${email}`);
     } else {
       logger.info(`Development mode: OTP ${otp} generated (not sent via email)`);
     }
@@ -513,6 +534,25 @@ export const forgotPasswordVerify = async (req: Request, res: Response, next: Ne
       return res.status(400).json({
         error: 'Invalid or expired OTP',
         errorCode: 'INVALID_OTP'
+      });
+    }
+    
+    // ✅ Check if OTP is expired
+    const now = new Date();
+    if (new Date(otpRecord.expiresAt) < now) {
+      logger.warn(`OTP expired for ${email}. ExpiresAt: ${otpRecord.expiresAt}, Now: ${now}`);
+      return res.status(400).json({
+        error: 'OTP has expired. Please request a new one.',
+        errorCode: 'OTP_EXPIRED'
+      });
+    }
+    
+    // ✅ Check if OTP is already used
+    if (otpRecord.used) {
+      logger.warn(`OTP already used for ${email}`);
+      return res.status(400).json({
+        error: 'This OTP has already been used. Please request a new one.',
+        errorCode: 'OTP_ALREADY_USED'
       });
     }
     
@@ -712,6 +752,25 @@ export const loginVerify = async (req: Request, res: Response, next: NextFunctio
       });
     }
     
+    // ✅ Check if OTP is expired
+    const now = new Date();
+    if (new Date(otpRecord.expiresAt) < now) {
+      logger.warn(`OTP expired for ${email}. ExpiresAt: ${otpRecord.expiresAt}, Now: ${now}`);
+      return res.status(400).json({
+        error: 'OTP has expired. Please request a new one.',
+        errorCode: 'OTP_EXPIRED'
+      });
+    }
+    
+    // ✅ Check if OTP is already used
+    if (otpRecord.used) {
+      logger.warn(`OTP already used for ${email}`);
+      return res.status(400).json({
+        error: 'This OTP has already been used. Please request a new one.',
+        errorCode: 'OTP_ALREADY_USED'
+      });
+    }
+    
     // Verify OTP
     const isValid = await verifyOTP(code, otpRecord.codeHash);
     if (!isValid) {
@@ -904,5 +963,105 @@ export const logout = (req: Request, res: Response, next: NextFunction) => {
     res.json({ message: 'Logged out successfully', redirect: '/auth' });
   } catch (error) {
     handleControllerError(error, 'Failed to logout');
+  }
+};
+
+// ✅ ADD: Resend OTP Schema
+const resendOtpSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  type: z.enum(['signup', 'login', 'forgot']).optional()
+});
+
+// ✅ ADD: Resend OTP Function
+export const resendOTP = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, type = 'signup' } = resendOtpSchema.parse(req.body);
+    
+    logger.info(`Resend OTP request for: ${email}, type: ${type}`);
+    
+    // Check if user exists (for signup/login)
+    if (type === 'signup' || type === 'login') {
+      const user = await userQueries.findByEmail(email.toLowerCase());
+      
+      if (type === 'signup') {
+        // For signup: user should exist but not verified
+        if (!user) {
+          return res.status(404).json({
+            error: 'No signup request found for this email. Please signup first.',
+            errorCode: 'NO_SIGNUP_REQUEST'
+          });
+        }
+        if (user.verified) {
+          return res.status(409).json({
+            error: 'Account already verified. Please login instead.',
+            errorCode: 'ALREADY_VERIFIED'
+          });
+        }
+      } else if (type === 'login') {
+        // For login: user should exist
+        if (!user) {
+          return res.status(404).json({
+            error: 'User not found. Please signup first.',
+            errorCode: 'USER_NOT_FOUND'
+          });
+        }
+      }
+    } else if (type === 'forgot') {
+      // For forgot password: user must exist
+      const user = await userQueries.findByEmail(email.toLowerCase());
+      if (!user) {
+        return res.status(404).json({
+          error: 'User not found',
+          errorCode: 'USER_NOT_FOUND'
+        });
+      }
+    }
+    
+    // Delete old OTP
+    await otpQueries.deleteByEmail(email.toLowerCase());
+    
+    // Generate new OTP
+    const otp = generateOTP(config.otp.codeLength);
+    const hashedOTP = await hashOTP(otp);
+    const expiresAt = new Date(Date.now() + config.otp.expiryMinutes * 60 * 1000);
+    
+    // Store OTP
+    await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt);
+    
+    logger.info(`OTP created for ${email}`);
+    
+    // ✅ Send OTP via email (only in production)
+    const emailSent = await emailService.sendOTP(email, otp, type);
+    
+    if (config.nodeEnv === 'production') {
+      if (!emailSent) {
+        logger.error(`Email send failed for ${email} in production. Check SMTP configuration.`);
+        return res.status(500).json({
+          error: 'Failed to send verification email. Please check your email configuration or try again later.',
+          errorCode: 'EMAIL_SEND_FAILED',
+          details: 'SMTP email service is not configured or email sending failed. Please contact support.'
+        });
+      }
+      logger.info(`✅ Email sent successfully to ${email}`);
+    } else {
+      logger.info(`Development mode: OTP ${otp} generated (not sent via email)`);
+    }
+    
+    res.json({ 
+      message: 'OTP sent to your email'
+    });
+  } catch (error) {
+    logger.error('Resend OTP error:', error);
+    
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: error.errors[0]?.message || 'Validation failed',
+        errorCode: ErrorCodes.VALIDATION_ERROR,
+        details: error.errors
+      });
+    }
+    
+    handleErrorWithResponse(error, res, 'Failed to resend OTP. Please try again.');
   }
 };
