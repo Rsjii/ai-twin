@@ -544,8 +544,10 @@ app.get('/api/analytics/twin/:twinId/performance', requireJWTFromCookie, getTwin
 // Feedback analytics route
 app.get('/api/analytics/feedback', requireJWTFromCookie, getFeedbackAnalytics);
 
-// Test routes
-app.use('/', testRoutes);
+// Test routes , only in the development
+if(process.env.NODE_ENV !== 'production'){
+  app.use('/', testRoutes);
+}
 
 
 

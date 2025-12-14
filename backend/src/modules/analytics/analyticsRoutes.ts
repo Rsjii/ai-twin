@@ -10,8 +10,10 @@ const router = Router();
 router.get('/summary', getMetricsSummary);
 
 // Debug endpoints
-router.get('/debug', requireJWTFromCookie, debugUserData);
-router.post('/create-sample', requireJWTFromCookie, createSampleData);
+if(process.env.NODE_ENV !== 'production'){
+  router.get('/debug', requireJWTFromCookie, debugUserData);
+  router.post('/create-sample', requireJWTFromCookie, createSampleData);
+}
 
 // Protected user analytics - using JWT authentication
 router.get('/user', requireJWTFromCookie, getUserAnalytics);
