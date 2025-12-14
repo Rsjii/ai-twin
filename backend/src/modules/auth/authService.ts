@@ -4,6 +4,9 @@ import nodemailer from 'nodemailer';
 import { config } from '../../config/env';
 import { logger } from '../../config/logger';
 
+// ✅ FIXED OTP for development
+const DEV_OTP = '123456';
+
 // Email service
 export class EmailService {
   private transporter: nodemailer.Transporter;
@@ -20,60 +23,80 @@ export class EmailService {
     });
   }
 
-  async sendOTP(email: string, code: string): Promise<boolean> {
+  async sendOTP(email: string, code: string, type: 'signup' | 'login' | 'forgot' = 'login'): Promise<boolean> {
     try {
-      const mailOptions = {
-        from: config.mail.from,
-        to: email,
-        subject: 'Your AI Twin Login Code',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #333;">Your AI Twin Login Code</h2>
-            <p>Your verification code is:</p>
-            <div style="background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; border-radius: 8px;">
-              ${code}
-            </div>
-            <p>This code will expire in ${config.otp.expiryMinutes} minutes.</p>
-            <p style="color: #666; font-size: 12px;">If you didn't request this code, please ignore this email.</p>
-          </div>
-        `,
-      };
+      // ✅ Production: Must send email
+      if (config.nodeEnv === 'production') {
+        const mailOptions = {
+          from: config.mail.from,
+          to: email,
+          subject: 'Your AI Twin Verification Code',
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f5f5;">
+                <tr>
+                  <td align="center" style="padding: 40px 20px;">
+                    <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      <tr>
+                        <td style="padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0;">
+                          <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">AI Twin</h1>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 40px 30px;">
+                          <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 24px; font-weight: 600;">Verification Code</h2>
+                          <p style="margin: 0 0 30px 0; color: #666666; font-size: 16px; line-height: 1.5;">
+                            ${type === 'signup' ? 'Welcome to AI Twin! Use this code to complete your signup:' : type === 'forgot' ? 'Use this code to reset your password:' : 'Use this code to verify your login:'}
+                          </p>
+                          <div style="background-color: #f8f9fa; border: 2px dashed #667eea; border-radius: 8px; padding: 30px; text-align: center; margin: 30px 0;">
+                            <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #667eea; font-family: 'Courier New', monospace;">
+                              ${code}
+                            </div>
+                          </div>
+                          <p style="margin: 20px 0 0 0; color: #999999; font-size: 14px; line-height: 1.5;">
+                            This code will expire in <strong>${config.otp.expiryMinutes} minutes</strong>.
+                          </p>
+                          <p style="margin: 20px 0 0 0; color: #999999; font-size: 14px; line-height: 1.5;">
+                            If you didn't request this code, please ignore this email or contact support if you have concerns.
+                          </p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 30px; text-align: center; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
+                          <p style="margin: 0; color: #999999; font-size: 12px;">
+                            © ${new Date().getFullYear()} AI Twin. All rights reserved.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+          `,
+        };
 
-      // Development mode: Log to console + try to send actual email
-      if (config.nodeEnv === 'development') {
-        console.log('\n🔐 ===== OTP GENERATED =====');
-        console.log(`📧 Email: ${email}`);
-        console.log(`🔑 OTP Code: ${code}`);
-        console.log('=============================\n');
-        logger.info(`OTP for ${email}: ${code}`);
-        
-        // Try to send actual email in development
         try {
           await this.transporter.sendMail(mailOptions);
-          logger.info(`✅ OTP email sent successfully to ${email}`);
+          logger.info(`OTP email sent successfully to ${email}`);
           return true;
-        } catch (emailError: any) {
-          logger.warn(`⚠️ Failed to send OTP email in development:`, emailError?.message || emailError);
-          // Still return true so signup doesn't fail - OTP is in console + response
-          return true;
+        } catch (error: any) {
+          logger.error(`Failed to send OTP email to ${email}:`, error?.message || error);
+          return false;
         }
       }
-
-      // Production mode: Send actual email
-      try {
-        await this.transporter.sendMail(mailOptions);
-        logger.info(`✅ OTP email sent successfully to ${email}`);
-        return true;
-      } catch (error: any) {
-        logger.error(`❌ Failed to send OTP email to ${email}:`, error?.message || error);
-        
-        // Log error details
-        if (error instanceof Error) {
-          logger.error(`Email error: ${error.message}`);
-        }
-        
-        return false;
-      }
+      
+      // ✅ Development: Don't send email, just log
+      logger.info(`OTP generated for ${email}: ${code} (Development mode - email not sent)`);
+      return true;
+      
     } catch (error) {
       logger.error('Failed to send OTP email:', error);
       return false;
@@ -83,6 +106,12 @@ export class EmailService {
 
 // OTP utilities
 export const generateOTP = (length: number = 6): string => {
+  // ✅ Development: Return fixed OTP
+  if (config.nodeEnv === 'development') {
+    return DEV_OTP;
+  }
+  
+  // ✅ Production: Generate random OTP
   const digits = '0123456789';
   let otp = '';
   for (let i = 0; i < length; i++) {

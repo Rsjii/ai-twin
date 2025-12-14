@@ -244,21 +244,26 @@ if (referrerId) {
     await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt);
     logger.info(`OTP created for ${email}`);
     
-    const emailSent = await emailService.sendOTP(email, otp);
+    // ✅ Send OTP via email (only in production)
+    const emailSent = await emailService.sendOTP(email, otp, 'signup');
     
-    // Don't fail signup if email doesn't send (OTP is in response for frontend)
-    if (!emailSent) {
-      logger.warn(`Email send failed for ${email}, but continuing signup. OTP is in response.`);
-      // Continue anyway - OTP is in response for frontend display
-    } else {
+    if (config.nodeEnv === 'production') {
+      if (!emailSent) {
+        logger.error(`Email send failed for ${email} in production`);
+        return res.status(500).json({
+          error: 'Failed to send verification email. Please try again.',
+          errorCode: 'EMAIL_SEND_FAILED'
+        });
+      }
       logger.info(`Email sent successfully to ${email}`);
+    } else {
+      // Development: OTP is fixed, no email needed
+      logger.info(`Development mode: OTP ${otp} generated (not sent via email)`);
     }
     
-    logger.info(`Signup successful for ${email}, OTP sent`);
-    
     res.json({ 
-      message: 'OTP sent',
-      otp: otp, // Keep OTP in response for frontend (for now)
+      message: 'OTP sent to your email',
+      // ✅ REMOVED: otp: otp (never send OTP in response)
       redirect: '/signup/verify?email=' + encodeURIComponent(email)
     });
   } catch (error) {
@@ -459,17 +464,25 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
     // Store OTP
     await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt);
     
-    // Send OTP via email
-    const emailSent = await emailService.sendOTP(email, otp);
+    // ✅ Send OTP via email (only in production)
+    const emailSent = await emailService.sendOTP(email, otp, 'forgot');
     
-    // Don't fail if email doesn't send (OTP is in response for frontend)
-    if (!emailSent) {
-      logger.warn(`Email send failed for ${email}, but continuing. OTP is in response.`);
+    if (config.nodeEnv === 'production') {
+      if (!emailSent) {
+        logger.error(`Email send failed for ${email} in production`);
+        return res.status(500).json({
+          error: 'Failed to send verification email. Please try again.',
+          errorCode: 'EMAIL_SEND_FAILED'
+        });
+      }
+      logger.info(`Email sent successfully to ${email}`);
+    } else {
+      logger.info(`Development mode: OTP ${otp} generated (not sent via email)`);
     }
     
     res.json({ 
-      message: 'OTP sent for password reset', 
-      otp: otp, // Include the actual OTP for development
+      message: 'OTP sent to your email',
+      // ✅ REMOVED: otp: otp
       redirect: '/forgot-password/reset?email=' + encodeURIComponent(email)
     });
   } catch (error) {

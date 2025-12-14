@@ -78,7 +78,7 @@ export function getLoginVerify(req: any, res: Response) {
 export function getVerifyOtp(req: any, res: Response) {
   const email = req.query['email'] as string;
   const type = req.query['type'] as string; // 'signup' or 'forgot'
-  const otp = req.query['otp'] as string; // Get OTP from URL parameters
+  // ✅ REMOVED: const otp = req.query['otp'] as string;
   
   res.render('verify-otp', {
     title: 'Verify OTP - AI Twin',
@@ -86,7 +86,9 @@ export function getVerifyOtp(req: any, res: Response) {
     csrfToken: res.locals['csrfToken'],
     email: email,
     type: type,
-    actualOTP: otp || '123456'
+    // ✅ Development: Pass fixed OTP for display
+    // ✅ Production: undefined (user must check email)
+    devOTP: process.env.NODE_ENV === 'development' ? '123456' : undefined
   });
 }
 
