@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { generateJWT } from '../../services/jwtService';
 import { createError, ErrorCodes } from '../../utils/errors';
-import { handleControllerError, handleErrorWithResponse } from '../../utils/errorHandler';
+import { handleErrorWithResponse } from '../../utils/errorHandler';
 import { logEvent } from '../../services/eventLogger';
 import { EventLogger } from '../../services/eventLogger';
 import { EVENT_TYPES } from '../../config/constants';
@@ -962,7 +962,8 @@ export const logout = (req: Request, res: Response, next: NextFunction) => {
     
     res.json({ message: 'Logged out successfully', redirect: '/auth' });
   } catch (error) {
-    handleControllerError(error, 'Failed to logout');
+    logger.error('Failed to logout:', error);
+    return next(error);
   }
 };
 

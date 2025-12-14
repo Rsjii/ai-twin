@@ -1,7 +1,18 @@
 import jwt from 'jsonwebtoken';
 import { logger } from '../config/logger';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+// ✅ SECURITY: Fail in production if JWT_SECRET is missing
+// Only fail if APP_ENV is explicitly set to 'prod' (not just NODE_ENV=production)
+const JWT_SECRET = process.env.JWT_SECRET;
+const APP_ENV_EXPLICIT = process.env.APP_ENV;
+const isProduction = APP_ENV_EXPLICIT === 'prod';
+
+if (!JWT_SECRET) {
+  if (isProduction) {
+    throw new Error('JWT_SECRET environment variable is required in production');
+  }
+}
+const JWT_SECRET_FINAL = JWT_SECRET || 'dev-fallback-secret-change-me';
 const JWT_EXPIRES_IN = '7d';
 
 export interface JWTPayload {
@@ -15,7 +26,7 @@ export interface JWTPayload {
 
 export const generateJWT = (payload: Omit<JWTPayload, 'iat' | 'exp'>): string => {
   try {
-    const token = jwt.sign(payload, JWT_SECRET, { 
+    const token = jwt.sign(payload, JWT_SECRET_FINAL, { 
       expiresIn: JWT_EXPIRES_IN,
       issuer: 'ai-twin-app'
     });
@@ -29,7 +40,7 @@ export const generateJWT = (payload: Omit<JWTPayload, 'iat' | 'exp'>): string =>
 
 export const verifyJWT = (token: string): JWTPayload => {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const decoded = jwt.verify(token, JWT_SECRET_FINAL) as JWTPayload;
     logger.info(`JWT verified for user: ${decoded.email}`);
     return decoded;
   } catch (error) {

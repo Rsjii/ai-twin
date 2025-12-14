@@ -107,7 +107,9 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-//app.use(limiter);
+if(isProd){
+  app.use(limiter);
+}
 
 // Cookie parser middleware
 app.use(cookieParser());
@@ -174,7 +176,7 @@ app.use(session({
   resave: true, // Changed to true to force session save
   saveUninitialized: true, // Changed to true to save sessions even if not modified
   cookie: {
-    secure: config.nodeEnv === 'production',
+    secure: isProd,
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
   },
@@ -254,7 +256,7 @@ app.use(async (req, res, next) => {
     // Profile completed → proceed
     return next();
   } catch (err) {
-    console.error('ProfileCompletionGuard error:', err);
+    logger.error('ProfileCompletionGuard error:', err);
     return res.redirect('/auth');
   }
 });
@@ -545,8 +547,26 @@ app.get('/api/analytics/twin/:twinId/performance', requireJWTFromCookie, getTwin
 // Feedback analytics route
 app.get('/api/analytics/feedback', requireJWTFromCookie, getFeedbackAnalytics);
 
+// ✅ Health check endpoint (for monitoring)
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // Test routes , only in the development
 if(isDev){
+  // ✅ Add IP whitelist for test routes (extra security)
+  app.use('/test', (req, res, next) => {
+    const allowedIPs = ['127.0.0.1', '::1'];
+    const clientIP = req.ip || req.connection?.remoteAddress || '';
+    if (!allowedIPs.includes(clientIP) && !clientIP.includes('127.0.0.1')) {
+      return res.status(403).json({ error: 'Test routes only available from localhost' });
+    }
+    next();
+  });
   app.use('/', testRoutes);
 }
 

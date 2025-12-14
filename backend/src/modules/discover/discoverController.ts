@@ -3,7 +3,6 @@ import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
 import { AppError, createError } from '../../utils/errors';
-import { handleControllerError } from '../../utils/errorHandler';
 import { tokenizeId, sanitizeTwin } from '../../utils/idTokenization';
 
 // Validation schemas
@@ -401,7 +400,8 @@ console.log('[DISCOVER] Total count query result:', { totalCount, rows: totalCou
     });    
 
   } catch (error) {
-    handleControllerError(error, 'Failed to get trending twins');
+    logger.error('Failed to get trending twins:', error);
+    return next(error);
   }
 };
 
@@ -489,7 +489,8 @@ export const searchTwins = async (req: Request, res: Response, next: NextFunctio
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to search twins');
+    logger.error('Failed to search twins:', error);
+    return next(error);
   }
 };
 

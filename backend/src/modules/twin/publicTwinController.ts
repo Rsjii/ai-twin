@@ -6,7 +6,6 @@ import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
 import { createError, ErrorCodes } from '../../utils/errors';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
-import { handleControllerError } from '../../utils/errorHandler';
 import {twinQueries} from '../../config/database';
 import { detokenizeId, sanitizeTwin, tokenizeId } from '../../utils/idTokenization';
 import { EVENT_TYPES } from '../../config/constants';
@@ -127,7 +126,7 @@ if (!updated || !updated.isPublic) {
       stack: error instanceof Error ? error.stack : undefined,
       userId: req.user?.id
     });
-    handleControllerError(error, 'Failed to make twin public');
+    return next(error);
   }
 };
 
@@ -169,7 +168,8 @@ export const makeTwinPrivate = async (req: Request, res: Response, next: NextFun
       message: 'Twin is now private'
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to make twin private');
+    logger.error('Failed to make twin private:', error);
+    return next(error);
   }
 };
 
@@ -214,7 +214,8 @@ export const updateTwinProfile = async (req: Request, res: Response, next: NextF
       }
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to update twin profile');
+    logger.error('Failed to update twin profile:', error);
+    return next(error);
   }
 };
 
@@ -266,7 +267,8 @@ export const getPublicTwinProfile = async (req: Request, res: Response, next: Ne
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to get public twin profile');
+    logger.error('Failed to get public twin profile:', error);
+    return next(error);
   }
 };
 
@@ -354,7 +356,7 @@ export const getMyTwinProfile = async (req: Request, res: Response, next: NextFu
     });
   } catch (error: any) {
     logger.error('getMyTwinProfile error:', error);
-    handleControllerError(error, 'Failed to get twin profile');
+    return next(error);
   }
 };
 
@@ -621,7 +623,8 @@ const twin = twinResult.rows[0];
     });
     
   } catch (error) {
-    handleControllerError(error, 'Failed to load public chat page');
+    logger.error('Failed to load public chat page:', error);
+    return next(error);
   }
 };
 

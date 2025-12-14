@@ -13,7 +13,7 @@ import { classifyIntent } from '../../utils/intentClassification';
 // Keeping import for backwards compatibility but function does nothing
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
 import { generateId } from '../../utils/idGenerator';
-import { handleControllerError, handleErrorWithResponse } from '../../utils/errorHandler';
+import { handleErrorWithResponse } from '../../utils/errorHandler';
 import { normalizeTimestamp, formatRelativeTime } from '../../utils/timestampUtils';
 import { detokenizeId, tokenizeId } from '../../utils/idTokenization';
 import * as chatUtils from './chatSharedUtils';
@@ -482,7 +482,8 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to generate enhanced reply');
+    logger.error('Failed to generate enhanced reply:', error);
+    return next(error);
   }
 };
 
@@ -614,7 +615,8 @@ if (decoded && decoded.type === 'chat') {
       serverTime: new Date().toISOString() // ✅ ADD: Server time
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to get chat history');
+    logger.error('Failed to get chat history:', error);
+    return next(error);
   }
 };
 
@@ -692,7 +694,8 @@ export const applyStyleCorrection = async (req: any, res: Response, next: NextFu
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to apply style correction');
+    logger.error('Failed to apply style correction:', error);
+    return next(error);
   }
 };
 
@@ -742,7 +745,8 @@ export const addToAnchors = async (req: any, res: Response, next: NextFunction) 
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to add style anchor');
+    logger.error('Failed to add style anchor:', error);
+    return next(error);
   }
 };
 

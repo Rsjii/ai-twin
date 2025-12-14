@@ -41,10 +41,18 @@
 import logger from '../config/logger';
 import crypto from 'crypto';
 
-const SECRET_KEY = process.env.ID_TOKEN_SECRET || crypto.randomBytes(32).toString('hex');
+// ✅ SECURITY: Fail in production if ID_TOKEN_SECRET is missing
+// Only fail if APP_ENV is explicitly set to 'prod' (not just NODE_ENV=production)
+const SECRET_KEY = process.env.ID_TOKEN_SECRET;
+const APP_ENV_EXPLICIT = process.env.APP_ENV;
+const isProduction = APP_ENV_EXPLICIT === 'prod';
+
 if (!SECRET_KEY) {
-  throw new Error('ID_TOKEN_SECRET is not set');
+  if (isProduction) {
+    throw new Error('ID_TOKEN_SECRET environment variable is required in production');
+  }
 }
+const SECRET_KEY_FINAL = SECRET_KEY || crypto.randomBytes(32).toString('hex');
 const ALGORITHM = 'aes-256-gcm'; // Better than CBC for security
 
 /**
@@ -78,7 +86,7 @@ interface TokenizedIdV1 {
  */
 // ✅ v2 helpers (deterministic)
 function hmacSign(input: string): string {
-  return crypto.createHmac('sha256', SECRET_KEY).update(input).digest('base64url');
+  return crypto.createHmac('sha256', SECRET_KEY_FINAL).update(input).digest('base64url');
 }
 
 export function tokenizeId(id: string, type: ResourceType = 'user'): string {
@@ -168,7 +176,7 @@ export function detokenizeId(token: string, context?: { userId?: string; endpoin
       return null;
     }
     
-    const key = crypto.scryptSync(SECRET_KEY, 'salt', 32);
+    const key = crypto.scryptSync(SECRET_KEY_FINAL, 'salt', 32);
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(authTagHex, 'hex');
     

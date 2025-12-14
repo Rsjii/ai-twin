@@ -4,7 +4,6 @@ import { logger } from '../../config/logger';
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { generateId } from '../../utils/idGenerator';
-import { handleControllerError } from '../../utils/errorHandler';
 import { detokenizeId, tokenizeId } from '../../utils/idTokenization';
 
 /**
@@ -101,7 +100,8 @@ export const getMemoryStats = async (req: any, res: Response, next: NextFunction
       stats
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to get memory statistics');
+    logger.error('Failed to get memory statistics:', error);
+    return next(error);
   }
 };
 
@@ -198,7 +198,8 @@ export const retrieveMemories = async (req: any, res: Response, next: NextFuncti
       throw createError.validation('Invalid bucket. Use "facts", "voice", or "all"');
     }
   } catch (error) {
-    handleControllerError(error, 'Failed to retrieve memories');
+    logger.error('Failed to retrieve memories:', error);
+    return next(error);
   }
 };
 
@@ -270,6 +271,7 @@ export const ingestMemories = async (req: any, res: Response, next: NextFunction
     // Fallback (should never reach here)
     throw createError.validation('Invalid bucket type');
   } catch (error) {
-    handleControllerError(error, 'Failed to ingest memory');
+    logger.error('Failed to ingest memory:', error);
+    return next(error);
   }
 };

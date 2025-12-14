@@ -4,6 +4,7 @@ import { logger } from './config/logger';
 import { db } from './config/db';
 import { initializeDatabase } from './config/database';
 import { initializePostHog, shutdownPostHog } from './services/posthogService';
+import { validateEnv } from './config/envValidation';
 
 // ✅ NEW: Global process error handlers (MUST be before startServer)
 process.on('uncaughtException', (error: Error) => {
@@ -76,6 +77,9 @@ async function preWarmGroqAPI(): Promise<void> {
 
 async function startServer() {
   try {
+    // ✅ Validate environment variables first (fail fast)
+    validateEnv();
+    
     // Initialize PostHog
     initializePostHog();
 

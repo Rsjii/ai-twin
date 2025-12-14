@@ -104,11 +104,12 @@ export const errorHandler = (
       ...(err.details && { details: err.details }),
     });
     
-    return res.status(err.statusCode).json({
+    res.status(err.statusCode).json({
       error: err.message,
       errorCode: err.errorCode,
-      ...(err.details && { details: err.details }),
+      // ✅ Details removed from user response - already logged in line 104
     });
+    return;
   }
 
   // Handle Zod validation errors
@@ -119,7 +120,7 @@ export const errorHandler = (
       errors: err.errors,
     });
     
-    return res.status(400).json({
+    res.status(400).json({
       error: 'Validation failed',
       errorCode: ErrorCodes.VALIDATION_ERROR,
       details: err.errors.map(e => ({
@@ -127,6 +128,7 @@ export const errorHandler = (
         message: e.message,
       })),
     });
+    return;
   }
 
   // Handle unhandled errors (500)

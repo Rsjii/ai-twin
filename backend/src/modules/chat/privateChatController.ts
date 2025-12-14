@@ -9,7 +9,6 @@ import { createError, ErrorCodes } from '../../utils/errors';
 import * as chatUtils from './chatSharedUtils';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { generateId } from '../../utils/idGenerator';
-import { handleControllerError } from '../../utils/errorHandler';
 import { logEvent } from '../../services/eventLogger';
 import { QUERY_LIMITS } from '../../config/constants';
 import { normalizeTimestamp, formatRelativeTime } from '../../utils/timestampUtils';
@@ -97,7 +96,8 @@ export const startChat = async (req: AuthenticatedRequest, res: Response, next: 
       redirect: `/chat-enhanced?chatId=${tokenizeId(chat.id, 'chat')}`,
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to start chat');
+    logger.error('Failed to start chat:', error);
+    return next(error);
   }
 };
 
@@ -166,7 +166,8 @@ export const getChat = async (req: AuthenticatedRequest, res: Response, next: Ne
     
     res.json({ chat: chatData });
   } catch (error) {
-    handleControllerError(error, 'Failed to get chat');
+    logger.error('Failed to get chat:', error);
+    return next(error);
   }
 };
 
@@ -210,7 +211,8 @@ export const getUserChats = async (req: AuthenticatedRequest, res: Response, nex
     
     res.json({ chats: formattedChats });
   } catch (error) {
-    handleControllerError(error, 'Failed to get chats');
+    logger.error('Failed to get chats:', error);
+    return next(error);
   }
 };
 
@@ -332,7 +334,8 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response, n
     res.json(responsePayload);
 
   } catch (error) {
-    handleControllerError(error, 'Failed to get chat history');
+    logger.error('Failed to get chat history:', error);
+    return next(error);
   }
 };
 
@@ -402,7 +405,8 @@ export const getChatMessages = async (req: AuthenticatedRequest, res: Response, 
       },
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to get chat messages');
+    logger.error('Failed to get chat messages:', error);
+    return next(error);
   }
 };
 
@@ -494,7 +498,8 @@ export const continueChat = async (req: AuthenticatedRequest, res: Response, nex
       redirect: `/chat-enhanced?chatId=${tokenizeId(chat.id, 'chat')}`,
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to continue chat');
+    logger.error('Failed to continue chat:', error);
+    return next(error);
   }
 };
 
@@ -581,7 +586,8 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response, ne
     
     res.json({ draft });
   } catch (error) {
-    handleControllerError(error, 'Failed to generate draft');
+    logger.error('Failed to generate draft:', error);
+    return next(error);
   }
 };
 
@@ -680,7 +686,8 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response, next
       },
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to send message');
+    logger.error('Failed to send message:', error);
+    return next(error);
   }
 };
 
@@ -1006,7 +1013,8 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       }
     })();
   } catch (error) {
-    handleControllerError(error, 'Failed to handle user message');
+    logger.error('Failed to handle user message:', error);
+    return next(error);
   }
 };
 
@@ -1201,7 +1209,8 @@ export const deleteChat = async (req: AuthenticatedRequest, res: Response, next:
       message: 'Chat deleted successfully'
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to delete chat');
+    logger.error('Failed to delete chat:', error);
+    return next(error);
   }
 };
 
@@ -1270,7 +1279,8 @@ export const createNewChat = async (req: AuthenticatedRequest, res: Response, ne
       redirect: `/chat-enhanced?chatId=${publicChatId}`,
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to create new chat');
+    logger.error('Failed to create new chat:', error);
+    return next(error);
   }
 };
 
@@ -1318,7 +1328,8 @@ export const updateChatTitle = async (req: AuthenticatedRequest, res: Response, 
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to update chat title');
+    logger.error('Failed to update chat title:', error);
+    return next(error);
   }
 };
 
@@ -1369,7 +1380,8 @@ export const generateChatTitle = async (req: AuthenticatedRequest, res: Response
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to generate chat title');
+    logger.error('Failed to generate chat title:', error);
+    return next(error);
   }
 };
 
@@ -1411,7 +1423,8 @@ export const getChatSummary = async (req: AuthenticatedRequest, res: Response, n
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to get chat summary');
+    logger.error('Failed to get chat summary:', error);
+    return next(error);
   }
 };
 

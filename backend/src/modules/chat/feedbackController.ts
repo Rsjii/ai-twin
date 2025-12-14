@@ -5,7 +5,6 @@ import { logger } from '../../config/logger';
 import { AppError, createError, ErrorCodes } from '../../utils/errors';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { generateId } from '../../utils/idGenerator';
-import { handleControllerError } from '../../utils/errorHandler';
 import { detokenizeId } from '../../utils/idTokenization';
 
 const feedbackSchema = z.object({
@@ -91,7 +90,8 @@ export const submitResponseFeedback = async (req: Request, res: Response, next: 
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to submit feedback');
+    logger.error('Failed to submit feedback:', error);
+    return next(error);
   }
 };
 
@@ -130,7 +130,8 @@ export const getFeedbackStats = async (req: Request, res: Response, next: NextFu
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to get feedback statistics');
+    logger.error('Failed to get feedback statistics:', error);
+    return next(error);
   }
 };
 
@@ -170,7 +171,8 @@ export const submitChatFeedback = async (req: Request, res: Response, next: Next
     
     res.json({ success: true });
   } catch (error) {
-    handleControllerError(error, 'Failed to submit chat feedback');
+    logger.error('Failed to submit chat feedback:', error);
+    return next(error);
   }
 };
 
@@ -373,6 +375,7 @@ export const adjustTone = async (req: Request, res: Response, next: NextFunction
     
     res.json({ success: true, adjustedResponse });
   } catch (error) {
-    handleControllerError(error, 'Failed to adjust tone');
+    logger.error('Failed to adjust tone:', error);
+    return next(error);
   }
 };

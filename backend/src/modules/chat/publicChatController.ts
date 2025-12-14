@@ -8,7 +8,7 @@ import { TwinService } from '../twin/twinService';
 import { z } from 'zod';
 import { createError, ErrorCodes } from '../../utils/errors';
 import * as chatUtils from './chatSharedUtils';
-import { handleControllerError, handleErrorWithSuccessFormat } from '../../utils/errorHandler';
+import { handleErrorWithSuccessFormat } from '../../utils/errorHandler';
 import { formatRelativeTime, normalizeTimestamp } from '../../utils/timestampUtils';
 import { detokenizeId, sanitizePublicChat, sanitizeTwin, tokenizeId } from '../../utils/idTokenization';
 import { EVENT_TYPES } from '../../config/constants';
@@ -839,7 +839,8 @@ const twinResult = await db.query(`
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to get public chat by twin');
+    logger.error('Failed to get public chat by twin:', error);
+    return next(error);
   }
 };
 
@@ -964,7 +965,8 @@ const chats = chatsResult.rows.map(chat => sanitizePublicChat({
     res.json(responseData);
 
   } catch (error) {
-    handleControllerError(error, 'Failed to get public chats by twin');
+    logger.error('Failed to get public chats by twin:', error);
+    return next(error);
   }
 };
 
@@ -1034,7 +1036,8 @@ export const createNewPublicChat = async (req: AuthenticatedRequest, res: Respon
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to create new public chat');
+    logger.error('Failed to create new public chat:', error);
+    return next(error);
   }
 };
 
@@ -1166,7 +1169,8 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
       serverTime: new Date().toISOString()
     });
   } catch (error) {
-    handleControllerError(error, 'Failed to get user public chats');
+    logger.error('Failed to get user public chats:', error);
+    return next(error);
   }
 };
 
@@ -1595,7 +1599,8 @@ const chats = chatsResult.rows.map(chatRow => {
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to get public chats for twin');
+    logger.error('Failed to get public chats for twin:', error);
+    return next(error);
   }
 };
 
@@ -1935,7 +1940,8 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to get user-wise public chats');
+    logger.error('Failed to get user-wise public chats:', error);
+    return next(error);
   }
 };
 
@@ -2029,6 +2035,7 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
     });
 
   } catch (error) {
-    handleControllerError(error, 'Failed to get chat history');
+    logger.error('Failed to get chat history:', error);
+    return next(error);
   }
 };

@@ -38,10 +38,10 @@ export const errorHandlerMiddleware = (
       requestId,
       ip: req.ip,
       userAgent: req.get('user-agent'),
-      ...(err.details && !isProd && { details: err.details }), // Only in dev
+      ...(err.details && { details: err.details }), // ✅ Always log details (not exposed to user)
     });
 
-    // ✅ Event logging (existing, keep as-is)
+    // ✅ Event logging - include details for debugging
     try {
       const meta = {
         path: req.path,
@@ -49,6 +49,7 @@ export const errorHandlerMiddleware = (
         statusCode: err.statusCode,
         errorCode: err.errorCode,
         requestId,
+        ...(err.details && { details: err.details }), // ✅ Add details to event log
       };
 
       if (userId) {
