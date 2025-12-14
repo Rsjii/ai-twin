@@ -1,3 +1,6 @@
+// ✅ v2: Google OAuth routes - not needed in v1, not needed for mvp
+
+/*
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
@@ -63,33 +66,19 @@ if (!config.google || !config.google.clientId || !config.google.clientSecret) {
           return done(createError, null);
         }
         
-        // Update profile with Google data
-        try {
-          await userQueries.updateProfile(
-            email,
-            name,
-            undefined, // handle
-            undefined, // dob
-            undefined, // phone
-            undefined, // bio
-            photo // profileImage
-          );
-          logger.info('Profile updated with Google data');
-        } catch (updateError: any) {
-          logger.error('Error updating profile:', updateError);
-          // Don't fail if profile update fails
-        }
+        // ✅ REMOVE: Don't call updateProfile - it sets profileCompleted = true
+        // User will complete profile via /signup/profile form
         
-        // Activate user account
+        // Activate user account (email verified via Google)
         try {
           await userQueries.activateUser(email);
-          logger.info('User account activated');
+          logger.info('User account activated (email verified via Google)');
         } catch (activateError: any) {
           logger.error('Error activating user:', activateError);
           // Don't fail if activation fails
         }
         
-        logger.info(`Google OAuth: New user created and activated: ${email}`);
+        logger.info(`Google OAuth: New user created (profile incomplete): ${email}`);
         return done(null, user);
       }
     } catch (error: any) {
@@ -191,8 +180,19 @@ export const googleAuthCallback = (req: Request, res: Response, next: NextFuncti
   
         logger.info(`Google OAuth: User logged in successfully: ${user.email}`);
         
-        // Redirect to dashboard
-        res.redirect('/dashboard');
+        // ✅ Check if profile is completed
+        const userWithProfile = await userQueries.findByEmail(user.email);
+        const isProfileCompleted = userWithProfile?.profileCompleted || false;
+        
+        // ✅ Redirect based on profile completion
+        if (isProfileCompleted) {
+          // Profile completed - go to dashboard
+          res.redirect('/dashboard');
+        } else {
+          // ✅ Profile incomplete - redirect to profile completion form
+          logger.info(`Google OAuth: Profile incomplete, redirecting to profile form`);
+          res.redirect('/signup/profile?email=' + encodeURIComponent(user.email));
+        }
       } catch (error: any) {
         logger.error('Google OAuth callback processing error:', error);
         logger.error('Error stack:', error?.stack);
@@ -201,3 +201,4 @@ export const googleAuthCallback = (req: Request, res: Response, next: NextFuncti
       }
     })(req, res, next);
   };
+  */

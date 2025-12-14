@@ -1,3 +1,5 @@
+// ✅ v2: Google OAuth routes - not needed in v1, not needed for mvp
+/*
 import { Router } from 'express';
 import { googleAuth, googleAuthCallback } from './googleAuthController';
 
@@ -8,3 +10,4 @@ router.get('/google', googleAuth);
 router.get('/google/callback', googleAuthCallback);
 
 export default router;
+*/

@@ -11,7 +11,7 @@ import { logger } from './config/logger';
 import { db } from './config/database';
 import { errorHandlerMiddleware } from './middleware/errorHandler';
 import passport from 'passport';
-import googleAuthRoutes from './modules/auth/googleAuthRoutes';
+//import googleAuthRoutes from './modules/auth/googleAuthRoutes';
 
 // Import API route modules
 import authRoutes from './modules/auth/authRoutes';
@@ -511,7 +511,8 @@ app.use('/', pageRoutes);
 
 // API Routes (JSON responses)
 app.use('/api/auth', authRoutes);
-app.use('/api/auth', googleAuthRoutes); // Add this line
+// ✅ v2: Google OAuth routes - not needed in v1, not needed for mvp
+//app.use('/api/auth', googleAuthRoutes); // Add this line
 app.use('/api/twin', twinRoutes);
 app.use('/api/public-twin', publicTwinRoutes);
 app.use('/api/chat', chatRoutes);
