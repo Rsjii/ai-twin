@@ -13,9 +13,6 @@ if (connectionString.includes('?')) {
   connectionString = `${connectionString}?timezone=UTC`;
 }
 
-console.log('[DB] 🔧 Connection string configured with timezone=UTC');
-console.log('[DB] 🔧 Connection string (masked):', connectionString.replace(/:[^:@]+@/, ':****@'));
-
 // Create a connection pool with better settings
 const pool = new Pool({
   connectionString: connectionString,

@@ -2,6 +2,7 @@ import PostHog from 'posthog-node';
 import { logger } from '../config/logger';
 import { tokenizeId } from '../utils/idTokenization';
 import { StandardEventMeta } from './eventLogger';
+import { isTest } from '../config/env';
 
 let posthogClient: PostHog | null = null;
 
@@ -23,7 +24,7 @@ export function initializePostHog(): void {
       host,
       flushAt: 20, // Batch events
       flushInterval: 10000, // 10 seconds
-      enable: process.env['NODE_ENV'] !== 'test'
+      enable: !isTest
     });
 
     logger.info('PostHog initialized successfully');

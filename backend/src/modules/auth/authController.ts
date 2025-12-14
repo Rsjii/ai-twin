@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { userQueries, otpQueries, db } from '../../config/database';
 import { EmailService, generateOTP, hashOTP, verifyOTP, hashPassword, verifyPassword , generateInviteCode} from './authService';
 import { logger } from '../../config/logger';
-import { config } from '../../config/env';
+import { config, isProd } from '../../config/env';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { generateJWT } from '../../services/jwtService';
@@ -396,8 +396,8 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
     // Set JWT token in cookie
     res.cookie('jwtToken', token, {
       httpOnly: true,
-      secure: process.env['NODE_ENV'] === 'production',
-      sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict',
+      secure: isProd,
+      sameSite: isProd ? 'lax' : 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/'
     });
@@ -686,8 +686,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     // Set JWT token in cookie
     res.cookie('jwtToken', token, {
       httpOnly: true,
-      secure: process.env['NODE_ENV'] === 'production',
-      sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict',
+      secure: isProd,
+      sameSite: isProd ? 'lax' : 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/' // ✅ ADD: Explicit path      
     });
@@ -800,8 +800,8 @@ export const loginVerify = async (req: Request, res: Response, next: NextFunctio
     // Set JWT token in cookie
     res.cookie('jwtToken', token, {
       httpOnly: true,
-      secure: process.env['NODE_ENV'] === 'production',
-      sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict',
+      secure: isProd,
+      sameSite: isProd ? 'lax' : 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/' // ✅ ADD: Explicit path      
     });
@@ -946,8 +946,8 @@ export const logout = (req: Request, res: Response, next: NextFunction) => {
    // Clear JWT cookie
    res.clearCookie('jwtToken', {
     httpOnly: true,
-    secure: process.env['NODE_ENV'] === 'production',
-    sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict',
+    secure: isProd,
+    sameSite: isProd ? 'lax' : 'strict',
     path: '/'
   });    
     

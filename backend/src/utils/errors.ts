@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { logger } from '../config/logger';
+import { isDev } from '../config/env';
 
 /**
  * Custom Application Error Class
@@ -138,7 +139,7 @@ export const errorHandler = (
   });
 
   // Don't expose internal error details in production
-  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDevelopment = isDev;
   
   res.status(500).json({
     error: 'Internal server error',

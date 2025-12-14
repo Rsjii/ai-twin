@@ -3,6 +3,7 @@ import { getMetricsSummary, getUserAnalytics, debugUserData, createSampleData, g
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import { getTwinAnalytics } from './analyticsController';
 import { getFeedbackAnalytics } from '../chat/feedbackController';
+import { isDev } from '../../config/env';
 
 const router = Router();
 
@@ -10,7 +11,7 @@ const router = Router();
 router.get('/summary', getMetricsSummary);
 
 // Debug endpoints
-if(process.env.NODE_ENV !== 'production'){
+if(isDev){
   router.get('/debug', requireJWTFromCookie, debugUserData);
   router.post('/create-sample', requireJWTFromCookie, createSampleData);
 }

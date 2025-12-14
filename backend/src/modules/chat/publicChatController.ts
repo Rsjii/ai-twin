@@ -12,6 +12,7 @@ import { handleControllerError, handleErrorWithSuccessFormat } from '../../utils
 import { formatRelativeTime, normalizeTimestamp } from '../../utils/timestampUtils';
 import { detokenizeId, sanitizePublicChat, sanitizeTwin, tokenizeId } from '../../utils/idTokenization';
 import { EVENT_TYPES } from '../../config/constants';
+import { isDev } from '../../config/env';
 
 // Validation schemas
 const startPublicChatSchema = z.object({
@@ -277,7 +278,7 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
       errorJSON: JSON.stringify(error, Object.getOwnPropertyNames(error))
     });
         
-    const errorMessageToReturn = process.env.NODE_ENV === 'development' 
+    const errorMessageToReturn = isDev 
       ? errorMessage
       : 'Failed to start public chat';
     handleErrorWithSuccessFormat(error, res, errorMessageToReturn);

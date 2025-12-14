@@ -4,6 +4,7 @@ import { db } from '../config/database';
 import { EVENT_TYPES } from '../config/constants';
 import { tokenizeId } from '../utils/idTokenization';
 import { capturePostHogEvent } from './posthogService';
+import { isDev } from '../config/env';
 
 // Standard event meta schema
 export interface StandardEventMeta {
@@ -76,7 +77,7 @@ export class EventLogger {
       ]);
       
       // Log to console in development
-      if (process.env['NODE_ENV'] === 'development') {
+      if (isDev) {
         logger.info(`Event logged: ${type}`, { userId, meta: enhancedMeta });
       }
       

@@ -3,6 +3,8 @@
  * Controls functionality based on environment and validation mode
  */
 
+import { isDev } from './env';
+
 export interface FeatureFlags {
   VALIDATION_MODE: boolean;
   ENABLE_AI_GENERATION: boolean;
@@ -21,7 +23,7 @@ export interface FeatureFlags {
 export function getFeatureFlags(): FeatureFlags {
   return {
     // Core validation mode - when true, everything is approve-only
-    VALIDATION_MODE: process.env.VALIDATION_MODE === 'true' || process.env.NODE_ENV === 'development',
+    VALIDATION_MODE: process.env.VALIDATION_MODE === 'true' || isDev,
     
     // AI functionality
     ENABLE_AI_GENERATION: process.env.ENABLE_AI_GENERATION !== 'false',
@@ -41,7 +43,7 @@ export function getFeatureFlags(): FeatureFlags {
     ENABLE_EMAIL_NOTIFICATIONS: process.env.ENABLE_EMAIL_NOTIFICATIONS !== 'false',
     
     // Debug mode
-    DEBUG_MODE: process.env.NODE_ENV === 'development' || process.env.DEBUG_MODE === 'true',
+    DEBUG_MODE: isDev || process.env.DEBUG_MODE === 'true',
   };
 }
 

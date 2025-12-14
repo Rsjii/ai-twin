@@ -236,8 +236,8 @@ app.use(async (req, res, next) => {
       // User row missing: clear auth and send to /auth
       res.clearCookie('jwtToken', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict',
+        secure: isProd,
+        sameSite: isProd ? 'lax' : 'strict',
         path: '/',
       });
       if (req.session) {
@@ -546,7 +546,7 @@ app.get('/api/analytics/twin/:twinId/performance', requireJWTFromCookie, getTwin
 app.get('/api/analytics/feedback', requireJWTFromCookie, getFeedbackAnalytics);
 
 // Test routes , only in the development
-if(process.env.NODE_ENV !== 'production'){
+if(isDev){
   app.use('/', testRoutes);
 }
 

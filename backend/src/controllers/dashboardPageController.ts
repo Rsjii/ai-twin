@@ -7,6 +7,7 @@ import { logger } from '../config/logger';
 import { handleControllerError } from '../utils/errorHandler';
 import { normalizeTimestamp } from '../utils/timestampUtils';
 import { tokenizeId } from '../utils/idTokenization';
+import { isProd } from '../config/env';
 
 /**
  * Dashboard page - Main user dashboard
@@ -39,8 +40,8 @@ export async function getDashboard(req: any, res: Response) {
       // Clear JWT + session to break the loop
       res.clearCookie('jwtToken', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict',
+        secure: isProd,
+        sameSite: isProd ? 'lax' : 'strict',
         path: '/',
       });
       if (req.session) {

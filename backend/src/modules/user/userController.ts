@@ -5,6 +5,7 @@ import { logger } from '../../config/logger';
 import { createError, ErrorCodes, AppError } from '../../utils/errors';
 import { verifyPassword } from '../auth/authService';
 import { userQueries } from '../../config/database';
+import { isProd } from '../../config/env';
 
 /**
  * Export user data
@@ -254,8 +255,8 @@ export const deleteAccount = async (req: AuthenticatedRequest, res: Response) =>
     // Clear JWT cookie (same options as logout)
     res.clearCookie('jwtToken', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict',
+      secure: isProd,
+      sameSite: isProd ? 'lax' : 'strict',
       path: '/',
     });
 

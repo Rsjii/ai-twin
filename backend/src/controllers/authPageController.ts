@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { userQueries } from '../config/database';
 import { logger } from '../config/logger';
+import { isProd } from '../config/env';
 
 /**
  * Unified Auth page - Login/Signup
@@ -19,8 +20,8 @@ export async function getAuth(req: any, res: Response) {
       // Incomplete or missing user → clear auth and show auth page
       res.clearCookie('jwtToken', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict',
+        secure: isProd,
+        sameSite: isProd ? 'lax' : 'strict',
         path: '/',
       });
 

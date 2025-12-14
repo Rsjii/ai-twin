@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyJWT, JWTPayload } from '../services/jwtService';
 import { logger } from '../config/logger';
+import { isProd } from '../config/env';
 
 // Extend Request interface to include user
 declare global {
@@ -14,7 +15,7 @@ declare global {
 export const extractJWTFromCookie = (req: Request, res: Response, next: NextFunction) => {
   try {
     // ✅ ADD: Debug logging for production
-    if (process.env['NODE_ENV'] === 'production') {
+    if (isProd) {
       logger.info('Cookie extraction - cookies:', Object.keys(req.cookies || {}));
     }
     
@@ -47,14 +48,14 @@ export const extractJWTFromCookie = (req: Request, res: Response, next: NextFunc
         // Clear invalid cookie
         res.clearCookie('jwtToken', {
           httpOnly: true,
-          secure: process.env['NODE_ENV'] === 'production',
-          sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict',
+          secure: isProd,
+          sameSite: isProd ? 'lax' : 'strict',
           path: '/'
         });
       }
     } else {
       // ✅ ADD: Log when no cookie found
-      if (process.env['NODE_ENV'] === 'production') {
+      if (isProd) {
         logger.info('No jwtToken cookie found in request');
       }
     }
@@ -92,8 +93,8 @@ export const requireJWTFromCookie = (req: Request, res: Response, next: NextFunc
       logger.warn('Invalid JWT token in cookie:', error);
       res.clearCookie('jwtToken', {
         httpOnly: true,
-        secure: process.env['NODE_ENV'] === 'production',
-        sameSite: process.env['NODE_ENV'] === 'production' ? 'lax' : 'strict',
+        secure: isProd,
+        sameSite: isProd ? 'lax' : 'strict',
         path: '/'
       });      
       return res.redirect('/auth');
