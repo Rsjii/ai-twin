@@ -10,7 +10,11 @@ const router = Router();
 router.use(requireJWTFromCookie);
 router.use(sanitizeInput);
 router.use(generateCSRFToken);
-router.use(validateCSRF); // ✅ CSRF protection for DELETE route
+// ✅ CSRF should protect state-changing requests only (NOT GET/HEAD/OPTIONS)
+router.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
+  return validateCSRF(req, res, next);
+});
 
 router.get('/export-data', exportUserData);
 router.delete('/account', deleteAccount);

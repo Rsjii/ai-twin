@@ -42,7 +42,10 @@ const router = Router();
 // Apply authentication and CSRF protection
 router.use(requireJWTFromCookie);
 router.use(generateCSRFToken);
-router.use(validateCSRF); // ✅ CSRF protection for all POST/PUT/DELETE routes
+router.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
+  return validateCSRF(req, res, next);
+});
 
 // Twin routes
 router.post('/create', requireJWTFromCookie, asyncHandler(createTwin));

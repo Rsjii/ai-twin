@@ -234,6 +234,7 @@
         let publicAllChats = [];
         let visitorId = null;
         let isChatting = false;
+        window.csrfToken = '<%= typeof csrfToken !== "undefined" && csrfToken ? csrfToken : "" %>';
             // ✅ Global human‑friendly relative time (used by sidebar + messages)
     function formatRelativeLabel(timestamp) {
         try {
@@ -758,7 +759,8 @@ if (!confirmed) {
                 const response = await fetch(`/api/public-chat/${chatId}`, {
                     method: 'DELETE',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken
                     },
                     credentials: 'include'
                 });

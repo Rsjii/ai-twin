@@ -19,7 +19,11 @@ const router = Router();
 // All routes require authentication and CSRF protection
 router.use(requireJWTFromCookie);
 router.use(generateCSRFToken);
-router.use(validateCSRF); // ✅ CSRF protection for all POST/DELETE routes
+// ✅ CSRF should protect state-changing requests only (NOT GET/HEAD/OPTIONS)
+router.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
+  return validateCSRF(req, res, next);
+});
 
 // Enhanced chat endpoints
 router.get('/:chatToken', getChatHistory);
