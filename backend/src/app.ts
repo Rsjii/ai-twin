@@ -171,14 +171,21 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.set('trust proxy', 1);
 
 // Session middleware
+const forceInsecureCookies = process.env.FORCE_INSECURE_COOKIES === 'true';
+// production in real deploy => secure cookies, local http test => allow insecure via env flag
+const sessionCookieSecure = isProd && !forceInsecureCookies;
+
 app.use(session({
   secret: config.sessionSecret,
-  resave: true, // Changed to true to force session save
-  saveUninitialized: true, // Changed to true to save sessions even if not modified
+  resave: false,
+  saveUninitialized: false,
+  name: 'connect.sid',
   cookie: {
-    secure: isProd,
+    secure: sessionCookieSecure, // ✅ FIX
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 24 * 60 * 60 * 1000,
   },
 }));
 
@@ -505,10 +512,11 @@ if(config.nodeEnv === 'production'){
 }
 
 // Apply custom middleware
-app.use(generateCSRFToken);
+// ✅ REMOVE THIS LINE:
+// app.use(generateCSRFToken);
 
 // ========== ROUTE MOUNTING ==========
-// Page routes (HTML rendering)
+// Page routes (HTML rendering) - these already have generateCSRFToken
 app.use('/', pageRoutes);
 
 // API Routes (JSON responses)

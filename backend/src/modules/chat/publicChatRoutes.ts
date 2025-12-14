@@ -15,6 +15,7 @@ import {
 } from './publicChatController';
 import { requireJWTFromCookie, extractJWTFromCookie } from '../../middleware/jwtCookie';
 import { publicChatRateLimit, publicChatRateLimitAuthenticated } from '../../middleware/rateLimit';
+import { validateCSRF } from '../../middleware/csrf';
 import { tokenizeId, sanitizeTwin, sanitizePublicChat } from '../../utils/idTokenization';
 
 const router = Router();
@@ -43,8 +44,8 @@ router.get('/twin/:twinToken/all-chats', requireJWTFromCookie, getAllPublicChats
 // Authenticated route - Get user's public chats
 router.get('/user/my-chats', requireJWTFromCookie, getUserPublicChats);
 
-// Delete public chat endpoint (with authentication)
-router.delete('/:chatToken', extractJWTFromCookie, deletePublicChat);
+// Delete public chat endpoint (with authentication) - CSRF protection added
+router.delete('/:chatToken', requireJWTFromCookie, validateCSRF, deletePublicChat);
 
 // Update public chat title endpoint (no authentication required)
 router.put('/:chatToken/title', updatePublicChatTitle);

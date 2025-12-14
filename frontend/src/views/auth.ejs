@@ -223,7 +223,14 @@
 
     <script>
         // CSRF token for AJAX requests
-        window.csrfToken = '<%= csrfToken %>';
+        window.csrfToken = '<%= typeof csrfToken !== "undefined" && csrfToken ? csrfToken : "" %>';
+    
+    // Debug: Log if token is missing
+    if (!window.csrfToken) {
+        console.error('⚠️ CSRF token is missing!');
+    } else {
+        console.log('✅ CSRF token loaded:', window.csrfToken.substring(0, 10) + '...');
+    }        
 
         // Add this inside DOMContentLoaded event listener
 
@@ -362,6 +369,7 @@ if (toggleSignupPassword) {
                             'Content-Type': 'application/json',
                             'X-CSRF-Token': window.csrfToken
                         },
+                        credentials: 'include',
                         body: JSON.stringify(data)
                     });
                     
@@ -399,6 +407,7 @@ if (toggleSignupPassword) {
                             'Content-Type': 'application/json',
                             'X-CSRF-Token': window.csrfToken
                         },
+                        credentials: 'include',
                         body: JSON.stringify(data)
                     });
                     
@@ -437,6 +446,7 @@ if (toggleSignupPassword) {
                             'Content-Type': 'application/json',
                             'X-CSRF-Token': window.csrfToken
                         },
+                        credentials: 'include',
                         body: JSON.stringify(data)
                     });
                     

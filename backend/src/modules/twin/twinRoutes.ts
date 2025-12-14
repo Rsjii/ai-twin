@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { createTwin, getUserTwins, getTwinById, deleteTwin } from './twinController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
-import { generateCSRFToken } from '../../middleware/csrf';
+import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
 import { getTwinEditData, updateTwinStyle, updateTwinPersona, previewStyleChanges, aiEditRewrite, getTwinSettings, updateTwinSettings, aiToolsGenerate } from './twinEditController';
 import {
   regeneratePrompt,
@@ -42,6 +42,7 @@ const router = Router();
 // Apply authentication and CSRF protection
 router.use(requireJWTFromCookie);
 router.use(generateCSRFToken);
+router.use(validateCSRF); // ✅ CSRF protection for all POST/PUT/DELETE routes
 
 // Twin routes
 router.post('/create', requireJWTFromCookie, asyncHandler(createTwin));

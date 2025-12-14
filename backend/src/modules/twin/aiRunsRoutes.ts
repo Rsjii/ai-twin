@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { extractJWTFromCookie } from '../../middleware/jwtCookie';
+import { validateCSRF } from '../../middleware/csrf';
 import {
   createRun,
   getRuns,
@@ -10,13 +11,13 @@ import {
 
 const router = Router();
 
-// All routes require authentication
+// All routes require authentication (optional - extractJWTFromCookie)
 router.use(extractJWTFromCookie);
 
-// AI runs CRUD
-router.post('/:id/runs', createRun);
+// AI runs CRUD - CSRF protection added for POST/PUT
+router.post('/:id/runs', validateCSRF, createRun);
 router.get('/:id/runs', getRuns);
-router.put('/:id/runs/:runId', updateRun);
+router.put('/:id/runs/:runId', validateCSRF, updateRun);
 
 // Analytics and quality tracking
 router.get('/:id/runs/stats', getRunStats);

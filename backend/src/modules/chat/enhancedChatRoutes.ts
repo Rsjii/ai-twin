@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
+import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
 import {
   generateEnhancedReply,
   applyStyleCorrection,
@@ -15,8 +16,10 @@ import {
 
 const router = Router();
 
-// All routes require authentication
+// All routes require authentication and CSRF protection
 router.use(requireJWTFromCookie);
+router.use(generateCSRFToken);
+router.use(validateCSRF); // ✅ CSRF protection for all POST/DELETE routes
 
 // Enhanced chat endpoints
 router.get('/:chatToken', getChatHistory);

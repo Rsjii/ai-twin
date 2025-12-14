@@ -6,28 +6,28 @@ import {
     otpVerifyRateLimit,
     changePasswordRateLimit,
   } from '../../middleware/rateLimit';
-import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
+import { validateCSRF } from '../../middleware/csrf';
 import { sanitizeInput } from '../../middleware/validation';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 
 const router = Router();
 
-// Apply CSRF protection to all routes
-router.use(generateCSRFToken);
+// ❌ REMOVED: router.use(generateCSRFToken);
+// Token generation happens on page routes (authPageRoutes.ts), not API routes
 
 // Signup routes
 router.post('/signup', sanitizeInput, otpRequestRateLimit, signup);
-router.post('/signup/verify', sanitizeInput, otpVerifyRateLimit, signupVerify);
-router.post('/signup/profile', sanitizeInput, completeProfile);
+router.post('/signup/verify', sanitizeInput, validateCSRF, otpVerifyRateLimit, signupVerify);
+router.post('/signup/profile', sanitizeInput, validateCSRF, completeProfile);
 
 // Login routes
 router.post('/login', sanitizeInput, validateCSRF, loginRateLimit, login);
-router.post('/login/verify', sanitizeInput, otpVerifyRateLimit, loginVerify);
+router.post('/login/verify', sanitizeInput, validateCSRF, otpVerifyRateLimit, loginVerify);
 
 // Password reset routes
 router.post('/forgot-password', sanitizeInput, otpRequestRateLimit, forgotPassword);
-router.post('/forgot-password/verify', sanitizeInput, otpVerifyRateLimit, forgotPasswordVerify);
-router.post('/reset-password', sanitizeInput, resetPassword);
+router.post('/forgot-password/verify', sanitizeInput, validateCSRF, otpVerifyRateLimit, forgotPasswordVerify);
+router.post('/reset-password', sanitizeInput, validateCSRF, resetPassword);
 
 // Change password route (requires authentication)
 router.post('/change-password', requireJWTFromCookie, sanitizeInput, validateCSRF, changePasswordRateLimit, changePassword);

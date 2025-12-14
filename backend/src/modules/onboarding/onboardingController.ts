@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { z } from 'zod';
@@ -8,6 +8,8 @@ import { featureFlags } from '../../config/featureFlags';
 import { generateId } from '../../utils/idGenerator';
 import { EVENT_TYPES } from '../../config/constants';
 import { tokenizeId } from '../../utils/idTokenization';
+import { isDev } from '../../config/env';
+import { AppError, createError } from '../../utils/errors';
 
 const twinService = new TwinService();
 
@@ -41,42 +43,39 @@ const enhancedOnboardingSchema = z.object({
   completedAt: z.string(),
 });
 
-export const createEnhancedTwin = async (req: Request, res: Response) => {
+export const createEnhancedTwin = async (req: Request, res: Response, next: NextFunction) => {
   try {
     logger.info('=== ENHANCED TWIN CREATION (v2) ===');
-    logger.info('Request body:', JSON.stringify(req.body, null, 2));
+    if (isDev) logger.info('Request body:', JSON.stringify(req.body, null, 2));
 
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+    if (!req.user) return next(createError.unauthorized());
 
     // 1) Validate incoming payload against new schema
     const validatedData = enhancedOnboardingSchema.parse(req.body);
-    logger.info('Validated onboarding data:', validatedData);
+    if (isDev) logger.info('Validated onboarding data:', validatedData);
 
     // 2) Enforce one twin per user
-    const existingTwinQuery = `
-      SELECT id, "createdAt" 
+    const existingTwinResult = await db.query(
+      `SELECT id, "createdAt" 
       FROM "Twin" 
       WHERE "userId" = $1 
-      LIMIT 1
-    `;
-    const existingTwinResult = await db.query(existingTwinQuery, [req.user.id]);
+      LIMIT 1`,
+      [req.user.id]
+    );
 
     if (existingTwinResult.rows.length > 0) {
       const existingTwin = existingTwinResult.rows[0];
-      return res.status(400).json({ 
-        error: 'User already has a twin. Only one twin per user is allowed.',
+      return next(createError.conflict('User already has a twin. Only one twin per user is allowed.', {
         existingTwin: {
           id: existingTwin.id,
           createdAt: existingTwin.createdAt,
         },
-      }); 
+      }));
     }
 
     // 3) Check feature flag
     if (!featureFlags.ENABLE_AI_GENERATION) {
-      return res.status(503).json({ error: 'AI generation is currently disabled' });
+      return next(new AppError(503, 'AI generation is currently disabled', 'SERVICE_UNAVAILABLE'));
     }
 
     // 4) Build personaData object from onboarding payload
@@ -199,9 +198,10 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
   } catch (error) {
     logger.error('Enhanced twin creation error:', error);
     
-    if (req.user) {
+    // Event log stays (internal)
+    if ((req as any).user?.id) {
       try {
-      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_CREATION_FAILED, { 
+      await EventLogger.logUserEvent((req as any).user.id, EVENT_TYPES.TWIN_CREATION_FAILED, { 
         error: error instanceof Error ? error.message : 'Unknown error',
           type: 'enhanced_v2',
       });
@@ -210,13 +210,18 @@ export const createEnhancedTwin = async (req: Request, res: Response) => {
       }
     }
     
+    // ✅ Do NOT send raw details to user
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+      return next(
+        createError.validation('Invalid input', {
+          issues: error.errors.map(e => ({ field: e.path.join('.'), message: e.message })),
+        })
+      );
     }
     if (error instanceof Error) {
-      return res.status(400).json({ error: error.message });
+      return next(createError.internal('Failed to create twin', { cause: error.message }));
     }
-    return res.status(500).json({ error: 'Internal server error' });
+    return next(createError.internal('Failed to create twin'));
   }
 };
 
@@ -389,7 +394,7 @@ async function createEnhancedStyleVector(data: z.infer<typeof enhancedOnboarding
       }
     }
     
-    return styleVector;
+  return styleVector;
   } catch (e) {
     logger.warn('Style extraction failed, using empty style vector:', e);
     return {};
