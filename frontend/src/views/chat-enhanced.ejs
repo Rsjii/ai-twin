@@ -416,7 +416,7 @@
                         </div>
 
             <!-- Chat Input -->
-            <div id="chatInputSection" class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-900 w-full flex-shrink-0" style="padding-bottom: calc(env(safe-area-inset-bottom) + 12px);">                
+            <div id="chatInputSection" class="bg-gray-50 dark:bg-gray-900 p-3 sm:p-4 w-full flex-shrink-0" style="padding-bottom: calc(env(safe-area-inset-bottom) + 8px); border: none !important; box-shadow: none !important;">                
                 <form id="messageForm" class="flex gap-2 sm:gap-3 md:gap-4">
                     <textarea 
                         id="messageInput" 
@@ -2912,11 +2912,22 @@ enhancedSearchInputs.forEach(input => {
             color: inherit;
         }
         
+        /* Ensure chatInputSection matches chatMessages background exactly - no borders, no shadows */
+        #chatInputSection {
+            border: none !important;
+            box-shadow: none !important;
+            background-color: rgb(249 250 251) !important; /* bg-gray-50 - exact match */
+        }
+        
+        .dark #chatInputSection {
+            background-color: rgb(17 24 39) !important; /* dark:bg-gray-900 - exact match */
+        }
+        
         /* Mobile: Push send section above Android navigation bar */
         @media (max-width: 640px) {
             /* Push chat input section up from bottom using transform (works with overflow-hidden) */
             #chatInputSection {
-                transform: translateY(-80px) !important;
+                transform: translateY(-50px) !important;
                 margin-bottom: 0 !important;
                 position: relative;
                 z-index: 10;
@@ -2924,17 +2935,17 @@ enhancedSearchInputs.forEach(input => {
             
             /* Ensure messages container has bottom spacing so content doesn't hide behind input */
             #chatMessages {
-                padding-bottom: 100px !important;
+                padding-bottom: 90px !important;
             }
             
             /* Add background extension below send section to match messages area background */
             #chatInputSection::after {
                 content: '';
                 position: absolute;
-                bottom: -80px;
+                bottom: -50px;
                 left: 0;
                 right: 0;
-                height: 80px;
+                height: 70px;
                 background: rgb(249 250 251); /* bg-gray-50 - matches #chatMessages */
                 z-index: -1;
             }
