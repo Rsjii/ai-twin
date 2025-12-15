@@ -355,7 +355,7 @@
             </div>
 
             <!-- Chat Messages -->
-                   <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-[calc(80px+env(safe-area-inset-bottom))] sm:pb-6 space-y-3 sm:space-y-4 bg-gray-50 dark:bg-gray-900 w-full" id="chatMessages">                           
+                   <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-[calc(180px+env(safe-area-inset-bottom))] sm:pb-6 space-y-3 sm:space-y-4 bg-gray-50 dark:bg-gray-900 w-full" id="chatMessages">                           
                 <!-- Messages will be loaded here -->
 
                                 <!-- Initial Loading State -->
@@ -416,7 +416,7 @@
                         </div>
 
             <!-- Chat Input -->
-            <div class="bg-white dark:bg-gray-800 p-3 pb-[calc(env(safe-area-inset-bottom)+80px)] sm:p-4 sm:pb-4 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-900 w-full flex-shrink-0">                
+            <div class="bg-white dark:bg-gray-800 p-3 pb-[calc(env(safe-area-inset-bottom)+120px)] sm:p-4 sm:pb-4 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-900 w-full flex-shrink-0">                
                 <form id="messageForm" class="flex gap-2 sm:gap-3 md:gap-4">
                     <textarea 
                         id="messageInput" 
@@ -433,7 +433,10 @@
                     </button>
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 </form>
-            </div>   
+            </div>
+            
+            <!-- Mobile Spacer for Android Navigation Bar -->
+            <div class="block sm:hidden h-[80px] bg-gray-50 dark:bg-gray-900 w-full flex-shrink-0"></div>
 
 </div>
     </div>
