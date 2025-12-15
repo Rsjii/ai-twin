@@ -553,7 +553,7 @@
         /* Mobile responsive for discover section */
         @media (max-width: 768px) {
             .twin-card-discover {
-                min-width: 240px;
+                min-width: 280px;
             }
         }
     </style>
@@ -1400,7 +1400,7 @@ function renderRecentInteractions(chats) {
     
     chats.forEach(({ twin, latestChat, lastMessage, totalMessages }) => {
         const card = document.createElement('div');
-        card.className = 'min-w-[280px] bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-md dark:shadow-gray-900 p-6 border border-white/30 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group flex-shrink-0';
+        card.className = 'min-w-[280px] h-[240px] bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-md dark:shadow-gray-900 p-6 border border-white/30 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group flex-shrink-0 flex flex-col';
 
         // ✅ NEW: decide which handle to use for profile links
         const profileHandle = twin.userHandle || twin.publicHandle || '';
@@ -1414,31 +1414,31 @@ function renderRecentInteractions(chats) {
         const twinId = twin.publicId || twinPublicId;
         
         card.innerHTML = `
-            <div class="flex items-center gap-4 mb-3">
+            <div class="flex items-center gap-4 mb-3 flex-shrink-0">
                     <div class="relative flex-shrink-0">
-                        <div class="twin-avatar-clickable w-14 h-14 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg group-hover:scale-110 transition-transform cursor-pointer" data-profile-handle="${profileHandle}">
-                            ${profileImage ? `<img src="${profileImage}" alt="${twin.publicHandle}" class="w-14 h-14 rounded-full object-cover" loading="lazy">` : avatarInitial}
+                        <div class="twin-avatar-clickable w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg group-hover:scale-110 transition-transform cursor-pointer" data-profile-handle="${profileHandle}">
+                            ${profileImage ? `<img src="${profileImage}" alt="${twin.publicHandle}" class="w-12 h-12 rounded-full object-cover" loading="lazy">` : avatarInitial}
                         </div>
-                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
+                        <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-1">
                             <h4 class="font-semibold text-gray-900 dark:text-white text-sm truncate">@${profileHandle || twin.publicHandle || 'twin'}</h4>
-                            ${twin.verified ? '<span class="text-xs text-primary">✓</span>' : ''}
+                            ${twin.verified ? '<span class="text-primary text-xs">✓</span>' : ''}
                         </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${twin.userName || twin.userHandle || 'AI Twin'}</p>
                     </div>
                 </div>
                 
                 ${latestChat ? `
-                <div class="mb-3 p-2 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg">
+                <div class="mb-3 p-2 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg flex-shrink-0">
                     <div class="flex items-center justify-between mb-1">
                         <p class="text-xs font-medium text-gray-700 dark:text-gray-300">Total Messages</p>
                         <span class="text-xs bg-primary/10 dark:bg-primary/20 text-primary dark:text-blue-400 px-2 py-0.5 rounded-full">${totalMessages || 0} msgs</span>
                     </div>
                     ${lastMessage?.createdAt ? `
                     <div class="flex items-center gap-1 mt-1">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">Last chatted at:</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Last:</span>
                         <p class="text-xs text-gray-400 dark:text-gray-500 recent-chat-timestamp" 
                            data-timestamp="${lastMessage.createdAt}" 
                            data-relative-time="${lastMessage.relativeTime || ''}">
@@ -1448,10 +1448,12 @@ function renderRecentInteractions(chats) {
                 </div>
                 ` : ''}
                 
-                <button data-twin-id="${twinId}" data-chat-id="${chatId}"
-                        class="continue-chat-btn w-full px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
-                    💬 Continue Chat
-                </button>
+                <div class="mt-auto">
+                    <button data-twin-id="${twinId}" data-chat-id="${chatId}"
+                            class="continue-chat-btn w-full px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
+                        💬 Continue Chat
+                    </button>
+                </div>
             
         `;        
   // Avatar click → profile
@@ -1550,17 +1552,19 @@ function renderRecentInteractions(chats) {
     
     // Add "Chat with more twins" placeholder card on the right
     const placeholderCard = document.createElement('div');
-    placeholderCard.className = 'min-w-[280px] bg-gradient-to-br from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 backdrop-blur-sm rounded-xl p-6 border-2 border-dashed border-primary/30 dark:border-primary/40 hover:border-primary/50 dark:hover:border-primary/60 hover:shadow-lg transition-all duration-300 flex-shrink-0 flex flex-col items-center justify-center cursor-pointer group';
+    placeholderCard.className = 'min-w-[280px] h-[240px] bg-gradient-to-br from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 backdrop-blur-sm rounded-xl p-6 border-2 border-dashed border-primary/30 dark:border-primary/40 hover:border-primary/50 dark:hover:border-primary/60 hover:shadow-lg transition-all duration-300 flex-shrink-0 flex flex-col items-center justify-center cursor-pointer group';
     placeholderCard.innerHTML = `
-        <div class="w-16 h-16 bg-gradient-to-r from-primary/20 to-accent/20 dark:from-primary/30 dark:to-accent/30 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <span class="text-3xl">💬</span>
+        <div class="w-12 h-12 bg-gradient-to-r from-primary/20 to-accent/20 dark:from-primary/30 dark:to-accent/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform flex-shrink-0">
+            <span class="text-2xl">💬</span>
         </div>
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 text-center">Chat with More Twins</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-300 text-center mb-4">Discover and start conversations with exciting AI twins</p>
-        <a href="/discover" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
-            <span>🔍</span>
-            <span>Explore Now</span>
-        </a>
+        <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-2 text-center flex-shrink-0">Chat with More Twins</h3>
+        <p class="text-xs text-gray-600 dark:text-gray-300 text-center mb-3 line-clamp-2 flex-shrink-0">Discover and start conversations with exciting AI twins</p>
+        <div class="mt-auto">
+            <a href="/discover" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
+                <span>🔍</span>
+                <span>Explore Now</span>
+            </a>
+        </div>
     `;
     
     // Add click handler for placeholder card
