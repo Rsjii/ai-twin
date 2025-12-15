@@ -580,6 +580,10 @@
             try {
                 const response = await fetch(`/api/public-chat/${chatId}`, {
                     method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '<%= csrfToken %>'
+                    },
                     credentials: 'include'
                 });
                 
