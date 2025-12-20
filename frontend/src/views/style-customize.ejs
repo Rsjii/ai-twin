@@ -107,11 +107,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
           </svg>
           Back to Twin Settings
         </a>
-        <a href="/ai-edit"
-           class="inline-flex items-center justify-center bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] touch-manipulation text-base"
-           aria-label="AI Edit">
-          AI Edit
-        </a>
+        <% /* ✅ MVP: AI Edit link removed (V2 feature) */ %>
         <% /* TODO(V2): Memory Management button */ %>
         <% if (FEATURE_FLAGS.memoryUI) { %>
           <a href="/memory-management"

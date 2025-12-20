@@ -83,7 +83,20 @@
                 </div>
             </div>
 
-    <!-- ... Views card (not clickable, no API for views) ... -->
+    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Views</p>
+          <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white"><%= stats.totalViews %></p>
+        </div>
+        <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+          <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
 
     <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 cursor-pointer hover:shadow-xl transition-all" data-twin-id="<%= twinPublicId %>" data-list-type="likers" id="twinManageLikersCard">                
                 <div class="flex items-center justify-between">
@@ -126,9 +139,7 @@
                         </svg>
                         View Profile
                     </a>
-                    <a href="/ai-edit" class="px-2 py-2 text-xs sm:text-sm bg-primary text-white rounded-lg hover:bg-secondary transition-colors min-h-[36px] sm:min-h-[44px] touch-manipulation flex items-center justify-center text-center truncate">
-                        AI Edit
-                    </a>
+                    <% /* ✅ MVP: AI Edit button removed (V2 feature) */ %>
                     <a href="/twin-settings#styleSection" class="px-2 py-2 text-xs sm:text-sm bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors min-h-[36px] sm:min-h-[44px] touch-manipulation flex items-center justify-center text-center truncate">
                         Style & Tone
                     </a>

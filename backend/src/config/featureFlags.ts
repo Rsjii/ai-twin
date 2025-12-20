@@ -123,4 +123,5 @@ export const FEATURE_FLAGS = {
   styleAnchorsUI: process.env['ENABLE_STYLE_ANCHORS_UI'] === 'true',
   chatFeedbackUI: process.env['ENABLE_CHAT_FEEDBACK_UI'] === 'true',
   advancedPublicAnalyticsUI: process.env['ENABLE_ADV_PUBLIC_ANALYTICS'] === 'true',
+  aiToolsUI: process.env['ENABLE_AI_TOOLS_UI'] === 'true', // ✅ MVP: AI Edit page (V2 feature)
 };

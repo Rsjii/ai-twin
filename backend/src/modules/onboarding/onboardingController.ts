@@ -4,6 +4,7 @@ import { logger } from '../../config/logger';
 import { z } from 'zod';
 import { EventLogger } from '../../services/eventLogger';
 import { TwinService } from '../twin/twinService';
+import type { StyleVector } from '../twin/twinService';
 import { featureFlags } from '../../config/featureFlags';
 import { generateId } from '../../utils/idGenerator';
 import { EVENT_TYPES } from '../../config/constants';
@@ -81,17 +82,34 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
     // 4) Build personaData object from onboarding payload
     const personaData = createPersonaData(validatedData);
     logger.info('Generated persona data:', personaData);
+    console.log('[ONBOARDING] [HYP-A] personaData created:', JSON.stringify(personaData, null, 2));
+    console.log('[ONBOARDING] [HYP-A] Source: onboarding payload, Destination: Twin table');
 
     // 5) Generate system prompt from persona
     const systemPrompt = generateSystemPrompt(personaData);
     logger.info('Generated system prompt');
+    console.log('[ONBOARDING] [HYP-B] systemPrompt generated from personaData');
+    console.log('[ONBOARDING] [HYP-B] systemPrompt length:', systemPrompt.length, 'chars');
+    console.log('[ONBOARDING] [HYP-B] systemPrompt preview:', systemPrompt.substring(0, 200) + '...');
 
-    // 6) Build style vector using user’s real chat samples (casual + optional formal)
-    const styleVector = await createEnhancedStyleVector(validatedData);
-    logger.info('Generated style vector:', styleVector);
+    // 6) MVP (personaData-only): styleVector is legacy/ignored.
+    // Keep it stored as an empty object to avoid schema drift.
+    const styleVector = {};
+    logger.info('MVP: Skipping styleVector generation (personaData-only)');
 
-    // 7) Generate a sample reply in the user’s style
-    const sampleReply = await twinService.generateSampleReply(styleVector);
+    // 7) Generate a sample reply using the systemPrompt (personaData-only)
+    const sampleReplyResult = await twinService.generateDraftWithContext({
+      personaData,
+      systemPrompt,
+      tokenLimit: 120,
+      chatMemory: [],
+      currentMessages: ['Say a short hello in my style.'],
+      isFirstMessage: false,
+    });
+    const sampleReply =
+      typeof sampleReplyResult === 'object' && sampleReplyResult && 'response' in sampleReplyResult
+        ? (sampleReplyResult as any).response
+        : (typeof sampleReplyResult === 'string' ? sampleReplyResult : 'Hey!');
 
     // 8) Update user profile with persona data and onboardingCompleted flag
     await updateUserProfile(req.user.id, validatedData);
@@ -141,6 +159,9 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
     }
 
     const result = await db.query(insertQuery, insertParams);
+    console.log('[ONBOARDING] [HYP-A] Twin stored in database:', { twinId, userId: req.user.id });
+    console.log('[ONBOARDING] [HYP-A] personaData stored:', JSON.stringify(personaData, null, 2));
+    console.log('[ONBOARDING] [HYP-B] systemPrompt stored in database');
 
     // 10) Initialize default settings with new memory structure
     // ✅ FIX: Store settings in personaData (not separate column - single source of truth)
@@ -151,7 +172,8 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
         energy: 'normal',
       },
       adaptation: {
-        enabled: true,
+        // MVP: no automatic style adaptation while using external APIs
+        enabled: false,
         styleMix: 50,
       },
       safety: {
@@ -159,11 +181,12 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
         avoidAbuse: true,
         avoidPoliticsReligion: true,
       },
-      memory: {
-        enabled: true, // ✅ Default: memory enabled
-        allowPublicContribution: false,
-        autoExtractFacts: false,
-      },
+    memory: {
+      enabled: true, // ✅ Default: memory enabled
+      allowPublicContribution: false,
+      autoExtractFacts: false,
+      allowPublicUse: false, // ✅ NEW: public chat can use ONLY public-visible long-term memories
+    },
     };
 
     // Update personaData with settings (single source of truth)
@@ -176,6 +199,8 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
       `UPDATE "Twin" SET "personaData" = $1 WHERE id = $2`,
       [JSON.stringify(updatedPersonaData), twinId]
     );
+    console.log('[ONBOARDING] [HYP-A] Updated personaData with default settings');
+    console.log('[ONBOARDING] [HYP-A] Settings included:', JSON.stringify(defaultSettings, null, 2));
 
     // 11) Event log
     await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.ENHANCED_TWIN_CREATED, { 
@@ -350,53 +375,5 @@ GENERAL INSTRUCTIONS:
 - Do not mention that you are an AI or that you are following a prompt.`;
 }
 
-// Build a style vector using the real chat samples via TwinService.extractStyle
-async function createEnhancedStyleVector(data: z.infer<typeof enhancedOnboardingSchema>) {
-  const samples: string[] = [];
-
-  if (data.styleSamples?.casualSample) {
-    samples.push(data.styleSamples.casualSample);
-  }
-  if (data.styleSamples?.formalSample) {
-    samples.push(data.styleSamples.formalSample);
-  }
-
-  const combined = samples.join('\n---\n');
-
-  if (!combined.trim()) {
-    // Fallback to a default style vector if no samples were provided
-    try {
-      // If TwinService exposes a default helper
-      // @ts-ignore
-      if (typeof twinService.getDefaultStyleVector === 'function') {
-        // @ts-ignore
-        return twinService.getDefaultStyleVector();
-      }
-    } catch {
-      // ignore
-    }
-
-    return {};
-  }
-
-  try {
-    const styleVector = await twinService.extractStyle(combined);
-    
-    // Map engagementStyle to question_frequency
-    const engagementStyle = data.rules?.engagementStyle || 'mix';
-    if (styleVector) {
-      if (engagementStyle === 'ask_questions') {
-        styleVector.question_frequency = 0.7; // High question frequency
-      } else if (engagementStyle === 'natural') {
-        styleVector.question_frequency = 0.2; // Low question frequency
-      } else {
-        styleVector.question_frequency = 0.5; // Mix
-      }
-    }
-    
-  return styleVector;
-  } catch (e) {
-    logger.warn('Style extraction failed, using empty style vector:', e);
-    return {};
-  }
-}
+// MVP (personaData-only): Legacy style vector generation removed.
+// Onboarding now stores personaData + systemPrompt only; styleVector is {}.

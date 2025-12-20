@@ -11,12 +11,12 @@ declare module 'express-session' {
 
 declare global {
   namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        email: string;
-        handle?: string;
-      };
+    // Passport sets req.user as Express.User; augment it once, globally.
+    interface User {
+      id: string;
+      userId?: string;
+      email: string;
+      handle?: string;
     }
   }
 }

@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS "User" (
     "active" BOOLEAN NOT NULL DEFAULT false,
     "referralCode" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "lastHandleChangeAt" TIMESTAMPTZ NULL,
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -44,6 +45,7 @@ CREATE TABLE IF NOT EXISTS "Twin" (
     "followCount" INTEGER NOT NULL DEFAULT 0,
     "chatCount" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Twin_pkey" PRIMARY KEY ("id")
 );
 
@@ -218,6 +220,14 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'profileCompleted') THEN
         ALTER TABLE "User" ADD COLUMN "profileCompleted" BOOLEAN NOT NULL DEFAULT false;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'updatedAt') THEN
+        ALTER TABLE "User" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'updatedAt') THEN
+        ALTER TABLE "Twin" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
     END IF;
 END $$;
 
@@ -1143,13 +1153,23 @@ export const memorySessionQueries = {
   },
 
   update: async (chatId: string, summary: string, keyTopics: string[], vector: any, messageCount: number) => {
+    // First get the existing record's id to ensure we update by primary key
+    const existing = await db.query(
+      'SELECT id FROM "MemorySession" WHERE "chatId" = $1',
+      [chatId]
+    );
+    
+    if (existing.rows.length === 0) {
+      throw new Error(`No MemorySession found for chatId: ${chatId}`);
+    }
+    
     const utcTimestamp = new Date().toISOString();
     const result = await db.query(
       `UPDATE "MemorySession" 
        SET summary = $1, "keyTopics" = $2, vector = $3, "messageCount" = $4, "lastUpdated" = $5::timestamptz
-       WHERE "chatId" = $6
+       WHERE id = $6
        RETURNING *`,
-      [summary, keyTopics, JSON.stringify(vector), messageCount, utcTimestamp, chatId]
+      [summary, keyTopics, JSON.stringify(vector), messageCount, utcTimestamp, existing.rows[0].id]
     );
     return result.rows[0];
   }

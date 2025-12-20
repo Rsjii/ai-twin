@@ -1,5 +1,11 @@
 // TypeScript Interfaces for AI Twin Project
 
+// Express helpers
+import type { Request } from 'express';
+
+// Used by controllers that require req.user
+export type AuthenticatedRequest = Request & { user: Express.User };
+
 // User Interface
 export interface User {
   id: string;
@@ -43,21 +49,27 @@ export interface Twin {
   chats: Chat[];
 }
 
-// Style Vector Interface (AI extracted style)
+// MVP (personaData-only): StyleVector is legacy/ignored.
+// All style guidance now comes from personaData.communicationStyle + personaData.rules.
+// This interface is kept for backward compatibility with existing DB records only.
+/**
+ * @deprecated Use personaData.communicationStyle + personaData.rules instead.
+ * This interface is legacy and not used in MVP personaData-only flow.
+ */
 export interface StyleVector {
-  // Basic characteristics
+  // Basic characteristics (legacy - not used in MVP)
   tone: 'casual' | 'witty' | 'serious' | 'friendly' | 'professional';
   emoji_usage: number; // 0-1
-  hinglish_ratio: number; // 0-1
-  sentence_length: 'short' | 'medium' | 'long';
-  signature_patterns: string[];
+  hinglish_ratio: number; // 0-1 (legacy - not used)
+  sentence_length: 'short' | 'medium' | 'long'; // legacy - use personaData.communicationStyle.language.responseLength
+  signature_patterns: string[]; // legacy - use personaData.communicationStyle.language.commonPhrases
   
-  // Enhanced characteristics
+  // Enhanced characteristics (legacy - not used in MVP)
   formality_level: number; // 0-1 (0=casual, 1=formal)
   humor_style: 'none' | 'light' | 'moderate' | 'heavy';
-  question_frequency: number; // 0-1 (how often asks questions)
+  question_frequency: number; // 0-1 (use personaData.rules.engagementStyle)
   exclamation_usage: number; // 0-1
-  code_mixing_style: 'minimal' | 'moderate' | 'heavy';
+  code_mixing_style: 'minimal' | 'moderate' | 'heavy'; // legacy
   response_length_preference: 'brief' | 'detailed' | 'comprehensive';
   personality_traits: string[]; // ['helpful', 'curious', 'direct']
   communication_style: 'conversational' | 'informative' | 'questioning';

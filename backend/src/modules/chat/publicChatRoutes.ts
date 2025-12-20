@@ -14,7 +14,7 @@ import {
   getUserWisePublicChats
 } from './publicChatController';
 import { requireJWTFromCookie, extractJWTFromCookie } from '../../middleware/jwtCookie';
-import { publicChatRateLimit, publicChatRateLimitAuthenticated } from '../../middleware/rateLimit';
+import { publicChatDailyAnonLimit, publicChatRateLimit, publicChatRateLimitAuthenticated } from '../../middleware/rateLimit';
 import { validateCSRF } from '../../middleware/csrf';
 import { tokenizeId, sanitizeTwin, sanitizePublicChat } from '../../utils/idTokenization';
 
@@ -26,6 +26,7 @@ router.post('/start', extractJWTFromCookie, startPublicChat);
 // Apply rate limiting: anonymous users get strict limit, authenticated get higher limit
 router.post('/:chatToken/message',
   extractJWTFromCookie, // Extract JWT to set req.user (optional, doesn't fail if no JWT)
+  publicChatDailyAnonLimit,          // ✅ NEW: daily login wall for anonymous
   publicChatRateLimit, // First check: strict limit for anonymous (IP-based)
   publicChatRateLimitAuthenticated, // Then check: higher limit for authenticated
   sendPublicMessage

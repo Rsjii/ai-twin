@@ -7,6 +7,7 @@ import * as twinManagePageController from '../controllers/twinManagePageControll
 import * as discoverPageController from '../controllers/discoverPageController';
 import { getTwinPublicChatHistoryPage ,getViewPublicChatHistoryPage} from '../controllers/twinPublicChatHistoryPageController';
 import { asyncHandler } from '../middleware/errorHandler';
+import { FEATURE_FLAGS } from '../config/featureFlags';
 
 const router = Router();
 
@@ -16,8 +17,14 @@ router.get('/my-twins', requireJWTFromCookie, generateCSRFToken, asyncHandler(tw
 // Twin Create page
 router.get('/twin/create', optionalAuth, generateCSRFToken, twinPageController.getTwinCreate);
 
-// Twin AI Edit page (owner-only, single twin)
-router.get('/ai-edit', requireJWTFromCookie, generateCSRFToken, asyncHandler(twinPageController.getTwinAiEdit));
+// ✅ MVP: AI Edit page disabled (V2 feature - route commented out)
+// To enable: Set ENABLE_AI_TOOLS_UI=true in .env and uncomment below
+// router.get('/ai-edit', requireJWTFromCookie, generateCSRFToken, asyncHandler(twinPageController.getTwinAiEdit));
+
+// Alternative: Use feature flag (uncomment to enable flag-based control)
+// if (FEATURE_FLAGS.aiToolsUI) {
+//   router.get('/ai-edit', requireJWTFromCookie, generateCSRFToken, asyncHandler(twinPageController.getTwinAiEdit));
+// }
 
 // Twin Style Customize page (not used in MVP – keep for future, redirect to Twin Settings)
 router.get('/style-customize', requireJWTFromCookie, generateCSRFToken, (_req, res) => {

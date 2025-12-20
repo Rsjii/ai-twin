@@ -90,7 +90,7 @@ Return JSON only:
       { role: 'user', content: 'Critique this draft for style match' }
     ], {
       temperature: 0.3,
-      maxTokens: 800
+      maxTokens: 700  // ✅ Reduced from 800 (style critique responses are typically shorter)
     });
 
     const content = llmResponse.content;
@@ -121,17 +121,66 @@ Return JSON only:
  * Extract style profile from twin data
  */
 function extractStyleProfile(twin: any): StyleProfile {
-  const styleVector = twin.styleVector || {};
-  
+  // MVP (personaData-only): Prefer personaData as source of truth.
+  const pd = twin.personaData || {};
+  const rules = pd.rules || {};
+  const comm = pd.communicationStyle || {};
+  const lang = comm.language || {};
+  const prefs = pd.preferences || {};
+  const ctx = pd.context || {};
+
+  const styleVector = twin.styleVector || {}; // legacy fallback only
+
+  const responseLenRaw: string = (lang.responseLength || rules.replySize || '').toString().toLowerCase();
+  const sentences =
+    responseLenRaw.includes('short') ? 'short' :
+    responseLenRaw.includes('detail') ? 'long' :
+    responseLenRaw.includes('long') ? 'long' :
+    'medium';
+
+  const toneStyle: string = (prefs.toneStyle || '').toString().toLowerCase();
+  const tone =
+    toneStyle.includes('polite') ? 'professional' :
+    toneStyle.includes('casual') ? 'casual' :
+    (styleVector.tone || 'casual');
+
+  const commonPhrasesRaw: string = (lang.commonPhrases || '').toString();
+  const signature =
+    commonPhrasesRaw
+      ? commonPhrasesRaw.split(',').map((s: string) => s.trim()).filter(Boolean).slice(0, 8)
+      : (Array.isArray(styleVector.signature_patterns) ? styleVector.signature_patterns : []);
+
+  const emojiPref: string = (lang.emojiUsage || prefs.emojiPref || '').toString().toLowerCase();
+  const emojiUsage =
+    emojiPref.includes('high') ? 0.6 :
+    emojiPref.includes('low') ? 0.1 :
+    emojiPref.includes('none') ? 0.0 :
+    (typeof styleVector.emoji_usage === 'number' ? styleVector.emoji_usage : 0.3);
+
+  const engagement: string = (rules.engagementStyle || '').toString().toLowerCase();
+  const questionFreq =
+    engagement.includes('ask') ? 0.7 :
+    engagement.includes('natural') ? 0.2 :
+    (typeof styleVector.question_frequency === 'number' ? styleVector.question_frequency : 0.4);
+
+  const formality =
+    toneStyle.includes('polite') ? 0.8 :
+    (typeof styleVector.formality_level === 'number' ? styleVector.formality_level : 0.5);
+
+  const responseLength =
+    responseLenRaw.includes('short') ? 'brief' :
+    responseLenRaw.includes('detail') ? 'detailed' :
+    (styleVector.response_length_preference || 'detailed');
+
   return {
-    sentences: styleVector.sentence_length || 'medium',
-    tone: styleVector.tone || 'casual',
-    signature: styleVector.signature_patterns || [],
-    emoji: getEmojiLevel(styleVector.emoji_usage || 0.3),
-    formality: styleVector.formality_level || 0.5,
+    sentences,
+    tone,
+    signature,
+    emoji: getEmojiLevel(emojiUsage),
+    formality,
     humor: styleVector.humor_style || 'light',
-    questionFreq: styleVector.question_frequency || 0.4,
-    responseLength: styleVector.response_length_preference || 'detailed'
+    questionFreq,
+    responseLength
   };
 }
 

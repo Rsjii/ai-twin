@@ -143,9 +143,11 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     
     // ✅ MVP: explicit "remember" command (no LLM call, saves to MemoryLongTerm)
     if (!regenerate) {
-      const rememberMatch = message.match(/^\s*(remember this|remember|note)\s*:\s*(.+)$/i);
-      if (rememberMatch && rememberMatch[2]) {
-        const rememberedText = rememberMatch[2].trim();
+      // ✅ FIX: Accept "remember this" with or without colon, handle typos
+      const rememberMatch = message.match(/^\s*(?:rememb?e?r|remeber|rember)\s+(?:this|that|it)\s*:?\s*(.+)$/i) ||
+                            message.match(/^\s*(?:remember|note)\s*:\s*(.+)$/i);
+      if (rememberMatch && rememberMatch[1]) {
+        const rememberedText = rememberMatch[1].trim();
         const now = new Date().toISOString();
 
         try {
@@ -303,28 +305,72 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
       logger.warn('Failed to check chat info for title:', err);
     }
     
-    // 2. Get chat history for context (BEFORE saving user message)
-    const MAX_CONTEXT_MESSAGES = 20; // ✅ MVP: hard cap for token/cost control
+    // 2. Get chat history for context (BEFORE saving user message) - Budget-aware with session summary
+    const sessionMemory = await chatUtils.getSessionMemoryForContext(chatId).catch(() => null);
+    console.log('[ENHANCED_CHAT] [HYP-F] [HYP-G] Session memory check:', {
+      chatId,
+      hasSummary: !!sessionMemory?.summary,
+      summaryLength: sessionMemory?.summary?.length || 0,
+    });
 
-    const messagesResult = await db.query(`
-      SELECT content, sender, "createdAt"
-      FROM "Message"
-      WHERE "chatId" = $1
-      ORDER BY "createdAt" DESC
-      LIMIT $2
-    `, [chatId, MAX_CONTEXT_MESSAGES]);
+    // ✅ Budget-aware: only fetch recent messages if needed (not always 20)
+    const needsRecent = (() => {
+      const t = (message || '').trim().toLowerCase();
+      if (t.length <= 12) return true;
 
-    // reverse to chronological order
-    const chatHistory = messagesResult.rows
-      .slice()
-      .reverse()
-      .map(msg => ({
-        content: msg.content,
-        sender: msg.sender,
-        timestamp: msg.createdAt
-      }));
+      // Strong “follow previous / correction / continue task” signals
+      if (/^(no|nahi)\b/i.test(t)) return true;
+      if (/(same|continue|as above|that|this|it|wahi|haan|han|ok|kar do|kardo|continue karo)/i.test(t)) return true;
+
+      // Real phrases observed in logs
+      if (/(as\s*i\s*said|i\s*said|isaid|do\s*what\s*i\s*said|follow\s*what\s*i\s*said)/i.test(t)) return true;
+      if (/(continue\s*math|math\s*question|math\s*questions|ask\s*me\s*math|10\s*questions|one\s*at\s*a\s*time|score)/i.test(t)) return true;
+
+      // NEW: quiz/result/reference follow-ups should pull recent context
+      if (/(final\s*result|final\s*score|my\s*score|marks|kitne\s*correct|how\s*much\s*score|percentage|%)/i.test(t)) return true;
+      if (/(which\s*(one|question)|what\s*was\s*question|question\s*\d+|q\s*\d+|wrong|galat)/i.test(t)) return true;
+
+      // Preference / likes-avoids questions should fetch recent context
+      if (/(what\s+do\s+i\s+like|what\s+game\s+do\s+i\s+like|my\s+preference|my\s+preferences|likes|avoids|dislikes|favou?rite\s+game|favou?rite\s+games)/i.test(t)) return true;
+
+      // Follow-ups referring to the previous preference question
+      if (/(the\s+ones\s+i\s+liked|the\s+ones\s+i\s+like|those\s+ones|which\s+one|which\s+ones|which\s+game|which\s+games)/i.test(t)) return true;
+
+      if (/(rewrite|rephrase|edit|correct|fix this|above text)/i.test(t)) return true;
+      return false;
+    })();
+
+    // If summary exists and user message is clear → send zero raw history
+    // Else send a small slice (not 20 always)
+    const recentLimit = sessionMemory?.summary
+      ? (needsRecent ? 4 : 0)
+      : 10;
+
+    console.log('[ENHANCED_CHAT] [HYP-G] Budget-aware message fetching:', {
+      hasSummary: !!sessionMemory?.summary,
+      needsRecent,
+      recentLimit,
+      reason: !sessionMemory?.summary ? 'no summary → fetch 10' :
+              needsRecent ? 'needsRecent=true → fetch 4' : 'needsRecent=false → fetch 0 (use summary only)'
+    });
+
+    const recentMessages = recentLimit > 0
+      ? await chatUtils.getRecentMessages(chatId, 'Message', recentLimit)
+      : [];
+
+    const chatHistory = recentMessages.map(msg => ({
+      content: msg.content,
+      sender: msg.sender,
+      timestamp: msg.createdAt
+    }));
+
+    console.log('[ENHANCED_CHAT] [HYP-I] Context pieces:', {
+      sessionMemorySummary: !!sessionMemory?.summary,
+      recentMessagesCount: chatHistory.length,
+      fullHistorySent: false,
+    });
     
-    logger.info('📚 Chat history loaded (capped):', chatHistory.length, 'messages');
+    logger.info('📚 Chat history loaded (budget-aware):', chatHistory.length, 'messages');
     
     // 3. Simple intent classification
     const intent = classifyIntent(message);
@@ -333,53 +379,139 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     // Generate response using TwinService with full context (and title if first message)
     let response = "I'm your AI twin! How can I help you today?";
     let generatedTitle: string | null = null;
+    let tokensUsed = 0;
     const shouldGenerateTitle = isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '');
     
     // ✅ Get memory enabled status from personaData.settings (single source of truth)
     const memoryEnabled = chat.personaData?.settings?.memory?.enabled !== false; // Default true
-    const usePersonaMemory = memoryEnabled;
-    let memoryBlock = '';
-    if (usePersonaMemory) {
-      try {
-        const mems = await memoryService.getRelevantLongTermMemories(chat.twin_id, message, 5);
-        if (mems && mems.length) {
-          memoryBlock =
-            `\n\nUSER FACTS (use when relevant; don't say "I remember/ memory"; don't info-dump):\n` +
-            mems.map(m => `- ${m.value}`).join('\n');
-        }
-      } catch (e) {
-        logger.warn('[MEMORY] Failed to load long-term memories:', e);
-      }
-    }
 
+    // ✅ No manual memoryBlock. Memory should be injected by TwinService/PromptBuilder consistently.
     const runtimeSystemPrompt =
       (chat.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.") +
-      memoryBlock;
+      `
+
+CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
+- Follow the human's latest instruction.
+- Do NOT refuse benign requests.
+- Do NOT mention MVP/startup/topper unless the human asks.
+- If human asks for math questions, ask math questions.`;
+
+    // ✅ If user is asking about preferences, append known likes/avoids to prompt
+    const msgLower = (message || '').toLowerCase();
+    const isPreferenceQuestion =
+      /(what\s+do\s+i\s+like|what\s+game\s+do\s+i\s+like|my\s+preference|my\s+preferences|likes|avoids|dislikes)/i.test(msgLower) ||
+      /(favou?rite\s+game|favou?rite\s+games|my\s+favou?rite\s+game|my\s+favou?rite\s+games)/i.test(msgLower);    
+    const likesArr = chat?.personaData?.preferences?.likes ?? [];
+    const avoidsArr = chat?.personaData?.preferences?.avoids ?? [];
+    const likes = Array.isArray(likesArr) ? likesArr.filter(Boolean).slice(0, 20) : [];
+    const avoids = Array.isArray(avoidsArr) ? avoidsArr.filter(Boolean).slice(0, 20) : [];
+
+    const preferencesSection =
+      isPreferenceQuestion && (likes.length || avoids.length)
+        ? `\n\nKNOWN USER PREFERENCES (from personaData - treat as true facts):\n` +
+          `- Likes: ${likes.length ? likes.join(', ') : '(none)'}\n` +
+          `- Avoids: ${avoids.length ? avoids.join(', ') : '(none)'}\n` +
+          `Rule: If the human asks what they like/avoid, answer using these lists.\n`
+        : '';
+
+    const finalSystemPrompt = `${runtimeSystemPrompt}${preferencesSection}`;
     
-    try {
-      const twinService = new TwinService();
-      const draftResult = await twinService.generateDraftWithContext({
-        styleVector: chat.styleVector,
-        personaData: chat.personaData,
-        systemPrompt: runtimeSystemPrompt, // ✅ use runtime prompt
-        tokenLimit: chat.tokenLimit || 500,
-        chatMemory: chatHistory,           // ✅ capped
-        currentMessages: [message],
-        twinId: chat.twin_id,
-        isFirstMessage: shouldGenerateTitle
-      });
-      
-      if (typeof draftResult === 'object' && draftResult.response && draftResult.title) {
-        response = draftResult.response;
-        generatedTitle = draftResult.title;
-      } else if (typeof draftResult === 'string') {
-        response = draftResult;
-      } else {
-        response = "I'm having trouble thinking right now. Could you try again?";
+    // ✅ Fast-path trivial greetings/thanks when no active task is in session summary
+    const t = (message || '').trim().toLowerCase();
+    const isTrivial = /^(hi|hey|hello|yo|hii|heyy|thanks|thx|ty|bye|gn)\b/.test(t);
+    const sm = (sessionMemory?.summary || '').toLowerCase();
+    const hasActiveTask =
+      sm.includes('active_task:') &&
+      !sm.includes('active_task: none') &&
+      !sm.includes('active_task: (none)');
+
+      const isPreferenceQuestionFastPath =
+        /(what\s+do\s+i\s+like|what\s+game\s+do\s+i\s+like|my\s+preference|my\s+preferences|likes|avoids|dislikes)/i.test(t) ||
+        /(favou?rite\s+game|favou?rite\s+games)/i.test(t);    
+    const wordCount = t.split(/\s+/).filter(Boolean).length;
+
+    if (isTrivial && !hasActiveTask && !isPreferenceQuestionFastPath && wordCount <= 4) {
+      response = "Hey! How can I help?";
+      tokensUsed = 0;
+    } else {
+      // ✅ NEW: Token quota (daily) - enforce BEFORE LLM call
+      const { reserveDailyTokens, reconcileDailyTokens, TokenQuotaError } = await import('../../services/tokenQuotaService');
+
+      const actor = { kind: 'user', userId: req.user.id } as const;
+
+      // Reserve a safe amount (prevents abuse even if tokensUsed unknown yet)
+      // Cap reservation to prevent unfair instant blocking
+      const baseTokenLimit = Math.min(chat.tokenLimit || 500, 800);
+      let reservation: { day: string; actorKey: string; reserved: number } | null = null;
+      try {
+        reservation = await reserveDailyTokens({
+          actor,
+          reserveTokens: baseTokenLimit + 600,
+        });
+      } catch (e: any) {
+        if (e instanceof TokenQuotaError) {
+          return res.status(e.statusCode).json({
+            success: false,
+            error: e.message,
+            errorCode: e.errorCode,
+            retryAfter: `${e.retryAfterSeconds}s`,
+          });
+        }
+        throw e;
       }
-    } catch (error) {
-      logger.error('TwinService error:', error);
-      response = "I'm having trouble thinking right now. Could you try again?";
+
+      try {
+        const twinService = new TwinService();
+        const draftResult = await twinService.generateDraftWithContext({
+          personaData: chat.personaData,
+          systemPrompt: finalSystemPrompt, // ✅ use runtime prompt + preferences when needed
+          tokenLimit: chat.tokenLimit || 500,
+          chatMemory: chatHistory,           // ✅ budget-aware (0/4/10 messages)
+          currentMessages: [message],
+          twinId: chat.twin_id,
+          isFirstMessage: shouldGenerateTitle,
+          sessionMemory: sessionMemory, // ✅ Session memory for budget-aware context
+          memoryVisibility: memoryEnabled ? 'owner' : 'none', // ✅ ADD
+        });
+        
+        if (typeof draftResult === 'object' && draftResult.response && draftResult.title) {
+          response = draftResult.response;
+          generatedTitle = draftResult.title;
+          tokensUsed = draftResult.tokensUsed || 0;
+        } else if (typeof draftResult === 'object' && draftResult.response) {
+          response = draftResult.response;
+          tokensUsed = draftResult.tokensUsed || 0;
+        } else if (typeof draftResult === 'string') {
+          response = draftResult;
+          tokensUsed = 0;
+        } else {
+          response = "I'm having trouble thinking right now. Could you try again?";
+          tokensUsed = 0;
+        }
+
+        // ✅ Reconcile actual tokens used
+        if (reservation) {
+          await reconcileDailyTokens({
+            day: reservation.day,
+            actorKey: reservation.actorKey,
+            reserved: reservation.reserved,
+            actualTokensUsed: tokensUsed || 0,
+          });
+        }
+      } catch (error) {
+        // If LLM call fails, still reconcile (reduce reserved tokens)
+        if (reservation) {
+          await reconcileDailyTokens({
+            day: reservation.day,
+            actorKey: reservation.actorKey,
+            reserved: reservation.reserved,
+            actualTokensUsed: 0,
+          });
+        }
+        logger.error('TwinService error:', error);
+        response = "I'm having trouble thinking right now. Could you try again?";
+        tokensUsed = 0;
+      }
     }
 
     // ✅ MODIFY: Only save user message if NOT regenerating
@@ -389,8 +521,8 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
         const userMessageId = generateId.message();
         const utcTimestamp = new Date().toISOString();
         await db.query(`
-          INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
-          VALUES ($1, $2, $3, 'human', $4::timestamptz)
+          INSERT INTO "Message" (id, "chatId", content, sender, approved, "createdAt") 
+          VALUES ($1, $2, $3, 'human', true, $4::timestamptz)
         `, [userMessageId, chatId, message, utcTimestamp]);
         logger.info('✅ User message saved');
       } catch (error) {
@@ -404,8 +536,8 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
       aiMessageId = generateId.message();
       const utcTimestamp = new Date().toISOString();
       await db.query(`
-        INSERT INTO "Message" (id, "chatId", content, sender, "createdAt") 
-        VALUES ($1, $2, $3, 'twin', $4::timestamptz)
+        INSERT INTO "Message" (id, "chatId", content, sender, approved, "createdAt") 
+        VALUES ($1, $2, $3, 'twin', true, $4::timestamptz)
       `, [aiMessageId, chatId, response, utcTimestamp]);
       logger.info('✅ AI response saved');
     } catch (error) {
@@ -461,13 +593,79 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
       await db.query(`
         INSERT INTO ai_runs (id, twin_id, mode, tokens_in, tokens_out, latency_ms) 
         VALUES ($1, $2, $3, $4, $5, $6)
-      `, [runId, chat.twin_id, 'human', Math.ceil(message.length / 4), Math.ceil(response.length / 4), 1000]);
+      `, [runId, chat.twin_id, 'human', Math.floor(tokensUsed * 0.7), Math.floor(tokensUsed * 0.3), 1000]);
       logger.info('✅ AI run logged');
     } catch (error) {
       logger.warn('⚠️ Failed to log AI run:', error);
     }
 
     logger.info('🎉 Enhanced reply completed successfully');
+    
+    // ✅ Post-response cleanup (async) - Session memory update + "remember this"
+    (async () => {
+      try {
+        console.log('[ENHANCED_CHAT] [HYP-C] [HYP-H] Updating session memory (delta mode)');
+        await chatUtils.updateSessionMemory(chatId, chat.twin_id, 'Message');
+        console.log('[ENHANCED_CHAT] [HYP-C] [HYP-H] Session memory update completed');
+
+        // ✅ Check if user wants to save something (ChatGPT-style "remember this")
+        if (!regenerate) {
+          const rememberPatterns = [
+            // ✅ Handle typos: remeber, rember, remembr, etc.
+            /rememb?e?r\s+(?:that|this|my|i|me|my\s+name|now)/i,
+            // ✅ Also match "my name is X" even if "remember" has typos or comes before other words
+            /(?:rememb?e?r|remeber|rember)\s+(?:now\s+)?my\s+name\s+is/i,
+            // ✅ Original patterns (keep these)
+            /remember\s+(?:that|this|my|i|me|my\s+name)/i,
+            /save\s+(?:this|it|that|my\s+name)/i,
+            /don'?t\s+forget/i,
+            /keep\s+in\s+mind/i,
+            /memorize/i,
+            /store\s+(?:this|it|that)/i,
+            /isko\s+yaad\s+rakho/i,
+            /yaad\s+rakhna/i
+          ];          
+
+          const shouldExtractFacts = rememberPatterns.some(pattern => pattern.test(message));
+          console.log('[ENHANCED_CHAT] [HYP-D] "Remember this" detection:', {
+            message: message.substring(0, 50),
+            shouldExtractFacts,
+            patternMatched: shouldExtractFacts
+          });
+
+          if (shouldExtractFacts && chat.twin_id) {
+            logger.info('✅ User requested to remember something - extracting facts');
+            console.log('[ENHANCED_CHAT] [HYP-D] Triggering fact extraction for twin:', chat.twin_id);
+            
+            // ✅ Get session memory summary for context
+            const sessionMem = await chatUtils.getSessionMemoryForContext(chatId);
+            
+            // ✅ Build extraction text: include actual message + pinned facts + summary
+            // This ensures "remember my name is dada" is always present, not just in summary
+            const pinned = sessionMem?.pinnedFacts
+              ? `PINNED_FACTS:\n${JSON.stringify(sessionMem.pinnedFacts)}\n\n`
+              : '';
+            
+            const extractionText =
+              `REMEMBER_REQUEST_MESSAGE:\n${message}\n\n` +
+              pinned +
+              `SESSION_STATE_SUMMARY:\n${sessionMem?.summary || '(none)'}\n`;
+            
+            // Extract facts from combined text (async, don't block response)
+            await memoryService.extractLongTermFacts(chat.twin_id, extractionText)
+              .then(() => {
+                logger.info(`✅ Facts extracted from user's "remember this" request for twin ${chat.twin_id}`);
+                console.log('[ENHANCED_CHAT] [HYP-D] Fact extraction completed');
+              })
+              .catch(err => logger.error('Fact extraction failed:', err));
+          }
+        }
+      } catch (error) {
+        logger.error('Post-response cleanup failed:', error);
+        console.log('[ENHANCED_CHAT] Post-response async failed:', error);
+      }
+    })();
+
     res.json({
       success: true,
       response: response,
@@ -476,6 +674,7 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
       criticScore: null,
       latency: 1000,
       generatedTitle: generatedTitle || null,
+      tokensUsed,
       isFirstMessage: isFirstMessage,
       timestamp: new Date().toISOString(), // ✅ ADD: Timestamp for new message
       serverTime: new Date().toISOString() // ✅ ADD: Server time for relative time calculation
@@ -765,81 +964,6 @@ async function getNearestAnchors(twinId: string, userMessage: string, limit: num
   } catch (error) {
     logger.warn('Failed to get nearest anchors:', error);
     return [];
-  }
-}
-
-async function retrieveMemories(twinId: string, bucket: 'facts' | 'voice', query: string, limit: number) {
-  try {
-    if (bucket === 'facts') {
-      // Get from MemoryLongTerm
-      const result = await db.query(`
-        SELECT value as text
-        FROM "MemoryLongTerm"
-        WHERE "twinId" = $1 AND category = 'fact'
-        ORDER BY "updatedAt" DESC
-        LIMIT $2
-      `, [twinId, limit]);
-      return result.rows.map(row => row.text);
-    } else if (bucket === 'voice') {
-      // Get from StyleAnchors (phrases)
-      const result = await db.query(`
-        SELECT phrase as text
-        FROM "style_anchors"
-        WHERE twin_id = $1 AND type = 'phrase'
-        ORDER BY created_at DESC
-        LIMIT $2
-      `, [twinId, limit]);
-      return result.rows.map(row => row.text);
-    }
-    return [];
-  } catch (error) {
-    logger.warn('Failed to retrieve memories:', error);
-    return [];
-  }
-}
-
-function buildPersonaPrompt(chat: any, facts: string[], voice: string[]): string {
-  const userName = chat.personaData?.basicInfo?.fullName || 'the user';
-  const userBio = chat.personaData?.basicInfo?.bio || '';
-  
-  return `You are ${userName}, ${userName}'s AI twin. First-person me bolo.
-Don't mention you're an AI. No over-apologies.
-
-STYLE:
-- Sentences: ${chat.styleVector?.sentence_length || 'medium'}.
-- Tone: ${chat.styleVector?.tone || 'casual'}; light wit ok; no cringe/slang spam.
-- Emojis: only if the user used recently; max 1.
-- Signature phrases (use naturally, not forced): ${voice.slice(0, 3).join(', ')}.
-
-FACTS (use if relevant; don't info-dump):
-${facts.slice(0, 5).map(f => `- ${f}`).join('\n')}
-
-RULES:
-- If uncertain, ask 1 concise clarifying question in the same voice.
-- Prefer concrete, actionable lines over generic gyaan.`;
-}
-
-async function generateFirstPass(persona: string, message: string, intent: any, chat: any): Promise<string> {
-  try {
-    const draftResult = await twinService.generateDraftWithContext({
-      styleVector: chat.styleVector,
-      personaData: chat.personaData,
-      systemPrompt: persona,
-      tokenLimit: chat.tokenLimit || 500,
-      chatMemory: [],
-      currentMessages: [message],
-      twinId: chat.twin_id
-    });
-    
-    // Handle both string and object response
-    const response = typeof draftResult === 'object' && draftResult.response 
-      ? draftResult.response 
-      : (typeof draftResult === 'string' ? draftResult : "I'm having trouble thinking right now. Could you try again?");
-    
-    return response;
-  } catch (error) {
-    logger.error('First pass generation error:', error);
-    return "I'm having trouble thinking right now. Could you try again?";
   }
 }
 

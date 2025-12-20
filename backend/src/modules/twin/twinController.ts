@@ -73,35 +73,109 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
       throw createError.validation('Content safety check failed', { reasons: safetyCheck.reasons });
     }
 
-    // Sanitize samples
-    const sanitizedSamples = samples.map(sample => sanitizeText(sample));
+    // Sanitize samples (still used for safety checks / future training pipeline)
+    const _sanitizedSamples = samples.map(sample => sanitizeText(sample));
     
-    // Extract style vector
-    const styleVector = await twinService.extractStyle(sanitizedSamples.join('\n---\n'));
-    
-    // Generate sample reply
-    const sampleReply = await twinService.generateSampleReply(styleVector);
-    
-  // Save twin to database using raw SQL
-   const twinId = generateId.twin();
-   const insertQuery = `
-    INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "isPublic", "verified", "likeCount", "followCount", "chatCount", "createdAt")
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-    RETURNING id, "createdAt"
-   `;
+    // MVP (personaData-only): create a minimal persona + systemPrompt.
+    // This endpoint is legacy (sample-based); onboarding/settings are the main flow.
+    const personaData = {
+      basicInfo: {
+        fullName: (req.user as any)?.handle || (req.user as any)?.email || 'the user',
+        bio: '',
+      },
+      rules: {
+        always: [],
+        never: [],
+        replySize: 'normal',
+        engagementStyle: 'mix',
+      },
+      context: {
+        interests: [],
+        targetAudience: 'general',
+        topicsToAvoid: 'nsfw, explicit sexual content',
+      },
+      communicationStyle: {
+        language: {
+          greetingStyle: 'friendly',
+          closingStyle: 'friendly',
+          emojiUsage: 'medium',
+          responseLength: 'normal',
+          commonPhrases: '',
+        },
+        tone: {},
+      },
+      settings: {
+        memory: { enabled: true, autoExtractFacts: false },
+      },
+    };
 
-   const result = await db.query(insertQuery, [
-     twinId,
-     userId,
-     JSON.stringify(styleVector),
-     sampleReply,
-     false, // isPublic - default to private
-     false, // verified - default to not verified
-     0,     // likeCount - default to 0
-     0,     // followCount - default to 0
-     0,     // chatCount - default to 0
-     new Date()
-   ]);
+    const systemPrompt = await twinService.generateSystemPrompt(personaData);
+    const styleVector = {}; // legacy/ignored
+
+    const sampleReplyResult = await twinService.generateDraftWithContext({
+      personaData,
+      systemPrompt,
+      tokenLimit: 120,
+      chatMemory: [],
+      currentMessages: ['Say a short hello in my style.'],
+      isFirstMessage: false,
+    });
+    const sampleReply =
+      typeof sampleReplyResult === 'object' && sampleReplyResult && 'response' in sampleReplyResult
+        ? (sampleReplyResult as any).response
+        : (typeof sampleReplyResult === 'string' ? sampleReplyResult : 'Hey!');
+    
+    // Save twin to database using raw SQL
+    const twinId = generateId.twin();
+    const utcNow = new Date().toISOString();
+
+    let result;
+    try {
+      // Preferred insert (personaData-only MVP)
+      result = await db.query(
+        `
+        INSERT INTO "Twin" (
+          id, "userId", "styleVector", "sampleReply", "personaData", "systemPrompt",
+          "isPublic", "verified", "likeCount", "followCount", "chatCount", "createdAt"
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::timestamptz)
+        RETURNING id, "createdAt"
+        `,
+        [
+          twinId,
+          userId,
+          JSON.stringify(styleVector),
+          sampleReply,
+          JSON.stringify(personaData),
+          systemPrompt,
+          false,
+          false,
+          0,
+          0,
+          0,
+          utcNow,
+        ]
+      );
+    } catch (e) {
+      // Fallback: minimal insert if extra columns do not exist
+      const insertQuery = `
+        INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "isPublic", "verified", "likeCount", "followCount", "chatCount", "createdAt")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING id, "createdAt"
+      `;
+      result = await db.query(insertQuery, [
+        twinId,
+        userId,
+        JSON.stringify(styleVector),
+        sampleReply,
+        false,
+        false,
+        0,
+        0,
+        0,
+        new Date(),
+      ]);
+    }
      
     // ✅ Twin created - profile URL is /@user.handle (no TwinProfile needed)
     

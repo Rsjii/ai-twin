@@ -83,17 +83,23 @@ export async function getDashboard(req: any, res: Response) {
     };
     
     try {
+      // Compute owner publicId for self-view exclusion
+      const ownerPublicId = tokenizeId(fullUser.id, 'user');
+
       const [eventsResult, twinStatsResult] = await Promise.all([
-        // Total events (views) count
+        // Total Views (lifetime impressions): count all profile_viewed events, excluding self-views
         db.query(
-          `SELECT COUNT(*) as count 
-           FROM "Event" 
-           WHERE "userId" = $1
-             AND type IN (
-               'public_chat_started',
-               'chat_started'
-             )`,
-          [fullUser.id]
+          `
+          SELECT COUNT(*) as count
+          FROM "Event"
+          WHERE "userId" = $1
+            AND type = 'profile_viewed'
+            AND (
+              meta->>'viewerId' IS NULL
+              OR meta->>'viewerId' != $2
+            )
+          `,
+          [fullUser.id, ownerPublicId]
         ),        
         // Twin stats (if twin exists)
         twin ? db.query(`

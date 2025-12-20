@@ -288,11 +288,25 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response) =>
 
     const chat = chatResult.rows[0];
     
-    // Generate draft
-    const draft = await twinService.generateDraft(
-      JSON.parse(chat.styleVector),
-      messages
-    );
+    // MVP (personaData-only): Generate draft using personaData + systemPrompt
+    const runtimeSystemPrompt =
+      chat.systemPrompt ||
+      (await twinService.generateSystemPrompt(chat.personaData));
+
+    const draftResult = await twinService.generateDraftWithContext({
+      personaData: chat.personaData,
+      systemPrompt: runtimeSystemPrompt,
+      tokenLimit: chat.tokenLimit || 500,
+      chatMemory: [],
+      currentMessages: messages,
+      twinId: chat.twinId,
+      isFirstMessage: false,
+    });
+
+    const draft =
+      typeof draftResult === 'object' && draftResult && 'response' in draftResult
+        ? (draftResult as any).response
+        : (typeof draftResult === 'string' ? draftResult : '');
     
     // Log draft generated event
     await logEvent(req.user.id, 'draft_generated', { chatId: chat.id, twinId: chat.twinId });
@@ -348,10 +362,8 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
     // Log message approved event
     await logEvent(req.user.id, 'message_approved', { chatId: chat.id, messageId: message.id });
 
-    // Update style vector based on new conversation (async, don't wait)
-    updateStyleVectorAfterChat(chat.twinId, req.user.id).catch(error => {
-      logger.error('Style vector update failed:', error);
-    });
+    // MVP (personaData-only): Disable automatic styleVector updates.
+    // Style adaptation via chats will be revisited later.
     
     res.json({
       success: true,
@@ -371,45 +383,8 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-// Helper function to update style vector after chat
-async function updateStyleVectorAfterChat(twinId: string, userId: string) {
-  try {
-    // Get the twin's current style vector
-    const twin = await twinQueries.findById(twinId);
-    if (!twin) {
-      logger.warn('Twin not found for style vector update:', twinId);
-      return;
-    }
-
-    // Get recent messages from this chat (last 10 messages)
-    const recentMessages = await db.query(`
-      SELECT m.content, m.sender
-      FROM "Message" m
-      JOIN "Chat" c ON m."chatId" = c.id
-      WHERE c."twinId" = $1
-      ORDER BY m."createdAt" DESC
-      LIMIT ${QUERY_LIMITS.RECENT_ITEMS}
-    `, [twinId]);
-
-    // Filter only human messages for style analysis
-    const humanMessages = recentMessages.rows
-      .filter(msg => msg.sender === 'human')
-      .map(msg => msg.content);
-
-    if (humanMessages.length === 0) {
-      logger.info('No human messages found for style vector update');
-      return;
-    }
-
-    // Update style vector based on new conversations
-    const currentStyleVector = JSON.parse(twin.styleVector);
-    const updatedStyleVector = await twinService.updateStyleVector(currentStyleVector, humanMessages);
-
-    // Save updated style vector to database
-    await twinQueries.updateStyleVector(userId, updatedStyleVector);
-
-    logger.info('Style vector updated successfully for twin:', twinId);
-  } catch (error) {
-    logger.error('Error updating style vector:', error);
-  }
+// MVP (personaData-only): Legacy style vector update disabled.
+// Style adaptation via chats will be revisited when we have a dedicated model / budget.
+async function updateStyleVectorAfterChat(_twinId: string, _userId: string): Promise<void> {
+  logger.debug('MVP: updateStyleVectorAfterChat() disabled (personaData-only mode)');
 }

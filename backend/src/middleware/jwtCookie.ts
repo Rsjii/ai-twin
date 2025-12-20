@@ -3,15 +3,6 @@ import { verifyJWT, JWTPayload } from '../services/jwtService';
 import { logger } from '../config/logger';
 import { isProd } from '../config/env';
 
-// Extend Request interface to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JWTPayload;
-    }
-  }
-}
-
 export const extractJWTFromCookie = (req: Request, res: Response, next: NextFunction) => {
   try {
     // ✅ ADD: Debug logging for production

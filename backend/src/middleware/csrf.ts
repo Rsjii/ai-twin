@@ -7,19 +7,24 @@ import { AppError } from '../utils/errors';
 export const generateCSRFToken = (req: Request, res: Response, next: NextFunction) => {
   if (req.method !== 'GET') return next();
 
-  if (!req.session) return next();
+  if (!req.session) {
+    return next();
+  }
 
   if (req.session.csrfToken) {
     res.locals.csrfToken = req.session.csrfToken;
     return next();
   }
 
-  req.session.csrfToken = crypto.randomBytes(32).toString('hex');
-  res.locals.csrfToken = req.session.csrfToken;
+  const newToken = crypto.randomBytes(32).toString('hex');
+  req.session.csrfToken = newToken;
+  res.locals.csrfToken = newToken;
 
   // Ensure token persists before render
   req.session.save((err) => {
-    if (err) return next(err);
+    if (err) {
+      return next(err);
+    }
     return next();
   });
 };

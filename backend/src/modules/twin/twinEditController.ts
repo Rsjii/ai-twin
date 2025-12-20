@@ -8,16 +8,20 @@ import { createError, ErrorCodes } from '../../utils/errors';
 
 const twinService = new TwinService();
 
-// Validation schemas
+// MVP (personaData-only): Legacy style schema kept for backward compatibility.
+// Updates are synced to personaData; styleVector is stored but not used in prompts.
+/**
+ * @deprecated Use updatePersonaSchema instead. This schema is kept for legacy updateTwinStyle endpoint.
+ */
 const updateStyleSchema = z.object({
   formality_level: z.number().min(0).max(1).optional(),
   emoji_usage: z.number().min(0).max(1).optional(),
   humor_style: z.enum(['none', 'light', 'moderate', 'heavy']).optional(),
   question_frequency: z.number().min(0).max(1).optional(),
-  response_length_preference: z.enum(['brief', 'detailed', 'comprehensive', 'short', 'normal', 'detailed']).optional(), // ✅ ADD: support new values
-  tone: z.enum(['casual', 'witty', 'serious', 'friendly', 'professional', 'polite', 'normal']).optional(), // ✅ ADD: support new values
-  sentence_length: z.enum(['short', 'medium', 'long']).optional(),
-  engagementStyle: z.enum(['ask_questions', 'natural', 'mix']).optional(), // ✅ ADD
+  response_length_preference: z.enum(['brief', 'detailed', 'comprehensive', 'short', 'normal', 'detailed']).optional(),
+  tone: z.enum(['casual', 'witty', 'serious', 'friendly', 'professional', 'polite', 'normal']).optional(),
+  sentence_length: z.enum(['short', 'medium', 'long']).optional(), // legacy - synced to personaData.communicationStyle.language.responseLength
+  engagementStyle: z.enum(['ask_questions', 'natural', 'mix']).optional(), // synced to personaData.rules.engagementStyle
 });
 
 const updatePersonaSchema = z.object({
@@ -192,11 +196,8 @@ export const updateTwinStyle = async (req: Request, res: Response, next: NextFun
       };
     }
 
-    // Regenerate system prompt with new style + updated persona
-    const newSystemPrompt = await twinService.generateSystemPrompt(
-      updatedStyleVector,
-      updatedPersonaData,
-    );
+    // MVP (personaData-only): Regenerate system prompt from personaData
+    const newSystemPrompt = await twinService.generateSystemPrompt(updatedPersonaData);
 
     // Update twin in database (sync personaData if it was modified)
     const utcTimestamp = new Date().toISOString();
@@ -214,8 +215,19 @@ export const updateTwinStyle = async (req: Request, res: Response, next: NextFun
       `, [JSON.stringify(updatedStyleVector), newSystemPrompt, utcTimestamp, twinId]);
     }
 
-    // Generate new sample reply
-    const newSampleReply = await twinService.generateSampleReply(updatedStyleVector);
+    // MVP (personaData-only): Generate sample reply using systemPrompt
+    const sampleReplyResult = await twinService.generateDraftWithContext({
+      personaData: updatedPersonaData,
+      systemPrompt: newSystemPrompt,
+      tokenLimit: 120,
+      chatMemory: [],
+      currentMessages: ['Say a short hello in my style.'],
+      isFirstMessage: false,
+    });
+    const newSampleReply =
+      typeof sampleReplyResult === 'object' && sampleReplyResult && 'response' in sampleReplyResult
+        ? (sampleReplyResult as any).response
+        : (typeof sampleReplyResult === 'string' ? sampleReplyResult : 'Hey!');
 
     res.json({
       success: true,
@@ -261,15 +273,23 @@ export const updateTwinPersona = async (req: Request, res: Response, next: NextF
     }
 
     const currentPersonaData = twinResult.rows[0].personaData;
+    console.log('[TWIN_SETTINGS] [HYP-A] Current personaData loaded from database');
+    console.log('[TWIN_SETTINGS] [HYP-A] Current personaData keys:', Object.keys(currentPersonaData || {}));
     
     // Merge updates with current persona data
     const updatedPersonaData = {
       ...currentPersonaData,
       ...personaUpdates
     };
+    console.log('[TWIN_SETTINGS] [HYP-A] personaData updated with new values');
+    console.log('[TWIN_SETTINGS] [HYP-A] Updated personaData:', JSON.stringify(updatedPersonaData, null, 2));
+    console.log('[TWIN_SETTINGS] [HYP-A] Source: user edits, Destination: Twin table');
 
-    // Regenerate system prompt with new persona
-    const newSystemPrompt = await twinService.generateSystemPrompt(twinResult.rows[0].styleVector, updatedPersonaData);
+    // MVP (personaData-only): Regenerate system prompt with new persona
+    const newSystemPrompt = await twinService.generateSystemPrompt(updatedPersonaData);
+    console.log('[TWIN_SETTINGS] [HYP-B] systemPrompt regenerated after personaData update');
+    console.log('[TWIN_SETTINGS] [HYP-B] New systemPrompt length:', newSystemPrompt.length, 'chars');
+    console.log('[TWIN_SETTINGS] [HYP-B] systemPrompt preview:', newSystemPrompt.substring(0, 200) + '...');
 
     // Update twin in database
     const utcTimestamp = new Date().toISOString();
@@ -278,6 +298,9 @@ export const updateTwinPersona = async (req: Request, res: Response, next: NextF
       SET "personaData" = $1, "systemPrompt" = $2, "last_updated" = $3::timestamptz
       WHERE id = $4
     `, [JSON.stringify(updatedPersonaData), newSystemPrompt, utcTimestamp, twinId]);
+    console.log('[TWIN_SETTINGS] [HYP-A] Updated personaData stored in database');
+    console.log('[TWIN_SETTINGS] [HYP-B] Updated systemPrompt stored in database');
+    console.log('[TWIN_SETTINGS] [HYP-E] Settings changes saved, will be reflected in next chat');
 
     res.json({
       success: true,
@@ -329,17 +352,25 @@ export const previewStyleChanges = async (req: Request, res: Response, next: Nex
     const currentStyleVector = twinResult.rows[0].styleVector;
     const personaData = twinResult.rows[0].personaData;
 
-    // Generate original response with current style
-    const originalResponse = await twinService.generateSampleReply(currentStyleVector);
+    // MVP (personaData-only): styleVector preview is deprecated. Use personaData settings instead.
+    const systemPrompt = await twinService.generateSystemPrompt(personaData);
+    const originalResult = await twinService.generateDraftWithContext({
+      personaData,
+      systemPrompt,
+      tokenLimit: 120,
+      chatMemory: [],
+      currentMessages: ['Say a short hello in my style.'],
+      isFirstMessage: false,
+      twinId,
+    });
+    const originalResponse =
+      typeof originalResult === 'object' && originalResult && 'response' in originalResult
+        ? (originalResult as any).response
+        : (typeof originalResult === 'string' ? originalResult : 'Hey!');
 
-    // Merge style changes with current style vector
-    const previewStyleVector = {
-      ...currentStyleVector,
-      ...styleChanges
-    };
-
-    // Generate new response with preview style
-    const newResponse = await twinService.generateSampleReply(previewStyleVector);
+    // For MVP, return the same response; styleChanges are ignored.
+    const newResponse = originalResponse;
+    const previewStyleVector = currentStyleVector;
 
     res.json({
       success: true,
@@ -465,6 +496,7 @@ function buildDefaultSettings() {
       enabled: true,
       allowPublicContribution: false,
       autoExtractFacts: false,
+      allowPublicUse: false,
     },
   };
 }
@@ -495,6 +527,7 @@ const updateSettingsSchema = z.object({
         enabled: z.boolean(),
         allowPublicContribution: z.boolean().optional(),
         autoExtractFacts: z.boolean().optional(),
+        allowPublicUse: z.boolean().optional(),
       })
       .optional(),
 });

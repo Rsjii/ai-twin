@@ -28,11 +28,6 @@
         </div>
 
         <div class="flex flex-col sm:flex-row gap-2">
-          <a href="/ai-edit"
-             class="inline-flex justify-center px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] items-center text-sm">
-            Open AI Tools
-          </a>
-
           <a href="/analytics"
              class="inline-flex justify-center px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] items-center text-sm">
             Open Analytics
@@ -43,7 +38,13 @@
 
     <!-- Identity -->
     <section class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Identity</h2>
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+          Identity
+        </h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Define your twin's name, role, and basic bio.</p>
+      </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -103,7 +104,13 @@
 
     <!-- Voice & Output -->
     <section id="styleSection" class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Voice & Output</h2>
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+          Voice & Output
+        </h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Control how your twin speaks, reply length, and emoji usage.</p>
+      </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -151,14 +158,14 @@
         </div>
       </div>
 
-      <div class="mt-4 flex gap-2">
+      <div class="mt-4 hidden">
         <button id="previewStyleBtn" type="button"
           class="inline-flex justify-center px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px] items-center text-sm">
           Preview reply
         </button>
       </div>
 
-      <div id="stylePreviewSection" class="hidden mt-4 p-3 sm:p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
+      <div id="stylePreviewSection" class="hidden mt-4 p-3 sm:p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700" aria-hidden="true">
         <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Preview</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div>
@@ -175,7 +182,13 @@
 
     <!-- Boundaries -->
     <section class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Boundaries</h2>
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+          Boundaries
+        </h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Set safety limits and rules for what your twin should always or never say.</p>
+      </div>
 
       <div class="space-y-3">
         <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -192,94 +205,81 @@
         </label>
       </div>
 
-      <div class="mt-4">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Never do / never say</label>
-        <textarea id="neverDo" rows="3"
-          class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white"
-          placeholder="e.g. Never flirt. Never mention politics. Never share private info."></textarea>
+      <!-- Preferences & Rules (editable) -->
+      <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Always do / say (comma separated)</label>
+          <textarea id="alwaysInput" rows="3"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white"
+            placeholder="e.g. be concise, greet politely"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Never do / say (comma separated)</label>
+          <textarea id="neverInput" rows="3"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white"
+            placeholder="e.g. insult, reveal private info"></textarea>
+        </div>
       </div>
     </section>
 
-    <!-- Memory -->
+    <!-- Memory (Facts & Preferences) -->
     <section id="memorySection" class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Memory</h2>
+      <div class="flex items-center justify-between gap-2 mb-4">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+            Memory (Facts & Preferences)
+          </h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400">Manage what your twin knows about you and what it shares publicly.</p>
+        </div>
+        <button id="openMemoryManagerBtn" type="button"
+          class="inline-flex justify-center px-4 py-2 bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors min-h-[44px] items-center text-sm font-medium">
+          View all
+        </button>
+      </div>
 
-      <div class="space-y-3">
+      <div class="mt-3 space-y-3">
         <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <input type="checkbox" id="memoryEnabled" class="rounded border-gray-300 dark:border-gray-600" />
           <span>Enable memory to personalize replies</span>
         </label>
-        
+
+        <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+          <input type="checkbox" id="allowPublicUse" class="rounded border-gray-300 dark:border-gray-600" />
+          <span>Allow public chat to use my “Public” memories</span>
+        </label>
+
         <p class="text-xs text-gray-500 dark:text-gray-400">
-          When enabled, your twin remembers facts and preferences from conversations.
+          Public chat will ONLY use memories marked “Public”. Private memories stay private.
         </p>
       </div>
 
       <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
-        <p class="text-sm font-semibold text-gray-900 dark:text-white mb-2">What I remember</p>
-        <ul id="memoryBullets" class="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
-          <li class="text-gray-400 dark:text-gray-500">Loading…</li>
-        </ul>
-      </div>
-
-      <!-- ✅ ADD: Real Memory Manager (MemoryLongTerm CRUD) -->
-      <div class="mt-5">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div class="flex flex-col sm:flex-row gap-2">
-            <select id="ltmCategory" class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
-              <option value="">All</option>
-              <option value="fact">Facts</option>
-              <option value="preference">Preferences</option>
-            </select>
-
-            <input id="ltmSearch" type="text"
-              placeholder="Search memory…"
-              class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]" />
-          </div>
-
-          <button id="ltmRefreshBtn" type="button"
-            class="inline-flex justify-center px-4 py-2 bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors min-h-[44px] items-center text-sm font-medium">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white">Quick preview</p>
+          <button id="refreshMemoryPreviewBtn" type="button"
+            class="inline-flex justify-center px-3 py-2 bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-[36px] items-center text-xs font-medium">
             Refresh
           </button>
         </div>
-
-        <div class="mt-3">
-          <div id="ltmLoading" class="hidden text-sm text-gray-500 dark:text-gray-400">Loading…</div>
-          <div id="ltmList" class="space-y-2"></div>
-        </div>
-
-        <div class="mt-4 p-3 sm:p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
-          <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Add memory</h3>
-
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <select id="ltmAddCategory" class="px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white min-h-[44px]">
-              <option value="fact">Fact</option>
-              <option value="preference">Preference</option>
-            </select>
-
-            <input id="ltmAddValue" type="text"
-              placeholder="e.g. I prefer short replies."
-              class="sm:col-span-2 px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white min-h-[44px]" />
-          </div>
-
-          <div class="mt-2">
-            <button id="ltmAddBtn" type="button"
-              class="inline-flex justify-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors min-h-[44px] items-center text-sm font-medium">
-              Add
-            </button>
-          </div>
-
-          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Tip: In chat you can also type: <code>remember this: ...</code>
-          </p>
-        </div>
+        <ul id="memoryBullets" class="mt-2 list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
+          <li class="text-gray-400 dark:text-gray-500">Loading…</li>
+        </ul>
       </div>
     </section>
 
     <!-- Advanced -->
     <section class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
       <details>
-        <summary class="cursor-pointer text-lg font-semibold text-gray-900 dark:text-white">Advanced</summary>
+        <summary class="cursor-pointer">
+          <div class="inline-flex flex-col vertical-align-top">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+              Advanced
+            </h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Fine-tune adaptation and access advanced creator tools.</p>
+          </div>
+        </summary>
 
         <div class="mt-4">
           <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -299,6 +299,8 @@
             </div>
           </div>
         </div>
+
+        <% /* ✅ MVP: Creator Tools section removed (V2 feature - AI Edit) */ %>
       </details>
     </section>
 
@@ -316,7 +318,12 @@
     </section>
 
     <!-- Save -->
-    <div class="mt-6 flex flex-col sm:flex-row gap-3">
+    <div class="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 rounded-xl bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700">
+      <div class="text-sm text-gray-600 dark:text-gray-300">
+        <span class="font-semibold text-gray-900 dark:text-white">Settings</span>
+        <span class="ml-2">Save only when you change something.</span>
+      </div>
+
       <button id="twinSettingsSave"
         class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px]">
         Save settings
@@ -327,6 +334,137 @@
   <%- include('footer/footer-conditional-private') %>
   <%- include('partials/modal-helpers') %>
 
+  <!-- Memory Manager Modal (custom UI, uses same visual language) -->
+  <div id="memModalBackdrop" class="fixed inset-0 bg-black/50 hidden z-[9999] items-center justify-center overflow-hidden">
+    <div id="memModalShell" class="relative bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full mx-4 p-4 sm:p-6 shadow-2xl border border-gray-200 dark:border-gray-700 h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Manage memories</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-300">Add, search, edit, delete, and mark items as Public/Private.</p>
+        </div>
+        <button id="memModalCloseBtn" type="button"
+          class="px-3 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+          Close
+        </button>
+      </div>
+
+      <!-- Tabs + compact filters + bulk actions -->
+      <div class="mt-4 flex flex-col gap-2">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div class="inline-flex flex-wrap rounded-xl bg-gray-100 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 p-1">
+            <button id="memTabFact" type="button"
+              class="px-3 py-2 text-sm rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm">
+              Facts
+            </button>
+            <button id="memTabPreference" type="button"
+              class="px-3 py-2 text-sm rounded-lg text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-800/70">
+              Preferences
+            </button>
+          </div>
+
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 sm:justify-end">
+            <input id="memSelectAll" type="checkbox" class="rounded border-gray-300 dark:border-gray-600" />
+            <span>Select all</span>
+          </label>
+        </div>
+
+        <!-- keep category select hidden for compatibility -->
+        <select id="memFilterCategory" class="hidden">
+          <option value="fact">Facts</option>
+          <option value="preference">Preferences</option>
+        </select>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <select id="memFilterVisibility"
+            class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
+            <option value="all">All (Private + Public)</option>
+            <option value="owner">Private only</option>
+            <option value="public_twin">Public only</option>
+          </select>
+
+          <input id="memSearchInput" type="text"
+            placeholder="Search…"
+            class="sm:col-span-2 px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]" />
+        </div>
+
+        <div id="memBulkBar"
+          class="hidden mt-1 p-2 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div class="text-sm text-gray-700 dark:text-gray-200">
+            <span id="memSelectedCount" class="font-semibold">0</span> selected
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button id="memBulkPrivate" type="button"
+              class="px-3 py-2 text-sm rounded-lg bg-white/80 dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+              Make Private
+            </button>
+            <button id="memBulkPublic" type="button"
+              class="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+              Make Public
+            </button>
+            <button id="memBulkDelete" type="button"
+              class="px-3 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700">
+              Delete
+            </button>
+            <button id="memBulkClear" type="button"
+              class="px-3 py-2 text-sm rounded-lg bg-white/80 dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-2 flex items-center justify-end">
+        <div id="memModalLoading" class="hidden text-sm text-gray-500 dark:text-gray-400">Loading…</div>
+      </div>
+
+      <div id="memModalList" class="mt-3 space-y-2 pr-1 overflow-y-auto overscroll-contain flex-1 min-h-0 pb-4"></div>
+
+      <div class="mt-3 p-3 sm:p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 shrink-0">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+          <div id="memAddTitle" class="text-sm font-semibold text-gray-900 dark:text-white sm:pr-2 shrink-0">
+            Add fact
+          </div>
+
+          <input id="memAddCategory" type="hidden" value="fact" />
+
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 px-2 shrink-0">
+            <input id="memAddPublic" type="checkbox" class="rounded border-gray-300 dark:border-gray-600" />
+            <span>Public</span>
+          </label>
+
+          <input id="memAddValue" type="text"
+            placeholder="e.g. I like chess"
+            class="flex-1 px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white min-h-[44px]" />
+
+          <button id="memAddBtn" type="button"
+            class="inline-flex justify-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors min-h-[44px] items-center text-sm font-medium shrink-0">
+            Add
+          </button>
+        </div>
+      </div>
+
+      <div id="memInlineConfirm" class="hidden absolute inset-0 z-[2000000]">
+        <div class="absolute inset-0 bg-black/40 rounded-2xl"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+          <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-gray-200 dark:border-gray-700">
+            <h3 id="memInlineConfirmTitle" class="text-lg font-semibold text-gray-900 dark:text-white mb-2 pr-2 break-words"></h3>
+            <p id="memInlineConfirmMsg" class="text-sm text-gray-600 dark:text-gray-300 mb-5 leading-relaxed break-words"></p>
+            <div class="flex justify-end gap-3">
+              <button id="memInlineConfirmCancel" type="button"
+                class="px-4 py-2 rounded-lg text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                Cancel
+              </button>
+              <button id="memInlineConfirmOk" type="button"
+                class="px-4 py-2 rounded-lg text-sm bg-red-600 text-white hover:bg-red-700">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const twinToken = '<%= typeof twinToken !== "undefined" ? twinToken : "" %>';
 
@@ -335,15 +473,63 @@
     let currentStyleVector = null;
 
     document.addEventListener('DOMContentLoaded', () => {
-      loadSettings();
-      loadEditData();
-      setupUI();
-      loadLongTermMemoryList(); // ✅ ADD
+      (async () => {
+        await Promise.all([loadSettings(), loadEditData()]);
+        setupUI();
+        await loadMemoryPreviewFromLTM();
+        initDirtyTracking();
+        updateSaveButtonState();
+
+        // ✅ show "Saved" AFTER reload (consistent + reliable)
+        const justSaved = sessionStorage.getItem('twinSettings.justSaved');
+        if (justSaved) {
+          sessionStorage.removeItem('twinSettings.justSaved');
+          showNotification('Saved ✔', 'success');
+        }
+      })().catch(() => {});
     });
 
     function showNotification(message, type = 'success') {
-      if (window.UI && typeof window.UI.showToast === 'function') return window.UI.showToast(message, type);
-      alert(message);
+      // ✅ Ensure we ALWAYS have top-right toasts on Twin Settings (no browser alert)
+      window.UI = window.UI || {};
+      if (typeof window.UI.showToast !== 'function') {
+        window.UI.showToast = function (msg, t = 'success', opts = {}) {
+          const duration = typeof opts.duration === 'number' ? opts.duration : 2500;
+          const existing = document.getElementById('global-toast');
+          if (existing) existing.remove();
+
+          const el = document.createElement('div');
+          el.id = 'global-toast';
+          el.className =
+            'fixed top-4 right-4 max-w-sm w-[92vw] sm:w-auto px-4 py-3 rounded-xl shadow-2xl ' +
+            'transition-all duration-200 opacity-0 translate-y-2';
+          
+          // ✅ force it above sticky header + dropdown
+          el.style.zIndex = '2147483647';
+          el.style.pointerEvents = 'none';
+
+          const bg =
+            t === 'success' ? 'bg-green-600 text-white' :
+            t === 'error' ? 'bg-red-600 text-white' :
+            'bg-blue-600 text-white';
+
+          el.className += ' ' + bg;
+          el.textContent = String(msg || '');
+
+          document.body.appendChild(el);
+          requestAnimationFrame(() => {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+          });
+
+          setTimeout(() => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(-6px)';
+            setTimeout(() => el.remove(), 250);
+          }, duration);
+        };
+      }
+      return window.UI.showToast(message, type);
     }
 
     function escapeHtml(text) {
@@ -354,7 +540,11 @@
 
     async function loadSettings() {
       try {
-        const res = await fetch(`/api/twin/${twinToken}/settings`, { credentials: 'include' });
+        const res = await fetch(`/api/twin/${twinToken}/settings`, {
+          credentials: 'include',
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Failed');
         currentSettings = data.settings;
@@ -367,14 +557,18 @@
 
     async function loadEditData() {
       try {
-        const res = await fetch(`/api/twin/${twinToken}/edit-data`, { credentials: 'include' });
+        const res = await fetch(`/api/twin/${twinToken}/edit-data`, {
+          credentials: 'include',
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Failed');
         currentPersonaData = data.twin.personaData || {};
         currentStyleVector = data.twin.styleVector || {};
         populateIdentity(currentPersonaData);
         populateVoice(currentStyleVector, currentPersonaData);
-        populateMemoryPreview(currentPersonaData);
+        // preview is driven by long-term memories now (facts/preferences)
       } catch (e) {
         console.error(e);
         showNotification('Could not load twin data.', 'error');
@@ -388,7 +582,12 @@
       document.getElementById('twinBio').value = basic.oneLineBio || basic.bio || '';
       document.getElementById('twinLanguage').value = basic.language || '';
       document.getElementById('twinPurpose').value = basic.purpose || ''; // ✅ ADD
-      document.getElementById('neverDo').value = (pd?.context?.topicsToAvoid || '');
+
+      // Rules
+      const always = pd?.rules?.always || [];
+      const never = pd?.rules?.never || [];
+      document.getElementById('alwaysInput').value = Array.isArray(always) ? always.join(', ') : '';
+      document.getElementById('neverInput').value = Array.isArray(never) ? never.join(', ') : '';
     }
 
     function populateVoice(sv, pd) {
@@ -423,6 +622,7 @@
       // Memory - read from settings.memory.enabled (single source of truth)
       const memoryEnabled = s.memory?.enabled !== false; // Default true
       document.getElementById('memoryEnabled').checked = memoryEnabled;
+      document.getElementById('allowPublicUse').checked = s.memory?.allowPublicUse ?? false; // ✅ NEW
 
       // Advanced adaptation
       document.getElementById('adaptationEnabled').checked = s.adaptation?.enabled ?? true;
@@ -433,21 +633,40 @@
       document.getElementById('styleMixValue').textContent = String(styleMix);
     }
 
-    function populateMemoryPreview(pd) {
+    function populateMemoryPreviewFromList(mems) {
       const bulletsEl = document.getElementById('memoryBullets');
-      const basic = pd?.basicInfo || {};
-      const likes = pd?.preferences?.likes || pd?.context?.interests || [];
-      const avoids = pd?.preferences?.avoids || [];
+      if (!bulletsEl) return;
 
-      const bullets = [];
-      if (basic.role) bullets.push(`Role: ${basic.role}`);
-      if (basic.oneLineBio || basic.bio) bullets.push(`Bio: ${(basic.oneLineBio || basic.bio)}`);
-      if (Array.isArray(likes) && likes.length) bullets.push(`Likes: ${likes.slice(0, 3).join(', ')}`);
-      if (Array.isArray(avoids) && avoids.length) bullets.push(`Avoids: ${avoids.slice(0, 3).join(', ')}`);
+      const safe = Array.isArray(mems) ? mems : [];
+      if (!safe.length) {
+        bulletsEl.innerHTML = `<li class="text-gray-400 dark:text-gray-500">No memories yet.</li>`;
+        return;
+      }
 
-      bulletsEl.innerHTML = (bullets.length ? bullets : ['No memory data yet.'])
-        .map(b => `<li>${escapeHtml(b)}</li>`)
-        .join('');
+      const bullets = safe.slice(0, 5).map(m => {
+        const cat = (m.category || 'fact');
+        const vis = (m.visibility || 'owner');
+        const tag = vis === 'public_twin' ? 'Public' : 'Private';
+        return `<li><span class="text-xs text-gray-500 dark:text-gray-400">[${escapeHtml(cat)} • ${escapeHtml(tag)}]</span> ${escapeHtml(m.value || '')}</li>`;
+      });
+
+      bulletsEl.innerHTML = bullets.join('');
+    }
+
+    async function loadMemoryPreviewFromLTM() {
+      try {
+        const res = await fetch(`/api/twin/${twinToken}/long-term-memory?limit=5&visibility=all`, {
+          credentials: 'include',
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed');
+        populateMemoryPreviewFromList(data.memories || []);
+      } catch (e) {
+        console.error(e);
+        // keep UI calm
+      }
     }
 
     function toggleAdaptationSlider(enabled) {
@@ -457,6 +676,7 @@
 
     function collectSettingsPayload() {
       const memoryEnabled = document.getElementById('memoryEnabled').checked;
+      const allowPublicUse = document.getElementById('allowPublicUse').checked;
       
       return {
         replyBehavior: currentSettings?.replyBehavior || { defaultLength: 'normal', riskLevel: 'safe', energy: 'normal' },
@@ -473,6 +693,7 @@
           enabled: memoryEnabled,
           allowPublicContribution: false,
           autoExtractFacts: false,
+          allowPublicUse: allowPublicUse, // ✅ NEW
         }
       };
     }
@@ -503,7 +724,14 @@
       const oneLineBio = document.getElementById('twinBio').value.trim();
       const language = document.getElementById('twinLanguage').value;
       const purpose = document.getElementById('twinPurpose').value;
-      const topicsToAvoid = document.getElementById('neverDo').value.trim();
+      const alwaysRaw = document.getElementById('alwaysInput').value || '';
+      const neverRaw = document.getElementById('neverInput').value || '';
+
+      const toArr = (val) =>
+        String(val || '')
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
 
       return {
         basicInfo: {
@@ -513,8 +741,9 @@
           language: language || undefined,
           purpose: purpose || undefined,
         },
-        context: {
-          topicsToAvoid: topicsToAvoid || undefined,
+        rules: {
+          always: toArr(alwaysRaw) || undefined,
+          never: toArr(neverRaw) || undefined,
         }
       };
     }
@@ -524,38 +753,52 @@
       const stylePayload = collectStylePayload();
       const personaPayload = collectPersonaPayload();
 
-      const [settingsRes, styleRes, personaRes] = await Promise.all([
-        fetch(`/api/twin/${twinToken}/settings`, {
+      const readJson = async (res) => {
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.success) {
+          throw new Error(data?.error || data?.message || `Request failed (${res.status})`);
+        }
+        return data;
+      };
+
+      // ✅ IMPORTANT: SEQUENTIAL saves to avoid personaData overwrite race
+      const settingsData = await readJson(
+        await fetch(`/api/twin/${twinToken}/settings`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
           credentials: 'include',
           body: JSON.stringify(settingsPayload),
-        }),
-        fetch(`/api/twin/${twinToken}/update-style`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
-          credentials: 'include',
-          body: JSON.stringify(stylePayload),
-        }),
-        fetch(`/api/twin/${twinToken}/update-persona`, {
+        })
+      );
+
+      const personaData = await readJson(
+        await fetch(`/api/twin/${twinToken}/update-persona`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
           credentials: 'include',
           body: JSON.stringify({ personaData: personaPayload }),
-        }),
-      ]);
+        })
+      );
 
-      const [settingsData, styleData, personaData] = await Promise.all([
-        settingsRes.json(),
-        styleRes.json(),
-        personaRes.json(),
-      ]);
+      // ✅ MVP: style is legacy; don’t block saving if it fails
+      try {
+        await readJson(
+          await fetch(`/api/twin/${twinToken}/update-style`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
+            credentials: 'include',
+            body: JSON.stringify(stylePayload),
+          })
+        );
+      } catch (e) {
+        console.warn('[twin-settings] update-style failed (ignored for MVP):', e);
+      }
 
-      if (!settingsData.success) throw new Error(settingsData.error || 'Failed to save settings');
-      if (!styleData.success) throw new Error(styleData.error || 'Failed to save style');
-      if (!personaData.success) throw new Error(personaData.error || 'Failed to save persona');
+      // Force refresh from server to avoid cached values
+      await Promise.all([loadSettings(), loadEditData()]);
+      await loadMemoryPreviewFromLTM();
 
-      return true;
+      return { settingsData, personaData };
     }
 
     async function previewStyle() {
@@ -601,58 +844,288 @@
       return data.memory;
     }
 
-    function renderLongTermMemories(mems) {
-      const list = document.getElementById('ltmList');
+    function memInlineConfirm({ title, message, okLabel = 'Delete' }) {
+      return new Promise((resolve) => {
+        const root = document.getElementById('memInlineConfirm');
+        const t = document.getElementById('memInlineConfirmTitle');
+        const m = document.getElementById('memInlineConfirmMsg');
+        const btnOk = document.getElementById('memInlineConfirmOk');
+        const btnCancel = document.getElementById('memInlineConfirmCancel');
+
+        if (!root || !t || !m || !btnOk || !btnCancel) return resolve(false);
+
+        t.textContent = title || '';
+        m.textContent = message || '';
+        btnOk.textContent = okLabel;
+
+        const cleanup = () => {
+          root.classList.add('hidden');
+          btnOk.onclick = null;
+          btnCancel.onclick = null;
+        };
+
+        btnOk.onclick = () => { cleanup(); resolve(true); };
+        btnCancel.onclick = () => { cleanup(); resolve(false); };
+
+        root.classList.remove('hidden');
+      });
+    }
+
+    // --- Memory UI state (tabs + bulk actions) ---
+    let memActiveTab = 'fact'; // 'fact' | 'preference'
+    let memSelectedKeys = new Set();
+    let memSearchByTab = { fact: '', preference: '' };
+    let memVisibilityByTab = { fact: 'all', preference: 'all' };
+
+    const escAttr = (v) => {
+      if (window.CSS && typeof CSS.escape === 'function') return CSS.escape(String(v));
+      return String(v).replace(/"/g, '\\"');
+    };
+
+    function setMemTab(tab) {
+      // Save current tab inputs
+      const searchEl = document.getElementById('memSearchInput');
+      const visEl = document.getElementById('memFilterVisibility');
+      if (searchEl) memSearchByTab[memActiveTab] = searchEl.value || '';
+      if (visEl) memVisibilityByTab[memActiveTab] = visEl.value || 'all';
+
+      // Switch tab
+      memActiveTab = tab === 'preference' ? 'preference' : 'fact';
+
+      const catSel = document.getElementById('memFilterCategory');
+      if (catSel) catSel.value = memActiveTab;
+
+      // Restore per-tab inputs
+      if (searchEl) searchEl.value = memSearchByTab[memActiveTab] || '';
+      if (visEl) visEl.value = memVisibilityByTab[memActiveTab] || 'all';
+
+      // Lock add-memory to current tab
+      const addCat = document.getElementById('memAddCategory');
+      if (addCat) addCat.value = memActiveTab;
+
+      const addTitle = document.getElementById('memAddTitle');
+      if (addTitle) addTitle.textContent = memActiveTab === 'fact' ? 'Add fact' : 'Add preference';
+
+      const addValue = document.getElementById('memAddValue');
+      if (addValue) addValue.placeholder = memActiveTab === 'fact'
+        ? 'e.g. I like chess'
+        : 'e.g. I prefer short replies';
+
+      clearMemSelection();
+      updateMemTabUI();
+      loadMemoryModalList();
+    }
+
+    function updateMemTabUI() {
+      const factBtn = document.getElementById('memTabFact');
+      const prefBtn = document.getElementById('memTabPreference');
+
+      const active =
+        'px-3 py-2 text-sm rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm';
+      const inactive =
+        'px-3 py-2 text-sm rounded-lg text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-800/70';
+
+      if (factBtn) factBtn.className = (memActiveTab === 'fact') ? active : inactive;
+      if (prefBtn) prefBtn.className = (memActiveTab === 'preference') ? active : inactive;
+    }
+
+    function updateBulkUI() {
+      const bar = document.getElementById('memBulkBar');
+      const countEl = document.getElementById('memSelectedCount');
+      const selectAll = document.getElementById('memSelectAll');
+
+      const count = memSelectedKeys.size;
+      if (countEl) countEl.textContent = String(count);
+      if (bar) bar.classList.toggle('hidden', count === 0);
+
+      if (selectAll) {
+        const boxes = Array.from(document.querySelectorAll('#memModalList .memSelect'));
+        const allChecked = boxes.length > 0 && boxes.every(b => b.checked);
+        selectAll.checked = allChecked;
+        selectAll.indeterminate = count > 0 && !allChecked;
+      }
+    }
+
+    function clearMemSelection() {
+      memSelectedKeys.clear();
+      document.querySelectorAll('#memModalList .memSelect').forEach(cb => { cb.checked = false; });
+      updateBulkUI();
+    }
+
+    function anySelectedRowDirty() {
+      for (const k of memSelectedKeys) {
+        const row = document.querySelector(`#memModalList [data-mem-key="${escAttr(k)}"]`);
+        const saveBtn = row?.querySelector('.memSaveIcon');
+        if (saveBtn && saveBtn.disabled === false) return true; // save enabled => dirty
+      }
+      return false;
+    }
+
+    function renderMemoryModalList(mems) {
+      const list = document.getElementById('memModalList');
       if (!list) return;
 
-      if (!mems.length) {
+      // Reset UI but keep selection keys if same list is re-rendered
+      list.innerHTML = '';
+
+      const safe = Array.isArray(mems) ? mems : [];
+      if (!safe.length) {
         list.innerHTML = `<div class="text-sm text-gray-500 dark:text-gray-400">No memories yet.</div>`;
+        clearMemSelection();
         return;
       }
 
-      list.innerHTML = '';
-      mems.forEach((m) => {
-        const key = m.key || m.id;        // backend returns key in most places
-        const value = m.value || m.text;  // depending on path
+      safe.forEach((m) => {
+        const key = m.key || m.id;
+        if (!key) return;
+
+        const value = m.value || m.text || '';
         const category = m.category || 'fact';
+        const visibility = m.visibility || 'owner';
 
         const row = document.createElement('div');
-        row.className = 'p-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700';
+        row.dataset.memKey = String(key);
+        row.dataset.memCategory = String(category);
+        row.className =
+          'p-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700';
 
+        // Compact row UI (icons + single-line edit)
         row.innerHTML = `
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex-1">
-              <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">${escapeHtml(category)}</div>
-              <textarea class="memEdit w-full text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-gray-900 dark:text-white" rows="2">${escapeHtml(value || '')}</textarea>
+          <div class="flex items-start gap-2">
+            <div class="pt-1">
+              <input type="checkbox" class="memSelect rounded border-gray-300 dark:border-gray-600" />
             </div>
-            <div class="flex flex-col gap-2">
-              <button type="button" class="memSave px-3 py-2 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 min-h-[36px]">Save</button>
-              <button type="button" class="memDel px-3 py-2 text-xs rounded-lg bg-white/80 dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 min-h-[36px]">Delete</button>
+
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-2 mb-0.5">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">
+                    ${visibility === 'public_twin' ? 'Public' : 'Private'}
+                  </span>
+                </div>
+
+                <label class="inline-flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer select-none">
+                  <input type="checkbox" class="memPublic rounded border-gray-300 dark:border-gray-600"
+                    ${visibility === 'public_twin' ? 'checked' : ''} />
+                  <span>Public</span>
+                </label>
+              </div>
+
+              <textarea
+                class="memEdit w-full text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-gray-900 dark:text-white resize-none leading-tight"
+                rows="1"
+              >${escapeHtml(value)}</textarea>
+            </div>
+
+            <div class="flex flex-col gap-2 pt-1">
+              <button type="button"
+                class="memSaveIcon p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                title="Save"
+                aria-label="Save"
+                disabled
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M5 13l4 4L19 7" />
+                </svg>
+              </button>
+
+              <button type="button"
+                class="memDelIcon p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                title="Delete"
+                aria-label="Delete"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0V5a2 2 0 012-2h4a2 2 0 012 2v2" />
+                </svg>
+              </button>
             </div>
           </div>
         `;
 
-        row.querySelector('.memSave')?.addEventListener('click', async () => {
-          const newVal = row.querySelector('.memEdit')?.value || '';
+        const getVisibility = () => (row.querySelector('.memPublic')?.checked ? 'public_twin' : 'owner');
+        const editEl = row.querySelector('.memEdit');
+        const selectEl = row.querySelector('.memSelect');
+        const saveBtn = row.querySelector('.memSaveIcon');
+        const delBtn = row.querySelector('.memDelIcon');
+
+        // Expand textarea on focus to avoid clutter but allow editing
+        editEl?.addEventListener('focus', () => { editEl.rows = 3; });
+        editEl?.addEventListener('blur', () => { editEl.rows = 1; });
+
+        // Dirty tracking (save only)
+        let originalValue = String(value || '');
+        let originalVisibility = visibility === 'public_twin' ? 'public_twin' : 'owner';
+
+        const updateRowDirtyUI = () => {
+          const currentValue = String(editEl?.value || '');
+          const currentVisibility = getVisibility();
+          const dirty =
+            currentValue.trim() !== originalValue.trim() ||
+            currentVisibility !== originalVisibility;
+
+          if (saveBtn) {
+            saveBtn.disabled = !dirty;
+            saveBtn.className = dirty
+              ? 'memSaveIcon p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700'
+              : 'memSaveIcon p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700';
+          }
+        };
+
+        updateRowDirtyUI();
+
+        // Selection
+        if (selectEl) {
+          selectEl.checked = memSelectedKeys.has(String(key));
+          selectEl.addEventListener('change', () => {
+            if (selectEl.checked) memSelectedKeys.add(String(key));
+            else memSelectedKeys.delete(String(key));
+            updateBulkUI();
+          });
+        }
+
+        // Only mark dirty; no auto-save
+        row.querySelector('.memPublic')?.addEventListener('change', updateRowDirtyUI);
+        editEl?.addEventListener('input', updateRowDirtyUI);
+
+        // Save
+        saveBtn?.addEventListener('click', async () => {
           try {
+            const newVal = String(editEl?.value || '');
+            const currentVisibility = getVisibility();
+
             const res = await fetch(`/api/twin/${twinToken}/long-term-memory/${encodeURIComponent(key)}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
               credentials: 'include',
-              body: JSON.stringify({ value: newVal, category }),
+              body: JSON.stringify({ value: newVal, category, visibility: currentVisibility }),
             });
+
             const data = await res.json();
             if (!data.success) throw new Error(data.error || 'Failed');
-            showNotification('Memory updated ✔', 'success');
+
+            originalValue = newVal;
+            originalVisibility = currentVisibility;
+            updateRowDirtyUI();
+
+            showNotification('Saved ✔', 'success');
+            await loadMemoryPreviewFromLTM();
           } catch (e) {
             console.error(e);
-            showNotification('Update failed', 'error');
+            showNotification('Save failed', 'error');
           }
         });
 
-        row.querySelector('.memDel')?.addEventListener('click', async () => {
-          const ok = confirm('Delete this memory?');
+        // Delete (single)
+        delBtn?.addEventListener('click', async () => {
+          const ok = await memInlineConfirm({
+            title: 'Delete memory',
+            message: 'Delete this memory permanently?',
+            okLabel: 'Delete',
+          });
           if (!ok) return;
+
           try {
             const res = await fetch(`/api/twin/${twinToken}/long-term-memory/${encodeURIComponent(key)}`, {
               method: 'DELETE',
@@ -661,8 +1134,11 @@
             });
             const data = await res.json();
             if (!data.success) throw new Error(data.error || 'Failed');
+
+            memSelectedKeys.delete(String(key));
             showNotification('Deleted ✔', 'success');
-            loadLongTermMemoryList();
+            await loadMemoryModalList();
+            await loadMemoryPreviewFromLTM();
           } catch (e) {
             console.error(e);
             showNotification('Delete failed', 'error');
@@ -671,6 +1147,116 @@
 
         list.appendChild(row);
       });
+
+      updateBulkUI();
+    }
+
+    async function loadMemoryModalList() {
+      const loading = document.getElementById('memModalLoading');
+      if (loading) loading.classList.remove('hidden');
+
+      try {
+        const vis = (document.getElementById('memFilterVisibility')?.value || 'all').trim();
+        const q = (document.getElementById('memSearchInput')?.value || '').trim();
+
+        const params = new URLSearchParams();
+        params.set('limit', '50');
+        params.set('visibility', vis || 'all');
+
+        // ✅ Always request current tab category (facts vs preferences)
+        params.set('category', memActiveTab);
+
+        const res = await fetch(`/api/twin/${twinToken}/long-term-memory?${params.toString()}`, {
+          credentials: 'include',
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed');
+
+        // ✅ client-side search so category separation is always respected
+        const qNorm = String(q || '').trim().toLowerCase();
+        const list = Array.isArray(data.memories) ? data.memories : [];
+        const filtered = qNorm
+          ? list.filter(m => String(m?.value || m?.text || '').toLowerCase().includes(qNorm))
+          : list;
+
+        renderMemoryModalList(filtered);
+      } catch (e) {
+        console.error(e);
+        showNotification('Could not load memories', 'error');
+        clearMemSelection();
+      } finally {
+        if (loading) loading.classList.add('hidden');
+      }
+    }
+
+    let __memPrevOverflow = null;
+
+    function lockPageScroll() {
+      if (__memPrevOverflow) return;
+      __memPrevOverflow = {
+        html: document.documentElement.style.overflow,
+        body: document.body.style.overflow,
+      };
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function unlockPageScroll() {
+      if (!__memPrevOverflow) return;
+      document.documentElement.style.overflow = __memPrevOverflow.html || '';
+      document.body.style.overflow = __memPrevOverflow.body || '';
+      __memPrevOverflow = null;
+    }
+
+    function openMemoryModal() {
+      const backdrop = document.getElementById('memModalBackdrop');
+      if (!backdrop) return;
+
+      lockPageScroll(); // ✅ stops main page scroll
+
+      backdrop.classList.remove('hidden');
+      backdrop.classList.add('flex');
+      setMemTab('fact');
+    }
+
+    function closeMemoryModal() {
+      const backdrop = document.getElementById('memModalBackdrop');
+      if (!backdrop) return;
+
+      backdrop.classList.add('hidden');
+      backdrop.classList.remove('flex');
+
+      unlockPageScroll(); // ✅ restore normal scroll
+    }
+
+    async function addMemoryFromModal() {
+      const cat = memActiveTab; // ✅ always locked to current tab
+      const value = (document.getElementById('memAddValue')?.value || '').trim();
+      const isPublic = document.getElementById('memAddPublic')?.checked === true;
+      const visibility = isPublic ? 'public_twin' : 'owner';
+      if (!value) return showNotification('Write memory text first.', 'info');
+
+      try {
+        const res = await fetch(`/api/twin/${twinToken}/long-term-memory`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
+          credentials: 'include',
+          body: JSON.stringify({ value, category: cat, visibility }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed');
+        document.getElementById('memAddValue').value = '';
+        document.getElementById('memAddPublic').checked = false;
+        showNotification('Memory added ✔', 'success');
+        await loadMemoryModalList();
+        await loadMemoryPreviewFromLTM();
+      } catch (e) {
+        console.error(e);
+        showNotification('Add failed', 'error');
+      }
     }
 
     function setupUI() {
@@ -687,18 +1273,34 @@
       // preview
       document.getElementById('previewStyleBtn')?.addEventListener('click', (e) => {
         e.preventDefault();
-        previewStyle();
+        showNotification('Preview is disabled in MVP (style preview coming later).', 'info');
       });
 
       // save
       document.getElementById('twinSettingsSave')?.addEventListener('click', async (e) => {
         e.preventDefault();
+
+        const btn = document.getElementById('twinSettingsSave');
+        const oldText = btn?.textContent;
+
         try {
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Saving…';
+          }
+
           await saveAll();
-          showNotification('Saved ✔', 'success');
+
+          // ✅ set flag so toast shows after reload
+          sessionStorage.setItem('twinSettings.justSaved', '1');
+          window.location.reload();
         } catch (err) {
           console.error(err);
-          showNotification('Save failed', 'error');
+          showNotification(`Save failed: ${err?.message || 'Unknown error'}`, 'error');
+          if (btn) btn.disabled = false;
+        } finally {
+          if (btn && !btn.disabled) btn.textContent = oldText || 'Save settings';
+          updateSaveButtonState();
         }
       });
 
@@ -706,13 +1308,25 @@
       document.getElementById('deleteTwinBtn')?.addEventListener('click', async (e) => {
         e.preventDefault();
         const ok = await window.ModalHelpers?.confirm?.({
-          title: '⚠️ Reset Twin',
-          message: 'This will permanently reset your twin and ALL data. This cannot be undone.',
-          confirmLabel: 'Yes, reset',
+          title: '⚠️ Delete twin permanently',
+          message: 'This will permanently delete your twin and ALL data. This cannot be undone.',
+          confirmLabel: 'Continue',
           cancelLabel: 'Cancel',
           type: 'danger'
         });
         if (!ok) return;
+
+        const typed = await window.ModalHelpers?.input?.({
+          title: 'Final confirmation',
+          message: 'Type DELETE to permanently delete your twin.',
+          placeholder: 'DELETE',
+          defaultValue: ''
+        });
+
+        if (String(typed || '').trim() !== 'DELETE') {
+          showNotification('Cancelled (you did not type DELETE).', 'info');
+          return;
+        }
 
         try {
           const res = await fetch(`/api/twin/${twinToken}`, {
@@ -736,38 +1350,177 @@
         }
       });
 
-      document.getElementById('ltmRefreshBtn')?.addEventListener('click', (e) => {
+      // Memory modal
+      document.getElementById('openMemoryManagerBtn')?.addEventListener('click', (e) => {
         e.preventDefault();
-        loadLongTermMemoryList();
+        openMemoryModal();
+      });
+      document.getElementById('memModalCloseBtn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeMemoryModal();
+      });
+      document.getElementById('memModalBackdrop')?.addEventListener('click', (e) => {
+        if (e.target?.id === 'memModalBackdrop') closeMemoryModal();
       });
 
-      document.getElementById('ltmCategory')?.addEventListener('change', () => loadLongTermMemoryList());
-      document.getElementById('ltmSearch')?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') loadLongTermMemoryList();
+      // Tabs
+      document.getElementById('memTabFact')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        setMemTab('fact');
+      });
+      document.getElementById('memTabPreference')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        setMemTab('preference');
       });
 
-      document.getElementById('ltmAddBtn')?.addEventListener('click', async () => {
-        const cat = document.getElementById('ltmAddCategory')?.value || 'fact';
-        const val = (document.getElementById('ltmAddValue')?.value || '').trim();
-        if (!val) return showNotification('Write memory text first.', 'info');
+      // Visibility filter
+      document.getElementById('memFilterVisibility')?.addEventListener('change', () => loadMemoryModalList());
+
+      // Select all (current list only)
+      document.getElementById('memSelectAll')?.addEventListener('change', (e) => {
+        const checked = e.target.checked === true;
+        document.querySelectorAll('#memModalList .memSelect').forEach(cb => {
+          cb.checked = checked;
+          const row = cb.closest('[data-mem-key]');
+          const k = row?.getAttribute('data-mem-key');
+          if (!k) return;
+          if (checked) memSelectedKeys.add(k);
+          else memSelectedKeys.delete(k);
+        });
+        updateBulkUI();
+      });
+
+      // Bulk clear
+      document.getElementById('memBulkClear')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        clearMemSelection();
+      });
+
+      // Bulk public/private helpers
+      async function bulkSetVisibility(targetVisibility) {
+        const keys = Array.from(memSelectedKeys);
+        if (!keys.length) return showNotification('Select memories first.', 'info');
+
+        if (anySelectedRowDirty()) {
+          return showNotification('Save pending edits first.', 'info');
+        }
 
         try {
-          const res = await fetch(`/api/twin/${twinToken}/long-term-memory`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
-            credentials: 'include',
-            body: JSON.stringify({ value: val, category: cat }),
-          });
-          const data = await res.json();
-          if (!data.success) throw new Error(data.error || 'Failed');
+          await Promise.all(keys.map(async (k) => {
+            const row = document.querySelector(`#memModalList [data-mem-key="${escAttr(k)}"]`);
+            const cat = row?.getAttribute('data-mem-category') || memActiveTab;
+            const val = row?.querySelector('.memEdit')?.value || '';
 
-          document.getElementById('ltmAddValue').value = '';
-          showNotification('Memory added ✔', 'success');
-          loadLongTermMemoryList();
-        } catch (e) {
-          console.error(e);
-          showNotification('Add failed', 'error');
+            const res = await fetch(`/api/twin/${twinToken}/long-term-memory/${encodeURIComponent(k)}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
+              credentials: 'include',
+              body: JSON.stringify({ value: val, category: cat, visibility: targetVisibility }),
+            });
+
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Failed');
+          }));
+
+          showNotification(targetVisibility === 'public_twin' ? 'Made Public ✔' : 'Made Private ✔', 'success');
+          clearMemSelection();
+          await loadMemoryModalList();
+          await loadMemoryPreviewFromLTM();
+        } catch (err) {
+          console.error(err);
+          showNotification('Bulk update failed', 'error');
         }
+      }
+
+      document.getElementById('memBulkPublic')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        bulkSetVisibility('public_twin');
+      });
+      document.getElementById('memBulkPrivate')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        bulkSetVisibility('owner');
+      });
+
+      // Bulk delete
+      document.getElementById('memBulkDelete')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const keys = Array.from(memSelectedKeys);
+        if (!keys.length) return showNotification('Select memories first.', 'info');
+
+        if (anySelectedRowDirty()) {
+          return showNotification('Save pending edits first.', 'info');
+        }
+
+        const ok = await memInlineConfirm({
+          title: 'Delete memories',
+          message: `Delete ${keys.length} selected memories permanently?`,
+          okLabel: 'Delete',
+        });
+        if (!ok) return;
+
+        try {
+          await Promise.all(keys.map(async (k) => {
+            const res = await fetch(`/api/twin/${twinToken}/long-term-memory/${encodeURIComponent(k)}`, {
+              method: 'DELETE',
+              headers: { 'X-CSRF-Token': window.csrfToken },
+              credentials: 'include',
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Failed');
+          }));
+
+          showNotification('Deleted ✔', 'success');
+          clearMemSelection();
+          await loadMemoryModalList();
+          await loadMemoryPreviewFromLTM();
+        } catch (err) {
+          console.error(err);
+          showNotification('Bulk delete failed', 'error');
+        }
+      });
+
+      // Default tab UI
+      updateMemTabUI();
+
+      document.getElementById('memSearchInput')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loadMemoryModalList();
+      });
+      document.getElementById('memAddBtn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        addMemoryFromModal();
+      });
+      document.getElementById('refreshMemoryPreviewBtn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        loadMemoryPreviewFromLTM();
+      });
+    }
+
+    // --- Dirty Save Button ---
+    let initialSnapshot = '';
+
+    function takeSnapshot() {
+      return JSON.stringify({
+        persona: collectPersonaPayload(),
+        style: collectStylePayload(),
+        settings: collectSettingsPayload(),
+      });
+    }
+
+    function updateSaveButtonState() {
+      const btn = document.getElementById('twinSettingsSave');
+      if (!btn) return;
+      const dirty = takeSnapshot() !== initialSnapshot;
+      btn.disabled = !dirty;
+      btn.className = dirty
+        ? 'w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px]'
+        : 'w-full sm:w-auto px-6 py-3 bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl cursor-not-allowed font-medium shadow-md min-h-[44px]';
+    }
+
+    function initDirtyTracking() {
+      initialSnapshot = takeSnapshot();
+      document.querySelectorAll('input,textarea,select').forEach(el => {
+        el.addEventListener('input', updateSaveButtonState);
+        el.addEventListener('change', updateSaveButtonState);
       });
     }
   </script>

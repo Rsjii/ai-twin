@@ -1,4 +1,4 @@
-import PostHog from 'posthog-node';
+import { PostHog } from 'posthog-node';
 import { logger } from '../config/logger';
 import { tokenizeId } from '../utils/idTokenization';
 import { StandardEventMeta } from './eventLogger';
@@ -14,6 +14,10 @@ export function initializePostHog(): void {
   const apiKey = process.env['POSTHOG_API_KEY'];
   const host = process.env['POSTHOG_HOST'] || 'https://app.posthog.com';
 
+  if (isTest) {
+    return; // never emit analytics in tests
+  }
+
   if (!apiKey) {
     logger.warn('PostHog API key not found. PostHog tracking disabled.');
     return;
@@ -23,8 +27,7 @@ export function initializePostHog(): void {
     posthogClient = new PostHog(apiKey, {
       host,
       flushAt: 20, // Batch events
-      flushInterval: 10000, // 10 seconds
-      enable: !isTest
+      flushInterval: 10000 // 10 seconds
     });
 
     logger.info('PostHog initialized successfully');

@@ -5,7 +5,8 @@ import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { logEvent } from '../../services/eventLogger';
 import { QUERY_LIMITS } from '../../config/constants';
 import { createError, ErrorCodes } from '../../utils/errors';
-import { detokenizeId, sanitizeUser } from '../../utils/idTokenization';
+import { detokenizeId, sanitizeUser, tokenizeId } from '../../utils/idTokenization';
+import { StandardEventMeta } from '../../services/eventLogger';
 
 export const getMetricsSummary = async (_req: Request, res: Response) => {
   try {
@@ -174,7 +175,7 @@ export const createSampleData = async (req: Request, res: Response) => {
     }
     
     // Create some sample events using raw SQL
-    const sampleEvents = [
+    const sampleEvents: Array<{ type: string; meta: StandardEventMeta }> = [
       { type: 'login', meta: { timestamp: new Date() } },
       { type: 'profile_view', meta: { source: 'dashboard' } },
       { type: 'twin_created', meta: { twinName: 'Sample Twin' } },
@@ -265,6 +266,7 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
     userInvitesSent = 0,
     userInvitesReceived = 0,
     userEvents = 0,
+    userViews = 0,
     userLikes = 0,
     userFollowers = 0;
 let userEventBreakdown: Record<string, number> = {};
@@ -272,6 +274,9 @@ let dailyEventsResult: any | null = null;
 let topEventTypesResult: any | null = null;
 // ✅ NEW: Period summary for 7/30 days (only engagement events)
 let periodSummary: { period7Days: any, period30Days: any } | null = null;
+
+// Compute owner publicId for self-view exclusion
+const ownerPublicId = tokenizeId(userId, 'user');
 
 try {
   const [
@@ -281,6 +286,7 @@ try {
     invitesSentResult,
     invitesReceivedResult,
     eventsResult,
+    viewsResult,
     likesResult,
     followersResult,
     userEventTypesResult,
@@ -311,6 +317,20 @@ try {
     db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "inviterId" = $1', [userId]),
     db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "acceptedBy" = $1', [userId]),
     db.query('SELECT COUNT(*) as count FROM "Event" WHERE "userId" = $1', [userId]),
+    // ✅ Total Views (lifetime impressions): count all profile_viewed events, excluding self-views
+    db.query(
+      `
+      SELECT COUNT(*) as count
+      FROM "Event"
+      WHERE "userId" = $1
+        AND type = 'profile_viewed'
+        AND (
+          meta->>'viewerId' IS NULL
+          OR meta->>'viewerId' != $2
+        )
+      `,
+      [userId, ownerPublicId]
+    ),
     // ✅ Likes: exclude users who have blocked this owner
     db.query(`
       SELECT COUNT(*) as count
@@ -395,6 +415,7 @@ try {
   userInvitesSent     = parseInt(invitesSentResult.rows[0].count, 10);
   userInvitesReceived = parseInt(invitesReceivedResult.rows[0].count, 10);
   userEvents          = parseInt(eventsResult.rows[0].count, 10);
+  userViews           = parseInt(viewsResult.rows[0].count, 10);
   userLikes           = parseInt(likesResult.rows[0].count, 10);
   userFollowers       = parseInt(followersResult.rows[0].count, 10);
 
@@ -456,7 +477,7 @@ const responseData = {
     handle: req.user?.handle || 'Unknown',
   }), 
   analytics: {
-    totalViews: userEvents || 0,
+    totalViews: userViews || 0,
     totalLikes: userLikes || 0,
     totalFollowers: userFollowers || 0,
     totalChats: userChats || 0,
@@ -783,14 +804,20 @@ export const getChattersStats = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const { twinId } = req.query;
-    
+    const twinIdRaw = req.query.twinId;
+    const twinId =
+      typeof twinIdRaw === 'string'
+        ? twinIdRaw
+        : Array.isArray(twinIdRaw)
+          ? String(twinIdRaw[0] || '')
+          : '';
+
     if (!twinId) {
       return res.status(400).json({ error: 'Twin ID is required' });
     }
 
     // Verify user owns the twin
-   await verifyTwinOwnership(twinId, req.user.id);
+    await verifyTwinOwnership(twinId, req.user.id);
 
     // Get stats
     const stats = await db.query(`

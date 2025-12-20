@@ -505,7 +505,7 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
     const blockedFilter = buildBlockedFilter(blockedTwinIds, 2);
     const blockNonLoggedFilter = buildBlockNonLoggedUsersFilter(hasUser);
 
-    let recommendations = [];
+    let recommendationsResult: any | null = null;
 
     if (req.user) {
       // Get user's liked twins to find similar ones
@@ -525,7 +525,7 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
         const paramOffset = likedTwinIds.length + 2; // $1 = userId, $2-$N = likedTwinIds
         const blockedFilterForLiked = buildBlockedFilter(blockedTwinIds, paramOffset);
         
-        recommendations = await db.query(`
+        recommendationsResult = await db.query(`
           SELECT 
             t.id,
             t."publicHandle",
@@ -553,8 +553,8 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
     }
 
     // If no user or no likes, get popular twins
-    if (recommendations.length === 0 || recommendations.rows.length === 0) {
-      recommendations = await db.query(`
+    if (!recommendationsResult || recommendationsResult.rows.length === 0) {
+      recommendationsResult = await db.query(`
         SELECT 
           t.id,
           t."publicHandle",
@@ -579,7 +579,7 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
     }
 
     const enrichedTwins = await enrichTwinsWithUserInteraction(
-      recommendations.rows || [],
+      recommendationsResult?.rows || [],
       req.user?.id
     );
 

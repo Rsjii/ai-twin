@@ -68,8 +68,8 @@ export const createError = {
   unauthorized: (message: string = 'Authentication required', errorCode?: string) => 
     new AppError(401, message, errorCode || ErrorCodes.UNAUTHORIZED),
   
-  forbidden: (message: string = 'Access denied') => 
-    new AppError(403, message, ErrorCodes.FORBIDDEN),
+  forbidden: (message: string = 'Access denied', errorCode?: string) => 
+    new AppError(403, message, errorCode || ErrorCodes.FORBIDDEN),
   
   notFound: (message: string = 'Resource not found', errorCode?: string) => 
     new AppError(404, message, errorCode || ErrorCodes.NOT_FOUND),

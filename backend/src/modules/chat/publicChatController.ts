@@ -13,6 +13,7 @@ import { formatRelativeTime, normalizeTimestamp } from '../../utils/timestampUti
 import { detokenizeId, sanitizePublicChat, sanitizeTwin, tokenizeId } from '../../utils/idTokenization';
 import { EVENT_TYPES } from '../../config/constants';
 import { isDev } from '../../config/env';
+import { memoryService } from '../../services/memoryService';
 
 // Validation schemas
 const startPublicChatSchema = z.object({
@@ -488,8 +489,46 @@ if (chat.requireLogin && !userId) {
     // ✅ Always generate title for first message (even if title is "New Chat")
     const shouldGenerateTitle = isFirstMessage === true;
 
-    // ✅ Get recent messages
-    const recentMessages = await chatUtils.getRecentMessages(chatId, 'PublicMessage', 10);
+    // ✅ Get session memory first (needed for budget-aware context)
+    const sessionMemory = await chatUtils.getSessionMemoryForContext(chatId, 'PublicMessage').catch(() => null);
+    console.log('[PUBLIC_CHAT] [HYP-F] [HYP-G] Session memory check:', {
+      chatId,
+      hasSummary: !!sessionMemory?.summary,
+      summaryLength: sessionMemory?.summary?.length || 0
+    });
+
+    // ✅ Budget-aware: only fetch recent messages if needed (not always 10)
+    const needsRecent = (() => {
+      const t = (message || '').trim().toLowerCase();
+      if (t.length <= 12) return true;
+      if (/(same|continue|as above|that|this|it|wahi|haan|han|ok|kar do|kardo|continue karo)/i.test(t)) return true;
+      return false;
+    })();
+    console.log('[PUBLIC_CHAT] [HYP-G] needsRecent detection:', {
+      message: message.substring(0, 50),
+      needsRecent,
+      reason: message.length <= 12 ? 'short message' : 
+              /(same|continue|as above|that|this|it|wahi|haan|han|ok|kar do|kardo|continue karo)/i.test(message) ? 'reference detected' : 'clear standalone'
+    });
+
+    // If summary exists and user message is clear → send zero raw history
+    // Else send a small slice (not 10 always)
+    const recentLimit = sessionMemory?.summary
+      ? (needsRecent ? 4 : 0)
+      : 10;
+    console.log('[PUBLIC_CHAT] [HYP-G] Budget-aware message fetching:', {
+      hasSummary: !!sessionMemory?.summary,
+      needsRecent,
+      recentLimit,
+      reason: !sessionMemory?.summary ? 'no summary → fetch 10' :
+              needsRecent ? 'needsRecent=true → fetch 4' : 'needsRecent=false → fetch 0 (use summary only)'
+    });
+
+    const recentMessages = recentLimit > 0
+      ? await chatUtils.getRecentMessages(chatId, 'PublicMessage', recentLimit)
+      : [];
+    console.log('[PUBLIC_CHAT] [HYP-I] Recent messages fetched:', recentMessages.length, 'messages');
+    console.log('[PUBLIC_CHAT] [HYP-I] Full message history NOT fetched (optimization)');
 
     // ✅ Create request ID and check duplicate
     const userIdOrVisitor = chat.userId || chat.visitorId || `visitor_${Date.now()}`;
@@ -506,14 +545,26 @@ if (chat.requireLogin && !userId) {
       });
     }
 
-    // ✅ Get session memory for public chat (isolated per chat)
-    const sessionMemory = await chatUtils.getSessionMemoryForContext(chatId).catch(() => null);
-
     // ✅ Build context (with session memory for public chat - isolated per chat)
+    console.log('[PUBLIC_CHAT] [HYP-A] Loading personaData and systemPrompt from chat:', {
+      hasPersonaData: !!chat.personaData,
+      hasSystemPrompt: !!chat.systemPrompt,
+      systemPromptLength: chat.systemPrompt?.length || 0
+    });
+
+    // ✅ SINGLE FLAG: allowPublicUse controls whether public chat can fetch memories
+    const allowPublicUse = chat?.personaData?.settings?.memory?.allowPublicUse === true;
+    const memoryVisibility = allowPublicUse ? 'public_twin' : 'none';
+    
+    console.log('[PUBLIC_CHAT] [MEMORY_FLAG] allowPublicUse:', allowPublicUse, '→ memoryVisibility:', memoryVisibility);
+
+    // ✅ No manual memory block here. We handle long-term memory selection centrally.
+    const systemPromptForPublic =
+      (chat.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.");
+
     const context = chatUtils.buildChatContext({
-      styleVector: chat.styleVector,
       personaData: chat.personaData,
-      systemPrompt: chat.systemPrompt,
+      systemPrompt: systemPromptForPublic,
       tokenLimit: chat.tokenLimit || 500,
       chatMemory: recentMessages.map(msg => ({
         content: msg.content,
@@ -524,10 +575,74 @@ if (chat.requireLogin && !userId) {
       twinId: chat.twinId,
       isFirstMessage: shouldGenerateTitle,
       sessionMemory: sessionMemory, // ✅ ADD: Session memory for public chat (isolated)
+      memoryVisibility, // ✅ SINGLE FLAG: 'public_twin' if enabled, 'none' if disabled
+    });
+    console.log('[PUBLIC_CHAT] [HYP-I] Context built - sending to API:', {
+      summaryExists: !!sessionMemory?.summary,
+      recentMessagesCount: recentMessages.length,
+      currentMessage: message.trim().substring(0, 50),
+      fullHistorySent: false
     });
 
+    // ✅ NEW: Token quota (daily) - enforce BEFORE LLM call
+    const { reserveDailyTokens, reconcileDailyTokens, TokenQuotaError } = await import('../../services/tokenQuotaService');
+
+    const actor = chat.userId
+      ? ({ kind: 'user', userId: chat.userId } as const)
+      : ({ kind: 'anon', visitorId: chat.visitorId, ip: req.ip } as const);
+
+    // Reserve a safe amount (prevents abuse even if tokensUsed unknown yet)
+    // Cap reservation to prevent unfair instant blocking for anonymous users
+    const baseTokenLimit = Math.min(chat.tokenLimit || 500, 800);
+    let reservation: { day: string; actorKey: string; reserved: number } | null = null;
+    try {
+      reservation = await reserveDailyTokens({
+        actor,
+        reserveTokens: baseTokenLimit + 400,
+      });
+    } catch (e: any) {
+      if (e instanceof TokenQuotaError) {
+        return res.status(e.statusCode).json({
+          success: false,
+          error: e.message,
+          errorCode: e.errorCode,
+          retryAfter: `${e.retryAfterSeconds}s`,
+        });
+      }
+      throw e;
+    }
+
     // ✅ Generate AI response
-    const { aiResponse, generatedTitle } = await chatUtils.generateAIResponse(context);
+    let aiResponse: string;
+    let generatedTitle: string | null;
+    let tokensUsed: number;
+    try {
+      const result = await chatUtils.generateAIResponse(context);
+      aiResponse = result.aiResponse;
+      generatedTitle = result.generatedTitle;
+      tokensUsed = result.tokensUsed || 0;
+    } catch (error) {
+      // If LLM call fails, still reconcile (reduce reserved tokens)
+      if (reservation) {
+        await reconcileDailyTokens({
+          day: reservation.day,
+          actorKey: reservation.actorKey,
+          reserved: reservation.reserved,
+          actualTokensUsed: 0,
+        });
+      }
+      throw error;
+    }
+
+    // ✅ Reconcile actual tokens used
+    if (reservation) {
+      await reconcileDailyTokens({
+        day: reservation.day,
+        actorKey: reservation.actorKey,
+        reserved: reservation.reserved,
+        actualTokensUsed: tokensUsed || 0,
+      });
+    }
 
     // ✅ Save messages
     const userMessage = await chatUtils.saveUserMessage({
@@ -555,28 +670,27 @@ if (chat.requireLogin && !userId) {
       currentTitle,
       userMessage: message,
       aiResponse,
+      tokensUsed,
       updatedAtField: 'lastActivity'
     });
 
-    // ✅ Update session memory for public chat (isolated per chat)
+    // ✅ NEW: Log AI run for public chat tracking
+    try {
+      const runId = generateId.run();
+      await db.query(`
+        INSERT INTO ai_runs (id, twin_id, mode, tokens_in, tokens_out, latency_ms) 
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [runId, chat.twinId, 'public', Math.floor(tokensUsed * 0.7), Math.floor(tokensUsed * 0.3), 1000]);
+    } catch (error) {
+      logger.warn('Failed to log AI run (public chat):', error);
+    }
+
+    // ✅ Update session memory for public chat (delta + useful-only)
     (async () => {
       try {
-        const allMessagesResult = await db.query(`
-          SELECT content, sender, "createdAt"
-          FROM "PublicMessage"
-          WHERE "chatId" = $1
-          ORDER BY "createdAt" ASC
-        `, [chatId]);
-
-        const allMessages = allMessagesResult.rows.map(msg => ({
-          content: msg.content,
-          sender: msg.sender,
-          timestamp: msg.createdAt
-        }));
-
-        const { memoryService } = await import('../../services/memoryService');
-        await memoryService.createOrUpdateSessionMemory(chatId, allMessages);
-        logger.info(`Session memory updated for public chat ${chatId} with ${allMessages.length} messages`);
+        console.log('[PUBLIC_CHAT] [HYP-C] [HYP-H] Updating session memory (delta mode)');
+        await chatUtils.updateSessionMemory(chatId, chat.twinId, 'PublicMessage');
+        console.log('[PUBLIC_CHAT] [HYP-C] [HYP-H] Session memory update completed');
       } catch (error) {
         logger.error('Session memory update failed for public chat:', error);
         // Don't fail - response already sent

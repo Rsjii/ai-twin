@@ -555,6 +555,9 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response, ne
     
     const chatMessages = chatMessagesResult.rows;
 
+    // Get session memory for context
+    const sessionMemory = await chatUtils.getSessionMemoryForContext(chat.id).catch(() => null);
+
     // Create context with style vector + chat memory + user query
     const context = {
       styleVector: chat.styleVector as any,
@@ -568,11 +571,53 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response, ne
         timestamp: msg.createdAt
       })),
       currentMessages: messages,
-      twinId: chat.twinId // Add twinId for memory retrieval
+      twinId: chat.twinId, // Add twinId for memory retrieval
+      sessionMemory // Add session memory for context
     };
 
-    // Generate draft with full context
-    const draftResult = await twinService.generateDraftWithContext(context);
+    // ✅ Token quota enforcement for draft generation
+    const { reserveDailyTokens, reconcileDailyTokens, TokenQuotaError } = await import('../../services/tokenQuotaService');
+    const actor = { kind: 'user', userId: req.user.id } as const;
+
+    // Cap reservation so it doesn't block unfairly
+    const baseTokenLimit = Math.min(chat.tokenLimit || 500, 800);
+
+    let reservation: { day: string; actorKey: string; reserved: number } | null = null;
+    try {
+      reservation = await reserveDailyTokens({ actor, reserveTokens: baseTokenLimit + 600 });
+    } catch (e: any) {
+      if (e instanceof TokenQuotaError) {
+        return res.status(e.statusCode).json({
+          success: false,
+          error: e.message,
+          errorCode: e.errorCode,
+          retryAfter: `${e.retryAfterSeconds}s`,
+        });
+      }
+      throw e;
+    }
+
+    let draftResult: any;
+    try {
+      // Generate draft with full context
+      draftResult = await twinService.generateDraftWithContext(context);
+    } finally {
+      // Reconcile actual tokens used
+      const tokensUsed =
+        typeof draftResult === 'object' && draftResult
+          ? (draftResult.tokensUsed || 0)
+          : 0;
+
+      if (reservation) {
+        await reconcileDailyTokens({
+          day: reservation.day,
+          actorKey: reservation.actorKey,
+          reserved: reservation.reserved,
+          actualTokensUsed: tokensUsed,
+        });
+      }
+    }
+
     // Handle both string and object response
     const draft = typeof draftResult === 'object' && draftResult.response 
       ? draftResult.response 
@@ -670,10 +715,8 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response, next
       messageLength: message.content?.length || 0
     });
 
-    // Update style vector based on new conversation (async, don't wait)
-    updateStyleVectorAfterChat(chat.twinId, req.user.id).catch(error => {
-      logger.error('Style vector update failed:', error);
-    });
+    // MVP (personaData-only): Disable automatic styleVector updates.
+    // Style adaptation via chats will be revisited when we have a dedicated model / budget.
     
     res.json({
       success: true,
@@ -845,11 +888,60 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
     // ✅ Always generate title for first message (even if title is "New Chat")
     const shouldGenerateTitle = isFirstMessage === true;
 
-    // ✅ Get recent messages and session memory in parallel
-    const [sessionMemory, recentMessages] = await Promise.all([
-      chatUtils.getSessionMemoryForContext(chat.id).catch(() => null),
-      chatUtils.getRecentMessages(chat.id, 'Message', 10)
-    ]);
+    // ✅ Get session memory first (needed for budget-aware context)
+    const sessionMemory = await chatUtils.getSessionMemoryForContext(chat.id).catch(() => null);
+    console.log('[PRIVATE_CHAT] [HYP-F] [HYP-G] Session memory check:', {
+      chatId: chat.id,
+      hasSummary: !!sessionMemory?.summary,
+      summaryLength: sessionMemory?.summary?.length || 0
+    });
+
+    // ✅ Budget-aware: only fetch recent messages if needed (not always 10)
+    const needsRecent = (() => {
+      const t = (message || '').trim().toLowerCase();
+      if (t.length <= 12) return true;
+
+      // Strong “follow previous / correction / continue task” signals
+      if (/^(no|nahi)\b/i.test(t)) return true;
+      if (/(same|continue|as above|that|this|it|wahi|haan|han|ok|kar do|kardo|continue karo)/i.test(t)) return true;
+
+      // Real phrases observed in logs
+      if (/(as\s*i\s*said|i\s*said|isaid|do\s*what\s*i\s*said|follow\s*what\s*i\s*said)/i.test(t)) return true;
+      if (/(continue\s*math|math\s*question|math\s*questions|ask\s*me\s*math|10\s*questions|one\s*at\s*a\s*time|score)/i.test(t)) return true;
+
+      // NEW: quiz/result/reference follow-ups should pull recent context
+      if (/(final\s*result|final\s*score|my\s*score|marks|kitne\s*correct|how\s*much\s*score|percentage|%)/i.test(t)) return true;
+      if (/(which\s*(one|question)|what\s*was\s*question|question\s*\d+|q\s*\d+|wrong|galat)/i.test(t)) return true;
+
+      if (/(rewrite|rephrase|edit|correct|fix this|above text)/i.test(t)) return true;
+      return false;
+    })();
+    console.log('[PRIVATE_CHAT] [HYP-G] needsRecent detection:', {
+      message: message.substring(0, 50),
+      needsRecent,
+      reason: message.length <= 12 ? 'short message' : 
+              /(same|continue|as above|that|this|it|wahi|haan|han|ok|kar do|kardo|continue karo)/i.test(message) ? 'reference detected' :
+              /(rewrite|rephrase|edit|correct|fix this|above text)/i.test(message) ? 'edit request' : 'clear standalone'
+    });
+
+    // If summary exists and user message is clear → send zero raw history
+    // Else send a small slice (not 10 always)
+    const recentLimit = sessionMemory?.summary
+      ? (needsRecent ? 4 : 0)
+      : 10;
+    console.log('[PRIVATE_CHAT] [HYP-G] Budget-aware message fetching:', {
+      hasSummary: !!sessionMemory?.summary,
+      needsRecent,
+      recentLimit,
+      reason: !sessionMemory?.summary ? 'no summary → fetch 10' :
+              needsRecent ? 'needsRecent=true → fetch 4' : 'needsRecent=false → fetch 0 (use summary only)'
+    });
+
+    const recentMessages = recentLimit > 0
+      ? await chatUtils.getRecentMessages(chat.id, 'Message', recentLimit)
+      : [];
+    console.log('[PRIVATE_CHAT] [HYP-I] Recent messages fetched:', recentMessages.length, 'messages');
+    console.log('[PRIVATE_CHAT] [HYP-I] Full message history NOT fetched (optimization)');
 
     // ✅ Create request ID and check duplicate
     const requestId = chatUtils.createRequestId(req.user.id);
@@ -872,6 +964,11 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
     }
 
     // ✅ Build context
+    console.log('[PRIVATE_CHAT] [HYP-A] Loading personaData and systemPrompt from chat:', {
+      hasPersonaData: !!chat.personaData,
+      hasSystemPrompt: !!chat.systemPrompt,
+      systemPromptLength: chat.systemPrompt?.length || 0
+    });
     const context = chatUtils.buildChatContext({
       styleVector: chat.styleVector,
       personaData: chat.personaData,
@@ -888,9 +985,70 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       chatVector: chat.chatVector,
       sessionMemory: sessionMemory
     });
+    console.log('[PRIVATE_CHAT] [HYP-I] Context built - sending to API:', {
+      summaryExists: !!sessionMemory?.summary,
+      recentMessagesCount: recentMessages.length,
+      currentMessage: message.trim().substring(0, 50),
+      fullHistorySent: false
+    });
+
+    // ✅ NEW: Token quota (daily) - enforce BEFORE LLM call
+    const { reserveDailyTokens, reconcileDailyTokens, TokenQuotaError } = await import('../../services/tokenQuotaService');
+
+    const actor = { kind: 'user', userId: req.user.id } as const;
+
+    // Reserve a safe amount (prevents abuse even if tokensUsed unknown yet)
+    // Cap reservation to prevent unfair instant blocking
+    const baseTokenLimit = Math.min(chat.tokenLimit || 500, 800);
+    let reservation: { day: string; actorKey: string; reserved: number } | null = null;
+    try {
+      reservation = await reserveDailyTokens({
+        actor,
+        reserveTokens: baseTokenLimit + 600,
+      });
+    } catch (e: any) {
+      if (e instanceof TokenQuotaError) {
+        return res.status(e.statusCode).json({
+          success: false,
+          error: e.message,
+          errorCode: e.errorCode,
+          retryAfter: `${e.retryAfterSeconds}s`,
+        });
+      }
+      throw e;
+    }
 
     // ✅ Generate AI response
-    const { aiResponse, generatedTitle } = await chatUtils.generateAIResponse(context);
+    let aiResponse: string;
+    let generatedTitle: string | null;
+    let tokensUsed: number;
+    try {
+      const result = await chatUtils.generateAIResponse(context);
+      aiResponse = result.aiResponse;
+      generatedTitle = result.generatedTitle;
+      tokensUsed = result.tokensUsed || 0;
+    } catch (error) {
+      // If LLM call fails, still reconcile (reduce reserved tokens)
+      if (reservation) {
+        await reconcileDailyTokens({
+          day: reservation.day,
+          actorKey: reservation.actorKey,
+          reserved: reservation.reserved,
+          actualTokensUsed: 0,
+        });
+      }
+      throw error;
+    }
+
+    // ✅ Reconcile actual tokens used
+    if (reservation) {
+      await reconcileDailyTokens({
+        day: reservation.day,
+        actorKey: reservation.actorKey,
+        reserved: reservation.reserved,
+        actualTokensUsed: tokensUsed || 0,
+      });
+    }
 
     // ✅ Save messages
     const userMessage = await chatUtils.saveUserMessage({
@@ -954,10 +1112,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
           // Log event
           await EventLogger.logUserEvent(userId, EVENT_TYPES.CHAT_MESSAGE, { chatId: chat.id, twinId: chat.twinId, userMessageId: userMessage.id, aiMessageId: aiMessage.id }),
 
-          // Update style vector
-          updateStyleVectorAfterChat(chat.twinId, userId).catch(err => 
-            logger.warn('Style vector update failed:', err)
-          ),
+          // MVP (personaData-only): Disable automatic styleVector updates.
 
           // Update chat vector
           updateChatVectorAfterMessage(chat.id, [userMessage, aiMessage]).catch(err => 
@@ -965,8 +1120,10 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
           )
         ]);
 
-        // Update session memory
-        await chatUtils.updateSessionMemory(chat.id, chat.twinId);
+        // Update session memory (delta + useful-only, works for private chat)
+        console.log('[PRIVATE_CHAT] [HYP-C] [HYP-H] Updating session memory (delta mode)');
+        await chatUtils.updateSessionMemory(chat.id, chat.twinId, 'Message');
+        console.log('[PRIVATE_CHAT] [HYP-C] [HYP-H] Session memory update completed');
 
         // ✅ Check if user wants to save something (ChatGPT-style "remember this")
         const rememberPatterns = [
@@ -981,9 +1138,15 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
         ];
 
         const shouldExtractFacts = rememberPatterns.some(pattern => pattern.test(message));
+        console.log('[PRIVATE_CHAT] [HYP-D] "Remember this" detection:', {
+          message: message.substring(0, 50),
+          shouldExtractFacts,
+          patternMatched: shouldExtractFacts
+        });
 
         if (shouldExtractFacts && chat.twinId) {
           logger.info('✅ User requested to remember something - extracting facts');
+          console.log('[PRIVATE_CHAT] [HYP-D] Triggering fact extraction for twin:', chat.twinId);
           
           // ✅ Get session memory summary for context
           const sessionMem = await chatUtils.getSessionMemoryForContext(chat.id);
@@ -1026,70 +1189,10 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
  */
 
 
-// Helper function to update style vector after chat
-async function updateStyleVectorAfterChat(twinId: string, userId: string) {
-  try {
-    logger.info('Starting style vector update for twin:', twinId);
-    
-    // Get the twin's current style vector using raw SQL
-    const twinResult = await db.query(`
-      SELECT id, "styleVector"
-      FROM "Twin"
-      WHERE id = $1 AND "userId" = $2
-    `, [twinId, userId]);
-    
-    if (twinResult.rows.length === 0) {
-      logger.warn('Twin not found for style vector update:', twinId);
-      return;
-    }
-
-    const twin = twinResult.rows[0];
-    logger.info('Found twin for style vector update:', twin.id);
-
-    // Get recent messages from this chat (last 10 messages) using raw SQL
-    const recentMessagesResult = await db.query(`
-      SELECT m.content, m.sender
-      FROM "Message" m
-      JOIN "Chat" c ON m."chatId" = c.id
-      WHERE c."twinId" = $1 AND c."userId" = $2
-      ORDER BY m."createdAt" DESC
-      LIMIT ${QUERY_LIMITS.RECENT_MESSAGES}
-    `, [twinId, userId]);
-    
-    const recentMessages = recentMessagesResult.rows;
-
-    logger.info('Found recent messages:', recentMessages.length);
-
-    // Filter only human messages for style analysis
-    const humanMessages = recentMessages
-      .filter(msg => msg.sender === 'human')
-      .map(msg => msg.content);
-
-    if (humanMessages.length === 0) {
-      logger.info('No human messages found for style vector update');
-      return;
-    }
-
-    logger.info('Human messages for style analysis:', humanMessages.length);
-
-    // Update style vector based on new conversations
-    const currentStyleVector = twin.styleVector as any;
-    logger.info('Current style vector:', JSON.stringify(currentStyleVector, null, 2));
-    
-    const updatedStyleVector = await twinService.updateStyleVector(currentStyleVector, humanMessages);
-    logger.info('Updated style vector:', JSON.stringify(updatedStyleVector, null, 2));
-
-    // Save updated style vector to database using raw SQL
-    await db.query(`
-      UPDATE "Twin"
-      SET "styleVector" = $1
-      WHERE id = $2
-    `, [JSON.stringify(updatedStyleVector), twinId]);
-
-    logger.info('Style vector updated successfully for twin:', twinId);
-  } catch (error) {
-    logger.error('Error updating style vector:', error);
-  }
+// MVP (personaData-only): Legacy style vector update disabled.
+// Style adaptation via chats will be revisited when we have a dedicated model / budget.
+async function updateStyleVectorAfterChat(_twinId: string, _userId: string): Promise<void> {
+  logger.debug('MVP: updateStyleVectorAfterChat() disabled (personaData-only mode)');
 }
 
 // Helper function to update chat vector after new messages
@@ -1197,7 +1300,7 @@ export const deleteChat = async (req: AuthenticatedRequest, res: Response, next:
     
     // Log event
     try {
-      await EventLogger.logEvent(req.user.id, EVENT_TYPES.CHAT_DELETED, { chatId: chatId });
+      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.CHAT_DELETED, { chatId });
     } catch (error) {
       logger.warn('Failed to log chat deletion event:', error);
     }
@@ -1364,8 +1467,45 @@ export const generateChatTitle = async (req: AuthenticatedRequest, res: Response
       throw createError.notFound('Chat not found', ErrorCodes.CHAT_NOT_FOUND);
     }
 
-    // Generate title using AI
-    const title = await generateTitleFromMessage(firstMessage);
+    // ✅ Token quota enforcement for title generation
+    const { reserveDailyTokens, reconcileDailyTokens, TokenQuotaError } = await import('../../services/tokenQuotaService');
+    const actor = { kind: 'user', userId } as const;
+
+    // Reserve small amount; title calls are tiny
+    let reservation: { day: string; actorKey: string; reserved: number } | null = null;
+    try {
+      reservation = await reserveDailyTokens({ actor, reserveTokens: 200 });
+    } catch (e: any) {
+      if (e instanceof TokenQuotaError) {
+        return res.status(e.statusCode).json({
+          success: false,
+          error: e.message,
+          errorCode: e.errorCode,
+          retryAfter: `${e.retryAfterSeconds}s`,
+        });
+      }
+      throw e;
+    }
+
+    let title = 'New Chat';
+    let tokensUsedForTitle = 0;
+
+    try {
+      // Generate title using AI
+      const titleResult = await generateTitleFromMessage(firstMessage);
+      title = titleResult.title;
+      tokensUsedForTitle = titleResult.tokensUsed || 0;
+    } finally {
+      // Reconcile actual tokens used
+      if (reservation) {
+        await reconcileDailyTokens({
+          day: reservation.day,
+          actorKey: reservation.actorKey,
+          reserved: reservation.reserved,
+          actualTokensUsed: tokensUsedForTitle,
+        });
+      }
+    }
 
     // Update chat title
     const utcTimestamp = new Date().toISOString();
@@ -1430,8 +1570,9 @@ export const getChatSummary = async (req: AuthenticatedRequest, res: Response, n
 
 /**
  * Helper function to generate title from message using AI (from chatManagementController)
+ * Returns both title and tokensUsed for quota reconciliation
  */
-async function generateTitleFromMessage(message: string): Promise<string> {
+async function generateTitleFromMessage(message: string): Promise<{ title: string; tokensUsed: number }> {
   try {
     // COMMENTED OUT: OpenAI inline import - Now using Groq via llmClient
     // const { OpenAI } = await import('openai');
@@ -1462,11 +1603,15 @@ async function generateTitleFromMessage(message: string): Promise<string> {
     });
 
     const title = llmResponse.content.trim() || 'New Chat';
-    return title.length > 30 ? title.substring(0, 30) + '...' : title;
+    const finalTitle = title.length > 30 ? title.substring(0, 30) + '...' : title;
+    const tokensUsed = llmResponse.tokensUsed || 0;
+
+    return { title: finalTitle, tokensUsed };
 
   } catch (error) {
     logger.error('AI title generation failed:', error);
     // Fallback to simple title
-    return message.length > 30 ? message.substring(0, 30) + '...' : message;
+    const fallbackTitle = message.length > 30 ? message.substring(0, 30) + '...' : message;
+    return { title: fallbackTitle, tokensUsed: 0 };
   }
 }

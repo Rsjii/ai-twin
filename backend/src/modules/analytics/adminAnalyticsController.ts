@@ -117,7 +117,14 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       inviteConversionRateResult,
       dauResult,
       wauResult,
-      mauResult
+      mauResult,
+      tokenLifetimeResult,
+      tokenTodayResult,
+      tokenDailyLifetimeResult,
+      tokenDailyTodayResult,
+      tokenDailyWeekResult,
+      tokenDailyMonthResult,
+      topTokenUsersResult
     ] = await Promise.all([
       // Lifetime metrics
       db.query('SELECT COUNT(*) as count FROM "User"'),
@@ -324,7 +331,27 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       `),
       db.query('SELECT COUNT(DISTINCT "userId") as count FROM "Event" WHERE "createdAt" >= CURRENT_DATE'),
       db.query('SELECT COUNT(DISTINCT "userId") as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
-      db.query('SELECT COUNT(DISTINCT "userId") as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\'')
+      db.query('SELECT COUNT(DISTINCT "userId") as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
+      
+      // NEW: Token usage metrics (from ai_runs)
+      db.query('SELECT SUM(tokens_in + tokens_out) as total FROM ai_runs'),
+      db.query('SELECT SUM(tokens_in + tokens_out) as total FROM ai_runs WHERE ts >= CURRENT_DATE'),
+      
+      // NEW: Token usage from TokenUsageDaily (user-wise tracking)
+      db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "actorType" = \'user\''),
+      db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "actorType" = \'user\' AND day = CURRENT_DATE'),
+      db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "actorType" = \'user\' AND day >= CURRENT_DATE - INTERVAL \'7 days\''),
+      db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "actorType" = \'user\' AND day >= CURRENT_DATE - INTERVAL \'30 days\''),
+      
+      // Top token users (today)
+      db.query(`
+        SELECT "userId", SUM("tokensUsed") as total 
+        FROM "TokenUsageDaily" 
+        WHERE "actorType" = 'user' AND day = CURRENT_DATE AND "userId" IS NOT NULL
+        GROUP BY "userId" 
+        ORDER BY total DESC 
+        LIMIT 10
+      `)
     ]);
 
     // Process results
@@ -334,7 +361,9 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       chats: parseInt(totalChatsResult.rows[0].count),
       messages: parseInt(totalMessagesResult.rows[0].count),
       events: parseInt(totalEventsResult.rows[0].count),
-      invites: parseInt(totalInvitesResult.rows[0].count)
+      invites: parseInt(totalInvitesResult.rows[0].count),
+      tokens: parseInt(tokenLifetimeResult?.rows[0]?.total || 0),
+      tokensDaily: parseInt(tokenDailyLifetimeResult?.rows[0]?.total || 0) // From TokenUsageDaily
     };
 
     const daily = {
@@ -342,7 +371,9 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       twins: parseInt(dailyTwinsResult.rows[0].count),
       chats: parseInt(dailyChatsResult.rows[0].count),
       messages: parseInt(dailyMessagesResult.rows[0].count),
-      events: parseInt(dailyEventsResult.rows[0].count)
+      events: parseInt(dailyEventsResult.rows[0].count),
+      tokens: parseInt(tokenTodayResult?.rows[0]?.total || 0),
+      tokensDaily: parseInt(tokenDailyTodayResult?.rows[0]?.total || 0) // From TokenUsageDaily
     };
 
     const weekly = {
@@ -350,7 +381,8 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       twins: parseInt(weeklyTwinsResult.rows[0].count),
       chats: parseInt(weeklyChatsResult.rows[0].count),
       messages: parseInt(weeklyMessagesResult.rows[0].count),
-      events: parseInt(weeklyEventsResult.rows[0].count)
+      events: parseInt(weeklyEventsResult.rows[0].count),
+      tokensDaily: parseInt(tokenDailyWeekResult?.rows[0]?.total || 0) // From TokenUsageDaily
     };
 
     const monthly = {
@@ -358,7 +390,8 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       twins: parseInt(monthlyTwinsResult.rows[0].count),
       chats: parseInt(monthlyChatsResult.rows[0].count),
       messages: parseInt(monthlyMessagesResult.rows[0].count),
-      events: parseInt(monthlyEventsResult.rows[0].count)
+      events: parseInt(monthlyEventsResult.rows[0].count),
+      tokensDaily: parseInt(tokenDailyMonthResult?.rows[0]?.total || 0) // From TokenUsageDaily
     };
 
     const userActivity = {
@@ -380,7 +413,11 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
     // ✅ Sanitize topContent
     const topContent = {
       topTwins: topTwinsResult.rows.map(twin => sanitizeTwin(twin)),
-      mostActiveUsers: mostActiveUsersResult.rows.map(user => sanitizeUser(user, true)) // includeEmail=true for admin
+      mostActiveUsers: mostActiveUsersResult.rows.map(user => sanitizeUser(user, true)), // includeEmail=true for admin
+      topTokenUsers: topTokenUsersResult.rows.map(row => ({
+        userId: row.userId ? tokenizeId(row.userId, 'user') : null,
+        tokensUsed: parseInt(row.total || 0)
+      }))
     };
 
     console.log('[BACKEND_ADMIN] Processing event breakdown...');
@@ -566,7 +603,12 @@ export const getAdminUserAnalytics = async (req: Request, res: Response) => {
    userMessagesResult,
    userEventsResult,
    userInvitesResult,
-   userActivityResult
+   userActivityResult,
+   userTokenUsageLifetimeResult,
+   userTokenUsageTodayResult,
+   userTokenUsageWeekResult,
+   userTokenUsageMonthResult,
+   userTokenUsageDailyResult
  ] = await Promise.all([
    db.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [actualUserId]),
    db.query('SELECT id, "userId", "styleVector", "sampleReply", "instructions", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE "userId" = $1', [actualUserId]),
@@ -574,7 +616,13 @@ export const getAdminUserAnalytics = async (req: Request, res: Response) => {
    db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [actualUserId]),
    db.query('SELECT id, "userId", type, meta, "createdAt" FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [actualUserId]),
    db.query('SELECT id, code, "inviterId", "acceptedBy", "createdAt" FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1', [actualUserId]),
-   db.query('SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC', [actualUserId])
+   db.query('SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC', [actualUserId]),
+   // Token usage queries
+   db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "userId" = $1', [actualUserId]),
+   db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "userId" = $1 AND day = CURRENT_DATE', [actualUserId]),
+   db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "userId" = $1 AND day >= CURRENT_DATE - INTERVAL \'7 days\'', [actualUserId]),
+   db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "userId" = $1 AND day >= CURRENT_DATE - INTERVAL \'30 days\'', [actualUserId]),
+   db.query('SELECT day, "tokensUsed" FROM "TokenUsageDaily" WHERE "userId" = $1 ORDER BY day DESC LIMIT 30', [actualUserId])
  ]);    
 
     const user = userResult.rows[0];
@@ -590,7 +638,17 @@ export const getAdminUserAnalytics = async (req: Request, res: Response) => {
         chats: userChatsResult.rows.length,
         messages: parseInt(userMessagesResult.rows[0].count),
         events: userEventsResult.rows.length,
-        invites: userInvitesResult.rows.length
+        invites: userInvitesResult.rows.length,
+        tokens: {
+          lifetime: parseInt(userTokenUsageLifetimeResult?.rows[0]?.total || 0),
+          today: parseInt(userTokenUsageTodayResult?.rows[0]?.total || 0),
+          week: parseInt(userTokenUsageWeekResult?.rows[0]?.total || 0),
+          month: parseInt(userTokenUsageMonthResult?.rows[0]?.total || 0),
+          daily: userTokenUsageDailyResult.rows.map(row => ({
+            day: row.day,
+            tokensUsed: parseInt(row.tokensUsed || 0)
+          }))
+        }
       },
       twins: userTwinsResult.rows.map(twin => sanitizeTwin(twin)),
       chats: userChatsResult.rows.map(chat => sanitizeChat(chat)),
@@ -1708,7 +1766,13 @@ export const getEventExplorer = async (req: Request, res: Response) => {
     // Meta filter (JSONB query)
     if (metaFilter) {
       // Support for simple key:value filters like "wv:event" or "source:dashboard"
-      const [key, value] = metaFilter.split(':');
+      const metaFilterStr =
+        typeof metaFilter === 'string'
+          ? metaFilter
+          : Array.isArray(metaFilter)
+            ? String(metaFilter[0] || '')
+            : '';
+      const [key, value] = metaFilterStr.split(':');
       if (key && value) {
         conditions.push(`e.meta->>'${key}' = $${paramIndex}`);
         params.push(value);

@@ -18,7 +18,8 @@ const twinService = new TwinService();
 // ========== TYPES ==========
 
 export interface ChatMessageContext {
-  styleVector: any;
+  // MVP (personaData-only): styleVector is legacy/optional.
+  styleVector?: any;
   personaData: any;
   systemPrompt: string;
   tokenLimit: number;
@@ -31,6 +32,7 @@ export interface ChatMessageContext {
     keyTopics: string[];
   } | null;
   chatVector?: any;
+  memoryVisibility?: 'none' | 'owner' | 'public_twin' | 'all';
 }
 
 export interface ModerationResult {
@@ -46,6 +48,7 @@ export interface ModerationResult {
 export interface AIResponseResult {
   aiResponse: string;
   generatedTitle: string | null;
+  tokensUsed: number;
 }
 
 export interface MessageSaveResult {
@@ -173,14 +176,22 @@ export async function getRecentMessages(
     LIMIT $2
   `, [chatId, limit]);
 
-  return recentMessagesResult.rows.reverse();
+  const messages = recentMessagesResult.rows.reverse();
+  console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] [HYP-I] Fetched recent messages:', {
+    chatId,
+    messageTable,
+    limit,
+    actualCount: messages.length,
+    messages: messages.map(m => ({ sender: m.sender, contentLength: m.content.length }))
+  });
+  return messages;
 }
 
 /**
  * Build chat context for AI response generation
  */
 export function buildChatContext(params: {
-  styleVector: any;
+  styleVector?: any;
   personaData: any;
   systemPrompt: string;
   tokenLimit: number;
@@ -193,7 +204,24 @@ export function buildChatContext(params: {
     summary: string;
     keyTopics: string[];
   } | null;
+  memoryVisibility?: 'none' | 'owner' | 'public_twin' | 'all';
 }): ChatMessageContext {
+  console.log('[CHAT_SHARED_UTILS] [HYP-A] [HYP-F] [HYP-I] Building chat context:', {
+    twinId: params.twinId,
+    memoryVisibility: params.memoryVisibility || 'owner',
+    hasPersonaData: !!params.personaData,
+    hasSystemPrompt: !!params.systemPrompt,
+    systemPromptLength: params.systemPrompt?.length || 0,
+    chatMemoryCount: params.chatMemory.length,
+    currentMessagesCount: params.currentMessages.length,
+    hasSessionMemory: !!params.sessionMemory,
+    sessionMemorySummaryLength: params.sessionMemory?.summary?.length || 0,
+    isFirstMessage: params.isFirstMessage
+  });
+  console.log('[CHAT_SHARED_UTILS] [HYP-I] chatMemory (recent messages only, NOT full history):', params.chatMemory.length, 'messages');
+  console.log('[CHAT_SHARED_UTILS] [HYP-I] currentMessages:', params.currentMessages);
+  console.log('[CHAT_SHARED_UTILS] [HYP-I] sessionMemory summary (if exists):', params.sessionMemory?.summary ? 'EXISTS' : 'NONE');
+  
   return {
     styleVector: params.styleVector,
     personaData: params.personaData,
@@ -204,7 +232,8 @@ export function buildChatContext(params: {
     chatMemory: params.chatMemory,
     currentMessages: params.currentMessages,
     twinId: params.twinId,
-    isFirstMessage: params.isFirstMessage
+    isFirstMessage: params.isFirstMessage,
+    memoryVisibility: params.memoryVisibility,
   };
 }
 
@@ -218,18 +247,30 @@ export async function generateAIResponse(
 ): Promise<AIResponseResult> {
   let aiResponse: string;
   let generatedTitle: string | null = null;
+  let tokensUsed: number = 0;
 
   try {
+    console.log('[CHAT_SHARED_UTILS] [HYP-A] [HYP-C] Generating AI response with context:', {
+      twinId: context.twinId,
+      hasPersonaData: !!context.personaData,
+      hasSystemPrompt: !!context.systemPrompt,
+      hasSessionMemory: !!context.sessionMemory,
+      chatMemoryCount: context.chatMemory.length,
+      currentMessagesCount: context.currentMessages.length
+    });
     const draftResult = await twinService.generateDraftWithContext(context);
 
     // Handle both string and object response (for title generation)
     if (typeof draftResult === 'object' && draftResult.response && draftResult.title) {
       aiResponse = draftResult.response;
       generatedTitle = draftResult.title;
+      tokensUsed = draftResult.tokensUsed || 0;
     } else if (typeof draftResult === 'object' && draftResult.response) {
       aiResponse = draftResult.response;
+      tokensUsed = draftResult.tokensUsed || 0;
     } else if (typeof draftResult === 'string') {
       aiResponse = draftResult;
+      tokensUsed = 0; // Fallback string response usually has no token count here
     } else {
       logger.error('Invalid response format from AI:', draftResult);
       throw new Error('Invalid response format from AI');
@@ -240,14 +281,22 @@ export async function generateAIResponse(
     }
 
     logger.info('AI response generated successfully:', aiResponse.substring(0, 100));
+    console.log('[CHAT_SHARED_UTILS] [HYP-A] [HYP-C] AI response generated:', {
+      responseLength: aiResponse.length,
+      hasTitle: !!generatedTitle,
+      title: generatedTitle,
+      tokensUsed
+    });
   } catch (error) {
     logger.error('AI response generation failed:', error);
     aiResponse = "I'm having trouble thinking right now. Could you try again?";
+    tokensUsed = 0;
   }
 
   return {
     aiResponse,
-    generatedTitle
+    generatedTitle,
+    tokensUsed
   };
 }
 
@@ -376,6 +425,7 @@ export async function updateChatMetadata(params: {
   currentTitle: string | null;
   userMessage: string;
   aiResponse: string;
+  tokensUsed?: number;
   lastMessageField?: string; // 'lastMessage' for Chat, 'lastActivity' for PublicChat
   updatedAtField?: string; // 'updatedAt' for Chat, 'lastActivity' for PublicChat
 }): Promise<void> {
@@ -387,6 +437,7 @@ export async function updateChatMetadata(params: {
     currentTitle,
     userMessage,
     aiResponse,
+    tokensUsed = 0,
     lastMessageField = chatTable === 'Chat' ? 'lastMessage' : undefined,
     updatedAtField = chatTable === 'Chat' ? 'updatedAt' : 'lastActivity'
   } = params;
@@ -502,30 +553,163 @@ export async function updateChatMetadata(params: {
 // ========== SESSION MEMORY (Private Chat Only) ==========
 
 /**
- * Update session memory (private chat only)
+ * Update session memory (works for both private and public chat)
+ * Uses delta-only updates + useful-only filtering for cost optimization
  */
 export async function updateSessionMemory(
   chatId: string,
-  twinId: string
+  twinId: string,
+  messageTable: 'Message' | 'PublicMessage' = 'Message'
 ): Promise<void> {
   try {
-    // Get all messages for session summary
-    const allMessagesResult = await db.query(`
-      SELECT content, sender, "createdAt"
-      FROM "Message"
-      WHERE "chatId" = $1
-      ORDER BY "createdAt" ASC
-    `, [chatId]);
+    // 1) Load existing session memory (to get lastUpdated from vector)
+    // Route to correct table based on messageTable
+    const existing =
+      messageTable === 'PublicMessage'
+        ? await memoryService.getPublicSessionMemory(chatId)
+        : await memoryService.getSessionMemory(chatId);
 
-    const allMessages = allMessagesResult.rows.map(msg => ({
-      content: msg.content,
-      sender: msg.sender,
-      timestamp: msg.createdAt
+    let lastUpdatedIso: string | null = null;
+    if (existing?.vector) {
+      try {
+        const vec = typeof existing.vector === 'string' ? JSON.parse(existing.vector) : existing.vector;
+        lastUpdatedIso = vec?.lastUpdated || null;
+      } catch {
+        lastUpdatedIso = null;
+      }
+    }
+
+    // 2) Fetch ONLY delta messages since lastUpdated (cheap + bounded)
+    const MAX_DELTA = Number(process.env.SESSION_SUMMARY_DELTA_MAX ?? 12);
+    console.log('[CHAT_SHARED_UTILS] [HYP-H] Delta update mode:', {
+      chatId,
+      lastUpdatedIso,
+      mode: lastUpdatedIso ? 'delta' : 'full',
+      maxDelta: MAX_DELTA
+    });
+
+    let rows: Array<{ content: string; sender: string; createdAt: Date }> = [];
+
+    if (lastUpdatedIso) {
+      const deltaResult = await db.query(
+        `
+        SELECT content, sender, "createdAt"
+        FROM "${messageTable}"
+        WHERE "chatId" = $1 AND approved = true AND "createdAt" > $2::timestamptz
+        ORDER BY "createdAt" ASC
+        LIMIT $3
+        `,
+        [chatId, lastUpdatedIso, MAX_DELTA]
+      );
+      rows = deltaResult.rows;
+      console.log('[CHAT_SHARED_UTILS] [HYP-H] Delta messages fetched (since lastUpdated):', rows.length);
+    } else {
+      // No summary yet → take a small recent slice to bootstrap
+      const bootstrapResult = await db.query(
+        `
+        SELECT content, sender, "createdAt"
+        FROM "${messageTable}"
+        WHERE "chatId" = $1 AND approved = true
+        ORDER BY "createdAt" DESC
+        LIMIT $2
+        `,
+        [chatId, MAX_DELTA]
+      );
+      rows = bootstrapResult.rows.slice().reverse();
+      console.log('[CHAT_SHARED_UTILS] [HYP-H] Bootstrap messages fetched (no summary yet):', rows.length);
+    }
+
+    const deltaMessages = rows.map(r => ({
+      content: r.content,
+      sender: r.sender,
+      timestamp: r.createdAt,
     }));
 
-    // Update session memory
-    await memoryService.createOrUpdateSessionMemory(chatId, allMessages);
-    logger.info(`Session memory updated for chat ${chatId} with ${allMessages.length} messages`);
+    if (!deltaMessages.length) return;
+
+    // 2.5) Extract pinned facts using LLM (intelligent, handles typos and context)
+    // This ensures name/likes/hobbies/extras persist even if message is short
+    const pinnedFactsDelta = await memoryService.extractPinnedFactsFromMessages(deltaMessages);
+
+    if (pinnedFactsDelta.name || pinnedFactsDelta.likes?.length || pinnedFactsDelta.hobbies?.length || pinnedFactsDelta.extras?.length) {
+      console.log('[SESSION_PINNED] Extracted pinned facts delta:', pinnedFactsDelta);
+    }
+
+    // 3) Useful-only: skip summarization for junk turns (hi/ok/thanks)
+    const isMeaningful = (text: string) => {
+      const t = (text || '').trim().toLowerCase();
+      if (!t) return false;
+
+      // ✅ Identity / pinned-fact statements must always be kept (even if short)
+      if (
+        /\b(my name is|call me|i am|i'm|mera naam|mai\b|main\b|mujhe\b|pasand|i like|my hobby is|i enjoy|mera hobby)\b/i.test(t) &&
+        !/\b(what\s+is\s+my\s+name|mera\s+naam\s+kya)\b/i.test(t)
+      ) {
+        return true;
+      }
+
+      // ✅ Numeric / score-like answers should always be kept (quiz/otp/short answers)
+      if (/^\d+(\.\d+)?$/.test(t)) return true;         // "3", "4.5"
+      if (/^\d+\s*\/\s*\d+$/.test(t)) return true;      // "10/10"
+
+      // ✅ Short state-changing replies also matter
+      if (/^(no|yes|y|n|ok|okay|haan|han|ha|nahi|nah)$/.test(t)) return true;
+
+      // ✅ Truly trivial greetings/closings → skip summary update
+      if (/^(hi|hey|hello|yo|hii|heyy|hola|sup|wassup|what'?s up|whats up)\b/.test(t)) return false;
+      if (/^(thanks|thx|ty|bye|gn|good night|goodmorning|good morning)\b/.test(t)) return false;
+
+      // Short junk after above checks
+      if (t.length <= 3) return false;
+
+      // Check if message is only emojis/punctuation (no actual words)
+      const emojiPattern = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu;
+      const textWithoutEmojis = t.replace(emojiPattern, '');
+      if (/^[\s\.\!\?]+$/.test(textWithoutEmojis)) return false;
+
+      // "stateful" signals
+      if (/\d/.test(t)) return true;
+      if (/(plan|todo|task|deadline|tomorrow|next|schedule|decide|final|fix|build|implement|ship|deploy)/i.test(t)) return true;
+      if (/(remember|save|don'?t forget|yaad rakho|memorize)/i.test(t)) return true;
+      if (t.length >= 40) return true;
+
+      return false;
+    };
+
+    const meaningfulDelta = deltaMessages.filter(m => isMeaningful(m.content));
+    console.log('[CHAT_SHARED_UTILS] [HYP-H] Useful-only filtering:', {
+      totalDelta: deltaMessages.length,
+      meaningfulDelta: meaningfulDelta.length,
+      filteredOut: deltaMessages.length - meaningfulDelta.length
+    });
+    if (!meaningfulDelta.length) {
+      console.log('[CHAT_SHARED_UTILS] [HYP-H] No meaningful messages, skipping summary update');
+      return;
+    }
+
+    // 4) Incremental update
+    console.log('[CHAT_SHARED_UTILS] [HYP-H] Creating/updating session memory:', {
+      chatId,
+      messageTable,
+      mode: existing ? 'delta' : 'full',
+      messageCount: meaningfulDelta.length
+    });
+    
+    // Route to correct table based on messageTable
+    if (messageTable === 'PublicMessage') {
+      await memoryService.createOrUpdatePublicSessionMemory(chatId, meaningfulDelta, {
+        mode: existing ? 'delta' : 'full',
+        pinnedFactsDelta, // ✅ Part 1 update even when message is short
+      });
+    } else {
+      await memoryService.createOrUpdateSessionMemory(chatId, meaningfulDelta, {
+        mode: existing ? 'delta' : 'full',
+        pinnedFactsDelta, // ✅ Part 1 update even when message is short
+      });
+    }
+    console.log('[CHAT_SHARED_UTILS] [HYP-H] Session memory update completed');
+
+    logger.info(`Session memory updated for ${messageTable} chat ${chatId} (delta=${meaningfulDelta.length})`);
 
     // ✅ REMOVED: Automatic fact extraction (har 10 messages)
     // Facts will be extracted only when:
@@ -540,17 +724,55 @@ export async function updateSessionMemory(
 }
 
 /**
- * Get session memory for context (private chat only)
+ * Get session memory for context (works for both private and public chat)
  */
-export async function getSessionMemoryForContext(chatId: string): Promise<{
+export async function getSessionMemoryForContext(
+  chatId: string,
+  messageTable: 'Message' | 'PublicMessage' = 'Message'
+): Promise<{
   summary: string;
   keyTopics: string[];
+  pinnedFacts?: { name?: string; likes?: string[]; hobbies?: string[]; extras?: string[] };
 } | null> {
   try {
-    const sessionMemory = await memoryService.getSessionMemory(chatId);
+    // Route to correct table based on messageTable
+    const sessionMemory =
+      messageTable === 'PublicMessage'
+        ? await memoryService.getPublicSessionMemory(chatId)
+        : await memoryService.getSessionMemory(chatId);
+    if (sessionMemory) {
+      console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] Session memory retrieved for chat:', chatId);
+      console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] Summary exists:', !!sessionMemory.summary);
+      console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] Summary length:', sessionMemory.summary?.length || 0, 'chars');
+      console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] Key topics:', sessionMemory.keyTopics || []);
+    } else {
+      console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] No session memory found for chat:', chatId);
+    }
+    let pinnedFacts: any = undefined;
+    if (sessionMemory?.vector) {
+      try {
+        const vec = typeof sessionMemory.vector === 'string' ? JSON.parse(sessionMemory.vector) : sessionMemory.vector;
+        pinnedFacts = vec?.pinnedFacts;
+        if (pinnedFacts) {
+          console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] Pinned facts retrieved:', {
+            hasName: !!pinnedFacts.name,
+            name: pinnedFacts.name || null,
+            likesCount: pinnedFacts.likes?.length || 0,
+            hobbiesCount: pinnedFacts.hobbies?.length || 0,
+            extrasCount: pinnedFacts.extras?.length || 0, // ✅ NEW
+          });
+        } else {
+          console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] No pinned facts found in vector');
+        }
+      } catch {
+        pinnedFacts = undefined;
+      }
+    }
+
     return sessionMemory ? {
       summary: sessionMemory.summary,
-      keyTopics: sessionMemory.keyTopics || []
+      keyTopics: sessionMemory.keyTopics || [],
+      pinnedFacts,
     } : null;
   } catch (error) {
     logger.error('Error getting session memory:', error);

@@ -2,15 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyJWT, extractTokenFromHeader, JWTPayload } from '../services/jwtService';
 import { logger } from '../config/logger';
 
-// Extend Request interface to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JWTPayload;
-    }
-  }
-}
-
 export const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
@@ -22,7 +13,12 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
     }
     
     const decoded = verifyJWT(token);
-    req.user = decoded;
+    req.user = {
+      id: decoded.userId,
+      userId: decoded.userId,
+      email: decoded.email,
+      handle: decoded.handle,
+    };
     
     logger.info(`JWT authentication successful for user: ${decoded.email}`);
     next();
@@ -39,7 +35,12 @@ export const optionalJWT = (req: Request, res: Response, next: NextFunction) => 
     
     if (token) {
       const decoded = verifyJWT(token);
-      req.user = decoded;
+      req.user = {
+        id: decoded.userId,
+        userId: decoded.userId,
+        email: decoded.email,
+        handle: decoded.handle,
+      };
       logger.info(`Optional JWT authentication successful for user: ${decoded.email}`);
     }
     

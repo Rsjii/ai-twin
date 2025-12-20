@@ -139,9 +139,33 @@ let isBlocked = false;
       throw createError.notFound('This profile does not exist', ErrorCodes.NOT_FOUND);
     }
 
-    // Private twin: if not owner and !isPublic → show basic user only
+    // Private twin: if not owner and !isPublic → show basic user only (same as no twin)
+    // ✅ FIX: Don't reveal that user made it public/private - show as if no twin exists
     const isPublic = !!twin.isPublic;
     const showTwinDetails = isOwner || isPublic;
+
+    // If twin is private and viewer is not owner, show as if no twin exists
+    if (!isPublic && !isOwner) {
+      return res.render('public-profile', {
+        title: `@${user.handle} - AI Twin`,
+        user: req.user || null,
+        twin: null,
+        userInfo: {
+          handle: user.handle,
+          name: user.name || user.handle,
+          profileImage: user.profileImage,
+          bio: user.bio,
+          createdAt: user.createdAt,
+          isOwner: false // ✅ Don't reveal ownership to non-owners
+        },
+        hasNoTwin: true, // ✅ Show as if no twin exists
+        hasTwin: false,
+        isPrivate: false, // ✅ Don't reveal privacy status
+        twinPublicId: null,
+        viewer: req.user ? { id: req.user.id, handle: req.user.handle } : null,
+        csrfToken: res.locals['csrfToken']
+      });
+    }
 
     // Fetch viewer like/follow if we are showing twin section
     let hasLiked = false;
@@ -162,6 +186,22 @@ let isBlocked = false;
     }
 
     const twinPublicId = tokenizeId(twin.id, 'twin');
+
+    // ✅ Log profile view event (only for public twins, not for owner viewing own profile)
+    if (showTwinDetails && !isOwner && user.id) {
+      try {
+        const { EventLogger } = await import('../services/eventLogger');
+        const { EVENT_TYPES } = await import('../config/constants');
+        await EventLogger.log(user.id, EVENT_TYPES.PROFILE_VIEWED, {
+          publicTwinId: twinPublicId,
+          source: 'public_profile',
+          viewerId: viewerId ? tokenizeId(viewerId, 'user') : null
+        });
+      } catch (eventError) {
+        // Don't fail the request if event logging fails
+        logger.warn('[getPublicProfile] Failed to log profile view:', eventError);
+      }
+    }
 
     return res.render('public-profile', {
       title: `@${user.handle} - AI Twin`,
@@ -205,7 +245,7 @@ let isBlocked = false;
       },
       hasNoTwin: false,
       hasTwin: true,
-      isPrivate: !isPublic && !isOwner,
+      isPrivate: false, // ✅ Only show public twins here
       twinPublicId: showTwinDetails ? twinPublicId : null,
       viewer: req.user ? { id: req.user.id, handle: req.user.handle } : null,
       csrfToken: res.locals['csrfToken']

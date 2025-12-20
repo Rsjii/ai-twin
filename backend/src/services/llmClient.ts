@@ -92,6 +92,7 @@ export class LLMClient {
     for (const model of [modelToUse, ...supportedModels.filter(m => m !== modelToUse)]) {
       try {
         logger.info(`🔄 Trying Groq model: ${model}`);
+        const startedAt = Date.now();
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -155,10 +156,15 @@ export class LLMClient {
 
         const data = await response.json() as {
           choices: Array<{ message: { content: string } }>;
-          usage?: { total_tokens: number };
+          usage?: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number };
         };
         
-        logger.info(`✅ Successfully used Groq model: ${model}`);
+        const durationMs = Date.now() - startedAt;
+
+        logger.info(`✅ Successfully used Groq model: ${model}`, {
+          durationMs,
+          usage: data.usage || null
+        });
         const responseObj: LLMResponse = {
           content: data.choices[0]?.message?.content?.trim() || '',
           model: model
@@ -217,6 +223,7 @@ export class LLMClient {
     }
 
     logger.info('🔄 Using OpenAI API (fallback)');
+    const startedAt = Date.now();
     
     const completion = await this.openai.chat.completions.create({
       model: options.model || 'gpt-4o-mini',
@@ -226,7 +233,13 @@ export class LLMClient {
       ...(options.responseFormat ? { response_format: options.responseFormat } : {})
     });
 
-    logger.info('✅ Successfully used OpenAI API');
+    const durationMs = Date.now() - startedAt;
+
+    logger.info('✅ Successfully used OpenAI API', {
+      durationMs,
+      usage: completion.usage || null,
+      model: completion.model
+    });
     
     return {
       content: completion.choices[0]?.message?.content?.trim() || '',

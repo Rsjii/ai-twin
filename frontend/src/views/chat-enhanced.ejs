@@ -1144,7 +1144,7 @@ function addMessageToChat(sender, content, isTyping = false, metadata = null, ti
         `;
     } else {
     messageContent.innerHTML = `
-                <p class="text-sm text-gray-800 dark:text-gray-100">${content}</p>
+                <p class="text-sm ${sender === 'user' ? 'text-white' : 'text-gray-900 dark:text-gray-100'}">${content}</p>
     `;
     }
 
@@ -1229,7 +1229,7 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
             
             // Show text with blinking cursor
             messageContent.innerHTML = `
-                <p class="text-sm ${sender === 'user' ? 'text-white' : 'text-gray-800 dark:text-gray-100'}">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
+                <p class="text-sm ${sender === 'user' ? 'text-white' : 'text-gray-900 dark:text-gray-100'}">${currentText}<span class="streaming-cursor" style="animation: blink 1s infinite;">▊</span></p>
             `;
             
             currentWordIndex++;
@@ -1245,7 +1245,7 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
         } else {
             // Typing complete - show final text with timestamp
             messageContent.innerHTML = `
-                <p class="text-sm ${sender === 'user' ? 'text-white' : 'text-gray-800 dark:text-gray-100'}">${fullText}</p>
+                <p class="text-sm ${sender === 'user' ? 'text-white' : 'text-gray-900 dark:text-gray-100'}">${fullText}</p>
             `;            
             
             // Add timestamp if TimeUtils is available
@@ -1412,41 +1412,8 @@ async function applyStyleCorrection(knob, delta) {
     }
 }
 
-async function addToAnchors() {
-    const userUtterance = await window.ModalHelpers.input({
-        title: 'Add to Anchors',
-        message: 'What did the user say?',
-        placeholder: 'Enter the user utterance...'
-    });
-    if (!userUtterance || !userUtterance.trim()) return;
-    
-    try {
-        const response = await fetch(`/api/enhanced-chat/${currentChatId}/add-anchor`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': '<%= csrfToken %>',
-                credentials: 'include'
-            },
-            body: JSON.stringify({
-                userUtterance: userUtterance,
-                idealReply: currentResponse
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showNotification('Added to style anchors!', 'success');
-            closeResponseActions();
-        } else {
-            showNotification('Failed to add anchor', 'error');
-        }
-    } catch (error) {
-        console.error('Add anchor error:', error);
-        showNotification('Error adding anchor', 'error');
-    }
-}
+// ✅ MVP: Style anchors function removed (V2 feature)
+// async function addToAnchors() { ... }
 
 function updateIntentDisplay(intent) {
     document.getElementById('intentDisplay').textContent = `Intent: ${intent}`;
@@ -1609,7 +1576,7 @@ async function loadCurrentChatMessages() {
     actionsContainer.className = 'mt-2';
     
     messageContent.innerHTML = `
-        <p class="text-sm text-gray-800 dark:text-gray-100">${msg.content}</p>
+        <p class="text-sm ${sender === 'user' ? 'text-white' : 'text-gray-900 dark:text-gray-100'}">${msg.content}</p>
     `;
     
     // Add timestamp if available
@@ -1727,7 +1694,7 @@ async function loadChatMessages() {
                     }`;
                     
                     messageContent.innerHTML = `
-                        <p class="text-sm text-gray-800 dark:text-gray-100">${msg.content}</p>
+                        <p class="text-sm ${sender === 'user' ? 'text-white' : 'text-gray-900 dark:text-gray-100'}">${msg.content}</p>
                     `;
                     
                     // Add timestamp if available

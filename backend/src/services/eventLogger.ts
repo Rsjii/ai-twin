@@ -14,7 +14,17 @@ export interface StandardEventMeta {
   publicChatId?: string;
   
   // Source tracking
-  source?: 'landing' | 'referral' | 'public_profile' | 'dashboard' | 'discover' | 'direct';
+  // Keep this list aligned with real app sources used across controllers.
+  source?:
+    | 'landing'
+    | 'referral'
+    | 'public_profile'
+    | 'dashboard'
+    | 'discover'
+    | 'direct'
+    | 'public_chat'
+    | 'enhanced_chat'
+    | 'private_chat_send';
   
   // Context
   wv?: string; // view/page identifier
@@ -109,9 +119,12 @@ export class EventLogger {
   /**
    * Log signup event
    */
-  static async logSignup(userId: string, meta?: { source?: string; referralCode?: string }): Promise<void> {
+  static async logSignup(
+    userId: string,
+    meta?: { source?: StandardEventMeta['source']; referralCode?: string }
+  ): Promise<void> {
     return this.log(userId, EVENT_TYPES.SIGNUP, {
-      source: meta?.source as any,
+      source: meta?.source,
       ...meta
     });
   }
@@ -119,9 +132,9 @@ export class EventLogger {
   /**
    * Log login event
    */
-  static async logLogin(userId: string, meta?: { source?: string }): Promise<void> {
+  static async logLogin(userId: string, meta?: { source?: StandardEventMeta['source'] }): Promise<void> {
     return this.log(userId, EVENT_TYPES.LOGIN, {
-      source: meta?.source as any,
+      source: meta?.source,
       ...meta
     });
   }
@@ -139,11 +152,16 @@ export class EventLogger {
   /**
    * Log chat started event
    */
-  static async logChatStarted(userId: string, chatId: string, twinId?: string, meta?: { source?: string }): Promise<void> {
+  static async logChatStarted(
+    userId: string,
+    chatId: string,
+    twinId?: string,
+    meta?: { source?: StandardEventMeta['source'] }
+  ): Promise<void> {
     return this.log(userId, EVENT_TYPES.CHAT_STARTED, {
       publicChatId: chatId, // Will be tokenized automatically
       publicTwinId: twinId, // Will be tokenized automatically
-      source: meta?.source as any,
+      source: meta?.source,
       ...meta
     });
   }
@@ -161,7 +179,11 @@ export class EventLogger {
   /**
    * Log profile shared event
    */
-  static async logProfileShared(userId: string, twinId: string, meta?: { shareMethod?: string }): Promise<void> {
+  static async logProfileShared(
+    userId: string,
+    twinId: string,
+    meta?: { shareMethod?: string; shareUrl?: string }
+  ): Promise<void> {
     return this.log(userId, EVENT_TYPES.TWIN_SHARED, {
       twinId, //Internal ID for DB queries
       publicTwinId: tokenizeId(twinId, 'twin'),

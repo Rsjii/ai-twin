@@ -229,6 +229,9 @@
 
 <!-- Header JavaScript (for dropdown and theme toggle) -->
 <script>
+    // ✅ GLOBAL: CSRF Token for all AJAX requests
+    window.csrfToken = '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>';
+
     // Dropdown toggle functionality
     document.addEventListener('DOMContentLoaded', function() {
         const dropdownButton = document.getElementById('dropdownButton');

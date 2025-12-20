@@ -1,7 +1,7 @@
-export const ADMIN_EMAILS = [
-    'i@gmail.com',
-    'k@gmail.com'
-  ] as const;
+export const ADMIN_EMAILS: string[] = [
+  'i@gmail.com',
+  'k@gmail.com',
+];
 
   // Query Limits
 export const QUERY_LIMITS = {
@@ -126,6 +126,7 @@ export const EVENT_TYPES = {
   TWIN_UNFOLLOWED: 'twin_unfollowed',
   TWIN_SHARED: 'twin_shared',
   SHARE_CLICKED: 'share_clicked',
+  PROFILE_VIEWED: 'profile_viewed', // ✅ Profile view tracking
   
   // Privacy & Moderation
   PRIVACY_SETTINGS_UPDATED: 'privacy_settings_updated',
@@ -146,4 +147,13 @@ export const EVENT_TYPES = {
   
   // Add if enhanced_twin_creation_failed is needed separately:
   ENHANCED_TWIN_CREATION_FAILED: 'enhanced_twin_creation_failed', // Optional
+} as const;
+
+// Token Quotas - Daily limits for LLM usage
+export const TOKEN_QUOTAS = {
+  // Anonymous public chat: hard wall → login required
+  ANON_DAILY_TOKENS: 5000,
+
+  // Logged-in: daily cap (adjust as you want)
+  USER_DAILY_TOKENS: 100000,
 } as const;

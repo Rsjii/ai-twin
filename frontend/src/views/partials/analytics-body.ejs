@@ -240,33 +240,10 @@
             </div>
         </div>
         
-        <!--- not needed for mvp , will be added later
-        <% if (isProd) { %>
-        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mt-6">
-            <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-2">Debug Tools</h3>
-            <p class="text-sm text-yellow-700 dark:text-yellow-300 mb-4">Use these tools to debug analytics data</p>
-            <div class="flex space-x-3">
-                <button onclick="window.location.reload()" class="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-semibold text-sm">                        
-                    Debug User Data
-                </button>
-                <button onclick="createSampleData()" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-semibold text-sm">                        
-                    Create Sample Data
-                </button>
-                <button onclick="loadAnalytics()" class="bg-gradient-to-r from-primary to-accent text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all font-semibold text-sm">                        
-                    Refresh Analytics
-                </button>
-            </div>
-        </div>
-        <% } else { %>
-    -->
-        <!-- Support message for production users
-        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-6">
-            <p class="text-sm text-blue-700 dark:text-blue-300">
-                Having trouble? <a href="/contact" class="text-blue-600 dark:text-blue-400 hover:underline font-medium">Contact support</a>
-            </p>
-        </div>
-        <% } %>
-        -->
+        <% /*Ad vanced analytics like debug userdta, createSampledata and the man refresh analytics not needed for mvp , will be added later
+        Previous block removed because it was executing EJS inside an HTML comment
+        and referenced `isProd` which must be defined in locals.
+      */ %>        
     
     </div>
 </div>

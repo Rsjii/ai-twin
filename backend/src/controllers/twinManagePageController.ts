@@ -30,13 +30,24 @@ export async function getTwinManage(req: any, res: Response) {
     const twinToken = tokenizeId(twin.id, 'twin');
     const twinPublicId = twinToken; // Keep for backward compatibility
     
+    // Compute owner publicId for self-view exclusion
+    const ownerPublicId = tokenizeId(userId, 'user');
+    
     // Fetch twin analytics - using CORRECT table names that exist
     const analyticsResult = await fastQuery(`
       SELECT 
         -- Total chats: both PublicChat and private Chat
         (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1 AND "userId" <> $2) as chats,
-        -- Views: not tracked, return 0
-        0 as views,
+        -- Views (lifetime impressions): count profile_viewed events for this owner (exclude self)
+        (SELECT COUNT(*)
+         FROM "Event"
+         WHERE "userId" = $2
+           AND type = 'profile_viewed'
+           AND (
+             meta->>'viewerId' IS NULL
+             OR meta->>'viewerId' != $3
+           )
+        ) as views,
         -- Likes: from TwinLike table (used everywhere in codebase)
         (SELECT COUNT(*) FROM "TwinLike" WHERE "twinId" = $1) as likes,
         -- Follows: from TwinFollow table (used everywhere in codebase)
@@ -50,7 +61,7 @@ export async function getTwinManage(req: any, res: Response) {
         (SELECT COUNT(*) FROM "ai_runs" WHERE twin_id = $1) as aiRuns,
         -- Learning goals: table doesn't exist, return 0
         0 as goals
-    `, [twinId, userId]);
+    `, [twinId, userId, ownerPublicId]);
 
     // Fetch recent activity (last 5 chats) - include both PublicChat and private Chat
     let recentChats: any[] = [];

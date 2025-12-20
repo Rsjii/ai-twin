@@ -7,13 +7,13 @@ import { RATE_LIMITS, formatRetryAfter } from '../config/rateLimitConfig';
  * See: backend/src/config/rateLimitConfig.ts
  */
 
-// Global rate limiter (applied to all routes) - TESTING MODE
+// Global rate limiter (applied to all routes)
 export const globalRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000000, // ✅ 10M requests per window (increased for testing)
+  windowMs: RATE_LIMITS.global.windowMs,
+  max: RATE_LIMITS.global.max,
   message: {
     error: 'Too many requests from this IP, please try again later.',
-    retryAfter: '15 minutes'
+    retryAfter: formatRetryAfter(RATE_LIMITS.global.windowMs)
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -97,16 +97,16 @@ export const inviteCreationRateLimit = rateLimit({
   legacyHeaders: false,
 });
 
-// API rate limiter (for general API endpoints) - TESTING MODE
+// API rate limiter (for general API endpoints)
 export const apiRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5000000, // ✅ Increased to 5M API requests per 15 minutes (testing)
+  windowMs: RATE_LIMITS.api.windowMs,
+  max: RATE_LIMITS.api.max,
   keyGenerator: (req) => {
     return req.user?.userId || req.user?.id || req.ip || 'unknown';
   },
   message: {
     error: 'API rate limit exceeded. Please slow down your requests.',
-    retryAfter: '15 minutes'
+    retryAfter: formatRetryAfter(RATE_LIMITS.api.windowMs)
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -164,6 +164,31 @@ export const publicChatRateLimitAuthenticated = rateLimit({
       retryAfter: formatRetryAfter(RATE_LIMITS.publicChatAuth.windowMs)
     });
   }
+});
+
+// Public chat DAILY cap for anonymous users (login wall)
+// ✅ Goal: after N messages/day, force login
+export const publicChatDailyAnonLimit = rateLimit({
+  windowMs: RATE_LIMITS.publicChatDailyAnon.windowMs,
+  max: RATE_LIMITS.publicChatDailyAnon.max,
+  keyGenerator: (req) => {
+    // Anonymous-only: IP is the most reliable
+    return req.ip || req.socket.remoteAddress || 'unknown';
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Logged-in users should not hit anonymous daily wall
+    return !!req.user?.id || !!req.user?.userId;
+  },
+  handler: (_req, res) => {
+    return res.status(429).json({
+      success: false,
+      error: 'Daily limit reached. Please login to continue.',
+      errorCode: 'LOGIN_REQUIRED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.publicChatDailyAnon.windowMs),
+    });
+  },
 });
 
 

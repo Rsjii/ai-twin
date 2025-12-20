@@ -4,7 +4,56 @@
  * Prevents impersonation, toxicity, and inappropriate content
  */
 
-// ========== BLACKLIST ARRAYS (Merged & Comprehensive) ==========
+// ========== PROFANITY / SWEAR WORDS ONLY (Actual bad words) ==========
+const PROFANITY_WORDS = [
+  // English profanity (common swear words)
+  'fuck', 'fucking', 'fucked', 'fucker', 'fuckoff', 'fuckyou',
+  'shit', 'shitting', 'shitted', 'bullshit',
+  'damn', 'dammit', 'goddamn',
+  'bitch', 'bitches', 'bitching',
+  'asshole', 'ass', 'bastard',
+  'crap', 'crapola',
+  'piss', 'pissing', 'pissed',
+  'hell', 'hells',
+  'dick', 'dicks', 'cock', 'cocks',
+  'pussy', 'pussies',
+  'whore', 'whores',
+  'slut', 'sluts',
+  'cunt', 'cunts',
+  'motherfucker', 'motherfucking',
+  'retard', 'retarded',
+  'nigger', 'nigga', 'niggas', // Racial slurs
+  'chink', 'gook', // Racial slurs
+  
+  // Hindi/Urdu profanity (common gaali)
+  'chutiya', 'chutiyapa', 'chutiye',
+  'bhenchod', 'behenchod', 'bc',
+  'madarchod', 'madarchod', 'mc',
+  'bhosdike', 'bhosdi', 'bsdk',
+  'lund', 'loda', 'lode',
+  'gandu', 'gand',
+  'harami', 'haramkhor',
+  'kutta', 'kutte',
+  'sala', 'saala',
+  'randi', 'rand',
+  'chakka', 'chakke',
+  'hijra', 'hijre',
+  
+  // Serious threats only (keep these)
+  'kill yourself', 'kys', 'suicide', 'self-harm',
+  'bomb', 'terrorist', 'terrorism',
+  'rape', 'rapist', 'raping',
+];
+
+// ========== SERIOUS THREATS (Keep these, but only exact phrases) ==========
+const SERIOUS_THREATS = [
+  'kill yourself', 'kys', 'suicide', 'self-harm',
+  'bomb threat', 'terrorist attack', 'terrorism',
+  'rape', 'sexual assault', 'child abuse',
+];
+
+// ========== REMOVE CELEBRITY/BRAND LIST (Not needed for message blocking) ==========
+// Keep this for other uses (like twin name validation), but don't use in checkBlacklist
 const CELEBRITY_BRAND_LIST = [
   // Indian celebrities
   'Shah Rukh Khan', 'Amitabh Bachchan', 'Salman Khan', 'Aamir Khan', 'Akshay Kumar',
@@ -29,28 +78,7 @@ const CELEBRITY_BRAND_LIST = [
   'Bollywood', 'Hollywood', 'Tollywood', 'Kollywood',
 ];
 
-const BANNED_WORDS = [
-  // Violence and harm (merged from both)
-  'suicide', 'self-harm', 'kill yourself', 'bomb', 'terrorist', 'terrorism',
-  'murder', 'assassination', 'violence', 'weapon', 'gun', 'knife',
-  'kill', 'die', 'rape', 'abuse', 'harassment',
-  
-  // Hate speech
-  'hate', 'racist', 'sexist', 'homophobic', 'discrimination', 'prejudice',
-  'slave', 'nazi', 'hitler', 'isis',
-  
-  // Illegal activities
-  'drugs', 'drug', 'cocaine', 'heroin', 'marijuana', 'weed', 'alcohol abuse',
-  'fraud', 'scam', 'theft', 'robbery', 'money laundering', 'steal', 'rob', 'cheat', 'lie', 'fake',
-  
-  // Adult content
-  'porn', 'pornography', 'sex', 'sexual', 'nude', 'naked',
-  
-  // Spam and phishing
-  'click here', 'free money', 'win lottery', 'congratulations you won',
-  'verify account', 'suspended account', 'urgent action required',
-];
-
+// ========== SUSPICIOUS PATTERNS (for sanitization, not blocking) ==========
 const SUSPICIOUS_PATTERNS = [
   /https?:\/\/[^\s]+/gi, // URLs
   /[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}/gi, // Credit card numbers
@@ -64,7 +92,32 @@ export const CELEBRITY_BRAND_BLACKLIST = CELEBRITY_BRAND_LIST.map(s => s.toLower
 // ========== CONTENT CHECKING FUNCTIONS ==========
 
 /**
+ * Check if text contains profanity/swear words (actual bad words only)
+ */
+export function hasProfanity(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  
+  const lowerText = text.toLowerCase();
+  // Use word boundaries to avoid false positives (e.g., "class" shouldn't match "ass")
+  return PROFANITY_WORDS.some(word => {
+    const regex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    return regex.test(lowerText);
+  });
+}
+
+/**
+ * Check if text contains serious threats (exact phrases only)
+ */
+export function hasSeriousThreats(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  
+  const lowerText = text.toLowerCase();
+  return SERIOUS_THREATS.some(threat => lowerText.includes(threat.toLowerCase()));
+}
+
+/**
  * Check if text contains celebrity or brand names (impersonation risk)
+ * NOTE: This is NOT used in message blocking anymore, only for twin name validation
  */
 export function hasImpersonationRisk(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
@@ -77,14 +130,13 @@ export function hasImpersonationRisk(text: string): boolean {
 
 /**
  * Check if text contains banned words
+ * NOTE: Deprecated - use hasProfanity() instead for message blocking
+ * Kept for backward compatibility but returns false (no longer blocks)
  */
 export function hasBannedWords(text: string): boolean {
-  if (!text || typeof text !== 'string') return false;
-  
-  const lowerText = text.toLowerCase();
-  return BANNED_WORDS.some(word => 
-    lowerText.includes(word.toLowerCase())
-  );
+  // No longer blocking common words - too many false positives
+  // Use hasProfanity() for actual profanity checking
+  return false;
 }
 
 /**
@@ -98,6 +150,8 @@ export function hasSuspiciousPatterns(text: string): boolean {
 
 /**
  * Comprehensive content safety check
+ * Used for twin creation (samples/bio) - includes celebrity checking
+ * NOTE: For message blocking, use checkBlacklist() instead (only profanity)
  */
 export function isContentSafe(text: string): {
   safe: boolean;
@@ -105,17 +159,23 @@ export function isContentSafe(text: string): {
 } {
   const reasons: string[] = [];
   
+  // Check for celebrity/brand names (impersonation risk) - KEEP for twin creation
   if (hasImpersonationRisk(text)) {
     reasons.push('Contains celebrity or brand names');
   }
   
-  if (hasBannedWords(text)) {
-    reasons.push('Contains inappropriate content');
+  // Check for profanity (also block in twin creation)
+  if (hasProfanity(text)) {
+    reasons.push('Contains profanity or inappropriate language');
   }
   
-  if (hasSuspiciousPatterns(text)) {
-    reasons.push('Contains suspicious patterns (URLs, personal info)');
+  // Check for serious threats
+  if (hasSeriousThreats(text)) {
+    reasons.push('Contains serious threats');
   }
+  
+  // Note: Suspicious patterns (URLs, emails) are sanitized, not blocked
+  // This allows users to mention URLs in twin samples, they'll just be sanitized
   
   return {
     safe: reasons.length === 0,
@@ -124,12 +184,15 @@ export function isContentSafe(text: string): {
 }
 
 /**
- * Convenience function: Check blacklist (combines impersonation + banned words)
- * This is the function from security.ts - kept for backward compatibility
+ * Convenience function: Check blacklist (ONLY profanity + serious threats)
+ * REMOVED: Celebrity/brand blocking (too strict for normal chat)
  */
 export function checkBlacklist(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
-  return hasImpersonationRisk(text) || hasBannedWords(text);
+  // Only check for actual profanity and serious threats
+  return hasProfanity(text) || hasSeriousThreats(text);
+  // REMOVED: hasImpersonationRisk(text) - too strict
+  // REMOVED: hasBannedWords(text) - too many false positives
 }
 
 // ========== SANITIZATION FUNCTIONS ==========

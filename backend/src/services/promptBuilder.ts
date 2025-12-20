@@ -16,6 +16,7 @@ export interface PromptContext {
     keyTopics: string[];
   } | null;
   tokenLimit?: number;
+  memoryVisibility?: 'none' | 'owner' | 'public_twin' | 'all';
 }
 
 export interface StylePattern {
@@ -104,10 +105,21 @@ export class PromptBuilder {
         responseReserve: responseTokenReserve,
         availableBudget: tokenBudget 
       });
+      console.log('[PROMPT_BUILDER] [HYP-I] Token budget calculation:', {
+        maxPromptTokens: MAX_PROMPT_TOKENS,
+        responseReserve: responseTokenReserve,
+        availableBudget: tokenBudget
+      });
 
       // ✅ Check if memory is enabled before loading long-term memories
       // Use personaData.settings from context (single source of truth - no duplicate storage)
       const memoryEnabled = personaData?.settings?.memory?.enabled !== false; // Default true
+      
+      // ✅ Determine memory visibility from context
+      const memoryVisibility = context.memoryVisibility || 'owner'; // Default to 'owner' for private chat
+      const effectiveVisibility = memoryEnabled && memoryVisibility !== 'none' 
+        ? memoryVisibility 
+        : 'none';
 
       // OPTIMIZED: Retrieve all memory contexts in parallel (including feedback)
       const sessionMemoryPromise = providedSessionMemory 
@@ -116,14 +128,23 @@ export class PromptBuilder {
       
       const [sessionMemory, longTermMemories, stylePatterns, feedbackContext] = await Promise.all([
         sessionMemoryPromise,
-        memoryEnabled ? this.getLongTermMemories(twinId, currentMessages.join(' ')) : Promise.resolve([]),
+        memoryEnabled && effectiveVisibility !== 'none' 
+          ? this.getLongTermMemories(twinId, currentMessages.join(' '), effectiveVisibility) 
+          : Promise.resolve([]), // ✅ PASS visibility
         this.getStylePatterns(twinId, currentMessages.join(' ')),
         this.getFeedbackContext(twinId) // ✅ Now parallel instead of sequential
       ]);
+      console.log('[PROMPT_BUILDER] [HYP-C] Memory contexts retrieved:', {
+        hasSessionMemory: !!sessionMemory,
+        sessionMemorySummaryLength: sessionMemory?.summary?.length || 0,
+        longTermMemoriesCount: longTermMemories.length,
+        stylePatternsCount: stylePatterns.length,
+        memoryEnabled
+      });
 
       // 2. Build individual context sections
       const personaSection = this.buildPersonaSection(personaData);
-      const styleSection = this.buildStyleSection(styleVector);
+      const styleSection = this.buildStyleSection(personaData, styleVector);
       const styleAnchorSection = this.buildStyleAnchorSection(stylePatterns);
       const longTermMemorySection = this.buildLongTermMemorySection(longTermMemories);
       const sessionMemorySection = this.buildSessionMemorySection(sessionMemory);
@@ -132,7 +153,13 @@ export class PromptBuilder {
       const userMessage = currentMessages.join(' ');
 
       // 3. Calculate base prompt size (mandatory parts)
-      const basePrompt = `You are an AI twin representing ${personaData?.basicInfo?.fullName || personaData?.name || 'the user'}. You MUST respond as if you are this person, using their exact communication style.\n\nCURRENT USER MESSAGE: "${userMessage}"\n\n`;
+      const basePrompt = `You are the user's AI twin chatting with the human user.
+CRITICAL:
+- You are NOT the human user.
+- Do NOT claim you solved the user's messages.
+- If AUTHORITATIVE STATE (session memory) contains an ACTIVE_TASK, continue it until the user changes it.
+
+CURRENT HUMAN MESSAGE: "${userMessage}"\n\n`;
       const baseTokens = this.countTokens(basePrompt);
       const instructionsTokens = this.countTokens(instructionsSection);
       
@@ -193,6 +220,16 @@ export class PromptBuilder {
 
       const finalTokens = this.countTokens(finalPrompt);
       logger.info('Final prompt token count:', { finalTokens, tokenBudget, underBudget: finalTokens <= tokenBudget });
+      console.log('[PROMPT_BUILDER] [HYP-I] Final prompt assembly:', {
+        finalTokens,
+        tokenBudget,
+        underBudget: finalTokens <= tokenBudget,
+        sectionsIncluded: assembledSections.length,
+        hasSessionMemory: !!sessionMemory,
+        hasChatMemory: chatMemory.length > 0,
+        chatMemoryCount: chatMemory.length,
+        note: 'Only summary + recent messages included, NOT full history'
+      });
 
       // Safety check: if still over budget, return truncated version
       if (finalTokens > tokenBudget) {
@@ -230,7 +267,8 @@ export class PromptBuilder {
    */
   private async getLongTermMemories(
     twinId?: string, 
-    userQuery?: string
+    userQuery?: string,
+    visibility?: 'owner' | 'public_twin' | 'all' // ✅ ADD parameter
   ): Promise<Array<{key: string, value: string, category: string}>> {
     if (!twinId) return [];
     
@@ -238,16 +276,32 @@ export class PromptBuilder {
       if (userQuery && userQuery.trim().length > 0) {
         // ✅ Use smart hybrid retrieval - gets MOST RELEVANT memories
         // Reduced from 10 to 7 (still good quality, 30% token savings)
-        return await memoryService.getRelevantLongTermMemories(twinId, userQuery, 7);
+        return await memoryService.getRelevantLongTermMemories(
+          twinId, 
+          userQuery, 
+          7,
+          undefined, // category
+          visibility || 'all' // ✅ PASS visibility parameter
+        );
       } else {
         // ✅ Get common memories only (reduced from 5 to 4)
-        return await memoryService.getLongTermMemories(twinId, undefined, 4);
+        return await memoryService.getLongTermMemories(
+          twinId, 
+          undefined, 
+          4,
+          visibility || 'all' // ✅ PASS visibility parameter
+        );
       }
     } catch (error) {
       logger.warn('Failed to retrieve long-term memories:', error);
       // Fallback: Get at least common memories
       try {
-        return await memoryService.getLongTermMemories(twinId, undefined, 4);
+        return await memoryService.getLongTermMemories(
+          twinId, 
+          undefined, 
+          4,
+          visibility || 'all' // ✅ PASS visibility parameter
+        );
       } catch (e) {
         logger.error('Fallback long-term memory retrieval failed:', e);
         return [];
@@ -322,44 +376,65 @@ export class PromptBuilder {
    */
   private buildPersonaSection(personaData?: any): string {
     if (!personaData) return '';
-    
-    const userName = personaData.basicInfo?.fullName || personaData.name || 'the user';
-    const userBio = personaData.basicInfo?.bio || '';
-    const userPersonality = personaData.personality ? 
-      `Personality: ${JSON.stringify(personaData.personality)}` : '';
-    
+
+    const basic = personaData.basicInfo || {};
+    const userName =
+      basic.name ||
+      basic.fullName || // legacy fallback
+      personaData.name ||
+      'the user';
+
+    const oneLineBio =
+      basic.oneLineBio ||
+      basic.bio || // legacy fallback
+      '';
+
+    const role = basic.role || '';
+    const purpose = basic.purpose || '';
+    const language = basic.language || '';
+
+    const userPersonality = personaData.personality
+      ? `Personality: ${JSON.stringify(personaData.personality)}`
+      : '';
+
     let section = '';
-    if (userBio) {
-      section += `ABOUT ${userName.toUpperCase()}: ${userBio}\n`;
-    }
-    if (userPersonality) {
-      section += `${userPersonality}\n`;
-    }
-    
+    if (oneLineBio) section += `ABOUT ${String(userName).toUpperCase()}: ${oneLineBio}\n`;
+    if (role) section += `ROLE: ${role}\n`;
+    if (purpose) section += `PURPOSE: ${purpose}\n`;
+    if (language) section += `DEFAULT LANGUAGE: ${language}\n`;
+    if (userPersonality) section += `${userPersonality}\n`;
+
     return section;
   }
 
   /**
    * Build style section (communication style parameters)
    */
-  private buildStyleSection(styleVector: any): string {
-    if (!styleVector) return '';
-    
+  private buildStyleSection(personaData?: any, _styleVector?: any): string {
+    // MVP (personaData-only): Build style guidance from personaData, not styleVector.
+    if (!personaData) return '';
+
+    const rules = personaData.rules || {};
+    const comm = personaData.communicationStyle || {};
+    const lang = comm.language || {};
+    const tone = comm.tone || {};
+    const prefs = personaData.preferences || {};
+    const ctx = personaData.context || {};
+
+    const responseLen = lang.responseLength || rules.replySize || 'normal';
+    const emojiPref = lang.emojiUsage || prefs.emojiPref || 'medium';
+    const toneStyle = prefs.toneStyle || 'normal';
+    const commonPhrases = lang.commonPhrases || '';
+
     return `
-COMMUNICATION STYLE (CRITICAL - USE THIS):
-- Tone: ${styleVector.tone || 'casual'}
-- Communication Style: ${styleVector.communication_style || 'conversational'}
-- Emoji Usage: ${styleVector.emoji_usage || 0.3} (0=none, 1=heavy)
-- Hinglish Ratio: ${styleVector.hinglish_ratio || 0.2} (0=English only, 1=mostly Hindi)
-- Sentence Length: ${styleVector.sentence_length || 'medium'}
-- Formality Level: ${styleVector.formality_level || 0.5} (0=casual, 1=formal)
-- Humor Style: ${styleVector.humor_style || 'light'}
-- Question Frequency: ${styleVector.question_frequency || 0.4}
-- Exclamation Usage: ${styleVector.exclamation_usage || 0.3}
-- Code Mixing: ${styleVector.code_mixing_style || 'minimal'}
-- Response Length: ${styleVector.response_length_preference || 'detailed'}
-- Signature Patterns: ${styleVector.signature_patterns?.join(', ') || 'none'}
-- Personality Traits: ${styleVector.personality_traits?.join(', ') || 'helpful, curious'}
+COMMUNICATION STYLE (FROM personaData - USE THIS):
+- Response length: ${responseLen}
+- Emoji preference: ${emojiPref}
+- Tone style: ${toneStyle}
+- Tone sliders: formalCasual=${tone.formalCasual ?? 'n/a'}, seriousPlayful=${tone.seriousPlayful ?? 'n/a'}, directDiplomatic=${tone.directDiplomatic ?? 'n/a'}
+- Common phrases (use naturally, not forced): ${commonPhrases || 'none'}
+- Target audience: ${ctx.targetAudience || 'general'}
+- Topics to avoid: ${ctx.topicsToAvoid || 'none'}
 `;
   }
 
@@ -426,7 +501,11 @@ These are important facts about the user that persist across ALL conversations:
 
 ${memories}
 
-CRITICAL: Reference these memories naturally when relevant. Don't repeat them unless asked. Use them to maintain consistency across all conversations. These are permanent facts that don't change.
+CRITICAL:
+- Use these memories ONLY when relevant.
+- Do NOT say "I remember", "from memory", "I saved", or mention the memory system.
+- Do NOT info-dump; answer the user's question naturally.
+- Do not repeat memories unless the user asks.
 `;
   }
 
@@ -434,20 +513,46 @@ CRITICAL: Reference these memories naturally when relevant. Don't repeat them un
    * Build session memory section (chat summary)
    */
   private buildSessionMemorySection(
-    sessionMemory?: {summary: string; keyTopics: string[]} | null
+    sessionMemory?: {summary: string; keyTopics: string[]; pinnedFacts?: { name?: string; likes?: string[]; hobbies?: string[]; extras?: string[] } } | null
   ): string {
-    if (!sessionMemory?.summary) return '';
+    // Part 1: Pinned Facts (high priority, persists for whole chat)
+    const pf = sessionMemory?.pinnedFacts || {};
+    const pinnedLines: string[] = [];
+    if (pf.name) pinnedLines.push(`- Name: ${pf.name}`);
+    if (pf.likes?.length) pinnedLines.push(`- Likes: ${pf.likes.join(', ')}`);
+    if (pf.hobbies?.length) pinnedLines.push(`- Hobbies: ${pf.hobbies.join(', ')}`);
+    if (pf.extras?.length) pinnedLines.push(`- Extras: ${pf.extras.join(', ')}`); // ✅ NEW
+
+    if (pinnedLines.length > 0) {
+      console.log('[PROMPT_BUILDER] [PINNED_FACTS] Including pinned facts in prompt:', {
+        name: pf.name || null,
+        likes: pf.likes || [],
+        hobbies: pf.hobbies || [],
+        extras: pf.extras || [], // ✅ NEW
+      });
+    }
+
+    const pinnedSection = pinnedLines.length
+      ? `## PINNED FACTS (THIS CHAT ONLY — HIGH PRIORITY, AUTHORITATIVE):\n${pinnedLines.join('\n')}\n\n`
+      : '';
+
+    // ✅ Show pinned facts even if summary is empty
+    if (!sessionMemory?.summary) {
+      return pinnedSection || '';
+    }
     
+    // Part 2: Rolling State (ACTIVE_TASK/PROGRESS/CONSTRAINTS/NOTES)
     const topicsSection = sessionMemory.keyTopics?.length > 0 
       ? `## KEY TOPICS DISCUSSED:\n${sessionMemory.keyTopics.join(', ')}\n` 
       : '';
     
     return `
-## PREVIOUS CONVERSATION SUMMARY:
+${pinnedSection}## PREVIOUS CONVERSATION SUMMARY (AUTHORITATIVE STATE):
 ${sessionMemory.summary}
 
 ${topicsSection}
-Use this summary to maintain continuity and reference previous discussions naturally.
+CRITICAL: Treat this as the current state. Continue the ACTIVE_TASK and PROGRESS from it.
+DO NOT switch topics unless the user explicitly changes the task.
 `;
   }
 
@@ -460,7 +565,7 @@ Use this summary to maintain continuity and reference previous discussions natur
   ): string {
     if (chatVector) {
       const recentMessages = chatMemory 
-        ? chatMemory.map(msg => `${msg.sender === 'human' ? 'User' : 'AI'}: ${msg.content}`).join('\n')
+        ? chatMemory.map(msg => `${msg.sender === 'human' ? 'Human' : 'Twin'}: ${msg.content}`).join('\n')
         : '';
       
       return `CHAT CONTEXT (COMPRESSED HISTORY):
@@ -476,7 +581,7 @@ RECENT MESSAGES:
 ${recentMessages}`;
     } else if (chatMemory && chatMemory.length > 0) {
       return `CHAT HISTORY (IMPORTANT - REFERENCE THIS):
-${chatMemory.map(msg => `${msg.sender === 'human' ? 'User' : 'AI'}: ${msg.content}`).join('\n')}`;
+${chatMemory.map(msg => `${msg.sender === 'human' ? 'Human' : 'Twin'}: ${msg.content}`).join('\n')}`;
     } else {
       return 'CHAT HISTORY: This is the start of our conversation.';
     }
@@ -487,22 +592,29 @@ ${chatMemory.map(msg => `${msg.sender === 'human' ? 'User' : 'AI'}: ${msg.conten
    */
   private buildInstructionsSection(
     personaData?: any,
-    styleVector?: any,
+    _styleVector?: any,
     tokenLimit: number = 500
   ): string {
-    const userName = personaData?.basicInfo?.fullName || personaData?.name || 'the user';
+    const userName =
+      personaData?.basicInfo?.name ||
+      personaData?.basicInfo?.fullName || // legacy
+      personaData?.name ||
+      'the user';
+    const rules = personaData?.rules || {};
+    const comm = personaData?.communicationStyle || {};
+    const lang = comm.language || {};
+    const prefs = personaData?.preferences || {};
     
     return `CRITICAL INSTRUCTIONS:
-1. You ARE ${userName} - respond as them, not as an AI assistant
-2. Use the EXACT communication style defined above
-3. Reference the chat history to maintain context
-4. If asked "what is my name" or "who am i", respond with "${userName}"
-5. Be authentic to the personality and style defined above
-6. Use appropriate emoji usage (${styleVector?.emoji_usage || 0.3})
-7. Mix Hindi/English as specified (${styleVector?.hinglish_ratio || 0.2})
-8. Use signature patterns: ${styleVector?.signature_patterns?.join(', ') || 'none'}
-
-RESPOND AS ${userName.toUpperCase()} - NO GENERIC RESPONSES ALLOWED!`;
+1. You are an AI twin chatting with the human user. You are NOT the user.
+2. Do NOT greet the user by name (no "hi ${userName}") unless the user asks or it’s naturally needed.
+3. Follow the user's LATEST explicit instruction as highest priority.
+4. If a multi-step task is active (quiz/steps), continue it until completion unless the user cancels.
+5. Never ask the human to “ask the next question” when the human requested YOU to ask questions. You must ask the next question yourself.
+6. Keep tone respectful; no insults.
+7. Be authentic to the personality and style defined above
+8. Emoji preference: ${lang.emojiUsage || prefs.emojiPref || 'medium'}
+9. Response length: ${lang.responseLength || rules.replySize || 'normal'}`;
   }
 
   /**
@@ -519,7 +631,11 @@ RESPOND AS ${userName.toUpperCase()} - NO GENERIC RESPONSES ALLOWED!`;
     userMessage: string,
     personaData?: any
   ): string {
-    const userName = personaData?.basicInfo?.fullName || personaData?.name || 'the user';
+    const userName =
+      personaData?.basicInfo?.name ||
+      personaData?.basicInfo?.fullName || // legacy
+      personaData?.name ||
+      'the user';
     
     return `You are an AI twin representing ${userName}. You MUST respond as if you are this person, using their exact communication style.
 
@@ -548,7 +664,11 @@ ${instructionsSection}`;
     styleVector?: any,
     userMessage: string = ''
   ): string {
-    const userName = personaData?.basicInfo?.fullName || personaData?.name || 'the user';
+    const userName =
+      personaData?.basicInfo?.name ||
+      personaData?.basicInfo?.fullName || // legacy
+      personaData?.name ||
+      'the user';
     
     return `You are an AI twin representing ${userName}. Respond naturally and authentically.
 
@@ -564,18 +684,22 @@ Respond as ${userName}, maintaining their personality and communication style.`;
     systemPrompt: string,
     personaData: any,
     chatHistory: any[],
-    sessionMemory?: {summary: string; keyTopics: string[]} | null,
+    sessionMemory?: {summary: string; keyTopics: string[]; pinnedFacts?: { name?: string; likes?: string[]; hobbies?: string[]; extras?: string[] } } | null,
     longTermMemories?: Array<{key: string, value: string, category: string}>,
     stylePatterns?: StylePattern[],
     tokenLimit: number = 500,
     userMessage?: string
   ): string {
-    const userName = personaData?.basicInfo?.fullName || personaData.name || 'the user';
+    const userName =
+      personaData?.basicInfo?.name ||
+      personaData?.basicInfo?.fullName || // legacy
+      personaData?.name ||
+      'the user';
     
     // Build chat context
     const chatContext = chatHistory
       .slice(-10)
-      .map(msg => `${msg.sender === 'human' ? 'User' : 'AI'}: ${msg.content}`)
+      .map(msg => `${msg.sender === 'human' ? 'Human' : 'Twin'}: ${msg.content}`)
       .join('\n');
     
     // Get user message from parameter or chat history
@@ -599,18 +723,17 @@ ${chatContext}
 
 USER MESSAGE: "${finalUserMessage}"
 
-CRITICAL INSTRUCTIONS:
-- You ARE ${userName} - respond as them, not as an AI assistant
-- You know the user's name is ${userName}
-- Use your personality traits and communication style EXACTLY as defined
-- Keep response under ${tokenLimit} tokens
-- Be authentic to your persona - NO GENERIC RESPONSES
-- Reference your interests and background when relevant
-- If asked "what is my name" or "who am i", respond with "${userName}"
-- Always remember who you are representing
-- Use the communication style from your persona data
-
-RESPOND AS ${userName.toUpperCase()} - NO GENERIC RESPONSES ALLOWED!`;
+CRITICAL INSTRUCTIONS (OVERRIDE ANY CONFLICT ABOVE):
+- You are the user's AI twin. You are NOT the human user.
+- The HUMAN's latest instruction is highest priority. Do NOT replace it with your own topic.
+- Do NOT refuse benign requests. If the request is safe, comply. If unclear, ask 1 short clarifying question.
+- Do NOT mention “startup”, “MVP”, “topper”, or any personal goal unless the human explicitly asks about it.
+- If the human asks for math questions, ask math questions (not business questions).
+- When grading math: show the computed correct answer briefly and say "Correct" or "Wrong" clearly.
+- Do NOT greet the user by name unless asked.
+- Keep response under ${tokenLimit} tokens.
+- Keep tone respectful; no insults.
+- Use the communication style from persona data, but NEVER at the cost of ignoring the user's request.`;
   }
 }
 
