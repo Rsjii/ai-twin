@@ -48,50 +48,63 @@
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Twin name</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Twin name
+          </label>
           <input id="twinName" type="text"
-            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px] transition-all"
             placeholder="e.g. KS Twin" />
+          <p id="twinName-error" class="text-xs text-red-500 mt-1 hidden"></p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Role
+          </label>
           <select id="twinRole"
-            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px] transition-all">
             <option value="">Select</option>
             <option value="friend">Friend</option>
             <option value="creator">Creator</option>
             <option value="support">Customer Support</option>
             <option value="coach">Coach</option>
           </select>
+          <p id="twinRole-error" class="text-xs text-red-500 mt-1 hidden"></p>
         </div>
 
         <div class="sm:col-span-2">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">One-line bio <span class="text-red-500">*</span></label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            One-line bio
+          </label>
           <input id="twinBio" type="text"
-            required
-            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px] break-words overflow-wrap-anywhere"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px] break-words overflow-wrap-anywhere transition-all"
             placeholder="e.g. Replies like me on WhatsApp — casual, witty, helpful."
             maxlength="500" />
+          <p id="twinBio-error" class="text-xs text-red-500 mt-1 hidden"></p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><span id="bioCharCount">0</span>/500 characters</p>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default language</label>
+        <!-- MVP: hide default language (V2 feature) -->
+        <div class="hidden">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Default language
+          </label>
           <select id="twinLanguage"
-            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px] transition-all">
             <option value="">Use existing</option>
             <option value="en">English</option>
             <option value="hi">Hindi</option>
             <option value="hinglish">Hinglish</option>
           </select>
+          <p id="twinLanguage-error" class="text-xs text-red-500 mt-1 hidden"></p>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            What do you want your twin to help you with? (optional)
+            What do you want your twin to help you with?
           </label>
           <select id="twinPurpose"
-            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px] transition-all">
             <option value="">Not specified</option>
             <option value="just_chat">Just chat</option>
             <option value="practice">Practice conversations</option>
@@ -100,6 +113,7 @@
             <option value="remember">Remember things</option>
             <option value="other">Other</option>
           </select>
+          <p id="twinPurpose-error" class="text-xs text-red-500 mt-1 hidden"></p>
         </div>
       </div>
     </section>
@@ -116,9 +130,11 @@
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tone preset</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Tone preset
+          </label>
           <select id="tonePreset"
-            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px] transition-all">
             <option value="polite">Polite & respectful</option>
             <option value="normal">Normal & friendly</option>
             <option value="casual">Casual & relaxed</option>
@@ -126,9 +142,11 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reply length</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Reply length
+          </label>
           <select id="replyLengthPreset"
-            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px] transition-all">
             <option value="short">Short & to the point</option>
             <option value="normal">Normal</option>
             <option value="detailed">A bit more detailed</option>
@@ -136,22 +154,24 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Emoji level</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Emoji level
+          </label>
           <select id="emojiPreset"
-            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px] transition-all">
             <option value="off">Off</option>
             <option value="low">Low</option>
             <option value="medium">Medium</option>
           </select>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This maps to your styleVector’s emoji usage.</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This maps to your styleVector's emoji usage.</p>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Engagement style *
+            Engagement style
           </label>
           <select id="engagementStyle"
-            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px]">
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px] transition-all">
             <option value="ask_questions">Ask questions to keep conversation going</option>
             <option value="natural">Respond naturally without forcing questions</option>
             <option value="mix">Mix of both</option>
@@ -210,15 +230,19 @@
       <!-- Preferences & Rules (editable) -->
       <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Always do / say (comma separated)</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Always do / say <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">(comma separated)</span>
+          </label>
           <textarea id="alwaysInput" rows="3"
-            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white transition-all"
             placeholder="e.g. be concise, greet politely"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Never do / say (comma separated)</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Never do / say <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">(comma separated)</span>
+          </label>
           <textarea id="neverInput" rows="3"
-            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white"
+            class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white transition-all"
             placeholder="e.g. insult, reveal private info"></textarea>
         </div>
       </div>
@@ -306,31 +330,36 @@
       </details>
     </section>
 
-    <!-- Danger Zone -->
-    <section class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6 mb-6">
-      <h2 class="text-xl font-bold text-red-900 dark:text-red-300 mb-3">⚠️ Danger Zone</h2>
-      <p class="text-gray-700 dark:text-gray-300 mb-4">
-        Resetting deletes chats/memories/training permanently.
-      </p>
-
-      <button id="deleteTwinBtn"
-        class="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold min-h-[48px] sm:min-h-[44px] touch-manipulation text-base">
-        Reset my twin & clear stored info
-      </button>
-    </section>
-
     <!-- Save -->
-    <div class="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 rounded-xl bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700">
+    <div class="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 sm:p-5 rounded-xl bg-gradient-to-r from-white/90 to-blue-50/90 dark:from-gray-800/90 dark:to-gray-800/90 border-2 border-primary/20 dark:border-primary/30 shadow-lg">
       <div class="text-sm text-gray-600 dark:text-gray-300">
         <span class="font-semibold text-gray-900 dark:text-white">Settings</span>
         <span class="ml-2">Save only when you change something.</span>
       </div>
 
       <button id="twinSettingsSave"
-        class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium shadow-md min-h-[44px]">
+        class="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-xl hover:scale-105 transition-all font-semibold shadow-lg min-h-[48px] text-base">
         Save settings
       </button>
     </div>
+
+    <!-- Danger Zone -->
+    <section class="mt-6 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-xl p-5 sm:p-6">
+      <h2 class="text-xl font-bold text-red-900 dark:text-red-300 mb-2 flex items-center gap-2">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+        Danger Zone
+      </h2>
+      <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">
+        Resetting deletes chats, memories, and training permanently. This action cannot be undone.
+      </p>
+
+      <button id="deleteTwinBtn"
+        class="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-6 py-3 rounded-xl hover:shadow-xl transition-all duration-300 font-semibold min-h-[48px] sm:min-h-[44px] touch-manipulation text-base">
+        Reset my twin & clear stored info
+      </button>
+    </section>
   </div>
 
   <%- include('footer/footer-conditional-private') %>
@@ -581,7 +610,11 @@
       const basic = (pd && pd.basicInfo) ? pd.basicInfo : {};
       document.getElementById('twinName').value = basic.name || basic.fullName || '';
       document.getElementById('twinRole').value = basic.role || '';
-      document.getElementById('twinBio').value = basic.oneLineBio || basic.bio || '';
+      const bioInput = document.getElementById('twinBio');
+      if (bioInput) {
+        bioInput.value = basic.oneLineBio || basic.bio || '';
+        updateBioCharCount(); // Update counter after loading
+      }
       document.getElementById('twinLanguage').value = basic.language || '';
       document.getElementById('twinPurpose').value = basic.purpose || ''; // ✅ ADD
 
@@ -763,7 +796,44 @@
       };
     }
 
+    // ✅ Helper functions for field error handling
+    function clearFieldErrors() {
+      const errorFields = ['twinName', 'twinRole', 'twinBio', 'twinLanguage', 'twinPurpose'];
+      errorFields.forEach(fieldId => {
+        const fieldEl = document.getElementById(fieldId);
+        const errorEl = document.getElementById(`${fieldId}-error`);
+        if (fieldEl) {
+          fieldEl.classList.remove('border-red-500', 'ring-2', 'ring-red-500/20');
+        }
+        if (errorEl) {
+          errorEl.classList.add('hidden');
+          errorEl.textContent = '';
+        }
+      });
+    }
+
+    function getFieldLabel(fieldId) {
+      const labels = {
+        'twinName': 'Twin name',
+        'twinRole': 'Role',
+        'twinBio': 'One-line bio',
+        'twinLanguage': 'Default language',
+        'twinPurpose': 'Purpose',
+      };
+      return labels[fieldId] || fieldId;
+    }
+
+    // ✅ Update bio character counter
+    function updateBioCharCount() {
+      const bioInput = document.getElementById('twinBio');
+      const charCount = document.getElementById('bioCharCount');
+      if (bioInput && charCount) {
+        charCount.textContent = bioInput.value.length;
+      }
+    }
+
     async function saveAll() {
+      clearFieldErrors(); // Clear previous errors
       const settingsPayload = collectSettingsPayload();
       const stylePayload = collectStylePayload();
       const personaPayload = collectPersonaPayload();
@@ -771,6 +841,12 @@
       const readJson = async (res) => {
         const data = await res.json().catch(() => null);
         if (!res.ok || !data?.success) {
+          // ✅ Parse validation errors with field details
+          if (data?.details && Array.isArray(data.details)) {
+            const validationError = new Error(data?.error || 'Validation failed');
+            validationError.validationDetails = data.details;
+            throw validationError;
+          }
           throw new Error(data?.error || data?.message || `Request failed (${res.status})`);
         }
         return data;
@@ -1006,7 +1082,7 @@
 
         // Compact row UI (icons + single-line edit)
         row.innerHTML = `
-          <div class="flex items-start gap-2">
+          <div class="flex items-stretch gap-2">
             <div class="pt-1">
               <input type="checkbox" class="memSelect rounded border-gray-300 dark:border-gray-600" />
             </div>
@@ -1014,47 +1090,48 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between gap-2 mb-0.5">
                 <div class="flex items-center gap-2 min-w-0">
-                  <span class="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">
+                  <span class="memVisibilityBadge text-[11px] px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">
                     ${visibility === 'public_twin' ? 'Public' : 'Private'}
                   </span>
                 </div>
 
-                <label class="inline-flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer select-none">
-                  <input type="checkbox" class="memPublic rounded border-gray-300 dark:border-gray-600"
-                    ${visibility === 'public_twin' ? 'checked' : ''} />
-                  <span>Public</span>
-                </label>
+                <!-- Right controls: Public toggle + Save + Delete (one row) -->
+                <div class="flex items-center gap-2 shrink-0">
+                  <label class="inline-flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer select-none">
+                    <input type="checkbox" class="memPublic rounded border-gray-300 dark:border-gray-600"
+                      ${visibility === 'public_twin' ? 'checked' : ''} />
+                    <span>Public</span>
+                  </label>
+
+                  <button type="button"
+                    class="memSaveIcon p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    title="Save"
+                    aria-label="Save"
+                    disabled
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 13l4 4L19 7" />
+                    </svg>
+                  </button>
+
+                  <button type="button"
+                    class="memDelIcon p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    title="Delete"
+                    aria-label="Delete"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0V5a2 2 0 012-2h4a2 2 0 012 2v2" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               <textarea
                 class="memEdit w-full text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-gray-900 dark:text-white resize-none leading-tight"
                 rows="1"
               >${escapeHtml(value)}</textarea>
-            </div>
-
-            <div class="flex flex-col gap-2 pt-1">
-              <button type="button"
-                class="memSaveIcon p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
-                title="Save"
-                aria-label="Save"
-                disabled
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M5 13l4 4L19 7" />
-                </svg>
-              </button>
-
-              <button type="button"
-                class="memDelIcon p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-                title="Delete"
-                aria-label="Delete"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0V5a2 2 0 012-2h4a2 2 0 012 2v2" />
-                </svg>
-              </button>
             </div>
           </div>
         `;
@@ -1064,6 +1141,7 @@
         const selectEl = row.querySelector('.memSelect');
         const saveBtn = row.querySelector('.memSaveIcon');
         const delBtn = row.querySelector('.memDelIcon');
+        const badgeEl = row.querySelector('.memVisibilityBadge'); // Badge showing Public/Private
 
         // Expand textarea on focus to avoid clutter but allow editing
         editEl?.addEventListener('focus', () => { editEl.rows = 3; });
@@ -1083,8 +1161,16 @@
           if (saveBtn) {
             saveBtn.disabled = !dirty;
             saveBtn.className = dirty
-              ? 'memSaveIcon p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700'
-              : 'memSaveIcon p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700';
+              ? 'memSaveIcon p-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700'
+              : 'memSaveIcon p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700';
+          }
+        };
+
+        // ✅ Update badge to reflect current visibility state
+        const updateBadge = () => {
+          if (badgeEl) {
+            const currentVisibility = getVisibility();
+            badgeEl.textContent = currentVisibility === 'public_twin' ? 'Public' : 'Private';
           }
         };
 
@@ -1123,6 +1209,7 @@
             originalValue = newVal;
             originalVisibility = currentVisibility;
             updateRowDirtyUI();
+            updateBadge(); // ✅ Update badge immediately after successful save
 
             showNotification('Saved ✔', 'success');
             await loadMemoryPreviewFromLTM();
@@ -1275,6 +1362,41 @@
     }
 
     function setupUI() {
+      // ✅ Bio character counter
+      const bioInput = document.getElementById('twinBio');
+      if (bioInput) {
+        updateBioCharCount(); // Initial count
+        bioInput.addEventListener('input', updateBioCharCount);
+        bioInput.addEventListener('input', () => {
+          // Clear error on input
+          const errorEl = document.getElementById('twinBio-error');
+          if (errorEl) {
+            errorEl.classList.add('hidden');
+          }
+          bioInput.classList.remove('border-red-500', 'ring-2', 'ring-red-500/20');
+        });
+      }
+      
+      // ✅ Clear errors on input for all fields
+      ['twinName', 'twinRole', 'twinLanguage', 'twinPurpose'].forEach(fieldId => {
+        const fieldEl = document.getElementById(fieldId);
+        if (fieldEl) {
+          fieldEl.addEventListener('input', () => {
+            const errorEl = document.getElementById(`${fieldId}-error`);
+            if (errorEl) {
+              errorEl.classList.add('hidden');
+            }
+            fieldEl.classList.remove('border-red-500', 'ring-2', 'ring-red-500/20');
+          });
+          fieldEl.addEventListener('change', () => {
+            const errorEl = document.getElementById(`${fieldId}-error`);
+            if (errorEl) {
+              errorEl.classList.add('hidden');
+            }
+            fieldEl.classList.remove('border-red-500', 'ring-2', 'ring-red-500/20');
+          });
+        }
+      });
       // Adaptation toggle
       document.getElementById('adaptationEnabled')?.addEventListener('change', (e) => {
         toggleAdaptationSlider(e.target.checked);
@@ -1311,7 +1433,49 @@
           window.location.reload();
         } catch (err) {
           console.error(err);
-          showNotification(`Save failed: ${err?.message || 'Unknown error'}`, 'error');
+          
+          // ✅ Show field-specific validation errors
+          if (err?.validationDetails && Array.isArray(err.validationDetails)) {
+            clearFieldErrors();
+            let errorMessages = [];
+            
+            err.validationDetails.forEach((detail) => {
+              const fieldName = detail.field || '';
+              const message = detail.message || 'Invalid value';
+              
+              // Map backend field names to frontend IDs
+              const fieldIdMap = {
+                'basicInfo.oneLineBio': 'twinBio',
+                'basicInfo.name': 'twinName',
+                'basicInfo.role': 'twinRole',
+                'basicInfo.language': 'twinLanguage',
+                'basicInfo.purpose': 'twinPurpose',
+              };
+              
+              const fieldId = fieldIdMap[fieldName] || fieldName.split('.').pop();
+              const fieldEl = document.getElementById(fieldId);
+              const errorEl = document.getElementById(`${fieldId}-error`);
+              
+              if (fieldEl && errorEl) {
+                fieldEl.classList.add('border-red-500', 'ring-2', 'ring-red-500/20');
+                errorEl.textContent = message;
+                errorEl.classList.remove('hidden');
+                errorMessages.push(`${getFieldLabel(fieldId)}: ${message}`);
+              } else {
+                errorMessages.push(message);
+              }
+            });
+            
+            // Show summary notification
+            if (errorMessages.length > 0) {
+              showNotification(`Please fix the following errors:\n${errorMessages.join('\n')}`, 'error');
+            } else {
+              showNotification('Validation failed. Please check the form fields.', 'error');
+            }
+          } else {
+            showNotification(`Save failed: ${err?.message || 'Unknown error'}`, 'error');
+          }
+          
           if (btn) btn.disabled = false;
         } finally {
           if (btn && !btn.disabled) btn.textContent = oldText || 'Save settings';
