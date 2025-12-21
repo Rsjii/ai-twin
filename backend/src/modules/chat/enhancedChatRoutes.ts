@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
+import { checkTokenQuotaForEnhancedChat } from '../../middleware/tokenQuotaMiddleware';
 import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
 import {
   generateEnhancedReply,
@@ -27,7 +28,7 @@ router.use((req, res, next) => {
 
 // Enhanced chat endpoints
 router.get('/:chatToken', getChatHistory);
-router.post('/:chatToken/enhanced-reply', generateEnhancedReply);
+router.post('/:chatToken/enhanced-reply', checkTokenQuotaForEnhancedChat, generateEnhancedReply);
 router.post('/:chatToken/style-correct', applyStyleCorrection);
 
 // Feedback and regeneration endpoints

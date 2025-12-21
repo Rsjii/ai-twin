@@ -52,6 +52,18 @@
             .twin-card .twin-bio {
                 flex: 1;
                 min-height: 40px;
+                overflow: hidden !important;
+                text-overflow: ellipsis;
+                word-break: break-word;
+                overflow-wrap: break-word;
+                /* Ensure exactly 2 lines - no partial 3rd line visible */
+                /* Tailwind text-sm has line-height: 1.25rem, so 2 lines = 2.5rem exactly */
+                max-height: 2.5rem;
+                line-height: 1.25rem;
+                /* Force clipping at exactly 2 lines - no overflow visible */
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
             }
             
             /* Hide scrollbar for filter tabs */
@@ -61,6 +73,33 @@
             }
             .scrollbar-hide::-webkit-scrollbar {
                 display: none;
+            }
+            
+            /* Gap between tabs and first twin - all screen sizes */
+            #twinsGridSection {
+                margin-top: 1.5rem;
+            }
+            
+            /* Desktop: More gap between tabs and twins */
+            @media (min-width: 641px) {
+                #twinsGridSection {
+                    margin-top: 2rem;
+                }
+            }
+            
+            /* Mobile-only changes for discover page */
+            @media (max-width: 640px) {
+                /* Reduce twin card width and add margins */
+                #twinsGrid {
+                    margin-left: 1rem;
+                    margin-right: 1rem;
+                    gap: 1rem;
+                }
+                
+                /* Reduce individual twin card width on mobile */
+                #twinsGrid .twin-card {
+                    max-width: calc(100% - 0.5rem);
+                }
             }
 
             /* Screen reader only class */
@@ -219,7 +258,7 @@
             </button>
         </div>
     <!-- Twins Grid Section -->
-    <section aria-label="AI twins list">
+    <section id="twinsGridSection" aria-label="AI twins list">
         <!-- Loading State -->
         <div id="loadingState" class="hidden">
             <%- include('components/loading-skeleton', { type: 'twin-card', count: 8 }) %>
@@ -1318,6 +1357,9 @@ if (!selectedPlatform) {
             line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            text-overflow: ellipsis;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
 /* ✅ FIX ISSUE 2: Tooltip styles for disabled buttons */
 [data-tooltip] {

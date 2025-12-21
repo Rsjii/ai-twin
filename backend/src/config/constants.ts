@@ -152,7 +152,7 @@ export const EVENT_TYPES = {
 // Token Quotas - Daily limits for LLM usage
 export const TOKEN_QUOTAS = {
   // Anonymous public chat: hard wall → login required
-  ANON_DAILY_TOKENS: 5000,
+  ANON_DAILY_TOKENS: 1000,
 
   // Logged-in: daily cap (adjust as you want)
   USER_DAILY_TOKENS: 100000,

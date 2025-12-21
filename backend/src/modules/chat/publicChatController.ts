@@ -14,6 +14,7 @@ import { detokenizeId, sanitizePublicChat, sanitizeTwin, tokenizeId } from '../.
 import { EVENT_TYPES } from '../../config/constants';
 import { isDev } from '../../config/env';
 import { memoryService } from '../../services/memoryService';
+import {reserveDailyTokens, reconcileDailyTokens} from '../../services/tokenQuotaService';
 
 // Validation schemas
 const startPublicChatSchema = z.object({
@@ -556,8 +557,6 @@ if (chat.requireLogin && !userId) {
     const allowPublicUse = chat?.personaData?.settings?.memory?.allowPublicUse === true;
     const memoryVisibility = allowPublicUse ? 'public_twin' : 'none';
     
-    console.log('[PUBLIC_CHAT] [MEMORY_FLAG] allowPublicUse:', allowPublicUse, '→ memoryVisibility:', memoryVisibility);
-
     // ✅ No manual memory block here. We handle long-term memory selection centrally.
     const systemPromptForPublic =
       (chat.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.");
@@ -584,8 +583,6 @@ if (chat.requireLogin && !userId) {
       fullHistorySent: false
     });
 
-    // ✅ NEW: Token quota (daily) - enforce BEFORE LLM call
-    const { reserveDailyTokens, reconcileDailyTokens, TokenQuotaError } = await import('../../services/tokenQuotaService');
 
     const actor = chat.userId
       ? ({ kind: 'user', userId: chat.userId } as const)
@@ -595,21 +592,23 @@ if (chat.requireLogin && !userId) {
     // Cap reservation to prevent unfair instant blocking for anonymous users
     const baseTokenLimit = Math.min(chat.tokenLimit || 500, 800);
     let reservation: { day: string; actorKey: string; reserved: number } | null = null;
+    
+    // Quota already checked by middleware, so reservation should succeed
+    // But still handle errors in case of race conditions
     try {
       reservation = await reserveDailyTokens({
         actor,
         reserveTokens: baseTokenLimit + 400,
       });
     } catch (e: any) {
-      if (e instanceof TokenQuotaError) {
-        return res.status(e.statusCode).json({
-          success: false,
-          error: e.message,
-          errorCode: e.errorCode,
-          retryAfter: `${e.retryAfterSeconds}s`,
-        });
-      }
-      throw e;
+      // This should rarely happen since middleware already checked quota
+      // But handle it gracefully in case of race conditions
+      logger.error('[sendPublicMessage] Token reservation failed after middleware check:', e);
+      return res.status(429).json({
+        success: false,
+        error: 'Token quota exceeded. Please try again later.',
+        errorCode: 'QUOTA_EXCEEDED',
+      });
     }
 
     // ✅ Generate AI response

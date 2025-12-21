@@ -50,6 +50,13 @@
             }
         })();
     </script>
+    <script>
+        // ✅ NEW: Set quota exceeded status from server (for both anonymous and logged-in users)
+        window.__quotaExceeded = <%= typeof quotaExceeded !== 'undefined' && quotaExceeded ? 'true' : 'false' %>;
+        if (window.__quotaExceeded) {
+            console.log('[QUOTA] Quota exceeded detected at page load - chat will be locked');
+        }
+    </script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 h-screen overflow-hidden flex flex-col">    
     <!--Header-->
@@ -137,7 +144,7 @@
             
                 <div class="flex-1 min-w-0">
                     <h1 class="text-xl font-semibold text-gray-900 dark:text-white truncate">Chat with @<%= twin.publicHandle %></h1>
-                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                    <p id="chatSubtitle" class="text-sm text-gray-600 dark:text-gray-300">
                         <% if (typeof requiresLogin !== 'undefined' && requiresLogin) { %>
                             Login required to chat with this twin.
                         <% } else { %>
@@ -1190,9 +1197,106 @@ async function createNewPublicChat() {
 
         // Send message (updated with typing effect)
 
+// ✅ NEW: Lock chat when limit exhausted (EXACT same pattern as requireLogin)
+function lockChatForLimitExhausted() {
+    // ✅ NEW: Persist limit exceeded state in sessionStorage (survives refresh)
+    sessionStorage.setItem('limitExceeded', 'true');
+    
+    // Hide loading state (same as requireLogin)
+    const initialLoading = document.getElementById('initialLoadingState');
+    if (initialLoading) initialLoading.classList.add('hidden');
+    
+    // Show message in chat area (EXACT same HTML structure as requireLogin, just different text)
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) {
+        // Use currentTwinId to build redirect URL (same format as requireLogin)
+        const redirectUrl = `/public-twin/chat/${encodeURIComponent(currentTwinId)}`;
+        chatMessages.innerHTML = `
+            <div class="text-center py-12">
+                <div class="w-16 h-16 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Daily Limit Reached</h3>
+                <p class="text-gray-600 dark:text-gray-300 mb-4">You have exhausted/exceeded your maximum daily token limit.</p>
+                <a href="/auth?redirect=${redirectUrl}" class="inline-block bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold">
+                    Go to Login
+                </a>
+            </div>
+        `;
+    }
+    
+    // Update subtitle text (same as requireLogin pattern)
+    const chatSubtitle = document.getElementById('chatSubtitle');
+    if (chatSubtitle) chatSubtitle.textContent = 'Login required to chat with this twin.';
+    
+    // Disable chat input and buttons (EXACT same as requireLogin)
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendMessageBtn');
+    const newChatBtn = document.getElementById('newPublicChatBtn');
+    const chatForm = document.getElementById('chatForm');
+    const chatInputSection = document.getElementById('chatInputSection');
+    
+    // Disable individual inputs
+    if (messageInput) {
+        messageInput.disabled = true;
+        messageInput.style.opacity = '0.6';
+        messageInput.style.cursor = 'not-allowed';
+    }
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.style.opacity = '0.6';
+        sendBtn.style.cursor = 'not-allowed';
+    }
+    if (newChatBtn) newChatBtn.disabled = true;
+    
+    // Disable entire chat form and input section
+    if (chatForm) {
+        chatForm.style.pointerEvents = 'none';
+        chatForm.style.opacity = '0.6';
+    }
+    if (chatInputSection) {
+        chatInputSection.style.pointerEvents = 'none';
+        chatInputSection.style.opacity = '0.6';
+    }
+    
+    // Hide chat history loading (same as requireLogin)
+    const chatHistoryLoading = document.getElementById('chatHistoryLoadingState');
+    if (chatHistoryLoading) chatHistoryLoading.classList.remove('hidden');
+    if (chatHistoryLoading) chatHistoryLoading.classList.add('hidden');
+    
+    // Show empty state for chat history (same as requireLogin)
+    const chatHistoryEmpty = document.getElementById('chatHistoryEmptyState');
+    if (chatHistoryEmpty) {
+        chatHistoryEmpty.classList.remove('hidden');
+        chatHistoryEmpty.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-sm">Login required to view chat history</p>';
+    }
+}
+
 async function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const message = messageInput?.value.trim();
+            
+            // ✅ NEW: Check if quota is exceeded at page render time (from server) - highest priority
+            if (window.__quotaExceeded === true) {
+                console.log('[sendMessage] Quota exceeded at page load - preventing request.');
+                // Ensure UI is locked
+                if (messageInput) messageInput.disabled = true;
+                const sendBtn = document.getElementById('sendMessageBtn');
+                if (sendBtn) sendBtn.disabled = true;
+                return; // Don't send request
+            }
+            
+            // ✅ NEW: Check if chat is already locked (limit exceeded) - prevent extra requests
+            if (sessionStorage.getItem('limitExceeded') === 'true') {
+                console.log('[sendMessage] Chat is locked - limit exceeded. Preventing request.');
+                // Ensure UI is locked
+                if (messageInput) messageInput.disabled = true;
+                const sendBtn = document.getElementById('sendMessageBtn');
+                if (sendBtn) sendBtn.disabled = true;
+                return; // Don't send request
+            }
             
             if (!message || isChatting) return;
             
@@ -1386,33 +1490,15 @@ async function sendMessage() {
                 // Remove typing indicator
                 removeMessage(typingId);
 
-                // ✅ FIX: Handle LOGIN_REQUIRED error
-                if (!response.ok && data.errorCode === 'LOGIN_REQUIRED') {
-    const goLogin = await window.ModalHelpers.confirm({
-        title: 'Login Required',
-        message: 'You have been logged out. Please login to send messages to this twin.',
-        confirmLabel: 'Go to Login',
-        cancelLabel: 'Stay Here',
-        type: 'info'
-    });
-
-    if (goLogin) {
-        window.location.href = '/auth';
-    }
-
-    // Remove the user message that was added
-    const chatMessages = document.getElementById('chatMessages');
-    const lastMessage = chatMessages.lastElementChild;
-    if (lastMessage) lastMessage.remove();
-
-    isChatting = false;
-    if (messageInput) messageInput.disabled = false;
-    if (sendBtn) {
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Send';
-    }
-    return;
-}                
+                // ✅ FIX: Handle LOGIN_REQUIRED error (token limit exhausted) or 429 status
+                if (!response.ok && (response.status === 429 || data.errorCode === 'LOGIN_REQUIRED')) {
+                    // Lock chat (EXACT same pattern as requireLogin - this overwrites chat area)
+                    // sessionStorage is set inside lockChatForLimitExhausted()
+                    lockChatForLimitExhausted();
+                    
+                    isChatting = false;
+                    return;
+                }                
 
                 // ✅ Handle CHAT_NOT_FOUND error
                 if (!response.ok && data.errorCode === 'CHAT_NOT_FOUND') {
@@ -1592,6 +1678,20 @@ if (newChatBtnMobile) {
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', async function() {
+            // ✅ NEW: Check if quota is exceeded at page render time (from server) - highest priority
+            if (window.__quotaExceeded === true) {
+                console.log('[DOMContentLoaded] Quota exceeded at page load (from server) - locking chat immediately');
+                lockChatForLimitExhausted();
+                return; // Don't proceed with normal initialization
+            }
+            
+            // ✅ NEW: Check if limit was exceeded before refresh - restore locked state immediately
+            if (sessionStorage.getItem('limitExceeded') === 'true') {
+                console.log('[DOMContentLoaded] Limit exceeded state detected - locking chat immediately');
+                lockChatForLimitExhausted();
+                return; // Don't proceed with normal initialization
+            }
+            
             initializeVisitorId();
 
             // Show loading skeletons before any API calls (for logged-in users)

@@ -4,6 +4,7 @@ import { logger } from '../config/logger';
 import { fastQuery } from '../utils/dbUtils';
 import { handleControllerError } from '../utils/errorHandler';
 import { tokenizeId } from '../utils/idTokenization';
+import { normalizeTimestamp } from '../utils/timestampUtils';
 
 /**
  * Twin Management Page - Complete twin dashboard
@@ -95,8 +96,9 @@ export async function getTwinManage(req: any, res: Response) {
       recentChats = [];
     }
 
-    // ✅ Fetch public status from Twin
+    // ✅ Fetch public status from Twin (including isPublic flag)
     let publicTwin = null;
+    let isPublic = false;
     try {
       const publicTwinResult = await fastQuery(`
         SELECT 
@@ -106,15 +108,24 @@ export async function getTwinManage(req: any, res: Response) {
           t."createdAt" as created_at
         FROM "Twin" t
         JOIN "User" u ON t."userId" = u.id
-        WHERE t.id = $1 AND t."isPublic" = true
+        WHERE t.id = $1
       `, [twinId]);
-      publicTwin = publicTwinResult.rows.length > 0 ? publicTwinResult.rows[0] : null;
+      
+      if (publicTwinResult.rows.length > 0) {
+        publicTwin = publicTwinResult.rows[0];
+        isPublic = publicTwin.is_public === true;
+        // Only set publicTwin if actually public (for backward compatibility)
+        if (!isPublic) {
+          publicTwin = null;
+        }
+      }
     } catch (error) {
       logger.warn('Error fetching public twin:', {
         error: error instanceof Error ? error.message : 'Unknown error',
         twinId: twinId
       });
       publicTwin = null;
+      isPublic = false;
     }
 
     // Parse counts safely from optimized single query result
@@ -145,14 +156,22 @@ export async function getTwinManage(req: any, res: Response) {
       }
     }
 
+    // ✅ FIX: Normalize timestamps to UTC ISO format for frontend (same as dashboard)
+    const normalizedTwin = twin ? {
+      ...twin,
+      updatedAt: normalizeTimestamp(twin.updatedAt),
+      createdAt: normalizeTimestamp(twin.createdAt)
+    } : null;
+
     res.render('twin-manage', {
       title: 'My Twin - Manage',
       user: user,
-      twin: twin,
+      twin: normalizedTwin, // ✅ FIX: Use normalized twin with UTC ISO timestamps
       twinToken: twinToken,  // ✅ SECURITY: Use tokenized ID
       twinPublicId: twinPublicId, // Keep for backward compatibility
       stats: stats,
       publicTwin: publicTwin,
+      isPublic: isPublic, // ✅ ADD: Pass isPublic status
       recentChats: recentChats,
       hasTwins: true,
       csrfToken: res.locals['csrfToken']

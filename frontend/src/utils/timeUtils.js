@@ -5,7 +5,7 @@
  */
 
 // ✅ DEBUG MODE: Set to false in production to disable console logs
-const DEBUG_MODE = true; // Change to false for production
+const DEBUG_MODE = false; // Disabled for production
 
 // ✅ Global server time storage - updated from API responses
 let globalServerTime = null;

@@ -149,44 +149,137 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div>
-                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Last Updated</p>
-                    <p class="text-lg font-semibold text-gray-900 dark:text-white">
-                        <span class="timestamp-display" 
-                              data-timestamp="<%= twin.updatedAt || twin.updated_at %>" 
-                              data-format="smart">
-                        </span>
-                    </p>
-                </div>
-                <% if (publicTwin) { %>
-                    <div>
-                        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Public Handle</p>
-                        <div class="relative w-full sm:max-w-md">
-                            <input
-                                type="text"
-                                readonly
-                                value="/@<%= publicTwin.handle %>"
-                                id="publicLinkInput"
-                                class="w-full pr-10 px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-base"
-                            >
-                            <button
-                                type="button"
-                                id="copyPublicLinkBtn"
-                                onclick="copyPublicLink()"
-                                class="absolute inset-y-0 right-0 px-3 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
-                                aria-label="Copy public link"
-                            >
+            <!-- ✅ NEW: Twin Status Badge and Form (Same as Settings) -->
+            <div class="mt-4">
+                <div class="flex items-center justify-between gap-3 mb-4">
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
+                        <% if (typeof isPublic !== 'undefined' && isPublic) { %>
+                            <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-lg text-sm font-semibold">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M8 16h8a2 2 0 002-2V6a2 2 0 00-2-2H8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M16 8h2a2 2 0 012 2v8a2 2 0 01-2 2h-8a2 2 0 01-2-2v-2"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                            </button>
+                                Public
+                            </span>
+                        <% } else { %>
+                            <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 rounded-lg text-sm font-semibold">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                                Private
+                            </span>
+                        <% } %>
+                    </div>
+                    <!-- ✅ Mobile: Last Updated in status row (right side) -->
+                    <div class="sm:hidden text-right">
+                        <p class="text-xs text-gray-600 dark:text-gray-300 mb-0.5">Last Updated</p>
+                        <p class="text-xs font-medium text-gray-900 dark:text-white">
+                            <span class="timestamp-display" 
+                                  data-timestamp="<%= twin.updatedAt || twin.updated_at %>" 
+                                  data-format="smart">
+                            </span>
+                        </p>
+                    </div>
+                </div>
+
+                <% if (!isPublic) { %>
+                    <!-- Make Public Form (Same as Settings) -->
+                    <div id="makePublicForm" class="space-y-4 p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <p class="text-sm text-blue-800 dark:text-blue-300">
+                                <strong>Profile URL:</strong> Your profile will be accessible at <code class="bg-white dark:bg-gray-800 px-2 py-1 rounded">/@<%= user.handle %></code>
+                            </p>
                         </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Bio (Optional)</label>
+                            <textarea id="publicBio" rows="3" placeholder="Describe your AI twin..." maxlength="500" class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white break-words overflow-wrap-anywhere"></textarea>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><span id="bioCharCount">0</span>/500 characters</p>
+                        </div>
+                        <button id="makeTwinPublicBtn" class="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2 px-4 rounded-lg hover:shadow-lg transition-all font-semibold">
+                            Make Twin Public
+                        </button>
+                    </div>
+                <% } else { %>
+                    <!-- Make Private Section (When Public) -->
+                    <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                        <button 
+                            id="makeTwinPrivateBtn"
+                            class="w-full bg-gradient-to-r from-red-600 to-red-700 text-white py-2 px-4 rounded-lg hover:shadow-lg transition-all font-semibold">
+                            Make Twin Private
+                        </button>
+                        <!-- ✅ Mobile: Public Profile below Make Private button -->
+                        <% if (publicTwin) { %>
+                            <div class="mt-4 sm:hidden">
+                                <p class="text-xs text-gray-600 dark:text-gray-300 mb-1.5">Public Profile</p>
+                                <div class="flex items-stretch gap-2">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-1.5 px-3 py-2 h-[44px] bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                            <svg class="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                                            </svg>
+                                            <code class="flex-1 text-xs font-mono text-blue-700 dark:text-blue-300 truncate">/@<%= publicTwin.handle %></code>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        id="copyPublicLinkBtnManageMobile"
+                                        class="w-[44px] h-[44px] min-w-[44px] max-w-[44px] min-h-[44px] max-h-[44px] aspect-square flex-shrink-0 p-0 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 flex items-center justify-center shadow-sm hover:shadow-md"
+                                        aria-label="Copy public link"
+                                        title="Copy profile URL"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16h8a2 2 0 002-2V6a2 2 0 00-2-2H8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 8h2a2 2 0 012 2v8a2 2 0 01-2 2h-8a2 2 0 01-2-2v-2"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        <% } %>
                     </div>
                 <% } %>
+            </div>
+
+            <!-- ✅ Desktop: Last Updated and Public Profile (hidden on mobile) -->
+            <div class="hidden sm:block mt-6 sm:mt-8">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <div>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Last Updated</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                            <span class="timestamp-display" 
+                                  data-timestamp="<%= twin.updatedAt || twin.updated_at %>" 
+                                  data-format="smart">
+                            </span>
+                        </p>
+                    </div>
+                    <% if (publicTwin) { %>
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Public Profile</p>
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                                        </svg>
+                                        <code class="flex-1 text-sm font-mono text-blue-700 dark:text-blue-300 truncate">/@<%= publicTwin.handle %></code>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    id="copyPublicLinkBtnManage"
+                                    class="flex-shrink-0 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 font-medium text-sm flex items-center gap-2 shadow-sm hover:shadow-md"
+                                    aria-label="Copy public link"
+                                    title="Copy profile URL"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16h8a2 2 0 002-2V6a2 2 0 00-2-2H8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8h2a2 2 0 012 2v8a2 2 0 01-2 2h-8a2 2 0 01-2-2v-2"></path>
+                                    </svg>
+                                    <span class="hidden sm:inline">Copy</span>
+                                </button>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
             </div>
         </div>
 
@@ -423,23 +516,37 @@ document.addEventListener('DOMContentLoaded', () => {
         dateEl.title = TimeUtils.formatFullDateTime(dateEl.dataset.timestamp);
     }
     
-    // ✅ FIX: Format all timestamp-display elements (including Last Updated)
+    // ✅ FIX: Format all timestamp-display elements (including Last Updated) - Timezone-aware
     document.querySelectorAll('.timestamp-display').forEach(el => {
         const timestamp = el.dataset.timestamp;
         const format = el.dataset.format || 'smart';
+        
         if (timestamp && window.TimeUtils) {
             try {
                 let displayTime, fullTime;
-                if (format === 'smart') {
+                if (format === 'exact') {
+                    // ✅ FIX: Always show exact time in user's timezone for "Last Updated"
+                    displayTime = window.TimeUtils.formatExactTime(timestamp);
+                } else if (format === 'smart') {
+                    // Smart format: relative for recent, exact for old (like chats)
+                    displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                } else if (format === 'relative') {
+                    // Relative format: "2h ago", "3d ago"
                     displayTime = window.TimeUtils.formatRelativeTime(timestamp);
+                } else if (format === 'context') {
+                    // Context format: "Today at 3:45 PM", "Yesterday at 3:45 PM"
+                    displayTime = window.TimeUtils.formatTimeWithContext(timestamp);
                 } else {
+                    // Default: smart format
                     displayTime = window.TimeUtils.formatSmartTime(timestamp);
                 }
                 fullTime = window.TimeUtils.formatFullDateTime(timestamp);
-                el.textContent = displayTime;
-                el.title = fullTime;
+                
+                el.textContent = displayTime || '';
+                el.title = fullTime || '';
             } catch (e) {
                 console.error('Error formatting timestamp:', e);
+                el.textContent = '';
             }
         }
     });
@@ -452,6 +559,206 @@ document.querySelectorAll('.chat-date').forEach(el => {
         el.textContent = window.TimeUtils.formatRelativeTime(el.dataset.timestamp);
         el.title = window.TimeUtils.formatFullDateTime(el.dataset.timestamp);
     }
+});
+
+// ✅ NEW: Twin Status Toggle (Same as Settings Flow)
+document.addEventListener('DOMContentLoaded', function() {
+    const twinToken = '<%= typeof twinToken !== "undefined" ? twinToken : "" %>';
+    const isPublic = <%= typeof isPublic !== 'undefined' && isPublic ? 'true' : 'false' %>;
+    
+    // Bio character counter
+    const publicBio = document.getElementById('publicBio');
+    const bioCharCount = document.getElementById('bioCharCount');
+    if (publicBio && bioCharCount) {
+        publicBio.addEventListener('input', function() {
+            bioCharCount.textContent = this.value.length;
+        });
+    }
+    
+    // Make Twin Public (with bio form)
+    const makeTwinPublicBtn = document.getElementById('makeTwinPublicBtn');
+    if (makeTwinPublicBtn) {
+        makeTwinPublicBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            
+            if (!twinToken) {
+                showNotification('Twin token not found', 'error');
+                return;
+            }
+            
+            const bio = document.getElementById('publicBio')?.value || '';
+            
+            // Disable button during submission
+            makeTwinPublicBtn.disabled = true;
+            const originalText = makeTwinPublicBtn.textContent;
+            makeTwinPublicBtn.textContent = 'Making Public...';
+            
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || window.csrfToken;
+                
+                const response = await fetch('/api/public-twin/make-public', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        twinId: twinToken,
+                        bio: bio
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showNotification('Twin made public successfully!', 'success');
+                    // Force page reload to show updated status
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showNotification(result.error || result.message || 'Failed to make twin public', 'error');
+                    makeTwinPublicBtn.disabled = false;
+                    makeTwinPublicBtn.textContent = originalText;
+                }
+            } catch (error) {
+                console.error('Make twin public error:', error);
+                showNotification('Network error. Please try again.', 'error');
+                makeTwinPublicBtn.disabled = false;
+                makeTwinPublicBtn.textContent = originalText;
+            }
+        });
+    }
+    
+    // Make Twin Private
+    const makeTwinPrivateBtn = document.getElementById('makeTwinPrivateBtn');
+    if (makeTwinPrivateBtn) {
+        makeTwinPrivateBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            
+            if (!twinToken) {
+                showNotification('Twin token not found', 'error');
+                return;
+            }
+            
+            const confirmed = await window.ModalHelpers?.confirm?.({
+                title: 'Make Twin Private',
+                message: 'Make your twin private? Only you will be able to access it.',
+                confirmLabel: 'Yes, Continue',
+                cancelLabel: 'Cancel',
+                type: 'info'
+            });
+            
+            if (!confirmed) return;
+            
+            // Show loading
+            const originalText = this.textContent;
+            this.disabled = true;
+            this.textContent = 'Making Private...';
+            
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || window.csrfToken;
+                
+                const response = await fetch('/api/public-twin/make-private', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ twinId: twinToken })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    showNotification('Twin is now private!', 'success');
+                    // Reload page to reflect changes
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    throw new Error(data.error || 'Failed to update status');
+                }
+            } catch (error) {
+                console.error('Make twin private error:', error);
+                showNotification('Failed to update status: ' + (error.message || 'Unknown error'), 'error');
+                this.disabled = false;
+                this.textContent = originalText;
+            }
+        });
+    }
+    
+    // Copy Public Link handler (for both desktop and mobile buttons)
+    function setupCopyButton(buttonId) {
+        const copyBtn = document.getElementById(buttonId);
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = window.location.origin + '/@<%= user.handle %>';
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url).then(() => {
+                        // Update button text temporarily
+                        const originalText = this.innerHTML;
+                        const isMobile = buttonId.includes('Mobile');
+                        // Ensure button maintains exact square dimensions (44px x 44px) matching handle box height
+                        if (isMobile) {
+                            this.style.height = '44px';
+                            this.style.width = '44px';
+                            this.style.minHeight = '44px';
+                            this.style.maxHeight = '44px';
+                            this.style.minWidth = '44px';
+                            this.style.maxWidth = '44px';
+                            this.style.padding = '0';
+                            this.style.display = 'flex';
+                            this.style.alignItems = 'center';
+                            this.style.justifyContent = 'center';
+                        } else {
+                            this.style.height = '44px';
+                            this.style.minHeight = '44px';
+                            this.style.maxHeight = '44px';
+                        }
+                        this.innerHTML = isMobile 
+                            ? '<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
+                            : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span class="hidden sm:inline">Copied!</span>';
+                        this.classList.add('bg-green-600', 'hover:bg-green-700', 'dark:bg-green-500', 'dark:hover:bg-green-600');
+                        this.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'dark:bg-blue-500', 'dark:hover:bg-blue-600');
+                        showNotification('Public link copied to clipboard!', 'success');
+                        setTimeout(() => {
+                            this.innerHTML = originalText;
+                            this.classList.remove('bg-green-600', 'hover:bg-green-700', 'dark:bg-green-500', 'dark:hover:bg-green-600');
+                            this.classList.add('bg-blue-600', 'hover:bg-blue-700', 'dark:bg-blue-500', 'dark:hover:bg-blue-600');
+                            // Ensure square dimensions are maintained after reset (mobile only)
+                            if (isMobile) {
+                                this.style.height = '44px';
+                                this.style.width = '44px';
+                                this.style.minHeight = '44px';
+                                this.style.maxHeight = '44px';
+                                this.style.minWidth = '44px';
+                                this.style.maxWidth = '44px';
+                                this.style.padding = '0';
+                            }
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Copy failed:', err);
+                        showNotification('Failed to copy link', 'error');
+                    });
+                } else {
+                    // Fallback
+                    const textArea = document.createElement('textarea');
+                    textArea.value = url;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    showNotification('Public link copied to clipboard!', 'success');
+                }
+            });
+        }
+    }
+    
+    // Setup both desktop and mobile copy buttons
+    setupCopyButton('copyPublicLinkBtnManage');
+    setupCopyButton('copyPublicLinkBtnManageMobile');
 });
 
 </script>

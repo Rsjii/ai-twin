@@ -329,9 +329,28 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
         FROM "Event"
         WHERE type IN ('invite_sent', 'invite_accepted')
       `),
-      db.query('SELECT COUNT(DISTINCT "userId") as count FROM "Event" WHERE "createdAt" >= CURRENT_DATE'),
-      db.query('SELECT COUNT(DISTINCT "userId") as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
-      db.query('SELECT COUNT(DISTINCT "userId") as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
+      // ✅ FIX: DAU/WAU/MAU - Count distinct users with activity (not just signups)
+      // DAU: Unique users active in last 24 hours
+      db.query(`
+        SELECT COUNT(DISTINCT "userId") as count 
+        FROM "Event" 
+        WHERE "createdAt" >= NOW() - INTERVAL '24 hours'
+        AND "userId" IS NOT NULL
+      `),
+      // WAU: Unique users active in last 7 days
+      db.query(`
+        SELECT COUNT(DISTINCT "userId") as count 
+        FROM "Event" 
+        WHERE "createdAt" >= NOW() - INTERVAL '7 days'
+        AND "userId" IS NOT NULL
+      `),
+      // MAU: Unique users active in last 30 days
+      db.query(`
+        SELECT COUNT(DISTINCT "userId") as count 
+        FROM "Event" 
+        WHERE "createdAt" >= NOW() - INTERVAL '30 days'
+        AND "userId" IS NOT NULL
+      `),
       
       // NEW: Token usage metrics (from ai_runs)
       db.query('SELECT SUM(tokens_in + tokens_out) as total FROM ai_runs'),

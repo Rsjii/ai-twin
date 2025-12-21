@@ -27,7 +27,7 @@ function utcDay(d = new Date()): string {
   return `${y}-${m}-${day}`; // YYYY-MM-DD
 }
 
-function secondsUntilNextUtcMidnight(d = new Date()): number {
+export function secondsUntilNextUtcMidnight(d = new Date()): number {
   const next = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1, 0, 0, 0));
   return Math.max(1, Math.floor((next.getTime() - d.getTime()) / 1000));
 }
@@ -73,7 +73,9 @@ export async function reserveDailyTokens(params: {
     actorType = 'anon';
     visitorId = params.actor.visitorId || null;
     ipHash = hashIp(params.actor.ip);
-    actorKey = `anon:${ipHash}:${visitorId || 'no_visitor'}`;
+    // ✅ FIX: Use IP-only for anonymous users (not IP + visitorId)
+    // This ensures same IP cannot bypass limits by changing visitorId
+    actorKey = `anon:${ipHash}`; // Changed from: `anon:${ipHash}:${visitorId || 'no_visitor'}`
   }
 
   const limit = actorType === 'user' ? TOKEN_QUOTAS.USER_DAILY_TOKENS : TOKEN_QUOTAS.ANON_DAILY_TOKENS;
@@ -188,5 +190,56 @@ export async function reconcileDailyTokens(params: {
     actorKey: params.actorKey,
     adjustment: delta
   });
+}
+
+/**
+ * Check if quota is exceeded for an actor (read-only, no transaction)
+ * Used for pre-checking quota status before rendering pages
+ * 
+ * @param reserveTokens - Optional: if provided, checks if (used + reserveTokens) > limit
+ *                        This matches the behavior of reserveDailyTokens for accurate pre-checking
+ */
+export async function checkQuotaStatus(params: {
+  actor: Actor;
+  reserveTokens?: number; // ✅ optional: precheck for a planned reservation
+}): Promise<{ exceeded: boolean; used: number; limit: number; reserveTokens: number }> {
+  const day = utcDay();
+  
+  let actorKey = '';
+  let actorType: 'user' | 'anon' = 'anon';
+  
+  if (params.actor.kind === 'user') {
+    actorType = 'user';
+    actorKey = `user:${params.actor.userId}`;
+  } else {
+    const ipHash = hashIp(params.actor.ip);
+    actorKey = `anon:${ipHash}`;
+  }
+
+  const limit = actorType === 'user' ? TOKEN_QUOTAS.USER_DAILY_TOKENS : TOKEN_QUOTAS.ANON_DAILY_TOKENS;
+  
+  // Read current usage (no lock, no transaction - just a snapshot)
+  const row = await db.query(
+    `SELECT "tokensUsed" FROM "TokenUsageDaily" WHERE day = $1::date AND "actorKey" = $2`,
+    [day, actorKey],
+  );
+
+  const used = Number(row.rows?.[0]?.tokensUsed || 0);
+  const reserveTokens = Math.max(0, Math.floor(params.reserveTokens || 0));
+
+  // ✅ If reserveTokens provided, check used + reserve against limit (matches reserveDailyTokens behavior)
+  const exceeded = reserveTokens > 0 ? (used + reserveTokens > limit) : (used >= limit);
+
+  console.log('[TOKEN_QUOTA] [CHECK] Quota status:', {
+    actorType,
+    actorKey,
+    used,
+    reserveTokens,
+    totalIfReserved: used + reserveTokens,
+    limit,
+    exceeded
+  });
+
+  return { exceeded, used, limit, reserveTokens };
 }
 
