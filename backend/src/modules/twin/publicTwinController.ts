@@ -15,7 +15,7 @@ import { checkQuotaStatus } from '../../services/tokenQuotaService';
 const makePublicSchema = z.object({
   twinId: z.string().min(1, 'Twin ID is required'),
   // ✅ REMOVED: publicHandle - always use user.handle for consistent URLs
-  bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
+  bio: z.string().min(1, 'Bio is required').max(500, 'Bio must be less than 500 characters'), // ✅ MANDATORY: Bio is required
   profileImage: z.string().url('Profile image must be a valid URL').optional()
 });
 
@@ -101,6 +101,30 @@ if (!updated || !updated.isPublic) {
   });
   throw createError.internal('Failed to make twin public. Please try again.');
 }
+
+    // ✅ SYNC: Always sync Twin.bio to personaData.basicInfo.oneLineBio (bio is mandatory)
+    try {
+      const personaResult = await db.query(
+        `SELECT "personaData" FROM "Twin" WHERE id = $1`,
+        [twinId]
+      );
+      if (personaResult.rows.length > 0) {
+        const personaData = personaResult.rows[0].personaData || {};
+        if (!personaData.basicInfo) {
+          personaData.basicInfo = {};
+        }
+        // Always sync - use updated.bio (bio is mandatory, so it will always have a value)
+        personaData.basicInfo.oneLineBio = updated.bio;
+        await db.query(
+          `UPDATE "Twin" SET "personaData" = $1 WHERE id = $2`,
+          [JSON.stringify(personaData), twinId]
+        );
+        logger.info('makeTwinPublic: Synced Twin.bio to personaData.basicInfo.oneLineBio:', updated.bio);
+      }
+    } catch (syncError) {
+      // Don't fail the request if personaData sync fails (non-critical)
+      logger.warn('makeTwinPublic: Failed to sync bio to personaData (non-critical):', syncError);
+    }
 
     await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.TWIN_MADE_PUBLIC, {
       publicTwinId: twinId,
@@ -221,6 +245,30 @@ export const updateTwinProfile = async (req: AuthenticatedRequest, res: Response
       updateData.bio,
       updateData.profileImage
     );
+
+    // ✅ SYNC: Always sync Twin.bio to personaData.basicInfo.oneLineBio (bio is mandatory)
+    try {
+      const personaResult = await db.query(
+        `SELECT "personaData" FROM "Twin" WHERE id = $1`,
+        [twin.id]
+      );
+      if (personaResult.rows.length > 0) {
+        const personaData = personaResult.rows[0].personaData || {};
+        if (!personaData.basicInfo) {
+          personaData.basicInfo = {};
+        }
+        // Always sync - use updatedTwin.bio (bio is mandatory, so it will always have a value)
+        personaData.basicInfo.oneLineBio = updatedTwin.bio;
+        await db.query(
+          `UPDATE "Twin" SET "personaData" = $1 WHERE id = $2`,
+          [JSON.stringify(personaData), twin.id]
+        );
+        logger.info('updateTwinProfile: Synced Twin.bio to personaData.basicInfo.oneLineBio:', updatedTwin.bio);
+      }
+    } catch (syncError) {
+      // Don't fail the request if personaData sync fails (non-critical)
+      logger.warn('updateTwinProfile: Failed to sync bio to personaData (non-critical):', syncError);
+    }
 
     res.json({
       success: true,

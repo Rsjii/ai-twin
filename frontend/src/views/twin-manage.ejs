@@ -191,9 +191,9 @@
                             </p>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Bio (Optional)</label>
-                            <textarea id="publicBio" rows="3" placeholder="Describe your AI twin..." maxlength="500" class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white break-words overflow-wrap-anywhere"></textarea>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><span id="bioCharCount">0</span>/500 characters</p>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Bio <span class="text-red-500">*</span></label>
+                            <textarea id="publicBio" rows="3" placeholder="Describe your AI twin..." maxlength="500" required class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white break-words overflow-wrap-anywhere"><%= typeof twin !== 'undefined' && twin && twin.bio ? twin.bio : '' %></textarea>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><span id="bioCharCount"><%= typeof twin !== 'undefined' && twin && twin.bio ? twin.bio.length : 0 %></span>/500 characters</p>
                         </div>
                         <button id="makeTwinPublicBtn" class="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2 px-4 rounded-lg hover:shadow-lg transition-all font-semibold">
                             Make Twin Public
@@ -570,6 +570,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const publicBio = document.getElementById('publicBio');
     const bioCharCount = document.getElementById('bioCharCount');
     if (publicBio && bioCharCount) {
+        // ✅ Initialize counter with current value
+        bioCharCount.textContent = publicBio.value.length;
         publicBio.addEventListener('input', function() {
             bioCharCount.textContent = this.value.length;
         });
@@ -586,7 +588,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            const bio = document.getElementById('publicBio')?.value || '';
+            const bio = document.getElementById('publicBio')?.value?.trim() || '';
+            
+            // ✅ Validate bio is not empty
+            if (!bio || bio.length === 0) {
+                showNotification('Bio is required', 'error');
+                return;
+            }
             
             // Disable button during submission
             makeTwinPublicBtn.disabled = true;

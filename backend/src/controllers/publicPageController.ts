@@ -97,7 +97,7 @@ export async function getPublicProfile(req: any, res: Response) {
           handle: user.handle,
           name: user.name || user.handle,
           profileImage: user.profileImage,
-          bio: user.bio,
+          bio: null, // ✅ Twin-centric: User bio not used
           createdAt: user.createdAt,
           isOwner
         },
@@ -239,7 +239,7 @@ let isBlocked = false;
         handle: user.handle,
         name: user.name || user.handle,
         profileImage: user.profileImage,
-        bio: user.bio,
+        bio: null, // ✅ Twin-centric: User bio not used
         createdAt: user.createdAt,
         isOwner
       },
@@ -358,7 +358,7 @@ export async function getUserProfile(req: any, res: Response) {
         handle: user.handle,
         name: user.name || user.handle,
         profileImage: user.profileImage,
-        bio: user.bio,
+        bio: null, // ✅ Twin-centric: User bio not used (use twin.bio instead)
         createdAt: user.createdAt,
         isOwner: isOwner
       },

@@ -228,33 +228,48 @@
                 />
                                 </div>
 
-              <!-- Role -->
+              <!-- Twin one-line bio (optional) -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="oneLineBio">
+                  Twin one-line bio <span class="text-red-500">*</span>
+                </label>
+                <input
+                  id="oneLineBio"
+                  type="text"
+                  required
+                  class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder="e.g. Replies like me — casual, witty, helpful."
+                  maxlength="500"
+                />
+              </div>
+
+              <!-- Role (Twin role) -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  What do you do right now? *
+                  Your twin's role *
                 </label>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  <button type="button" class="chip role-chip" data-value="student">
-                    Student
+                  <button type="button" class="chip role-chip" data-value="friend">
+                    Friend
                   </button>
-                  <button type="button" class="chip role-chip" data-value="job">
-                    Job
+                  <button type="button" class="chip role-chip" data-value="creator">
+                    Creator
                   </button>
-                  <button type="button" class="chip role-chip" data-value="business">
-                    Business
+                  <button type="button" class="chip role-chip" data-value="support">
+                    Customer Support
                   </button>
-                  <button type="button" class="chip role-chip" data-value="freelancer">
-                    Freelancing / Creator
+                  <button type="button" class="chip role-chip" data-value="coach">
+                    Coach
                   </button>
                   <button type="button" class="chip role-chip" data-value="other">
-                    Something else
+                    Other
                   </button>
                 </div>
                 <input
                   id="roleOther"
                   type="text"
                   class="mt-2 w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 hidden"
-                  placeholder="Optional: describe what you do"
+                  placeholder="Optional: describe the role"
                 />
                             </div>
 
@@ -687,30 +702,46 @@
       return s;
     }
 
+    // ✅ NEW: Browser history management for back button support
+    function pushStepToHistory(step) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('step', String(step));
+      history.pushState({ step }, '', url.toString());
+    }
+
+    function getStepFromUrl() {
+      const stepFromUrl = Number(new URL(window.location.href).searchParams.get('step') || '1');
+      return clampStep(stepFromUrl, onboardingData);
+    }
+
+    window.addEventListener('popstate', (e) => {
+      const stepFromState = e.state?.step;
+      const stepFromUrl = Number(new URL(window.location.href).searchParams.get('step') || '1');
+      const target = clampStep(Number(stepFromState || stepFromUrl || 1), onboardingData);
+      currentStep = target;
+      updateStepUI();
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
       setupChips();
       
-      // ✅ NEW: Safety check - if user has no twin (fresh start), clear old localStorage
-      // Backend already checks and redirects if twin exists, so if we're here, user has no twin
-      // Clear any stale onboarding data from previous twin deletion
-      try {
-        const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          // If stored userId matches current user but we're on onboarding (no twin exists),
-          // it means twin was deleted - clear the stale data
-          if (parsed && parsed.userId === ONBOARDING_USER_ID && ONBOARDING_USER_ID) {
-            localStorage.removeItem(ONBOARDING_STORAGE_KEY);
-            console.log('Cleared stale onboarding data after twin deletion');
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to check/clear onboarding localStorage:', e);
-      }
+      // ✅ REMOVED: localStorage wipe on page load (was causing state loss on refresh)
+      // Onboarding state should persist across refreshes until twin is successfully created
+      // Only clear localStorage after successful twin creation or explicit abandonment
       
       loadOnboardingFromStorage();
+      
+      // ✅ NEW: Restore step from URL on page load
+      const stepFromUrl = getStepFromUrl();
+      if (stepFromUrl !== currentStep) {
+        currentStep = stepFromUrl;
+      }
+      
       setupNavigation();
       updateStepUI();
+      
+      // ✅ NEW: Push initial step to history
+      pushStepToHistory(currentStep);
 
  // Save latest answers before reload / close
  window.addEventListener('beforeunload', () => {
@@ -754,16 +785,52 @@
         });
       });
 
-      // multi-select groups
+      // ✅ NEW: Max 3 likes + 3 avoids enforced
+      const MAX_LIKES = 3;
+      const MAX_AVOIDS = 3;
+
+      function countSelected(selector) {
+        return document.querySelectorAll(`${selector}.selected`).length;
+      }
+
+      function countCustom(containerSel, type) {
+        return document.querySelectorAll(`${containerSel} [data-type="${type}"]`).length;
+      }
+
+      function canAddLike() {
+        return (countSelected('.like-chip') + countCustom('#likesCustomList', 'like-custom')) < MAX_LIKES;
+      }
+
+      function canAddAvoid() {
+        return (countSelected('.avoid-chip') + countCustom('#avoidsCustomList', 'avoid-custom')) < MAX_AVOIDS;
+      }
+
+      // multi-select groups (capped at 3)
       ['.like-chip', '.avoid-chip'].forEach((selector) => {
         document.querySelectorAll(selector).forEach((chip) => {
           chip.addEventListener('click', () => {
-            chip.classList.toggle('selected');
+            const isSelected = chip.classList.contains('selected');
+            if (isSelected) {
+              chip.classList.remove('selected');
+              return;
+            }
+
+            // Check if we can add more
+            if (selector === '.like-chip' && !canAddLike()) {
+              showMessage('Maximum 3 likes allowed', 'error');
+              return;
+            }
+            if (selector === '.avoid-chip' && !canAddAvoid()) {
+              showMessage('Maximum 3 avoids allowed', 'error');
+              return;
+            }
+
+            chip.classList.add('selected');
           });
         });
       });
 
-      // custom like / avoid inputs
+      // custom like / avoid inputs (capped at 3)
       const likeCustom = document.getElementById('likeCustom');
       const likesCustomList = document.getElementById('likesCustomList');
       if (likeCustom && likesCustomList) {
@@ -772,6 +839,10 @@
             e.preventDefault();
             const value = likeCustom.value.trim();
             if (!value) return;
+            if (!canAddLike()) {
+              showMessage('Maximum 3 likes allowed', 'error');
+              return;
+            }
             addCustomChip(likesCustomList, value, 'like-custom');
             likeCustom.value = '';
           }
@@ -786,6 +857,10 @@
             e.preventDefault();
             const value = avoidCustom.value.trim();
             if (!value) return;
+            if (!canAddAvoid()) {
+              showMessage('Maximum 3 avoids allowed', 'error');
+              return;
+            }
             addCustomChip(avoidsCustomList, value, 'avoid-custom');
             avoidCustom.value = '';
           }
@@ -871,10 +946,12 @@ function persistOnboardingState() {
     const b = onboardingData.basicInfo || {};
 
     const nameInput = document.getElementById('name');
+    const oneLineBio = document.getElementById('oneLineBio');
     const roleOther = document.getElementById('roleOther');
     const purposeSelect = document.getElementById('purpose');
     
     if (nameInput) nameInput.value = b.name || '';
+    if (oneLineBio) oneLineBio.value = b.oneLineBio || '';
     if (purposeSelect) purposeSelect.value = b.purpose || '';
 
     // role chips
@@ -998,6 +1075,7 @@ function persistOnboardingState() {
             if (currentStep === 5) {
               generatePreview();
             }
+            pushStepToHistory(currentStep); // ✅ NEW: Update history
             updateStepUI();
           }
         });
@@ -1008,6 +1086,7 @@ function persistOnboardingState() {
           if (currentStep <= 1) return;
           saveCurrentStep();
           currentStep -= 1;
+          pushStepToHistory(currentStep); // ✅ NEW: Update history
           updateStepUI();
         });
       }
@@ -1015,6 +1094,7 @@ function persistOnboardingState() {
       if (editBackBtn) {
         editBackBtn.addEventListener('click', () => {
           currentStep = 1;
+          pushStepToHistory(currentStep); // ✅ NEW: Update history
           updateStepUI();
         });
       }
@@ -1087,8 +1167,9 @@ function persistOnboardingState() {
     function validateStep1() {
       const name = document.getElementById('name').value.trim();
       const role = getSelectedValue('.role-chip');
-      if (!name || !role) {
-        showMessage('Please fill in your name and select what you do.', 'error');
+      const oneLineBio = document.getElementById('oneLineBio')?.value?.trim();
+      if (!name || !role || !oneLineBio) {
+        showMessage('Please fill in your name, select what you do, and enter a bio.', 'error');
                 return false;
             }
             return true;
@@ -1139,6 +1220,7 @@ function persistOnboardingState() {
     function saveStep1() {
             onboardingData.basicInfo = {
         name: document.getElementById('name').value.trim(),
+        oneLineBio: document.getElementById('oneLineBio')?.value?.trim(), // ✅ MANDATORY: No default empty string
         role: getSelectedValue('.role-chip') || '',
         roleOther: document.getElementById('roleOther').value.trim(),
         purpose: document.getElementById('purpose').value || undefined,
@@ -1186,16 +1268,20 @@ function persistOnboardingState() {
       const explicit = getSelectedValues('.like-chip');
       const custom = Array.from(
         document.querySelectorAll('#likesCustomList [data-type="like-custom"]')
-      ).map((el) => el.getAttribute('data-value'));
-      return [...explicit, ...custom.filter(Boolean)];
+      ).map((el) => el.getAttribute('data-value'))
+        .filter(Boolean);
+      // ✅ Safety cap: max 3 likes
+      return [...explicit, ...custom].slice(0, 3);
     }
 
     function collectAvoids() {
       const explicit = getSelectedValues('.avoid-chip');
       const custom = Array.from(
         document.querySelectorAll('#avoidsCustomList [data-type="avoid-custom"]')
-      ).map((el) => el.getAttribute('data-value'));
-      return [...explicit, ...custom.filter(Boolean)];
+      ).map((el) => el.getAttribute('data-value'))
+        .filter(Boolean);
+      // ✅ Safety cap: max 3 avoids
+      return [...explicit, ...custom].slice(0, 3);
     }
 
     function generatePreview() {

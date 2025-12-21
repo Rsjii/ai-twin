@@ -67,10 +67,12 @@
         </div>
 
         <div class="sm:col-span-2">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">One-line bio</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">One-line bio <span class="text-red-500">*</span></label>
           <input id="twinBio" type="text"
+            required
             class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px] break-words overflow-wrap-anywhere"
-            placeholder="e.g. Replies like me on WhatsApp — casual, witty, helpful." />
+            placeholder="e.g. Replies like me on WhatsApp — casual, witty, helpful."
+            maxlength="500" />
         </div>
 
         <div>
@@ -268,8 +270,8 @@
       </div>
     </section>
 
-    <!-- Advanced -->
-    <section class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
+    <!-- Advanced (V2 Feature - Hidden for MVP) -->
+    <section class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6 hidden">
       <details>
         <summary class="cursor-pointer">
           <div class="inline-flex flex-col vertical-align-top">
@@ -284,7 +286,7 @@
         <div class="mt-4">
           <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
             <input type="checkbox" id="adaptationEnabled" class="rounded border-gray-300 dark:border-gray-600" />
-            <span>Try to match the other person’s tone & language</span>
+            <span>Try to match the other person's tone & language</span>
           </label>
 
           <div id="adaptationSliderContainer" class="mt-3 space-y-2">
@@ -727,6 +729,13 @@
       const alwaysRaw = document.getElementById('alwaysInput').value || '';
       const neverRaw = document.getElementById('neverInput').value || '';
 
+      // ✅ NEW: Get preferences fields that PromptBuilder actually uses
+      const toneStyle = document.getElementById('tonePreset')?.value || 'normal';
+      const emojiPreset = document.getElementById('emojiPreset')?.value || 'medium';
+      const emojiPref = emojiPreset === 'off' ? 'low' : emojiPreset === 'low' ? 'low' : emojiPreset === 'high' ? 'high' : 'medium';
+      const replySize = document.getElementById('replyLengthPreset')?.value || 'normal';
+      const engagementStyle = document.getElementById('engagementStyle')?.value || 'mix';
+
       const toArr = (val) =>
         String(val || '')
           .split(',')
@@ -737,11 +746,17 @@
         basicInfo: {
           name: name || undefined,
           role: role || undefined,
-          oneLineBio: oneLineBio || undefined,
+          oneLineBio: oneLineBio, // ✅ MANDATORY: Always send (backend will validate)
           language: language || undefined,
           purpose: purpose || undefined,
         },
+        preferences: {
+          toneStyle: toneStyle,    // ✅ Used by PromptBuilder
+          emojiPref: emojiPref,    // ✅ Used by PromptBuilder
+        },
         rules: {
+          replySize: replySize,         // ✅ Used by PromptBuilder
+          engagementStyle: engagementStyle, // ✅ Used by PromptBuilder
           always: toArr(alwaysRaw) || undefined,
           never: toArr(neverRaw) || undefined,
         }

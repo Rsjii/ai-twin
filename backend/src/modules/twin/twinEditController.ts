@@ -34,7 +34,7 @@ const updatePersonaSchema = z.object({
     // ✅ required by new Twin Settings page
     name: z.string().optional(),
     role: z.string().optional(),
-    oneLineBio: z.string().optional(),
+    oneLineBio: z.string().min(1, 'Bio is required').max(500, 'Bio must be less than 500 characters'), // ✅ MANDATORY: Bio is required
     language: z.enum(['en', 'hi', 'hinglish']).optional(),
     purpose: z.string().optional(), // ✅ ADD
   }).optional(),
@@ -94,7 +94,7 @@ export const getTwinEditData = async (req: Request, res: Response, next: NextFun
 
     // Verify twin ownership
     const twinResult = await db.query(`
-      SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version"
+      SELECT id, "styleVector", "personaData", "systemPrompt", "sampleReply", "createdAt", "last_updated", "style_version", bio
       FROM "Twin" 
       WHERE id = $1 AND "userId" = $2
     `, [twinId, userId]);
@@ -104,13 +104,23 @@ export const getTwinEditData = async (req: Request, res: Response, next: NextFun
     }
 
     const twin = twinResult.rows[0];
+    
+    // ✅ SYNC: If Twin.bio exists but personaData.basicInfo.oneLineBio is missing/empty, sync it
+    let personaData = twin.personaData || {};
+    if (twin.bio && (!personaData.basicInfo || !personaData.basicInfo.oneLineBio)) {
+      if (!personaData.basicInfo) {
+        personaData.basicInfo = {};
+      }
+      personaData.basicInfo.oneLineBio = twin.bio;
+      console.log('[getTwinEditData] Synced Twin.bio to personaData.basicInfo.oneLineBio:', twin.bio);
+    }
 
     res.json({
       success: true,
       twin: {
         id: twin.id,
         styleVector: twin.styleVector,
-        personaData: twin.personaData,
+        personaData: personaData,
         // systemPrompt removed - should not be exposed to users
         sampleReply: twin.sampleReply,
         createdAt: twin.createdAt,
@@ -291,15 +301,19 @@ export const updateTwinPersona = async (req: Request, res: Response, next: NextF
     console.log('[TWIN_SETTINGS] [HYP-B] New systemPrompt length:', newSystemPrompt.length, 'chars');
     console.log('[TWIN_SETTINGS] [HYP-B] systemPrompt preview:', newSystemPrompt.substring(0, 200) + '...');
 
-    // Update twin in database
+    // ✅ Extract oneLineBio from updated personaData to sync to Twin.bio (MANDATORY - already validated by schema)
+    const oneLineBio = updatedPersonaData?.basicInfo?.oneLineBio;
+    
+    // Update twin in database (sync bio column with oneLineBio - bio is mandatory)
     const utcTimestamp = new Date().toISOString();
     await db.query(`
       UPDATE "Twin" 
-      SET "personaData" = $1, "systemPrompt" = $2, "last_updated" = $3::timestamptz
-      WHERE id = $4
-    `, [JSON.stringify(updatedPersonaData), newSystemPrompt, utcTimestamp, twinId]);
+      SET "personaData" = $1, "systemPrompt" = $2, "last_updated" = $3::timestamptz, bio = $4
+      WHERE id = $5
+    `, [JSON.stringify(updatedPersonaData), newSystemPrompt, utcTimestamp, oneLineBio, twinId]);
     console.log('[TWIN_SETTINGS] [HYP-A] Updated personaData stored in database');
     console.log('[TWIN_SETTINGS] [HYP-B] Updated systemPrompt stored in database');
+    console.log('[TWIN_SETTINGS] [HYP-C] Synced oneLineBio to Twin.bio column:', oneLineBio);
     console.log('[TWIN_SETTINGS] [HYP-E] Settings changes saved, will be reflected in next chat');
 
     res.json({

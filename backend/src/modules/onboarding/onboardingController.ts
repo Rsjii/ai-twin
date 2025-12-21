@@ -11,6 +11,7 @@ import { EVENT_TYPES } from '../../config/constants';
 import { tokenizeId } from '../../utils/idTokenization';
 import { isDev } from '../../config/env';
 import { AppError, createError } from '../../utils/errors';
+import { memoryService } from '../../services/memoryService';
 
 const twinService = new TwinService();
 
@@ -18,6 +19,7 @@ const twinService = new TwinService();
 const enhancedOnboardingSchema = z.object({
   basicInfo: z.object({
     name: z.string().min(1, 'Name is required'),
+    oneLineBio: z.string().min(1, 'Bio is required').max(500, 'Bio must be less than 500 characters'), // ✅ MANDATORY: Twin one-line bio
     role: z.string().min(1, 'Role is required'),
     roleOther: z.string().optional().default(''),
     purpose: z.string().optional(), // NEW: what twin helps with
@@ -27,10 +29,10 @@ const enhancedOnboardingSchema = z.object({
     formalSample: z.string().optional(),
   }),
   preferences: z.object({
-    // topics user likes (startups, tech, games, etc.)
-    likes: z.array(z.string()).min(1, 'Select at least one topic you like'),
-    // topics to avoid (optional)
-    avoids: z.array(z.string()).optional().default([]),
+    // topics user likes (startups, tech, games, etc.) - max 3
+    likes: z.array(z.string()).min(1, 'Select at least one topic you like').max(3, 'Max 3 likes allowed'),
+    // topics to avoid (optional) - max 3
+    avoids: z.array(z.string()).max(3, 'Max 3 avoids allowed').optional().default([]),
     toneStyle: z.enum(['polite', 'normal', 'casual']), // NEW: replaces humor + strongWords
     emojiPref: z.enum(['low', 'medium', 'high']),
   }),
@@ -121,7 +123,8 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
     let insertParams: any[];
     
     try {
-      // Full insert with persona + systemPrompt + tokenLimit + tier
+      // Full insert with persona + systemPrompt + tokenLimit + tier + bio
+      const oneLineBio = validatedData.basicInfo?.oneLineBio; // ✅ MANDATORY - already validated by schema
       insertQuery = `
         INSERT INTO "Twin" (
           id,
@@ -132,9 +135,10 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
           "systemPrompt",
           "tokenLimit",
           "tier",
+          bio,
           "createdAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING id, "createdAt"
       `;
       insertParams = [
@@ -146,6 +150,7 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
         systemPrompt,
         500,
         'free',
+        oneLineBio, // ✅ MANDATORY: Bio is required
         new Date(),
       ];
     } catch (e) {
@@ -202,7 +207,40 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
     console.log('[ONBOARDING] [HYP-A] Updated personaData with default settings');
     console.log('[ONBOARDING] [HYP-A] Settings included:', JSON.stringify(defaultSettings, null, 2));
 
-    // 11) Event log
+    // 11) Mirror likes/avoids to Long-Term Memory preferences (existing system, no new endpoint)
+    const likes = (validatedData.preferences?.likes || []).slice(0, 3);
+    const avoids = (validatedData.preferences?.avoids || []).slice(0, 3);
+
+    try {
+      await Promise.all([
+        ...likes.map((v) =>
+          memoryService.storeLongTermMemory(
+            twinId,
+            `pref_like_${slugKey(v)}`,
+            `Likes: ${v}`,
+            'preference',
+            'manual',
+            'owner'
+          )
+        ),
+        ...avoids.map((v) =>
+          memoryService.storeLongTermMemory(
+            twinId,
+            `pref_avoid_${slugKey(v)}`,
+            `Avoid: ${v}`,
+            'preference',
+            'manual',
+            'owner'
+          )
+        ),
+      ]);
+      console.log('[ONBOARDING] [HYP-A] ✅ Mirrored likes/avoids to LTM preferences:', { likes: likes.length, avoids: avoids.length });
+    } catch (memoryError) {
+      // Don't fail twin creation if memory write fails (non-critical)
+      logger.warn('[ONBOARDING] Failed to mirror likes/avoids to LTM (non-critical):', memoryError);
+    }
+
+    // 12) Event log
     await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.ENHANCED_TWIN_CREATED, { 
       publicTwinId: twinId,
       personaData: updatedPersonaData,
@@ -255,6 +293,18 @@ function countSamples(styleSamples: any): number {
   if (styleSamples?.casualSample) count += 1;
   if (styleSamples?.formalSample) count += 1;
   return count;
+}
+
+/**
+ * Helper: Convert string to safe key slug for memory storage
+ */
+function slugKey(s: string): string {
+  return String(s || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 40) || 'x';
 }
 
 // Update User personaData + onboardingCompleted using new shape
