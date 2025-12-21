@@ -587,11 +587,18 @@ export const generateDraft = async (req: AuthenticatedRequest, res: Response, ne
       reservation = await reserveDailyTokens({ actor, reserveTokens: baseTokenLimit + 600 });
     } catch (e: any) {
       if (e instanceof TokenQuotaError) {
+        // Format retry time: < 60 min = minutes, >= 60 min = approx hours
+        const minutes = Math.floor(e.retryAfterSeconds / 60);
+        const retryAfterFormatted = minutes < 60 
+          ? `${minutes}m` 
+          : `${Math.round(minutes / 60)}h`;
+        
         return res.status(e.statusCode).json({
           success: false,
-          error: e.message,
+          error: 'Daily token limit reached.',
           errorCode: e.errorCode,
-          retryAfter: `${e.retryAfterSeconds}s`,
+          retryAfter: retryAfterFormatted,
+          retryAfterSeconds: e.retryAfterSeconds, // Keep raw seconds for frontend countdown
         });
       }
       throw e;
@@ -1008,11 +1015,18 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       });
     } catch (e: any) {
       if (e instanceof TokenQuotaError) {
+        // Format retry time: < 60 min = minutes, >= 60 min = approx hours
+        const minutes = Math.floor(e.retryAfterSeconds / 60);
+        const retryAfterFormatted = minutes < 60 
+          ? `${minutes}m` 
+          : `${Math.round(minutes / 60)}h`;
+        
         return res.status(e.statusCode).json({
           success: false,
-          error: e.message,
+          error: 'Daily token limit reached.',
           errorCode: e.errorCode,
-          retryAfter: `${e.retryAfterSeconds}s`,
+          retryAfter: retryAfterFormatted,
+          retryAfterSeconds: e.retryAfterSeconds, // Keep raw seconds for frontend countdown
         });
       }
       throw e;
@@ -1477,11 +1491,18 @@ export const generateChatTitle = async (req: AuthenticatedRequest, res: Response
       reservation = await reserveDailyTokens({ actor, reserveTokens: 200 });
     } catch (e: any) {
       if (e instanceof TokenQuotaError) {
+        // Format retry time: < 60 min = minutes, >= 60 min = approx hours
+        const minutes = Math.floor(e.retryAfterSeconds / 60);
+        const retryAfterFormatted = minutes < 60 
+          ? `${minutes}m` 
+          : `${Math.round(minutes / 60)}h`;
+        
         return res.status(e.statusCode).json({
           success: false,
-          error: e.message,
+          error: 'Daily token limit reached.',
           errorCode: e.errorCode,
-          retryAfter: `${e.retryAfterSeconds}s`,
+          retryAfter: retryAfterFormatted,
+          retryAfterSeconds: e.retryAfterSeconds, // Keep raw seconds for frontend countdown
         });
       }
       throw e;

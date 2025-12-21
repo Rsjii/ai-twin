@@ -1304,6 +1304,7 @@ function persistOnboardingState() {
       if (previewBasic) {
         previewBasic.innerHTML = `
           <p><strong>Name:</strong> ${escapeHtml(b.name || 'N/A')}</p>
+          <p><strong>Bio:</strong> ${escapeHtml(b.oneLineBio || 'N/A')}</p>
           <p><strong>Role:</strong> ${escapeHtml(b.role || 'N/A')}</p>
           <p><strong>Purpose:</strong> ${escapeHtml(purposeText)}</p>
         `;
@@ -1326,6 +1327,8 @@ function persistOnboardingState() {
         previewRules.innerHTML = `
           <p><strong>Default reply size:</strong> ${escapeHtml(r.replySize || 'normal')}</p>
           <p><strong>Engagement style:</strong> ${escapeHtml(engagementText)}</p>
+          ${r.always?.length > 0 ? `<p><strong>Always rules:</strong> ${escapeHtml(r.always.join('; '))}</p>` : ''}
+          ${r.never?.length > 0 ? `<p><strong>Never rules:</strong> ${escapeHtml(r.never.join('; '))}</p>` : ''}
         `;
       }
     }

@@ -450,11 +450,18 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
         });
       } catch (e: any) {
         if (e instanceof TokenQuotaError) {
+          // Format retry time: < 60 min = minutes, >= 60 min = approx hours
+          const minutes = Math.floor(e.retryAfterSeconds / 60);
+          const retryAfterFormatted = minutes < 60 
+            ? `${minutes}m` 
+            : `${Math.round(minutes / 60)}h`;
+          
           return res.status(e.statusCode).json({
             success: false,
-            error: e.message,
+            error: 'Daily token limit reached.',
             errorCode: e.errorCode,
-            retryAfter: `${e.retryAfterSeconds}s`,
+            retryAfter: retryAfterFormatted,
+            retryAfterSeconds: e.retryAfterSeconds, // Keep raw seconds for frontend countdown
           });
         }
         throw e;

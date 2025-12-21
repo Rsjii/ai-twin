@@ -27,7 +27,7 @@ export const checkTokenQuota = async (req: Request, res: Response, next: NextFun
       const errorCode = actor.kind === 'anon' ? 'LOGIN_REQUIRED' : 'QUOTA_EXCEEDED';
       const message = actor.kind === 'anon'
         ? 'Daily token limit reached. Please login to continue.'
-        : 'Daily token limit reached. Please try again tomorrow.';
+        : 'Daily token limit reached.';
 
       console.log('[TOKEN_QUOTA_MIDDLEWARE] ❌ QUOTA EXCEEDED - Blocking request:', {
         actorType: actor.kind,
@@ -40,7 +40,8 @@ export const checkTokenQuota = async (req: Request, res: Response, next: NextFun
         success: false,
         error: message,
         errorCode,
-        retryAfter: `${retryAfterSeconds}s`,
+        retryAfter: formatRetryTime(retryAfterSeconds),
+        retryAfterSeconds, // Keep raw seconds for frontend countdown if needed
       });
     }
 
@@ -54,6 +55,16 @@ export const checkTokenQuota = async (req: Request, res: Response, next: NextFun
   }
 };
 
+// Helper function to format retry time: < 60 min = minutes, >= 60 min = approx hours
+function formatRetryTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+  const hours = Math.round(minutes / 60);
+  return `${hours}h`;
+}
+
 // Helper function to return 429 response
 function quota429(res: Response, actorKind: 'anon' | 'user') {
   const retryAfterSeconds = secondsUntilNextUtcMidnight();
@@ -61,13 +72,14 @@ function quota429(res: Response, actorKind: 'anon' | 'user') {
   const message =
     actorKind === 'anon'
       ? 'Daily token limit reached. Please login to continue.'
-      : 'Daily token limit reached. Please try again tomorrow.';
+      : 'Daily token limit reached.';
 
   return res.status(429).json({
     success: false,
     error: message,
     errorCode,
-    retryAfter: `${retryAfterSeconds}s`,
+    retryAfter: formatRetryTime(retryAfterSeconds),
+    retryAfterSeconds, // Keep raw seconds for frontend countdown if needed
   });
 }
 

@@ -920,6 +920,43 @@ async function regenerateResponse(responseId) {
     }
 }
 
+        // ✅ Helper: Lock enhanced chat when quota exceeded
+        function lockEnhancedChatForQuota(errorCode, retryAfter) {
+            let msg = '';
+            if (errorCode === 'QUOTA_EXCEEDED') {
+                msg = 'Daily limit reached.';
+                if (retryAfter) {
+                    // retryAfter is now formatted as "7h" or "45m" from backend
+                    msg += ` Please retry after ${retryAfter}`;
+                }
+            } else {
+                msg = errorCode || 'Limit reached.';
+            }
+
+            // Disable input + button
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendMessageBtn');
+            if (messageInput) {
+                messageInput.disabled = true;
+                messageInput.style.opacity = '0.6';
+                messageInput.style.cursor = 'not-allowed';
+            }
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.style.opacity = '0.6';
+                sendBtn.style.cursor = 'not-allowed';
+            }
+
+            // Show a clear toast/banner
+            if (typeof showNotification === 'function') {
+                showNotification(msg, 'error');
+            } else if (window.UI?.showToast) {
+                window.UI.showToast(msg, 'error');
+            } else {
+                alert(msg);
+            }
+        }
+
         // Helper functions
         function fallbackCopyTextToClipboard(text) {
             // Remove timestamp if it exists
@@ -2623,13 +2660,14 @@ if (messageForm) {
         const sendBtn = document.querySelector('#messageForm button[type="submit"]');
         if (sendBtn) sendBtn.disabled = true;
         
-        // ✅ FIX: Declare typingId outside try block for catch block access
+        // ✅ FIX: Declare typingId and userMessageId outside try block for catch block access
         let typingId = null;
+        let userMessageId = null;
         
         try {
-            // ✅ FIX: Add user message to chat UI first
+            // ✅ FIX: Add user message to chat UI first (store ID to remove if quota exceeded)
             const userMessageTimestamp = new Date().toISOString();
-            addMessageToChat('user', message, false, null, userMessageTimestamp);
+            userMessageId = addMessageToChat('user', message, false, null, userMessageTimestamp);
             
             // ✅ FIX: Create typing indicator
             typingId = addMessageToChat('ai', 'Thinking...', true, null, null);
@@ -2694,20 +2732,6 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
 }
 
             
-            // FIRST: Save user message to database
-            await fetch(`/api/chat/${actualChatId}/send`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': '<%= csrfToken %>'
-                },
-                credentials: 'include',
-                body: JSON.stringify({ content: message })
-            });
-
-            // Clear input after saving
-            messageInput.value = '';
-            
             // Get current style mode from button states
             const strictStyle = document.getElementById('formalBtn').classList.contains('bg-blue-600');
             
@@ -2730,6 +2754,28 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
             console.log('📡 Response status:', response.status);
             const data = await response.json();
             console.log('📡 Response data:', data);
+            
+            // ✅ ADD: quota handling (logged-in users) - BEFORE saving message
+            if (!response.ok && response.status === 429) {
+                // Remove typing indicator
+                if (typingId) removeMessage(typingId);
+                // ✅ FIX: Remove user message from UI if quota exceeded (message not sent)
+                if (userMessageId) removeMessage(userMessageId);
+                // Hide generating indicator on quota error
+                if (generatingIndicator) {
+                    generatingIndicator.classList.add('hidden');
+                }
+                // Re-enable input and button (lockEnhancedChatForQuota will disable again, but we need to restore message)
+                messageInput.disabled = false;
+                if (sendBtn) sendBtn.disabled = false;
+                // Restore message text so user doesn't lose it
+                messageInput.value = message;
+                lockEnhancedChatForQuota(data?.errorCode, data?.retryAfter);
+                return;
+            }
+            
+            // Clear input only after successful response
+            messageInput.value = '';
             
             if (data.success) {
                 console.log('✅ Success! Adding response to chat');
