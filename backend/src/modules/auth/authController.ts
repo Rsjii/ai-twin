@@ -247,7 +247,7 @@ if (referrerId) {
     // ✅ Send OTP via email (only in production)
     const emailSent = await emailService.sendOTP(email, otp, 'signup');
     
-    if (config.nodeEnv === 'production') {
+    if (isProd) {
       if (!emailSent) {
         logger.error(`Email send failed for ${email} in production. Check SMTP configuration.`);
         return res.status(500).json({
@@ -487,7 +487,7 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
     // ✅ Send OTP via email (only in production)
     const emailSent = await emailService.sendOTP(email, otp, 'forgot');
     
-    if (config.nodeEnv === 'production') {
+    if (isProd) {
       if (!emailSent) {
         logger.error(`Email send failed for ${email} in production. Check SMTP configuration.`);
         return res.status(500).json({
@@ -1034,7 +1034,7 @@ export const resendOTP = async (req: Request, res: Response, next: NextFunction)
     // ✅ Send OTP via email (only in production)
     const emailSent = await emailService.sendOTP(email, otp, type);
     
-    if (config.nodeEnv === 'production') {
+    if (isProd) {
       if (!emailSent) {
         logger.error(`Email send failed for ${email} in production. Check SMTP configuration.`);
         return res.status(500).json({

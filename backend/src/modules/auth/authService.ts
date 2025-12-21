@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
-import { config } from '../../config/env';
+import { config, isProd, isDev } from '../../config/env';
 import { logger } from '../../config/logger';
 
 // ✅ FIXED OTP for development
@@ -36,7 +36,7 @@ export class EmailService {
       }
 
       // ✅ Production: Must send email
-      if (config.nodeEnv === 'production') {
+      if (isProd) {
         const mailOptions = {
           from: config.mail.from || config.mail.smtp.user,
           to: email,
@@ -129,8 +129,8 @@ export class EmailService {
 
 // OTP utilities
 export const generateOTP = (length: number = 6): string => {
-  // ✅ Development: Return fixed OTP
-  if (config.nodeEnv === 'development') {
+  // ✅ Development: Return fixed OTP "123456"
+  if (!isProd) {
     return DEV_OTP;
   }
   
