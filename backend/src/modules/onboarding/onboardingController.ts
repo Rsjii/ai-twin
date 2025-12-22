@@ -19,7 +19,7 @@ const twinService = new TwinService();
 const enhancedOnboardingSchema = z.object({
   basicInfo: z.object({
     name: z.string().min(1, 'Name is required'),
-    oneLineBio: z.string().min(1, 'Bio is required').max(500, 'Bio must be less than 500 characters'), // ✅ MANDATORY: Twin one-line bio
+    oneLineBio: z.string().min(1, 'Bio is required').max(150, 'Bio must be less than 150 characters'), // ✅ MANDATORY: Twin one-line bio (max 150 chars)
     role: z.string().min(1, 'Role is required'),
     roleOther: z.string().optional().default(''),
     purpose: z.string().optional(), // NEW: what twin helps with

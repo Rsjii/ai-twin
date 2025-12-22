@@ -66,8 +66,13 @@
                       <!-- Profile Image - Larger and Better -->
 <div class="relative">
     <div class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-xl bg-white bg-opacity-20 backdrop-blur-lg flex items-center justify-center overflow-hidden border-3 border-white border-opacity-30 shadow-xl transform hover:scale-105 transition-transform duration-300">
-        <% if (twin && twin.profileImage) { %>
-            <img src="<%= twin.profileImage %>" alt="<%= twin.publicHandle || userInfo?.handle || 'Profile' %>" class="w-full h-full object-cover" loading="lazy">
+        <% 
+        // ✅ FIX: Prefer user's profile image, fallback to twin image
+        const displayProfileImage = (userInfo && userInfo.profileImage) || (twin && twin.profileImage);
+        const displayAlt = (twin && twin.publicHandle) || (userInfo && userInfo.handle) || 'Profile';
+        %>
+        <% if (displayProfileImage) { %>
+            <img src="<%= displayProfileImage %>" alt="<%= displayAlt %>" class="w-full h-full object-cover" loading="lazy">
         <% } else if (twin && twin.publicHandle) { %>
             <!-- Twin exists: show twin initial -->
             <div class="w-full h-full bg-gradient-to-br from-white/40 to-white/20 flex items-center justify-center">
@@ -150,9 +155,9 @@
         <!-- ✅ Existing twin profile content -->
         <p class="text-base sm:text-lg md:text-xl opacity-90 mb-3 text-white/90">
             Created by 
-            <% if (twin.userHandle) { %>
+            <% if (twin.userName) { %>
                 <span class="font-semibold text-white">
-                    @<%= twin.userHandle || 'Unknown' %>
+                    <%= twin.userName || 'Unknown' %>
                 </span>
             <% } %>
         </p>

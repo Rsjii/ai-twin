@@ -34,7 +34,7 @@ const updatePersonaSchema = z.object({
     // ✅ required by new Twin Settings page
     name: z.string().optional(),
     role: z.string().optional(),
-    oneLineBio: z.string().min(1, 'Bio is required').max(500, 'Bio must be less than 500 characters'), // ✅ MANDATORY: Bio is required
+    oneLineBio: z.string().min(1, 'Bio is required').max(150, 'Bio must be less than 150 characters'), // ✅ MANDATORY: Bio is required (max 150 chars)
     language: z.enum(['en', 'hi', 'hinglish']).optional(),
     purpose: z.string().optional(), // ✅ ADD
   }).optional(),

@@ -156,22 +156,56 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
 
     const { limit=20, offset=0, timeframe='all' } = trendingSchema.parse(req.query);
 
-    // Calculate time filter
+    // ✅ FIX: Calculate time filter based on RECENT ACTIVITY, not creation date
+    // Trending should show twins with activity in last X days, not twins created in last X days
     let timeFilter = '';
+    let activityDays = 7; // Default: last 7 days
     
     switch (timeframe) {
       case 'day':
-        timeFilter = `AND t."createdAt" >= NOW() - INTERVAL '1 day'`;
+        activityDays = 1;
+        // Filter: Show twins with activity (likes/follows/chats) in last 1 day
+        timeFilter = `AND EXISTS (
+          SELECT 1 FROM "TwinLike" tl WHERE tl."twinId" = t.id AND tl."createdAt" >= NOW() - INTERVAL '1 day'
+          UNION ALL
+          SELECT 1 FROM "TwinFollow" tf WHERE tf."twinId" = t.id AND tf."createdAt" >= NOW() - INTERVAL '1 day'
+          UNION ALL
+          SELECT 1 FROM "PublicChat" pc WHERE pc."twinId" = t.id AND pc."createdAt" >= NOW() - INTERVAL '1 day'
+        )`;
         break;
       case 'week':
-        timeFilter = `AND t."createdAt" >= NOW() - INTERVAL '7 days'`;
+        activityDays = 7;
+        // Filter: Show twins with activity in last 7 days
+        timeFilter = `AND EXISTS (
+          SELECT 1 FROM "TwinLike" tl WHERE tl."twinId" = t.id AND tl."createdAt" >= NOW() - INTERVAL '7 days'
+          UNION ALL
+          SELECT 1 FROM "TwinFollow" tf WHERE tf."twinId" = t.id AND tf."createdAt" >= NOW() - INTERVAL '7 days'
+          UNION ALL
+          SELECT 1 FROM "PublicChat" pc WHERE pc."twinId" = t.id AND pc."createdAt" >= NOW() - INTERVAL '7 days'
+        )`;
         break;
       case 'month':
-        timeFilter = `AND t."createdAt" >= NOW() - INTERVAL '30 days'`;
+        activityDays = 30;
+        // Filter: Show twins with activity in last 30 days
+        timeFilter = `AND EXISTS (
+          SELECT 1 FROM "TwinLike" tl WHERE tl."twinId" = t.id AND tl."createdAt" >= NOW() - INTERVAL '30 days'
+          UNION ALL
+          SELECT 1 FROM "TwinFollow" tf WHERE tf."twinId" = t.id AND tf."createdAt" >= NOW() - INTERVAL '30 days'
+          UNION ALL
+          SELECT 1 FROM "PublicChat" pc WHERE pc."twinId" = t.id AND pc."createdAt" >= NOW() - INTERVAL '30 days'
+        )`;
         break;
       case 'all':
       default:
-        timeFilter = '';
+        activityDays = 7; // Default to 7 days for trending
+        // Filter: Show twins with activity in last 7 days (default trending window)
+        timeFilter = `AND EXISTS (
+          SELECT 1 FROM "TwinLike" tl WHERE tl."twinId" = t.id AND tl."createdAt" >= NOW() - INTERVAL '7 days'
+          UNION ALL
+          SELECT 1 FROM "TwinFollow" tf WHERE tf."twinId" = t.id AND tf."createdAt" >= NOW() - INTERVAL '7 days'
+          UNION ALL
+          SELECT 1 FROM "PublicChat" pc WHERE pc."twinId" = t.id AND pc."createdAt" >= NOW() - INTERVAL '7 days'
+        )`;
         break;
     }
 
@@ -242,13 +276,17 @@ console.log('[DISCOVER] Total count query result:', { totalCount, rows: totalCou
         COALESCE(
           tp."engagementScore",
           (
-            t."likeCount" * 0.3 +
-            t."followCount" * 0.4 +
-            t."chatCount" * 0.3 +
-            CASE 
-              WHEN t."verified" = true THEN 10 
-              ELSE 0 
-            END
+            -- Fallback: Calculate trending score with time weightage (65% time, 35% engagement)
+            -- Note: Proper trending score with recent activity is calculated in TwinPerformance table
+            -- This is just a fallback if TwinPerformance doesn't exist
+            (
+              -- Recent activity score (65% weight) - approximate with current counts
+              (t."likeCount" + t."followCount" + t."chatCount") * 10 * 0.65
+            ) + (
+              -- Engagement metrics (35% weight)
+              (t."likeCount" * 0.25 + t."followCount" * 0.35 + t."chatCount" * 0.4 +
+               CASE WHEN t."verified" = true THEN 10 ELSE 0 END) * 0.35
+            )
           )
         ) as engagement_score
       FROM "Twin" t
@@ -290,6 +328,7 @@ console.log('[DISCOVER] Total count query result:', { totalCount, rows: totalCou
           t."allowShares",
           u.handle as "userHandle",
           u.name as "userName",
+          u."profileImage" as "userProfileImage",
           0 as engagement_score
         FROM "Twin" t
         JOIN "User" u ON t."userId" = u.id
@@ -434,6 +473,7 @@ export const searchTwins = async (req: Request, res: Response, next: NextFunctio
         t."allowFollows",      
         u.handle as "userHandle",
         u.name as "userName",
+        u."profileImage" as "userProfileImage",
         -- Calculate relevance score
         (
           CASE 
@@ -538,7 +578,8 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
             t."sampleReply",
             t."createdAt",
             u.handle as "userHandle",
-            u.name as "userName"
+            u.name as "userName",
+            u."profileImage" as "userProfileImage"
           FROM "Twin" t
           JOIN "User" u ON t."userId" = u.id
           WHERE t."isPublic" = true 
@@ -567,7 +608,8 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
           t."sampleReply",
           t."createdAt",
           u.handle as "userHandle",
-          u.name as "userName"
+          u.name as "userName",
+          u."profileImage" as "userProfileImage"
         FROM "Twin" t
         JOIN "User" u ON t."userId" = u.id
         WHERE t."isPublic" = true 
@@ -634,7 +676,8 @@ export const getRecentTwins = async (req: Request, res: Response, next: NextFunc
         t."allowLikes",        
         t."allowFollows",      
         u.handle as "userHandle",
-        u.name as "userName"
+        u.name as "userName",
+        u."profileImage" as "userProfileImage"
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
       WHERE t."isPublic" = true 
@@ -700,7 +743,8 @@ export const getMostLikedTwins = async (req: Request, res: Response, next: NextF
         t."allowLikes",        
         t."allowFollows",      
         u.handle as "userHandle",
-        u.name as "userName"
+        u.name as "userName",
+        u."profileImage" as "userProfileImage"
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
       WHERE t."isPublic" = true 
@@ -766,7 +810,8 @@ export const getMostFollowedTwins = async (req: Request, res: Response, next: Ne
         t."allowLikes",        
         t."allowFollows",      
         u.handle as "userHandle",
-        u.name as "userName"
+        u.name as "userName",
+        u."profileImage" as "userProfileImage"
       FROM "Twin" t
       JOIN "User" u ON t."userId" = u.id
       WHERE t."isPublic" = true 
@@ -834,6 +879,7 @@ export const getPopularTwins = async (req: Request, res: Response, next: NextFun
         t."allowFollows",      
         u.handle as "userHandle",
         u.name as "userName",
+        u."profileImage" as "userProfileImage",
         -- Use cached popularity score (fallback to calculated if missing)
         COALESCE(
           tp."popularityScore",
@@ -909,6 +955,7 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
           t."createdAt",
           u.handle as "userHandle",
           u.name as "userName",
+          u."profileImage" as "userProfileImage",
           'trending' as feed_type
         FROM "Twin" t
         JOIN "User" u ON t."userId" = u.id
@@ -936,6 +983,7 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
           t."createdAt",
           u.handle as "userHandle",
           u.name as "userName",
+          u."profileImage" as "userProfileImage",
           'recent' as feed_type
         FROM "Twin" t
         JOIN "User" u ON t."userId" = u.id
@@ -960,6 +1008,7 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
           t."createdAt",
           u.handle as "userHandle",
           u.name as "userName",
+          u."profileImage" as "userProfileImage",
           'popular' as feed_type
         FROM "Twin" t
         JOIN "User" u ON t."userId" = u.id

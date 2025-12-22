@@ -50,20 +50,12 @@
             }
             
             .twin-card .twin-bio {
-                flex: 1;
-                min-height: 40px;
                 overflow: hidden !important;
                 text-overflow: ellipsis;
+                white-space: nowrap;
                 word-break: break-word;
                 overflow-wrap: break-word;
-                /* Ensure exactly 2 lines - no partial 3rd line visible */
-                /* Tailwind text-sm has line-height: 1.25rem, so 2 lines = 2.5rem exactly */
-                max-height: 2.5rem;
-                line-height: 1.25rem;
-                /* Force clipping at exactly 2 lines - no overflow visible */
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
+                /* ✅ FIX: Single line with ellipsis */
             }
             
             /* Hide scrollbar for filter tabs */
@@ -330,7 +322,7 @@
                 </div>
 
                 <!-- Twin Bio -->
-                <p class="text-gray-700 dark:text-gray-300 text-sm mb-4 line-clamp-2 twin-bio">
+                <p class="text-gray-700 dark:text-gray-300 text-sm mb-4 truncate twin-bio">
                     Bio content here...
                 </p>
 
@@ -657,17 +649,21 @@ function setupInfiniteScroll() {
     const displayHandle = twin.publicHandle || twin.userHandle || 'Unknown';
     clone.querySelector('.twin-handle').textContent = displayHandle;    
     clone.querySelector('.creator-name').textContent = twin.userName || twin.userHandle;
-    clone.querySelector('.twin-bio').textContent = twin.bio || 'No bio available';
+    // ✅ FIX: Truncate bio to 150 chars and show 1 line
+    const bioText = twin.bio || 'No bio available';
+    const truncatedBio = bioText.length > 150 ? bioText.substring(0, 150) + '...' : bioText;
+    clone.querySelector('.twin-bio').textContent = truncatedBio;
     clone.querySelector('.like-count').textContent = twin.likeCount || 0;
     clone.querySelector('.follow-count').textContent = twin.followCount || 0;
     clone.querySelector('.chat-count').textContent = twin.chatCount || 0;
     
-    // ✅ FIX ISSUE 2: Set twin avatar/image
+    // ✅ FIX: Set avatar/image - prefer user's profile image, fallback to twin image
     const avatarContainer = clone.querySelector('.twin-initial').parentElement;
-    if (twin.profileImage) {
-        avatarContainer.innerHTML = `<img src="${twin.profileImage}" alt="${twin.publicHandle}" class="w-12 h-12 rounded-full object-cover" loading="lazy">`;
+    const profileImage = twin.userProfileImage || twin.profileImage;
+    if (profileImage) {
+        avatarContainer.innerHTML = `<img src="${profileImage}" alt="${twin.publicHandle || twin.userHandle || 'Profile'}" class="w-12 h-12 rounded-full object-cover" loading="lazy">`;
     } else {
-        clone.querySelector('.twin-initial').textContent = (twin.publicHandle || 'T').charAt(0).toUpperCase();
+        clone.querySelector('.twin-initial').textContent = (twin.publicHandle || twin.userHandle || 'T').charAt(0).toUpperCase();
     }
     
     // Get buttons

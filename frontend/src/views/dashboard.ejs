@@ -548,6 +548,16 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            text-overflow: ellipsis;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        /* Ensure cards don't expand beyond fixed width */
+        .twin-card-discover {
+            width: 280px;
+            max-width: 280px;
+            box-sizing: border-box;
         }
         
         /* Mobile responsive for discover section */
@@ -1197,7 +1207,7 @@
     // Create twin card HTML element
     function createTwinCard(twin) {
         const card = document.createElement('div');
-        card.className = 'twin-card-discover min-w-[280px] bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-md dark:shadow-gray-900 p-6 border border-white/30 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer flex-shrink-0';
+        card.className = 'twin-card-discover w-[280px] max-w-[280px] bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-md dark:shadow-gray-900 p-6 border border-white/30 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer flex-shrink-0';
         card.setAttribute('data-twin-id', twin.publicId || twinPublicId);
         
          // ✅ Prefer real user handle, then publicHandle, last fallback 'twin'
@@ -1209,19 +1219,19 @@
         
         card.innerHTML = `
             <div class="flex items-center mb-4">
-                    <div class="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg mr-3">
+                    <div class="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-bold shadow-lg mr-3 flex-shrink-0">
                         ${profileImage ? `<img src="${profileImage}" alt="${displayHandle}" class="w-12 h-12 rounded-full object-cover" loading="lazy">` : avatarInitial}                    
                     </div>
-                <div class="flex-1">
+                <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2">
-                            <h4 class="font-semibold text-gray-900 dark:text-white">@${displayHandle}</h4>
-                            ${twin.verified ? '<span class="text-primary text-xs">✓</span>' : ''}
+                            <h4 class="font-semibold text-gray-900 dark:text-white truncate">@${displayHandle}</h4>
+                            ${twin.verified ? '<span class="text-primary text-xs flex-shrink-0">✓</span>' : ''}
                         </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">${twin.userName || twin.userHandle || 'AI Twin'}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${twin.userName || twin.userHandle || 'AI Twin'}</p>
                     </div>
                 </div>
                 
-            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 line-clamp-2">${twin.bio || 'No bio available'}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 truncate">${(twin.bio && twin.bio.length > 150 ? twin.bio.substring(0, 150) + '...' : twin.bio) || 'No bio available'}</p>
                 
             <div class="flex items-center gap-4 mb-4 text-xs text-gray-500 dark:text-gray-400">
                     <span>❤️ ${twin.likeCount || 0}</span>
@@ -1400,7 +1410,7 @@ function renderRecentInteractions(chats) {
     
     chats.forEach(({ twin, latestChat, lastMessage, totalMessages }) => {
         const card = document.createElement('div');
-        card.className = 'min-w-[280px] h-[240px] bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-md dark:shadow-gray-900 p-6 border border-white/30 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group flex-shrink-0 flex flex-col';
+        card.className = 'w-[280px] max-w-[280px] h-[240px] bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-md dark:shadow-gray-900 p-6 border border-white/30 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group flex-shrink-0 flex flex-col';
 
         // ✅ NEW: decide which handle to use for profile links
         const profileHandle = twin.userHandle || twin.publicHandle || '';
@@ -1423,10 +1433,10 @@ function renderRecentInteractions(chats) {
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-1">
-                            <h4 class="font-semibold text-gray-900 dark:text-white text-sm truncate">@${profileHandle || twin.publicHandle || 'twin'}</h4>
-                            ${twin.verified ? '<span class="text-primary text-xs">✓</span>' : ''}
+                            <h4 class="font-semibold text-gray-900 dark:text-white text-sm truncate flex-1 min-w-0">@${profileHandle || twin.publicHandle || 'twin'}</h4>
+                            ${twin.verified ? '<span class="text-primary text-xs flex-shrink-0">✓</span>' : ''}
                         </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${twin.userName || twin.userHandle || 'AI Twin'}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${twin.userName || twin.userHandle || 'AI Twin'}</p>
                     </div>
                 </div>
                 

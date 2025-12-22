@@ -15,12 +15,12 @@ import { checkQuotaStatus } from '../../services/tokenQuotaService';
 const makePublicSchema = z.object({
   twinId: z.string().min(1, 'Twin ID is required'),
   // ✅ REMOVED: publicHandle - always use user.handle for consistent URLs
-  bio: z.string().min(1, 'Bio is required').max(500, 'Bio must be less than 500 characters'), // ✅ MANDATORY: Bio is required
+  bio: z.string().min(1, 'Bio is required').max(150, 'Bio must be less than 150 characters'), // ✅ MANDATORY: Bio is required (max 150 chars)
   profileImage: z.string().url('Profile image must be a valid URL').optional()
 });
 
 const updateProfileSchema = z.object({
-  bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
+  bio: z.string().max(150, 'Bio must be less than 150 characters').optional(),
   profileImage: z.string().url('Profile image must be a valid URL').optional(),
   publicHandle: z.string()
     .min(3, 'Handle must be at least 3 characters')
