@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Style Customize your AI Twin</title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="/utils/timeUtils.js"></script>
+    <script src="/utils/errorHandler.js"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script type="module" src="/js/form-dirty-state.js"></script>
     <script>
@@ -594,7 +595,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 populateForm(data.twin);
             }
         } catch (error) {
-            console.error('Error loading twin data:', error);
+            ErrorLogger.error('Error loading twin data', error, {});
         }
     }
 
@@ -691,7 +692,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 phrasesListEl.innerHTML = `<p class="text-gray-500 dark:text-gray-400 text-center py-4">No phrases yet. <a href="/memory-management" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">Add your first one here</a>!</p>`;
             }
         } catch (error) {
-            console.error('Error loading phrases:', error);
+            ErrorLogger.error('Error loading phrases', error, {});
             const phrasesListEl = document.getElementById('phrasesList');
             if (phrasesListEl) {
                 phrasesListEl.innerHTML = '<p class="text-red-500 text-center py-4">Error loading phrases</p>';
@@ -747,7 +748,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 interactionsListEl.innerHTML = `<p class="text-gray-500 dark:text-gray-400 text-center py-4">No interactions yet. <a href="/memory-management" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">Add your first one here</a>!</p>`;
             }
         } catch (error) {
-            console.error('Error loading interactions:', error);
+            ErrorLogger.error('Error loading interactions', error, {});
             const interactionsListEl = document.getElementById('interactionsList');
             if (interactionsListEl) {
                 interactionsListEl.innerHTML = '<p class="text-red-500 text-center py-4">Error loading interactions</p>';
@@ -773,7 +774,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 if (totalInteractionsEl) totalInteractionsEl.textContent = interactions.length;
             }
         } catch (error) {
-            console.error('Error loading style anchor stats:', error);
+            ErrorLogger.error('Error loading style anchor stats', error, {});
         }
     }
 
@@ -829,7 +830,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 showNotification('Preview came back empty, please try again later.', 'info');
             }
         } catch (error) {
-            console.error('Style preview error:', error);
+            ErrorLogger.error('Style preview error', error, {});
             showNotification('Preview could not be loaded.', 'error');
         }
     }
@@ -863,7 +864,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 showNotification('No changes to save', 'info');
             }
         } catch (error) {
-            console.error('Error saving changes:', error);
+            ErrorLogger.error('Error saving changes', error, {});
             showNotification('Error saving changes', 'error');
         }
     }
@@ -920,7 +921,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
             showNotification('Style line added.', 'success');
             await Promise.all([loadPhrases(), loadStyleAnchorStats()]);
         } catch (err) {
-            console.error('addNewPhrase error:', err);
+            ErrorLogger.error('addNewPhrase error', err, {});
             showNotification('Server error while adding style line.', 'error');
         }
     }
@@ -939,7 +940,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 showNotification('Anchor deleted.', 'success');
             }
         } catch (err) {
-            console.error('deleteAnchor error:', err);
+            ErrorLogger.error('deleteAnchor error', err, {});
             showNotification('Server error while deleting anchor.', 'error');
         }
     }
@@ -965,7 +966,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 showNotification('Style line updated.', 'success');
             }
         } catch (err) {
-            console.error('updatePhrase error:', err);
+            ErrorLogger.error('updatePhrase error', err, {});
             showNotification('Server error while updating anchor.', 'error');
         }
     }

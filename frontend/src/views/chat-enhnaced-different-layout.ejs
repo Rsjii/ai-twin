@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Enhanced Chat - AI Twin</title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="/utils/timeUtils.js?v=<%= new Date().getTime() %>"></script>
+    <script src="/utils/errorHandler.js"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
@@ -422,7 +423,7 @@ async function downvoteResponse(responseId) {
             showNotification('Feedback cancelled', 'info');
         }
     } catch (error) {
-        console.error('Downvote error:', error);
+        ErrorLogger.error('Downvote error', error, {});
         showNotification('Error submitting feedback', 'error');
     }
 }
@@ -646,7 +647,7 @@ async function regenerateResponse(responseId) {
             showNotification('Failed to regenerate response', 'error');
         }
     } catch (error) {
-        console.error('Regenerate error:', error);
+        ErrorLogger.error('Regenerate error', error, {});
         showNotification('Error regenerating response', 'error');
     }
 }
@@ -705,7 +706,7 @@ async function regenerateResponse(responseId) {
                     })
                 });
             } catch (error) {
-                console.error('Error submitting feedback:', error);
+                ErrorLogger.error('Error submitting feedback', error, {});
             }
         }
 
@@ -962,7 +963,7 @@ function addResponseActionsButton(responseId) {
             if (retries < maxRetries) {
                 setTimeout(tryAdd, retryDelay);
             } else {
-                console.error('❌ Actions container not found after', maxRetries, 'retries');
+                ErrorLogger.error('❌ Actions container not found after retries', null, { maxRetries });
             }
             return;
         }
@@ -1009,7 +1010,7 @@ function addResponseActionsButton(responseId) {
                 document.getElementById(`regenerateBtn_${responseId}`)?.addEventListener('click', () => regenerateResponse(responseId));
                 document.getElementById(`shareBtn_${responseId}`)?.addEventListener('click', () => shareResponse(responseId));
             } catch (error) {
-                console.error('❌ Error attaching event listeners:', error);
+                ErrorLogger.error('❌ Error attaching event listeners', error, {});
             }
         }, 50);
     };
@@ -1068,7 +1069,7 @@ async function applyStyleCorrection(knob, delta) {
             showNotification('Failed to apply correction', 'error');
         }
     } catch (error) {
-        console.error('Style correction error:', error);
+        ErrorLogger.error('Style correction error', error, {});
         showNotification('Error applying correction', 'error');
     }
 }
@@ -1104,7 +1105,7 @@ async function addToAnchors() {
             showNotification('Failed to add anchor', 'error');
         }
     } catch (error) {
-        console.error('Add anchor error:', error);
+        ErrorLogger.error('Add anchor error', error, {});
         showNotification('Error adding anchor', 'error');
     }
 }
@@ -1123,7 +1124,7 @@ function updateCriticScore(score) {
 // Note: Don't manually increment count - backend already does it
 function updateSidebarImmediately(aiResponse, userMessage) {
     if (!currentChatId) {
-        console.warn('⚠️ No currentChatId set');
+        ErrorLogger.warn('⚠️ No currentChatId set', {});
         return;
     }
     
@@ -1142,14 +1143,14 @@ function updateSidebarImmediately(aiResponse, userMessage) {
         }
         
     } else {
-        console.warn('⚠️ Chat item not found in sidebar');
+        ErrorLogger.warn('⚠️ Chat item not found in sidebar', {});
     }
 }
 
 async function loadFeedbackStatus(chatId) {
     // ✅ SAFETY: Check if chatId is null/empty before API call
     if (!chatId || chatId === 'null' || chatId === 'undefined' || chatId === '') {
-        console.warn('Cannot load feedback status: chatId is empty');
+        ErrorLogger.warn('Cannot load feedback status: chatId is empty', {});
         return {};
     }
     
@@ -1172,7 +1173,7 @@ async function loadFeedbackStatus(chatId) {
         }
         return {};
     } catch (error) {
-        console.error('Error loading feedback status:', error);
+        ErrorLogger.error('Error loading feedback status', error, {});
         return {};
     }
 }
@@ -1189,7 +1190,7 @@ async function loadCurrentChatMessages() {
     try {
         // ✅ SAFETY: Agar kisi edge case me chatId empty ho, API mat call karo
         if (!currentChatId || currentChatId === 'null' || currentChatId === '') {
-            console.warn('Cannot load chat: currentChatId is empty');
+            ErrorLogger.warn('Cannot load chat: currentChatId is empty', {});
             const initialLoading = document.getElementById('initialLoadingState');
             if (initialLoading) initialLoading.classList.add('hidden');
             const emptyState = document.getElementById('emptyState');
@@ -1299,7 +1300,7 @@ async function loadCurrentChatMessages() {
             addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
         }
     } catch (error) {
-        console.error('Error loading chat history:', error);
+        ErrorLogger.error('Error loading chat history', error, {});
         // Show welcome message if error
         addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
         // Hide loading, show error
@@ -1313,7 +1314,7 @@ async function loadChatMessages() {
     try {
         // ✅ SAFETY: Agar kisi edge case me chatId empty ho, API mat call karo
         if (!currentChatId || currentChatId === 'null' || currentChatId === '') {
-            console.warn('Cannot load chat: currentChatId is empty');
+            ErrorLogger.warn('Cannot load chat: currentChatId is empty', {});
             return;
         }
         
@@ -1414,7 +1415,7 @@ async function loadChatMessages() {
             addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
         }
     } catch (error) {
-        console.error('Error loading chat messages:', error);
+        ErrorLogger.error('Error loading chat messages', error, {});
         // Show welcome message if error
         addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
     }
@@ -1435,7 +1436,7 @@ async function loadChatHistory() {
             displayChatHistory(data.chats);
         }
     } catch (error) {
-        console.error('Error loading chat history:', error);
+        ErrorLogger.error('Error loading chat history', error, {});
     }
 }
 
@@ -1503,7 +1504,7 @@ function displayChatHistory(chats) {
             if (chatId && typeof deleteChat === 'function') {
                 deleteChat(chatId);
             } else {
-                console.error('deleteChat function not found or chatId missing');
+                ErrorLogger.error('deleteChat function not found or chatId missing', null, {});
             }
         });
     });
@@ -1517,7 +1518,7 @@ function displayChatHistory(chats) {
             if (chatId && typeof editChatTitle === 'function') {
                 editChatTitle(chatId);
             } else {
-                console.error('editChatTitle function not found or chatId missing');
+                ErrorLogger.error('editChatTitle function not found or chatId missing', null, {});
             }
         });
     });
@@ -1556,7 +1557,7 @@ async function switchToChat(chatId) {
         await loadChatMessages();
         await loadChatHistory();
     } catch (error) {
-        console.error('Error switching to chat:', error);
+        ErrorLogger.error('Error switching to chat', error, {});
         showNotification('Error switching to chat', 'error');
     }
 }
@@ -1639,7 +1640,7 @@ async function deleteChat(chatId) {
         showNotification('Chat deleted successfully', 'success');
         
     } catch (error) {
-        console.error('Error deleting chat:', error);
+        ErrorLogger.error('Error deleting chat', error, {});
         showNotification(error.message || 'Failed to delete chat', 'error');
         
         // Re-enable button on error
@@ -1654,7 +1655,7 @@ async function deleteChat(chatId) {
 async function editChatTitle(chatId) {
     const titleElement = document.getElementById(`chat-title-${chatId}`);
     if (!titleElement) {
-        console.error('Title element not found');
+        ErrorLogger.error('Title element not found', null, {});
         return;
     }
     
@@ -1721,7 +1722,7 @@ async function editChatTitle(chatId) {
             // Reload chat history to reflect changes
             await loadChatHistory();
         } catch (error) {
-            console.error('Error updating title:', error);
+            ErrorLogger.error('Error updating title', error, {});
             showNotification(error.message || 'Failed to update title', 'error');
             input.remove();
             titleElement.style.display = '';
@@ -1775,7 +1776,7 @@ async function createNewChat() {
         const newChatBtn = document.getElementById('newChatBtn');
         if (newChatBtn) newChatBtn.disabled = true;
     } catch (error) {
-        console.error('Error creating enhanced draft chat:', error);
+        ErrorLogger.error('Error creating enhanced draft chat', error, {});
     }
 }
 
@@ -1842,7 +1843,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }, 5000);
         } else {
-            console.error('Banner elements not found');
+            ErrorLogger.error('Banner elements not found', null, {});
         }
     }
     
@@ -1853,7 +1854,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // ✅ SAFETY: If no valid chatId, don't proceed with API calls
     if (!currentChatId) {
-        console.warn('No valid chatId from server, skipping API calls');
+        ErrorLogger.warn('No valid chatId from server, skipping API calls', {});
         const initialLoading = document.getElementById('initialLoadingState');
         if (initialLoading) initialLoading.classList.add('hidden');
         const emptyState = document.getElementById('emptyState');
@@ -2020,7 +2021,7 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
                 const newChatBtn = document.getElementById('newChatBtn');
                 if (newChatBtn) newChatBtn.disabled = false;
             } else {
-                            console.error('Failed to create chat:', data);
+                            ErrorLogger.error('Failed to create chat', null, { data });
                 showNotification('Failed to create chat', 'error');
                 return;
             }
@@ -2029,7 +2030,7 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
                         return;
         }
     } catch (error) {
-        console.error('Error creating chat from draft:', error);
+        ErrorLogger.error('Error creating chat from draft', error, {});
                     showNotification(error.message || 'Error creating chat', 'error');
         return;
     }
@@ -2154,7 +2155,7 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
             messageInput.disabled = false;
             if (sendBtn) sendBtn.disabled = false;
             
-            console.error('Error sending message:', error);
+            ErrorLogger.error('Error sending message', error, {});
             showNotification('Error sending message', 'error');
         }
     });

@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="/css/output.css">
     <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>    
     <script src="/utils/timeUtils.js"></script>
+    <script src="/utils/errorHandler.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">    
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -671,7 +672,7 @@
                 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('Admin analytics API error:', response.status, errorText);
+                    ErrorLogger.error('Admin analytics API error', new Error(`Status: ${response.status}`), { status: response.status, errorText });
                     throw new Error(`Admin analytics API failed: ${response.status} - ${errorText}`);
                 }
                 
@@ -684,7 +685,7 @@
                     
                     // ✅ ADD: Check if metrics exist
                     if (!data.metrics) {
-                        console.error('Admin analytics: No metrics in response');
+                        ErrorLogger.error('Admin analytics: No metrics in response', null, {});
                         throw new Error('Invalid response format: missing metrics');
                     }
                     
@@ -797,11 +798,11 @@
                         document.getElementById('viralityConversionRate').textContent = virality.inviteConversionRate + '%';
                     }
                 } else {
-                    console.error('Failed to load admin analytics:', data.error);
+                    ErrorLogger.error('Failed to load admin analytics', null, { error: data.error });
                     document.getElementById('loadingState').innerHTML = '<p class="text-red-600">Failed to load analytics data: ' + (data.error || 'Unknown error') + '</p>';
                 }
             } catch (error) {
-                console.error('Admin analytics loading error:', error);
+                ErrorLogger.error('Admin analytics loading error', error, {});
                 const loadingEl = document.getElementById('loadingState');
                 if (loadingEl) {
                     loadingEl.innerHTML = '<p class="text-red-600">Error loading analytics data: ' + error.message + '</p>';
@@ -938,7 +939,7 @@ if (activity.recentEvents && activity.recentEvents.length > 0) {
                                     el.textContent = displayTime;
                                     el.title = fullTime;
                                 } catch (e) {
-                                    console.error('Error formatting timestamp:', e);
+                                    ErrorLogger.error('Error formatting timestamp', e, {});
                                 }
                             }
                         });
@@ -957,13 +958,13 @@ if (activity.recentEvents && activity.recentEvents.length > 0) {
 
         const canvas = document.getElementById('eventBreakdownChart');
         if (!canvas) {
-            console.error('Event breakdown chart: canvas not found');
+            ErrorLogger.error('Event breakdown chart: canvas not found', null, {});
             return;
         }
         
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            console.error('Event breakdown chart: could not get canvas context');
+            ErrorLogger.error('Event breakdown chart: could not get canvas context', null, {});
             return;
         }
         
@@ -1007,7 +1008,7 @@ if (activity.recentEvents && activity.recentEvents.length > 0) {
             }
         });
     } catch (error) {
-        console.error('Error creating event breakdown chart:', error);
+        ErrorLogger.error('Error creating event breakdown chart', error, {});
     }
 }        
 
@@ -1021,13 +1022,13 @@ function createGrowthTrendsChart(metrics) {
 
         const canvas = document.getElementById('growthTrendsChart');
         if (!canvas) {
-            console.error('Growth trends chart: canvas not found');
+            ErrorLogger.error('Growth trends chart: canvas not found', null, {});
             return;
         }
         
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            console.error('Growth trends chart: could not get canvas context');
+            ErrorLogger.error('Growth trends chart: could not get canvas context', null, {});
             return;
         }
         
@@ -1094,7 +1095,7 @@ function createGrowthTrendsChart(metrics) {
             }
         });
     } catch (error) {
-        console.error('Error creating growth trends chart:', error);
+        ErrorLogger.error('Error creating growth trends chart', error, {});
     }
 }
 
@@ -1160,7 +1161,7 @@ function createEventsOverTimeChart(breakdown, period) {
             }
         });
     } catch (error) {
-        console.error('Error creating events over time chart:', error);
+        ErrorLogger.error('Error creating events over time chart', error, {});
     }
 }
 
@@ -1234,7 +1235,7 @@ function createEntityGrowthChart(entitiesDaily, period) {
             }
         });
     } catch (error) {
-        console.error('Error creating entity growth chart:', error);
+        ErrorLogger.error('Error creating entity growth chart', error, {});
     }
 }
 
@@ -1326,7 +1327,7 @@ function createTopEntitiesChart(topContent, activeTab = 'twins') {
             }
         });
     } catch (error) {
-        console.error('Error creating top entities chart:', error);
+        ErrorLogger.error('Error creating top entities chart', error, {});
     }
 }
 
@@ -1557,7 +1558,7 @@ function updateCharts(period, data) {
                                 
                                 updateCharts('all', allTimeChartData);
                             } catch (error) {
-                                console.error('Error fetching monthly data for All Time charts:', error);
+                                ErrorLogger.error('Error fetching monthly data for All Time charts', error, {});
                                 // Fallback: Use empty breakdown but still show topContent and eventBreakdown
                                 const normalizedTopContent = {
                                     twins: data.content?.topContent?.topTwins || [],
@@ -1614,7 +1615,7 @@ function updateCharts(period, data) {
                     }
                 }
             } catch (error) {
-                console.error('Time-based analytics error:', error);
+                ErrorLogger.error('Time-based analytics error', error, {});
                 hideLoadingState();
                 showNotification(`Error loading ${period} analytics: ${error.message}`, 'error');
                 
@@ -1684,7 +1685,7 @@ function showDetailedView(type) {
     if (route) {
         window.location.href = route;
     } else {
-        console.error('Unknown detail type:', type);
+        ErrorLogger.error('Unknown detail type', null, { type });
     }
 }        
 
@@ -1793,7 +1794,7 @@ function showDetailedView(type) {
             }
         }
     } catch (error) {
-        console.error('Error creating time-based chart:', error);
+        ErrorLogger.error('Error creating time-based chart', error, {});
     }
 }
         
@@ -1838,7 +1839,7 @@ function showDetailedView(type) {
                         '<p class="text-red-600">Error: ' + (data.error || 'Unknown error') + '</p>';
                 }
             } catch (error) {
-                console.error('Detailed data error:', error);
+                ErrorLogger.error('Detailed data error', error, {});
                 document.getElementById('detailedModalContent').innerHTML = 
                     '<p class="text-red-600">Error loading detailed data: ' + error.message + '</p>';
             }
@@ -1990,7 +1991,7 @@ function showDetailedView(type) {
             navigator.clipboard.writeText(JSON.stringify(data, null, 2)).then(() => {
                 showNotification('Data copied to clipboard!', 'success');
             }).catch(err => {
-                console.error('Failed to copy:', err);
+                ErrorLogger.error('Failed to copy', err, {});
                 showNotification('Failed to copy data', 'error');
             });
         }
@@ -2187,7 +2188,7 @@ function showDetailedView(type) {
                     document.getElementById('userModal').classList.remove('hidden');
                 }
             } catch (error) {
-                console.error('User details error:', error);
+                ErrorLogger.error('User details error', error, {});
             }
         }
         
@@ -2296,7 +2297,7 @@ ${userData.events.slice(0, 10).map(event => {
                         alert('Error removing user: ' + data.error);
                     }
                 } catch (error) {
-                    console.error('Remove user error:', error);
+                    ErrorLogger.error('Remove user error', error, {});
                     alert('Error removing user');
                 }
             }
@@ -2367,7 +2368,7 @@ ${userData.events.slice(0, 10).map(event => {
                     document.getElementById('usersList').innerHTML = '<p class="text-red-600">Error loading users: ' + data.error + '</p>';
                 }
             } catch (error) {
-                console.error('Load users error:', error);
+                ErrorLogger.error('Load users error', error, {});
                 document.getElementById('usersList').innerHTML = '<p class="text-red-600">Error loading users: ' + error.message + '</p>';
             }
         }
@@ -2442,7 +2443,7 @@ ${userData.events.slice(0, 10).map(event => {
                         el.textContent = prefix + displayTime;
                         el.title = fullTime;
                     } catch (e) {
-                        console.error('Error formatting timestamp:', e);
+                        ErrorLogger.error('Error formatting timestamp', e, {});
                     }
                 }
             });

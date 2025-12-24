@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Chat - AI Twin</title>
     <link rel="stylesheet" href="/css/output.css?v=<%= Date.now() %>">    
     <script src="/utils/timeUtils.js?v=<%= new Date().getTime() %>"></script>
+    <script src="/utils/errorHandler.js"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
@@ -629,7 +630,7 @@ function formatRelativeLabel(timestamp) {
         if (diffMonth < 12) return `${diffMonth} month${diffMonth > 1 ? 's' : ''} ago`;
         return `${diffYear} year${diffYear > 1 ? 's' : ''} ago`;
     } catch (e) {
-        console.error('Error in formatRelativeLabel:', e);
+        ErrorLogger.error('Error in formatRelativeLabel', e, {});
         return '';
     }
 }
@@ -658,7 +659,7 @@ async function downvoteResponse(responseId) {
             showNotification('Feedback cancelled', 'info');
         }
     } catch (error) {
-        console.error('Downvote error:', error);
+        ErrorLogger.error('Downvote error', error, {});
         showNotification('Error submitting feedback', 'error');
     }
 }
@@ -791,7 +792,7 @@ async function regenerateResponse(responseId) {
         
         // ✅ Refresh sidebar to update message counts after deletion
         if (currentChatId && typeof loadChatHistory === 'function') {
-            loadChatHistory(false).catch(err => console.error('Sidebar refresh failed', err));
+            loadChatHistory(false).catch(err => ErrorLogger.error('Sidebar refresh failed', err, {}));
         }
         
         // ✅ STEP 2: Regenerate the response (backend will handle deletion from database)
@@ -814,7 +815,7 @@ async function regenerateResponse(responseId) {
         if (data.success && data.response) {
             // ✅ Refresh sidebar to update message counts after regeneration
             if (currentChatId && typeof loadChatHistory === 'function') {
-                loadChatHistory(false).catch(err => console.error('Sidebar refresh failed', err));
+                loadChatHistory(false).catch(err => ErrorLogger.error('Sidebar refresh failed', err, {}));
             }
             
             // ✅ STEP 3: Create NEW response element (don't update old one, it's already deleted)
@@ -892,7 +893,7 @@ async function regenerateResponse(responseId) {
             showNotification('Failed to regenerate response', 'error');
         }
     } catch (error) {
-        console.error('Regenerate error:', error);
+        ErrorLogger.error('Regenerate error', error, {});
         showNotification('Error regenerating response', 'error');
     }
 }
@@ -988,7 +989,7 @@ async function regenerateResponse(responseId) {
                     })
                 });
             } catch (error) {
-                console.error('Error submitting feedback:', error);
+                ErrorLogger.error('Error submitting feedback', error, {});
             }
         }
 
@@ -1101,7 +1102,7 @@ function closeResponseActions() {
 function getCurrentTwinId() {
     const twinId = '<%= (typeof twinId !== "undefined" && twinId) ? twinId : (typeof twin !== "undefined" && twin && twin.publicId ? twin.publicId : "") %>';
     if (!twinId || twinId.trim() === '') {
-        console.error('twinId is missing! Cannot create new chat.');
+        ErrorLogger.error('twinId is missing! Cannot create new chat.', null, {});
         showNotification('Error: Twin ID not found. Please refresh the page.', 'error');
         throw new Error('twinId is required');
     }
@@ -1189,9 +1190,9 @@ function removeMessage(messageId) {
     if (currentChatId && typeof loadChatHistory === 'function') {
         try {
             // Refresh sidebar to update message counts and last message preview
-            loadChatHistory(false).catch(err => console.error('Sidebar refresh failed', err));
+            loadChatHistory(false).catch(err => ErrorLogger.error('Sidebar refresh failed', err, {}));
         } catch (e) {
-            console.error('Sidebar preview refresh failed', e);
+            ErrorLogger.error('Sidebar preview refresh failed', e, {});
         }
     }
 }
@@ -1307,7 +1308,7 @@ function addResponseActionsButton(responseId) {
             if (retries < maxRetries) {
                 setTimeout(tryAdd, retryDelay);
             } else {
-                console.error('❌ Actions container not found after', maxRetries, 'retries');
+                ErrorLogger.error('❌ Actions container not found after retries', null, { maxRetries });
             }
             return;
         }
@@ -1354,7 +1355,7 @@ function addResponseActionsButton(responseId) {
                 document.getElementById(`regenerateBtn_${responseId}`)?.addEventListener('click', () => regenerateResponse(responseId));
                 document.getElementById(`shareBtn_${responseId}`)?.addEventListener('click', () => shareResponse(responseId));
             } catch (error) {
-                console.error('❌ Error attaching event listeners:', error);
+                ErrorLogger.error('❌ Error attaching event listeners', error, {});
             }
         }, 50);
     };
@@ -1413,7 +1414,7 @@ async function applyStyleCorrection(knob, delta) {
             showNotification('Failed to apply correction', 'error');
         }
     } catch (error) {
-        console.error('Style correction error:', error);
+        ErrorLogger.error('Style correction error', error, {});
         showNotification('Error applying correction', 'error');
     }
 }
@@ -1435,7 +1436,7 @@ function updateCriticScore(score) {
 // Note: Don't manually increment count - backend already does it
 function updateSidebarImmediately(aiResponse, userMessage) {
     if (!currentChatId) {
-        console.warn('⚠️ No currentChatId set');
+        ErrorLogger.warn('⚠️ No currentChatId set', {});
         return;
     }
     
@@ -1454,14 +1455,14 @@ function updateSidebarImmediately(aiResponse, userMessage) {
         }
         
     } else {
-        console.warn('⚠️ Chat item not found in sidebar');
+        ErrorLogger.warn('⚠️ Chat item not found in sidebar', {});
     }
 }
 
 async function loadFeedbackStatus(chatId) {
     // ✅ SAFETY: Check if chatId is null/empty before API call
     if (!chatId || chatId === 'null' || chatId === 'undefined' || chatId === '') {
-        console.warn('Cannot load feedback status: chatId is empty');
+        ErrorLogger.warn('Cannot load feedback status: chatId is empty', {});
         return {};
     }
     
@@ -1484,7 +1485,7 @@ async function loadFeedbackStatus(chatId) {
         }
         return {};
     } catch (error) {
-        console.error('Error loading feedback status:', error);
+        ErrorLogger.error('Error loading feedback status', error, {});
         return {};
     }
 }
@@ -1500,7 +1501,7 @@ async function loadCurrentChatMessages() {
     try {
         // ✅ SAFETY: Only block if chatId is truly empty (draft chats are handled separately)
         if (!currentChatId || currentChatId === 'null' || currentChatId === '') {
-            console.warn('Cannot load chat: currentChatId is empty');
+            ErrorLogger.warn('Cannot load chat: currentChatId is empty', {});
             const initialLoading = document.getElementById('initialLoadingState');
             if (initialLoading) initialLoading.classList.add('hidden');
             const emptyState = document.getElementById('emptyState');
@@ -1617,7 +1618,7 @@ async function loadCurrentChatMessages() {
             addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
         }
     } catch (error) {
-        console.error('Error loading chat history:', error);
+        ErrorLogger.error('Error loading chat history', error, {});
         // Show welcome message if error
         addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
         // Hide loading, show error
@@ -1631,7 +1632,7 @@ async function loadChatMessages() {
     try {
         // ✅ SAFETY: Agar kisi edge case me chatId empty ho, API mat call karo
         if (!currentChatId || currentChatId === 'null' || currentChatId === '') {
-            console.warn('Cannot load chat: currentChatId is empty');
+            ErrorLogger.warn('Cannot load chat: currentChatId is empty', {});
             return;
         }
         
@@ -1732,7 +1733,7 @@ async function loadChatMessages() {
             addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?');
         }
     } catch (error) {
-        console.error('Error loading chat messages:', error);
+        ErrorLogger.error('Error loading chat messages', error, {});
         // Show welcome message if error
         addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?');
     }
@@ -1766,7 +1767,7 @@ async function loadChatHistory(showLoading = true) {
         }
         return [];
     } catch (error) {
-        console.error('Error loading chat history:', error);
+        ErrorLogger.error('Error loading chat history', error, {});
         const itemsContainer = document.getElementById('chatHistoryItems') || document.getElementById('chatHistoryList');
         if (itemsContainer) itemsContainer.innerHTML = '';
         const emptyState = document.getElementById('chatHistoryEmptyState');
@@ -1858,7 +1859,7 @@ function displayChatHistory(chats) {
                         el.textContent = displayTime || 'Just now';
                         el.title = fullTime || displayTime || 'Just now';
                     } catch (e) {
-                        console.error('Error formatting timestamp:', e);
+                        ErrorLogger.error('Error formatting timestamp', e, {});
                         el.textContent = 'Just now';
                         el.title = 'Just now';
                     }
@@ -1889,7 +1890,7 @@ function displayChatHistory(chats) {
                 if (chatId && typeof deleteChat === 'function') {
                     deleteChat(chatId);
                 } else {
-                    console.error('deleteChat function not found or chatId missing');
+                    ErrorLogger.error('deleteChat function not found or chatId missing', null, {});
                 }
             });
         });
@@ -1944,7 +1945,7 @@ async function switchToChat(chatId) {
         await loadChatMessages();
         await loadChatHistory(false);
     } catch (error) {
-        console.error('Error switching to chat:', error);
+        ErrorLogger.error('Error switching to chat', error, {});
         showNotification('Error switching to chat', 'error');
     }
 }
@@ -2006,7 +2007,7 @@ async function deleteChat(chatId) {
                 if (messageInput) messageInput.disabled = true;
                 if (sendBtn) sendBtn.disabled = true;
             } catch (e) {
-                console.error('[deleteChat] UI hide failed', e);
+                ErrorLogger.error('[deleteChat] UI hide failed', e, {});
             }
 
             setTimeout(() => window.location.replace('/chat'), 50);
@@ -2029,7 +2030,7 @@ async function deleteChat(chatId) {
         showNotification('Chat deleted successfully', 'success');
         
     } catch (error) {
-        console.error('Error deleting chat:', error);
+        ErrorLogger.error('Error deleting chat', error, {});
         showNotification(error.message || 'Failed to delete chat', 'error');
         
         // Re-enable button on error
@@ -2053,13 +2054,13 @@ async function editChatTitle(chatId, sourceEl) {
         chatItem = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
     }
     if (!chatItem) {
-        console.error('Chat item not found for chatId:', chatId);
+        ErrorLogger.error('Chat item not found for chatId', null, { chatId });
         return;
     }
 
     const titleElement = chatItem.querySelector('h4[id^="chat-title-"]');
     if (!titleElement) {
-        console.error('Title element not found for chatId:', chatId);
+        ErrorLogger.error('Title element not found for chatId', null, { chatId });
         return;
     }
 
@@ -2131,7 +2132,7 @@ async function editChatTitle(chatId, sourceEl) {
             showNotification('Title updated successfully', 'success');
             await loadChatHistory(false);
         } catch (error) {
-            console.error('Error updating title:', error);
+            ErrorLogger.error('Error updating title', error, {});
             showNotification(error.message || 'Failed to update title', 'error');
             input.remove();
             titleElement.style.display = '';
@@ -2186,7 +2187,7 @@ async function createNewChat() {
         const newChatBtn = document.getElementById('newChatBtn');
         if (newChatBtn) newChatBtn.disabled = true;
     } catch (error) {
-        console.error('Error creating enhanced draft chat:', error);
+        ErrorLogger.error('Error creating enhanced draft chat', error, {});
     }
 }
 
@@ -2303,7 +2304,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Load messages for selected chat
             await loadCurrentChatMessages();
         } catch (error) {
-            console.error('Error loading chat history:', error);
+            ErrorLogger.error('Error loading chat history', error, {});
             if (initialLoading) initialLoading.classList.add('hidden');
             if (emptyState) emptyState.classList.remove('hidden');
         }
@@ -2639,7 +2640,7 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
                         
         // ✅ Normalize new chat id from backend
         if (!data.success) {
-            console.error('Failed to create chat:', data);
+            ErrorLogger.error('Failed to create chat', null, { data });
             showNotification(data.error || 'Failed to create chat', 'error');
             return;
         }
@@ -2661,7 +2662,7 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
                 const newChatBtn = document.getElementById('newChatBtn');
                 if (newChatBtn) newChatBtn.disabled = false;
     } catch (error) {
-        console.error('Error creating chat from draft:', error);
+        ErrorLogger.error('Error creating chat from draft', error, {});
                     showNotification(error.message || 'Error creating chat', 'error');
         return;
     }
@@ -2795,7 +2796,7 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
             messageInput.disabled = false;
             if (sendBtn) sendBtn.disabled = false;
             
-            console.error('Error sending message:', error);
+            ErrorLogger.error('Error sending message', error, {});
             showNotification('Error sending message', 'error');
         }
     });

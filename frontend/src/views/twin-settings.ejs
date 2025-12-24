@@ -6,6 +6,7 @@
   <title>Twin Settings - AI Twin</title>
   <link rel="stylesheet" href="/css/output.css" />
   <script src="/utils/timeUtils.js"></script>
+  <script src="/utils/errorHandler.js"></script>
   <script>
     (function () {
       const theme = localStorage.getItem('theme') || 'light';
@@ -697,7 +698,7 @@
         if (!data.success) throw new Error(data.error || 'Failed');
         populateMemoryPreviewFromList(data.memories || []);
       } catch (e) {
-        console.error(e);
+        ErrorLogger.error('Error', e, {});
         // keep UI calm
       }
     }
@@ -880,7 +881,7 @@
           })
         );
       } catch (e) {
-        console.warn('[twin-settings] update-style failed (ignored for MVP):', e);
+        ErrorLogger.warn('[twin-settings] update-style failed (ignored for MVP)', { error: e });
       }
 
       // Force refresh from server to avoid cached values
@@ -909,7 +910,7 @@
         document.getElementById('stylePreviewOriginal').textContent = data.originalResponse || '';
         document.getElementById('stylePreviewNew').textContent = data.newResponse || '';
       } catch (e) {
-        console.error(e);
+        ErrorLogger.error('Error', e, {});
         showNotification('Preview failed', 'error');
       }
     }
@@ -1212,7 +1213,7 @@
             showNotification('Saved ✔', 'success');
             await loadMemoryPreviewFromLTM();
           } catch (e) {
-            console.error(e);
+            ErrorLogger.error('Error', e, {});
             showNotification('Save failed', 'error');
           }
         });
@@ -1240,7 +1241,7 @@
             await loadMemoryModalList();
             await loadMemoryPreviewFromLTM();
           } catch (e) {
-            console.error(e);
+            ErrorLogger.error('Error', e, {});
             showNotification('Delete failed', 'error');
           }
         });
@@ -1284,7 +1285,7 @@
 
         renderMemoryModalList(filtered);
       } catch (e) {
-        console.error(e);
+        ErrorLogger.error('Error', e, {});
         showNotification('Could not load memories', 'error');
         clearMemSelection();
       } finally {
@@ -1354,7 +1355,7 @@
         await loadMemoryModalList();
         await loadMemoryPreviewFromLTM();
       } catch (e) {
-        console.error(e);
+        ErrorLogger.error('Error', e, {});
         showNotification('Add failed', 'error');
       }
     }
@@ -1430,7 +1431,7 @@
           sessionStorage.setItem('twinSettings.justSaved', '1');
           window.location.reload();
         } catch (err) {
-          console.error(err);
+          ErrorLogger.error('Error', err, {});
           
           // ✅ Show field-specific validation errors
           if (err?.validationDetails && Array.isArray(err.validationDetails)) {
@@ -1517,12 +1518,12 @@
           try {
             localStorage.removeItem('enhancedOnboarding_v1');
           } catch (e) {
-            console.warn('Failed to clear onboarding localStorage:', e);
+            ErrorLogger.warn('Failed to clear onboarding localStorage', { error: e });
           }
           showNotification('Twin reset. Redirecting…', 'success');
           setTimeout(() => window.location.replace('/onboarding'), 800);
         } catch (err) {
-          console.error(err);
+          ErrorLogger.error('Error', err, {});
           showNotification('Reset failed', 'error');
         }
       });
@@ -1604,7 +1605,7 @@
           await loadMemoryModalList();
           await loadMemoryPreviewFromLTM();
         } catch (err) {
-          console.error(err);
+          ErrorLogger.error('Error', err, {});
           showNotification('Bulk update failed', 'error');
         }
       }
@@ -1651,7 +1652,7 @@
           await loadMemoryModalList();
           await loadMemoryPreviewFromLTM();
         } catch (err) {
-          console.error(err);
+          ErrorLogger.error('Error', err, {});
           showNotification('Bulk delete failed', 'error');
         }
       });

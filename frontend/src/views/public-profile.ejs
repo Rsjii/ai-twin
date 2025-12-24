@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="/css/output.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="/utils/timeUtils.js"></script>
+    <script src="/utils/errorHandler.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -487,10 +488,10 @@ async function checkInitialStatus() {
                 updateFollowButton(hasFollowed);
             }
         } else {
-            console.error('Failed to fetch initial status:', response.status);
+            ErrorLogger.error('Failed to fetch initial status', new Error(`Status: ${response.status}`), { status: response.status });
         }
     } catch (error) {
-        console.error('Error checking initial status:', error);
+        ErrorLogger.error('Error checking initial status', error, {});
     }
 }
 
@@ -590,18 +591,19 @@ async function loadPublicChatHistory() {
             } else if (window.TimeUtils && window.TimeUtils.setServerTime) {
                 window.TimeUtils.setServerTime(data.serverTime);
             } else {
-                console.error('[loadPublicChatHistory] ❌ TimeUtils.setServerTime not available!');
-                console.error('[loadPublicChatHistory] window.TimeUtils:', window.TimeUtils);
-                console.error('[loadPublicChatHistory] typeof window.TimeUtils:', typeof window.TimeUtils);
+                ErrorLogger.error('[loadPublicChatHistory] ❌ TimeUtils.setServerTime not available!', null, { 
+                    timeUtils: window.TimeUtils, 
+                    type: typeof window.TimeUtils 
+                });
             }
         } else {
-            console.warn('[loadPublicChatHistory] ⚠️ No serverTime in response');
+            ErrorLogger.warn('[loadPublicChatHistory] ⚠️ No serverTime in response', {});
         }
         
         // ✅ Verify server time was set
         if (window.TimeUtils && window.TimeUtils.globalServerTime) {
         } else {
-            console.warn('[loadPublicChatHistory] ⚠️ globalServerTime not accessible after setting');
+            ErrorLogger.warn('[loadPublicChatHistory] ⚠️ globalServerTime not accessible after setting', {});
         }
         
         if (data.success) {
@@ -609,7 +611,7 @@ async function loadPublicChatHistory() {
             displayPublicChatHistory(data.chats);
         }
     } catch (error) {
-        console.error('Error loading public chat history:', error);
+        ErrorLogger.error('Error loading public chat history', error, {});
     }
 }
 
@@ -655,7 +657,7 @@ function displayPublicChatHistory(chats) {
                     el.textContent = displayTime;
                     el.title = fullTime;
                 } catch (e) {
-                    console.error('Error formatting timestamp:', e);
+                    ErrorLogger.error('Error formatting timestamp', e, {});
                 }
             }
         });
@@ -691,7 +693,7 @@ async function switchToPublicChat(chatId) {
             await loadPublicChatHistory(); // Refresh sidebar
         }
     } catch (error) {
-        console.error('Error switching to chat:', error);
+        ErrorLogger.error('Error switching to chat', error, {});
     }
 }
 
@@ -717,7 +719,7 @@ async function createNewPublicChat() {
             await loadPublicChatHistory();
         }
     } catch (error) {
-        console.error('Error creating new chat:', error);
+        ErrorLogger.error('Error creating new chat', error, {});
     }
 }
 
@@ -726,7 +728,7 @@ async function startPublicChat() {
     try {
         window.location.href = `/public-chat/<%= twinPublicId %>`;
     } catch (error) {
-        console.error('Error starting chat:', error);
+        ErrorLogger.error('Error starting chat', error, {});
     }
 }
 
@@ -789,7 +791,7 @@ function displayMessages(messages) {
                     throw new Error(data.error || 'Failed to send message');
                 }
             } catch (error) {
-                console.error('Error sending message:', error);
+                ErrorLogger.error('Error sending message', error, {});
                 addMessageToChat('Sorry, I had trouble responding. Please try again.', 'twin', new Date().toISOString());
             } finally {
                 isChatting = false;
@@ -904,7 +906,7 @@ async function toggleLike(twinToken, button) {
             }
         }
     } catch (error) {
-        console.error('Error toggling like:', error);
+        ErrorLogger.error('Error toggling like', error, {});
         showNotification('Please log in to like this twin!', 'error');
     }
 }        
@@ -978,7 +980,7 @@ async function toggleFollow(twinToken, button) {
             }
         }
     } catch (error) {
-        console.error('Error toggling follow:', error);
+        ErrorLogger.error('Error toggling follow', error, {});
         showNotification('Please log in to follow this twin!', 'error');
     }
 }
@@ -1097,7 +1099,7 @@ async function shareTwin(platform) {
             window.open(shareWindow, '_blank', 'width=600,height=400');
         }
     } catch (error) {
-        console.error('Share error:', error);
+        ErrorLogger.error('Share error', error, {});
         showNotification('Failed to share. Please try again.', 'error');
     }
 }
@@ -1115,7 +1117,7 @@ async function shareTwin(platform) {
                 await navigator.clipboard.writeText(shareUrl);
                 showNotification('Link copied to clipboard!', 'success');
             } catch (error) {
-                console.error('Copy error:', error);
+                ErrorLogger.error('Copy error', error, {});
                 showNotification('Failed to copy link. Please copy manually: ' + window.location.href, 'error');
             }
         }
@@ -1134,7 +1136,7 @@ async function shareTwin(platform) {
                     })
                 });
             } catch (error) {
-                console.error('Track share event error:', error);
+                ErrorLogger.error('Track share event error', error, {});
             }
         }
 
@@ -1206,7 +1208,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ✅ OPTIONAL: Verify with API call (for consistency, but not blocking)
     // This ensures state is correct even if there's a race condition
     checkInitialStatus().catch(err => {
-        console.warn('Initial status check failed, using server-side state:', err);
+        ErrorLogger.warn('Initial status check failed, using server-side state', { error: err });
     });
     
     // ✅ FIX: Like and Follow buttons functionality (exactly like discover.ejs)

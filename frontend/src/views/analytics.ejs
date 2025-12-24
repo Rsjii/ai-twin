@@ -157,12 +157,12 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
         // ✅ ADD: Check for errors BEFORE parsing
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Metrics API error:', response.status, errorText);
+            ErrorLogger.error('Metrics API error', new Error(`Status: ${response.status}`), { status: response.status, errorText });
             throw new Error(`Metrics API failed: ${response.status}`);
         }
         
         if (!feedbackResponse.ok) {
-            console.warn('Feedback API error:', feedbackResponse.status);
+            ErrorLogger.warn('Feedback API error', { status: feedbackResponse.status });
             // Don't throw, just log - feedback is optional
         }
 
@@ -173,7 +173,7 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
         try {
             data = await response.json();
         } catch (err) {
-            console.error('Failed to parse analytics JSON:', err);
+            ErrorLogger.error('Failed to parse analytics JSON', err, {});
             showOverviewError();
             showChartError();
             return; // Exit early on parse error
@@ -205,7 +205,7 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
                 showOverviewEmpty();
             }
         } else {
-            console.error('Analytics: Data validation failed');
+            ErrorLogger.error('Analytics: Data validation failed', null, {});
             showOverviewError();
         }
 
@@ -241,14 +241,14 @@ if (elements.chartContainer) {
 
         const canvas = document.getElementById('engagementChart');
         if (!canvas) {
-            console.error('Engagement chart: canvas element not found');
+            ErrorLogger.error('Engagement chart: canvas element not found', null, {});
             showChartEmpty();
             return;
         }
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            console.error('Engagement chart: could not get canvas context');
+            ErrorLogger.error('Engagement chart: could not get canvas context', null, {});
             showChartError();
             return;
         }
@@ -306,7 +306,7 @@ if (elements.chartContainer) {
                 }
             });
         } catch (error) {
-            console.error('Error initializing engagement chart:', error);
+            ErrorLogger.error('Error initializing engagement chart', error, {});
             showChartError();
         }
     }
@@ -314,7 +314,7 @@ if (elements.chartContainer) {
     // ✅ Initialize chart after data is loaded
     initializeChart();
 } else {
-    console.error('Analytics: Chart container not found');
+    ErrorLogger.error('Analytics: Chart container not found', null, {});
     showChartEmpty();
 }        
 
@@ -335,10 +335,10 @@ if (elements.chartContainer) {
                 showPeriodSummaryEmpty();
             }
         } else {
-            console.error('Analytics: Period summary container not found');
+            ErrorLogger.error('Analytics: Period summary container not found', null, {});
         }
     } catch (error) {
-        console.error('Error loading analytics:', error);
+        ErrorLogger.error('Error loading analytics', error, {});
         showOverviewError();
         showChartError();
         showTopContentError();
@@ -499,7 +499,7 @@ function escapeHtml(text) {
         hideTopContentLoading();
 
         if (!container) {
-            console.error('Analytics: Top users container not found');
+            ErrorLogger.error('Analytics: Top users container not found', null, {});
             showTopContentError();
             return;
         }
@@ -526,7 +526,7 @@ function escapeHtml(text) {
             });
 
             if (!response.ok) {
-                console.error('Analytics: Top users API failed:', response.status);
+                ErrorLogger.error('Analytics: Top users API failed', new Error(`Status: ${response.status}`), { status: response.status });
                 showTopContentError();
                 return;
             }
@@ -579,7 +579,7 @@ function escapeHtml(text) {
                             }
                         }
                     } catch (e) {
-                        console.error('Error formatting last activity:', e);
+                        ErrorLogger.error('Error formatting last activity', e, {});
                         lastActiveText = 'Unknown';
                     }
                 }
@@ -622,7 +622,7 @@ function escapeHtml(text) {
 
             container.appendChild(fragment);
         } catch (error) {
-            console.error('Error loading top users:', error);
+            ErrorLogger.error('Error loading top users', error, {});
             showTopContentError();
         }
     }

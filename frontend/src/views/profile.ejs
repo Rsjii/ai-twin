@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="/css/output.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script type="module" src="/js/form-dirty-state.js"></script>
+    <script src="/utils/errorHandler.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -705,7 +706,7 @@
                 tabButton.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
                 tabButton.classList.add('border-primary', 'dark:border-blue-400', 'text-primary', 'dark:text-blue-400');
             } else {
-                console.error('Tab button not found:', tabId);
+                ErrorLogger.error('Tab button not found', null, { tabId });
             }
             
             // ✅ FIX ISSUE 3: Update URL with tab, preserve subtab if exists
@@ -1112,7 +1113,7 @@
                             showNotification(result.error || 'Failed to update profile', 'error');
                         }
                     } catch (error) {
-                        console.error('Profile update error:', error);
+                        ErrorLogger.error('Profile update error', error, {});
                         showNotification('Network error. Please try again.', 'error');
                     }
                 });
@@ -1198,7 +1199,7 @@
                                 showNotification(result.error || 'Failed to remove profile image', 'error');
                             }
                         } catch (err) {
-                            console.error('Remove profile image error:', err);
+                            ErrorLogger.error('Remove profile image error', err, {});
                             showNotification('Network error. Please try again.', 'error');
                         }
                     });
@@ -1287,7 +1288,7 @@
                         changePasswordForm.reset();
                         changePasswordFormContainer.classList.add('hidden');
                     } catch (err) {
-                        console.error('Change password error:', err);
+                        ErrorLogger.error('Change password error', err, {});
                         showNotification('Network error. Please try again.', 'error');
                     }
                 });
@@ -1304,7 +1305,7 @@
                         window.open('/api/user/export-data', '_blank');
                         showNotification('Export started. If download does not start, please check pop‑up blocker.', 'info');
                     } catch (err) {
-                        console.error('Export data error:', err);
+                        ErrorLogger.error('Export data error', err, {});
                         showNotification('Failed to start export. Please try again.', 'error');
                     }
                 });
@@ -1451,7 +1452,7 @@
                             window.location.href = '/auth';
                         }, 1500);
                     } catch (err) {
-                        console.error('Delete account error:', err);
+                        ErrorLogger.error('Delete account error', err, {});
                         // Network error → close modal
                         closeDeleteModal();
                         showNotification('Network error. Please try again.', 'error');
@@ -1500,7 +1501,7 @@
                             showNotification(result.error || 'Failed to update privacy settings', 'error');
                 }
             } catch (error) {
-                        console.error('Privacy settings update error:', error);
+                        ErrorLogger.error('Privacy settings update error', error, {});
                         showNotification('Network error. Please try again.', 'error');
                     }
                 });
@@ -1515,7 +1516,7 @@
             const currentTwinId = '<%= typeof twinId !== "undefined" && twinId ? twinId : "" %>';
             
             if (!currentTwinId) {
-                console.error('Twin ID not found');
+                ErrorLogger.error('Twin ID not found', null, {});
                 if (savePrivacyBtn) {
                     savePrivacyBtn.disabled = true;
                     savePrivacyBtn.textContent = 'No Twin Found';
@@ -1654,7 +1655,7 @@
                         const contentType = response.headers.get('content-type');
                         if (!contentType || !contentType.includes('application/json')) {
                             const text = await response.text();
-                            console.error('Non-JSON response:', text.substring(0, 200));
+                            ErrorLogger.error('Non-JSON response', null, { text: text.substring(0, 200) });
                             throw new Error(`Server returned ${response.status}: ${response.statusText}`);
                         }
                         
@@ -1686,7 +1687,7 @@
                             checkForChanges();
                         }
                     } catch (error) {
-                        console.error('Privacy settings update error:', error);
+                        ErrorLogger.error('Privacy settings update error', error, {});
                         showNotification(error.message || 'Network error. Please try again.', 'error');
                         // Re-enable button on error
                         checkForChanges();
@@ -1755,7 +1756,7 @@
                     if (response.ok && data.success && data.settings) {
                         renderBlockedUsers(data.settings.blockedUsers || []);
                     } else {
-                        console.error('Failed to load blocked users:', data);
+                        ErrorLogger.error('Failed to load blocked users', null, { data });
                         blockedUsersList.innerHTML = `
                             <p class="text-sm text-red-500">
                                 Failed to load blocked users.
@@ -1763,7 +1764,7 @@
                         `;
                     }
                 } catch (error) {
-                    console.error('Error loading blocked users:', error);
+                    ErrorLogger.error('Error loading blocked users', error, {});
                     blockedUsersList.innerHTML = `
                         <p class="text-sm text-red-500">
                             Failed to load blocked users.
@@ -1811,7 +1812,7 @@
                         showNotification(data.error || 'Failed to block user.', 'error');
                     }
                 } catch (error) {
-                    console.error('Block user error:', error);
+                    ErrorLogger.error('Block user error', error, {});
                     showNotification('Network error. Please try again.', 'error');
                 }
             });
@@ -1854,7 +1855,7 @@
                         showNotification(data.error || 'Failed to unblock user.', 'error');
                     }
                 } catch (error) {
-                    console.error('Unblock user error:', error);
+                    ErrorLogger.error('Unblock user error', error, {});
                     showNotification('Network error. Please try again.', 'error');
                 }
             });
@@ -1910,7 +1911,7 @@
                         makeTwinPublicBtn.textContent = originalText;
                     }
                 } catch (error) {
-                    console.error('Make twin public error:', error);
+                    ErrorLogger.error('Make twin public error', error, {});
                     showNotification('Network error. Please try again.', 'error');
                     makeTwinPublicBtn.disabled = false;
                     makeTwinPublicBtn.textContent = originalText;
@@ -1935,7 +1936,7 @@ if (copyPublicLinkBtn) {
       await navigator.clipboard.writeText(url);
       showNotification('Profile link copied to clipboard!', 'success');
     } catch (error) {
-      console.error('Copy to clipboard error:', error);
+      ErrorLogger.error('Copy to clipboard error', error, {});
       showNotification('Failed to copy link. Please copy manually: ' + url, 'error');
     }
   });
@@ -1990,7 +1991,7 @@ if (makeTwinPrivateBtn) {
         makeTwinPrivateBtn.textContent = originalText;
       }
     } catch (error) {
-      console.error('Make twin private error:', error);
+      ErrorLogger.error('Make twin private error', error, {});
       showNotification('Network error. Please try again.', 'error');
       makeTwinPrivateBtn.disabled = false;
       makeTwinPrivateBtn.textContent = originalText;
@@ -2062,7 +2063,7 @@ if (profileImageFile) {
                 }
             })
             .catch(err => {
-                console.error('Profile image upload error:', err);
+                ErrorLogger.error('Profile image upload error', err, {});
                 showNotification('Failed to upload image. Please try again.', 'error');
             });
         }

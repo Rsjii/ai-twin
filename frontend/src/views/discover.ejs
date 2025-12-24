@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Discover AI Twins - Twinverse</title>
     <link rel="stylesheet" href="/css/output.css">
+    <script src="/utils/errorHandler.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -527,13 +528,13 @@
     
 
                 if (response.status === 304) {
-                    console.warn('[DISCOVER] Got 304 - using cached data');
+                    // 304 is normal caching, no need to log
                     // Try to use cached data or show error
                     return;
                 }
 
                 const data = await response.json().catch(err => {
-                    console.error('[DISCOVER] Failed to parse JSON:', err);
+                    ErrorLogger.error('[DISCOVER] Failed to parse JSON', err, {});
                     showError('Failed to load twins. Please refresh.');
                     return { success: false, twins: [] };
                 });
@@ -568,7 +569,7 @@
                     hasMore = false;
                 }
             } catch (error) {
-                console.error('Error loading twins:', error);
+                ErrorLogger.error('Error loading twins', error, {});
                 showError('Failed to load twins');
                 hasMore = false;
             } finally {
@@ -830,7 +831,7 @@ if (twin.sharesDisabled) {
                     return;                    
                 }
             } catch (error) {
-                console.error('Error checking own twin:', error);
+                ErrorLogger.error('Error checking own twin', error, {});
             }
         }
         
@@ -848,7 +849,7 @@ const profileHandle = twin.userHandle || twin.publicHandle;
     if (profileHandle) {
         window.location.href = `/@${profileHandle}`;
     } else {
-        console.error('No handle available for twin:', twin);
+        ErrorLogger.error('No handle available for twin', null, { twin });
         showNotification('Profile not available', 'error');
     }        
     });
@@ -971,7 +972,7 @@ const profileHandle = twin.userHandle || twin.publicHandle;
                     }
                 }
             } catch (error) {
-                console.error('Error toggling like:', error);
+                ErrorLogger.error('Error toggling like', error, {});
         showNotification('Please log in to like this twin!', 'error');
             }
         }
@@ -1052,7 +1053,7 @@ const profileHandle = twin.userHandle || twin.publicHandle;
                     }
                 }
             } catch (error) {
-                console.error('Error toggling follow:', error);
+                ErrorLogger.error('Error toggling follow', error, {});
         showNotification('Please log in to follow this twin!', 'error');
             }
         }
@@ -1243,7 +1244,7 @@ if (!selectedPlatform) {
         trackShareEvent(twinToken, selectedPlatform);
         
     } catch (error) {
-        console.error('Share error:', error);
+        ErrorLogger.error('Share error', error, {});
         showNotification('Failed to share. Please try again.', 'error');
     }
 }
@@ -1262,7 +1263,7 @@ if (!selectedPlatform) {
                     })
                 });
             } catch (error) {
-                console.error('Track share event error:', error);
+                ErrorLogger.error('Track share event error', error, {});
             }
         }    
     </script>

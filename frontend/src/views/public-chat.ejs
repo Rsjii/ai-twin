@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Chat with <%= twin.publicHandle %></title>
     <link rel="stylesheet" href="/css/output.css?v=<%= Date.now() %>">    
     <script src="/utils/timeUtils.js?v=<%= new Date().getTime() %>"></script>
+    <script src="/utils/errorHandler.js"></script>
     <script>
         // ✅ VERIFY TimeUtils loaded - with delay check
         (function() {
             function checkTimeUtils() {
                 if (typeof window.TimeUtils === 'undefined') {
-                    console.error('❌ TimeUtils not loaded! Check script path.');
-                    console.error('Available scripts:', Array.from(document.scripts).map(s => s.src));
+                    ErrorLogger.error('❌ TimeUtils not loaded! Check script path.', null, { scripts: Array.from(document.scripts).map(s => s.src) });
                 }
             }
             // Check immediately
@@ -32,7 +32,7 @@
         // ✅ Wait for TimeUtils to be ready
         (function() {
             if (typeof window.TimeUtils === 'undefined') {
-                console.error('❌ TimeUtils not loaded! Check script path.');
+                ErrorLogger.error('❌ TimeUtils not loaded! Check script path.', null, {});
             }
         })();
         
@@ -260,7 +260,7 @@
             if (diffMonth < 12) return `${diffMonth} month${diffMonth > 1 ? 's' : ''} ago`;
             return `${diffYear} year${diffYear > 1 ? 's' : ''} ago`;
         } catch (e) {
-            console.error('Error in formatRelativeLabel:', e);
+            ErrorLogger.error('Error in formatRelativeLabel', e, {});
             return '';
         }
     }
@@ -380,7 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 return false;
             } catch (error) {
-                console.error('Error checking own twin:', error);
+                ErrorLogger.error('Error checking own twin', error, {});
                 return false;
             }
         }
@@ -453,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             try {
                                 window.TimeUtils.setServerTime(serverTimeStr);
                             } catch (e) {
-                                console.error('[loadPublicChatHistory] ❌ ERROR setting server time:', e);
+                                ErrorLogger.error('[loadPublicChatHistory] ❌ ERROR setting server time', e, {});
                             }
                         } else {
                             // Try direct assignment as fallback
@@ -462,14 +462,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                     window.TimeUtils.globalServerTime = serverTimeStr;
                                 }
                             } catch (e2) {
-                                console.error('[loadPublicChatHistory] ❌ Direct assignment failed:', e2);
+                                ErrorLogger.error('[loadPublicChatHistory] ❌ Direct assignment failed', e2, {});
                             }
                         }
                     } else {
-                        console.error('[loadPublicChatHistory] ❌ window.TimeUtils not available');
+                        ErrorLogger.error('[loadPublicChatHistory] ❌ window.TimeUtils not available', null, {});
                     }
                 } else {
-                    console.error('[loadPublicChatHistory] ❌ NO SERVER TIME IN RESPONSE');
+                    ErrorLogger.error('[loadPublicChatHistory] ❌ NO SERVER TIME IN RESPONSE', null, {});
                 }
                 
                 // ✅ Hide loading state
@@ -502,10 +502,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         await createNewPublicChat();
                     }
                 } else {
-                    console.error('[loadPublicChatHistory] API returned error:', data.error);
+                    ErrorLogger.error('[loadPublicChatHistory] API returned error', null, { error: data.error });
                 }
             } catch (error) {
-                console.error('Error loading public chat history:', error);
+                ErrorLogger.error('Error loading public chat history', error, {});
             }
         }        
 
@@ -514,7 +514,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const container = document.getElementById('publicChatHistoryList');
             
             if (!container) {
-                console.error('[displayPublicChatHistory] Container not found!');
+                ErrorLogger.error('[displayPublicChatHistory] Container not found', null, {});
                 return;
             }
             
@@ -576,7 +576,7 @@ if (window.TimeUtils) {
                 // Tooltip pe agar chaho to exact; warna bhi relative:
                 el.title = fullTime || displayTime || 'Just now';
             } catch (e) {
-                console.error('Error formatting timestamp:', e);
+                ErrorLogger.error('Error formatting timestamp', e, {});
                 el.textContent = 'Just now';
                 el.title = 'Just now';
             }
@@ -615,7 +615,7 @@ if (window.TimeUtils) {
                     });
                 });
             } catch (error) {
-                console.error('[displayPublicChatHistory] Error rendering chats:', error);
+                ErrorLogger.error('[displayPublicChatHistory] Error rendering chats', error, {});
                 container.innerHTML = '<p class="text-red-500 text-sm">Error displaying chats. Please refresh.</p>';
             }
         }
@@ -653,7 +653,7 @@ if (window.TimeUtils) {
                         try {
                             window.TimeUtils.setServerTime(serverTimeStr);
                         } catch (e) {
-                            console.error('[switchToPublicChat] ❌ ERROR setting server time:', e);
+                            ErrorLogger.error('[switchToPublicChat] ❌ ERROR setting server time', e, {});
                         }
                     }
                 }
@@ -691,7 +691,7 @@ if (window.TimeUtils) {
                     if (emptyState) emptyState.classList.remove('hidden');
                 }
             } catch (error) {
-                console.error('Error switching to public chat:', error);
+                ErrorLogger.error('Error switching to public chat', error, {});
                 showNotification('Error loading chat. Please try again.', 'error');
             } finally {
                 if (initialLoading) initialLoading.classList.add('hidden');
@@ -755,7 +755,7 @@ if (!confirmed) {
                         if (messageInput) messageInput.disabled = true;
                         if (sendBtn) sendBtn.disabled = true;
                     } catch (e) {
-                        console.error('[deletePublicChat] UI hide failed', e);
+                        ErrorLogger.error('[deletePublicChat] UI hide failed', e, {});
                     }
 
                     setTimeout(() => window.location.replace(baseUrl), 50);
@@ -778,7 +778,7 @@ if (!confirmed) {
                 showNotification('Chat deleted successfully', 'success');
                 
             } catch (error) {
-                console.error('Error deleting public chat:', error);
+                ErrorLogger.error('Error deleting public chat', error, {});
                 showNotification(error.message || 'Failed to delete chat', 'error');
                 
                 // Re-enable button on error
@@ -793,7 +793,7 @@ if (!confirmed) {
         async function editPublicChatTitle(chatId) {
             const titleElement = document.getElementById(`public-chat-title-${chatId}`);
             if (!titleElement) {
-                console.error('Title element not found');
+                ErrorLogger.error('Title element not found', null, {});
                 return;
             }
             
@@ -858,7 +858,7 @@ if (!confirmed) {
                     // Reload chat history to reflect changes
                     await loadPublicChatHistory();
                 } catch (error) {
-                    console.error('Error updating title:', error);
+                    ErrorLogger.error('Error updating title', error, {});
                     showNotification(error.message || 'Failed to update title', 'error');
                     input.remove();
                     titleElement.style.display = '';
@@ -885,7 +885,7 @@ async function createNewPublicChat() {
 
         // ✅ FIX: Validate currentTwinId before proceeding
         if (!currentTwinId || currentTwinId.trim() === '') {
-            console.error('[createNewPublicChat] Missing twin ID');
+            ErrorLogger.error('[createNewPublicChat] Missing twin ID', null, {});
             showNotification('Error: Twin ID not found. Please refresh the page.', 'error');
             return;
         }
@@ -945,7 +945,7 @@ async function createNewPublicChat() {
         if (initialLoading) initialLoading.classList.add('hidden');
         if (newChatBtn) newChatBtn.disabled = false;
     } catch (error) {
-        console.error('Error creating new chat:', error);
+        ErrorLogger.error('Error creating new chat', error, {});
         showNotification('Failed to create new chat. Please try again.', 'error');
 
         const initialLoading = document.getElementById('initialLoadingState');
@@ -1007,7 +1007,7 @@ async function createNewPublicChat() {
                     await switchToPublicChat(currentChatId);
                 }
             } catch (error) {
-                console.error('Error starting public chat:', error);
+                ErrorLogger.error('Error starting public chat', error, {});
             }
         }        
 
@@ -1045,7 +1045,7 @@ async function createNewPublicChat() {
             try {
                 timeDisplay = formatRelativeLabel(timestamp);
             } catch (e) {
-                console.error('Error formatting time:', e);
+                ErrorLogger.error('Error formatting time', e, {});
             }
         }
         
@@ -1075,7 +1075,7 @@ async function createNewPublicChat() {
 
             // Also refresh sidebar previews after deletion to stay in sync
             if (typeof loadPublicChatHistory === 'function') {
-                try { loadPublicChatHistory(); } catch (e) { console.error('Sidebar refresh failed', e); }
+                try { loadPublicChatHistory(); } catch (e) { ErrorLogger.error('Sidebar refresh failed', e, {}); }
             }
         }
 
@@ -1108,7 +1108,7 @@ async function createNewPublicChat() {
         try {
             timeDisplay = formatRelativeLabel(timestamp);
         } catch (e) {
-            console.error('Error formatting time:', e);
+            ErrorLogger.error('Error formatting time', e, {});
         }
     }
     
@@ -1330,7 +1330,7 @@ async function sendMessage() {
                          throw new Error(data.error || 'Failed to create chat');
                      }
                  } catch (error) {
-                     console.error('Error creating chat:', error);
+                     ErrorLogger.error('Error creating chat', error, {});
                      showNotification('Failed to create chat. Please try again.', 'error');
                      isChatting = false;
                      if (messageInput) messageInput.disabled = false;
@@ -1403,7 +1403,7 @@ async function sendMessage() {
                          }
                      }
                  } catch (error) {
-                     console.error('Error creating chat:', error);
+                     ErrorLogger.error('Error creating chat', error, {});
                      showNotification('Failed to create chat. Please try again.', 'error');
                      isChatting = false;
                      if (messageInput) messageInput.disabled = false;
@@ -1417,7 +1417,7 @@ async function sendMessage() {
              
              // ✅ Validate actualChatId before sending
              if (!actualChatId || actualChatId === 'null' || actualChatId === '') {
-                 console.error('Invalid chatId:', actualChatId);
+                 ErrorLogger.error('Invalid chatId', null, { chatId: actualChatId });
                  showNotification('Chat ID is invalid. Please refresh the page and try again.', 'error');
                  isChatting = false;
                  if (messageInput) messageInput.disabled = false;
@@ -1451,7 +1451,7 @@ async function sendMessage() {
                         try {
                             window.TimeUtils.setServerTime(serverTimeStr);
                         } catch (e) {
-                            console.error('[sendMessage] ❌ ERROR setting server time:', e);
+                            ErrorLogger.error('[sendMessage] ❌ ERROR setting server time', e, {});
                         }
                     }
                 }
@@ -1470,7 +1470,7 @@ async function sendMessage() {
 
                 // ✅ Handle CHAT_NOT_FOUND error
                 if (!response.ok && data.errorCode === 'CHAT_NOT_FOUND') {
-                    console.error('Chat not found, creating new chat...');
+                    ErrorLogger.warn('Chat not found, creating new chat', {});
                     // Try to create chat again
                     const twinId = currentTwinId;
                     let visitorIdToUse = visitorId || sessionStorage.getItem('visitorId');
@@ -1563,7 +1563,7 @@ async function sendMessage() {
             try {
                 await switchToPublicChat(actualChatId);
             } catch (e) {
-                console.error('[sendMessage] Error reloading chat after reply:', e);
+                ErrorLogger.error('[sendMessage] Error reloading chat after reply', e, {});
             }
 
                         });
@@ -1572,7 +1572,7 @@ async function sendMessage() {
                     addMessageToChat('Sorry, I encountered an error. Please try again.', 'ai');
                 }
             } catch (error) {
-                console.error('Send message error:', error);
+                ErrorLogger.error('Send message error', error, {});
                 // ✅ Safety check: Remove typing indicator if it exists
                 if (typingId) {
                     removeMessage(typingId);

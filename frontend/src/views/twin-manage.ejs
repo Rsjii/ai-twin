@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="/css/output.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="/utils/timeUtils.js"></script>
+    <script src="/utils/errorHandler.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -360,7 +361,7 @@
             try {
                 const input = document.getElementById('publicLinkInput');
                 if (!input) {
-                    console.error('Input element not found');
+                    ErrorLogger.error('Input element not found', null, {});
                     return;
                 }
                 
@@ -370,7 +371,7 @@
                     navigator.clipboard.writeText(url).then(() => {
                         showNotification('Public link copied to clipboard!', 'success');
                     }).catch(err => {
-                        console.error('Copy failed:', err);
+                        ErrorLogger.error('Copy failed', err, {});
                         showNotification('Failed to copy link', 'error');
                     });
                 } else {
@@ -380,7 +381,7 @@
                     showNotification('Public link copied to clipboard!', 'success');
                 }
             } catch (error) {
-                console.error('Error copying link:', error);
+                ErrorLogger.error('Error copying link', error, {});
                 showNotification('Failed to copy link', 'error');
             }
         };
@@ -454,7 +455,7 @@
                 try {
                     localStorage.removeItem('enhancedOnboarding_v1');
                 } catch (e) {
-                    console.warn('Failed to clear onboarding localStorage:', e);
+                    ErrorLogger.warn('Failed to clear onboarding localStorage', { error: e });
                 }
                 
                 showNotification('✅ Twin deleted successfully. Redirecting to onboarding...', 'success');
@@ -466,7 +467,7 @@
                 throw new Error(data.error || 'Failed to delete twin');
             }
         } catch (error) {
-            console.error('Delete twin error:', error);
+            ErrorLogger.error('Delete twin error', error, {});
             showNotification('❌ Failed to delete twin: ' + error.message, 'error');
             deleteBtn.disabled = false;
             deleteBtn.innerHTML = originalText;
@@ -544,7 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 el.textContent = displayTime || '';
                 el.title = fullTime || '';
             } catch (e) {
-                console.error('Error formatting timestamp:', e);
+                ErrorLogger.error('Error formatting timestamp', e, {});
                 el.textContent = '';
             }
         }
@@ -630,7 +631,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     makeTwinPublicBtn.textContent = originalText;
                 }
             } catch (error) {
-                console.error('Make twin public error:', error);
+                ErrorLogger.error('Make twin public error', error, {});
                 showNotification('Network error. Please try again.', 'error');
                 makeTwinPublicBtn.disabled = false;
                 makeTwinPublicBtn.textContent = originalText;
@@ -687,7 +688,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error(data.error || 'Failed to update status');
                 }
             } catch (error) {
-                console.error('Make twin private error:', error);
+                ErrorLogger.error('Make twin private error', error, {});
                 showNotification('Failed to update status: ' + (error.message || 'Unknown error'), 'error');
                 this.disabled = false;
                 this.textContent = originalText;
@@ -746,7 +747,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }, 2000);
                     }).catch(err => {
-                        console.error('Copy failed:', err);
+                        ErrorLogger.error('Copy failed', err, {});
                         showNotification('Failed to copy link', 'error');
                     });
                 } else {

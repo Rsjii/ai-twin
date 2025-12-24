@@ -7,6 +7,7 @@
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>
     <script src="/utils/timeUtils.js"></script>
+    <script src="/utils/errorHandler.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -1169,7 +1170,7 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
                 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('[LEARNING] ❌ API error:', {
+                    ErrorLogger.error('[LEARNING] ❌ API error', new Error(`Status: ${response.status}`), {
                         status: response.status,
                         statusText: response.statusText,
                         errorText: errorText
@@ -1186,7 +1187,7 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
                     
                     // ✅ FIX: Check if learning data exists
                     if (!data.learning) {
-                        console.warn('[LEARNING] ⚠️ No learning data in response, using defaults');
+                        ErrorLogger.warn('[LEARNING] ⚠️ No learning data in response, using defaults', {});
                         data.learning = {
                             totalInteractions: 0,
                             learningScore: 0,
@@ -1204,17 +1205,17 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
                         if (eventsEmpty) eventsEmpty.classList.add('hidden');
                     }
                 } else {
-                    console.error('[LEARNING] ❌ Success=false in response');
+                    ErrorLogger.error('[LEARNING] ❌ Success=false in response', null, {});
                     // Hide loading, show error
                     if (eventsLoading) eventsLoading.classList.add('hidden');
                     if (eventsEmpty) eventsEmpty.classList.add('hidden');
                     if (eventsError) eventsError.classList.remove('hidden');
                 }
             } catch (error) {
-                console.error('[LEARNING] ========== ERROR in loadLearningData ==========');
-                console.error('[LEARNING] Error object:', error);
-                console.error('[LEARNING] Error message:', error.message);
-                console.error('[LEARNING] Error stack:', error.stack);
+                ErrorLogger.error('[LEARNING] ========== ERROR in loadLearningData ==========', error, {
+                    message: error.message,
+                    stack: error.stack
+                });
                 // Hide loading, show error
                 if (eventsLoading) eventsLoading.classList.add('hidden');
                 if (eventsEmpty) eventsEmpty.classList.add('hidden');
@@ -1229,20 +1230,20 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
     try {
         // Wait for Chart.js
         if (typeof Chart === 'undefined') {
-            console.warn('[LEARNING_CHART] ⚠️ Chart.js not loaded yet, retrying...');
+            ErrorLogger.warn('[LEARNING_CHART] ⚠️ Chart.js not loaded yet, retrying...', {});
             setTimeout(() => initializeChart(learningData), 100);
             return;
         }
 
         const canvas = document.getElementById('styleChart');
         if (!canvas) {
-            console.error('[LEARNING_CHART] ❌ styleChart canvas not found');
+            ErrorLogger.error('[LEARNING_CHART] ❌ styleChart canvas not found', null, {});
             return;
         }
         
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            console.error('[LEARNING_CHART] ❌ Could not get canvas context');
+            ErrorLogger.error('[LEARNING_CHART] ❌ Could not get canvas context', null, {});
             return;
         }
         
@@ -1254,7 +1255,7 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
         
         // Validate learningData
         if (!learningData) {
-            console.warn('[LEARNING_CHART] ⚠️ No learning data available for chart');
+            ErrorLogger.warn('[LEARNING_CHART] ⚠️ No learning data available for chart', {});
             return;
         }
         
@@ -1312,14 +1313,14 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
             }
         });
     } catch (error) {
-        console.error('[LEARNING_CHART] ❌ Error in initializeChart:', error);
+        ErrorLogger.error('[LEARNING_CHART] ❌ Error in initializeChart', error, {});
     }
 }
 
 // Update learning progress display
 function updateLearningProgress(learning) {
     if (!learning) {
-        console.warn('[LEARNING_PROGRESS] ⚠️ No learning data provided');
+        ErrorLogger.warn('[LEARNING_PROGRESS] ⚠️ No learning data provided', {});
         return;
     }
     
@@ -1392,7 +1393,7 @@ function updateLearningProgress(learning) {
                                     el.textContent = displayTime;
                                     el.title = fullTime;
                                 } catch (e) {
-                                    console.error('Error formatting timestamp:', e);
+                                    ErrorLogger.error('Error formatting timestamp', e, {});
                                 }
                             }
                         });
@@ -1454,7 +1455,7 @@ function updateLearningProgress(learning) {
                     if (errorState) errorState.classList.remove('hidden');
                 }
             } catch (error) {
-                console.error('Error loading chat history:', error);
+                ErrorLogger.error('Error loading chat history', error, {});
                 // Hide loading, show error
                 if (loadingState) loadingState.classList.add('hidden');
                 if (emptyState) emptyState.classList.add('hidden');
@@ -1497,7 +1498,7 @@ function updateLearningProgress(learning) {
                                 el.textContent = displayTime;
                                 el.title = fullTime;
                             } catch (e) {
-                                console.error('Error formatting timestamp:', e);
+                                ErrorLogger.error('Error formatting timestamp', e, {});
                             }
                         }
                     });
@@ -1550,7 +1551,7 @@ function updateLearningProgress(learning) {
                             el.textContent = displayTime;
                             el.title = fullTime;
                         } catch (e) {
-                            console.error('Error formatting timestamp:', e);
+                            ErrorLogger.error('Error formatting timestamp', e, {});
                         }
                     }
                 });
@@ -1580,7 +1581,7 @@ function updateLearningProgress(learning) {
                     showNotification('Error: ' + data.error, 'error');
                 }
             } catch (error) {
-                console.error('Error converting chat:', error);
+                ErrorLogger.error('Error converting chat', error, {});
                 showNotification('Error converting chat to training example', 'error');
             }
         }
@@ -1618,7 +1619,7 @@ function updateLearningProgress(learning) {
                     showNotification('Error: ' + data.error, 'error');
                 }
             } catch (error) {
-                console.error('Error adding training example:', error);
+                ErrorLogger.error('Error adding training example', error, {});
                 showNotification('Error adding training example', 'error');
             }
         }
@@ -1650,7 +1651,7 @@ function updateLearningProgress(learning) {
                     showNotification('Error: ' + (data.error || 'Failed to save settings'), 'error');
                 }
             } catch (error) {
-                console.error('Error saving learning settings:', error);
+                ErrorLogger.error('Error saving learning settings', error, {});
                 showNotification('Error saving learning settings', 'error');
             }
         }
@@ -1673,7 +1674,7 @@ function updateLearningProgress(learning) {
                 showNotification('Learning reset functionality will be implemented soon', 'info');
                 loadLearningData();
             } catch (error) {
-                console.error('Error resetting learning:', error);
+                ErrorLogger.error('Error resetting learning', error, {});
                 showNotification('Error resetting learning', 'error');
             }
         }
@@ -1714,7 +1715,7 @@ function updateLearningProgress(learning) {
                     URL.revokeObjectURL(url);
                 }
             } catch (error) {
-                console.error('Error exporting learning data:', error);
+                ErrorLogger.error('Error exporting learning data', error, {});
                 showNotification('Error exporting learning data', 'error');
             }
         }
@@ -1801,7 +1802,7 @@ async function loadChatSelection() {
       });
     }
   } catch (error) {
-    console.error('Error loading chat selection:', error);
+    ErrorLogger.error('Error loading chat selection', error, {});
   }
 }
 
@@ -1816,7 +1817,7 @@ async function loadChatMessages(chatId) {
       document.getElementById('messageSelection').classList.remove('hidden');
     }
   } catch (error) {
-    console.error('Error loading chat messages:', error);
+    ErrorLogger.error('Error loading chat messages', error, {});
   }
 }
 
@@ -1872,7 +1873,7 @@ function displayChatMessages(messages) {
           el.textContent = displayTime;
           el.title = fullTime;
         } catch (e) {
-          console.error('Error formatting timestamp:', e);
+          ErrorLogger.error('Error formatting timestamp', e, {});
         }
       }
     });
@@ -1932,7 +1933,7 @@ async function convertSelectedToTraining() {
       showNotification('Error: ' + data.error, 'error');
     }
   } catch (error) {
-    console.error('Error converting messages:', error);
+    ErrorLogger.error('Error converting messages', error, {});
     showNotification('Error converting messages to training examples', 'error');
   }
 }
@@ -1950,7 +1951,7 @@ async function loadTrainingEffectiveness() {
       updateTrainingGoals(data.goals);
     }
   } catch (error) {
-    console.error('Error loading training effectiveness:', error);
+    ErrorLogger.error('Error loading training effectiveness', error, {});
   }
 }
 
@@ -2115,7 +2116,7 @@ async function syncAllData() {
     // Update sync indicator
     updateSyncIndicator(true);
   } catch (error) {
-    console.error('❌ Data sync error:', error);
+    ErrorLogger.error('❌ Data sync error', error, {});
     updateSyncIndicator(false);
   }
 }
@@ -2162,14 +2163,14 @@ function addSyncIndicator() {
 
 // Enhanced error handling with retry
 function handleApiError(error, retryFunction, maxRetries = 3) {
-  console.error('API Error:', error);
+  ErrorLogger.error('API Error', error, { maxRetries });
   
   if (maxRetries > 0) {
     setTimeout(() => {
       retryFunction();
     }, 2000);
   } else {
-    console.error('Max retries exceeded');
+    ErrorLogger.error('Max retries exceeded', null, {});
     showErrorNotification('Failed to load data. Please refresh the page.');
   }
 }
@@ -2412,7 +2413,7 @@ async function loadLearningMilestones() {
       updateGoalsDisplay(data.goals);
     }
   } catch (error) {
-    console.error('Error loading milestones:', error);
+    ErrorLogger.error('Error loading milestones', error, {});
   }
 }
 
@@ -2489,7 +2490,7 @@ async function setLearningGoal() {
       showNotification('Error: ' + data.error, 'error');
     }
   } catch (error) {
-    console.error('Error setting goal:', error);
+    ErrorLogger.error('Error setting goal', error, {});
     showNotification('Error setting learning goal', 'error');
   }
 }
@@ -2514,7 +2515,7 @@ async function loadPerformanceMetrics() {
       updateOptimizationRecommendations(data.recommendations);
     }
   } catch (error) {
-    console.error('Error loading performance metrics:', error);
+    ErrorLogger.error('Error loading performance metrics', error, {});
   }
 }
 
@@ -2566,7 +2567,7 @@ async function optimizeMemories() {
       showNotification('Error: ' + data.error, 'error');
     }
   } catch (error) {
-    console.error('Error optimizing memories:', error);
+    ErrorLogger.error('Error optimizing memories', error, {});
     showNotification('Error optimizing memories', 'error');
   }
 }
@@ -2590,7 +2591,7 @@ async function analyzePerformance() {
       showNotification('Error: ' + data.error, 'error');
     }
   } catch (error) {
-    console.error('Error analyzing performance:', error);
+    ErrorLogger.error('Error analyzing performance', error, {});
     showNotification('Error analyzing performance', 'error');
   }
 }
@@ -2618,7 +2619,7 @@ async function exportAnalytics() {
       showNotification('Error: ' + data.error, 'error');
     }
   } catch (error) {
-    console.error('Error exporting analytics:', error);
+    ErrorLogger.error('Error exporting analytics', error, {});
     showNotification('Error exporting analytics', 'error');
   }
 }
@@ -2650,7 +2651,7 @@ async function resetPerformanceMetrics() {
         showNotification('Error: ' + data.error, 'error');
       }
     } catch (error) {
-      console.error('Error resetting performance:', error);
+      ErrorLogger.error('Error resetting performance', error, {});
       showNotification('Error resetting performance metrics', 'error');
     }
   }
@@ -2674,7 +2675,7 @@ async function regenerateSystemPrompt() {
       showNotification('Error: ' + data.error, 'error');
     }
   } catch (error) {
-    console.error('Error regenerating system prompt:', error);
+    ErrorLogger.error('Error regenerating system prompt', error, {});
     showNotification('Error regenerating system prompt', 'error');
   }
 }
@@ -2730,7 +2731,7 @@ async function loadLearningSettings() {
       }
     }
   } catch (error) {
-    console.error('Error loading learning settings:', error);
+    ErrorLogger.error('Error loading learning settings', error, {});
   }
 }
 </script>

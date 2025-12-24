@@ -7,6 +7,7 @@
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="/utils/timeUtils.js?v=<%= new Date().getTime() %>"></script>
+    <script src="/utils/errorHandler.js"></script>
     <script>
         // ✅ IMMEDIATE theme application (prevents flash)
         (function() {
@@ -1143,7 +1144,7 @@
             // Redirect to enhanced chat
             window.location.href = '/chat';
         } catch (error) {
-            console.error('Start chat error:', error);
+            ErrorLogger.error('Start chat error', error, {});
             showNotification('Network error. Please try again.', 'error');
         }
     }
@@ -1173,7 +1174,7 @@
                 }
             }
         } catch (error) {
-            console.error('Error loading trending twins:', error);
+            ErrorLogger.error('Error loading trending twins', error, {});
             const container = document.getElementById('trendingCards');
             if (container) {
                 container.innerHTML = `
@@ -1270,7 +1271,7 @@
                         }
                     }
                 } catch (err) {
-                    console.error('Error checking own twin from dashboard trending:', err);
+                    ErrorLogger.error('Error checking own twin from dashboard trending', err, {});
                 }
 
                 window.location.href = `/public-twin/chat/${twinId}`;
@@ -1291,7 +1292,7 @@
         if (profileHandle) {
             window.location.href = '/@' + profileHandle;
         } else {
-            console.warn('[createTwinCard] No handle available for profile redirect', twin);
+            ErrorLogger.warn('[createTwinCard] No handle available for profile redirect', { twin });
             showNotification('Profile is not available for this twin yet.', 'error');
         }
             }
@@ -1333,7 +1334,7 @@ async function loadPublicChatInteractions() {
         
         renderRecentInteractions(twinChats);        
     } catch (error) {
-        console.error('❌ Error loading public chat interactions:', error);
+        ErrorLogger.error('❌ Error loading public chat interactions', error, {});
         // Don't hide section, show error message instead
         const container = document.getElementById('recentInteractions');
         if (container) {
@@ -1454,7 +1455,7 @@ function renderRecentInteractions(chats) {
             if (handle) {
                 window.location.href = `/@${handle}`;
             } else {
-                console.warn('[renderRecentInteractions] No handle available for profile redirect', twin);
+                ErrorLogger.warn('[renderRecentInteractions] No handle available for profile redirect', { twin });
                 showNotification('Profile is not available for this twin yet.', 'error');
             }
             });
@@ -1489,7 +1490,7 @@ function renderRecentInteractions(chats) {
                         }
                     }
                 } catch (err) {
-                    console.error('Error checking own twin from recent chats:', err);
+                    ErrorLogger.error('Error checking own twin from recent chats', err, {});
                 }
 
                 const url = hasChatId
@@ -1507,7 +1508,7 @@ function renderRecentInteractions(chats) {
         if (profileHandle) {
             window.location.href = `/@${profileHandle}`;
         } else {
-            console.warn('[renderRecentInteractions] No handle available for profile redirect', twin);
+            ErrorLogger.warn('[renderRecentInteractions] No handle available for profile redirect', { twin });
             showNotification('Profile is not available for this twin yet.', 'error');
         }
         });
@@ -1527,7 +1528,7 @@ function renderRecentInteractions(chats) {
                         timestampEl.textContent = displayTime;
                         timestampEl.title = fullTime;
                     } catch (e) {
-                        console.error('Error formatting timestamp:', e);
+                        ErrorLogger.error('Error formatting timestamp', e, {});
                         timestampEl.textContent = relativeTime || 'Just now';
                     }
                 }
@@ -1578,7 +1579,7 @@ function renderRecentInteractions(chats) {
                         el.textContent = displayTime;
                         el.title = fullTime;
                     } catch (e) {
-                        console.error('Error formatting timestamp:', e);
+                        ErrorLogger.error('Error formatting timestamp', e, {});
                     }
                 }
             });
@@ -1611,7 +1612,7 @@ function renderRecentInteractions(chats) {
                 }
             }
         } catch (error) {
-            console.error('Load twins error:', error);
+            ErrorLogger.error('Load twins error', error, {});
         }
     }
     
@@ -1634,7 +1635,7 @@ function renderRecentInteractions(chats) {
                 showNotification(result.error || 'Failed to generate profile link', 'error');
             }
         } catch (error) {
-            console.error('Generate profile link error:', error);
+            ErrorLogger.error('Generate profile link error', error, {});
             showNotification('Network error. Please try again.', 'error');
         }
     }
@@ -1658,11 +1659,11 @@ async function createInvite() {
             await navigator.clipboard.writeText(referralCode);
             showNotification('Referral code copied to clipboard!', 'success');
         } else {
-            console.error('❌ API error:', result);
+            ErrorLogger.error('❌ API error', null, { result });
             showNotification(result.error || 'Failed to get referral code', 'error');
         }
     } catch (error) {
-        console.error('💥 Get referral code error:', error);
+        ErrorLogger.error('💥 Get referral code error', error, {});
         showNotification('Network error. Please try again.', 'error');
     }
 }
@@ -1685,7 +1686,7 @@ async function createInvite() {
                 displayPublicTwinStatus(null);
             }
         } catch (error) {
-            console.error('❌ Load public twin status error:', error);
+            ErrorLogger.error('❌ Load public twin status error', error, {});
             displayPublicTwinStatus(null);
         }
     }
@@ -1796,11 +1797,11 @@ function displayPublicTwinStatus(twin) {
             // ✅ Force page reload to show updated status
             window.location.reload();
             } else {
-            console.error('Error response:', result);
+            ErrorLogger.error('Error response', null, { result });
             showNotification(result.error || result.message || 'Failed to make twin public', 'error');
             }
         } catch (error) {
-            console.error('Make twin public error:', error);
+            ErrorLogger.error('Make twin public error', error, {});
             showNotification('Network error. Please try again.', 'error');
         }
     }
@@ -1812,7 +1813,7 @@ function displayPublicTwinStatus(twin) {
             await navigator.clipboard.writeText(url);
             showNotification('Public profile link copied to clipboard!', 'success');
         } catch (error) {
-            console.error('Copy to clipboard error:', error);
+            ErrorLogger.error('Copy to clipboard error', error, {});
             showNotification('Failed to copy link. Please copy manually: ' + url, 'error');
         }
     }
@@ -1974,7 +1975,7 @@ setTimeout(() => {
             // Get the logout button element
             const logoutBtn = document.querySelector('button[onclick="logout()"]');
             if (!logoutBtn) {
-                console.error('Logout button not found!');
+                ErrorLogger.error('Logout button not found', null, {});
                 return;
             }
             
@@ -2018,7 +2019,7 @@ setTimeout(() => {
                     logoutBtn.disabled = false;
                 }
             } catch (error) {
-                console.error('Logout error:', error);
+                ErrorLogger.error('Logout error', error, {});
                 showFlashMessage('Network error. Please try again.', 'error');
                 
                 // Restore button state
@@ -2043,7 +2044,7 @@ setTimeout(() => {
 
         // Global error handler
         window.addEventListener('error', (event) => {
-            console.error('Global error:', event.error);
+            ErrorLogger.error('Global error', event.error, {});
         });
         
         // Add event listeners for dropdown and logout button
@@ -2077,7 +2078,7 @@ setTimeout(() => {
                     logout();
                 });
             } else {
-                console.error('Logout button not found on page load');
+                ErrorLogger.error('Logout button not found on page load', null, {});
             }
             
 // REPLACE lines 1826-1904 with improved theme toggle that handles header conflict:
@@ -2218,7 +2219,7 @@ setTimeout(() => {
                     statsContainer.classList.remove('hidden');
                 }
             } catch (error) {
-                console.error('Error loading stats:', error);
+                ErrorLogger.error('Error loading stats', error, {});
                 showStatsError();
             } finally {
                 hideStatsLoading();
@@ -2242,7 +2243,7 @@ setTimeout(() => {
                         }
                     }
                 } catch (error) {
-                    console.error('Failed to load memory stats:', error);
+                    ErrorLogger.error('Failed to load memory stats', error, {});
                 }
 
                 // Get IQ growth (calculate from feedback)
@@ -2259,7 +2260,7 @@ setTimeout(() => {
                         }
                     }
                 } catch (error) {
-                    console.error('Failed to load feedback stats:', error);
+                    ErrorLogger.error('Failed to load feedback stats', error, {});
                 }
 
                 // Get conversation count
@@ -2273,11 +2274,11 @@ setTimeout(() => {
                         }
                     }
                 } catch (error) {
-                    console.error('Failed to load chat count:', error);
+                    ErrorLogger.error('Failed to load chat count', error, {});
                 }
                 <% } %>
             } catch (error) {
-                console.error('Failed to load analytics:', error);
+                ErrorLogger.error('Failed to load analytics', error, {});
             }
         }
 
