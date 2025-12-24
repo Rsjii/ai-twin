@@ -84,15 +84,10 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
     // 4) Build personaData object from onboarding payload
     const personaData = createPersonaData(validatedData);
     logger.info('Generated persona data:', personaData);
-    console.log('[ONBOARDING] [HYP-A] personaData created:', JSON.stringify(personaData, null, 2));
-    console.log('[ONBOARDING] [HYP-A] Source: onboarding payload, Destination: Twin table');
 
     // 5) Generate system prompt from persona
     const systemPrompt = generateSystemPrompt(personaData);
     logger.info('Generated system prompt');
-    console.log('[ONBOARDING] [HYP-B] systemPrompt generated from personaData');
-    console.log('[ONBOARDING] [HYP-B] systemPrompt length:', systemPrompt.length, 'chars');
-    console.log('[ONBOARDING] [HYP-B] systemPrompt preview:', systemPrompt.substring(0, 200) + '...');
 
     // 6) MVP (personaData-only): styleVector is legacy/ignored.
     // Keep it stored as an empty object to avoid schema drift.
@@ -164,9 +159,6 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
     }
 
     const result = await db.query(insertQuery, insertParams);
-    console.log('[ONBOARDING] [HYP-A] Twin stored in database:', { twinId, userId: req.user.id });
-    console.log('[ONBOARDING] [HYP-A] personaData stored:', JSON.stringify(personaData, null, 2));
-    console.log('[ONBOARDING] [HYP-B] systemPrompt stored in database');
 
     // 10) Initialize default settings with new memory structure
     // ✅ FIX: Store settings in personaData (not separate column - single source of truth)
@@ -204,8 +196,6 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
       `UPDATE "Twin" SET "personaData" = $1 WHERE id = $2`,
       [JSON.stringify(updatedPersonaData), twinId]
     );
-    console.log('[ONBOARDING] [HYP-A] Updated personaData with default settings');
-    console.log('[ONBOARDING] [HYP-A] Settings included:', JSON.stringify(defaultSettings, null, 2));
 
     // 11) Mirror likes/avoids to Long-Term Memory preferences (existing system, no new endpoint)
     const likes = (validatedData.preferences?.likes || []).slice(0, 3);
@@ -234,7 +224,6 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
           )
         ),
       ]);
-      console.log('[ONBOARDING] [HYP-A] ✅ Mirrored likes/avoids to LTM preferences:', { likes: likes.length, avoids: avoids.length });
     } catch (memoryError) {
       // Don't fail twin creation if memory write fails (non-critical)
       logger.warn('[ONBOARDING] Failed to mirror likes/avoids to LTM (non-critical):', memoryError);

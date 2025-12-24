@@ -374,11 +374,6 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     
     // 2. Get chat history for context (BEFORE saving user message) - Budget-aware with session summary
     const sessionMemory = await chatUtils.getSessionMemoryForContext(chatId).catch(() => null);
-    console.log('[ENHANCED_CHAT] [HYP-F] [HYP-G] Session memory check:', {
-      chatId,
-      hasSummary: !!sessionMemory?.summary,
-      summaryLength: sessionMemory?.summary?.length || 0,
-    });
 
     // ✅ Budget-aware: only fetch recent messages if needed (not always 20)
     const needsRecent = (() => {
@@ -413,13 +408,6 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
       ? (needsRecent ? 4 : 0)
       : 10;
 
-    console.log('[ENHANCED_CHAT] [HYP-G] Budget-aware message fetching:', {
-      hasSummary: !!sessionMemory?.summary,
-      needsRecent,
-      recentLimit,
-      reason: !sessionMemory?.summary ? 'no summary → fetch 10' :
-              needsRecent ? 'needsRecent=true → fetch 4' : 'needsRecent=false → fetch 0 (use summary only)'
-    });
 
     const recentMessages = recentLimit > 0
       ? await chatUtils.getRecentMessages(chatId, 'Message', recentLimit)
@@ -431,11 +419,6 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
       timestamp: msg.createdAt
     }));
 
-    console.log('[ENHANCED_CHAT] [HYP-I] Context pieces:', {
-      sessionMemorySummary: !!sessionMemory?.summary,
-      recentMessagesCount: chatHistory.length,
-      fullHistorySent: false,
-    });
     
     logger.info('📚 Chat history loaded (budget-aware):', chatHistory.length, 'messages');
     
@@ -596,14 +579,6 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
             actualTokensUsed: tokensUsed || 0,
           });
           
-          // ✅ Log main response token usage
-          console.log('[TOKEN_USAGE] [MAIN_RESPONSE] Enhanced Chat:', {
-            chatId,
-            userId,
-            reserved: reservation.reserved,
-            actualUsed: tokensUsed || 0,
-            delta: (tokensUsed || 0) - reservation.reserved
-          });
         }
       } catch (error) {
         // If LLM call fails, still reconcile (reduce reserved tokens)
@@ -715,12 +690,10 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
     // ✅ Post-response cleanup (async) - Session memory update + "remember this"
     (async () => {
       try {
-        console.log('[ENHANCED_CHAT] [HYP-C] [HYP-H] Updating session memory (delta mode)');
         const memoryTokens = await chatUtils.updateSessionMemory(chatId, chat.twin_id, 'Message', {
           kind: 'user',
           userId: req.user?.id
         });
-        console.log('[ENHANCED_CHAT] [HYP-C] [HYP-H] Session memory update completed');
         
         // ✅ Accumulate all tokens (main response + memory)
         const totalInputTokens = inputTokens + (memoryTokens?.inputTokens || 0);
@@ -761,15 +734,9 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
           ];          
 
           const shouldExtractFacts = rememberPatterns.some(pattern => pattern.test(message));
-          console.log('[ENHANCED_CHAT] [HYP-D] "Remember this" detection:', {
-            message: message.substring(0, 50),
-            shouldExtractFacts,
-            patternMatched: shouldExtractFacts
-          });
 
           if (shouldExtractFacts && chat.twin_id) {
             logger.info('✅ User requested to remember something - extracting facts');
-            console.log('[ENHANCED_CHAT] [HYP-D] Triggering fact extraction for twin:', chat.twin_id);
             
             // ✅ Get session memory summary for context
             const sessionMem = await chatUtils.getSessionMemoryForContext(chatId);
@@ -789,14 +756,12 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
             await memoryService.extractLongTermFacts(chat.twin_id, extractionText)
               .then(() => {
                 logger.info(`✅ Facts extracted from user's "remember this" request for twin ${chat.twin_id}`);
-                console.log('[ENHANCED_CHAT] [HYP-D] Fact extraction completed');
               })
               .catch(err => logger.error('Fact extraction failed:', err));
           }
         }
       } catch (error) {
         logger.error('Post-response cleanup failed:', error);
-        console.log('[ENHANCED_CHAT] Post-response async failed:', error);
       }
     })();
 

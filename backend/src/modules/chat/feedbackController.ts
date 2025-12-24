@@ -244,13 +244,6 @@ export const getFeedbackAnalytics = async (req: Request, res: Response, next: Ne
       ? Math.round((feedback.positive_count / feedback.total_feedback) * 100)
       : 0;
     
-    console.log('[FEEDBACK_ANALYTICS] Query result:', {
-      positiveCount: feedback.positive_count,
-      negativeCount: feedback.negative_count,
-      totalFeedback: feedback.total_feedback,
-      satisfactionScore,
-    });
-    
     // ✅ Log response before sending
     try {
       logger.info('[FEEDBACK_ANALYTICS:RESPONSE]', {
@@ -264,7 +257,7 @@ export const getFeedbackAnalytics = async (req: Request, res: Response, next: Ne
       logger.warn('[FEEDBACK_ANALYTICS] Failed to log RESPONSE:', logErr);
     }
 
-    console.log('[FEEDBACK_ANALYTICS] Final response data:', {
+    res.json({
       success: true,
       analytics: {
         positiveFeedback: feedback.positive_count,

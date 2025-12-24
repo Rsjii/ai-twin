@@ -6,6 +6,7 @@
 // COMMENTED OUT: OpenAI - Now using Groq via llmClient
 // import OpenAI from 'openai';
 import { config } from '../config/env';
+import { logger } from '../config/logger';
 
 // const openai = new OpenAI({
 //   apiKey: config.openaiApiKey,
@@ -107,7 +108,7 @@ Return JSON only:
 
     return result;
   } catch (error) {
-    console.error('Style critic error:', error);
+    logger.error('Style critic error:', error);
     return {
       score: 50,
       notes: 'Style critic failed',
@@ -260,7 +261,7 @@ REWRITTEN RESPONSE:`;
     const content = llmResponse.content;
     return content?.trim() || text;
   } catch (error) {
-    console.error('Banlist rewrite error:', error);
+    logger.error('Banlist rewrite error:', error);
     return text;
   }
 }

@@ -9,34 +9,22 @@ import { EventLogger } from '../../services/eventLogger';
 
 export const getMyReferralCode = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    console.log('🔵 getMyReferralCode called by user:', req.user?.email);
-    
     if (!req.user) {
-      console.log('❌ No user in request');
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    console.log('👤 User ID:', req.user.id);
-
     const { db } = await import('../../config/database');
-    console.log('🔍 Querying database for referralCode...');
     
     const result = await db.query(
       'SELECT "referralCode" FROM "User" WHERE id = $1',
       [req.user.id]
     );
     
-    console.log('📊 Database result:', result.rows[0]);
-    
     if (!result.rows[0]?.referralCode) {
-      console.log('🆕 No referral code found, generating new one...');
       const code = generateInviteCode();
-      console.log('🎫 Generated code:', code);
       
       await db.query('UPDATE "User" SET "referralCode" = $1 WHERE id = $2', 
         [code, req.user.id]);
-      
-      console.log('✅ New referral code saved to database');
       
       return res.json({
         success: true,
@@ -46,7 +34,6 @@ export const getMyReferralCode = async (req: AuthenticatedRequest, res: Response
     }
     
     const code = result.rows[0].referralCode;
-    console.log('✅ Using existing referral code:', code);
     
     res.json({
       success: true,
@@ -54,7 +41,6 @@ export const getMyReferralCode = async (req: AuthenticatedRequest, res: Response
       referralUrl: `/?ref=${code}`
     });
   } catch (error) {
-    console.error('❌ Get referral code error:', error);
     logger.error('Get referral code error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }

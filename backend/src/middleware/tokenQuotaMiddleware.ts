@@ -7,6 +7,7 @@ import { generateId } from '../utils/idGenerator';
 import { EventLogger } from '../services/eventLogger';
 import { EVENT_TYPES } from '../config/constants';
 import { detectFastPathCategory, fastPathReply } from '../utils/commonMessageFastPath';
+import { logger } from '../config/logger';
 
 /**
  * Middleware to check token quota BEFORE processing request
@@ -34,12 +35,6 @@ export const checkTokenQuota = async (req: Request, res: Response, next: NextFun
         ? 'Daily token limit reached. Please login to continue.'
         : 'Daily token limit reached.';
 
-      console.log('[TOKEN_QUOTA_MIDDLEWARE] ❌ QUOTA EXCEEDED - Blocking request:', {
-        actorType: actor.kind,
-        used: quotaStatus.used,
-        limit: quotaStatus.limit,
-        ip: actor.kind === 'anon' ? req.ip : undefined
-      });
 
       return res.status(429).json({
         success: false,
@@ -53,7 +48,7 @@ export const checkTokenQuota = async (req: Request, res: Response, next: NextFun
     // Quota OK, continue to next middleware/handler
     next();
   } catch (error) {
-    console.error('[TOKEN_QUOTA_MIDDLEWARE] Error checking quota:', error);
+    logger.error('Error checking token quota:', error);
     // On error, allow request to proceed (fail open, but log error)
     // You can change this to fail closed if preferred
     next();
@@ -161,17 +156,6 @@ async function handleBlockedOrFastPath(params: {
   const isBanned = checkBlacklist(message);
   const cat = detectFastPathCategory(message);
 
-  // ✅ ADD: Log when middleware intercepts
-  if (isBanned || cat) {
-    console.log('[TOKEN_QUOTA_MIDDLEWARE] [INTERCEPT] Banned/Fast-path detected:', {
-      isBanned,
-      category: cat,
-      chatId,
-      messagePreview: typeof message === 'string' ? message.substring(0, 50) : 'invalid',
-      chatTable,
-      actorKind: actor.kind
-    });
-  }
 
   if (!isBanned && !cat) return false;
 
@@ -209,18 +193,7 @@ async function handleBlockedOrFastPath(params: {
     }
   }
 
-  // ✅ ADD: Logging to verify middleware is handling
-  console.log('[TOKEN_QUOTA_MIDDLEWARE] [BANNED/FAST-PATH] Handling in middleware:', {
-    isBanned,
-    category: cat,
-    chatId,
-    isFirstMessage,
-    existingTitle,
-    isDefaultTitle,
-    generatedTitle,
-    messageCount: prevCount,
-    chatTable
-  });
+ 
 
   const personaData = row.personaData ?? null;
 
@@ -370,7 +343,7 @@ export const checkTokenQuotaForPublicChatMessage = async (req: Request, res: Res
 
     return next();
   } catch (e) {
-    console.error('[TOKEN_QUOTA_MIDDLEWARE] Public chat precheck failed:', e);
+    logger.error('Public chat precheck failed:', e);
     return next();
   }
 };
@@ -436,7 +409,7 @@ export const checkTokenQuotaForPrivateChatMessage = async (req: Request, res: Re
 
     return next();
   } catch (e) {
-    console.error('[TOKEN_QUOTA_MIDDLEWARE] Private chat precheck failed:', e);
+    logger.error('Private chat precheck failed:', e);
     return next();
   }
 };
@@ -502,7 +475,7 @@ export const checkTokenQuotaForEnhancedChat = async (req: Request, res: Response
 
     return next();
   } catch (e) {
-    console.error('[TOKEN_QUOTA_MIDDLEWARE] Enhanced chat precheck failed:', e);
+    logger.error('Enhanced chat precheck failed:', e);
     return next();
   }
 };

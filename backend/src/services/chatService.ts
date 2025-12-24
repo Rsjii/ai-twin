@@ -31,7 +31,6 @@ export async function generateResponseWithTone(
     
     return newResponse;
   } catch (error) {
-    console.error('Generate response with tone error:', error);
     throw error;
   }
 }
@@ -66,7 +65,6 @@ export async function adjustResponseTone(
     
     return adjustedResponse;
   } catch (error) {
-    console.error('Adjust response tone error:', error);
     throw error;
   }
 }

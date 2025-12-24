@@ -34,13 +34,6 @@ export const requireAdminAuth = (req: Request, res: Response, next: Function) =>
 // Get comprehensive admin analytics
 export const getAdminAnalytics = async (req: Request, res: Response) => {
   try {
-    console.log('[BACKEND_ADMIN] ========== START getAdminAnalytics ==========');
-    console.log('[BACKEND_ADMIN] Request details:', {
-      path: req.path,
-      method: req.method,
-      adminUser: req.user?.email,
-      hasUser: !!req.user
-    });
 
     // Get all metrics in parallel
     const [
@@ -439,18 +432,10 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       }))
     };
 
-    console.log('[BACKEND_ADMIN] Processing event breakdown...');
-    console.log('[BACKEND_ADMIN] Event types result:', {
-      rowsCount: eventTypesResult.rows.length,
-      rows: eventTypesResult.rows
-    });
-    
     const eventBreakdown = eventTypesResult.rows.reduce((acc, event) => {
       acc[event.type] = parseInt(event.count);
       return acc;
     }, {} as Record<string, number>);
-    
-    console.log('[BACKEND_ADMIN] Event breakdown object:', eventBreakdown);
 
     // ✅ Sanitize recentActivity
     const recentActivity = {
@@ -578,26 +563,10 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       }
     };
 
-    console.log('[BACKEND_ADMIN] Response data structure:', {
-      success: responseData.success,
-      hasMetrics: !!responseData.metrics,
-      hasContent: !!responseData.content,
-      eventBreakdownKeys: Object.keys(responseData.content.eventBreakdown),
-      eventBreakdownValues: Object.values(responseData.content.eventBreakdown),
-      dailyUsers: responseData.metrics.daily.users,
-      weeklyUsers: responseData.metrics.weekly.users,
-      monthlyUsers: responseData.metrics.monthly.users
-    });
-    console.log('[BACKEND_ADMIN] ✅ Sending response with status 200');
-    console.log('[BACKEND_ADMIN] ========== END getAdminAnalytics (SUCCESS) ==========');
     res.json(responseData);
 
   } catch (error) {
-    console.error('[BACKEND_ADMIN] ========== ERROR in getAdminAnalytics ==========');
-    console.error('[BACKEND_ADMIN] Error:', error);
-    console.error('[BACKEND_ADMIN] Error stack:', error instanceof Error ? error.stack : 'No stack');
     logger.error('Admin analytics error:', error);
-    console.log('[BACKEND_ADMIN] ========== END getAdminAnalytics (ERROR) ==========');
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -2046,8 +2015,7 @@ LEFT JOIN "Twin" t ON
     });
     
   } catch (error) {
-    console.error('=== ERROR IN GET ACTIVITY FEED ===');
-    console.error('Error details:', error);
+    logger.error('Get activity feed error:', error);
     res.status(500).json({ 
       error: 'Internal server error',
       details: (error as Error).message 

@@ -45,14 +45,7 @@ export async function reserveDailyTokens(params: {
   const day = utcDay();
   const reserve = Math.max(0, Math.floor(params.reserveTokens));
 
-  console.log('[TOKEN_QUOTA] [RESERVE] Starting reservation:', {
-    actorKind: params.actor.kind,
-    reserveTokens: reserve,
-    day
-  });
-
   if (reserve <= 0) {
-    console.log('[TOKEN_QUOTA] [RESERVE] Reserve <= 0, skipping');
     return { day, actorKey: 'noop', reserved: 0 };
   }
 
@@ -79,13 +72,7 @@ export async function reserveDailyTokens(params: {
   }
 
   const limit = actorType === 'user' ? TOKEN_QUOTAS.USER_DAILY_TOKENS : TOKEN_QUOTAS.ANON_DAILY_TOKENS;
-  
-  console.log('[TOKEN_QUOTA] [RESERVE] Actor details:', {
-    actorType,
-    actorKey,
-    limit,
-    reserve
-  });
+ 
 
   await db.query('BEGIN');
   try {
@@ -106,21 +93,8 @@ export async function reserveDailyTokens(params: {
     );
 
     const used = Number(row.rows?.[0]?.tokensUsed || 0);
-    console.log('[TOKEN_QUOTA] [RESERVE] Current usage:', {
-      used,
-      reserve,
-      total: used + reserve,
-      limit
-    });
     
     if (used + reserve > limit) {
-      console.log('[TOKEN_QUOTA] [RESERVE] ❌ QUOTA EXCEEDED:', {
-        used,
-        reserve,
-        total: used + reserve,
-        limit,
-        actorType
-      });
       throw new TokenQuotaError(
         actorType === 'anon'
           ? 'Daily token limit reached. Please login to continue.'
@@ -140,12 +114,6 @@ export async function reserveDailyTokens(params: {
     );
 
     await db.query('COMMIT');
-    console.log('[TOKEN_QUOTA] [RESERVE] ✅ Reservation successful:', {
-      day,
-      actorKey,
-      reserved: reserve,
-      newTotal: used + reserve
-    });
     return { day, actorKey, reserved: reserve };
   } catch (e) {
     await db.query('ROLLBACK');
@@ -160,33 +128,12 @@ export async function reconcileDailyTokens(params: {
   actualTokensUsed: number;
 }): Promise<void> {
   if (!params.actorKey || params.actorKey === 'noop') {
-    console.log('[TOKEN_QUOTA] [RECONCILE] Skipping (noop)');
     return;
   }
 
   const delta = Math.floor(params.actualTokensUsed) - Math.floor(params.reserved);
-  console.log('[TOKEN_QUOTA] [RECONCILE] Reconciliation:', {
-    day: params.day,
-    actorKey: params.actorKey,
-    reserved: params.reserved,
-    actualTokensUsed: params.actualTokensUsed,
-    delta
-  });
 
   if (delta === 0) {
-    console.log('[TOKEN_QUOTA] [RECONCILE] No adjustment needed (delta = 0)');
-    // Still log total usage even if delta is 0
-    const currentResult = await db.query(
-      `SELECT "tokensUsed" FROM "TokenUsageDaily" WHERE day = $1::date AND "actorKey" = $2`,
-      [params.day, params.actorKey]
-    );
-    const currentTotal = currentResult.rows?.[0]?.tokensUsed || 0;
-    console.log('[TOKEN_USAGE] [DAILY_TOTAL] Current daily usage:', {
-      actorKey: params.actorKey,
-      totalUsed: currentTotal,
-      thisMessage: params.actualTokensUsed,
-      delta: 0
-    });
     return;
   }
 
@@ -203,23 +150,7 @@ export async function reconcileDailyTokens(params: {
     [params.day, params.actorKey]
   );
   const updatedTotal = updatedResult.rows?.[0]?.tokensUsed || 0;
-  
-  console.log('[TOKEN_QUOTA] [RECONCILE] ✅ Reconciliation complete:', {
-    day: params.day,
-    actorKey: params.actorKey,
-    reserved: params.reserved,
-    actualTokensUsed: params.actualTokensUsed,
-    delta,
-    updatedTotal: updatedTotal
-  });
-  
-  // ✅ Log total daily usage summary
-  console.log('[TOKEN_USAGE] [DAILY_TOTAL] Current daily usage:', {
-    actorKey: params.actorKey,
-    totalUsed: updatedTotal,
-    thisMessage: params.actualTokensUsed,
-    delta: delta
-  });
+
 }
 
 /**
@@ -260,15 +191,6 @@ export async function checkQuotaStatus(params: {
   // ✅ If reserveTokens provided, check used + reserve against limit (matches reserveDailyTokens behavior)
   const exceeded = reserveTokens > 0 ? (used + reserveTokens > limit) : (used >= limit);
 
-  console.log('[TOKEN_QUOTA] [CHECK] Quota status:', {
-    actorType,
-    actorKey,
-    used,
-    reserveTokens,
-    totalIfReserved: used + reserveTokens,
-    limit,
-    exceeded
-  });
 
   return { exceeded, used, limit, reserveTokens };
 }

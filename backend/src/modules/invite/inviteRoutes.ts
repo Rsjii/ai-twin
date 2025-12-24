@@ -6,12 +6,7 @@ import { generateCSRFToken } from '../../middleware/csrf';
 const router = Router();
 
 // Get my referral code
-router.get('/my-code', (req, res, next) => {
-  console.log('🟢 Route /api/invite/my-code hit');
-  console.log('📝 Method:', req.method);
-  console.log('🔑 Headers:', req.headers);
-  next();
-}, generateCSRFToken, requireJWTFromCookie, getMyReferralCode);
+router.get('/my-code', generateCSRFToken, requireJWTFromCookie, getMyReferralCode);
 
 // Get my referrals
 router.get('/my-referrals', generateCSRFToken, requireJWTFromCookie, getMyReferrals);

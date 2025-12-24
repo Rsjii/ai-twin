@@ -274,11 +274,9 @@ ALTER TABLE "PublicMessage" ADD CONSTRAINT "PublicMessage_chatId_fkey" FOREIGN K
 
 export async function initializeDatabase() {
   try {
-    console.log('Initializing database...');
     await db.query(createTablesSQL);
-    console.log('Database initialized successfully!');
   } catch (error) {
-    console.error('Error initializing database:', error);
+    logger.error('Error initializing database:', error);
     throw error;
   }
 }

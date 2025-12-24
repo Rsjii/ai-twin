@@ -24,13 +24,6 @@ export const getMemoryStats = async (req: any, res: Response, next: NextFunction
     const twinId = decoded.id;
     const userId = req.user?.id || req.userId;
     
-    console.log('[MEMORY_STATS:START]', {
-      twinId,
-      userId,
-      path: req.path,
-      method: req.method,
-    });
-    
     if (!userId) {
       throw createError.unauthorized();
     }
@@ -48,45 +41,14 @@ export const getMemoryStats = async (req: any, res: Response, next: NextFunction
       GROUP BY category
     `, [twinId]);
     
-    // Get StyleAnchors stats
-    // const anchorsResult = await db.query(`
-    //   SELECT 
-    //     type,
-    //     COUNT(*) as count
-    //   FROM "style_anchors"
-    //   WHERE twin_id = $1
-    //   GROUP BY type
-    // `, [twinId]);
-    
-    console.log('[MEMORY_STATS] Query results:', {
-      longTermRows: longTermResult.rows.length,
-      // anchorsRows: anchorsResult.rows.length,
-      longTermData: longTermResult.rows,
-      // anchorsData: anchorsResult.rows,
-    });
-    
     const totalMemories = longTermResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
-    // const totalAnchors = anchorsResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
     
     const stats = [
       ...longTermResult.rows.map(row => ({
         bucket: row.category === 'fact' ? 'facts' : row.category,
         count: parseInt(row.count)
       })),
-      // ...anchorsResult.rows.map(row => ({
-      //   bucket: row.type === 'phrase' ? 'voice' : row.type,
-      //   count: parseInt(row.count)
-      // }))
     ];
-
-    console.log('[MEMORY_STATS] Final response:', {
-      success: true,
-      total: totalMemories,
-      totalMemories,
-      // totalAnchors,
-      statsCount: stats.length,
-      stats,
-    });
     
     res.set({
       'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',

@@ -89,14 +89,6 @@ export class MemoryService {
         extras: mergeUnique(prevPinnedFacts.extras || [], pinnedDelta.extras || []), // ✅ NEW
       };
 
-      if (pinnedDelta.name || pinnedDelta.likes?.length || pinnedDelta.hobbies?.length || pinnedDelta.extras?.length) {
-        console.log('[MEMORY_SERVICE] [PINNED_FACTS] Merging pinned facts:', {
-          chatId,
-          delta: pinnedDelta,
-          previous: prevPinnedFacts,
-          merged: mergedPinnedFacts,
-        });
-      }
 
       const prevSummary: string = (existing?.summary || '').toString();
       const prevTopics: string[] = Array.isArray(existing?.keyTopics) ? existing.keyTopics : [];
@@ -111,39 +103,20 @@ export class MemoryService {
 
       if (mode === 'delta' && existing) {
         // Incremental: update previous summary with new messages only
-        console.log('[MEMORY_SERVICE] [HYP-H] Incremental summary update (delta mode):', {
-          chatId,
-          prevSummaryLength: prevSummary.length,
-          newMessagesCount: messages.length
-        });
         // ✅ OPTIMIZED: Single LLM call for summary + topics
         const result = await this.generateSessionSummaryWithTopics(messages, prevSummary, prevTopics);
         summary = result.summary;
         keyTopics = result.topics;
         summaryTokens = result.tokensUsed || 0;
         topicsTokens = 0; // Already included in combined call
-        console.log('[MEMORY_SERVICE] [HYP-H] Delta summary generated (combined call):', {
-          newSummaryLength: summary.length,
-          keyTopicsCount: keyTopics.length,
-          tokensUsed: summaryTokens
-        });
       } else {
         // Full: regenerate from all messages
-        console.log('[MEMORY_SERVICE] [HYP-C] Full summary generation (no existing summary):', {
-          chatId,
-          messagesCount: messages.length
-        });
         // ✅ OPTIMIZED: Single LLM call for summary + topics
         const result = await this.generateSessionSummaryWithTopics(messages, undefined, []);
         summary = result.summary;
         keyTopics = result.topics;
         summaryTokens = result.tokensUsed || 0;
         topicsTokens = 0; // Already included in combined call
-        console.log('[MEMORY_SERVICE] [HYP-C] Full summary generated (combined call):', {
-          summaryLength: summary.length,
-          keyTopicsCount: keyTopics.length,
-          tokensUsed: summaryTokens
-        });
       }
 
       const messageCount = mode === 'delta' && existing ? (prevCount + messages.length) : messages.length;
@@ -248,14 +221,6 @@ export class MemoryService {
         extras: mergeUnique(prevPinnedFacts.extras || [], pinnedDelta.extras || []), // ✅ NEW
       };
 
-      if (pinnedDelta.name || pinnedDelta.likes?.length || pinnedDelta.hobbies?.length || pinnedDelta.extras?.length) {
-        console.log('[MEMORY_SERVICE] [PINNED_FACTS] [PUBLIC] Merging pinned facts:', {
-          chatId,
-          delta: pinnedDelta,
-          previous: prevPinnedFacts,
-          merged: mergedPinnedFacts,
-        });
-      }
 
       const prevSummary: string = (existing?.summary || '').toString();
       const prevTopics: string[] = Array.isArray(existing?.keyTopics) ? existing.keyTopics : [];
@@ -275,14 +240,6 @@ export class MemoryService {
         keyTopics = result.topics;
         summaryTokens = result.tokensUsed || 0;
         topicsTokens = 0;
-        console.log('[MEMORY_SERVICE] [PUBLIC] Incremental summary generated (combined call):', {
-          chatId,
-          prevLength: prevSummary.length,
-          newLength: summary.length,
-          deltaMessages: messages.length,
-          topicsCount: keyTopics.length,
-          tokensUsed: summaryTokens
-        });
       } else {
         // ✅ OPTIMIZED: Single LLM call for summary + topics
         const result = await this.generateSessionSummaryWithTopics(messages, undefined, []);
@@ -290,13 +247,6 @@ export class MemoryService {
         keyTopics = result.topics;
         summaryTokens = result.tokensUsed || 0;
         topicsTokens = 0;
-        console.log('[MEMORY_SERVICE] [PUBLIC] Full summary generated (combined call):', {
-          chatId,
-          summaryLength: summary.length,
-          messageCount: messages.length,
-          topicsCount: keyTopics.length,
-          tokensUsed: summaryTokens
-        });
       }
 
       const messageCount = mode === 'delta' && existing ? (prevCount + messages.length) : messages.length;
@@ -317,7 +267,6 @@ export class MemoryService {
           [summary, keyTopics, JSON.stringify(sessionVector), messageCount, utcNow, existing.id]
         );
         logger.info(`Updated PUBLIC session memory for chat: ${chatId} (${mode})`);
-        console.log('[MEMORY_SERVICE] [PUBLIC] Session memory updated:', { chatId, mode });
       } else {
         // Create new
         const id = generateId.memSess();
@@ -327,7 +276,6 @@ export class MemoryService {
           [id, chatId, summary, keyTopics, JSON.stringify(sessionVector), messageCount, utcNow]
         );
         logger.info(`Created PUBLIC session memory for chat: ${chatId}`);
-        console.log('[MEMORY_SERVICE] [PUBLIC] Session memory created:', { chatId, id });
       }
       
       // ✅ Return tokens for quota tracking
@@ -338,7 +286,7 @@ export class MemoryService {
       };
     } catch (error) {
       logger.error('Error creating PUBLIC session memory:', error);
-      console.error('[MEMORY_SERVICE] [PUBLIC] Error creating/updating session memory:', error);
+      logger.error('Error creating/updating public session memory:', error);
       throw error;
     }
   }
@@ -364,34 +312,13 @@ export class MemoryService {
    */
   async extractLongTermFacts(twinId: string, sessionSummary: string): Promise<void> {
     try {
-      console.log('[MEMORY_SERVICE] [HYP-D] Extracting long-term facts:', {
-        twinId,
-        summaryLength: sessionSummary.length
-      });
       const facts = await this.identifyFactsFromSummary(sessionSummary);
-      console.log('[MEMORY_SERVICE] [HYP-D] Facts identified:', facts.length);
       
       for (const fact of facts) {
-        // ✅ Map 'context' category to 'fact' so it appears in the popup
-        const normalizedCategory = fact.category === 'context' ? 'fact' : fact.category;
-        
-        await this.storeLongTermMemory(
-          twinId, 
-          fact.key, 
-          fact.value, 
-          normalizedCategory, // Use normalized category
-          'session',
-          'owner' // Explicit visibility: private by default
-        );
-        console.log('[MEMORY_SERVICE] [HYP-D] Fact stored:', { 
-          key: fact.key, 
-          category: normalizedCategory, // Log normalized category
-          originalCategory: fact.category 
-        });
+        await this.storeLongTermMemory(twinId, fact.key, fact.value, fact.category);
       }
       
       logger.info(`Extracted ${facts.length} facts for twin: ${twinId}`);
-      console.log('[MEMORY_SERVICE] [HYP-D] Long-term memory update completed:', facts.length, 'facts');
     } catch (error) {
       logger.error('Error extracting long-term facts:', error);
     }
@@ -522,17 +449,8 @@ async getRelevantLongTermMemories(
     visibility: 'owner' | 'public_twin' | 'all' = 'all'
   ): Promise<Array<{key: string, value: string, category: string, visibility?: string}>> {
     try {
-      console.log('[MEMORY_SERVICE] [GET_RELEVANT] Starting retrieval:', {
-        twinId,
-        userMessageLength: userMessage?.length || 0,
-        limit,
-        category,
-        visibility
-      });
-      
       // LAYER 1: Always get top 5 most recent memories (common/cached)
       const commonMemories = await this.getLongTermMemories(twinId, category, 5, visibility);
-      console.log('[MEMORY_SERVICE] [GET_RELEVANT] Common memories retrieved:', commonMemories.length);
       
       // If no user message, just return common memories
       if (!userMessage || userMessage.trim().length === 0) {
@@ -561,8 +479,6 @@ async getRelevantLongTermMemories(
         const uniqueTerms = Array.from(new Set(expandedTerms)).slice(0, 12);
         const searchPatterns = uniqueTerms.map(t => `%${t}%`);
         
-        console.log('[MEMORY_SERVICE] [GET_RELEVANT] Expanded search terms:', { keywords: topKeywords, expanded: uniqueTerms });
-        
         // Strategy A: Match by memory KEY using single query with ANY()
         try {
           const params: any[] = [twinId, topKeywords, searchPatterns];
@@ -582,7 +498,6 @@ async getRelevantLongTermMemories(
             // Include 'public' for backward compatibility with legacy rows
             sql += ` AND visibility = ANY($${params.length + 1}::text[])`;
             params.push(visibility === 'owner' ? ['owner', 'public_twin', 'public', 'all'] : ['public_twin', 'public', 'all']);
-            console.log('[MEMORY_SERVICE] [GET_RELEVANT] Filtering by visibility:', visibility, '(inclusive: includes "all", "public_twin", and "public" for backward compatibility)');
           }
 
           sql += `
@@ -595,7 +510,6 @@ async getRelevantLongTermMemories(
             LIMIT 5`;
 
           const keyMatches = await db.query(sql, params);
-          console.log('[MEMORY_SERVICE] [GET_RELEVANT] Query matches found:', keyMatches.rows.length);
           
           queryMemories.push(...keyMatches.rows.map(r => ({
             key: r.key,
@@ -678,14 +592,7 @@ async getRelevantLongTermMemories(
       const result = uniqueMemories.slice(0, limit);
       
       logger.info(`Retrieved ${result.length} relevant long-term memories (${commonMemories.length} common + ${queryMemories.length} query-specific)`);
-      console.log('[MEMORY_SERVICE] [GET_RELEVANT] ✅ Final memories returned:', {
-        total: result.length,
-        common: commonMemories.length,
-        query: queryMemories.length,
-        category,
-        visibility,
-        memoryKeys: result.map(m => m.key).slice(0, 5)
-      });
+  
       
       return result;
       
@@ -1125,7 +1032,6 @@ try {
   );
 
   const content = llmResponse.content?.trim() || '{}';
-  console.log('[MEMORY_SERVICE] [PINNED_FACTS] LLM raw response:', content);
   
   // Remove markdown code blocks if present
   let jsonStr = content.replace(/on\n?/g, '').replace(/```\n?/g, '').trim();
@@ -1140,8 +1046,7 @@ try {
   try {
     parsed = JSON.parse(jsonStr);
   } catch (parseError) {
-    console.error('[MEMORY_SERVICE] [PINNED_FACTS] JSON parse error:', parseError);
-    console.error('[MEMORY_SERVICE] [PINNED_FACTS] Failed to parse:', jsonStr);
+    logger.error('Failed to parse pinned facts JSON:', { parseError, jsonStr });
     // Return safe default structure instead of empty object
     return {
       name: undefined,
@@ -1161,7 +1066,6 @@ try {
   };
 } catch (error) {
   logger.error('Error extracting pinned facts via LLM:', error);
-  console.error('[MEMORY_SERVICE] [PINNED_FACTS] Full error details:', error);
   return { tokensUsed: 0 }; // ✅ Return empty with 0 tokens
 }    
   }

@@ -268,21 +268,7 @@ Return only valid JSON, no other text.`;
           isFirstMessage,
           chatMemoryLength: chatMemory.length
         });
-        console.log('[TWIN_SERVICE] [HYP-A] Using personaData and systemPrompt for response:', {
-          hasPersonaData: !!personaData,
-          hasSystemPrompt: !!systemPrompt,
-          systemPromptLength: systemPrompt.length,
-          chatMemoryCount: chatMemory.length,
-          hasSessionMemory: !!context.sessionMemory,
-          sessionMemorySummaryLength: context.sessionMemory?.summary?.length || 0,
-          longTermMemoriesCount: longTermMemories.length
-        });
-        console.log('[TWIN_SERVICE] [HYP-I] Prompt includes:', {
-          sessionMemorySummary: !!context.sessionMemory?.summary,
-          recentMessages: chatMemory.length,
-          currentMessage: currentMessages[0]?.substring(0, 50),
-          fullHistory: false
-        });
+  
         const personaResult = await this.generatePersonaResponse(
           currentMessages.join('\n'),
           personaData,

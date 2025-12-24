@@ -198,8 +198,6 @@ export const createSampleData = async (req: Request, res: Response) => {
 
 export const getUserAnalytics = async (req: Request, res: Response) => {
   try {
-    // ✅ ULTRA-DETAILED LOGGING for analytics API
-    console.log('[BACKEND_ANALYTICS] ========== START getUserAnalytics ==========');
     try {
       logger.info('[ANALYTICS_USER:START]', {
         path: req.path,
@@ -218,18 +216,8 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
           cacheControl: req.headers['cache-control'] || null,
         },
       });
-      console.log('[BACKEND_ANALYTICS] Request details:', {
-        path: req.path,
-        method: req.method,
-        hasUser: !!req.user,
-        hasSession: !!req.session,
-        userEmail: (req.user as any)?.email,
-        userIdFromUser: (req.user as any)?.id || (req.user as any)?.userId,
-        userIdFromSession: (req.session as any)?.userId
-      });
     } catch (logErr) {
       logger.warn('[ANALYTICS_USER] Failed to log START:', logErr);
-      console.error('[BACKEND_ANALYTICS] Logging error:', logErr);
     }
 
     let userId: string | null = null;
@@ -238,25 +226,19 @@ export const getUserAnalytics = async (req: Request, res: Response) => {
     if (req.user) {
       if (req.user.id) {
         userId = req.user.id;
-        console.log('[BACKEND_ANALYTICS] ✅ Got userId from req.user.id:', userId);
       } else if (req.user.userId) {
         userId = req.user.userId;
-        console.log('[BACKEND_ANALYTICS] ✅ Got userId from req.user.userId:', userId);
       }
     }
     // Fallback to session authentication
     else if (req.session && req.session.userId) {
       userId = req.session.userId;
-      console.log('[BACKEND_ANALYTICS] ✅ Got userId from session:', userId);
     }
     
     if (!userId) {
-      console.error('[BACKEND_ANALYTICS] ❌ No userId found - returning 401');
       logger.warn('[ANALYTICS_USER] No userId found - returning 401');
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
-    
-    console.log('[BACKEND_ANALYTICS] ✅ User authenticated, userId:', userId);
 
     // User already authenticated via JWT middleware - skip redundant user check
     // Get user's analytics - ALL QUERIES IN PARALLEL (FAST)
@@ -493,25 +475,6 @@ const responseData = {
   eventBreakdown: userEventBreakdown || {},
 };    
 
-    // ✅ Log response before sending
-    console.log('[BACKEND_ANALYTICS] Building response data...');
-    console.log('[BACKEND_ANALYTICS] Engagement data:', {
-      hasEngagementData: !!engagementData,
-      labelsCount: engagementData?.labels?.length || 0,
-      valuesCount: engagementData?.values?.length || 0,
-      labelsSample: engagementData?.labels?.slice(0, 3),
-      valuesSample: engagementData?.values?.slice(0, 3)
-    });
-    console.log('[BACKEND_ANALYTICS] Top content:', {
-      count: topContent.length,
-      items: topContent
-    });
-    console.log('[BACKEND_ANALYTICS] Event breakdown:', {
-      keys: Object.keys(userEventBreakdown),
-      values: Object.values(userEventBreakdown)
-    });
-    console.log('[BACKEND_ANALYTICS] Period summary:', periodSummary);
-    
     try {
       logger.info('[ANALYTICS_USER:RESPONSE]', {
         userId,
@@ -528,41 +491,15 @@ const responseData = {
       logger.warn('[ANALYTICS_USER] Failed to log RESPONSE:', logErr);
     }
 
-    console.log('[BACKEND_ANALYTICS] Final response data structure:', {
-      success: responseData.success,
-      userId: responseData.user.id,
-      analytics: {
-        totalViews: responseData.analytics.totalViews,
-        totalLikes: responseData.analytics.totalLikes,
-        totalFollowers: responseData.analytics.totalFollowers,
-        totalChats: responseData.analytics.totalChats,
-        twins: responseData.analytics.twins,
-        messages: responseData.analytics.messages,
-        events: responseData.analytics.events,
-        periodSummary: responseData.analytics.periodSummary,
-        hasEngagementData: !!responseData.analytics.engagementData,
-        engagementDataLabelsCount: responseData.analytics.engagementData?.labels?.length || 0,
-        engagementDataValuesCount: responseData.analytics.engagementData?.values?.length || 0,
-        topContentCount: responseData.analytics.topContent?.length || 0,
-      },
-      eventBreakdownCount: Object.keys(responseData.eventBreakdown).length,
-    });
-
     // ✅ ADD: Cache headers to prevent 304 responses
     res.set({
       'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
       'Pragma': 'no-cache',
       'Expires': '0',
     });
-    console.log('[BACKEND_ANALYTICS] ✅ Sending response with status 200');
-    console.log('[BACKEND_ANALYTICS] ========== END getUserAnalytics (SUCCESS) ==========');
     res.json(responseData);
   } catch (error) {
-    console.error('[BACKEND_ANALYTICS] ========== ERROR in getUserAnalytics ==========');
-    console.error('[BACKEND_ANALYTICS] Error:', error);
-    console.error('[BACKEND_ANALYTICS] Error stack:', error instanceof Error ? error.stack : 'No stack');
     logger.error('Get user analytics error:', error);
-    console.log('[BACKEND_ANALYTICS] ========== END getUserAnalytics (ERROR) ==========');
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };

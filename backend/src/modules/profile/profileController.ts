@@ -151,11 +151,8 @@ export const generateProfileLink = async (req: Request, res: Response) => {
 
 export const updateProfile = async (req: Request, res: Response) => {
   try {
-    console.log('UpdateProfile called. User:', req.user);
-    
     // Check if user is logged in via JWT
     if (!req.user) {
-      console.log('Authentication failed - no user in request');
       return res.status(401).json({ error: 'Authentication required' });
     }
 

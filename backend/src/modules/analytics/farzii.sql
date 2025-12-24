@@ -19,13 +19,6 @@ export const requireAdminAuth = (req: Request, res: Response, next: Function) =>
 // Get comprehensive admin analytics
 export const getAdminAnalytics = async (req: Request, res: Response) => {
   try {
-    console.log('[BACKEND_ADMIN] ========== START getAdminAnalytics ==========');
-    console.log('[BACKEND_ADMIN] Request details:', {
-      path: req.path,
-      method: req.method,
-      adminUser: req.user?.email,
-      hasUser: !!req.user
-    });
 
     // ⚡ FAST_MODE: Skip heavy queries temporarily until indexes are added
     const FAST_MODE = true;
@@ -380,18 +373,10 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       mostActiveUsers: mostActiveUsersResult.rows.map(user => sanitizeUser(user, true)) // includeEmail=true for admin
     };
 
-    console.log('[BACKEND_ADMIN] Processing event breakdown...');
-    console.log('[BACKEND_ADMIN] Event types result:', {
-      rowsCount: eventTypesResult.rows.length,
-      rows: eventTypesResult.rows
-    });
-    
     const eventBreakdown = eventTypesResult.rows.reduce((acc, event) => {
       acc[event.type] = parseInt(event.count);
       return acc;
     }, {} as Record<string, number>);
-    
-    console.log('[BACKEND_ADMIN] Event breakdown object:', eventBreakdown);
 
     // ✅ Sanitize recentActivity
     const recentActivity = {
@@ -519,26 +504,10 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       }
     };
 
-    console.log('[BACKEND_ADMIN] Response data structure:', {
-      success: responseData.success,
-      hasMetrics: !!responseData.metrics,
-      hasContent: !!responseData.content,
-      eventBreakdownKeys: Object.keys(responseData.content.eventBreakdown),
-      eventBreakdownValues: Object.values(responseData.content.eventBreakdown),
-      dailyUsers: responseData.metrics.daily.users,
-      weeklyUsers: responseData.metrics.weekly.users,
-      monthlyUsers: responseData.metrics.monthly.users
-    });
-    console.log('[BACKEND_ADMIN] ✅ Sending response with status 200');
-    console.log('[BACKEND_ADMIN] ========== END getAdminAnalytics (SUCCESS) ==========');
     res.json(responseData);
 
   } catch (error) {
-    console.error('[BACKEND_ADMIN] ========== ERROR in getAdminAnalytics ==========');
-    console.error('[BACKEND_ADMIN] Error:', error);
-    console.error('[BACKEND_ADMIN] Error stack:', error instanceof Error ? error.stack : 'No stack');
     logger.error('Admin analytics error:', error);
-    console.log('[BACKEND_ADMIN] ========== END getAdminAnalytics (ERROR) ==========');
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -975,8 +944,6 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
 // Get detailed users page data with pagination
 export const getDetailedUsersPage = async (req: Request, res: Response) => {
   try {
-    console.log('=== GET DETAILED USERS PAGE ===');
-    
     const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
     
@@ -1035,8 +1002,6 @@ const summaryResult = await db.query(`
   FROM "User"
 `);    
     
-    console.log('Users page data fetched successfully');
-    
     // ✅ Sanitize users before returning
     res.json({
       success: true,
@@ -1058,8 +1023,7 @@ const summaryResult = await db.query(`
     });
     
   } catch (error) {
-    console.error('=== ERROR IN GET DETAILED USERS PAGE ===');
-    console.error('Error details:', error);
+    logger.error('Get detailed users page error:', error);
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
@@ -1070,7 +1034,6 @@ const summaryResult = await db.query(`
 // Get detailed twins page data with pagination
 export const getDetailedTwinsPage = async (req: Request, res: Response) => {
   try {
-    console.log('=== GET DETAILED TWINS PAGE ===');
     
     const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -1128,7 +1091,6 @@ const summaryResult = await db.query(`
   FROM "Twin" t
 `);    
     
-    console.log('Twins page data fetched successfully');
     
     // ✅ Sanitize twins before returning
     res.json({
@@ -1150,8 +1112,7 @@ const summaryResult = await db.query(`
     });
     
   } catch (error) {
-    console.error('=== ERROR IN GET DETAILED TWINS PAGE ===');
-    console.error('Error details:', error);
+    logger.error('Get detailed twins page error:', error);
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
@@ -1162,7 +1123,6 @@ const summaryResult = await db.query(`
 // Get detailed chats page data with pagination
 export const getDetailedChatsPage = async (req: Request, res: Response) => {
   try {
-    console.log('=== GET DETAILED CHATS PAGE ===');
     
     const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC', startDate = '', endDate = '' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -1242,7 +1202,6 @@ const summaryResult = await db.query(`
   FROM "Chat" c
 `);
 
-    console.log('Chats page data fetched successfully');
     
     // ✅ Sanitize chats before returning with publicId
     res.json({
@@ -1264,8 +1223,7 @@ const summaryResult = await db.query(`
     });
     
   } catch (error) {
-    console.error('=== ERROR IN GET DETAILED CHATS PAGE ===');
-    console.error('Error details:', error);
+    logger.error('Get detailed chats page error:', error);
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
@@ -1276,7 +1234,6 @@ const summaryResult = await db.query(`
 // Get detailed messages page data with pagination
 export const getDetailedMessagesPage = async (req: Request, res: Response) => {
   try {
-    console.log('=== GET DETAILED MESSAGES PAGE ===');
     
     const { page = 1, limit = QUERY_LIMITS.RECENT_ITEMS, search = '', sortBy = 'createdAt', sortOrder = 'DESC', approved = '', sender = '', startDate = '', endDate = '' } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -1370,7 +1327,6 @@ const summaryResult = await db.query(`
   FROM "Message" m
 `);    
     
-    console.log('Messages page data fetched successfully');
     
     // ✅ Sanitize messages before returning
     res.json({
@@ -1388,8 +1344,7 @@ const summaryResult = await db.query(`
     });
     
   } catch (error) {
-    console.error('=== ERROR IN GET DETAILED MESSAGES PAGE ===');
-    console.error('Error details:', error);
+    logger.error('Get detailed messages page error:', error);
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
@@ -1618,7 +1573,6 @@ export const getEventExplorer = async (req: Request, res: Response) => {
 // Get activity feed - merged timeline of key events
 export const getActivityFeed = async (req: Request, res: Response) => {
   try {
-    console.log('=== GET ACTIVITY FEED ===');
     
     const { 
       page = 1, 
@@ -1711,7 +1665,6 @@ export const getActivityFeed = async (req: Request, res: Response) => {
       ${whereClause}
     `, queryParams);
     
-    console.log('Activity feed data fetched successfully');
     
     res.json({
       success: true,
@@ -1733,8 +1686,7 @@ export const getActivityFeed = async (req: Request, res: Response) => {
     });
     
   } catch (error) {
-    console.error('=== ERROR IN GET ACTIVITY FEED ===');
-    console.error('Error details:', error);
+    logger.error('Get activity feed error:', error);
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 

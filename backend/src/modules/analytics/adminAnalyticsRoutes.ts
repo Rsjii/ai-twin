@@ -37,32 +37,13 @@ router.get('/time/:period', getTimeBasedAnalytics); // today, week, month
 router.get('/detailed/:type', getDetailedMetrics); // users, twins, chats, messages
 
 // Detailed pages with pagination
-router.get('/page/users', (req, res, next) => {
-  console.log('=== ROUTE: /page/users ===');
-  console.log('Request query:', req.query);
-  console.log('Request user:', req.user);
-  next();
-}, getDetailedUsersPage);
+router.get('/page/users', getDetailedUsersPage);
 
-router.get('/page/twins', (req, res, next) => {
-  console.log('=== ROUTE: /page/twins ===');
-  console.log('Request query:', req.query);
-  console.log('Request user:', req.user);
-  next();
-}, getDetailedTwinsPage);
+router.get('/page/twins', getDetailedTwinsPage);
 
-router.get('/page/chats', (req, res, next) => {
-  console.log('=== ROUTE: /page/chats ===');
-  console.log('Request query:', req.query);
-  console.log('Request user:', req.user);
-  next();
-}, getDetailedChatsPage);
+router.get('/page/chats', getDetailedChatsPage);
 
-router.get('/page/messages', (req, res, next) => {
-  console.log('=== ROUTE: /page/messages ===');
-  console.log('Request query:', req.query);
-  next();
-}, getDetailedMessagesPage);
+router.get('/page/messages', getDetailedMessagesPage);
 
 // Users list with search and pagination
 router.get('/users', getUsersList);

@@ -4,6 +4,8 @@
  * This is critical for frontend timezone conversion
  */
 
+import { logger } from '../config/logger';
+
 /**
  * Normalize timestamp to UTC ISO format with 'Z' suffix
  * Handles PostgreSQL timestamps, Date objects, and strings
@@ -67,7 +69,7 @@ export function normalizeTimestamp(timestamp: Date | string | null | undefined):
     
     return null;
   } catch (error) {
-    console.error('[normalizeTimestamp] Error normalizing timestamp:', timestamp, error);
+    logger.error('Error normalizing timestamp:', { timestamp, error });
     return null;
   }
 }
@@ -163,7 +165,7 @@ export function formatRelativeTime(timestamp: Date | string | null | undefined):
     if (months < 12) return `${months}mo ago`;
     return `${years}y ago`;
   } catch (error) {
-    console.error('[formatRelativeTime] Error formatting relative time:', timestamp, error);
+    logger.error('Error formatting relative time:', { timestamp, error });
     return '';
   }
 }

@@ -101,7 +101,7 @@ export function getValidationSettings() {
 export function logFeatureUsage(feature: keyof FeatureFlags, userId?: string) {
   if (isFeatureEnabled('ENABLE_ANALYTICS')) {
     // This would integrate with your event logger
-    console.log(`Feature used: ${feature}`, { userId, timestamp: new Date().toISOString() });
+    // Feature usage logging can be added here if needed
   }
 }
 

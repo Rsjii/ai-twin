@@ -355,12 +355,9 @@ export const signupVerify = async (req: Request, res: Response, next: NextFuncti
 
 export const completeProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    console.log('🔵 [COMPLETE_PROFILE] Starting profile completion...');
     const { email, name, handle, dob, phone, bio, profileImage } = completeProfileSchema.parse(req.body);
-    console.log('🔵 [COMPLETE_PROFILE] Input data:', { email, name, handle, hasBio: !!bio });
     
     // Update user profile (provide defaults for optional fields)
-    console.log('🔵 [COMPLETE_PROFILE] Updating user profile in database...');
     await userQueries.updateProfile(
       email.toLowerCase(), 
       name, 
@@ -370,28 +367,23 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
       bio || '', 
       profileImage || null
     );
-    console.log('🔵 [COMPLETE_PROFILE] User profile updated successfully');
     
     // Find user and generate JWT
-    console.log('🔵 [COMPLETE_PROFILE] Fetching user from database...');
     const user = await userQueries.findByEmail(email.toLowerCase());
     if (!user) {
-      console.error('❌ [COMPLETE_PROFILE] User not found after update!');
+      logger.error('Complete profile: User not found after update');
       throw createError.notFound('User not found');
     }
-    console.log('🔵 [COMPLETE_PROFILE] User found:', { userId: user.id, email: user.email, handle: user.handle });
     
     // ✅ Profile exists via User.handle - no TwinProfile needed
     // Profile URL /@handle works immediately after signup
     
     // Generate JWT token
-    console.log('🔵 [COMPLETE_PROFILE] Generating JWT token...');
     const token = generateJWT({
       userId: user.id,
       email: user.email,
       handle: user.handle || ''
     });
-    console.log('🔵 [COMPLETE_PROFILE] JWT token generated');
     
     // Set JWT token in cookie
     res.cookie('jwtToken', token, {
@@ -412,7 +404,6 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
       logger.warn('Failed to log profile_completed event:', eventError);
     }
 
-    console.log('✅ [COMPLETE_PROFILE] Profile completion successful, redirecting to dashboard');
     res.json({ 
       message: 'Profile completed successfully', 
       redirect: '/dashboard',
@@ -425,7 +416,6 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
       }
     });
   } catch (error: any) {
-    console.error('❌ [COMPLETE_PROFILE] Error:', error);
     logger.error('Complete profile error:', error);
 
     // ✅ 1) Zod validation errors → fieldErrors map (already there)

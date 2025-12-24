@@ -105,11 +105,6 @@ export class PromptBuilder {
         responseReserve: responseTokenReserve,
         availableBudget: tokenBudget 
       });
-      console.log('[PROMPT_BUILDER] [HYP-I] Token budget calculation:', {
-        maxPromptTokens: MAX_PROMPT_TOKENS,
-        responseReserve: responseTokenReserve,
-        availableBudget: tokenBudget
-      });
 
       // ✅ Check if memory is enabled before loading long-term memories
       // Use personaData.settings from context (single source of truth - no duplicate storage)
@@ -134,13 +129,7 @@ export class PromptBuilder {
         this.getStylePatterns(twinId, currentMessages.join(' ')),
         this.getFeedbackContext(twinId) // ✅ Now parallel instead of sequential
       ]);
-      console.log('[PROMPT_BUILDER] [HYP-C] Memory contexts retrieved:', {
-        hasSessionMemory: !!sessionMemory,
-        sessionMemorySummaryLength: sessionMemory?.summary?.length || 0,
-        longTermMemoriesCount: longTermMemories.length,
-        stylePatternsCount: stylePatterns.length,
-        memoryEnabled
-      });
+   
 
       // 2. Build individual context sections
       const personaSection = this.buildPersonaSection(personaData);
@@ -234,16 +223,6 @@ CURRENT HUMAN MESSAGE: "${userMessage}"\n\n`;
 
       const finalTokens = this.countTokens(finalPrompt);
       logger.info('Final prompt token count:', { finalTokens, tokenBudget, underBudget: finalTokens <= tokenBudget });
-      console.log('[PROMPT_BUILDER] [HYP-I] Final prompt assembly:', {
-        finalTokens,
-        tokenBudget,
-        underBudget: finalTokens <= tokenBudget,
-        sectionsIncluded: assembledSections.length,
-        hasSessionMemory: !!sessionMemory,
-        hasChatMemory: chatMemory.length > 0,
-        chatMemoryCount: chatMemory.length,
-        note: 'Only summary + recent messages included, NOT full history'
-      });
 
       // Safety check: if still over budget, return truncated version
       if (finalTokens > tokenBudget) {
@@ -537,14 +516,6 @@ CRITICAL:
     if (pf.hobbies?.length) pinnedLines.push(`- Hobbies: ${pf.hobbies.join(', ')}`);
     if (pf.extras?.length) pinnedLines.push(`- Extras: ${pf.extras.join(', ')}`); // ✅ NEW
 
-    if (pinnedLines.length > 0) {
-      console.log('[PROMPT_BUILDER] [PINNED_FACTS] Including pinned facts in prompt:', {
-        name: pf.name || null,
-        likes: pf.likes || [],
-        hobbies: pf.hobbies || [],
-        extras: pf.extras || [], // ✅ NEW
-      });
-    }
 
     const pinnedSection = pinnedLines.length
       ? `## PINNED FACTS (THIS CHAT ONLY — HIGH PRIORITY, AUTHORITATIVE):\n${pinnedLines.join('\n')}\n\n`

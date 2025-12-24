@@ -112,7 +112,6 @@ export const getTwinEditData = async (req: Request, res: Response, next: NextFun
         personaData.basicInfo = {};
       }
       personaData.basicInfo.oneLineBio = twin.bio;
-      console.log('[getTwinEditData] Synced Twin.bio to personaData.basicInfo.oneLineBio:', twin.bio);
     }
 
     res.json({
@@ -283,23 +282,15 @@ export const updateTwinPersona = async (req: Request, res: Response, next: NextF
     }
 
     const currentPersonaData = twinResult.rows[0].personaData;
-    console.log('[TWIN_SETTINGS] [HYP-A] Current personaData loaded from database');
-    console.log('[TWIN_SETTINGS] [HYP-A] Current personaData keys:', Object.keys(currentPersonaData || {}));
     
     // Merge updates with current persona data
     const updatedPersonaData = {
       ...currentPersonaData,
       ...personaUpdates
     };
-    console.log('[TWIN_SETTINGS] [HYP-A] personaData updated with new values');
-    console.log('[TWIN_SETTINGS] [HYP-A] Updated personaData:', JSON.stringify(updatedPersonaData, null, 2));
-    console.log('[TWIN_SETTINGS] [HYP-A] Source: user edits, Destination: Twin table');
 
     // MVP (personaData-only): Regenerate system prompt with new persona
     const newSystemPrompt = await twinService.generateSystemPrompt(updatedPersonaData);
-    console.log('[TWIN_SETTINGS] [HYP-B] systemPrompt regenerated after personaData update');
-    console.log('[TWIN_SETTINGS] [HYP-B] New systemPrompt length:', newSystemPrompt.length, 'chars');
-    console.log('[TWIN_SETTINGS] [HYP-B] systemPrompt preview:', newSystemPrompt.substring(0, 200) + '...');
 
     // ✅ Extract oneLineBio from updated personaData to sync to Twin.bio (MANDATORY - already validated by schema)
     const oneLineBio = updatedPersonaData?.basicInfo?.oneLineBio;
@@ -311,10 +302,6 @@ export const updateTwinPersona = async (req: Request, res: Response, next: NextF
       SET "personaData" = $1, "systemPrompt" = $2, "last_updated" = $3::timestamptz, bio = $4
       WHERE id = $5
     `, [JSON.stringify(updatedPersonaData), newSystemPrompt, utcTimestamp, oneLineBio, twinId]);
-    console.log('[TWIN_SETTINGS] [HYP-A] Updated personaData stored in database');
-    console.log('[TWIN_SETTINGS] [HYP-B] Updated systemPrompt stored in database');
-    console.log('[TWIN_SETTINGS] [HYP-C] Synced oneLineBio to Twin.bio column:', oneLineBio);
-    console.log('[TWIN_SETTINGS] [HYP-E] Settings changes saved, will be reflected in next chat');
 
     res.json({
       success: true,

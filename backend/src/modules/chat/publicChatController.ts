@@ -610,11 +610,6 @@ if (chat.requireLogin && !userId) {
 
     // ✅ Get session memory first (needed for budget-aware context)
     const sessionMemory = await chatUtils.getSessionMemoryForContext(chatId, 'PublicMessage').catch(() => null);
-    console.log('[PUBLIC_CHAT] [HYP-F] [HYP-G] Session memory check:', {
-      chatId,
-      hasSummary: !!sessionMemory?.summary,
-      summaryLength: sessionMemory?.summary?.length || 0
-    });
 
     // ✅ Budget-aware: only fetch recent messages if needed (not always 10)
     const needsRecent = (() => {
@@ -623,31 +618,16 @@ if (chat.requireLogin && !userId) {
       if (/(same|continue|as above|that|this|it|wahi|haan|han|ok|kar do|kardo|continue karo)/i.test(t)) return true;
       return false;
     })();
-    console.log('[PUBLIC_CHAT] [HYP-G] needsRecent detection:', {
-      message: message.substring(0, 50),
-      needsRecent,
-      reason: message.length <= 12 ? 'short message' : 
-              /(same|continue|as above|that|this|it|wahi|haan|han|ok|kar do|kardo|continue karo)/i.test(message) ? 'reference detected' : 'clear standalone'
-    });
 
     // If summary exists and user message is clear → send zero raw history
     // Else send a small slice (not 10 always)
     const recentLimit = sessionMemory?.summary
       ? (needsRecent ? 4 : 0)
       : 10;
-    console.log('[PUBLIC_CHAT] [HYP-G] Budget-aware message fetching:', {
-      hasSummary: !!sessionMemory?.summary,
-      needsRecent,
-      recentLimit,
-      reason: !sessionMemory?.summary ? 'no summary → fetch 10' :
-              needsRecent ? 'needsRecent=true → fetch 4' : 'needsRecent=false → fetch 0 (use summary only)'
-    });
 
     const recentMessages = recentLimit > 0
       ? await chatUtils.getRecentMessages(chatId, 'PublicMessage', recentLimit)
       : [];
-    console.log('[PUBLIC_CHAT] [HYP-I] Recent messages fetched:', recentMessages.length, 'messages');
-    console.log('[PUBLIC_CHAT] [HYP-I] Full message history NOT fetched (optimization)');
 
     // ✅ Create request ID and check duplicate
     const userIdOrVisitor = chat.userId || chat.visitorId || `visitor_${Date.now()}`;
@@ -665,11 +645,6 @@ if (chat.requireLogin && !userId) {
     }
 
     // ✅ Build context (with session memory for public chat - isolated per chat)
-    console.log('[PUBLIC_CHAT] [HYP-A] Loading personaData and systemPrompt from chat:', {
-      hasPersonaData: !!chat.personaData,
-      hasSystemPrompt: !!chat.systemPrompt,
-      systemPromptLength: chat.systemPrompt?.length || 0
-    });
 
     // ✅ SINGLE FLAG: allowPublicUse controls whether public chat can fetch memories
     const allowPublicUse = chat?.personaData?.settings?.memory?.allowPublicUse === true;
@@ -703,12 +678,6 @@ if (chat.requireLogin && !userId) {
       isFirstMessage: shouldGenerateTitle,
       sessionMemory: sessionMemory, // ✅ ADD: Session memory for public chat (isolated)
       memoryVisibility, // ✅ SINGLE FLAG: 'public_twin' if enabled, 'none' if disabled
-    });
-    console.log('[PUBLIC_CHAT] [HYP-I] Context built - sending to API:', {
-      summaryExists: !!sessionMemory?.summary,
-      recentMessagesCount: recentMessages.length,
-      currentMessage: message.trim().substring(0, 50),
-      fullHistorySent: false
     });
 
     const actor = chat.userId
@@ -780,15 +749,6 @@ if (chat.requireLogin && !userId) {
         reserved: reservation.reserved,
         actualTokensUsed: tokensUsed || 0,
       });
-      
-      // ✅ Log main response token usage
-      console.log('[TOKEN_USAGE] [MAIN_RESPONSE] Public Chat:', {
-        chatId,
-        userId: req.user?.id || 'anon',
-        reserved: reservation.reserved,
-        actualUsed: tokensUsed || 0,
-        delta: (tokensUsed || 0) - reservation.reserved
-      });
     }
 
     // ✅ Save messages
@@ -837,13 +797,11 @@ if (chat.requireLogin && !userId) {
     // ✅ Update session memory for public chat (delta + useful-only)
     (async () => {
       try {
-        console.log('[PUBLIC_CHAT] [HYP-C] [HYP-H] Updating session memory (delta mode)');
         const memoryTokens = await chatUtils.updateSessionMemory(chatId, chat.twinId, 'PublicMessage', {
           kind: req.user ? 'user' : 'anon',
           userId: req.user?.id,
           ip: req.ip
         });
-        console.log('[PUBLIC_CHAT] [HYP-C] [HYP-H] Session memory update completed');
         
         // ✅ Accumulate all tokens (main response + memory)
         const totalInputTokens = inputTokens + (memoryTokens?.inputTokens || 0);

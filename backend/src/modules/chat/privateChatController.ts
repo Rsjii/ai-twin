@@ -1020,11 +1020,6 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
 
     // ✅ Get session memory first (needed for budget-aware context)
     const sessionMemory = await chatUtils.getSessionMemoryForContext(chat.id).catch(() => null);
-    console.log('[PRIVATE_CHAT] [HYP-F] [HYP-G] Session memory check:', {
-      chatId: chat.id,
-      hasSummary: !!sessionMemory?.summary,
-      summaryLength: sessionMemory?.summary?.length || 0
-    });
 
     // ✅ Budget-aware: only fetch recent messages if needed (not always 10)
     const needsRecent = (() => {
@@ -1046,32 +1041,16 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       if (/(rewrite|rephrase|edit|correct|fix this|above text)/i.test(t)) return true;
       return false;
     })();
-    console.log('[PRIVATE_CHAT] [HYP-G] needsRecent detection:', {
-      message: message.substring(0, 50),
-      needsRecent,
-      reason: message.length <= 12 ? 'short message' : 
-              /(same|continue|as above|that|this|it|wahi|haan|han|ok|kar do|kardo|continue karo)/i.test(message) ? 'reference detected' :
-              /(rewrite|rephrase|edit|correct|fix this|above text)/i.test(message) ? 'edit request' : 'clear standalone'
-    });
 
     // If summary exists and user message is clear → send zero raw history
     // Else send a small slice (not 10 always)
     const recentLimit = sessionMemory?.summary
       ? (needsRecent ? 4 : 0)
       : 10;
-    console.log('[PRIVATE_CHAT] [HYP-G] Budget-aware message fetching:', {
-      hasSummary: !!sessionMemory?.summary,
-      needsRecent,
-      recentLimit,
-      reason: !sessionMemory?.summary ? 'no summary → fetch 10' :
-              needsRecent ? 'needsRecent=true → fetch 4' : 'needsRecent=false → fetch 0 (use summary only)'
-    });
 
     const recentMessages = recentLimit > 0
       ? await chatUtils.getRecentMessages(chat.id, 'Message', recentLimit)
       : [];
-    console.log('[PRIVATE_CHAT] [HYP-I] Recent messages fetched:', recentMessages.length, 'messages');
-    console.log('[PRIVATE_CHAT] [HYP-I] Full message history NOT fetched (optimization)');
 
     // ✅ Create request ID and check duplicate
     const requestId = chatUtils.createRequestId(req.user.id);
@@ -1094,11 +1073,6 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
     }
 
     // ✅ Build context
-    console.log('[PRIVATE_CHAT] [HYP-A] Loading personaData and systemPrompt from chat:', {
-      hasPersonaData: !!chat.personaData,
-      hasSystemPrompt: !!chat.systemPrompt,
-      systemPromptLength: chat.systemPrompt?.length || 0
-    });
     const context = chatUtils.buildChatContext({
       styleVector: chat.styleVector,
       personaData: chat.personaData,
@@ -1114,12 +1088,6 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       isFirstMessage: shouldGenerateTitle,
       chatVector: chat.chatVector,
       sessionMemory: sessionMemory
-    });
-    console.log('[PRIVATE_CHAT] [HYP-I] Context built - sending to API:', {
-      summaryExists: !!sessionMemory?.summary,
-      recentMessagesCount: recentMessages.length,
-      currentMessage: message.trim().substring(0, 50),
-      fullHistorySent: false
     });
 
     // ✅ NEW: Token quota (daily) - enforce BEFORE LLM call
@@ -1197,15 +1165,6 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
         reserved: reservation.reserved,
         actualTokensUsed: tokensUsed || 0,
       });
-      
-      // ✅ Log main response token usage
-      console.log('[TOKEN_USAGE] [MAIN_RESPONSE] Private Chat:', {
-        chatId: chat.id,
-        userId: req.user.id,
-        reserved: reservation.reserved,
-        actualUsed: tokensUsed || 0,
-        delta: (tokensUsed || 0) - reservation.reserved
-      });
     }
 
     // ✅ Save messages
@@ -1281,12 +1240,10 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
         ]);
 
         // Update session memory (delta + useful-only, works for private chat)
-        console.log('[PRIVATE_CHAT] [HYP-C] [HYP-H] Updating session memory (delta mode)');
         const memoryTokens = await chatUtils.updateSessionMemory(chat.id, chat.twinId, 'Message', {
           kind: 'user',
           userId: req.user?.id
         });
-        console.log('[PRIVATE_CHAT] [HYP-C] [HYP-H] Session memory update completed');
         
         // ✅ Accumulate all tokens (main response + memory)
         const totalInputTokens = inputTokens + (memoryTokens?.inputTokens || 0);
@@ -1321,15 +1278,9 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
         ];
 
         const shouldExtractFacts = rememberPatterns.some(pattern => pattern.test(message));
-        console.log('[PRIVATE_CHAT] [HYP-D] "Remember this" detection:', {
-          message: message.substring(0, 50),
-          shouldExtractFacts,
-          patternMatched: shouldExtractFacts
-        });
 
         if (shouldExtractFacts && chat.twinId) {
           logger.info('✅ User requested to remember something - extracting facts');
-          console.log('[PRIVATE_CHAT] [HYP-D] Triggering fact extraction for twin:', chat.twinId);
           
           // ✅ Get session memory summary for context
           const sessionMem = await chatUtils.getSessionMemoryForContext(chat.id);

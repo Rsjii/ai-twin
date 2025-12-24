@@ -49,14 +49,6 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
       throw createError.unauthorized();
     }
     
-    console.log('[LTM_CONTROLLER] [GET] Retrieving memories:', {
-      twinId,
-      category,
-      limit: safeLimit,
-      query: query ? query.substring(0, 50) : null,
-      visibility
-    });
-    
     // If query provided, use smart retrieval
     if (query && typeof query === 'string') {
       const memories = await memoryService.getRelevantLongTermMemories(
@@ -66,7 +58,6 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
         category as string | undefined,
         visibility as any || 'all'
       );
-      console.log('[LTM_CONTROLLER] [GET] ✅ Smart retrieval returned:', memories.length, 'memories');
       res.set({
         'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
         'Pragma': 'no-cache',
@@ -82,7 +73,6 @@ export const getLongTermMemories = async (req: any, res: Response, next: NextFun
       safeLimit,
       visibility as any || 'all'
     );
-    console.log('[LTM_CONTROLLER] [GET] ✅ Simple retrieval returned:', memories.length, 'memories');
     
     res.set({
       'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
@@ -124,15 +114,6 @@ export const addLongTermMemory = async (req: any, res: Response, next: NextFunct
 
     // ✅ FIX: Normalize visibility before storing
     const normalizedVisibility = normalizeVisibility(visibility);
-
-    console.log('[LTM_CONTROLLER] [ADD] Adding memory:', {
-      twinId,
-      key: finalKey,
-      category,
-      visibility: normalizedVisibility || 'owner', // Show what will be stored
-      rawVisibility: visibility, // Log original for debugging
-      valueLength: value.trim().length
-    });
     
     await memoryService.storeLongTermMemory(
       twinId,
@@ -142,8 +123,6 @@ export const addLongTermMemory = async (req: any, res: Response, next: NextFunct
       'manual',
       normalizedVisibility // ✅ Pass normalized value
     );
-    
-    console.log('[LTM_CONTROLLER] [ADD] ✅ Memory stored successfully');
     
     res.json({ 
       success: true, 
@@ -184,15 +163,6 @@ export const updateLongTermMemory = async (req: any, res: Response, next: NextFu
     // ✅ FIX: Normalize visibility before storing
     const normalizedVisibility = normalizeVisibility(visibility);
     
-    console.log('[LTM_CONTROLLER] [UPDATE] Updating memory:', {
-      twinId,
-      key,
-      category: category || 'fact',
-      visibility: normalizedVisibility || 'owner', // Show what will be stored
-      rawVisibility: visibility, // Log original for debugging
-      valueLength: value.trim().length
-    });
-    
     await memoryService.storeLongTermMemory(
       twinId,
       key,
@@ -201,8 +171,6 @@ export const updateLongTermMemory = async (req: any, res: Response, next: NextFu
       'manual',
       normalizedVisibility // ✅ Pass normalized value
     );
-    
-    console.log('[LTM_CONTROLLER] [UPDATE] ✅ Memory updated successfully');
     
     res.json({ 
       success: true, 
@@ -235,15 +203,8 @@ export const deleteLongTermMemory = async (req: any, res: Response, next: NextFu
     
     await verifyTwinOwnership(twinId, userId);
     
-    console.log('[LTM_CONTROLLER] [DELETE] Deleting memory:', {
-      twinId,
-      key
-    });
-    
     const { memoryLongTermQueries } = await import('../../config/database');
     await memoryLongTermQueries.delete(twinId, key);
-    
-    console.log('[LTM_CONTROLLER] [DELETE] ✅ Memory deleted successfully');
     
     res.json({ success: true, message: 'Memory deleted successfully' });
   } catch (error) {

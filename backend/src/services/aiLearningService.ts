@@ -38,7 +38,6 @@ export async function updateAILearning(
       timestamp: utcTimestamp
     }), utcTimestamp]);
   } catch (error) {
-    console.error('Update AI learning error:', error);
     // Don't throw - allow request to continue even if learning update fails
   }
 }

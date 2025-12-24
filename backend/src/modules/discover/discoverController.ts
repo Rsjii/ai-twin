@@ -21,8 +21,6 @@ const trendingSchema = z.object({
 // Helper function to get blocked twin IDs for a user
 async function getBlockedTwinIds(userId: string | undefined): Promise<string[]> {
   if (!userId) {
-    // ✅ Debug: Log when user is not logged in
-    console.log('[Discover] No userId provided, skipping blocked filter');
     return [];
   }
   
@@ -32,15 +30,9 @@ async function getBlockedTwinIds(userId: string | undefined): Promise<string[]> 
       [userId]
     );
     
-    // ✅ Debug: Log blocked twins found
-    if (result.rows.length > 0) {
-      console.log(`[Discover] Found ${result.rows.length} blocked twins for user ${userId}`);
-    }
-    
     return result.rows.map(row => row.twinId);
   } catch (error) {
-    console.error('[Discover] Error getting blocked twin IDs:', error);
-    // ✅ Return empty array on error (don't break discover)
+    logger.error('Error getting blocked twin IDs:', error);
     return [];
   }
 }
@@ -214,14 +206,10 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
  let blockedTwinIds: string[] = [];
  
  if (hasUser) {
-   console.log('[Discover] User logged in:', req.user.id);
    const blockedResult = await db.query(`
      SELECT "twinId" FROM "TwinBlockedUsers" WHERE "userId" = $1
    `, [req.user.id]);
    blockedTwinIds = blockedResult.rows.map(row => row.twinId);
-   console.log('[Discover] Blocked twin IDs:', blockedTwinIds);
- } else {
-   console.log('[Discover] No user (non-logged), will filter blockNonLoggedUsers');
  }
 
  // Build filters
@@ -229,14 +217,7 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
    ? `AND t.id NOT IN (${blockedTwinIds.map((_, i) => `$${i + 1}`).join(', ')})`
    : '';
  
- const blockNonLoggedFilter = buildBlockNonLoggedUsersFilter(hasUser);
- 
- console.log('[Discover] Filters:', { 
-   hasUser, 
-   blockedFilter, 
-   blockNonLoggedFilter,
-   blockedTwinIdsCount: blockedTwinIds.length 
- });      
+ const blockNonLoggedFilter = buildBlockNonLoggedUsersFilter(hasUser);      
 
  const totalCountResult = await db.query(`
   SELECT COUNT(*) as total
@@ -252,7 +233,6 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
   : []);
 
 const totalCount = parseInt(totalCountResult.rows[0].total);
-console.log('[DISCOVER] Total count query result:', { totalCount, rows: totalCountResult.rows });
 
     // Get trending twins with engagement score
     const trendingTwins = await db.query(`
@@ -302,14 +282,6 @@ console.log('[DISCOVER] Total count query result:', { totalCount, rows: totalCou
     `, blockedTwinIds.length > 0 
       ? [...blockedTwinIds, limit, offset]
       : [limit, offset]);   
-    
-    console.log('[DISCOVER] Trending query result:', {
-      rowsCount: trendingTwins.rows.length,
-      limit,
-      offset,
-      queryParams: blockedTwinIds.length > 0 ? [...blockedTwinIds, limit, offset] : [limit, offset],
-      firstTwinId: trendingTwins.rows[0]?.id || null,
-    });
     
     // ✅ Fallback to recent if no trending results (also filter blocked)
     if (trendingTwins.rows.length === 0 && offset === 0) {
@@ -382,17 +354,6 @@ console.log('[DISCOVER] Total count query result:', { totalCount, rows: totalCou
       req.user?.id
     );
 
-    console.log('[DISCOVER] Enriched twins:', {
-      beforeEnrichment: trendingTwins.rows.length,
-      afterEnrichment: enrichedTwins.length,
-      sampleTwin: enrichedTwins[0] ? {
-        id: enrichedTwins[0].id,
-        publicHandle: enrichedTwins[0].publicHandle,
-        hasLiked: enrichedTwins[0].hasLiked,
-        hasFollowed: enrichedTwins[0].hasFollowed,
-      } : null,
-    });
-
     // ✅ Log response before sending
     try {
       logger.info('[DISCOVER_TRENDING:RESPONSE]', {
@@ -406,18 +367,7 @@ console.log('[DISCOVER] Total count query result:', { totalCount, rows: totalCou
     } catch (logErr) {
       logger.warn('[DISCOVER_TRENDING] Failed to log RESPONSE:', logErr);
     }
-
-    console.log('[DISCOVER] Final response data:', {
-      success: true,
-      twinsCount: enrichedTwins.length,
-      pagination: {
-        limit,
-        offset,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-        currentPage: Math.floor(offset / limit) + 1,
-      },
-    });
+   
 
     // ✅ Ensure no-cache headers (already set globally, but double-check)
     res.set({

@@ -179,13 +179,6 @@ export async function getRecentMessages(
   `, [chatId, limit]);
 
   const messages = recentMessagesResult.rows.reverse();
-  console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] [HYP-I] Fetched recent messages:', {
-    chatId,
-    messageTable,
-    limit,
-    actualCount: messages.length,
-    messages: messages.map(m => ({ sender: m.sender, contentLength: m.content.length }))
-  });
   return messages;
 }
 
@@ -208,22 +201,6 @@ export function buildChatContext(params: {
   } | null;
   memoryVisibility?: 'none' | 'owner' | 'public_twin' | 'all';
 }): ChatMessageContext {
-  console.log('[CHAT_SHARED_UTILS] [HYP-A] [HYP-F] [HYP-I] Building chat context:', {
-    twinId: params.twinId,
-    memoryVisibility: params.memoryVisibility || 'owner',
-    hasPersonaData: !!params.personaData,
-    hasSystemPrompt: !!params.systemPrompt,
-    systemPromptLength: params.systemPrompt?.length || 0,
-    chatMemoryCount: params.chatMemory.length,
-    currentMessagesCount: params.currentMessages.length,
-    hasSessionMemory: !!params.sessionMemory,
-    sessionMemorySummaryLength: params.sessionMemory?.summary?.length || 0,
-    isFirstMessage: params.isFirstMessage
-  });
-  console.log('[CHAT_SHARED_UTILS] [HYP-I] chatMemory (recent messages only, NOT full history):', params.chatMemory.length, 'messages');
-  console.log('[CHAT_SHARED_UTILS] [HYP-I] currentMessages:', params.currentMessages);
-  console.log('[CHAT_SHARED_UTILS] [HYP-I] sessionMemory summary (if exists):', params.sessionMemory?.summary ? 'EXISTS' : 'NONE');
-  
   return {
     styleVector: params.styleVector,
     personaData: params.personaData,
@@ -254,14 +231,6 @@ export async function generateAIResponse(
   let outputTokens = 0;
 
   try {
-    console.log('[CHAT_SHARED_UTILS] [HYP-A] [HYP-C] Generating AI response with context:', {
-      twinId: context.twinId,
-      hasPersonaData: !!context.personaData,
-      hasSystemPrompt: !!context.systemPrompt,
-      hasSessionMemory: !!context.sessionMemory,
-      chatMemoryCount: context.chatMemory.length,
-      currentMessagesCount: context.currentMessages.length
-    });
     const draftResult = await twinService.generateDraftWithContext(context);
 
     // Handle both string and object response (for title generation)
@@ -307,12 +276,7 @@ export async function generateAIResponse(
     }
 
     logger.info('AI response generated successfully:', aiResponse.substring(0, 100));
-    console.log('[CHAT_SHARED_UTILS] [HYP-A] [HYP-C] AI response generated:', {
-      responseLength: aiResponse.length,
-      hasTitle: !!generatedTitle,
-      title: generatedTitle,
-      tokensUsed
-    });
+    
   } catch (error) {
     logger.error('AI response generation failed:', error);
     aiResponse = "I'm having trouble thinking right now. Could you try again?";
@@ -612,12 +576,6 @@ export async function updateSessionMemory(
 
     // 2) Fetch ONLY delta messages since lastUpdated (cheap + bounded)
     const MAX_DELTA = Number(process.env.SESSION_SUMMARY_DELTA_MAX ?? 12);
-    console.log('[CHAT_SHARED_UTILS] [HYP-H] Delta update mode:', {
-      chatId,
-      lastUpdatedIso,
-      mode: lastUpdatedIso ? 'delta' : 'full',
-      maxDelta: MAX_DELTA
-    });
 
     let rows: Array<{ content: string; sender: string; createdAt: Date }> = [];
 
@@ -633,7 +591,6 @@ export async function updateSessionMemory(
         [chatId, lastUpdatedIso, MAX_DELTA]
       );
       rows = deltaResult.rows;
-      console.log('[CHAT_SHARED_UTILS] [HYP-H] Delta messages fetched (since lastUpdated):', rows.length);
     } else {
       // No summary yet → take a small recent slice to bootstrap
       const bootstrapResult = await db.query(
@@ -647,7 +604,6 @@ export async function updateSessionMemory(
         [chatId, MAX_DELTA]
       );
       rows = bootstrapResult.rows.slice().reverse();
-      console.log('[CHAT_SHARED_UTILS] [HYP-H] Bootstrap messages fetched (no summary yet):', rows.length);
     }
 
     const deltaMessages = rows.map(r => ({
@@ -680,9 +636,6 @@ export async function updateSessionMemory(
       pinnedFactsDelta = {};
     }
 
-    if (pinnedFactsDelta.name || pinnedFactsDelta.likes?.length || pinnedFactsDelta.hobbies?.length || pinnedFactsDelta.extras?.length) {
-      console.log('[SESSION_PINNED] Extracted pinned facts delta:', pinnedFactsDelta);
-    }
 
     // 3) Useful-only: skip summarization for junk turns (hi/ok/thanks)
     const isMeaningful = (text: string) => {
@@ -726,24 +679,11 @@ export async function updateSessionMemory(
     };
 
     const meaningfulDelta = deltaMessages.filter(m => isMeaningful(m.content));
-    console.log('[CHAT_SHARED_UTILS] [HYP-H] Useful-only filtering:', {
-      totalDelta: deltaMessages.length,
-      meaningfulDelta: meaningfulDelta.length,
-      filteredOut: deltaMessages.length - meaningfulDelta.length
-    });
     if (!meaningfulDelta.length) {
-      console.log('[CHAT_SHARED_UTILS] [HYP-H] No meaningful messages, skipping summary update');
       return null;
     }
 
     // 4) Incremental update with token tracking
-    console.log('[CHAT_SHARED_UTILS] [HYP-H] Creating/updating session memory:', {
-      chatId,
-      messageTable,
-      mode: existing ? 'delta' : 'full',
-      messageCount: meaningfulDelta.length
-    });
-    
     let summaryTokens = 0;
     let topicsTokens = 0;
     
@@ -781,33 +721,7 @@ export async function updateSessionMemory(
         reserved: 0,
         actualTokensUsed: totalMemoryTokens
       });
-      
-      console.log('[TOKEN_USAGE] [SESSION_MEMORY] Tokens added to quota:', {
-        chatId,
-        pinnedFacts: pinnedTokens,
-        summary: summaryTokens,
-        topics: topicsTokens,
-        total: totalMemoryTokens
-      });
-      
-      // ✅ Log comprehensive token breakdown
-      console.log('[TOKEN_USAGE] [BREAKDOWN] Session Memory Update:', {
-        chatId,
-        messageTable,
-        pinnedFactsTokens: pinnedTokens,
-        summaryTokens: summaryTokens,
-        topicsTokens: topicsTokens,
-        totalMemoryTokens: totalMemoryTokens,
-        breakdown: {
-          pinnedFacts: `${pinnedTokens} tokens`,
-          summary: `${summaryTokens} tokens`,
-          topics: `${topicsTokens} tokens`,
-          total: `${totalMemoryTokens} tokens`
-        }
-      });
     }
-    
-    console.log('[CHAT_SHARED_UTILS] [HYP-H] Session memory update completed');
 
     logger.info(`Session memory updated for ${messageTable} chat ${chatId} (delta=${meaningfulDelta.length})`);
 
@@ -857,30 +771,11 @@ export async function getSessionMemoryForContext(
       messageTable === 'PublicMessage'
         ? await memoryService.getPublicSessionMemory(chatId)
         : await memoryService.getSessionMemory(chatId);
-    if (sessionMemory) {
-      console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] Session memory retrieved for chat:', chatId);
-      console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] Summary exists:', !!sessionMemory.summary);
-      console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] Summary length:', sessionMemory.summary?.length || 0, 'chars');
-      console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] Key topics:', sessionMemory.keyTopics || []);
-    } else {
-      console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] No session memory found for chat:', chatId);
-    }
     let pinnedFacts: any = undefined;
     if (sessionMemory?.vector) {
       try {
         const vec = typeof sessionMemory.vector === 'string' ? JSON.parse(sessionMemory.vector) : sessionMemory.vector;
         pinnedFacts = vec?.pinnedFacts;
-        if (pinnedFacts) {
-          console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] Pinned facts retrieved:', {
-            hasName: !!pinnedFacts.name,
-            name: pinnedFacts.name || null,
-            likesCount: pinnedFacts.likes?.length || 0,
-            hobbiesCount: pinnedFacts.hobbies?.length || 0,
-            extrasCount: pinnedFacts.extras?.length || 0, // ✅ NEW
-          });
-        } else {
-          console.log('[CHAT_SHARED_UTILS] [HYP-F] [HYP-G] No pinned facts found in vector');
-        }
       } catch {
         pinnedFacts = undefined;
       }
