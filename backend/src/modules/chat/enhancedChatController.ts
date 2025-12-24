@@ -20,6 +20,7 @@ import * as chatUtils from './chatSharedUtils';
 import { EventLogger } from '../../services/eventLogger';
 import { EVENT_TYPES } from '../../config/constants';
 import { memoryService } from '../../services/memoryService'; // ✅ ADD
+import { detectFastPathCategory, fastPathReply } from '../../utils/commonMessageFastPath';
 
 const twinService = new TwinService();
 
@@ -58,6 +59,10 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
 
     logger.info('🚀 Enhanced reply request:', { chatId, userId, message, regenerate, regenerateMessageId });
 
+    // ✅ REMOVED: Banned word and fast-path handling - now handled by middleware (checkTokenQuotaForEnhancedChat)
+    // The middleware handles banned words and common messages BEFORE this controller runs
+    // If middleware handles it, it returns early and this controller never executes
+
     // 1. Get chat and twin data
     const chatResult = await db.query(`
       SELECT c.id, c."userId", c."twinId", c."createdAt",
@@ -74,71 +79,133 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     const chat = chatResult.rows[0];
     logger.info('✅ Chat found:', chat.id);
     
-    // ✅ NEW: Moderation-style validation (restricted content → default reply)
-    try {
-      chatUtils.validateMessage(message);
-    } catch (error: any) {
-      if (error && error.message === 'Message contains restricted content') {
-        const defaultText =
-          "Sorry, I can't answer this like this. Please try asking in a different way.";
-        const now = new Date().toISOString();
+    // ✅ FAST-PATH: Check for common messages BEFORE any expensive operations
+    // This must happen BEFORE session memory, message fetching, context building
+    const fastPathCategory = detectFastPathCategory(message || '');
+    if (fastPathCategory) {
+      logger.info('[FAST-PATH] Common message detected (ENHANCED_CHAT):', {
+        category: fastPathCategory,
+        message: message.substring(0, 50),
+        chatId,
+        userId,
+        checkingActiveTask: true
+      });
 
-        // 1) Log MESSAGE_BLOCKED
-        try {
-          await EventLogger.logUserEvent(userId, EVENT_TYPES.MESSAGE_BLOCKED, {
-            reason: 'restricted_content',
-            source: 'dashboard', // ✅ MVP: use valid source type
-            chatId: chat.id,
-            requestId: (req as any).requestId || null,
-          });
-        } catch (logErr) {
-          logger.warn('Failed to log MESSAGE_BLOCKED (enhanced chat):', logErr);
+      // Check if there's an active task in session summary (don't interrupt work)
+      // We need to check this before skipping LLM, but we'll do a minimal check
+      let hasActiveTask = false;
+      try {
+        const quickSessionCheck = await db.query(`
+          SELECT summary FROM "SessionMemory" WHERE "chatId" = $1 LIMIT 1
+        `, [chatId]);
+        if (quickSessionCheck.rows.length > 0 && quickSessionCheck.rows[0].summary) {
+          const sm = (quickSessionCheck.rows[0].summary || '').toLowerCase();
+          hasActiveTask =
+            sm.includes('active_task:') &&
+            !sm.includes('active_task: none') &&
+            !sm.includes('active_task: (none)');
         }
+      } catch (err) {
+        // If check fails, proceed with fast-path (safe default)
+      }
 
-        // 2) User + AI default messages DB me save karo
-        try {
-          const userMessageId = generateId.message();
-          const aiMessageId = generateId.message();
-
-          await db.query(`
-            INSERT INTO "Message" (id, "chatId", content, sender, "createdAt")
-            VALUES ($1, $2, $3, 'human', $4::timestamptz)
-          `, [userMessageId, chat.id, message, now]);
-
-          await db.query(`
-            INSERT INTO "Message" (id, "chatId", content, sender, "createdAt")
-            VALUES ($1, $2, $3, 'twin', $4::timestamptz)
-          `, [aiMessageId, chat.id, defaultText, now]);
-
-          await db.query(`
-            UPDATE "Chat"
-            SET "messageCount" = "messageCount" + 1,
-                "lastMessage" = $1,
-                "updatedAt" = $2::timestamptz
-            WHERE id = $3
-          `, [defaultText, now, chat.id]);
-        } catch (dbErr) {
-          logger.warn('Failed to persist blocked enhanced message:', dbErr);
-        }
-
-        // 3) Frontend ko safe reply bhejo
-        return res.json({
-          success: true,
-          response: defaultText,
-          messageId: null,
-          intent: 'blocked',
-          criticScore: null,
-          latency: 0,
-          generatedTitle: null,
-          isFirstMessage: false,
-          timestamp: now,
-          serverTime: now,
-          blocked: true,
+      if (hasActiveTask) {
+        logger.info('[FAST-PATH] Skipped due to active task (ENHANCED_CHAT):', {
+          category: fastPathCategory,
+          chatId,
+          reason: 'Active task detected - using LLM for context-aware reply'
         });
       }
 
-      // koi aur validation error → normal error flow
-      throw error;
+      // Only use fast-path if no active task (let LLM handle context-aware replies during work)
+      if (!hasActiveTask) {
+        const aiResponse = fastPathReply(fastPathCategory, chat.personaData);
+
+        // Get minimal chat info for fast-path
+        const chatInfoResult = await db.query(`
+          SELECT "messageCount", "title"
+          FROM "Chat"
+          WHERE id = $1
+        `, [chatId]);
+
+        const chatInfo = chatInfoResult.rows[0] || { messageCount: 0, title: null };
+        const isFirstMessage = chatInfo.messageCount === 0;
+        const currentTitle = chatInfo.title;
+
+        // ✅ FIX: Generate title for first message using category-specific titles (fallback - middleware should handle this, but just in case)
+        const isDefaultTitle = currentTitle && (
+          currentTitle.trim() === '' ||
+          currentTitle.trim().toLowerCase() === 'new chat' ||
+          currentTitle.trim().toLowerCase() === 'newchat'
+        );
+        let generatedTitle: string | null = null;
+        if (isFirstMessage && (!currentTitle || isDefaultTitle)) {
+          const { getCategoryTitles } = await import('../../utils/commonMessageFastPath');
+          const categoryTitles = getCategoryTitles(fastPathCategory);
+          generatedTitle = categoryTitles[Math.floor(Math.random() * categoryTitles.length)];
+        }
+
+        // Save user + AI messages immediately and return
+        const userMessage = await chatUtils.saveUserMessage({
+          chatId,
+          message,
+          approved: true,
+          requestId: chatUtils.createRequestId(userId), // Generate requestId here
+          messageTable: 'Message',
+          messageIdPrefix: 'msg'
+        });
+
+        const aiMessage = await chatUtils.saveAIMessage({
+          chatId,
+          aiResponse,
+          messageTable: 'Message',
+          messageIdPrefix: 'msg'
+        });
+
+        // Update chat metadata with generated title
+        await chatUtils.updateChatMetadata({
+          chatId,
+          chatTable: 'Chat',
+          generatedTitle,
+          isFirstMessage,
+          currentTitle,
+          userMessage: message,
+          aiResponse,
+          tokensUsed: 0
+        });
+
+        logger.info('[FAST-PATH] Response sent without LLM (ENHANCED_CHAT - FALLBACK):', {
+          category: fastPathCategory,
+          tokensUsed: 0,
+          chatId,
+          userId,
+          isFirstMessage,
+          generatedTitle,
+          messagePreview: message.substring(0, 30),
+          note: 'This should rarely execute - middleware should handle fast-path first'
+        });
+
+        return res.json({
+          success: true,
+          response: aiResponse,
+          generatedTitle,
+          isFirstMessage,
+          userMessage: {
+            id: userMessage.id,
+            publicChatId: tokenizeId(chatId, 'chat'),
+            content: userMessage.content,
+            sender: userMessage.sender,
+            createdAt: userMessage.createdAt,
+          },
+          aiMessage: {
+            id: aiMessage.id,
+            publicChatId: tokenizeId(chatId, 'chat'),
+            content: aiMessage.content,
+            sender: aiMessage.sender,
+            createdAt: aiMessage.createdAt,
+          },
+        });
+      }
     }
     
     // ✅ MVP: explicit "remember" command (no LLM call, saves to MemoryLongTerm)
@@ -377,7 +444,7 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     logger.info('🎯 Intent classified:', intent.intent);
 
     // Generate response using TwinService with full context (and title if first message)
-    let response = "I'm your AI twin! How can I help you today?";
+    let response: string | null = null; // Will be set by fast-path or LLM
     let generatedTitle: string | null = null;
     let tokensUsed = 0;
     const shouldGenerateTitle = isFirstMessage && (!currentTitle || currentTitle === 'New Chat' || currentTitle === '');
@@ -386,6 +453,16 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     const memoryEnabled = chat.personaData?.settings?.memory?.enabled !== false; // Default true
 
     // ✅ No manual memoryBlock. Memory should be injected by TwinService/PromptBuilder consistently.
+    const memoryVisibility = memoryEnabled ? 'owner' : 'none';
+    const userName = chat.personaData?.basicInfo?.name || chat.personaData?.basicInfo?.fullName || chat.personaData?.name || 'the user';
+    
+    // ✅ Add tone rules based on memoryVisibility
+    let toneRules = '';
+    if (memoryVisibility === 'owner') {
+      toneRules = `\n\nPRIVATE CHAT: You are NOT ${userName}. NEVER first-person. ALWAYS second-person. You have NO personal likes, activities, or opinions.
+You are the user's AI twin (reflective assistant).`;
+    }
+    
     const runtimeSystemPrompt =
       (chat.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.") +
       `
@@ -394,7 +471,7 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
 - Follow the human's latest instruction.
 - Do NOT refuse benign requests.
 - Do NOT mention MVP/startup/topper unless the human asks.
-- If human asks for math questions, ask math questions.`;
+- If human asks for math questions, ask math questions.${toneRules}`;
 
     // ✅ If user is asking about preferences, append known likes/avoids to prompt
     const msgLower = (message || '').toLowerCase();
@@ -416,24 +493,8 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
 
     const finalSystemPrompt = `${runtimeSystemPrompt}${preferencesSection}`;
     
-    // ✅ Fast-path trivial greetings/thanks when no active task is in session summary
-    const t = (message || '').trim().toLowerCase();
-    const isTrivial = /^(hi|hey|hello|yo|hii|heyy|thanks|thx|ty|bye|gn)\b/.test(t);
-    const sm = (sessionMemory?.summary || '').toLowerCase();
-    const hasActiveTask =
-      sm.includes('active_task:') &&
-      !sm.includes('active_task: none') &&
-      !sm.includes('active_task: (none)');
-
-      const isPreferenceQuestionFastPath =
-        /(what\s+do\s+i\s+like|what\s+game\s+do\s+i\s+like|my\s+preference|my\s+preferences|likes|avoids|dislikes)/i.test(t) ||
-        /(favou?rite\s+game|favou?rite\s+games)/i.test(t);    
-    const wordCount = t.split(/\s+/).filter(Boolean).length;
-
-    if (isTrivial && !hasActiveTask && !isPreferenceQuestionFastPath && wordCount <= 4) {
-      response = "Hey! How can I help?";
-      tokensUsed = 0;
-    } else {
+    // If fast-path didn't match or has active task, use LLM
+    if (!response) {
       // ✅ NEW: Token quota (daily) - enforce BEFORE LLM call
       const { reserveDailyTokens, reconcileDailyTokens, TokenQuotaError } = await import('../../services/tokenQuotaService');
 
@@ -478,7 +539,7 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
           twinId: chat.twin_id,
           isFirstMessage: shouldGenerateTitle,
           sessionMemory: sessionMemory, // ✅ Session memory for budget-aware context
-          memoryVisibility: memoryEnabled ? 'owner' : 'none', // ✅ ADD
+          memoryVisibility, // ✅ Use same variable defined above
         });
         
         if (typeof draftResult === 'object' && draftResult.response && draftResult.title) {
@@ -503,6 +564,15 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
             actorKey: reservation.actorKey,
             reserved: reservation.reserved,
             actualTokensUsed: tokensUsed || 0,
+          });
+          
+          // ✅ Log main response token usage
+          console.log('[TOKEN_USAGE] [MAIN_RESPONSE] Enhanced Chat:', {
+            chatId,
+            userId,
+            reserved: reservation.reserved,
+            actualUsed: tokensUsed || 0,
+            delta: (tokensUsed || 0) - reservation.reserved
           });
         }
       } catch (error) {
@@ -612,8 +682,13 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
     (async () => {
       try {
         console.log('[ENHANCED_CHAT] [HYP-C] [HYP-H] Updating session memory (delta mode)');
-        await chatUtils.updateSessionMemory(chatId, chat.twin_id, 'Message');
+        await chatUtils.updateSessionMemory(chatId, chat.twin_id, 'Message', {
+          kind: 'user',
+          userId: req.user?.id
+        });
         console.log('[ENHANCED_CHAT] [HYP-C] [HYP-H] Session memory update completed');
+        
+        // ✅ Log total token usage (main + session memory) - will be logged by chatSharedUtils
 
         // ✅ Check if user wants to save something (ChatGPT-style "remember this")
         if (!regenerate) {

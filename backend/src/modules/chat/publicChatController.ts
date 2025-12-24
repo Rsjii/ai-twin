@@ -15,6 +15,7 @@ import { EVENT_TYPES } from '../../config/constants';
 import { isDev } from '../../config/env';
 import { memoryService } from '../../services/memoryService';
 import {reserveDailyTokens, reconcileDailyTokens} from '../../services/tokenQuotaService';
+import { detectFastPathCategory, fastPathReply } from '../../utils/commonMessageFastPath';
 
 // Validation schemas
 const startPublicChatSchema = z.object({
@@ -481,7 +482,105 @@ if (chat.requireLogin && !userId) {
       );
     }
 
-    // ✅ Check first message and title
+    // ✅ FAST-PATH: Check for common messages BEFORE any expensive operations
+    // This must happen BEFORE session memory, message fetching, context building
+    const fastPathCategory = detectFastPathCategory(message || '');
+    if (fastPathCategory) {
+      logger.info('[FAST-PATH] Common message detected (PUBLIC_CHAT):', {
+        category: fastPathCategory,
+        message: message.substring(0, 50),
+        chatId,
+        tokensSaved: 'YES - No LLM call'
+      });
+
+      // Use already-loaded chat data (personaData, messageCount, title are already in chat object from line 407)
+      const aiResponse = fastPathReply(fastPathCategory, chat.personaData);
+
+      const isFirstMessage = chat.messageCount === 0;
+      const currentTitle = chat.title;
+
+      // ✅ FIX: Generate title for first message using category-specific titles (fallback - middleware should handle this, but just in case)
+      const isDefaultTitle = currentTitle && (
+        currentTitle.trim() === '' ||
+        currentTitle.trim().toLowerCase() === 'new chat' ||
+        currentTitle.trim().toLowerCase() === 'newchat'
+      );
+      let generatedTitle: string | null = null;
+      if (isFirstMessage && (!currentTitle || isDefaultTitle)) {
+        const { getCategoryTitles } = await import('../../utils/commonMessageFastPath');
+        const categoryTitles = getCategoryTitles(fastPathCategory);
+        generatedTitle = categoryTitles[Math.floor(Math.random() * categoryTitles.length)];
+      }
+
+      // Create request ID for fast-path
+      const userIdOrVisitor = chat.userId || chat.visitorId || `visitor_${Date.now()}`;
+      const requestId = chatUtils.createRequestId(userIdOrVisitor);
+
+      const userMessage = await chatUtils.saveUserMessage({
+        chatId,
+        message,
+        approved: true,
+        requestId,
+        messageTable: 'PublicMessage',
+        messageIdPrefix: 'pmsg'
+      });
+
+      const aiMessage = await chatUtils.saveAIMessage({
+        chatId,
+        aiResponse,
+        messageTable: 'PublicMessage',
+        messageIdPrefix: 'pmsg'
+      });
+
+      // Update chat metadata with generated title
+      await chatUtils.updateChatMetadata({
+        chatId,
+        chatTable: 'PublicChat',
+        generatedTitle,
+        isFirstMessage,
+        currentTitle,
+        userMessage: message,
+        aiResponse,
+        tokensUsed: 0,
+        updatedAtField: 'lastActivity'
+      });
+
+      logger.info('[FAST-PATH] Response sent without LLM (PUBLIC_CHAT - FALLBACK):', {
+        category: fastPathCategory,
+        tokensUsed: 0,
+        chatId,
+        isFirstMessage,
+        generatedTitle,
+        messagePreview: message.substring(0, 30),
+        note: 'This should rarely execute - middleware should handle fast-path first'
+      });
+
+      // ✅ Keep response shape identical to normal public chat flow (messages array)
+      return res.json({
+        success: true,
+        messages: [
+          {
+            id: userMessage.id,
+            content: message,
+            sender: 'human',
+            createdAt: normalizeTimestamp(userMessage.createdAt),
+            relativeTime: formatRelativeTime(userMessage.createdAt)
+          },
+          {
+            id: aiMessage.id,
+            content: aiResponse,
+            sender: 'twin',
+            createdAt: normalizeTimestamp(aiMessage.createdAt),
+            relativeTime: formatRelativeTime(aiMessage.createdAt)
+          }
+        ],
+        generatedTitle,
+        isFirstMessage: isFirstMessage,
+        serverTime: new Date().toISOString()
+      });
+    }
+
+    // ✅ Check first message and title (only if fast-path didn't match)
     const [isFirstMessage, currentTitle] = await Promise.all([
       chatUtils.checkFirstMessage(chatId, 'PublicMessage'),
       chatUtils.getChatTitle(chatId, 'PublicChat')
@@ -557,9 +656,19 @@ if (chat.requireLogin && !userId) {
     const allowPublicUse = chat?.personaData?.settings?.memory?.allowPublicUse === true;
     const memoryVisibility = allowPublicUse ? 'public_twin' : 'none';
     
+    // ✅ Add tone rules for public chat
+    const userName = chat.personaData?.basicInfo?.name || chat.personaData?.basicInfo?.fullName || chat.personaData?.name || 'the user';
+    const publicToneRules = `
+    PUBLIC CHAT RULES:
+    - You are an AI twin representing ${userName}.
+    - Use first-person to reflect how ${userName} typically thinks.
+    - Never claim to be the real ${userName} or speak from lived experience.
+    - If explicitly asked, clarify you are an AI twin.
+    `;    
+    
     // ✅ No manual memory block here. We handle long-term memory selection centrally.
     const systemPromptForPublic =
-      (chat.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.");
+      (chat.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.") + publicToneRules;
 
     const context = chatUtils.buildChatContext({
       personaData: chat.personaData,
@@ -582,7 +691,6 @@ if (chat.requireLogin && !userId) {
       currentMessage: message.trim().substring(0, 50),
       fullHistorySent: false
     });
-
 
     const actor = chat.userId
       ? ({ kind: 'user', userId: chat.userId } as const)
@@ -641,6 +749,15 @@ if (chat.requireLogin && !userId) {
         reserved: reservation.reserved,
         actualTokensUsed: tokensUsed || 0,
       });
+      
+      // ✅ Log main response token usage
+      console.log('[TOKEN_USAGE] [MAIN_RESPONSE] Public Chat:', {
+        chatId,
+        userId: req.user?.id || 'anon',
+        reserved: reservation.reserved,
+        actualUsed: tokensUsed || 0,
+        delta: (tokensUsed || 0) - reservation.reserved
+      });
     }
 
     // ✅ Save messages
@@ -688,7 +805,11 @@ if (chat.requireLogin && !userId) {
     (async () => {
       try {
         console.log('[PUBLIC_CHAT] [HYP-C] [HYP-H] Updating session memory (delta mode)');
-        await chatUtils.updateSessionMemory(chatId, chat.twinId, 'PublicMessage');
+        await chatUtils.updateSessionMemory(chatId, chat.twinId, 'PublicMessage', {
+          kind: req.user ? 'user' : 'anon',
+          userId: req.user?.id,
+          ip: req.ip
+        });
         console.log('[PUBLIC_CHAT] [HYP-C] [HYP-H] Session memory update completed');
       } catch (error) {
         logger.error('Session memory update failed for public chat:', error);

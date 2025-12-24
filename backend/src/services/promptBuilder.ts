@@ -149,17 +149,31 @@ export class PromptBuilder {
       const longTermMemorySection = this.buildLongTermMemorySection(longTermMemories);
       const sessionMemorySection = this.buildSessionMemorySection(sessionMemory);
       const chatContextSection = this.buildChatContextSection(chatVector, chatMemory);
-      const instructionsSection = this.buildInstructionsSection(personaData, styleVector, tokenLimit);
+      const instructionsSection = this.buildInstructionsSection(personaData, styleVector, tokenLimit, memoryVisibility);
       const userMessage = currentMessages.join(' ');
 
       // 3. Calculate base prompt size (mandatory parts)
-      const basePrompt = `You are the user's AI twin chatting with the human user.
+      const userName = personaData?.basicInfo?.name || personaData?.basicInfo?.fullName || personaData?.name || 'the user';
+      
+      let basePrompt = '';
+      if (memoryVisibility === 'owner') {
+        basePrompt = `You are ${userName}'s AI twin. You are NOT ${userName}. NEVER first-person. ALWAYS second-person.You have NO personal likes, activities, or opinions.
+You are the user's AI twin (reflective assistant).
+
+CURRENT HUMAN MESSAGE: "${userMessage}"\n\n`;
+      } else if (memoryVisibility === 'public_twin') {
+        basePrompt = `You are ${userName}'s AI twin. ALWAYS disclose "I'm ${userName}'s AI twin" in first response. Use first-person but NEVER claim to BE ${userName}.
+
+CURRENT HUMAN MESSAGE: "${userMessage}"\n\n`;
+      } else {
+        basePrompt = `You are the user's AI twin chatting with the human user.
 CRITICAL:
 - You are NOT the human user.
 - Do NOT claim you solved the user's messages.
 - If AUTHORITATIVE STATE (session memory) contains an ACTIVE_TASK, continue it until the user changes it.
 
 CURRENT HUMAN MESSAGE: "${userMessage}"\n\n`;
+      }
       const baseTokens = this.countTokens(basePrompt);
       const instructionsTokens = this.countTokens(instructionsSection);
       
@@ -563,28 +577,26 @@ DO NOT switch topics unless the user explicitly changes the task.
     chatVector?: any,
     chatMemory?: Array<{content: string, sender: string, timestamp: Date}>
   ): string {
-    if (chatVector) {
-      const recentMessages = chatMemory 
-        ? chatMemory.map(msg => `${msg.sender === 'human' ? 'Human' : 'Twin'}: ${msg.content}`).join('\n')
-        : '';
-      
-      return `CHAT CONTEXT (COMPRESSED HISTORY):
-Summary: ${chatVector.summary || 'No summary available'}
-Topics Discussed: ${chatVector.topics?.join(', ') || 'None'}
-Key Points: ${chatVector.keyPoints?.join(', ') || 'None'}
-User Preferences: ${JSON.stringify(chatVector.userPreferences || {})}
-Conversation Tone: ${chatVector.conversationTone || 'neutral'}
-User Personality: ${JSON.stringify(chatVector.userPersonality || {})}
-Important Context: ${chatVector.context || 'None'}
+    const MAX = 8;
+    const recentMessages = chatMemory
+      ? chatMemory.slice(-MAX).map(m => `${m.sender === 'human' ? 'H' : 'T'}: ${m.content}`).join('\n')
+      : '';
 
-RECENT MESSAGES:
+    if (chatVector) {
+      return `CHAT CONTEXT:
+Summary: ${chatVector.summary || 'None'}
+Topics: ${(chatVector.topics || []).slice(0, 4).join(', ') || 'None'}
+
+RECENT:
 ${recentMessages}`;
-    } else if (chatMemory && chatMemory.length > 0) {
-      return `CHAT HISTORY (IMPORTANT - REFERENCE THIS):
-${chatMemory.map(msg => `${msg.sender === 'human' ? 'Human' : 'Twin'}: ${msg.content}`).join('\n')}`;
-    } else {
-      return 'CHAT HISTORY: This is the start of our conversation.';
     }
+
+    if (chatMemory && chatMemory.length > 0) {
+      return `RECENT CHAT:
+${recentMessages}`;
+    }
+
+    return 'CHAT: New conversation.';
   }
 
   /**
@@ -593,7 +605,8 @@ ${chatMemory.map(msg => `${msg.sender === 'human' ? 'Human' : 'Twin'}: ${msg.con
   private buildInstructionsSection(
     personaData?: any,
     _styleVector?: any,
-    tokenLimit: number = 500
+    tokenLimit: number = 500,
+    memoryVisibility: 'none' | 'owner' | 'public_twin' | 'all' = 'owner'
   ): string {
     const userName =
       personaData?.basicInfo?.name ||
@@ -605,16 +618,23 @@ ${chatMemory.map(msg => `${msg.sender === 'human' ? 'Human' : 'Twin'}: ${msg.con
     const lang = comm.language || {};
     const prefs = personaData?.preferences || {};
     
+    let toneRule = '';
+    if (memoryVisibility === 'owner') {
+      toneRule = '\n10. PRIVATE: You are the user ai twin. You are NOT the user. NEVER first-person. ALWAYS second-person.';
+    } else if (memoryVisibility === 'public_twin') {
+      toneRule = '\n10. PUBLIC: Disclose AI identity. Use first-person but never claim to BE the person.';
+    }
+    
     return `CRITICAL INSTRUCTIONS:
 1. You are an AI twin chatting with the human user. You are NOT the user.
-2. Do NOT greet the user by name (no "hi ${userName}") unless the user asks or it’s naturally needed.
+2. Do NOT greet the user by name (no "hi ${userName}") unless the user asks or it's naturally needed.
 3. Follow the user's LATEST explicit instruction as highest priority.
 4. If a multi-step task is active (quiz/steps), continue it until completion unless the user cancels.
-5. Never ask the human to “ask the next question” when the human requested YOU to ask questions. You must ask the next question yourself.
+5. Never ask the human to "ask the next question" when the human requested YOU to ask questions. You must ask the next question yourself.
 6. Keep tone respectful; no insults.
 7. Be authentic to the personality and style defined above
 8. Emoji preference: ${lang.emojiUsage || prefs.emojiPref || 'medium'}
-9. Response length: ${lang.responseLength || rules.replySize || 'normal'}`;
+9. Response length: ${lang.responseLength || rules.replySize || 'normal'}${toneRule}`;
   }
 
   /**
@@ -698,8 +718,8 @@ Respond as ${userName}, maintaining their personality and communication style.`;
     
     // Build chat context
     const chatContext = chatHistory
-      .slice(-10)
-      .map(msg => `${msg.sender === 'human' ? 'Human' : 'Twin'}: ${msg.content}`)
+      .slice(-8)
+      .map(msg => `${msg.sender === 'human' ? 'H' : 'T'}: ${msg.content}`)
       .join('\n');
     
     // Get user message from parameter or chat history

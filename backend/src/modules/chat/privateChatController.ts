@@ -15,6 +15,7 @@ import { normalizeTimestamp, formatRelativeTime } from '../../utils/timestampUti
 import { detokenizeId, tokenizeId } from '../../utils/idTokenization';
 import { EventLogger } from '../../services/eventLogger';
 import { EVENT_TYPES } from '../../config/constants';
+import { detectFastPathCategory, fastPathReply } from '../../utils/commonMessageFastPath';
 
 const twinService = new TwinService();
 
@@ -886,7 +887,111 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       );
     }
 
-    // ✅ Check first message and title
+    // ✅ FAST-PATH: Check for common messages BEFORE any expensive operations
+    // This must happen BEFORE session memory, message fetching, context building
+    const fastPathCategory = detectFastPathCategory(message || '');
+    if (fastPathCategory) {
+      logger.info('[FAST-PATH] Common message detected (PRIVATE_CHAT):', {
+        category: fastPathCategory,
+        message: message.substring(0, 50),
+        chatId: chat.id,
+        userId: req.user.id,
+        tokensSaved: 'YES - No LLM call'
+      });
+
+      const aiResponse = fastPathReply(fastPathCategory, chat.personaData);
+
+      // Get minimal chat info for fast-path
+      const chatInfoResult = await db.query(`
+        SELECT "messageCount", "title"
+        FROM "Chat"
+        WHERE id = $1
+      `, [chat.id]);
+
+      const chatInfo = chatInfoResult.rows[0] || { messageCount: 0, title: null };
+      const isFirstMessage = chatInfo.messageCount === 0;
+      const currentTitle = chatInfo.title;
+
+      // ✅ FIX: Generate title for first message using category-specific titles (fallback - middleware should handle this, but just in case)
+      const isDefaultTitle = currentTitle && (
+        currentTitle.trim() === '' ||
+        currentTitle.trim().toLowerCase() === 'new chat' ||
+        currentTitle.trim().toLowerCase() === 'newchat'
+      );
+      let generatedTitle: string | null = null;
+      if (isFirstMessage && (!currentTitle || isDefaultTitle)) {
+        const { getCategoryTitles } = await import('../../utils/commonMessageFastPath');
+        const categoryTitles = getCategoryTitles(fastPathCategory);
+        generatedTitle = categoryTitles[Math.floor(Math.random() * categoryTitles.length)];
+      }
+
+      // Create request ID for fast-path
+      const requestId = chatUtils.createRequestId(req.user.id);
+
+      // Save user + AI messages exactly like normal flow
+      const userMessage = await chatUtils.saveUserMessage({
+        chatId: chat.id,
+        message,
+        approved: moderation.approved,
+        requestId,
+        messageTable: 'Message',
+        messageIdPrefix: 'msg'
+      });
+
+      const aiMessage = await chatUtils.saveAIMessage({
+        chatId: chat.id,
+        aiResponse,
+        messageTable: 'Message',
+        messageIdPrefix: 'msg'
+      });
+
+      // ✅ IMPORTANT: Update chat metadata so chat list / lastMessage stays correct.
+      // We intentionally do NOT update session memory/summary here (no LLM, no extra token cost).
+      await chatUtils.updateChatMetadata({
+        chatId: chat.id,
+        chatTable: 'Chat',
+        generatedTitle,
+        isFirstMessage,
+        currentTitle,
+        userMessage: message,
+        aiResponse,
+        tokensUsed: 0
+      });
+
+      logger.info('[FAST-PATH] Response sent without LLM (PRIVATE_CHAT - FALLBACK):', {
+        category: fastPathCategory,
+        tokensUsed: 0,
+        chatId: chat.id,
+        userId: req.user.id,
+        isFirstMessage,
+        generatedTitle,
+        messagePreview: message.substring(0, 30),
+        note: 'This should rarely execute - middleware should handle fast-path first'
+      });
+
+      return res.json({
+        success: true,
+        response: aiResponse,
+        generatedTitle,
+        isFirstMessage,
+        userMessage: {
+          id: userMessage.id,
+          publicChatId: tokenizeId(chat.id, 'chat'),
+          content: userMessage.content,
+          sender: userMessage.sender,
+          createdAt: userMessage.createdAt,
+        },
+        aiMessage: {
+          id: aiMessage.id,
+          publicChatId: tokenizeId(chat.id, 'chat'),
+          content: aiMessage.content,
+          sender: aiMessage.sender,
+          createdAt: aiMessage.createdAt,
+        },
+      });
+    }
+
+    // ✅ Check first message and title (only if fast-path didn't match)
     const [isFirstMessage, currentTitle] = await Promise.all([
       chatUtils.checkFirstMessage(chat.id, 'Message'),
       chatUtils.getChatTitle(chat.id, 'Chat')
@@ -1062,6 +1167,15 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
         reserved: reservation.reserved,
         actualTokensUsed: tokensUsed || 0,
       });
+      
+      // ✅ Log main response token usage
+      console.log('[TOKEN_USAGE] [MAIN_RESPONSE] Private Chat:', {
+        chatId: chat.id,
+        userId: req.user.id,
+        reserved: reservation.reserved,
+        actualUsed: tokensUsed || 0,
+        delta: (tokensUsed || 0) - reservation.reserved
+      });
     }
 
     // ✅ Save messages
@@ -1136,7 +1250,10 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
 
         // Update session memory (delta + useful-only, works for private chat)
         console.log('[PRIVATE_CHAT] [HYP-C] [HYP-H] Updating session memory (delta mode)');
-        await chatUtils.updateSessionMemory(chat.id, chat.twinId, 'Message');
+        await chatUtils.updateSessionMemory(chat.id, chat.twinId, 'Message', {
+          kind: 'user',
+          userId: req.user?.id
+        });
         console.log('[PRIVATE_CHAT] [HYP-C] [HYP-H] Session memory update completed');
 
         // ✅ Check if user wants to save something (ChatGPT-style "remember this")

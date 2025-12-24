@@ -53,7 +53,7 @@ export class MemoryService {
     chatId: string,
     messages: Array<{content: string, sender: string, timestamp: Date}>,
     options?: { mode?: 'full' | 'delta'; pinnedFactsDelta?: Partial<PinnedFacts> }
-  ): Promise<void> {
+  ): Promise<{ summaryTokens: number; topicsTokens: number; pinnedTokens: number }> {
     try {
       const mode = options?.mode ?? 'full';
 
@@ -106,6 +106,8 @@ export class MemoryService {
 
       let summary: string;
       let keyTopics: string[];
+      let summaryTokens = 0;
+      let topicsTokens = 0;
 
       if (mode === 'delta' && existing) {
         // Incremental: update previous summary with new messages only
@@ -114,12 +116,16 @@ export class MemoryService {
           prevSummaryLength: prevSummary.length,
           newMessagesCount: messages.length
         });
-        summary = await this.generateSessionSummaryIncremental(prevSummary, messages);
-        const deltaTopics = await this.extractKeyTopics(messages);
-        keyTopics = this.mergeTopics(prevTopics, deltaTopics, 12);
-        console.log('[MEMORY_SERVICE] [HYP-H] Delta summary generated:', {
+        // ✅ OPTIMIZED: Single LLM call for summary + topics
+        const result = await this.generateSessionSummaryWithTopics(messages, prevSummary, prevTopics);
+        summary = result.summary;
+        keyTopics = result.topics;
+        summaryTokens = result.tokensUsed || 0;
+        topicsTokens = 0; // Already included in combined call
+        console.log('[MEMORY_SERVICE] [HYP-H] Delta summary generated (combined call):', {
           newSummaryLength: summary.length,
-          keyTopicsCount: keyTopics.length
+          keyTopicsCount: keyTopics.length,
+          tokensUsed: summaryTokens
         });
       } else {
         // Full: regenerate from all messages
@@ -127,11 +133,16 @@ export class MemoryService {
           chatId,
           messagesCount: messages.length
         });
-        summary = await this.generateSessionSummary(messages);
-        keyTopics = await this.extractKeyTopics(messages);
-        console.log('[MEMORY_SERVICE] [HYP-C] Full summary generated:', {
+        // ✅ OPTIMIZED: Single LLM call for summary + topics
+        const result = await this.generateSessionSummaryWithTopics(messages, undefined, []);
+        summary = result.summary;
+        keyTopics = result.topics;
+        summaryTokens = result.tokensUsed || 0;
+        topicsTokens = 0; // Already included in combined call
+        console.log('[MEMORY_SERVICE] [HYP-C] Full summary generated (combined call):', {
           summaryLength: summary.length,
-          keyTopicsCount: keyTopics.length
+          keyTopicsCount: keyTopics.length,
+          tokensUsed: summaryTokens
         });
       }
 
@@ -164,6 +175,13 @@ export class MemoryService {
         );
         logger.info(`Created session memory for chat: ${chatId}`);
       }
+      
+      // ✅ Return tokens for quota tracking
+      return {
+        summaryTokens,
+        topicsTokens,
+        pinnedTokens: 0 // Will be tracked separately in chatSharedUtils
+      };
     } catch (error) {
       logger.error('Error creating session memory:', error);
       throw error;
@@ -194,7 +212,7 @@ export class MemoryService {
     chatId: string,
     messages: Array<{content: string, sender: string, timestamp: Date}>,
     options?: { mode?: 'full' | 'delta'; pinnedFactsDelta?: Partial<PinnedFacts> }
-  ): Promise<void> {
+  ): Promise<{ summaryTokens: number; topicsTokens: number; pinnedTokens: number }> {
     try {
       const mode = options?.mode ?? 'full';
 
@@ -247,24 +265,37 @@ export class MemoryService {
 
       let summary: string;
       let keyTopics: string[];
+      let summaryTokens = 0;
+      let topicsTokens = 0;
 
       if (mode === 'delta' && existing) {
-        summary = await this.generateSessionSummaryIncremental(prevSummary, messages);
-        const deltaTopics = await this.extractKeyTopics(messages);
-        keyTopics = this.mergeTopics(prevTopics, deltaTopics, 12);
-        console.log('[MEMORY_SERVICE] [PUBLIC] Incremental summary generated:', {
+        // ✅ OPTIMIZED: Single LLM call for summary + topics
+        const result = await this.generateSessionSummaryWithTopics(messages, prevSummary, prevTopics);
+        summary = result.summary;
+        keyTopics = result.topics;
+        summaryTokens = result.tokensUsed || 0;
+        topicsTokens = 0;
+        console.log('[MEMORY_SERVICE] [PUBLIC] Incremental summary generated (combined call):', {
           chatId,
           prevLength: prevSummary.length,
           newLength: summary.length,
-          deltaMessages: messages.length
+          deltaMessages: messages.length,
+          topicsCount: keyTopics.length,
+          tokensUsed: summaryTokens
         });
       } else {
-        summary = await this.generateSessionSummary(messages);
-        keyTopics = await this.extractKeyTopics(messages);
-        console.log('[MEMORY_SERVICE] [PUBLIC] Full summary generated:', {
+        // ✅ OPTIMIZED: Single LLM call for summary + topics
+        const result = await this.generateSessionSummaryWithTopics(messages, undefined, []);
+        summary = result.summary;
+        keyTopics = result.topics;
+        summaryTokens = result.tokensUsed || 0;
+        topicsTokens = 0;
+        console.log('[MEMORY_SERVICE] [PUBLIC] Full summary generated (combined call):', {
           chatId,
           summaryLength: summary.length,
-          messageCount: messages.length
+          messageCount: messages.length,
+          topicsCount: keyTopics.length,
+          tokensUsed: summaryTokens
         });
       }
 
@@ -298,6 +329,13 @@ export class MemoryService {
         logger.info(`Created PUBLIC session memory for chat: ${chatId}`);
         console.log('[MEMORY_SERVICE] [PUBLIC] Session memory created:', { chatId, id });
       }
+      
+      // ✅ Return tokens for quota tracking
+      return {
+        summaryTokens,
+        topicsTokens,
+        pinnedTokens: 0
+      };
     } catch (error) {
       logger.error('Error creating PUBLIC session memory:', error);
       console.error('[MEMORY_SERVICE] [PUBLIC] Error creating/updating session memory:', error);
@@ -334,8 +372,22 @@ export class MemoryService {
       console.log('[MEMORY_SERVICE] [HYP-D] Facts identified:', facts.length);
       
       for (const fact of facts) {
-        await this.storeLongTermMemory(twinId, fact.key, fact.value, fact.category);
-        console.log('[MEMORY_SERVICE] [HYP-D] Fact stored:', { key: fact.key, category: fact.category });
+        // ✅ Map 'context' category to 'fact' so it appears in the popup
+        const normalizedCategory = fact.category === 'context' ? 'fact' : fact.category;
+        
+        await this.storeLongTermMemory(
+          twinId, 
+          fact.key, 
+          fact.value, 
+          normalizedCategory, // Use normalized category
+          'session',
+          'owner' // Explicit visibility: private by default
+        );
+        console.log('[MEMORY_SERVICE] [HYP-D] Fact stored:', { 
+          key: fact.key, 
+          category: normalizedCategory, // Log normalized category
+          originalCategory: fact.category 
+        });
       }
       
       logger.info(`Extracted ${facts.length} facts for twin: ${twinId}`);
@@ -861,7 +913,7 @@ NOTES: <one line or "none">`;
           { role: 'system', content: 'You output a strict 4-line conversation STATE (ACTIVE_TASK/PROGRESS/CONSTRAINTS/NOTES). Follow the rules exactly.' },
           { role: 'user', content: prompt },
         ],
-        { temperature: 0.2, maxTokens: 200 }  // ✅ Reduced from 220 (4-line STATE format is fixed length)
+        { temperature: 0.2, maxTokens: 180 }  // ✅ Reduced from 200
       );
 
       return llmResponse.content?.trim() || previousSummary || 'Conversation summary unavailable.';
@@ -872,13 +924,168 @@ NOTES: <one line or "none">`;
   }
 
   /**
+   * Generate session summary AND extract topics in a single LLM call (optimization)
+   */
+  private async generateSessionSummaryWithTopics(
+    messages: Array<{content: string, sender: string, timestamp: Date}>,
+    previousSummary?: string,
+    previousTopics: string[] = []
+  ): Promise<{ summary: string; topics: string[]; tokensUsed: number }> {
+    try {
+      if (messages.length === 0) {
+        return { 
+          summary: previousSummary || 'No conversation yet.', 
+          topics: previousTopics,
+          tokensUsed: 0
+        };
+      }
+
+      const conversationText = messages
+        .map(msg => `${msg.sender === 'human' ? 'User' : 'AI'}: ${msg.content}`)
+        .join('\n');
+
+      const isIncremental = !!previousSummary;
+      const prompt = isIncremental
+        ? `Update conversation state and extract topics.
+
+PREVIOUS STATE:
+${previousSummary}
+
+NEW MESSAGES:
+${conversationText}
+
+Return JSON only:
+{
+  "summary": "ACTIVE_TASK: <one line>\\nPROGRESS: <one line>\\nCONSTRAINTS: <one line>\\nNOTES: <one line>",
+  "topics": ["topic1", "topic2"]
+}
+
+Rules:
+- Update ACTIVE_TASK based on user's current request
+- Preserve PROGRESS (e.g. quiz count, scores)
+- Extract 3-5 main topics from USER messages only
+- If no new topics, return empty array`
+        : `Summarize conversation and extract topics.
+
+Conversation:
+${conversationText}
+
+Return JSON only:
+{
+  "summary": "ACTIVE_TASK: <one line>\\nPROGRESS: <one line>\\nCONSTRAINTS: <one line>\\nNOTES: <one line>",
+  "topics": ["topic1", "topic2"]
+}`;
+
+      const llmResponse = await llmClient.generateResponse([
+        { 
+          role: 'system', 
+          content: 'You output conversation state and topics. Return ONLY valid JSON, no markdown.' 
+        },
+        { role: 'user', content: prompt }
+      ], {
+        temperature: 0.3,
+        maxTokens: 200  // ✅ Optimized: Combined (150 summary + 50 topics)
+      });
+
+      // Parse JSON
+      let parsed: { summary?: string; topics?: string[] };
+      try {
+        let content = llmResponse.content.trim();
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) content = jsonMatch[0];
+        parsed = JSON.parse(content);
+      } catch (parseError) {
+        logger.warn('Failed to parse combined summary+topics JSON, falling back to separate calls:', {
+          error: parseError instanceof Error ? parseError.message : String(parseError)
+        });
+        // Fallback: separate calls
+        const summary = isIncremental
+          ? await this.generateSessionSummaryIncremental(previousSummary || '', messages)
+          : await this.generateSessionSummary(messages);
+        const topics = await this.extractKeyTopics(messages);
+        return { 
+          summary, 
+          topics: isIncremental ? this.mergeTopics(previousTopics, topics, 12) : topics,
+          tokensUsed: (llmResponse.tokensUsed || 0) + 100 // Estimate fallback cost
+        };
+      }
+
+      const summary = parsed.summary?.trim() || previousSummary || 'No conversation yet.';
+      const newTopics = Array.isArray(parsed.topics) 
+        ? parsed.topics.filter((t: any) => typeof t === 'string' && t.trim().length > 0).slice(0, 5)
+        : [];
+      
+      const mergedTopics = isIncremental 
+        ? this.mergeTopics(previousTopics, newTopics, 12)
+        : newTopics;
+
+      return { 
+        summary, 
+        topics: mergedTopics,
+        tokensUsed: llmResponse.tokensUsed || 200 // ✅ Return actual tokens
+      };
+    } catch (error) {
+      logger.error('Error generating combined summary+topics:', error);
+      // Fallback
+      const summary = previousSummary 
+        ? await this.generateSessionSummaryIncremental(previousSummary, messages)
+        : await this.generateSessionSummary(messages);
+      const topics = await this.extractKeyTopics(messages);
+      return { 
+        summary, 
+        topics: previousSummary ? this.mergeTopics(previousTopics, topics, 12) : topics,
+        tokensUsed: 200 // Estimate
+      };
+    }
+  }
+
+  /**
+   * LLM gate: decide if messages contain fact-like content worth extracting
+   * Returns { should: boolean, tokensUsed: number }
+   * This cheap call (~30 tokens) avoids expensive pinned facts extraction most of the time
+   */
+  async shouldExtractPinnedFactsLLM(
+    messages: Array<{content: string, sender: string, timestamp: Date}>
+  ): Promise<{ should: boolean; tokensUsed: number }> {
+    const human = messages
+      .filter(m => m.sender === 'human')
+      .map(m => m.content)
+      .join('\n')
+      .trim();
+
+    if (!human) return { should: false, tokensUsed: 0 };
+
+    const prompt = `Decide if these USER messages contain durable personal facts worth pinning (name, likes, hobbies, identity, plans, location).
+Return JSON only: {"shouldExtract": true|false}
+
+USER:
+${human}`;
+
+    const r = await llmClient.generateResponse(
+      [
+        { role: 'system', content: 'Return ONLY valid JSON.' },
+        { role: 'user', content: prompt },
+      ],
+      { temperature: 0, maxTokens: 30 }
+    );
+
+    try {
+      const m = r.content.match(/\{[\s\S]*\}/);
+      const obj = JSON.parse(m ? m[0] : r.content);
+      return { should: Boolean((obj as any).shouldExtract), tokensUsed: r.tokensUsed || 30 };
+    } catch {
+      return { should: false, tokensUsed: r.tokensUsed || 0 };
+    }
+  }
+
+  /**
    * Extract pinned facts from messages using LLM (intelligent extraction)
    * Handles typos, context, and smart categorization
    */
   async extractPinnedFactsFromMessages(
     messages: Array<{content: string, sender: string, timestamp: Date}>
-  ): Promise<{ name?: string; likes?: string[]; hobbies?: string[]; extras?: string[] }> {
-    if (!messages.length) return {};
+  ): Promise<{ name?: string; likes?: string[]; hobbies?: string[]; extras?: string[]; tokensUsed: number }> {
+    if (!messages.length) return { tokensUsed: 0 };
 
     // Only human messages (limit to last 5 for token efficiency)
     const humanMessages = messages
@@ -886,7 +1093,7 @@ NOTES: <one line or "none">`;
       .map(m => m.content)
       .join('\n');
 
-    if (!humanMessages.trim()) return {};
+    if (!humanMessages.trim()) return { tokensUsed: 0 };
 
     const prompt = `Extract facts from messages. Return JSON only:
     - name: string or null
@@ -914,7 +1121,7 @@ try {
       { role: 'system', content: 'You extract structured facts from user messages. Return ONLY valid JSON, no other text.' },
       { role: 'user', content: prompt },
     ],
-    { temperature: 0.2, maxTokens: 270 }  // ✅ Reduced from 300 (JSON responses are small)
+    { temperature: 0.2, maxTokens: 200 }  // ✅ Reduced from 270
   );
 
   const content = llmResponse.content?.trim() || '{}';
@@ -941,6 +1148,7 @@ try {
       likes: undefined,
       hobbies: undefined,
       extras: undefined,
+      tokensUsed: 0
     };
   }
   
@@ -949,11 +1157,12 @@ try {
     likes: Array.isArray(parsed.likes) ? parsed.likes.filter(Boolean).slice(0, 10) : undefined,
     hobbies: Array.isArray(parsed.hobbies) ? parsed.hobbies.filter(Boolean).slice(0, 10) : undefined,
     extras: Array.isArray(parsed.extras) ? parsed.extras.filter(Boolean).slice(0, 10) : undefined,
+    tokensUsed: llmResponse.tokensUsed || 200 // ✅ Return tokens
   };
 } catch (error) {
   logger.error('Error extracting pinned facts via LLM:', error);
   console.error('[MEMORY_SERVICE] [PINNED_FACTS] Full error details:', error);
-  return {}; // Fallback to empty
+  return { tokensUsed: 0 }; // ✅ Return empty with 0 tokens
 }    
   }
 
@@ -1022,7 +1231,7 @@ Rules:
         { role: 'user', content: prompt }
       ], {
         temperature: 0.3,
-        maxTokens: 180  // ✅ Reduced from 200 (4-line STATE format is fixed length)
+        maxTokens: 160  // ✅ Reduced from 180
       });
 
       return llmResponse.content.trim() || 'Conversation summary unavailable.';
@@ -1067,20 +1276,86 @@ Return only JSON array, example: ["Math quiz", "Multiplication", "Score tracking
 
       // NEW: Using Groq via llmClient
       const llmResponse = await llmClient.generateResponse([
-        { role: 'system', content: 'You extract topics from conversations. Return only JSON arrays.' },
+        { role: 'system', content: 'You extract topics from conversations. Return only JSON arrays. No markdown, no explanations, just the JSON array.' },
         { role: 'user', content: prompt }
       ], {
         temperature: 0.3,
-        maxTokens: 100
+        maxTokens: 85   // ✅ Reduced from 100
       });
 
-      const content = llmResponse.content.trim();
-      if (content) {
-        return JSON.parse(content);
+      let content = llmResponse.content.trim();
+      
+      if (!content) {
+        return [];
       }
-      return [];
+
+      // ✅ Extract JSON from markdown code blocks if present
+      const markdownMatch = content.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+      if (markdownMatch) {
+        content = markdownMatch[1].trim();
+      } else {
+        // ✅ Try to find JSON array in the content
+        const arrayMatch = content.match(/(\[[\s\S]*?\])/);
+        if (arrayMatch) {
+          content = arrayMatch[1].trim();
+        }
+      }
+
+      // ✅ Try to parse as JSON
+      try {
+        const parsed = JSON.parse(content);
+        
+        // ✅ Validate it's an array
+        if (Array.isArray(parsed)) {
+          // Filter and limit: only strings, non-empty, max 5 topics
+          return parsed
+            .filter((t: any) => typeof t === 'string' && t.trim().length > 0)
+            .map((t: string) => t.trim())
+            .slice(0, 5);
+        }
+        
+        // ✅ If it's an object, try to find an array field
+        if (typeof parsed === 'object' && parsed !== null) {
+          const topics = parsed.topics || parsed.array || parsed.items || 
+                        Object.values(parsed).find((v: any) => Array.isArray(v));
+          if (Array.isArray(topics)) {
+            return topics
+              .filter((t: any) => typeof t === 'string' && t.trim().length > 0)
+              .map((t: string) => t.trim())
+              .slice(0, 5);
+          }
+        }
+        
+        logger.warn('LLM returned non-array JSON for topics:', { parsed, content: content.substring(0, 200) });
+        return [];
+      } catch (parseError) {
+        // ✅ Fallback: Try to extract topics from text manually
+        logger.warn('Failed to parse topics JSON, attempting text extraction:', {
+          content: content.substring(0, 200),
+          error: parseError instanceof Error ? parseError.message : String(parseError)
+        });
+        
+        // Try to find quoted strings that might be topics
+        const quotedMatches = content.match(/"([^"]+)"/g);
+        if (quotedMatches && quotedMatches.length > 0) {
+          const extracted = quotedMatches
+            .map(m => m.replace(/"/g, '').trim())
+            .filter(t => t.length > 0)
+            .slice(0, 5);
+          if (extracted.length > 0) {
+            logger.info('Extracted topics from quoted strings:', extracted);
+            return extracted;
+          }
+        }
+        
+        return [];
+      }
     } catch (error) {
-      logger.error('Error extracting topics:', error);
+      logger.error('Error extracting topics:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        messageCount: messages.length
+      });
       return [];
     }
   }

@@ -559,7 +559,8 @@ export async function updateChatMetadata(params: {
 export async function updateSessionMemory(
   chatId: string,
   twinId: string,
-  messageTable: 'Message' | 'PublicMessage' = 'Message'
+  messageTable: 'Message' | 'PublicMessage' = 'Message',
+  actor?: { kind: 'user' | 'anon'; userId?: string; ip?: string } // ✅ ADD: For token tracking
 ): Promise<void> {
   try {
     // 1) Load existing session memory (to get lastUpdated from vector)
@@ -629,7 +630,25 @@ export async function updateSessionMemory(
 
     // 2.5) Extract pinned facts using LLM (intelligent, handles typos and context)
     // This ensures name/likes/hobbies/extras persist even if message is short
-    const pinnedFactsDelta = await memoryService.extractPinnedFactsFromMessages(deltaMessages);
+    let pinnedFactsDelta: any = {};
+    let pinnedTokens = 0;
+
+    // ✅ tiny gate call first (~30 tokens)
+    const gate = await memoryService.shouldExtractPinnedFactsLLM(deltaMessages);
+    pinnedTokens += gate.tokensUsed || 0;
+
+    if (gate.should) {
+      const pinnedResult = await memoryService.extractPinnedFactsFromMessages(deltaMessages);
+      pinnedFactsDelta = {
+        name: pinnedResult.name,
+        likes: pinnedResult.likes,
+        hobbies: pinnedResult.hobbies,
+        extras: pinnedResult.extras
+      };
+      pinnedTokens += pinnedResult.tokensUsed || 0;
+    } else {
+      pinnedFactsDelta = {};
+    }
 
     if (pinnedFactsDelta.name || pinnedFactsDelta.likes?.length || pinnedFactsDelta.hobbies?.length || pinnedFactsDelta.extras?.length) {
       console.log('[SESSION_PINNED] Extracted pinned facts delta:', pinnedFactsDelta);
@@ -687,7 +706,7 @@ export async function updateSessionMemory(
       return;
     }
 
-    // 4) Incremental update
+    // 4) Incremental update with token tracking
     console.log('[CHAT_SHARED_UTILS] [HYP-H] Creating/updating session memory:', {
       chatId,
       messageTable,
@@ -695,18 +714,69 @@ export async function updateSessionMemory(
       messageCount: meaningfulDelta.length
     });
     
+    let summaryTokens = 0;
+    let topicsTokens = 0;
+    
     // Route to correct table based on messageTable
     if (messageTable === 'PublicMessage') {
-      await memoryService.createOrUpdatePublicSessionMemory(chatId, meaningfulDelta, {
+      const result = await memoryService.createOrUpdatePublicSessionMemory(chatId, meaningfulDelta, {
         mode: existing ? 'delta' : 'full',
         pinnedFactsDelta, // ✅ Part 1 update even when message is short
       });
+      summaryTokens = result.summaryTokens || 0;
+      topicsTokens = result.topicsTokens || 0;
     } else {
-      await memoryService.createOrUpdateSessionMemory(chatId, meaningfulDelta, {
+      const result = await memoryService.createOrUpdateSessionMemory(chatId, meaningfulDelta, {
         mode: existing ? 'delta' : 'full',
         pinnedFactsDelta, // ✅ Part 1 update even when message is short
+      });
+      summaryTokens = result.summaryTokens || 0;
+      topicsTokens = result.topicsTokens || 0;
+    }
+
+    // ✅ ADD: Reconcile session memory tokens to quota
+    if (actor && (pinnedTokens > 0 || summaryTokens > 0 || topicsTokens > 0)) {
+      const totalMemoryTokens = pinnedTokens + summaryTokens + topicsTokens;
+      const { reconcileDailyTokens } = await import('../../services/tokenQuotaService');
+      const crypto = require('crypto');
+      const day = new Date().toISOString().split('T')[0];
+      const actorKey = actor.kind === 'user' 
+        ? `user:${actor.userId}` 
+        : `anon:${crypto.createHmac('sha256', process.env.IP_HASH_SECRET || 'dev_ip_hash_secret_change_me').update(actor.ip || '').digest('hex').slice(0, 32)}`;
+      
+      // Add tokens directly (no pre-reservation for async updates)
+      await reconcileDailyTokens({
+        day,
+        actorKey,
+        reserved: 0,
+        actualTokensUsed: totalMemoryTokens
+      });
+      
+      console.log('[TOKEN_USAGE] [SESSION_MEMORY] Tokens added to quota:', {
+        chatId,
+        pinnedFacts: pinnedTokens,
+        summary: summaryTokens,
+        topics: topicsTokens,
+        total: totalMemoryTokens
+      });
+      
+      // ✅ Log comprehensive token breakdown
+      console.log('[TOKEN_USAGE] [BREAKDOWN] Session Memory Update:', {
+        chatId,
+        messageTable,
+        pinnedFactsTokens: pinnedTokens,
+        summaryTokens: summaryTokens,
+        topicsTokens: topicsTokens,
+        totalMemoryTokens: totalMemoryTokens,
+        breakdown: {
+          pinnedFacts: `${pinnedTokens} tokens`,
+          summary: `${summaryTokens} tokens`,
+          topics: `${topicsTokens} tokens`,
+          total: `${totalMemoryTokens} tokens`
+        }
       });
     }
+    
     console.log('[CHAT_SHARED_UTILS] [HYP-H] Session memory update completed');
 
     logger.info(`Session memory updated for ${messageTable} chat ${chatId} (delta=${meaningfulDelta.length})`);

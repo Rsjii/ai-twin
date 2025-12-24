@@ -175,6 +175,18 @@ export async function reconcileDailyTokens(params: {
 
   if (delta === 0) {
     console.log('[TOKEN_QUOTA] [RECONCILE] No adjustment needed (delta = 0)');
+    // Still log total usage even if delta is 0
+    const currentResult = await db.query(
+      `SELECT "tokensUsed" FROM "TokenUsageDaily" WHERE day = $1::date AND "actorKey" = $2`,
+      [params.day, params.actorKey]
+    );
+    const currentTotal = currentResult.rows?.[0]?.tokensUsed || 0;
+    console.log('[TOKEN_USAGE] [DAILY_TOTAL] Current daily usage:', {
+      actorKey: params.actorKey,
+      totalUsed: currentTotal,
+      thisMessage: params.actualTokensUsed,
+      delta: 0
+    });
     return;
   }
 
@@ -185,10 +197,28 @@ export async function reconcileDailyTokens(params: {
     [delta, params.day, params.actorKey],
   );
   
+  // Get updated total after reconciliation
+  const updatedResult = await db.query(
+    `SELECT "tokensUsed" FROM "TokenUsageDaily" WHERE day = $1::date AND "actorKey" = $2`,
+    [params.day, params.actorKey]
+  );
+  const updatedTotal = updatedResult.rows?.[0]?.tokensUsed || 0;
+  
   console.log('[TOKEN_QUOTA] [RECONCILE] ✅ Reconciliation complete:', {
     day: params.day,
     actorKey: params.actorKey,
-    adjustment: delta
+    reserved: params.reserved,
+    actualTokensUsed: params.actualTokensUsed,
+    delta,
+    updatedTotal: updatedTotal
+  });
+  
+  // ✅ Log total daily usage summary
+  console.log('[TOKEN_USAGE] [DAILY_TOTAL] Current daily usage:', {
+    actorKey: params.actorKey,
+    totalUsed: updatedTotal,
+    thisMessage: params.actualTokensUsed,
+    delta: delta
   });
 }
 

@@ -11,6 +11,8 @@ export interface LLMResponse {
   content: string;
   model: string;
   tokensUsed?: number;
+  inputTokens?: number;  // ✅ ADD
+  outputTokens?: number; // ✅ ADD
 }
 
 export class LLMClient {
@@ -161,17 +163,25 @@ export class LLMClient {
         
         const durationMs = Date.now() - startedAt;
 
-        logger.info(`✅ Successfully used Groq model: ${model}`, {
-          durationMs,
-          usage: data.usage || null
-        });
         const responseObj: LLMResponse = {
           content: data.choices[0]?.message?.content?.trim() || '',
-          model: model
+          model: model,
+          tokensUsed: data.usage?.total_tokens || 0,
+          // ✅ ADD: Store breakdown
+          inputTokens: data.usage?.prompt_tokens || 0,
+          outputTokens: data.usage?.completion_tokens || 0
         };
-        if (data.usage?.total_tokens) {
-          responseObj.tokensUsed = data.usage.total_tokens;
-        }
+
+        // ✅ ADD: Log breakdown
+        logger.info(`✅ Successfully used Groq model: ${model}`, {
+          durationMs,
+          usage: data.usage || null,
+          breakdown: {
+            input: data.usage?.prompt_tokens || 0,
+            output: data.usage?.completion_tokens || 0,
+            total: data.usage?.total_tokens || 0
+          }
+        });
         return responseObj;
       } catch (error: any) {
         // ✅ Check for rate limit in error message
