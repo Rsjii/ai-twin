@@ -661,8 +661,6 @@
         // Load admin analytics data
         async function loadAdminAnalytics() {
             try {
-                console.log('Loading admin analytics data...');
-                
                 const response = await fetch('/api/admin/analytics/dashboard', {
                     method: 'GET',
                     credentials: 'include', // ✅ CRITICAL: Add this
@@ -671,8 +669,6 @@
                     }
                 });
                 
-                console.log('Admin analytics response status:', response.status);
-                
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error('Admin analytics API error:', response.status, errorText);
@@ -680,7 +676,6 @@
                 }
                 
                 const data = await response.json();
-                console.log('Admin analytics data:', data);
                 
                 if (data.success) {
                     // Hide loading state
@@ -689,7 +684,7 @@
                     
                     // ✅ ADD: Check if metrics exist
                     if (!data.metrics) {
-                        console.error('No metrics in response:', data);
+                        console.error('Admin analytics: No metrics in response');
                         throw new Error('Invalid response format: missing metrics');
                     }
                     
@@ -750,34 +745,12 @@
                     }
                     
                     // Create charts
-                    console.log('[ADMIN] Creating charts...');
-                    console.log('[ADMIN] Event breakdown check:', {
-                        hasContent: !!data.content,
-                        hasEventBreakdown: !!data.content?.eventBreakdown,
-                        eventBreakdownType: typeof data.content?.eventBreakdown,
-                        eventBreakdownKeys: data.content?.eventBreakdown ? Object.keys(data.content.eventBreakdown) : null,
-                        eventBreakdownValues: data.content?.eventBreakdown ? Object.values(data.content.eventBreakdown) : null
-                    });
-                    
                     if (data.content?.eventBreakdown) {
-                        console.log('[ADMIN] ✅ Calling createEventBreakdownChart');
                         createEventBreakdownChart(data.content.eventBreakdown);
-                    } else {
-                        console.warn('[ADMIN] ⚠️ No eventBreakdown data, skipping chart');
                     }
                     
-                    console.log('[ADMIN] Metrics check:', {
-                        hasMetrics: !!data.metrics,
-                        hasDaily: !!data.metrics?.daily,
-                        hasWeekly: !!data.metrics?.weekly,
-                        hasMonthly: !!data.metrics?.monthly
-                    });
-                    
                     if (data.metrics) {
-                        console.log('[ADMIN] ✅ Calling createGrowthTrendsChart');
                         createGrowthTrendsChart(data.metrics);
-                    } else {
-                        console.warn('[ADMIN] ⚠️ No metrics data, skipping chart');
                     }
 
                     // ✅ Show a friendly message when there is no event data
@@ -975,68 +948,42 @@ if (activity.recentEvents && activity.recentEvents.length > 0) {
         }
         
         function createEventBreakdownChart(eventBreakdown) {
-    console.log('[ADMIN_CHART_EVENT] ========== START createEventBreakdownChart ==========');
-    console.log('[ADMIN_CHART_EVENT] Input data:', eventBreakdown);
-    console.log('[ADMIN_CHART_EVENT] Data type:', typeof eventBreakdown);
-    console.log('[ADMIN_CHART_EVENT] Is object:', typeof eventBreakdown === 'object');
-    console.log('[ADMIN_CHART_EVENT] Keys count:', eventBreakdown ? Object.keys(eventBreakdown).length : 0);
-    
     try {
         // Wait for Chart.js
         if (typeof Chart === 'undefined') {
-            console.warn('[ADMIN_CHART_EVENT] ⚠️ Chart.js not loaded, retrying...');
             setTimeout(() => createEventBreakdownChart(eventBreakdown), 100);
             return;
         }
-        console.log('[ADMIN_CHART_EVENT] ✅ Chart.js is loaded');
 
         const canvas = document.getElementById('eventBreakdownChart');
         if (!canvas) {
-            console.error('[ADMIN_CHART_EVENT] ❌ eventBreakdownChart canvas not found');
+            console.error('Event breakdown chart: canvas not found');
             return;
         }
-        console.log('[ADMIN_CHART_EVENT] ✅ Canvas element found');
         
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            console.error('[ADMIN_CHART_EVENT] ❌ Could not get canvas context');
+            console.error('Event breakdown chart: could not get canvas context');
             return;
         }
-        console.log('[ADMIN_CHART_EVENT] ✅ Canvas context obtained');
         
         // Destroy existing chart if it exists
         if (window.eventBreakdownChartInstance) {
-            console.log('[ADMIN_CHART_EVENT] Destroying existing chart instance');
             window.eventBreakdownChartInstance.destroy();
         }
         
         // Validate data
         if (!eventBreakdown || typeof eventBreakdown !== 'object' || Object.keys(eventBreakdown).length === 0) {
-            console.warn('[ADMIN_CHART_EVENT] ⚠️ No event breakdown data available:', {
-                hasEventBreakdown: !!eventBreakdown,
-                type: typeof eventBreakdown,
-                keysLength: eventBreakdown ? Object.keys(eventBreakdown).length : 0
-            });
             return;
         }
 
         const labels = Object.keys(eventBreakdown);
         const values = Object.values(eventBreakdown).map(v => Number(v) || 0);
         
-        console.log('[ADMIN_CHART_EVENT] Processed data:', {
-            labelsCount: labels.length,
-            valuesCount: values.length,
-            labels: labels,
-            values: values,
-            totalValue: values.reduce((a, b) => a + b, 0)
-        });
-        
         if (labels.length === 0 || values.length === 0) {
-            console.warn('[ADMIN_CHART_EVENT] ⚠️ Empty labels or values array');
             return;
         }
         
-        console.log('[ADMIN_CHART_EVENT] Creating Chart.js doughnut chart...');
         window.eventBreakdownChartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -1059,67 +1006,38 @@ if (activity.recentEvents && activity.recentEvents.length > 0) {
                 }
             }
         });
-        console.log('[ADMIN_CHART_EVENT] ✅ Chart created successfully');
-        console.log('[ADMIN_CHART_EVENT] ========== END createEventBreakdownChart (SUCCESS) ==========');
     } catch (error) {
-        console.error('[ADMIN_CHART_EVENT] ========== ERROR in createEventBreakdownChart ==========');
-        console.error('[ADMIN_CHART_EVENT] Error object:', error);
-        console.error('[ADMIN_CHART_EVENT] Error message:', error.message);
-        console.error('[ADMIN_CHART_EVENT] Error stack:', error.stack);
-        console.log('[ADMIN_CHART_EVENT] ========== END createEventBreakdownChart (ERROR) ==========');
+        console.error('Error creating event breakdown chart:', error);
     }
 }        
 
 function createGrowthTrendsChart(metrics) {
-    console.log('[ADMIN_CHART_GROWTH] ========== START createGrowthTrendsChart ==========');
-    console.log('[ADMIN_CHART_GROWTH] Input metrics:', metrics);
-    console.log('[ADMIN_CHART_GROWTH] Metrics structure:', {
-        hasMetrics: !!metrics,
-        hasDaily: !!metrics?.daily,
-        hasWeekly: !!metrics?.weekly,
-        hasMonthly: !!metrics?.monthly,
-        dailyKeys: metrics?.daily ? Object.keys(metrics.daily) : null,
-        weeklyKeys: metrics?.weekly ? Object.keys(metrics.weekly) : null,
-        monthlyKeys: metrics?.monthly ? Object.keys(metrics.monthly) : null
-    });
-    
     try {
         // Wait for Chart.js
         if (typeof Chart === 'undefined') {
-            console.warn('[ADMIN_CHART_GROWTH] ⚠️ Chart.js not loaded, retrying...');
             setTimeout(() => createGrowthTrendsChart(metrics), 100);
             return;
         }
-        console.log('[ADMIN_CHART_GROWTH] ✅ Chart.js is loaded');
 
         const canvas = document.getElementById('growthTrendsChart');
         if (!canvas) {
-            console.error('[ADMIN_CHART_GROWTH] ❌ growthTrendsChart canvas not found');
+            console.error('Growth trends chart: canvas not found');
             return;
         }
-        console.log('[ADMIN_CHART_GROWTH] ✅ Canvas element found');
         
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            console.error('[ADMIN_CHART_GROWTH] ❌ Could not get canvas context');
+            console.error('Growth trends chart: could not get canvas context');
             return;
         }
-        console.log('[ADMIN_CHART_GROWTH] ✅ Canvas context obtained');
         
         // Destroy existing chart if it exists
         if (window.growthTrendsChartInstance) {
-            console.log('[ADMIN_CHART_GROWTH] Destroying existing chart instance');
             window.growthTrendsChartInstance.destroy();
         }
         
         // Validate metrics
         if (!metrics || !metrics.daily || !metrics.weekly || !metrics.monthly) {
-            console.warn('[ADMIN_CHART_GROWTH] ⚠️ Invalid metrics data:', {
-                hasMetrics: !!metrics,
-                hasDaily: !!metrics?.daily,
-                hasWeekly: !!metrics?.weekly,
-                hasMonthly: !!metrics?.monthly
-            });
             return;
         }
         
@@ -1134,12 +1052,6 @@ function createGrowthTrendsChart(metrics) {
         const dailyChats = Number(metrics.daily?.chats) || 0;
         const weeklyChats = Number(metrics.weekly?.chats) || 0;
         const monthlyChats = Number(metrics.monthly?.chats) || 0;
-        
-        console.log('[ADMIN_CHART_GROWTH] Processed values:', {
-            users: { daily: dailyUsers, weekly: weeklyUsers, monthly: monthlyUsers },
-            twins: { daily: dailyTwins, weekly: weeklyTwins, monthly: monthlyTwins },
-            chats: { daily: dailyChats, weekly: weeklyChats, monthly: monthlyChats }
-        });
         
         const chartData = {
             labels: ['Daily', 'Weekly', 'Monthly'],
@@ -1168,9 +1080,6 @@ function createGrowthTrendsChart(metrics) {
             ]
         };
         
-        console.log('[ADMIN_CHART_GROWTH] Chart data prepared:', chartData);
-        console.log('[ADMIN_CHART_GROWTH] Creating Chart.js line chart...');
-        
         window.growthTrendsChartInstance = new Chart(ctx, {
             type: 'line',
             data: chartData,
@@ -1184,14 +1093,8 @@ function createGrowthTrendsChart(metrics) {
                 }
             }
         });
-        console.log('[ADMIN_CHART_GROWTH] ✅ Chart created successfully');
-        console.log('[ADMIN_CHART_GROWTH] ========== END createGrowthTrendsChart (SUCCESS) ==========');
     } catch (error) {
-        console.error('[ADMIN_CHART_GROWTH] ========== ERROR in createGrowthTrendsChart ==========');
-        console.error('[ADMIN_CHART_GROWTH] Error object:', error);
-        console.error('[ADMIN_CHART_GROWTH] Error message:', error.message);
-        console.error('[ADMIN_CHART_GROWTH] Error stack:', error.stack);
-        console.log('[ADMIN_CHART_GROWTH] ========== END createGrowthTrendsChart (ERROR) ==========');
+        console.error('Error creating growth trends chart:', error);
     }
 }
 
@@ -1433,10 +1336,6 @@ function updateCharts(period, data) {
     const topContent = data.topContent || {};
     const eventBreakdown = data.eventBreakdown || {};
 
-    console.log('[UPDATE_CHARTS] Period:', period);
-    console.log('[UPDATE_CHARTS] Breakdown:', breakdown);
-    console.log('[UPDATE_CHARTS] TopContent:', topContent);
-    console.log('[UPDATE_CHARTS] EventBreakdown:', eventBreakdown);
 
     // Chart 1: Events Over Time
     createEventsOverTimeChart(breakdown, period);
@@ -1445,7 +1344,6 @@ function updateCharts(period, data) {
     if (breakdown.entitiesDaily && breakdown.entitiesDaily.length > 0) {
         createEntityGrowthChart(breakdown.entitiesDaily, period);
     } else {
-        console.warn('[UPDATE_CHARTS] No entitiesDaily data for period:', period);
     }
 
     // Chart 3: Event Breakdown (existing function)
@@ -1460,12 +1358,10 @@ function updateCharts(period, data) {
         users: topContent.users || topContent.mostActiveUsers || []
     };
     
-    console.log('[UPDATE_CHARTS] Normalized TopContent:', normalizedTopContent);
     
     if (normalizedTopContent.twins.length > 0 || normalizedTopContent.users.length > 0) {
         createTopEntitiesChart(normalizedTopContent, currentTopEntitiesTab);
     } else {
-        console.warn('[UPDATE_CHARTS] No top entities data for period:', period);
     }
 }
 
@@ -1476,7 +1372,6 @@ function updateCharts(period, data) {
         // Time-based analytics loading
         async function loadTimeBasedAnalytics(period) {
             try {
-                console.log(`Loading ${period} analytics...`);
                 
                 // Save to localStorage
                 localStorage.setItem('adminAnalyticsTimePeriod', period);
@@ -1539,7 +1434,6 @@ function updateCharts(period, data) {
                 }
                 
                 const data = await response.json();
-                console.log(`${period} analytics data:`, data);
                 
                 if (data.success) {
                     currentAnalyticsData = data.data || data.metrics;
@@ -1808,7 +1702,6 @@ function showDetailedView(type) {
     try {
         // Wait for Chart.js
         if (typeof Chart === 'undefined') {
-            console.warn('Chart.js not loaded, retrying...');
             setTimeout(() => createTimeBasedChart(breakdown, period), 100);
             return;
         }
@@ -1909,7 +1802,6 @@ function showDetailedView(type) {
             try {
                 // Use currentTimePeriod if not provided
                 const period = timePeriod || currentTimePeriod || 'today';
-                console.log(`Loading detailed data for ${type} in ${period} period...`);
                 
                 let response;
                 if (period === 'all') {
@@ -1929,7 +1821,6 @@ function showDetailedView(type) {
                 }
                 
                 const data = await response.json();
-                console.log(`Detailed ${type} data for ${period}:`, data);
                 
                 if (data.success) {
                     // Update currentAnalyticsData for accurate export
@@ -2425,12 +2316,10 @@ ${userData.events.slice(0, 10).map(event => {
         // Load users list
         async function loadUsersList(search = '') {
             try {
-                console.log('Loading users list...');
                 const url = search ? `/api/admin/analytics/users?search=${encodeURIComponent(search)}` : '/api/admin/analytics/users';
                 const response = await fetch(url);
                 const data = await response.json();
                 
-                console.log('Users list data:', data);
                 
                 if (data.success) {
                     const usersList = document.getElementById('usersList');
@@ -2487,7 +2376,6 @@ ${userData.events.slice(0, 10).map(event => {
         function searchUsers() {
             const searchInput = document.getElementById('userSearchInput');
             const searchTerm = searchInput.value.trim();
-            console.log('Searching users:', searchTerm);
             loadUsersList(searchTerm);
         }
         
@@ -2514,9 +2402,6 @@ ${userData.events.slice(0, 10).map(event => {
         
         // Test click functionality
         function testClickFunctionality() {
-            console.log('=== TESTING CLICK FUNCTIONALITY ===');
-            console.log('showDetailedView function exists:', typeof showDetailedView);
-            console.log('Testing showDetailedView with users...');
             showDetailedView('users');
         }
 
@@ -2526,7 +2411,6 @@ ${userData.events.slice(0, 10).map(event => {
                 const card = e.target.closest('.metric-card');
                 const type = card.getAttribute('data-type');
                 if (type) {
-                    console.log(`=== ALTERNATIVE CLICK HANDLER TRIGGERED FOR ${type.toUpperCase()} ===`);
                     showDetailedView(type);
                 }
             }
@@ -2579,7 +2463,6 @@ ${userData.events.slice(0, 10).map(event => {
                 newBtn.addEventListener('click', function() {
                     const period = this.getAttribute('data-period');
                     if (period) {
-                        console.log('Time filter clicked:', period);
                         loadTimeBasedAnalytics(period);
                     }
                 });
@@ -2612,7 +2495,6 @@ ${userData.events.slice(0, 10).map(event => {
         window.addEventListener('pageshow', function(event) {
             // event.persisted = true means page was loaded from cache (back/forward)
             if (event.persisted) {
-                console.log('Page loaded from cache (back/forward navigation)');
                 initializeAnalytics();
             }
         });

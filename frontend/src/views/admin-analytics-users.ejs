@@ -192,7 +192,6 @@
                     showError('Failed to load users data: ' + data.error);
                 }
             } catch (error) {
-                console.error('Load users error:', error);
                 showError('Error loading users data');
             }
         }
@@ -268,7 +267,7 @@
                                 el.textContent = prefix + displayTime;
                                 el.title = fullTime;
                             } catch (e) {
-                                console.error('Error formatting timestamp:', e);
+                                // Silently handle timestamp formatting errors
                             }
                         }
                     });
@@ -339,7 +338,6 @@
                     `);
                 }
             } catch (error) {
-                console.error('View user details error:', error);
                 alert('Error loading user details');
             }
         }
@@ -360,7 +358,6 @@
                         alert('Error removing user: ' + data.error);
                     }
                 } catch (error) {
-                    console.error('Remove user error:', error);
                     alert('Error removing user');
                 }
             }

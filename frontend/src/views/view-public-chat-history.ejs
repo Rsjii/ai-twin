@@ -61,7 +61,6 @@
                 // ✅ FIX: Set server time from API response
                 if (data.serverTime && window.TimeUtils && window.TimeUtils.setServerTime) {
                     window.TimeUtils.setServerTime(data.serverTime);
-                    console.log('[loadChatHistory] ✅ Server time set:', data.serverTime);
                 }
                 
                 if (data.success) {
@@ -71,7 +70,6 @@
                     showError(data.error || 'Failed to load chat history');
                 }
             } catch (error) {
-                console.error('Error loading chat history:', error);
                 showError('Network error. Please try again.');
             }
         }
@@ -132,7 +130,7 @@
                             el.textContent = displayTime;
                             el.title = fullTime;
                         } catch (e) {
-                            console.error('Error formatting timestamp:', e);
+                            // Silently handle timestamp formatting errors
                         }
                     }
                 });
@@ -231,7 +229,7 @@
                             el.textContent = displayTime;
                             el.title = fullTime;
                         } catch (e) {
-                            console.error('Error formatting timestamp:', e);
+                            // Silently handle timestamp formatting errors
                             // Fallback to backend relativeTime if available
                             if (backendRelativeTime) {
                                 el.textContent = backendRelativeTime;

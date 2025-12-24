@@ -161,13 +161,13 @@ async function loadData() {
                     }
                 });
             } else {
-                console.error('Failed to load data');
+                // Failed to load data
                 if (dataList) {
                     dataList.innerHTML = '<div class="p-8 text-center text-red-500">Failed to load data. Please try again.</div>';
                 }
             }
         } catch (error) {
-            console.error('Error loading data:', error);
+            // Error loading data
             const dataList = document.getElementById('dataList');
             if (dataList) {
                 dataList.innerHTML = '<div class="p-8 text-center text-red-500">Network error. Please try again.</div>';
@@ -183,7 +183,7 @@ async function loadData() {
             if (typeof showNotification === 'function') {
                 showNotification('User profile not available', 'error');
             } else {
-                console.error('User profile not available');
+                // User profile not available
             }
         }
     }

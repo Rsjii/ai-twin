@@ -252,7 +252,6 @@
                     showError('Failed to load activity feed: ' + data.error);
                 }
             } catch (error) {
-                console.error('Load activity feed error:', error);
                 showError('Error loading activity feed');
             }
         }
@@ -299,7 +298,7 @@
                                 el.textContent = window.TimeUtils.formatTimeWithContext(timestamp);
                                 el.title = window.TimeUtils.formatFullDateTime(timestamp);
                             } catch (e) {
-                                console.error('Error formatting timestamp:', e);
+                                // Silently handle timestamp formatting errors
                             }
                         }
                     });
@@ -354,12 +353,7 @@
         // Update activity chart
         function updateActivityChart(dailyCounts) {
             // ✅ Guard: if Chart.js isn't loaded or data is bad, just skip chart instead of throwing
-            if (typeof Chart === 'undefined') {
-                console.error('Chart.js not loaded, skipping activity chart');
-                return;
-            }
-            if (!Array.isArray(dailyCounts)) {
-                console.error('Invalid dailyCounts for activity chart', dailyCounts);
+            if (typeof Chart === 'undefined' || !Array.isArray(dailyCounts)) {
                 return;
             }
 

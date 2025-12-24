@@ -1875,8 +1875,6 @@
                     return;
                 }
                 
-                console.log('Making twin public with ID:', currentTwinId);
-                
                 const bio = document.getElementById('publicBio')?.value || '';
                 
                 // Disable button during submission
@@ -1899,7 +1897,6 @@
                     });
                     
                     const result = await response.json();
-                    console.log('Make public response:', result);
                     
                     if (response.ok && result.success) {
                         showNotification('Twin made public successfully!', 'success');
@@ -1983,7 +1980,6 @@ if (makeTwinPrivateBtn) {
       });
 
       const result = await response.json();
-      console.log('Make private response:', result);
 
       if (response.ok && result.success) {
         showNotification('Twin made private successfully!', 'success');

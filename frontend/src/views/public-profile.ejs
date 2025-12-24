@@ -478,18 +478,13 @@ async function checkInitialStatus() {
         
         if (response.ok) {
             const data = await response.json();
-            console.log('Initial status response:', data); // Debug log
             if (data.success && data.userInteraction) {
                 hasLiked = data.userInteraction.hasLiked === true;
                 hasFollowed = data.userInteraction.hasFollowed === true;
                 
-                console.log('Setting status - hasLiked:', hasLiked, 'hasFollowed:', hasFollowed); // Debug log
-                
                 // Update button states
                 updateLikeButton(hasLiked);
                 updateFollowButton(hasFollowed);
-            } else {
-                console.log('No userInteraction in response or not authenticated');
             }
         } else {
             console.error('Failed to fetch initial status:', response.status);
@@ -585,10 +580,6 @@ async function loadPublicChatHistory() {
         const response = await fetch(`/api/public-chat/twin/${currentTwinId}/chats?visitorId=${visitorId}`);
         const data = await response.json();
         
-        console.log('[loadPublicChatHistory] Response received:', data);
-        console.log('[loadPublicChatHistory] data.serverTime:', data.serverTime);
-        console.log('[loadPublicChatHistory] window.TimeUtils exists:', !!window.TimeUtils);
-        console.log('[loadPublicChatHistory] window.TimeUtils.setServerTime exists:', !!(window.TimeUtils && window.TimeUtils.setServerTime));
         
         // ✅ CRITICAL FIX: Set server time IMMEDIATELY after receiving response
         // Must be done BEFORE any time formatting functions are called
@@ -596,10 +587,8 @@ async function loadPublicChatHistory() {
             // Try multiple ways to set server time
             if (window.TimeUtils && typeof window.TimeUtils.setServerTime === 'function') {
                 window.TimeUtils.setServerTime(data.serverTime);
-                console.log('[loadPublicChatHistory] ✅ Server time set via TimeUtils.setServerTime:', data.serverTime);
             } else if (window.TimeUtils && window.TimeUtils.setServerTime) {
                 window.TimeUtils.setServerTime(data.serverTime);
-                console.log('[loadPublicChatHistory] ✅ Server time set (fallback method):', data.serverTime);
             } else {
                 console.error('[loadPublicChatHistory] ❌ TimeUtils.setServerTime not available!');
                 console.error('[loadPublicChatHistory] window.TimeUtils:', window.TimeUtils);
@@ -611,7 +600,6 @@ async function loadPublicChatHistory() {
         
         // ✅ Verify server time was set
         if (window.TimeUtils && window.TimeUtils.globalServerTime) {
-            console.log('[loadPublicChatHistory] ✅ Verified globalServerTime:', window.TimeUtils.globalServerTime);
         } else {
             console.warn('[loadPublicChatHistory] ⚠️ globalServerTime not accessible after setting');
         }

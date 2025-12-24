@@ -221,7 +221,6 @@
                 twinsGrid.classList.remove('hidden');
 
             } catch (error) {
-                console.error('Error loading chat history:', error);
                 loadingState.classList.add('hidden');
                 emptyState.classList.add('hidden');  // Hide empty
                 const errorState = document.getElementById('errorState');
@@ -348,7 +347,6 @@
                         if (handle) {
                             window.location.href = `/@${handle}`;
                         } else {
-                            console.warn('[renderTwinCards] No handle available for profile redirect', twin);
                             // Fallback to public chat page if no handle
                             window.location.href = `/public-twin/chat/${twinToken}`;
                         }
@@ -402,7 +400,7 @@
                             }
                             el.title = fullTime;
                         } catch (e) {
-                            console.error('Error formatting timestamp:', e);
+                            // Silently handle timestamp formatting errors
                         }
                     }
                 });

@@ -378,8 +378,6 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
         async function loadMemoryData() {
             // ✅ HARD GUARD: if twinToken is missing/blank, don't call APIs
             if (!twinToken || typeof twinToken !== 'string' || !twinToken.trim()) {
-                console.warn('[MEMORY] Missing or invalid twinToken, skipping API calls', { twinToken });
-
                 const memoryLoading = document.getElementById('memoryLoadingState');
                 const anchorLoading = document.getElementById('anchorLoadingState');
                 const memoryError = document.getElementById('memoryErrorState');
@@ -423,36 +421,21 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                         headers: { 'Cache-Control': 'no-cache' },
                     })
                 ]);
-                
-                // ✅ Log fetch status
-                console.log('[MEMORY_FETCH]', {
-                    longTermStatus: longTermMemories.status,
-                    anchorsStatus: styleAnchors.status,
-                    longTermOk: longTermMemories.ok,
-                    anchorsOk: styleAnchors.ok,
-                    twinToken: twinToken,
-                });
 
                 // ✅ Handle 304 or non-OK without crashing
                 let longTermData = { memories: [] };
                 let anchorsData = { anchors: [] };
 
                 if (longTermMemories.status !== 304 && longTermMemories.ok) {
-                    longTermData = await longTermMemories.json().catch(err => {
-                        console.error('Failed to parse long-term-memory JSON', err);
+                    longTermData = await longTermMemories.json().catch(() => {
                         return { memories: [] };
                     });
-                } else if (longTermMemories.status === 304) {
-                    console.warn('[MEMORY] Got 304 for long-term-memory - using cached data');
                 }
 
                 if (styleAnchors.status !== 304 && styleAnchors.ok) {
-                    anchorsData = await styleAnchors.json().catch(err => {
-                        console.error('Failed to parse style-anchors JSON', err);
+                    anchorsData = await styleAnchors.json().catch(() => {
                         return { anchors: [] };
                     });
-                } else if (styleAnchors.status === 304) {
-                    console.warn('[MEMORY] Got 304 for style-anchors - using cached data');
                 }
                 
                 allMemories = longTermData.memories || [];
@@ -502,8 +485,6 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 loadMemoryCategory(currentMemoryCategory);
                 loadStyleAnchors(currentAnchorType);
             } catch (error) {
-                console.error('Error loading memory data:', error);
-
                  // Hide loading, show error
                  if (memoryLoading) memoryLoading.classList.add('hidden');
                  if (anchorLoading) anchorLoading.classList.add('hidden');
@@ -607,7 +588,6 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
 function displayStyleAnchors(anchors, type) {
     const container = document.getElementById('styleAnchorList');
     if (!container) {
-        console.error('styleAnchorList container not found');
         return;
     }
     
@@ -653,7 +633,6 @@ function displayStyleAnchors(anchors, type) {
     filtered.forEach(anchor => {
         const anchorId = anchor.id || anchor.key || '';
         if (!anchorId) {
-            console.warn('Anchor missing ID:', anchor);
             return;
         }
         
@@ -777,7 +756,6 @@ function displayStyleAnchors(anchors, type) {
                     showNotification('Error: ' + (data.error || 'Failed to update memory'), 'error');
                 }
             } catch (error) {
-                console.error('Error updating memory:', error);
                 showNotification('Error updating memory', 'error');
             }
         }
@@ -809,7 +787,6 @@ function displayStyleAnchors(anchors, type) {
                     showNotification('Error: ' + (data.error || 'Failed to delete memory'), 'error');
                 }
             } catch (error) {
-                console.error('Error deleting memory:', error);
                 showNotification('Error deleting memory', 'error');
             }
         }
@@ -844,7 +821,6 @@ function displayStyleAnchors(anchors, type) {
                     showNotification('Error: ' + (data.error || 'Failed to update phrase'), 'error');
                 }
             } catch (error) {
-                console.error('Error updating phrase:', error);
                 showNotification('Error updating phrase', 'error');
             }
         }
@@ -888,7 +864,6 @@ function displayStyleAnchors(anchors, type) {
                     showNotification('Error: ' + (data.error || 'Failed to update interaction'), 'error');
                 }
             } catch (error) {
-                console.error('Error updating interaction:', error);
                 showNotification('Error updating interaction', 'error');
             }
         }
@@ -920,7 +895,6 @@ function displayStyleAnchors(anchors, type) {
                     showNotification('Error: ' + (data.error || 'Failed to delete style anchor'), 'error');
                 }
             } catch (error) {
-                console.error('Error deleting style anchor:', error);
                 showNotification('Error deleting style anchor', 'error');
             }
         }
@@ -955,7 +929,6 @@ function displayStyleAnchors(anchors, type) {
                     showNotification('Error: ' + (data.error || 'Failed to add memory'), 'error');
                 }
             } catch (error) {
-                console.error('Error adding memory:', error);
                 showNotification('Error adding memory', 'error');
             }
         }
@@ -963,7 +936,6 @@ function displayStyleAnchors(anchors, type) {
         async function addPhrase() {
             const phraseEl = document.getElementById('newPhrase');
             if (!phraseEl) {
-                console.error('newPhrase element not found');
                 showNotification('Form element not found', 'error');
                 return;
             }
@@ -1009,7 +981,6 @@ function displayStyleAnchors(anchors, type) {
                     showNotification('Phrase added successfully!', 'success');
                 } else {
                     const errorMsg = data.error || data.message || 'Failed to add phrase';
-                    console.error('Backend error response:', data);
                     
                     // Check for duplicate key constraint error (PostgreSQL error code 23505)
                     if (errorMsg.includes('duplicate') || errorMsg.includes('constraint') || 
@@ -1021,7 +992,6 @@ function displayStyleAnchors(anchors, type) {
                     }
                 }
             } catch (error) {
-                console.error('Error adding phrase:', error);
                 const errorMsg = error.message || 'Unknown error';
                 
                 // Check if it's a duplicate key error
@@ -1090,7 +1060,6 @@ function displayStyleAnchors(anchors, type) {
                     showNotification('Interaction added successfully!', 'success');
                 } else {
                     const errorMsg = data.error || data.message || 'Failed to add interaction';
-                    console.error('Backend error response:', data);
                     
                     // Check for duplicate key constraint error (PostgreSQL error code 23505)
                     if (errorMsg.includes('duplicate') || errorMsg.includes('constraint') || 
@@ -1102,7 +1071,6 @@ function displayStyleAnchors(anchors, type) {
                     }
                 }
             } catch (error) {
-                console.error('Error adding interaction:', error);
                 const errorMsg = error.message || 'Unknown error';
                 if (errorMsg.includes('duplicate') || errorMsg.includes('constraint') || errorMsg.includes('23505')) {
                     showNotification('Error: An interaction with this user utterance already exists. Please try a different user utterance.', 'error');
@@ -1170,8 +1138,6 @@ function displayStyleAnchors(anchors, type) {
                         const phrase = editPhraseBtn.getAttribute('data-anchor-phrase') || '';
                         if (id && phrase) {
                             editPhrase(id, phrase);
-                        } else {
-                            console.error('Missing data for edit phrase:', { id, phrase });
                         }
                         return false;
                     }
@@ -1186,8 +1152,6 @@ function displayStyleAnchors(anchors, type) {
                         const reply = editInteractionBtn.getAttribute('data-anchor-reply') || '';
                         if (id && utterance && reply) {
                             editInteraction(id, utterance, reply);
-                        } else {
-                            console.error('Missing data for edit interaction:', { id, utterance, reply });
                         }
                         return false;
                     }
@@ -1200,8 +1164,6 @@ function displayStyleAnchors(anchors, type) {
                         const id = deleteBtn.getAttribute('data-anchor-id');
                         if (id) {
                             deleteAnchor(id);
-                        } else {
-                            console.error('Missing ID for delete anchor');
                         }
                         return false;
                     }
@@ -1289,11 +1251,8 @@ function displayStyleAnchors(anchors, type) {
                 addPhraseBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Add phrase button clicked');
                     addPhrase();
                 });
-            } else {
-                console.error('addPhraseBtn not found');
             }
 
             // Enter key for Add Phrase input
@@ -1313,11 +1272,8 @@ function displayStyleAnchors(anchors, type) {
                 addInteractionBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Add interaction button clicked');
                     addInteraction();
                 });
-            } else {
-                console.error('addInteractionBtn not found');
             }
 
             const ingestBtn = document.getElementById('ingestBtn');
@@ -1416,7 +1372,6 @@ function displayStyleAnchors(anchors, type) {
                         showNotification('Error: ' + (result.error || 'Failed to add memory'), 'error');
                     }
                 } catch (error) {
-                    console.error('Error ingesting memory:', error);
                     showNotification('Error ingesting memory', 'error');
                 }
             });

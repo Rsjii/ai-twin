@@ -146,7 +146,7 @@
                 }
 
             } catch (error) {
-                console.error('Error loading quality dashboard:', error);
+                // Error loading quality dashboard
             }
         }
 
@@ -263,7 +263,7 @@
                 }
 
             } catch (error) {
-                console.error('Error loading run stats:', error);
+                // Error loading run stats
             }
         }
 
@@ -327,13 +327,13 @@
                                 el.textContent = displayTime;
                                 el.title = fullTime;
                             } catch (e) {
-                                console.error('Error formatting timestamp:', e);
+                                // Silently handle timestamp formatting errors
                             }
                         }
                     });
                 }
             } catch (error) {
-                console.error('Error loading runs:', error);
+                // Error loading runs
             }
         }
 

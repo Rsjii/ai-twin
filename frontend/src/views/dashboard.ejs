@@ -580,14 +580,12 @@
             
             // If not authenticated, redirect immediately (prevents back button showing cached page)
             if (!isAuthenticated && !hasAuthToken) {
-                console.log('User not authenticated, redirecting to /auth');
                 window.location.replace('/auth');
                 return;
             }
             
             // Double-check: if user object is null/undefined, redirect
             if (!isAuthenticated) {
-                console.log('Authentication check failed, redirecting to /auth');
                 window.location.replace('/auth');
             }
         })();
@@ -1104,7 +1102,6 @@
     const userHasTwin = <%= hasTwins ? 'true' : 'false' %>;  // ✅ add this
     // Set CSRF token from server
     window.csrfToken = '<%= csrfToken %>';
-    console.log('✅ CSRF Token set:', window.csrfToken);
     
     // ✅ Simple toast notification (similar to public-profile)
     function showNotification(message, type = 'info') {
@@ -1306,7 +1303,6 @@
 // Load public chat interactions (twins user chatted with)
 async function loadPublicChatInteractions() {
     try {
-        console.log('🔍 Loading public chat interactions...');
         const response = await fetch('/api/public-chat/user/my-chats', {
             credentials: 'include',
             headers: {
@@ -1314,11 +1310,8 @@ async function loadPublicChatInteractions() {
             }
         });
         
-        console.log('📡 Response status:', response.status);
-        
         if (!response.ok) {
             if (response.status === 401) {
-                console.log('⚠️ User not authenticated');
                 renderRecentInteractions([]);
                 return;
             }
@@ -1326,26 +1319,11 @@ async function loadPublicChatInteractions() {
         }
 
         const data = await response.json();
-        console.log('📦 Response data:', data);
         
         if (!data.success || !data.chats || data.chats.length === 0) {
-            console.log('⚠️ No chats found in response');
             renderRecentInteractions([]);
             return;
         }
-        
-        console.log('✅ Found', data.chats.length, 'chats');
-        
-        // Debug: Log each chat's structure
-        data.chats.forEach((chat, index) => {
-            console.log(`🔍 Chat ${index}:`, {
-                twinId: chat.twin?.publicId,
-                latestChatId: chat.latestChat?.publicId || chat.latestChat?.id,
-                latestChatTitle: chat.latestChat?.title,
-                hasLatestChat: !!chat.latestChat,
-                fullLatestChat: chat.latestChat
-            });
-        });
         
         // API returns: { success: true, chats: [{ twin, latestChat, lastMessage }], total }
         // Already sorted by lastActivity DESC
@@ -1489,7 +1467,6 @@ function renderRecentInteractions(chats) {
                 e.preventDefault();
                 e.stopPropagation();
                 const hasChatId = !!chatId && chatId !== '';
-                console.log('🔘 Button clicked:', { chatId, twinId, hasChatId });
 
                 // ✅ Prevent public self‑chat: redirect to Enhanced Chat with a toast
                 try {
@@ -1518,7 +1495,6 @@ function renderRecentInteractions(chats) {
                 const url = hasChatId
                   ? `/public-twin/chat/${twinId}/${encodeURIComponent(chatId)}`
                     : `/public-twin/chat/${twinId}`;
-                console.log('🔗 Navigating to:', url);
                 window.location.href = url;
             });
         }
@@ -1528,7 +1504,6 @@ function renderRecentInteractions(chats) {
             if (e.target.closest('.continue-chat-btn') || e.target.closest('.twin-avatar-clickable')) {
                 return;
             }
-            console.log('🃏 Card clicked:', { twinId });
         if (profileHandle) {
             window.location.href = `/@${profileHandle}`;
         } else {
@@ -1665,11 +1640,7 @@ function renderRecentInteractions(chats) {
     }
     
 async function createInvite() {
-    console.log('🚀 createInvite() called!');
-    console.log('🔑 CSRF Token:', window.csrfToken);
-    
     try {
-        console.log('📡 Fetching /api/invite/my-code...');
         const response = await fetch('/api/invite/my-code', {
             method: 'GET',
             credentials: 'include',
@@ -1679,16 +1650,12 @@ async function createInvite() {
             }
         });
         
-        console.log('📥 Response status:', response.status);
         const result = await response.json();
-        console.log('📦 Response data:', result);
         
         if (response.ok) {
             // Copy just the referral code, not the full URL
             const referralCode = result.referralCode;
-            console.log('✅ Referral code:', referralCode);
             await navigator.clipboard.writeText(referralCode);
-            console.log('📋 Referral code copied to clipboard!');
             showNotification('Referral code copied to clipboard!', 'success');
         } else {
             console.error('❌ API error:', result);
@@ -1702,7 +1669,6 @@ async function createInvite() {
         // Public Twin Management Functions
     async function loadPublicTwinStatus() {
         try {
-            console.log('🔍 Loading public twin status...');
             const response = await fetch('/api/public-twin/my-profile', {
                 method: 'GET',
                 credentials: 'include',
@@ -1711,15 +1677,11 @@ async function createInvite() {
                     'X-CSRF-Token': '<%= csrfToken %>'
                 }
               });
-            console.log('Response status:', response.status);
             const data = await response.json();
-            console.log('Response data:', data);
             
             if (response.ok && data.success) {
-                console.log('✅ Twin found, displaying status');
                 displayPublicTwinStatus(data.twin);
             } else {
-                console.log('❌ No twin found or error, showing private status');
                 displayPublicTwinStatus(null);
             }
         } catch (error) {
@@ -1729,18 +1691,14 @@ async function createInvite() {
     }
 
 function displayPublicTwinStatus(twin) {
-    console.log('🎨 Displaying public twin status for:', twin);
     const statusContainer = document.getElementById('publicTwinStatus');
-    console.log('Status container found:', statusContainer);
     
     // ✅ FIX: Guard against null container
     if (!statusContainer) {
-        console.warn('⚠️ Status container not found, skipping public twin status UI');
         return;
     }
     
     if (twin && twin.isPublic) {
-        console.log('✅ Twin is public, showing public status');
         statusContainer.innerHTML = 
             '<div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">' +
             '<div class="flex items-center mb-3">' +
@@ -1787,7 +1745,6 @@ function displayPublicTwinStatus(twin) {
             '</div>' +
             '</div>';            
     } else {
-        console.log('❌ Twin is private, showing private status');
         statusContainer.innerHTML = 
             '<div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">' +
             '<div class="flex items-center mb-3">' +
@@ -1810,7 +1767,6 @@ function displayPublicTwinStatus(twin) {
 
     async function makeTwinPublic() {
         try {
-            console.log('🚀 Making twin public...');
             
         // ✅ FIX: Use tokenized ID instead of raw DB ID
         const twinId = '<%= typeof twinPublicId !== "undefined" ? twinPublicId : (twinId || "") %>';
@@ -1819,7 +1775,6 @@ function displayPublicTwinStatus(twin) {
             return;
         }
         
-        console.log('Twin ID:', twinId);
             
             const response = await fetch('/api/public-twin/make-public', {
                 method: 'POST',
@@ -1834,9 +1789,7 @@ function displayPublicTwinStatus(twin) {
                 })
             });
             
-            console.log('Response status:', response.status);
             const result = await response.json();
-            console.log('Response data:', result);
             
             if (response.ok && result.success) {
                 showNotification('Twin made public successfully!', 'success');
@@ -1875,12 +1828,10 @@ function displayPublicTwinStatus(twin) {
     
     // Load public twin status on page load
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('🚀 DOM loaded, loading public twin status...');
         loadPublicTwinStatus();
     });
     
     // Also call immediately in case DOM is already loaded
-    console.log('🚀 Script loaded, calling loadPublicTwinStatus immediately...');
     setTimeout(() => {
         loadPublicTwinStatus();
     }, 1000);
@@ -1889,13 +1840,9 @@ function displayPublicTwinStatus(twin) {
     setTimeout(() => {
         const makePublicBtn = document.getElementById('makeTwinPublicBtn');
         if (makePublicBtn) {
-            console.log('✅ Make Twin Public button found, adding event listener');
             makePublicBtn.addEventListener('click', function() {
-                console.log('🔥 Make Twin Public button clicked!');
                 makeTwinPublic();
             });
-        } else {
-            console.log('❌ Make Twin Public button not found');
         }
     }, 2000);
     
@@ -1903,13 +1850,9 @@ function displayPublicTwinStatus(twin) {
     setTimeout(() => {
         const copyReferralBtn = document.getElementById('copyReferralBtn');
         if (copyReferralBtn) {
-            console.log('✅ Copy Referral button found, adding event listener');
             copyReferralBtn.addEventListener('click', function() {
-                console.log('🔥 Copy Referral button clicked!');
                 createInvite();
             });
-        } else {
-            console.log('❌ Copy Referral button not found');
         }
     }, 2000);
 
@@ -1917,9 +1860,7 @@ function displayPublicTwinStatus(twin) {
 setTimeout(() => {
     const sharePublicTwinBtn = document.getElementById('sharePublicTwinBtn');
     if (sharePublicTwinBtn) {
-        console.log('✅ Share Public Twin button found, adding event listener');
         sharePublicTwinBtn.addEventListener('click', function() {
-            console.log('🔥 Share Public Twin button clicked!');
             // Get the public handle from the current twin data
             const statusContainer = document.getElementById('publicTwinStatus');
             const handleElement = statusContainer?.querySelector('p.text-white\\/80');
@@ -1930,8 +1871,6 @@ setTimeout(() => {
                 }
             }
         });
-    } else {
-        console.log('❌ Share Public Twin button not found');
     }
 }, 2000);
 </script>
@@ -2032,8 +1971,6 @@ setTimeout(() => {
         
         // Logout function
         async function logout() {
-            console.log('Logout button clicked!');
-            
             // Get the logout button element
             const logoutBtn = document.querySelector('button[onclick="logout()"]');
             if (!logoutBtn) {
@@ -2054,12 +1991,8 @@ setTimeout(() => {
                         'X-CSRF-Token': window.csrfToken
                     }
                 });
-                
-                console.log('Logout response:', response.status);
-                
+                                
                 if (response.ok) {
-                    console.log('Logout successful, clearing all data...');
-                    
                     // Clear localStorage
                     localStorage.removeItem('jwtToken');
                     localStorage.removeItem('user');
@@ -2077,9 +2010,7 @@ setTimeout(() => {
                     window.location.replace('/auth?logout=' + timestamp);
                     
                 } else {
-                    console.log('Logout failed:', response.status);
                     const errorData = await response.text();
-                    console.log('Error response:', errorData);
                     showFlashMessage('Logout failed. Please try again.', 'error');
                     
                     // Restore button state
@@ -2117,8 +2048,6 @@ setTimeout(() => {
         
         // Add event listeners for dropdown and logout button
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Setting up dropdown and logout event listeners');
-            
             // Mobile menu event listeners
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
             const mobileCloseBtn = document.getElementById('mobile-close-btn');
@@ -2143,9 +2072,7 @@ setTimeout(() => {
             // Setup logout button
             const logoutBtn = document.querySelector('button[onclick="logout()"]');
             if (logoutBtn) {
-                console.log('Logout button found, adding click listener');
                 logoutBtn.addEventListener('click', function(e) {
-                    console.log('Logout button clicked via event listener');
                     e.preventDefault();
                     logout();
                 });

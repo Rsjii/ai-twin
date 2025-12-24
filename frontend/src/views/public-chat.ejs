@@ -12,10 +12,6 @@
                 if (typeof window.TimeUtils === 'undefined') {
                     console.error('❌ TimeUtils not loaded! Check script path.');
                     console.error('Available scripts:', Array.from(document.scripts).map(s => s.src));
-                } else {
-                    console.log('✅ TimeUtils loaded successfully');
-                    console.log('✅ TimeUtils.setServerTime:', typeof window.TimeUtils.setServerTime);
-                    console.log('✅ TimeUtils methods:', Object.keys(window.TimeUtils));
                 }
             }
             // Check immediately
@@ -37,8 +33,6 @@
         (function() {
             if (typeof window.TimeUtils === 'undefined') {
                 console.error('❌ TimeUtils not loaded! Check script path.');
-            } else {
-                console.log('✅ TimeUtils loaded successfully');
             }
         })();
         
@@ -54,7 +48,7 @@
         // ✅ NEW: Set quota exceeded status from server (for both anonymous and logged-in users)
         window.__quotaExceeded = <%= typeof quotaExceeded !== 'undefined' && quotaExceeded ? 'true' : 'false' %>;
         if (window.__quotaExceeded) {
-            console.log('[QUOTA] Quota exceeded detected at page load - chat will be locked');
+            // Quota exceeded - chat will be locked
         }
     </script>
 </head>
@@ -450,64 +444,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 
                 // ✅ CRITICAL: Set server time FIRST - before any other processing
-                // Force immediate execution with explicit check
-                console.log('[loadPublicChatHistory] ========== SERVER TIME SETUP START ==========');
-                console.log('[loadPublicChatHistory] Full data object:', JSON.stringify(data, null, 2));
-                console.log('[loadPublicChatHistory] data.serverTime value:', data.serverTime);
-                console.log('[loadPublicChatHistory] data.serverTime type:', typeof data.serverTime);
-                console.log('[loadPublicChatHistory] window object exists:', typeof window !== 'undefined');
-                console.log('[loadPublicChatHistory] window.TimeUtils exists:', typeof window.TimeUtils);
-                
                 // Force set server time - multiple fallback methods
                 if (data && data.serverTime) {
                     const serverTimeStr = String(data.serverTime).trim();
-                    console.log('[loadPublicChatHistory] serverTimeStr:', serverTimeStr);
                     
                     if (window && window.TimeUtils) {
-                        console.log('[loadPublicChatHistory] TimeUtils object:', window.TimeUtils);
-                        console.log('[loadPublicChatHistory] setServerTime exists:', 'setServerTime' in window.TimeUtils);
-                        console.log('[loadPublicChatHistory] setServerTime type:', typeof window.TimeUtils.setServerTime);
-                        
                         if (typeof window.TimeUtils.setServerTime === 'function') {
                             try {
                                 window.TimeUtils.setServerTime(serverTimeStr);
-                                console.log('[loadPublicChatHistory] ✅✅✅ SERVER TIME SET SUCCESSFULLY:', serverTimeStr);
-                                console.log('[loadPublicChatHistory] ✅ Verified globalServerTime:', window.TimeUtils.globalServerTime);
                             } catch (e) {
                                 console.error('[loadPublicChatHistory] ❌ ERROR setting server time:', e);
-                                console.error('[loadPublicChatHistory] Error stack:', e.stack);
                             }
                         } else {
-                            console.error('[loadPublicChatHistory] ❌ setServerTime is not a function');
                             // Try direct assignment as fallback
                             try {
                                 if (window.TimeUtils.globalServerTime !== undefined) {
                                     window.TimeUtils.globalServerTime = serverTimeStr;
-                                    console.log('[loadPublicChatHistory] ✅ Set via direct assignment');
                                 }
                             } catch (e2) {
-                                console.error('[loadPublicChatHistory] ❌ Direct assignment also failed:', e2);
+                                console.error('[loadPublicChatHistory] ❌ Direct assignment failed:', e2);
                             }
                         }
                     } else {
                         console.error('[loadPublicChatHistory] ❌ window.TimeUtils not available');
-                        console.error('[loadPublicChatHistory] window keys:', Object.keys(window).slice(0, 20));
                     }
                 } else {
                     console.error('[loadPublicChatHistory] ❌ NO SERVER TIME IN RESPONSE');
-                    console.error('[loadPublicChatHistory] data keys:', data ? Object.keys(data) : 'data is null');
                 }
-                console.log('[loadPublicChatHistory] ========== SERVER TIME SETUP END ==========');
-                
-                // Now continue with rest of the code
-                console.log('[loadPublicChatHistory] Response received:', data);
-                console.log('[loadPublicChatHistory] Chats count:', data.chats?.length || 0);
                 
                 // ✅ Hide loading state
                 if (loadingState) loadingState.classList.add('hidden');
                 
                 if (data.success) {
-                    console.log('[loadPublicChatHistory] Displaying chats:', data.chats);
                      // ✅ Cache all chats for search/filter
                      publicAllChats = Array.isArray(data.chats) ? data.chats : [];
                     // ✅ Call display function AFTER setting server time
@@ -543,7 +511,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Display chat history
         function displayPublicChatHistory(chats) {
-            console.log('[displayPublicChatHistory] Called with chats:', chats);
             const container = document.getElementById('publicChatHistoryList');
             
             if (!container) {
@@ -561,8 +528,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // ✅ FIX: If showChatHistory is disabled, only show the latest chat
             // The backend should already filter this, but we'll ensure here too
             const chatsToDisplay = chats; // Backend already filters, but we can add extra check if needed
-
-            console.log('[displayPublicChatHistory] Rendering', chatsToDisplay.length, 'chats');
             
             try {
                 container.innerHTML = chatsToDisplay.map(chat => `
@@ -622,8 +587,6 @@ if (window.TimeUtils) {
     });
 }
 
-                console.log('[displayPublicChatHistory] HTML rendered, adding event listeners');
-
                 // Add event listeners for chat items
                 container.querySelectorAll('.chat-item').forEach(item => {
                     item.addEventListener('click', async (e) => {
@@ -651,8 +614,6 @@ if (window.TimeUtils) {
                         deletePublicChat(chatId);
                     });
                 });
-                
-                console.log('[displayPublicChatHistory] Event listeners added, done!');
             } catch (error) {
                 console.error('[displayPublicChatHistory] Error rendering chats:', error);
                 container.innerHTML = '<p class="text-red-500 text-sm">Error displaying chats. Please refresh.</p>';
@@ -691,7 +652,6 @@ if (window.TimeUtils) {
                     if (window && window.TimeUtils && typeof window.TimeUtils.setServerTime === 'function') {
                         try {
                             window.TimeUtils.setServerTime(serverTimeStr);
-                            console.log('[switchToPublicChat] ✅✅✅ SERVER TIME SET:', serverTimeStr);
                         } catch (e) {
                             console.error('[switchToPublicChat] ❌ ERROR setting server time:', e);
                         }
@@ -782,11 +742,8 @@ if (!confirmed) {
                 const isCurrent = (chatId === currentChatId) ||
                     (new URL(window.location.href).searchParams.get('chatId') === chatId);
 
-                console.log('[deletePublicChat] success', { chatId, currentChatId, isCurrent, href: window.location.href });
-
                 if (isCurrent) {
                     const baseUrl = `/public-twin/chat/${encodeURIComponent(currentTwinId)}`;
-                    console.log('[deletePublicChat] deleting CURRENT chat → redirecting to', baseUrl);
 
                     try {
                         const chatMessages = document.getElementById('chatMessages');
@@ -1295,7 +1252,6 @@ async function sendMessage() {
             
             // ✅ NEW: Check if quota is exceeded at page render time (from server) - highest priority
             if (window.__quotaExceeded === true) {
-                console.log('[sendMessage] Quota exceeded at page load - preventing request.');
                 // Ensure UI is locked
                 if (messageInput) messageInput.disabled = true;
                 const sendBtn = document.getElementById('sendMessageBtn');
@@ -1305,7 +1261,6 @@ async function sendMessage() {
             
             // ✅ NEW: Check if chat is already locked (limit exceeded) - prevent extra requests
             if (sessionStorage.getItem('limitExceeded') === 'true') {
-                console.log('[sendMessage] Chat is locked - limit exceeded. Preventing request.');
                 // Ensure UI is locked
                 if (messageInput) messageInput.disabled = true;
                 const sendBtn = document.getElementById('sendMessageBtn');
@@ -1495,7 +1450,6 @@ async function sendMessage() {
                     if (window && window.TimeUtils && typeof window.TimeUtils.setServerTime === 'function') {
                         try {
                             window.TimeUtils.setServerTime(serverTimeStr);
-                            console.log('[sendMessage] ✅✅✅ SERVER TIME SET:', serverTimeStr);
                         } catch (e) {
                             console.error('[sendMessage] ❌ ERROR setting server time:', e);
                         }
@@ -1694,7 +1648,6 @@ if (newChatBtnMobile) {
         document.addEventListener('DOMContentLoaded', async function() {
             // ✅ NEW: Check if quota is exceeded at page render time (from server) - highest priority
             if (window.__quotaExceeded === true) {
-                console.log('[DOMContentLoaded] Quota exceeded at page load (from server) - locking chat immediately');
                 // Use stored errorCode from sessionStorage if available, otherwise default
                 const storedErrorCode = sessionStorage.getItem('limitExceeded') || 'QUOTA_EXCEEDED';
                 lockChatForLimitExhausted(storedErrorCode);
@@ -1704,7 +1657,6 @@ if (newChatBtnMobile) {
             // ✅ NEW: Check if limit was exceeded before refresh - restore locked state immediately
             const storedLimitExceeded = sessionStorage.getItem('limitExceeded');
             if (storedLimitExceeded) {
-                console.log('[DOMContentLoaded] Limit exceeded state detected - locking chat immediately');
                 lockChatForLimitExhausted(storedLimitExceeded);
                 return; // Don't proceed with normal initialization
             }

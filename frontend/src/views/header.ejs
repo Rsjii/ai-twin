@@ -121,7 +121,7 @@
                                     : null;
                             %>
                             <% if (navProfileImage) { %>
-                                <img src="<%= navProfileImage %>" alt="Profile" class="w-10 h-10 rounded-full object-cover shadow-lg ring-2 ring-white dark:ring-gray-700" onerror="console.error('Image failed to load:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <img src="<%= navProfileImage %>" alt="Profile" class="w-10 h-10 rounded-full object-cover shadow-lg ring-2 ring-white dark:ring-gray-700" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                             <% } else { %>
                                 <!-- Fallback to initial -->
                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-sm shadow-lg ring-2 ring-white dark:ring-gray-700">
@@ -307,8 +307,6 @@
     
     // ✅ Logout function (GLOBAL - silent logout like dashboard, no confirm)
     async function logout() {
-        console.log('Logout function called');
-        
         // Get logout button for visual feedback (no confirm dialog)
         const logoutBtn = document.getElementById('logoutButton') || document.querySelector('button[onclick="logout()"]');
         if (logoutBtn) {
@@ -342,11 +340,7 @@
                 credentials: 'include'
             });
             
-            console.log('Logout response:', response.status);
-            
             if (response.ok) {
-                console.log('Logout successful, clearing all data...');
-                
                 // Clear localStorage
                 localStorage.removeItem('jwtToken');
                 localStorage.removeItem('user');
@@ -374,10 +368,6 @@
                 window.location.replace('/auth?logout=' + timestamp);
                 
             } else {
-                console.log('Logout failed:', response.status);
-                const errorData = await response.text();
-                console.log('Error response:', errorData);
-                
                 // Restore button state
                 if (logoutBtn) {
                     logoutBtn.textContent = originalText;
@@ -386,13 +376,9 @@
                 
                 if (typeof showNotification === 'function') {
                     showNotification('Logout failed. Please try again.', 'error');
-                } else {
-                    console.error('Logout failed. Please try again.');
                 }
             }
         } catch (error) {
-            console.error('Logout error:', error);
-            
             // Restore button state
             if (logoutBtn) {
                 logoutBtn.textContent = originalText;
@@ -401,8 +387,6 @@
             
             if (typeof showNotification === 'function') {
                 showNotification('Network error. Please try again.', 'error');
-            } else {
-                console.error('Network error. Please try again.');
             }
         }
     }    

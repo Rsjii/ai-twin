@@ -135,7 +135,6 @@
                         }
                     }
                 } catch (error) {
-                    console.error('OTP verification error:', error);
                     showNotification('Network error. Please try again.', 'error');
                 }
             });
@@ -196,7 +195,6 @@
                             resendBtn.innerHTML = originalHTML;
                         }
                     } catch (error) {
-                        console.error('Resend OTP error:', error);
                         showNotification('Network error. Please try again.', 'error');
                         resendBtn.disabled = false;
                         resendBtn.innerHTML = originalHTML;

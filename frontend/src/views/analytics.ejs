@@ -112,7 +112,6 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
     }
     
     async function loadAnalytics() {
-    console.log('[ANALYTICS] ========== START loadAnalytics ==========');
     showOverviewLoading();
     showChartLoading();
     showTopContentLoading();
@@ -133,16 +132,7 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
         chartContainer: document.getElementById('chartContainer')
     };
 
-    console.log('[ANALYTICS] DOM Elements check:', {
-        totalViews: !!elements.totalViews,
-        totalLikes: !!elements.totalLikes,
-        chartContainer: !!elements.chartContainer,
-        topContent: !!elements.topContent,
-        periodSummary: !!elements.periodSummary
-    });
-
     try {
-        console.log('[ANALYTICS] Starting fetch requests...');
         const [response, feedbackResponse] = await Promise.all([
             fetch('/api/metrics/user', {
                 method: 'GET',
@@ -164,16 +154,6 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
             })
         ]);
 
-        console.log('[ANALYTICS_FETCH] Response status:', {
-            metricsStatus: response.status,
-            metricsStatusText: response.statusText,
-            metricsOk: response.ok,
-            metricsHeaders: Object.fromEntries(response.headers.entries()),
-            feedbackStatus: feedbackResponse.status,
-            feedbackStatusText: feedbackResponse.statusText,
-            feedbackOk: feedbackResponse.ok,
-        });
-
         // ✅ ADD: Check for errors BEFORE parsing
         if (!response.ok) {
             const errorText = await response.text();
@@ -192,23 +172,8 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
         // ✅ FIX: Always parse JSON, remove 304 check
         try {
             data = await response.json();
-            console.log('[ANALYTICS_DATA] Full response:', JSON.stringify(data, null, 2));
-            console.log('[ANALYTICS_DATA] Structure check:', {
-                hasSuccess: 'success' in data,
-                successValue: data.success,
-                hasAnalytics: 'analytics' in data,
-                analyticsKeys: data.analytics ? Object.keys(data.analytics) : null,
-                hasEngagementData: data.analytics?.engagementData ? true : false,
-                engagementDataType: data.analytics?.engagementData ? typeof data.analytics.engagementData : null,
-                engagementDataLabels: data.analytics?.engagementData?.labels ? data.analytics.engagementData.labels.length : 0,
-                engagementDataValues: data.analytics?.engagementData?.values ? data.analytics.engagementData.values.length : 0,
-                hasTopContent: Array.isArray(data.analytics?.topContent),
-                topContentLength: data.analytics?.topContent?.length || 0,
-                hasPeriodSummary: !!data.analytics?.periodSummary
-            });
         } catch (err) {
-            console.error('[ANALYTICS_DATA] Failed to parse /api/metrics/user JSON', err);
-            console.error('[ANALYTICS_DATA] Response text:', await response.clone().text());
+            console.error('Failed to parse analytics JSON:', err);
             showOverviewError();
             showChartError();
             return; // Exit early on parse error
@@ -216,16 +181,13 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
 
         try {
             feedbackData = await feedbackResponse.json();
-            console.log('[ANALYTICS_FEEDBACK] Feedback data:', feedbackData);
         } catch (err) {
-            console.warn('[ANALYTICS_FEEDBACK] Failed to parse /api/analytics/feedback JSON', err);
+            // Feedback is optional, continue without it
             feedbackData = {}; // Continue without feedback data
         }
 
         // Overview cards
-        console.log('[ANALYTICS] Processing overview cards...');
         if (data.success && data.analytics) {
-            console.log('[ANALYTICS] ✅ Data has success=true and analytics object');
             hideOverviewLoading();
             elements.overviewContainer?.classList.remove('hidden');
 
@@ -234,26 +196,16 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
             const followers = Number.isInteger(data.analytics.totalFollowers) ? data.analytics.totalFollowers : 0;
             const chats = Number.isInteger(data.analytics.totalChats) ? data.analytics.totalChats : 0;
 
-            console.log('[ANALYTICS] Overview values:', { views, likes, followers, chats });
-
             if (elements.totalViews) elements.totalViews.textContent = views;
             if (elements.totalLikes) elements.totalLikes.textContent = likes;
             if (elements.totalFollowers) elements.totalFollowers.textContent = followers;
             if (elements.totalChats) elements.totalChats.textContent = chats;
 
             if (views === 0 && likes === 0 && followers === 0 && chats === 0) {
-                console.log('[ANALYTICS] ⚠️ All overview values are 0, showing empty state');
                 showOverviewEmpty();
-            } else {
-                console.log('[ANALYTICS] ✅ Overview cards updated successfully');
             }
         } else {
-            console.error('[ANALYTICS] ❌ Data validation failed:', {
-                hasSuccess: 'success' in data,
-                successValue: data.success,
-                hasAnalytics: 'analytics' in data,
-                dataKeys: Object.keys(data)
-            });
+            console.error('Analytics: Data validation failed');
             showOverviewError();
         }
 
@@ -276,59 +228,40 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
         }
 
 // ✅ Chart: Engagement Over Time
-console.log('[ANALYTICS_CHART] Starting chart initialization...');
 hideChartLoading();
 if (elements.chartContainer) {
-    console.log('[ANALYTICS_CHART] ✅ Chart container found');
     elements.chartContainer.classList.remove('hidden');
 
     function initializeChart() {
-        console.log('[ANALYTICS_CHART] initializeChart() called');
         // Wait for Chart.js
         if (typeof Chart === 'undefined') {
-            console.warn('[ANALYTICS_CHART] ⚠️ Chart.js not loaded yet, retrying...');
             setTimeout(initializeChart, 100);
             return;
         }
-        console.log('[ANALYTICS_CHART] ✅ Chart.js is loaded');
 
         const canvas = document.getElementById('engagementChart');
         if (!canvas) {
-            console.error('[ANALYTICS_CHART] ❌ Canvas element not found');
+            console.error('Engagement chart: canvas element not found');
             showChartEmpty();
             return;
         }
-        console.log('[ANALYTICS_CHART] ✅ Canvas element found');
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            console.error('[ANALYTICS_CHART] ❌ Could not get canvas context');
+            console.error('Engagement chart: could not get canvas context');
             showChartError();
             return;
         }
-        console.log('[ANALYTICS_CHART] ✅ Canvas context obtained');
 
         // Destroy existing chart
         if (window.engagementChartInstance) {
-            console.log('[ANALYTICS_CHART] Destroying existing chart instance');
             window.engagementChartInstance.destroy();
         }
 
         // Validate and prepare data
         const chartData = data.analytics?.engagementData || null;
-        console.log('[ANALYTICS_CHART] Chart data check:', {
-            hasEngagementData: !!data.analytics?.engagementData,
-            chartData: chartData,
-            hasLabels: !!chartData?.labels,
-            hasValues: !!chartData?.values,
-            labelsType: chartData?.labels ? typeof chartData.labels : null,
-            valuesType: chartData?.values ? typeof chartData.values : null,
-            labelsLength: Array.isArray(chartData?.labels) ? chartData.labels.length : 0,
-            valuesLength: Array.isArray(chartData?.values) ? chartData.values.length : 0
-        });
         
         if (!chartData || !chartData.labels || !chartData.values) {
-            console.warn('[ANALYTICS_CHART] ⚠️ No engagement data available');
             showChartEmpty();
             return;
         }
@@ -337,21 +270,12 @@ if (elements.chartContainer) {
         const labels = Array.isArray(chartData.labels) ? chartData.labels : [];
         const values = Array.isArray(chartData.values) ? chartData.values.map(v => Number(v) || 0) : [];
 
-        console.log('[ANALYTICS_CHART] Processed data:', {
-            labelsCount: labels.length,
-            valuesCount: values.length,
-            labelsSample: labels.slice(0, 3),
-            valuesSample: values.slice(0, 3)
-        });
-
         if (labels.length === 0 || values.length === 0) {
-            console.warn('[ANALYTICS_CHART] ⚠️ Empty labels or values array');
             showChartEmpty();
             return;
         }
 
         try {
-            console.log('[ANALYTICS_CHART] Creating Chart.js instance...');
             window.engagementChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -381,10 +305,8 @@ if (elements.chartContainer) {
                     }
                 }
             });
-            console.log('[ANALYTICS_CHART] ✅ Chart created successfully');
         } catch (error) {
-            console.error('[ANALYTICS_CHART] ❌ Chart initialization error:', error);
-            console.error('[ANALYTICS_CHART] Error stack:', error.stack);
+            console.error('Error initializing engagement chart:', error);
             showChartError();
         }
     }
@@ -392,45 +314,35 @@ if (elements.chartContainer) {
     // ✅ Initialize chart after data is loaded
     initializeChart();
 } else {
-    console.error('[ANALYTICS_CHART] ❌ Chart container not found');
+    console.error('Analytics: Chart container not found');
     showChartEmpty();
 }        
 
         // Top Users (this twin)
-        console.log('[ANALYTICS] Processing top users for twin...');
         await loadTopUsersForTwin(elements);
 
         // ✅ NEW: Period Summary
-        console.log('[ANALYTICS] Processing period summary...');
         hidePeriodSummaryLoading();
         if (elements.periodSummary) {
             elements.periodSummary.classList.remove('hidden');
             
             const periodSummary = data.analytics?.periodSummary;
             if (periodSummary) {
-                console.log('[ANALYTICS] ✅ Period summary found');
                 // Store data globally for toggle
                 window.analyticsData = data;
                 renderPeriodSummary(periodSummary, window.currentPeriod || 7);
             } else {
-                console.warn('[ANALYTICS] ⚠️ No period summary data');
                 showPeriodSummaryEmpty();
             }
         } else {
-            console.error('[ANALYTICS] ❌ Period summary container not found');
+            console.error('Analytics: Period summary container not found');
         }
-        
-        console.log('[ANALYTICS] ========== END loadAnalytics (SUCCESS) ==========');
     } catch (error) {
-        console.error('[ANALYTICS] ========== ERROR in loadAnalytics ==========');
-        console.error('[ANALYTICS] Error object:', error);
-        console.error('[ANALYTICS] Error message:', error.message);
-        console.error('[ANALYTICS] Error stack:', error.stack);
+        console.error('Error loading analytics:', error);
         showOverviewError();
         showChartError();
         showTopContentError();
         showPeriodSummaryError();
-        console.log('[ANALYTICS] ========== END loadAnalytics (ERROR) ==========');
     }
 }
 
@@ -587,14 +499,13 @@ function escapeHtml(text) {
         hideTopContentLoading();
 
         if (!container) {
-            console.error('[ANALYTICS] ❌ Top users container (topContent) not found');
+            console.error('Analytics: Top users container not found');
             showTopContentError();
             return;
         }
 
         const twinToken = window.twinIdValue || '';
         if (!twinToken) {
-            console.warn('[ANALYTICS] ⚠️ No twinIdValue available, showing empty top users');
             showTopContentEmpty();
             return;
         }
@@ -615,17 +526,15 @@ function escapeHtml(text) {
             });
 
             if (!response.ok) {
-                console.error('[ANALYTICS] ❌ Top users API failed:', response.status);
+                console.error('Analytics: Top users API failed:', response.status);
                 showTopContentError();
                 return;
             }
 
             const data = await response.json();
-            console.log('[ANALYTICS_TOP_USERS] Response:', data);
 
             const users = Array.isArray(data.users) ? data.users : [];
             if (users.length === 0) {
-                console.warn('[ANALYTICS] ⚠️ No top users data');
                 showTopContentEmpty();
                 return;
             }
@@ -670,7 +579,7 @@ function escapeHtml(text) {
                             }
                         }
                     } catch (e) {
-                        console.error('[ANALYTICS] Error formatting last activity:', e);
+                        console.error('Error formatting last activity:', e);
                         lastActiveText = 'Unknown';
                     }
                 }
@@ -712,9 +621,8 @@ function escapeHtml(text) {
             });
 
             container.appendChild(fragment);
-            console.log('[ANALYTICS] ✅ Top users rendered');
         } catch (error) {
-            console.error('[ANALYTICS] ❌ Error loading top users:', error);
+            console.error('Error loading top users:', error);
             showTopContentError();
         }
     }

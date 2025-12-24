@@ -194,7 +194,6 @@
                             throw new Error('File upload failed');
                         }
                     } catch (error) {
-                        console.error('File upload error:', error);
                         showNotification('Failed to upload image. Please try again.', 'error');
                         return;
                     }
@@ -254,7 +253,6 @@
                         }
                     }
                 } catch (error) {
-                    console.error('Profile completion error:', error);
                     showNotification('Network error. Please try again.', 'error');
                 }
             });

@@ -1008,7 +1008,6 @@
 
         // ✅ Mobile error handling (enhanced)
         window.addEventListener('error', function(e) {
-            console.error('Mobile error:', e.error);
             // Prevent error from breaking the page
             e.preventDefault();
         });
@@ -1031,8 +1030,6 @@
         
         // Add event listeners for dropdown and logout button
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Setting up dropdown and logout event listeners');
-            
             // Mobile menu event listeners
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
             const mobileCloseBtn = document.getElementById('mobile-close-btn');

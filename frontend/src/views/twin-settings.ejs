@@ -581,7 +581,6 @@
         currentSettings = data.settings;
         populateSettings(currentSettings);
       } catch (e) {
-        console.error(e);
         showNotification('Could not load settings.', 'error');
       }
     }
@@ -601,7 +600,6 @@
         populateVoice(currentStyleVector, currentPersonaData);
         // preview is driven by long-term memories now (facts/preferences)
       } catch (e) {
-        console.error(e);
         showNotification('Could not load twin data.', 'error');
       }
     }

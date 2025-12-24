@@ -207,7 +207,6 @@
                     showError('Failed to load messages data: ' + data.error);
                 }
             } catch (error) {
-                console.error('Load messages error:', error);
                 showError('Error loading messages data');
             }
         }
@@ -275,7 +274,7 @@
                                 el.textContent = displayTime;
                                 el.title = fullTime;
                             } catch (e) {
-                                console.error('Error formatting timestamp:', e);
+                                // Silently handle timestamp formatting errors
                             }
                         }
                     });
@@ -364,8 +363,7 @@
                     </html>
                 `);
             } catch (error) {
-                console.error('View message details error:', error);
-                alert('Error loading message details: ' + error.message);
+                alert('Error loading message details: ' + (error.message || 'Unknown error'));
             }
         }
 
@@ -410,8 +408,7 @@
                     </html>
                 `);
             } catch (error) {
-                console.error('View chat messages error:', error);
-                alert('Error loading chat messages: ' + error.message);
+                alert('Error loading chat messages: ' + (error.message || 'Unknown error'));
             }
         }
 
@@ -435,7 +432,6 @@
                     `);
                 }
             } catch (error) {
-                console.error('View user profile error:', error);
                 alert('Error loading user profile');
             }
         }

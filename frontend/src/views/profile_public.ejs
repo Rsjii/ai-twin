@@ -34,7 +34,6 @@ async function loadPublicProfile() {
             showError(result.error || 'Failed to load profile');
         }
     } catch (error) {
-        console.error('Load profile error:', error);
         showError('Network error. Please try again.');
     }
 }

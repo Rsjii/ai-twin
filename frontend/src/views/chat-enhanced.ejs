@@ -34,13 +34,11 @@
             const hasAuthToken = localStorage.getItem('jwtToken') || localStorage.getItem('user');
             
             if (!isAuthenticated && !hasAuthToken) {
-                console.log('User not authenticated, redirecting to /auth');
                 window.location.replace('/auth');
                 return;
             }
             
             if (!isAuthenticated) {
-                console.log('Authentication check failed, redirecting to /auth');
                 window.location.replace('/auth');
             }
         })();
@@ -1059,7 +1057,6 @@ async function regenerateResponse(responseId) {
         // Move these functions to global scope (outside DOMContentLoaded):
 
 function setStyleMode(mode) {
-    console.log('Setting style mode:', mode);
     // Update UI to show current mode
     document.querySelectorAll('#casualBtn, #formalBtn, #toggleStyleBtn').forEach(btn => {        
         btn.classList.remove('bg-blue-600', 'text-white');
@@ -1076,7 +1073,6 @@ function setStyleMode(mode) {
 }
 
 function giveFeedback(type) {
-    console.log('Giving feedback:', type);
     // Send feedback to backend
     fetch(`/api/enhanced-chat/${currentChatId}/feedback`, {
         method: 'POST',
@@ -1092,7 +1088,6 @@ function giveFeedback(type) {
 }
 
 function setTonePreference(tone) {
-    console.log('Setting tone preference:', tone);
     showNotification(`Tone preference: ${tone}`, 'info');
 }
 
@@ -1301,7 +1296,6 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
 }
 
 function addResponseActionsButton(responseId) {
-    console.log('🔧 Adding response actions for:', responseId);
     let retries = 0;
     const maxRetries = 20;
     const retryDelay = 100; // 100ms
@@ -1311,7 +1305,6 @@ function addResponseActionsButton(responseId) {
         if (!actionsContainer) {
             retries++;
             if (retries < maxRetries) {
-                console.log(`⏳ Actions container not found, retrying... (${retries}/${maxRetries})`);
                 setTimeout(tryAdd, retryDelay);
             } else {
                 console.error('❌ Actions container not found after', maxRetries, 'retries');
@@ -1321,7 +1314,6 @@ function addResponseActionsButton(responseId) {
         
         // Check if buttons already exist
         if (actionsContainer.querySelector(`#copyBtn_${responseId}`)) {
-            console.log('✅ Buttons already exist, skipping');
             return;
         }
         
@@ -1352,7 +1344,6 @@ function addResponseActionsButton(responseId) {
         
         currentResponseId = responseId;
         actionsContainer.appendChild(actionsDiv);
-        console.log('✅ Actions buttons added to container');
         
         // Add event listeners after creating the HTML
         setTimeout(() => {
@@ -1362,7 +1353,6 @@ function addResponseActionsButton(responseId) {
                 document.getElementById(`downvoteBtn_${responseId}`)?.addEventListener('click', () => downvoteResponse(responseId));
                 document.getElementById(`regenerateBtn_${responseId}`)?.addEventListener('click', () => regenerateResponse(responseId));
                 document.getElementById(`shareBtn_${responseId}`)?.addEventListener('click', () => shareResponse(responseId));
-                console.log('✅ Event listeners attached');
             } catch (error) {
                 console.error('❌ Error attaching event listeners:', error);
             }
@@ -1444,7 +1434,6 @@ function updateCriticScore(score) {
 // ✅ IMMEDIATE sidebar update (before typing animation)
 // Note: Don't manually increment count - backend already does it
 function updateSidebarImmediately(aiResponse, userMessage) {
-    console.log('🔄 Updating sidebar immediately for chat:', currentChatId);
     if (!currentChatId) {
         console.warn('⚠️ No currentChatId set');
         return;
@@ -1457,14 +1446,11 @@ function updateSidebarImmediately(aiResponse, userMessage) {
     }
     
     if (currentChatItem) {
-        console.log('✅ Found chat item, updating...');
-        
         // ✅ Update last message only (count will be updated by loadChatHistory)
         const lastMessageSpan = currentChatItem.querySelector('p.text-xs.text-gray-500, p.text-xs.dark\\:text-gray-400');
         if (lastMessageSpan) {
             const truncated = aiResponse.length > 50 ? aiResponse.substring(0, 50) + '...' : aiResponse;
             lastMessageSpan.textContent = truncated;
-            console.log('✅ Updated last message:', truncated);
         }
         
     } else {
@@ -1481,7 +1467,6 @@ async function loadFeedbackStatus(chatId) {
     
     // ✅ FIX: Skip API call for draft chats
     if (chatId && chatId.startsWith('draft_')) {
-        console.log('Skipping feedback status for draft chat:', chatId);
         return {};
     }
     
@@ -1513,8 +1498,6 @@ async function loadCurrentChatMessages() {
     const errorState = document.getElementById('errorState');
     if (errorState) errorState.classList.add('hidden');
     try {
-        console.log('Loading chat history for chatId:', currentChatId);
-        
         // ✅ SAFETY: Only block if chatId is truly empty (draft chats are handled separately)
         if (!currentChatId || currentChatId === 'null' || currentChatId === '') {
             console.warn('Cannot load chat: currentChatId is empty');
@@ -1526,8 +1509,7 @@ async function loadCurrentChatMessages() {
         }
         
         // ✅ FIX: Check if draft chat - skip database call
-        if (currentChatId && currentChatId.startsWith('draft_')) {            
-            console.log('Draft chat detected, showing empty state');
+        if (currentChatId && currentChatId.startsWith('draft_')) {
             const messagesContainer = document.getElementById('chatMessages');
             if (messagesContainer) messagesContainer.innerHTML = '';
             
@@ -1556,7 +1538,6 @@ async function loadCurrentChatMessages() {
         
         if (response.ok) {
             const data = await response.json();
-            console.log('Chat data loaded:', data);
             
     if (data.chat && data.chat.messages && data.chat.messages.length > 0) {
     
@@ -1648,8 +1629,6 @@ async function loadCurrentChatMessages() {
 // Load messages for a specific chat
 async function loadChatMessages() {
     try {
-        console.log('Loading messages for chatId:', currentChatId);
-        
         // ✅ SAFETY: Agar kisi edge case me chatId empty ho, API mat call karo
         if (!currentChatId || currentChatId === 'null' || currentChatId === '') {
             console.warn('Cannot load chat: currentChatId is empty');
@@ -1658,7 +1637,6 @@ async function loadChatMessages() {
         
         // ✅ FIX: Check if draft chat - skip database call
         if (currentChatId && currentChatId.startsWith('draft_')) {
-            console.log('Draft chat detected, showing empty state');
             const messagesContainer = document.getElementById('chatMessages');
             if (messagesContainer) messagesContainer.innerHTML = '';
             
@@ -1684,7 +1662,6 @@ async function loadChatMessages() {
         
         if (response.ok) {
             const data = await response.json();
-            console.log('Chat data loaded:', data);
             
             if (data.chat && data.chat.messages && data.chat.messages.length > 0) {
                 // Display existing messages (both user and AI)
@@ -1937,8 +1914,6 @@ function displayChatHistory(chats) {
 // Switch to different chat
 async function switchToChat(chatId) {
     try {
-        console.log('Switching to chat:', chatId);
-
         // Update current chat ID
         currentChatId = chatId;
 
@@ -1950,8 +1925,6 @@ async function switchToChat(chatId) {
 
         // 🔥 Draft chats: pure blank state, backend ko touch nahi
         if (chatId && chatId.startsWith('draft_')) {
-            console.log('Draft chat selected, showing blank state');
-            
             const messagesContainer = document.getElementById('chatMessages');
             if (messagesContainer) messagesContainer.innerHTML = '';
 
@@ -1970,8 +1943,6 @@ async function switchToChat(chatId) {
         // Real chats: load messages + sidebar
         await loadChatMessages();
         await loadChatHistory(false);
-
-        console.log('Switched to chat:', chatId);
     } catch (error) {
         console.error('Error switching to chat:', error);
         showNotification('Error switching to chat', 'error');
@@ -2023,10 +1994,7 @@ async function deleteChat(chatId) {
         const urlChatId = (pathParts[0] === 'chat' && pathParts[1]) ? pathParts[1] : null;
         const isCurrent = (chatId === currentChatId) || (urlChatId === chatId);
 
-        console.log('[deleteChat] success', { chatId, currentChatId, urlChatId, isCurrent, href: window.location.href });
-
         if (isCurrent) {
-            console.log('[deleteChat] deleting CURRENT chat → redirecting to /chat');
 
             try {
                 const chatMessages = document.getElementById('chatMessages');
@@ -2189,7 +2157,6 @@ async function createNewChat() {
         const existingDraftData = sessionStorage.getItem('draftEnhancedChat');
         if (existingDraftData) {
             const draft = JSON.parse(existingDraftData);
-            console.log('Reusing enhanced draft chat:', draft.chatId);
             // Draft ke liye switchToChat ab blank state show karega
             await switchToChat(draft.chatId);
             return;
@@ -2218,8 +2185,6 @@ async function createNewChat() {
 
         const newChatBtn = document.getElementById('newChatBtn');
         if (newChatBtn) newChatBtn.disabled = true;
-
-        console.log('Draft chat created:', draftChatId);
     } catch (error) {
         console.error('Error creating enhanced draft chat:', error);
     }
@@ -2261,8 +2226,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatIdFromServer = '<%= chatId || "" %>';
     currentChatId = (chatIdFromServer && chatIdFromServer !== 'null' && chatIdFromServer !== 'undefined' && chatIdFromServer.trim() !== '') ? chatIdFromServer : null;
     
-    console.log('Enhanced chat initialized with chatId:', currentChatId);    
-                
     // Mobile event listeners
     const mobileChatMenuBtn = document.getElementById('mobile-chat-menu-btn');
     const mobileChatCloseBtn = document.getElementById('mobile-chat-close-btn');
@@ -2325,14 +2288,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const firstChatId = firstChatItem.getAttribute('data-chat-id');
                     if (firstChatId && !firstChatId.startsWith('draft_')) {
                         currentChatId = firstChatId;
-                        console.log('Auto-selected first chat from history:', currentChatId);
                     }
                 }
             }
 
             // If still no chatId, create a draft
             if (!currentChatId) {
-                console.log('No chats found, creating draft');
                 await createNewChat();
                 // Draft chat shows welcome message, so hide loader
                 if (initialLoading) initialLoading.classList.add('hidden');
@@ -2710,9 +2671,6 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
             // Get current style mode from button states
             const strictStyle = document.getElementById('formalBtn').classList.contains('bg-blue-600');
             
-            console.log('📡 Sending request to:', `/api/enhanced-chat/${currentChatId}/enhanced-reply`);
-            console.log('Request body:', { message, strictStyle });
-            
             const response = await fetch(`/api/enhanced-chat/${actualChatId}/enhanced-reply`, {
                 method: 'POST',
                 headers: {
@@ -2726,9 +2684,7 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
                 })
             });
             
-            console.log('📡 Response status:', response.status);
             const data = await response.json();
-            console.log('📡 Response data:', data);
             
             // ✅ ADD: quota handling (logged-in users) - BEFORE saving message
             if (!response.ok && response.status === 429) {
@@ -2753,7 +2709,6 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
             messageInput.value = '';
             
             if (data.success) {
-                console.log('✅ Success! Adding response to chat');
                 // Remove typing indicator
                 removeMessage(typingId);
                 
@@ -2794,14 +2749,12 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
                 
                 // ✅ Update title if generated
                 if (data.generatedTitle) {
-                    console.log('📝 Title generated:', data.generatedTitle);
                     // Update title in sidebar immediately
                     const currentChatItem = document.querySelector(`.chat-item[data-chat-id="${currentChatId}"]`);
                     if (currentChatItem) {
                         const titleElement = currentChatItem.querySelector('h4');
                         if (titleElement) {
                             titleElement.textContent = data.generatedTitle;
-                            console.log('✅ Title updated in sidebar:', data.generatedTitle);
                         }
                     }
                 }
@@ -2816,7 +2769,6 @@ if (currentChatId && currentChatId.startsWith('draft_')) {
                 if (sendBtn) sendBtn.disabled = false;
                 
             } else {
-                console.log('❌ API returned error:', data.error);
                 removeMessage(typingId);
                 // Hide generating indicator on error
                 if (generatingIndicator) {

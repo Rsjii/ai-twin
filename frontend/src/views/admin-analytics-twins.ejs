@@ -206,7 +206,6 @@
                     showError('Failed to load twins data: ' + data.error);
                 }
             } catch (error) {
-                console.error('Load twins error:', error);
                 showError('Error loading twins data');
             }
         }
@@ -283,7 +282,7 @@
                                 el.textContent = prefix + displayTime;
                                 el.title = fullTime;
                             } catch (e) {
-                                console.error('Error formatting timestamp:', e);
+                                // Silently handle timestamp formatting errors
                             }
                         }
                     });
@@ -349,7 +348,6 @@
       </html>
     `);
   } catch (error) {
-    console.error('View twin details error:', error);
     alert('Error loading twin details');
   }
 }
@@ -374,7 +372,6 @@
                     `);
                 }
             } catch (error) {
-                console.error('View owner profile error:', error);
                 alert('Error loading owner profile');
             }
         }

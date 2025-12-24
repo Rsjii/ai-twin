@@ -1148,41 +1148,23 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
     
         // Load learning data
         async function loadLearningData() {
-            console.log('[LEARNING] ========== START loadLearningData ==========');
-            console.log('[LEARNING] Twin ID:', twinToken);
-            
             // Show loading for learning events
             const eventsLoading = document.getElementById('learningEventsLoadingState');
             const eventsEmpty = document.getElementById('learningEventsEmptyState');
             const eventsError = document.getElementById('learningEventsErrorState');
             const eventsContainer = document.getElementById('learningEvents');
             
-            console.log('[LEARNING] DOM Elements check:', {
-                eventsLoading: !!eventsLoading,
-                eventsEmpty: !!eventsEmpty,
-                eventsError: !!eventsError,
-                eventsContainer: !!eventsContainer
-            });
-            
             if (eventsLoading) eventsLoading.classList.remove('hidden');
             if (eventsEmpty) eventsEmpty.classList.add('hidden');
             if (eventsError) eventsError.classList.add('hidden');
             
             try {
-                console.log('[LEARNING] Fetching from:', `/api/twin/${twinToken}/learning-data`);
                 const response = await fetch(`/api/twin/${twinToken}/learning-data`, {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json'
                     }
-                });
-                
-                console.log('[LEARNING] Response status:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    ok: response.ok,
-                    headers: Object.fromEntries(response.headers.entries())
                 });
                 
                 if (!response.ok) {
@@ -1196,21 +1178,8 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
                 }
                 
                 const data = await response.json();
-                console.log('[LEARNING] Full response data:', JSON.stringify(data, null, 2));
-                console.log('[LEARNING] Response structure check:', {
-                    hasSuccess: 'success' in data,
-                    successValue: data.success,
-                    hasLearning: 'learning' in data,
-                    learningKeys: data.learning ? Object.keys(data.learning) : null,
-                    totalInteractions: data.learning?.totalInteractions,
-                    learningScore: data.learning?.learningScore,
-                    styleAccuracy: data.learning?.styleAccuracy,
-                    hasEvents: Array.isArray(data.learning?.events),
-                    eventsLength: data.learning?.events?.length || 0
-                });
                 
                 if (data.success) {
-                    console.log('[LEARNING] ✅ Success=true, processing data...');
                     // Hide loading
                     if (eventsLoading) eventsLoading.classList.add('hidden');
                     if (eventsError) eventsError.classList.add('hidden');
@@ -1226,18 +1195,14 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
                         };
                     }
                     
-                    console.log('[LEARNING] Calling updateLearningProgress with:', data.learning);
                     updateLearningProgress(data.learning);
                     
                     // Show empty if no events
                     if (!data.learning.events || data.learning.events.length === 0) {
-                        console.log('[LEARNING] ⚠️ No events found, showing empty state');
                         if (eventsEmpty) eventsEmpty.classList.remove('hidden');
                     } else {
-                        console.log('[LEARNING] ✅ Events found:', data.learning.events.length);
                         if (eventsEmpty) eventsEmpty.classList.add('hidden');
                     }
-                    console.log('[LEARNING] ========== END loadLearningData (SUCCESS) ==========');
                 } else {
                     console.error('[LEARNING] ❌ Success=false in response');
                     // Hide loading, show error
@@ -1254,7 +1219,6 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
                 if (eventsLoading) eventsLoading.classList.add('hidden');
                 if (eventsEmpty) eventsEmpty.classList.add('hidden');
                 if (eventsError) eventsError.classList.remove('hidden');
-                console.log('[LEARNING] ========== END loadLearningData (ERROR) ==========');
             }
         }
     
@@ -1262,9 +1226,6 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
         let styleChart = null;
         
         function initializeChart(learningData) {
-    console.log('[LEARNING_CHART] ========== START initializeChart ==========');
-    console.log('[LEARNING_CHART] Input data:', learningData);
-    
     try {
         // Wait for Chart.js
         if (typeof Chart === 'undefined') {
@@ -1272,25 +1233,21 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
             setTimeout(() => initializeChart(learningData), 100);
             return;
         }
-        console.log('[LEARNING_CHART] ✅ Chart.js is loaded');
 
         const canvas = document.getElementById('styleChart');
         if (!canvas) {
             console.error('[LEARNING_CHART] ❌ styleChart canvas not found');
             return;
         }
-        console.log('[LEARNING_CHART] ✅ Canvas element found');
         
         const ctx = canvas.getContext('2d');
         if (!ctx) {
             console.error('[LEARNING_CHART] ❌ Could not get canvas context');
             return;
         }
-        console.log('[LEARNING_CHART] ✅ Canvas context obtained');
         
         // Destroy existing chart if it exists
         if (styleChart) {
-            console.log('[LEARNING_CHART] Destroying existing chart instance');
             styleChart.destroy();
             styleChart = null;
         }
@@ -1303,13 +1260,6 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
         
         const learningScore = Number(learningData.learningScore) || 0;
         const styleAccuracy = Number(learningData.styleAccuracy) || 0;
-        
-        console.log('[LEARNING_CHART] Processed values:', {
-            learningScore,
-            styleAccuracy,
-            learningScoreType: typeof learningScore,
-            styleAccuracyType: typeof styleAccuracy
-        });
         
         // Create new chart
         const chartData = {
@@ -1341,14 +1291,6 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
             }]
         };
         
-        console.log('[LEARNING_CHART] Chart data prepared:', {
-            labels: chartData.labels,
-            datasetsCount: chartData.datasets.length,
-            learningScoreData: chartData.datasets[0].data,
-            styleAccuracyData: chartData.datasets[1].data
-        });
-        
-        console.log('[LEARNING_CHART] Creating Chart.js instance...');
         styleChart = new Chart(ctx, {
             type: 'line',
             data: chartData,
@@ -1369,22 +1311,13 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
                 }
             }
         });
-        console.log('[LEARNING_CHART] ✅ Chart created successfully');
-        console.log('[LEARNING_CHART] ========== END initializeChart (SUCCESS) ==========');
     } catch (error) {
-        console.error('[LEARNING_CHART] ========== ERROR in initializeChart ==========');
-        console.error('[LEARNING_CHART] Error object:', error);
-        console.error('[LEARNING_CHART] Error message:', error.message);
-        console.error('[LEARNING_CHART] Error stack:', error.stack);
-        console.log('[LEARNING_CHART] ========== END initializeChart (ERROR) ==========');
+        console.error('[LEARNING_CHART] ❌ Error in initializeChart:', error);
     }
 }
 
 // Update learning progress display
 function updateLearningProgress(learning) {
-    console.log('[LEARNING_PROGRESS] ========== START updateLearningProgress ==========');
-    console.log('[LEARNING_PROGRESS] Input data:', learning);
-    
     if (!learning) {
         console.warn('[LEARNING_PROGRESS] ⚠️ No learning data provided');
         return;
@@ -1394,34 +1327,19 @@ function updateLearningProgress(learning) {
     const learningScoreEl = document.getElementById('learningScore');
     const styleAccuracyEl = document.getElementById('styleAccuracy');
     
-    console.log('[LEARNING_PROGRESS] DOM Elements check:', {
-        totalInteractions: !!totalInteractionsEl,
-        learningScore: !!learningScoreEl,
-        styleAccuracy: !!styleAccuracyEl
-    });
-    
     // ✅ FIX: Use safe navigation
     const totalInteractions = learning.totalInteractions || 0;
     const learningScore = learning.learningScore || 0;
     const styleAccuracy = learning.styleAccuracy || 0;
     
-    console.log('[LEARNING_PROGRESS] Values to set:', {
-        totalInteractions,
-        learningScore,
-        styleAccuracy
-    });
     
     if (totalInteractionsEl) totalInteractionsEl.textContent = totalInteractions;
     if (learningScoreEl) learningScoreEl.textContent = learningScore + '%';
     if (styleAccuracyEl) styleAccuracyEl.textContent = styleAccuracy + '%';
     
-    console.log('[LEARNING_PROGRESS] ✅ Progress values updated');
-    
     // ✅ Initialize chart AFTER DOM is ready and data is available
     // Wait a bit to ensure Chart.js is loaded
-    console.log('[LEARNING_PROGRESS] Scheduling chart initialization in 300ms...');
     setTimeout(() => {
-        console.log('[LEARNING_PROGRESS] Calling initializeChart...');
         initializeChart(learning);
     }, 300);
     
@@ -2183,8 +2101,6 @@ function initializeDataSync() {
 // Sync all dashboard data
 async function syncAllData() {
   try {
-    console.log('🔄 Syncing all dashboard data...');
-    
     // Sync learning data
     await loadLearningData();
     
@@ -2195,7 +2111,6 @@ async function syncAllData() {
     await loadTrainingEffectiveness();
     
     lastSyncTime = new Date();
-    console.log('✅ Data sync completed at:', lastSyncTime);
     
     // Update sync indicator
     updateSyncIndicator(true);
@@ -2250,7 +2165,6 @@ function handleApiError(error, retryFunction, maxRetries = 3) {
   console.error('API Error:', error);
   
   if (maxRetries > 0) {
-    console.log(`Retrying in 2 seconds... (${maxRetries} attempts left)`);
     setTimeout(() => {
       retryFunction();
     }, 2000);

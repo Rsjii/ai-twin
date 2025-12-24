@@ -749,7 +749,7 @@
         saveCurrentStep();
         persistOnboardingState();
       } catch (e) {
-        console.error('Failed to persist onboarding state on unload', e);
+        // Silently handle state persistence errors
       }
     });
   });    
@@ -893,7 +893,7 @@ function persistOnboardingState() {
       };
       localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
-      console.error('Failed to persist onboarding state', e);
+      // Silently handle state persistence errors
     }
   }
 
@@ -930,7 +930,6 @@ function persistOnboardingState() {
       // ✅ NEW: If restored on step 5, regenerate preview so it’s not empty
       if (currentStep === 5) generatePreview();
     } catch (e) {
-      console.error('Failed to load onboarding state from storage', e);
       try { localStorage.removeItem(ONBOARDING_STORAGE_KEY); } catch {}
     }
   }
@@ -1373,7 +1372,7 @@ function persistOnboardingState() {
           try {
             localStorage.removeItem(ONBOARDING_STORAGE_KEY);
         } catch (e) {
-            console.error('Failed to clear onboarding storage', e);
+            // Silently handle storage clearing errors
         }
 
           showMessage('Your twin is ready!', 'success');
@@ -1382,7 +1381,6 @@ function persistOnboardingState() {
           }, 1200);
         })
         .catch((err) => {
-          console.error(err);
           showMessage('Network error, please try again.', 'error');
           if (createBtn) {
                 createBtn.disabled = false;

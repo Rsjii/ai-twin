@@ -47,15 +47,12 @@
         }
         // Main function - make it global immediately
         window.showSocialList = async function(twinId, type, showDetailsBtn = false) {
-            console.log('showSocialList called:', twinId, type, showDetailsBtn); // Debug
-            
             const modal = document.getElementById('socialListModal');
             const title = document.getElementById('socialListModalTitle');
             const content = document.getElementById('socialListContent');
             const detailsBtnContainer = document.getElementById('viewDetailsBtnContainer');
             
             if (!modal || !title || !content) {
-                console.error('Modal elements not found', { modal, title, content });
                 if (typeof showNotification === 'function') {
                     showNotification('Modal not found. Please refresh the page.', 'error');
                 }
@@ -98,7 +95,6 @@
             
             try {
                 const endpoint = `/api/social/twin/${twinId}/${type}`;
-                console.log('Fetching from:', endpoint); // Debug
                 const response = await fetch(endpoint, { 
                     credentials: 'include',
                     headers: {
@@ -111,7 +107,6 @@
                 }
                 
                 const result = await response.json();
-                console.log('Response:', result); // Debug
                 
                 if (result.success || result[type] || result.chatters) {
                     const list = result[type] || result.chatters || [];
@@ -142,7 +137,6 @@
                     content.innerHTML = `<p class="text-center text-red-500 py-8">Error: ${result.error || 'Failed to load'}</p>`;
                 }
             } catch (error) {
-                console.error('Error loading social list:', error);
                 content.innerHTML = `<p class="text-center text-red-500 py-8">Error: ${error.message || 'Network error'}</p>`;
             }
         };

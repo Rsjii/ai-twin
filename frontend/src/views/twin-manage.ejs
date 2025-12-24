@@ -365,7 +365,6 @@
                 }
                 
                 const url = window.location.origin + input.value;
-                console.log('Copying URL:', url);
                 
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(url).then(() => {

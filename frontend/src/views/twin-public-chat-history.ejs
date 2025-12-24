@@ -337,7 +337,6 @@
                 });
                 
                 const data = await response.json();
-                console.log('[HISTORY] pagination =', data.pagination, 'chatsLen =', data.chats?.length, 'usersLen =', data.users?.length);
 
                 if (data.success) {
                     if (currentView === 'user') {
@@ -354,7 +353,6 @@
                     showError(data.error || 'Failed to load public chats');
                 }
             } catch (error) {
-                console.error('Load public chat history error:', error);
                 showError('Network error. Please try again.');
             }
         }        
@@ -460,7 +458,7 @@
                             el.textContent = displayTime;
                             el.title = fullTime;
                         } catch (e) {
-                            console.error('Error formatting timestamp:', e);
+                            // Silently handle timestamp formatting errors
                         }
                     }
                 });            
@@ -542,7 +540,7 @@
                             el.textContent = displayTime;
                             el.title = fullTime;
                         } catch (e) {
-                            console.error('Error formatting timestamp:', e);
+                            // Silently handle timestamp formatting errors
                         }
                     }
                 });
@@ -600,7 +598,6 @@
                     showError(data.error || 'Failed to delete chat');
                 }
             } catch (error) {
-                console.error('Delete chat error:', error);
                 showError('Network error. Please try again.');
             }
         }

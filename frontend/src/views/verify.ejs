@@ -55,7 +55,6 @@ document.getElementById('verifyForm').addEventListener('submit', async (e) => {
     
     // Get email from session or prompt user
     if (typeof window.ModalHelpers === 'undefined') {
-        console.error('ModalHelpers not loaded');
         showFlashMessage('Please refresh the page and try again', 'error');
         return;
     }
@@ -87,7 +86,6 @@ document.getElementById('verifyForm').addEventListener('submit', async (e) => {
             showFlashMessage(result.error || 'Invalid OTP', 'error');
         }
     } catch (error) {
-        console.error('Verify error:', error);
         showFlashMessage('Network error. Please try again.', 'error');
     }
 });

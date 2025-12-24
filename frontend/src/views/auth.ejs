@@ -225,12 +225,7 @@
         // CSRF token for AJAX requests
         window.csrfToken = '<%= typeof csrfToken !== "undefined" && csrfToken ? csrfToken : "" %>';
     
-    // Debug: Log if token is missing
-    if (!window.csrfToken) {
-        console.error('⚠️ CSRF token is missing!');
-    } else {
-        console.log('✅ CSRF token loaded:', window.csrfToken.substring(0, 10) + '...');
-    }        
+    // CSRF token validation (silent)        
 
         // Add this inside DOMContentLoaded event listener
 
@@ -278,7 +273,6 @@ if (toggleSignupPassword) {
         window.addEventListener('pageshow', function(event) {
             if (event.persisted) {
                 // Page was loaded from cache (back button)
-                console.log('Page loaded from cache, clearing all data');
                 localStorage.clear();
                 sessionStorage.clear();
                 // Clear all cookies
@@ -294,8 +288,6 @@ if (toggleSignupPassword) {
         sessionStorage.clear();
         
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Auth page loaded');
-            
             // Tab switching
             function switchToLogin() {
                 showForm('loginForm');
@@ -308,7 +300,6 @@ if (toggleSignupPassword) {
             }
             
             function showForm(formId) {
-                console.log('Showing form:', formId);
                 const forms = ['loginForm', 'signupForm', 'forgotPasswordForm'];
                 forms.forEach(id => {
                     const form = document.getElementById(id);
@@ -354,7 +345,6 @@ if (toggleSignupPassword) {
             // Login form submission
             document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                console.log('Login form submitted');
                 
                 const formData = new FormData(e.target);
                 const data = {
@@ -384,7 +374,6 @@ if (toggleSignupPassword) {
                         showFlashMessage(result.error || 'Invalid email or password', 'error');
                     }
                 } catch (error) {
-                    console.error('Login error:', error);
                     showFlashMessage('Network error. Please try again.', 'error');
                 }
             });
@@ -392,7 +381,6 @@ if (toggleSignupPassword) {
             // Signup form submission
             document.getElementById('signupFormElement').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                console.log('Signup form submitted');
                 
                 const formData = new FormData(e.target);
                 const data = {
@@ -424,7 +412,6 @@ if (toggleSignupPassword) {
                 showFlashMessage(result.error || 'Failed to create account', 'error');
             }
                 } catch (error) {
-                    console.error('Signup error:', error);
                     showFlashMessage('Network error. Please try again.', 'error');
                 }
             });
@@ -432,7 +419,6 @@ if (toggleSignupPassword) {
             // Forgot password form submission
             document.getElementById('forgotPasswordFormElement').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                console.log('Forgot password form submitted');
                 
                 const formData = new FormData(e.target);
                 const data = {
@@ -463,12 +449,9 @@ if (toggleSignupPassword) {
                 showFlashMessage(result.error || 'Failed to send reset code', 'error');
             }
                 } catch (error) {
-                    console.error('Forgot password error:', error);
                     showFlashMessage('Network error. Please try again.', 'error');
                 }
             });
-
-            console.log('All event listeners set up');
         });
     </script>
 
