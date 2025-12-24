@@ -669,6 +669,15 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response, next
         reason: 'restricted_content',
         source: 'private_chat_send',
       });
+      
+      // ✅ ADD: Also log token event with 0 tokens
+      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.LLM_USAGE, {
+        mode: 'private',
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        reason: 'banned'
+      }).catch(() => {});
 
       return res.json({
         success: true,
@@ -764,6 +773,15 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
           reason: 'restricted_content',
           source: 'enhanced_chat',
         });
+        
+        // ✅ ADD: Also log token event with 0 tokens
+        await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.LLM_USAGE, {
+          mode: 'private',
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          reason: 'banned'
+        }).catch(() => {});
 
         return res.json({
           success: true,
@@ -1141,11 +1159,23 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
     let aiResponse: string;
     let generatedTitle: string | null;
     let tokensUsed: number;
+    let inputTokens = 0;
+    let outputTokens = 0;
     try {
       const result = await chatUtils.generateAIResponse(context);
       aiResponse = result.aiResponse;
       generatedTitle = result.generatedTitle;
       tokensUsed = result.tokensUsed || 0;
+      // ✅ Use actual breakdown if available, otherwise estimate (ensuring sum = tokensUsed)
+      if (result.inputTokens !== undefined && result.outputTokens !== undefined) {
+        inputTokens = result.inputTokens;
+        outputTokens = result.outputTokens;
+        // Ensure tokensUsed matches sum (Groq's total_tokens should equal prompt + completion)
+        tokensUsed = inputTokens + outputTokens || tokensUsed;
+      } else {
+        inputTokens = Math.floor(tokensUsed * 0.7);
+        outputTokens = tokensUsed - inputTokens; // Ensure sum equals tokensUsed
+      }
     } catch (error) {
       // If LLM call fails, still reconcile (reduce reserved tokens)
       if (reservation) {
@@ -1194,6 +1224,8 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
       messageTable: 'Message',
       messageIdPrefix: 'msg'
     });
+
+    // ✅ REMOVED: Early token event logging - will log after memory update with combined totals
 
     // ✅ Send response immediately
     res.json({
@@ -1250,11 +1282,31 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
 
         // Update session memory (delta + useful-only, works for private chat)
         console.log('[PRIVATE_CHAT] [HYP-C] [HYP-H] Updating session memory (delta mode)');
-        await chatUtils.updateSessionMemory(chat.id, chat.twinId, 'Message', {
+        const memoryTokens = await chatUtils.updateSessionMemory(chat.id, chat.twinId, 'Message', {
           kind: 'user',
           userId: req.user?.id
         });
         console.log('[PRIVATE_CHAT] [HYP-C] [HYP-H] Session memory update completed');
+        
+        // ✅ Accumulate all tokens (main response + memory)
+        const totalInputTokens = inputTokens + (memoryTokens?.inputTokens || 0);
+        const totalOutputTokens = outputTokens + (memoryTokens?.outputTokens || 0);
+        const totalAllTokens = totalInputTokens + totalOutputTokens;
+        
+        // ✅ Log ONE event per message with combined totals
+        try {
+          await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.LLM_USAGE, {
+            chatId: chat.id,
+            twinId: chat.twinId,
+            mode: 'private',
+            inputTokens: totalInputTokens,
+            outputTokens: totalOutputTokens,
+            totalTokens: totalAllTokens,
+            messageId: aiMessage?.id || null
+          });
+        } catch (e) {
+          logger.warn('Failed to log combined token usage event:', e);
+        }
 
         // ✅ Check if user wants to save something (ChatGPT-style "remember this")
         const rememberPatterns = [

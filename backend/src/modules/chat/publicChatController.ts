@@ -327,12 +327,31 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
               chatId,
               requestId: (req as any).requestId || null,
             });
+            // ✅ ADD: Also log token event with 0 tokens
+            await EventLogger.logUserEvent(userId, EVENT_TYPES.LLM_USAGE, {
+              chatId,
+              mode: 'public',
+              inputTokens: 0,
+              outputTokens: 0,
+              totalTokens: 0,
+              reason: 'banned'
+            }).catch(() => {});
           } else {
             await EventLogger.logSystemEvent(EVENT_TYPES.MESSAGE_BLOCKED, {
               reason: 'restricted_content',
               source: 'public_chat',
               chatId,
             });
+            // ✅ ADD: Log token event for anonymous users
+            await EventLogger.log(null, EVENT_TYPES.LLM_USAGE, {
+              chatId,
+              mode: 'public',
+              inputTokens: 0,
+              outputTokens: 0,
+              totalTokens: 0,
+              reason: 'banned',
+              visitorId: (req as any).body?.visitorId || null
+            }).catch(() => {});
           }
         } catch (logErr) {
           logger.error('Failed to log MESSAGE_BLOCKED event (public chat):', logErr);
@@ -723,11 +742,23 @@ if (chat.requireLogin && !userId) {
     let aiResponse: string;
     let generatedTitle: string | null;
     let tokensUsed: number;
+    let inputTokens = 0;
+    let outputTokens = 0;
     try {
       const result = await chatUtils.generateAIResponse(context);
       aiResponse = result.aiResponse;
       generatedTitle = result.generatedTitle;
       tokensUsed = result.tokensUsed || 0;
+      // ✅ Use actual breakdown if available, otherwise estimate (ensuring sum = tokensUsed)
+      if (result.inputTokens !== undefined && result.outputTokens !== undefined) {
+        inputTokens = result.inputTokens;
+        outputTokens = result.outputTokens;
+        // Ensure tokensUsed matches sum (Groq's total_tokens should equal prompt + completion)
+        tokensUsed = inputTokens + outputTokens || tokensUsed;
+      } else {
+        inputTokens = Math.floor(tokensUsed * 0.7);
+        outputTokens = tokensUsed - inputTokens; // Ensure sum equals tokensUsed
+      }
     } catch (error) {
       // If LLM call fails, still reconcile (reduce reserved tokens)
       if (reservation) {
@@ -796,21 +827,47 @@ if (chat.requireLogin && !userId) {
       await db.query(`
         INSERT INTO ai_runs (id, twin_id, mode, tokens_in, tokens_out, latency_ms) 
         VALUES ($1, $2, $3, $4, $5, $6)
-      `, [runId, chat.twinId, 'public', Math.floor(tokensUsed * 0.7), Math.floor(tokensUsed * 0.3), 1000]);
+      `, [runId, chat.twinId, 'public', inputTokens, outputTokens, 1000]);
     } catch (error) {
       logger.warn('Failed to log AI run (public chat):', error);
     }
+
+    // ✅ REMOVED: Early token event logging - will log after memory update with combined totals
 
     // ✅ Update session memory for public chat (delta + useful-only)
     (async () => {
       try {
         console.log('[PUBLIC_CHAT] [HYP-C] [HYP-H] Updating session memory (delta mode)');
-        await chatUtils.updateSessionMemory(chatId, chat.twinId, 'PublicMessage', {
+        const memoryTokens = await chatUtils.updateSessionMemory(chatId, chat.twinId, 'PublicMessage', {
           kind: req.user ? 'user' : 'anon',
           userId: req.user?.id,
           ip: req.ip
         });
         console.log('[PUBLIC_CHAT] [HYP-C] [HYP-H] Session memory update completed');
+        
+        // ✅ Accumulate all tokens (main response + memory)
+        const totalInputTokens = inputTokens + (memoryTokens?.inputTokens || 0);
+        const totalOutputTokens = outputTokens + (memoryTokens?.outputTokens || 0);
+        const totalAllTokens = totalInputTokens + totalOutputTokens;
+        
+        // ✅ Log ONE event per message with combined totals
+        try {
+          const actorId = userId || chat.visitorId;
+          if (actorId) {
+            await EventLogger.log(actorId, EVENT_TYPES.LLM_USAGE, {
+              chatId: chat.id,
+              twinId: chat.twinId,
+              mode: 'public',
+              inputTokens: totalInputTokens,
+              outputTokens: totalOutputTokens,
+              totalTokens: totalAllTokens,
+              messageId: aiMessage?.id || null,
+              isAnon: !userId
+            });
+          }
+        } catch (e) {
+          logger.warn('Failed to log combined token usage event:', e);
+        }
       } catch (error) {
         logger.error('Session memory update failed for public chat:', error);
         // Don't fail - response already sent

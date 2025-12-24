@@ -2080,3 +2080,237 @@ function formatActivityDescription(activity: any): string {
       return `${userName} performed ${type}`;
   }
 }
+
+// ✅ Token Analytics Endpoint
+export const getTokenAnalytics = async (req: Request, res: Response) => {
+  try {
+    const { period = 'day', userId, chatId, limit = 50 } = req.query;
+    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 1000);
+    
+    // ✅ FIX: Use explicit UTC date calculations for period filter
+    let periodFilter = '';
+    let periodParams: any[] = [];
+    let paramCount = 1;
+    
+    // Get current UTC date for consistent filtering
+    const now = new Date();
+    const utcDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    
+    if (period === 'day') {
+      periodFilter = `AND e."createdAt" >= $${paramCount}::timestamptz`;
+      periodParams.push(utcDate.toISOString());
+      paramCount++;
+    } else if (period === 'week') {
+      const weekAgo = new Date(utcDate);
+      weekAgo.setUTCDate(weekAgo.getUTCDate() - 7);
+      periodFilter = `AND e."createdAt" >= $${paramCount}::timestamptz`;
+      periodParams.push(weekAgo.toISOString());
+      paramCount++;
+    } else if (period === 'month') {
+      const monthAgo = new Date(utcDate);
+      monthAgo.setUTCDate(monthAgo.getUTCDate() - 30);
+      periodFilter = `AND e."createdAt" >= $${paramCount}::timestamptz`;
+      periodParams.push(monthAgo.toISOString());
+      paramCount++;
+    }
+    
+    // Build WHERE clause for userId/chatId filters
+    let whereClause = `WHERE e.type = 'llm_usage' ${periodFilter}`;
+    if (userId) {
+      whereClause += ` AND e."userId" = $${paramCount}`;
+      periodParams.push(userId);
+      paramCount++;
+    }
+    if (chatId) {
+      whereClause += ` AND e.meta->>'chatId' = $${paramCount}`;
+      periodParams.push(chatId);
+      paramCount++;
+    }
+    
+    // ✅ ADD: Debug logging
+    logger.info('Token analytics query:', {
+      period,
+      whereClause,
+      paramCount: periodParams.length,
+      userId,
+      chatId
+    });
+    
+    // 1. Overall Summary (All Users)
+    const overallSummary = await db.query(`
+      SELECT 
+        COUNT(*) as message_count,
+        COALESCE(SUM((e.meta->>'totalTokens')::int), 0) as total_tokens,
+        COALESCE(SUM((e.meta->>'inputTokens')::int), 0) as input_tokens,
+        COALESCE(SUM((e.meta->>'outputTokens')::int), 0) as output_tokens,
+        COALESCE(AVG((e.meta->>'totalTokens')::int), 0) as avg_tokens_per_message,
+        COUNT(CASE WHEN e.meta->>'reason' IS NOT NULL THEN 1 END) as blocked_count
+      FROM "Event" e
+      ${whereClause}
+    `, periodParams);
+    
+    // ✅ ADD: Debug result
+    logger.info('Overall summary result:', overallSummary.rows[0]);
+    
+    // 2. Per User Summary
+    const perUserQuery = userId 
+      ? `SELECT 
+          e."userId",
+          COUNT(*) as message_count,
+          COALESCE(SUM((e.meta->>'totalTokens')::int), 0) as total_tokens,
+          COALESCE(SUM((e.meta->>'inputTokens')::int), 0) as input_tokens,
+          COALESCE(SUM((e.meta->>'outputTokens')::int), 0) as output_tokens,
+          COALESCE(AVG((e.meta->>'totalTokens')::int), 0) as avg_tokens_per_message,
+          COUNT(CASE WHEN e.meta->>'reason' IS NOT NULL THEN 1 END) as blocked_count
+        FROM "Event" e
+        ${whereClause}
+        GROUP BY e."userId"
+        ORDER BY total_tokens DESC
+        LIMIT $${paramCount}`
+      : `SELECT 
+          e."userId",
+          COUNT(*) as message_count,
+          COALESCE(SUM((e.meta->>'totalTokens')::int), 0) as total_tokens,
+          COALESCE(SUM((e.meta->>'inputTokens')::int), 0) as input_tokens,
+          COALESCE(SUM((e.meta->>'outputTokens')::int), 0) as output_tokens,
+          COALESCE(AVG((e.meta->>'totalTokens')::int), 0) as avg_tokens_per_message,
+          COUNT(CASE WHEN e.meta->>'reason' IS NOT NULL THEN 1 END) as blocked_count
+        FROM "Event" e
+        ${whereClause}
+        GROUP BY e."userId"
+        ORDER BY total_tokens DESC
+        LIMIT $${paramCount}`;
+    
+    const perUserParams = [...periodParams, safeLimit];
+    const perUserSummary = await db.query(perUserQuery, perUserParams);
+    
+    // 3. Per Chat Summary
+    const perChatQuery = chatId
+      ? `SELECT 
+          e.meta->>'chatId' as chat_id,
+          COUNT(*) as message_count,
+          COALESCE(SUM((e.meta->>'totalTokens')::int), 0) as total_tokens,
+          COALESCE(SUM((e.meta->>'inputTokens')::int), 0) as input_tokens,
+          COALESCE(SUM((e.meta->>'outputTokens')::int), 0) as output_tokens,
+          COALESCE(AVG((e.meta->>'totalTokens')::int), 0) as avg_tokens_per_message
+        FROM "Event" e
+        ${whereClause}
+        GROUP BY e.meta->>'chatId'
+        ORDER BY total_tokens DESC
+        LIMIT $${paramCount}`
+      : `SELECT 
+          e.meta->>'chatId' as chat_id,
+          COUNT(*) as message_count,
+          COALESCE(SUM((e.meta->>'totalTokens')::int), 0) as total_tokens,
+          COALESCE(SUM((e.meta->>'inputTokens')::int), 0) as input_tokens,
+          COALESCE(SUM((e.meta->>'outputTokens')::int), 0) as output_tokens,
+          COALESCE(AVG((e.meta->>'totalTokens')::int), 0) as avg_tokens_per_message
+        FROM "Event" e
+        ${whereClause}
+        GROUP BY e.meta->>'chatId'
+        ORDER BY total_tokens DESC
+        LIMIT $${paramCount}`;
+    
+    const perChatParams = [...periodParams, safeLimit];
+    const perChatSummary = await db.query(perChatQuery, perChatParams);
+    
+    // 4. Per Message Details (Recent)
+    const perMessageQuery = `SELECT 
+      e.id,
+      e."createdAt",
+      e."userId",
+      e.meta->>'chatId' as chat_id,
+      e.meta->>'twinId' as twin_id,
+      e.meta->>'mode' as mode,
+      e.meta->>'messageId' as message_id,
+      COALESCE((e.meta->>'inputTokens')::int, 0) as input_tokens,
+      COALESCE((e.meta->>'outputTokens')::int, 0) as output_tokens,
+      COALESCE((e.meta->>'totalTokens')::int, 0) as total_tokens,
+      e.meta->>'reason' as reason
+    FROM "Event" e
+    ${whereClause}
+    ORDER BY e."createdAt" DESC
+    LIMIT $${paramCount}`;
+    
+    const perMessageParams = [...periodParams, safeLimit];
+    const perMessageDetails = await db.query(perMessageQuery, perMessageParams);
+    
+    // ✅ ADD: Debug message details
+    logger.info('Per message details count:', perMessageDetails.rows.length);
+    if (perMessageDetails.rows.length > 0) {
+      logger.info('Sample message:', perMessageDetails.rows[0]);
+    }
+    
+    // 5. Daily Breakdown (Last 30 days) - ✅ FIX: Use explicit date calculation
+    const thirtyDaysAgo = new Date(utcDate);
+    thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
+    const dailyBreakdown = await db.query(`
+      SELECT 
+        DATE(e."createdAt") as date,
+        COUNT(*) as message_count,
+        COALESCE(SUM((e.meta->>'totalTokens')::int), 0) as total_tokens,
+        COALESCE(SUM((e.meta->>'inputTokens')::int), 0) as input_tokens,
+        COALESCE(SUM((e.meta->>'outputTokens')::int), 0) as output_tokens
+      FROM "Event" e
+      WHERE e.type = 'llm_usage'
+        AND e."createdAt" >= $1::timestamptz
+        ${userId ? `AND e."userId" = $2` : ''}
+      GROUP BY DATE(e."createdAt")
+      ORDER BY date DESC
+    `, userId ? [thirtyDaysAgo.toISOString(), userId] : [thirtyDaysAgo.toISOString()]);
+    
+    // 6. Top Users by Tokens - ✅ FIX: Use periodFilter with params
+    const topUsersParams = periodParams.length > 0 ? periodParams : [];
+    const topUsersQuery = `SELECT 
+      e."userId",
+      COUNT(*) as message_count,
+      COALESCE(SUM((e.meta->>'totalTokens')::int), 0) as total_tokens
+    FROM "Event" e
+    WHERE e.type = 'llm_usage'
+      AND e."userId" IS NOT NULL
+      ${periodFilter}
+    GROUP BY e."userId"
+    ORDER BY total_tokens DESC
+    LIMIT 10`;
+    
+    const topUsers = await db.query(topUsersQuery, topUsersParams);
+    
+    // 7. Blocked Messages Breakdown - ✅ FIX: Use periodFilter with params
+    const blockedQuery = `SELECT 
+      e.meta->>'reason' as reason,
+      COUNT(*) as count
+    FROM "Event" e
+    WHERE e.type = 'llm_usage'
+      AND e.meta->>'reason' IS NOT NULL
+      ${periodFilter}
+    GROUP BY e.meta->>'reason'`;
+    
+    const blockedBreakdown = await db.query(blockedQuery, periodParams);
+    
+    res.json({
+      success: true,
+      period,
+      summary: {
+        overall: overallSummary.rows[0] || {
+          message_count: 0,
+          total_tokens: 0,
+          input_tokens: 0,
+          output_tokens: 0,
+          avg_tokens_per_message: 0,
+          blocked_count: 0
+        },
+        perUser: perUserSummary.rows,
+        perChat: perChatSummary.rows,
+        blocked: blockedBreakdown.rows
+      },
+      details: {
+        messages: perMessageDetails.rows,
+        daily: dailyBreakdown.rows,
+        topUsers: topUsers.rows
+      }
+    });
+  } catch (error) {
+    logger.error('Token analytics error:', error);
+    res.status(500).json({ error: 'Failed to fetch token analytics' });
+  }
+};

@@ -137,6 +137,7 @@ export const EVENT_TYPES = {
   
   // AI & Performance
   AI_RUN_CREATED: 'ai_run_created',
+  LLM_USAGE: 'llm_usage', // ✅ Per-message token usage tracking
   
   // System
   ERROR: 'error',

@@ -49,6 +49,8 @@ export interface AIResponseResult {
   aiResponse: string;
   generatedTitle: string | null;
   tokensUsed: number;
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 export interface MessageSaveResult {
@@ -248,6 +250,8 @@ export async function generateAIResponse(
   let aiResponse: string;
   let generatedTitle: string | null = null;
   let tokensUsed: number = 0;
+  let inputTokens = 0;
+  let outputTokens = 0;
 
   try {
     console.log('[CHAT_SHARED_UTILS] [HYP-A] [HYP-C] Generating AI response with context:', {
@@ -265,12 +269,34 @@ export async function generateAIResponse(
       aiResponse = draftResult.response;
       generatedTitle = draftResult.title;
       tokensUsed = draftResult.tokensUsed || 0;
+      // ✅ Use actual breakdown if available, otherwise estimate (ensuring sum = tokensUsed)
+      if (draftResult.inputTokens !== undefined && draftResult.outputTokens !== undefined) {
+        inputTokens = draftResult.inputTokens;
+        outputTokens = draftResult.outputTokens;
+        // Ensure tokensUsed matches sum (Groq's total_tokens should equal prompt + completion)
+        tokensUsed = inputTokens + outputTokens || tokensUsed;
+      } else {
+        inputTokens = Math.floor(tokensUsed * 0.7);
+        outputTokens = tokensUsed - inputTokens; // Ensure sum equals tokensUsed
+      }
     } else if (typeof draftResult === 'object' && draftResult.response) {
       aiResponse = draftResult.response;
       tokensUsed = draftResult.tokensUsed || 0;
+      // ✅ Use actual breakdown if available, otherwise estimate (ensuring sum = tokensUsed)
+      if (draftResult.inputTokens !== undefined && draftResult.outputTokens !== undefined) {
+        inputTokens = draftResult.inputTokens;
+        outputTokens = draftResult.outputTokens;
+        // Ensure tokensUsed matches sum (Groq's total_tokens should equal prompt + completion)
+        tokensUsed = inputTokens + outputTokens || tokensUsed;
+      } else {
+        inputTokens = Math.floor(tokensUsed * 0.7);
+        outputTokens = tokensUsed - inputTokens; // Ensure sum equals tokensUsed
+      }
     } else if (typeof draftResult === 'string') {
       aiResponse = draftResult;
       tokensUsed = 0; // Fallback string response usually has no token count here
+      inputTokens = 0;
+      outputTokens = 0;
     } else {
       logger.error('Invalid response format from AI:', draftResult);
       throw new Error('Invalid response format from AI');
@@ -291,12 +317,16 @@ export async function generateAIResponse(
     logger.error('AI response generation failed:', error);
     aiResponse = "I'm having trouble thinking right now. Could you try again?";
     tokensUsed = 0;
+    inputTokens = 0;
+    outputTokens = 0;
   }
 
   return {
     aiResponse,
     generatedTitle,
-    tokensUsed
+    tokensUsed,
+    inputTokens,
+    outputTokens
   };
 }
 
@@ -561,7 +591,7 @@ export async function updateSessionMemory(
   twinId: string,
   messageTable: 'Message' | 'PublicMessage' = 'Message',
   actor?: { kind: 'user' | 'anon'; userId?: string; ip?: string } // ✅ ADD: For token tracking
-): Promise<void> {
+): Promise<{ inputTokens: number; outputTokens: number; totalTokens: number } | null> {
   try {
     // 1) Load existing session memory (to get lastUpdated from vector)
     // Route to correct table based on messageTable
@@ -626,7 +656,7 @@ export async function updateSessionMemory(
       timestamp: r.createdAt,
     }));
 
-    if (!deltaMessages.length) return;
+    if (!deltaMessages.length) return null;
 
     // 2.5) Extract pinned facts using LLM (intelligent, handles typos and context)
     // This ensures name/likes/hobbies/extras persist even if message is short
@@ -703,7 +733,7 @@ export async function updateSessionMemory(
     });
     if (!meaningfulDelta.length) {
       console.log('[CHAT_SHARED_UTILS] [HYP-H] No meaningful messages, skipping summary update');
-      return;
+      return null;
     }
 
     // 4) Incremental update with token tracking
@@ -787,9 +817,26 @@ export async function updateSessionMemory(
     // 2. User manually trains via learning dashboard
     // 3. User extracts from learning dashboard summary (feature to be added)
     // This saves cost while maintaining quality - facts extracted on-demand
+    
+    // ✅ Return token breakdown for event logging
+    if (actor && (pinnedTokens > 0 || summaryTokens > 0 || topicsTokens > 0)) {
+      const totalMemoryTokens = pinnedTokens + summaryTokens + topicsTokens;
+      // Estimate input/output from total (memory calls are mostly input-heavy)
+      const memoryInputTokens = Math.floor(totalMemoryTokens * 0.8);
+      const memoryOutputTokens = totalMemoryTokens - memoryInputTokens;
+      
+      return {
+        inputTokens: memoryInputTokens,
+        outputTokens: memoryOutputTokens,
+        totalTokens: totalMemoryTokens
+      };
+    }
+    
+    return null;
   } catch (error) {
     logger.error('Session memory update failed:', error);
     // Don't fail - response already sent
+    return null;
   }
 }
 

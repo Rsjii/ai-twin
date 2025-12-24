@@ -100,7 +100,7 @@ export async function getAdminAnalyticsPage(req: any, res: Response) {
     }
 
     const { type } = req.params;
-    const validTypes = ['users', 'twins', 'chats', 'messages'];
+    const validTypes = ['users', 'twins', 'chats', 'messages', 'tokens'];
     
     if (!validTypes.includes(type)) {
       throw createError.notFound('Invalid page type');

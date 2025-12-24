@@ -84,7 +84,7 @@
                 <div class="flex items-center space-x-4">
                     <a href="/analytics" class="text-gray-600 hover:text-gray-900">User Analytics</a>
                     <a href="/dashboard" class="text-gray-600 hover:text-gray-900">Dashboard</a>
-                    <a href="/admin/analytics/events/explorer?eventType=API_ERROR"
+                    <a href="/admin/analytics/events?eventType=API_ERROR"
        class="text-red-600 hover:text-red-800 text-sm font-medium">
         Error Monitor
     </a>
@@ -209,9 +209,25 @@
     </div>
 </a>    
 
+<!-- Line 210: After Messages Card, add Tokens Card -->
+<a href="/admin/analytics/page/tokens" class="metric-card bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block" data-type="tokens">
+    <div class="flex items-center">
+        <div class="p-2 bg-indigo-100 rounded-lg">
+            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+        </div>
+        <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Token Usage</p>
+            <p class="text-2xl font-bold text-gray-900" id="totalTokens">-</p>
+            <p class="text-xs text-gray-500 mt-1">Click for details</p>
+        </div>
+    </div>
+</a>
+
 <!-- Existing cards ... Users / Twins / Chats / Messages -->
 
-<a href="/admin/analytics/events/explorer?eventType=API_ERROR"
+<a href="/admin/analytics/events?eventType=API_ERROR"
    class="metric-card bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900 p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 block"
    data-type="errors">
     <div class="flex items-center">

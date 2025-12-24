@@ -265,6 +265,32 @@ async function handleBlockedOrFastPath(params: {
     }).catch(() => {});
   }
 
+  // ✅ ADD: Log token event with 0 tokens for banned/common words
+  if (isBanned || cat) {
+    const reason = isBanned ? 'banned' : 'common';
+    if (actor.kind === 'user') {
+      EventLogger.logUserEvent(actor.userId, EVENT_TYPES.LLM_USAGE, {
+        chatId,
+        mode: params.source,
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        reason: reason
+      }).catch(() => {});
+    } else if (actor.kind === 'anon') {
+      // For anonymous, log with visitorId if available
+      EventLogger.log(null, EVENT_TYPES.LLM_USAGE, {
+        chatId,
+        mode: params.source,
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        reason: reason,
+        visitorId: actor.visitorId || null
+      }).catch(() => {});
+    }
+  }
+
   return res.json({
     success: true,
     response: aiResponse,

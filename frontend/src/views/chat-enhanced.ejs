@@ -116,26 +116,12 @@
             <div id="mobileQuickActionsContent" class="hidden border-t border-gray-200 dark:border-gray-700">
                 <div class="px-2 py-2 space-y-1">
                     <button
-                        id="styleCustomizeBtnMobile"
-                        type="button"
-                        class="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium text-gray-800 dark:text-gray-100 hover:bg-white/70 dark:hover:bg-gray-800 transition-colors"
-                    >
-                        <span class="flex items-center gap-2">
-                            <span>🎨</span>
-                            <span>Style Settings</span>
-                        </span>
-                        <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </button>
-
-                    <button
                         id="learningBtnMobile"
                         type="button"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium text-gray-800 dark:text-gray-100 hover:bg-white/70 dark:hover:bg-gray-800 transition-colors"
                     >
                         <span class="flex items-center gap-2">
-                            <span>📊</span>
+                            <span>⚙️</span>
                             <span>Twin Settings</span>
                         </span>
                         <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -276,19 +262,11 @@
                             <!-- Desktop Quick Actions Dropdown (hidden by default) -->
                             <div id="desktopQuickActionsDropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
                                 <button
-                                    id="styleCustomizeBtn"
-                                    class="w-full text-left px-4 py-3 text-sm font-medium flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
-                                    type="button"
-                                >
-                                    <span>🎨</span>
-                                    <span>Style Settings</span>
-                                </button>
-                                <button
                                     id="learningBtn"
                                     class="w-full text-left px-4 py-3 text-sm font-medium flex items-center gap-2 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
                                     type="button"
                                 >
-                                    <span>📊</span>
+                                    <span>⚙️</span>
                                     <span>Twin Settings</span>
                                 </button>
                                 <button
@@ -344,10 +322,11 @@
                             </div>
                         </div>
                     
-                        <div class="text-sm text-gray-600 dark:text-gray-300">
+                        <!-- V2 Feature: Intent and Score - Hidden for now -->
+                        <div class="hidden text-sm text-gray-600 dark:text-gray-300">
                             <span id="intentDisplay">Intent: -</span>
                         </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-300">
+                        <div class="hidden text-sm text-gray-600 dark:text-gray-300">
                             <span id="criticScore">Score: -</span>
                         </div>
                     </div>                    
@@ -1556,7 +1535,7 @@ async function loadCurrentChatMessages() {
             if (initialLoading) initialLoading.classList.add('hidden');
             
             // Show welcome message for draft
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
+            addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
             return;
         }
         
@@ -1648,18 +1627,18 @@ async function loadCurrentChatMessages() {
                 // Hide loading when there is 0 history
                 if (initialLoading) initialLoading.classList.add('hidden');
                 // Show welcome message if no history
-                addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
+                addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
             }
         } else {
             // Hide skeleton on non-OK response too
             if (initialLoading) initialLoading.classList.add('hidden');
             // Show welcome message if loading fails
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
+            addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
         }
     } catch (error) {
         console.error('Error loading chat history:', error);
         // Show welcome message if error
-        addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
+        addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
         // Hide loading, show error
         if (initialLoading) initialLoading.classList.add('hidden');
         if (errorState) errorState.classList.remove('hidden');
@@ -1684,7 +1663,7 @@ async function loadChatMessages() {
             if (messagesContainer) messagesContainer.innerHTML = '';
             
             // Show welcome message for draft
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
+            addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
             return;
         }        
         
@@ -1769,16 +1748,16 @@ async function loadChatMessages() {
                 });
             } else {
                 // Show welcome message if no history
-                addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+                addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?');
             }
         } else {
             // Show welcome message if loading fails
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?');
         }
     } catch (error) {
         console.error('Error loading chat messages:', error);
         // Show welcome message if error
-        addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+        addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?');
     }
 }
 
@@ -1983,7 +1962,7 @@ async function switchToChat(chatId) {
             if (errorState) errorState.classList.add('hidden');
 
             // (Optional) welcome message:
-            // addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
+            // addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
 
             return;
         }
@@ -2419,13 +2398,11 @@ if (desktopQuickActionsButton && desktopQuickActionsDropdown) {
 }
 
 // Quick Actions buttons (desktop dropdown only)
-['styleCustomizeBtn', 'learningBtn', 'analyticsBtn'].forEach(id => {
+['learningBtn', 'analyticsBtn'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
         el.addEventListener('click', () => {
-            if (id === 'styleCustomizeBtn') {
-                window.open('/twin-settings#styleSection', '_blank');
-            } else if (id === 'learningBtn') {
+            if (id === 'learningBtn') {
                 window.open('/twin-settings', '_blank');
             } else if (id === 'analyticsBtn') {
                 window.open('/analytics', '_blank');
@@ -2436,13 +2413,11 @@ if (desktopQuickActionsButton && desktopQuickActionsDropdown) {
 });
 
 // Mobile Quick Actions buttons (mobile sidebar only)
-['styleCustomizeBtnMobile', 'learningBtnMobile', 'analyticsBtnMobile'].forEach(id => {
+['learningBtnMobile', 'analyticsBtnMobile'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
         el.addEventListener('click', () => {
-            if (id === 'styleCustomizeBtnMobile') {
-                window.open('/twin-settings#styleSection', '_blank');
-            } else if (id === 'learningBtnMobile') {
+            if (id === 'learningBtnMobile') {
                 window.open('/twin-settings', '_blank');
             } else if (id === 'analyticsBtnMobile') {
                 window.open('/analytics', '_blank');

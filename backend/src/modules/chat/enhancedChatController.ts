@@ -493,6 +493,10 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
 
     const finalSystemPrompt = `${runtimeSystemPrompt}${preferencesSection}`;
     
+    // ✅ Declare token variables at function scope
+    let inputTokens = 0;
+    let outputTokens = 0;
+    
     // If fast-path didn't match or has active task, use LLM
     if (!response) {
       // ✅ NEW: Token quota (daily) - enforce BEFORE LLM call
@@ -542,19 +546,45 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
           memoryVisibility, // ✅ Use same variable defined above
         });
         
+        inputTokens = 0;
+        outputTokens = 0;
         if (typeof draftResult === 'object' && draftResult.response && draftResult.title) {
           response = draftResult.response;
           generatedTitle = draftResult.title;
           tokensUsed = draftResult.tokensUsed || 0;
+          // ✅ Use actual breakdown if available, otherwise estimate (ensuring sum = tokensUsed)
+          if (draftResult.inputTokens !== undefined && draftResult.outputTokens !== undefined) {
+            inputTokens = draftResult.inputTokens;
+            outputTokens = draftResult.outputTokens;
+            // Ensure tokensUsed matches sum (Groq's total_tokens should equal prompt + completion)
+            tokensUsed = inputTokens + outputTokens || tokensUsed;
+          } else {
+            inputTokens = Math.floor(tokensUsed * 0.7);
+            outputTokens = tokensUsed - inputTokens; // Ensure sum equals tokensUsed
+          }
         } else if (typeof draftResult === 'object' && draftResult.response) {
           response = draftResult.response;
           tokensUsed = draftResult.tokensUsed || 0;
+          // ✅ Use actual breakdown if available, otherwise estimate (ensuring sum = tokensUsed)
+          if (draftResult.inputTokens !== undefined && draftResult.outputTokens !== undefined) {
+            inputTokens = draftResult.inputTokens;
+            outputTokens = draftResult.outputTokens;
+            // Ensure tokensUsed matches sum (Groq's total_tokens should equal prompt + completion)
+            tokensUsed = inputTokens + outputTokens || tokensUsed;
+          } else {
+            inputTokens = Math.floor(tokensUsed * 0.7);
+            outputTokens = tokensUsed - inputTokens; // Ensure sum equals tokensUsed
+          }
         } else if (typeof draftResult === 'string') {
           response = draftResult;
           tokensUsed = 0;
+          inputTokens = 0;
+          outputTokens = 0;
         } else {
           response = "I'm having trouble thinking right now. Could you try again?";
           tokensUsed = 0;
+          inputTokens = 0;
+          outputTokens = 0;
         }
 
         // ✅ Reconcile actual tokens used
@@ -588,6 +618,8 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
         logger.error('TwinService error:', error);
         response = "I'm having trouble thinking right now. Could you try again?";
         tokensUsed = 0;
+        inputTokens = 0;
+        outputTokens = 0;
       }
     }
 
@@ -670,11 +702,13 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
       await db.query(`
         INSERT INTO ai_runs (id, twin_id, mode, tokens_in, tokens_out, latency_ms) 
         VALUES ($1, $2, $3, $4, $5, $6)
-      `, [runId, chat.twin_id, 'human', Math.floor(tokensUsed * 0.7), Math.floor(tokensUsed * 0.3), 1000]);
+      `, [runId, chat.twin_id, 'human', inputTokens, outputTokens, 1000]);
       logger.info('✅ AI run logged');
     } catch (error) {
       logger.warn('⚠️ Failed to log AI run:', error);
     }
+
+    // ✅ REMOVED: Early token event logging - will log after memory update with combined totals
 
     logger.info('🎉 Enhanced reply completed successfully');
     
@@ -682,13 +716,31 @@ CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
     (async () => {
       try {
         console.log('[ENHANCED_CHAT] [HYP-C] [HYP-H] Updating session memory (delta mode)');
-        await chatUtils.updateSessionMemory(chatId, chat.twin_id, 'Message', {
+        const memoryTokens = await chatUtils.updateSessionMemory(chatId, chat.twin_id, 'Message', {
           kind: 'user',
           userId: req.user?.id
         });
         console.log('[ENHANCED_CHAT] [HYP-C] [HYP-H] Session memory update completed');
         
-        // ✅ Log total token usage (main + session memory) - will be logged by chatSharedUtils
+        // ✅ Accumulate all tokens (main response + memory)
+        const totalInputTokens = inputTokens + (memoryTokens?.inputTokens || 0);
+        const totalOutputTokens = outputTokens + (memoryTokens?.outputTokens || 0);
+        const totalAllTokens = totalInputTokens + totalOutputTokens;
+        
+        // ✅ Log ONE event per message with combined totals
+        try {
+          await EventLogger.logUserEvent(userId, EVENT_TYPES.LLM_USAGE, {
+            chatId: chat.id,
+            twinId: chat.twin_id,
+            mode: 'enhanced',
+            inputTokens: totalInputTokens,
+            outputTokens: totalOutputTokens,
+            totalTokens: totalAllTokens,
+            messageId: aiMessageId || null
+          });
+        } catch (e) {
+          logger.warn('Failed to log combined token usage event:', e);
+        }
 
         // ✅ Check if user wants to save something (ChatGPT-style "remember this")
         if (!regenerate) {

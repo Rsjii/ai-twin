@@ -16,7 +16,8 @@ import {
   getEventExplorer,
   getAdminChatMessages,
   getAdminMessageDetails,
-  getActivityFeed
+  getActivityFeed,
+  getTokenAnalytics
 } from './adminAnalyticsController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 
@@ -87,5 +88,8 @@ router.get('/activity', getActivityFeed);
 // Admin chat and message endpoints
 router.get('/chat/:chatId/messages', getAdminChatMessages);
 router.get('/message/:messageId', getAdminMessageDetails);
+
+// Token analytics endpoint
+router.get('/tokens', getTokenAnalytics);
 
 export default router;

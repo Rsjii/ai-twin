@@ -254,7 +254,10 @@ export class LLMClient {
     return {
       content: completion.choices[0]?.message?.content?.trim() || '',
       model: completion.model || 'gpt-4o-mini',
-      tokensUsed: completion.usage?.total_tokens
+      tokensUsed: completion.usage?.total_tokens || 0,
+      // ✅ ADD: Actual breakdown
+      inputTokens: completion.usage?.prompt_tokens || 0,
+      outputTokens: completion.usage?.completion_tokens || 0
     };
   }
 }

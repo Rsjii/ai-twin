@@ -194,7 +194,7 @@ Return only valid JSON, no other text.`;
     twinId?: string; // Add twinId for memory retrieval
     isFirstMessage?: boolean; // Flag to generate title too
     memoryVisibility?: 'none' | 'owner' | 'public_twin' | 'all';
-  }): Promise<{ response: string, title?: string, tokensUsed: number } | string> {
+  }): Promise<{ response: string, title?: string, tokensUsed: number, inputTokens?: number, outputTokens?: number } | string> {
     const startTime = Date.now();
     try {
       const { personaData, systemPrompt, tokenLimit, chatVector, chatMemory, currentMessages } = context;
@@ -411,7 +411,9 @@ Rules:
             return { 
               response: cleanedResult.trim(), 
               title: fallbackTitle,
-              tokensUsed: llmResponse.tokensUsed || 0
+              tokensUsed: llmResponse.tokensUsed || 0,
+              inputTokens: llmResponse.inputTokens || 0,
+              outputTokens: llmResponse.outputTokens || 0
             };
           }
           
@@ -423,7 +425,9 @@ Rules:
             return { 
               response: parsed.response.trim(), 
               title: title,
-              tokensUsed: llmResponse.tokensUsed || 0
+              tokensUsed: llmResponse.tokensUsed || 0,
+              inputTokens: llmResponse.inputTokens || 0,
+              outputTokens: llmResponse.outputTokens || 0
             };
           } else if (parsed.response) {
             // Has response but no title - try to generate from response
@@ -431,7 +435,9 @@ Rules:
             return { 
               response: parsed.response.trim(), 
               title: titleFromResponse,
-              tokensUsed: llmResponse.tokensUsed || 0
+              tokensUsed: llmResponse.tokensUsed || 0,
+              inputTokens: llmResponse.inputTokens || 0,
+              outputTokens: llmResponse.outputTokens || 0
             };
           } else {
             logger.error('[TWIN SERVICE] JSON missing response field:', parsed);
@@ -440,7 +446,9 @@ Rules:
             return { 
               response: result.trim(), 
               title: fallbackTitle,
-              tokensUsed: llmResponse.tokensUsed || 0
+              tokensUsed: llmResponse.tokensUsed || 0,
+              inputTokens: llmResponse.inputTokens || 0,
+              outputTokens: llmResponse.outputTokens || 0
             };
           }
         } catch (e) {
@@ -454,7 +462,9 @@ Rules:
             return { 
               response: result.trim(), 
               title: fallbackTitle,
-              tokensUsed: llmResponse.tokensUsed || 0
+              tokensUsed: llmResponse.tokensUsed || 0,
+              inputTokens: llmResponse.inputTokens || 0,
+              outputTokens: llmResponse.outputTokens || 0
             };
           }
           
@@ -463,7 +473,9 @@ Rules:
           return { 
             response: 'Sorry, I couldn\'t generate a proper response.', 
             title: fallbackTitle,
-            tokensUsed: llmResponse.tokensUsed || 0
+            tokensUsed: llmResponse.tokensUsed || 0,
+            inputTokens: llmResponse.inputTokens || 0,
+            outputTokens: llmResponse.outputTokens || 0
           };
         }
       }
@@ -479,8 +491,8 @@ Rules:
               runId,
               context.twinId,
               'human', // Mode: human interaction
-              llmResponse.tokensUsed ? Math.floor(llmResponse.tokensUsed * 0.7) : 0, // Approximate prompt tokens
-              llmResponse.tokensUsed ? Math.floor(llmResponse.tokensUsed * 0.3) : 0, // Approximate completion tokens
+              llmResponse.inputTokens || (llmResponse.tokensUsed ? Math.floor(llmResponse.tokensUsed * 0.7) : 0), // Actual or approximate prompt tokens
+              llmResponse.outputTokens || (llmResponse.tokensUsed ? Math.floor(llmResponse.tokensUsed * 0.3) : 0), // Actual or approximate completion tokens
               Date.now() - startTime
             ]
           );
@@ -491,7 +503,9 @@ Rules:
       
       return {
         response: result,
-        tokensUsed: llmResponse.tokensUsed || 0
+        tokensUsed: llmResponse.tokensUsed || 0,
+        inputTokens: llmResponse.inputTokens || 0,
+        outputTokens: llmResponse.outputTokens || 0
       };
     } catch (error) {
       logger.error('Generate draft with context error:', error);
@@ -512,13 +526,17 @@ Rules:
         return {
           response: fallbackResponse,
           title: fallbackTitle,
-          tokensUsed: 0
+          tokensUsed: 0,
+          inputTokens: 0,
+          outputTokens: 0
         };
       }
       
       return {
         response: this.generateFallbackResponse(context.currentMessages?.[0] || 'Hello', context.personaData || {}),
-        tokensUsed: 0
+        tokensUsed: 0,
+        inputTokens: 0,
+        outputTokens: 0
       };
     }
   }
@@ -542,7 +560,7 @@ Rules:
       context?: string;
     }> = [],
     isFirstMessage: boolean = false
-  ): Promise<{response: string, title?: string, tokensUsed: number} | string> {
+  ): Promise<{response: string, title?: string, tokensUsed: number, inputTokens?: number, outputTokens?: number} | string> {
     try {
       // ✅ Use PromptBuilder for persona prompt construction
       const { promptBuilder } = await import('../../services/promptBuilder');
@@ -661,7 +679,9 @@ Please respond in JSON format with "response" and "title" fields. Title should b
             return { 
               response: cleanedResponse.trim(), 
               title: fallbackTitle,
-              tokensUsed: llmResponse.tokensUsed || 0
+              tokensUsed: llmResponse.tokensUsed || 0,
+              inputTokens: llmResponse.inputTokens || 0,
+              outputTokens: llmResponse.outputTokens || 0
             };
           }
           
@@ -673,7 +693,9 @@ Please respond in JSON format with "response" and "title" fields. Title should b
             return { 
               response: parsed.response.trim(), 
               title: title,
-              tokensUsed: llmResponse.tokensUsed || 0
+              tokensUsed: llmResponse.tokensUsed || 0,
+              inputTokens: llmResponse.inputTokens || 0,
+              outputTokens: llmResponse.outputTokens || 0
             };
           } else if (parsed.response) {
             // Has response but no title - try to generate from response
@@ -681,7 +703,9 @@ Please respond in JSON format with "response" and "title" fields. Title should b
             return { 
               response: parsed.response.trim(), 
               title: titleFromResponse,
-              tokensUsed: llmResponse.tokensUsed || 0
+              tokensUsed: llmResponse.tokensUsed || 0,
+              inputTokens: llmResponse.inputTokens || 0,
+              outputTokens: llmResponse.outputTokens || 0
             };
           } else {
             logger.error('[TWIN SERVICE] JSON missing response field:', parsed);
@@ -690,7 +714,9 @@ Please respond in JSON format with "response" and "title" fields. Title should b
             return { 
               response: response.trim(), 
               title: titleFromResponse,
-              tokensUsed: llmResponse.tokensUsed || 0
+              tokensUsed: llmResponse.tokensUsed || 0,
+              inputTokens: llmResponse.inputTokens || 0,
+              outputTokens: llmResponse.outputTokens || 0
             };
           }
         } catch (e) {
@@ -704,7 +730,9 @@ Please respond in JSON format with "response" and "title" fields. Title should b
             return { 
               response: response.trim(), 
               title: fallbackTitle,
-              tokensUsed: llmResponse.tokensUsed || 0
+              tokensUsed: llmResponse.tokensUsed || 0,
+              inputTokens: llmResponse.inputTokens || 0,
+              outputTokens: llmResponse.outputTokens || 0
             };
           }
           
@@ -713,14 +741,18 @@ Please respond in JSON format with "response" and "title" fields. Title should b
           return { 
             response: 'Sorry, I couldn\'t generate a proper response.', 
             title: fallbackTitle,
-            tokensUsed: llmResponse.tokensUsed || 0
+            tokensUsed: llmResponse.tokensUsed || 0,
+            inputTokens: llmResponse.inputTokens || 0,
+            outputTokens: llmResponse.outputTokens || 0
           };
         }
       }
 
       return {
         response: response,
-        tokensUsed: llmResponse.tokensUsed || 0
+        tokensUsed: llmResponse.tokensUsed || 0,
+        inputTokens: llmResponse.inputTokens || 0,
+        outputTokens: llmResponse.outputTokens || 0
       };
     } catch (error) {
       logger.error('Error generating persona response:', error instanceof Error ? error.message : String(error));
