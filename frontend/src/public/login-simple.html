@@ -69,13 +69,10 @@
 
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        console.log('Form submitted!');
         
         const email = document.getElementById('email').value;
         const submitBtn = document.getElementById('submitBtn');
         const originalText = submitBtn.textContent;
-        
-        console.log('Email value:', email);
         
         // Enhanced email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -96,8 +93,6 @@
         hideMessages();
         
         try {
-            console.log('Sending login request for:', email);
-            
             // Use the test OTP endpoint that doesn't require CSRF
             const response = await fetch('/test-otp', {
                 method: 'POST',
@@ -107,9 +102,7 @@
                 body: JSON.stringify({ email: email })
             });
             
-            console.log('Response status:', response.status);
             const result = await response.json();
-            console.log('Response data:', result);
             
             if (response.ok) {
                 showSuccess(`OTP generated! Code: ${result.otp} - Check server console for details.`);
@@ -117,7 +110,6 @@
                 showError(result.error || 'Failed to generate OTP');
             }
         } catch (error) {
-            console.error('Login error:', error);
             showError('Network error. Please try again.');
         } finally {
             submitBtn.textContent = originalText;
