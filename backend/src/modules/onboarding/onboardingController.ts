@@ -42,6 +42,7 @@ const enhancedOnboardingSchema = z.object({
     replySize: z.enum(['short', 'normal', 'detailed']),
     engagementStyle: z.enum(['ask_questions', 'natural', 'mix']), // NEW: question frequency
   }),
+  isPublic: z.boolean().optional().default(false), // ✅ NEW: Allow user to make twin public during onboarding
   onboardingCompleted: z.boolean(),
   completedAt: z.string(),
 });
@@ -113,12 +114,13 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
 
     // 9) Insert Twin row
     const twinId = generateId.twin();
+    const isPublic = validatedData.isPublic || false; // ✅ Get isPublic from validated data (defaults to false)
     
     let insertQuery: string;
     let insertParams: any[];
     
     try {
-      // Full insert with persona + systemPrompt + tokenLimit + tier + bio
+      // Full insert with persona + systemPrompt + tokenLimit + tier + bio + isPublic
       const oneLineBio = validatedData.basicInfo?.oneLineBio; // ✅ MANDATORY - already validated by schema
       insertQuery = `
         INSERT INTO "Twin" (
@@ -131,9 +133,10 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
           "tokenLimit",
           "tier",
           bio,
+          "isPublic",
           "createdAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING id, "createdAt"
       `;
       insertParams = [
@@ -146,16 +149,17 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
         500,
         'free',
         oneLineBio, // ✅ MANDATORY: Bio is required
+        isPublic, // ✅ NEW: Set isPublic based on user's choice during onboarding
         new Date(),
       ];
     } catch (e) {
       // Fallback: minimal insert if extra columns do not exist
       insertQuery = `
-        INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "createdAt")
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO "Twin" (id, "userId", "styleVector", "sampleReply", "isPublic", "createdAt")
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id, "createdAt"
       `;
-      insertParams = [twinId, req.user.id, JSON.stringify(styleVector), sampleReply, new Date()];
+      insertParams = [twinId, req.user.id, JSON.stringify(styleVector), sampleReply, isPublic, new Date()];
     }
 
     const result = await db.query(insertQuery, insertParams);

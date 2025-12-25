@@ -601,6 +601,21 @@
                   Your twin will use this information and your real examples to write replies that
                   feel like you. You can always edit style, topics and rules later.
                 </p>
+                
+                <!-- Make Public Toggle -->
+                <div class="mb-4 p-3 bg-white/10 rounded-lg">
+                  <label class="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      id="makePublicToggle"
+                      class="w-5 h-5 rounded border-2 border-white/30 bg-white/10 checked:bg-white checked:border-white focus:ring-2 focus:ring-white/50 transition-colors"
+                    />
+                    <span class="text-sm sm:text-base font-medium">
+                      Make your twin public so others can talk to it when you're offline.
+                    </span>
+                  </label>
+                </div>
+
                 <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
                   <button
                     type="button"
@@ -1333,11 +1348,16 @@ function persistOnboardingState() {
     }
 
     function submitOnboarding() {
+      // Get make public toggle value
+      const makePublicToggle = document.getElementById('makePublicToggle');
+      const isPublic = makePublicToggle ? makePublicToggle.checked : false;
+
       const payload = {
         basicInfo: onboardingData.basicInfo,
         styleSamples: onboardingData.styleSamples,
         preferences: onboardingData.preferences,
         rules: onboardingData.rules,
+        isPublic: isPublic,
         onboardingCompleted: true,
         completedAt: new Date().toISOString(),
       };

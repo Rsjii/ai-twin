@@ -257,6 +257,13 @@ export const getFeedbackAnalytics = async (req: Request, res: Response, next: Ne
       logger.warn('[FEEDBACK_ANALYTICS] Failed to log RESPONSE:', logErr);
     }
 
+    // ✅ Set cache headers BEFORE sending response
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    });
+
     res.json({
       success: true,
       analytics: {
@@ -266,25 +273,11 @@ export const getFeedbackAnalytics = async (req: Request, res: Response, next: Ne
         satisfactionScore,
       },
     });
-    
-    // ✅ ADD: Cache headers to prevent 304 responses
-    res.set({
-      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-    });
-    res.json({
-      success: true,
-      analytics: {
-        positiveFeedback: feedback.positive_count,
-        negativeFeedback: feedback.negative_count,
-        totalFeedback: feedback.total_feedback,
-        satisfactionScore: satisfactionScore
-      }
-    });
   } catch (error) {
     logger.error('Feedback analytics error:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
   }
 };
 

@@ -1618,7 +1618,8 @@ export const getAllPublicChatsForTwin = async (req: AuthenticatedRequest, res: R
     const twin = twinResult.rows[0];
 
     // ✅ Build dynamic WHERE conditions
-    let whereConditions = ['pc."twinId" = $1'];
+    // ✅ FIX: Filter out 0-message chats - they should not be visible
+    let whereConditions = ['pc."twinId" = $1', 'pc."messageCount" > 0'];
     let params: any[] = [twinId];
     let paramIndex = 2;
 
