@@ -38,7 +38,7 @@ export async function getTwinManage(req: any, res: Response) {
     const analyticsResult = await fastQuery(`
       SELECT 
         -- Total chats: both PublicChat and private Chat
-        (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1 AND "userId" <> $2) as chats,
+        (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1 AND "userId" <> $2 AND "messageCount" > 0) as chats,
         -- Views (lifetime impressions): count profile_viewed events for this owner (exclude self)
         (SELECT COUNT(*)
          FROM "Event"
@@ -79,6 +79,7 @@ export async function getTwinManage(req: any, res: Response) {
           LEFT JOIN "PublicMessage" pm ON pc.id = pm."chatId"
           WHERE pc."twinId" = $1
           GROUP BY pc.id, pc.title, pc."createdAt", pc."lastActivity"
+          HAVING COUNT(pm.id) > 0
           ORDER BY COALESCE(pc."lastActivity", pc."createdAt") DESC
           LIMIT 5
       `, [twinId]);

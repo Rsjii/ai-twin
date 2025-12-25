@@ -229,6 +229,16 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'updatedAt') THEN
         ALTER TABLE "Twin" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
     END IF;
+
+    -- ✅ Add lastMessage to PublicChat to match Chat table structure
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'PublicChat' AND column_name = 'lastMessage') THEN
+        ALTER TABLE "PublicChat" ADD COLUMN "lastMessage" TEXT;
+    END IF;
+
+    -- ✅ Add updatedAt to PublicChat to match Chat table structure
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'PublicChat' AND column_name = 'updatedAt') THEN
+        ALTER TABLE "PublicChat" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+    END IF;
 END $$;
 
 -- AddForeignKey
@@ -818,7 +828,7 @@ export const publicChatQueries = {
   updateMessageCount: async (chatId: string) => {
     const utcTimestamp = new Date().toISOString();
     const result = await db.query(
-      'UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "lastActivity" = $2::timestamptz WHERE id = $1 RETURNING *',
+      'UPDATE "PublicChat" SET "messageCount" = "messageCount" + 1, "lastActivity" = $2::timestamptz, "updatedAt" = $2::timestamptz WHERE id = $1 RETURNING *',
       [chatId, utcTimestamp]
     );
     return result.rows[0];

@@ -358,9 +358,11 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
         }
 
         // 2) DB me user + AI default messages save karo
+        let userMessageId: string | null = null;
+        let aiMessageId: string | null = null;
         try {
-          const userMessageId = generateId.message();
-          const aiMessageId = generateId.message();
+          userMessageId = generateId.message();
+          aiMessageId = generateId.message();
 
           // User message
           await db.query(`
@@ -378,26 +380,19 @@ export const sendPublicMessage = async (req: Request, res: Response, next: NextF
           await db.query(`
             UPDATE "PublicChat"
             SET "messageCount" = "messageCount" + 1,
-                "lastActivity" = $1::timestamptz
+                "lastActivity" = $1::timestamptz,
+                "updatedAt" = $1::timestamptz
             WHERE id = $2
           `, [now, chatId]);
         } catch (dbErr) {
           logger.warn('Failed to persist blocked public message:', dbErr);
         }
 
-        // 3) Frontend ko normal success response
+        // 3) Frontend ko normal success response - match private chat format exactly
         return res.status(200).json({
           success: true,
-          messages: [
-            {
-              id: null,
-              content: defaultText,
-              sender: 'twin',
-              createdAt: now,
-            },
-          ],
-          serverTime: now,
           blocked: true,
+          response: defaultText,
         });
       }
 
@@ -561,7 +556,7 @@ if (chat.requireLogin && !userId) {
         userMessage: message,
         aiResponse,
         tokensUsed: 0,
-        updatedAtField: 'lastActivity'
+        updatedAtField: 'updatedAt'
       });
 
       logger.info('[FAST-PATH] Response sent without LLM (PUBLIC_CHAT - FALLBACK):', {
@@ -574,28 +569,26 @@ if (chat.requireLogin && !userId) {
         note: 'This should rarely execute - middleware should handle fast-path first'
       });
 
-      // ✅ Keep response shape identical to normal public chat flow (messages array)
+      // ✅ Match private chat response format exactly
       return res.json({
         success: true,
-        messages: [
-          {
-            id: userMessage.id,
-            content: message,
-            sender: 'human',
-            createdAt: normalizeTimestamp(userMessage.createdAt),
-            relativeTime: formatRelativeTime(userMessage.createdAt)
-          },
-          {
-            id: aiMessage.id,
-            content: aiResponse,
-            sender: 'twin',
-            createdAt: normalizeTimestamp(aiMessage.createdAt),
-            relativeTime: formatRelativeTime(aiMessage.createdAt)
-          }
-        ],
-        generatedTitle,
+        response: aiResponse,
+        generatedTitle: generatedTitle || null,
         isFirstMessage: isFirstMessage,
-        serverTime: new Date().toISOString()
+        userMessage: {
+          id: userMessage.id,
+          publicChatId: tokenizeId(chatId, 'chat'),
+          content: userMessage.content,
+          sender: userMessage.sender,
+          createdAt: userMessage.createdAt,
+        },
+        aiMessage: {
+          id: aiMessage.id,
+          publicChatId: tokenizeId(chatId, 'chat'),
+          content: aiMessage.content,
+          sender: aiMessage.sender,
+          createdAt: aiMessage.createdAt,
+        },
       });
     }
 
@@ -778,7 +771,7 @@ if (chat.requireLogin && !userId) {
       userMessage: message,
       aiResponse,
       tokensUsed,
-      updatedAtField: 'lastActivity'
+      updatedAtField: 'updatedAt'
     });
 
     // ✅ NEW: Log AI run for public chat tracking
@@ -836,29 +829,26 @@ if (chat.requireLogin && !userId) {
     // Public users cannot use "remember this" - silently ignored
     logger.debug('Public chat: Memory write requests are ignored (owner-only feature)');
 
-    // ✅ Send response
+    // ✅ Match private chat response format exactly
     res.json({
       success: true,
-      messages: [
-        {
-          id: userMessage.id,
-          content: message,
-          sender: 'human',
-          createdAt: normalizeTimestamp(userMessage.createdAt),
-          relativeTime: formatRelativeTime(userMessage.createdAt)
-        },
-        {
-          id: aiMessage.id,
-          content: aiResponse,
-          sender: 'twin',
-          createdAt: normalizeTimestamp(aiMessage.createdAt),
-          relativeTime: formatRelativeTime(aiMessage.createdAt)
-        }
-      ],
+      response: aiResponse,
       generatedTitle: generatedTitle || null,
       isFirstMessage: isFirstMessage,
-      // ✅ FIX: Send server time so frontend can use it instead of browser time
-      serverTime: new Date().toISOString()
+      userMessage: {
+        id: userMessage.id,
+        publicChatId: tokenizeId(chatId, 'chat'),
+        content: userMessage.content,
+        sender: userMessage.sender,
+        createdAt: userMessage.createdAt,
+      },
+      aiMessage: {
+        id: aiMessage.id,
+        publicChatId: tokenizeId(chatId, 'chat'),
+        content: aiMessage.content,
+        sender: aiMessage.sender,
+        createdAt: aiMessage.createdAt,
+      },
     });
 
   } catch (error: any) {
@@ -972,7 +962,7 @@ export const getPublicChatHistory = async (req: Request, res: Response, next: Ne
         SELECT id, content, sender, "createdAt"
         FROM "PublicMessage"
         WHERE "chatId" = $1
-        ORDER BY "createdAt" ASC
+        ORDER BY "createdAt" ASC, id ASC
       `, [chatId]);
       logger.info(`[getPublicChatHistory] Returning ${messagesResult.rows.length} messages for chatId: ${chatId}`);
     } else {
@@ -1054,7 +1044,7 @@ const twinResult = await db.query(`
         SELECT id, content, sender, "createdAt"
         FROM "PublicMessage"
         WHERE "chatId" = $1
-        ORDER BY "createdAt" ASC
+        ORDER BY "createdAt" ASC, id ASC
       `, [existingChat.id]);
 
       return res.json({
@@ -1311,6 +1301,7 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
         FROM "PublicChat" pc
         JOIN "Twin" t ON pc."twinId" = t.id
         WHERE pc."userId" = $1 
+          AND pc."messageCount" > 0
           AND t."isPublic" = true
           AND NOT EXISTS (
             SELECT 1
@@ -1343,6 +1334,7 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
         JOIN "Twin" t ON pc."twinId" = t.id
         JOIN "User" u ON t."userId" = u.id
         WHERE pc."userId" = $1 
+          AND pc."messageCount" > 0
           AND t."isPublic" = true
           AND NOT EXISTS (
             SELECT 1
@@ -1558,7 +1550,7 @@ export const updatePublicChatTitle = async (req: Request, res: Response, next: N
     // ✅ FIX: Use JavaScript Date for UTC timestamp
     const utcTimestamp = new Date().toISOString();
     await db.query(`
-      UPDATE "PublicChat" SET "title" = $1, "lastActivity" = $2::timestamptz WHERE id = $3
+      UPDATE "PublicChat" SET "title" = $1, "lastActivity" = $2::timestamptz, "updatedAt" = $2::timestamptz WHERE id = $3
     `, [title.trim(), utcTimestamp, chatId]);
     
     logger.info('Public chat title updated:', { chatId, title: title.trim() });
@@ -2251,7 +2243,7 @@ export const viewPublicChatHistory = async (req: AuthenticatedRequest, res: Resp
       SELECT id, content, sender, "createdAt"
       FROM "PublicMessage"
       WHERE "chatId" = $1
-      ORDER BY "createdAt" ASC NULLS LAST
+      ORDER BY "createdAt" ASC NULLS LAST, id ASC
     `, [rawChatId]);
 
     res.json({

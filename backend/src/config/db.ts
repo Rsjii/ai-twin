@@ -3,20 +3,9 @@ import { config } from './env';
 import { DB_RETRY, DB_POOL_CONFIG } from './constants';
 import logger from './logger';
 
-// ✅ CRITICAL FIX: Add timezone=UTC to connection string
-// This ensures all connections use UTC timezone from the start
-let connectionString = config.databaseUrl || '';
-if (connectionString.includes('?')) {
-  // Already has query params, append timezone
-  connectionString = `${connectionString}&timezone=UTC`;
-} else {
-  // No query params, add timezone
-  connectionString = `${connectionString}?timezone=UTC`;
-}
-
 // Create a connection pool with better settings
 const pool = new Pool({
-  connectionString: connectionString,
+  connectionString: config.databaseUrl || '',
   ssl: {
     rejectUnauthorized: false
   },
@@ -24,26 +13,6 @@ const pool = new Pool({
   // ✅ Add query timeouts to prevent hanging requests
   statement_timeout: 30000, // 30 seconds
   query_timeout: 30000, // 30 seconds
-});
-
-// Test the connection and verify UTC timezone
-pool.on('connect', async (client) => {
-  try {
-    // Double-check timezone is UTC
-    const timezoneResult = await client.query("SHOW timezone");
-    const currentTimezone = timezoneResult.rows[0]?.timezone || 'unknown';
-    logger.info('[DB] ✅ Connected to PostgreSQL database');
-    logger.info('[DB] ✅ PostgreSQL timezone setting:', currentTimezone);
-    
-    if (currentTimezone.toLowerCase() !== 'utc') {
-      logger.warn('[DB] ⚠️ WARNING: PostgreSQL timezone is not UTC! Setting to UTC...');
-      await client.query("SET timezone = 'UTC'");
-      const verifyResult = await client.query("SHOW timezone");
-      logger.info('[DB] ✅ PostgreSQL timezone now set to:', verifyResult.rows[0]?.timezone);
-    }
-  } catch (err) {
-    logger.error('[DB] ❌ Error setting/verifying timezone:', err);
-  }
 });
 
 pool.on('error', (err) => {
@@ -68,6 +37,9 @@ export const db = {
       } catch (error: any) {
         attempts++;
         logger.error(`[DB] ❌ Database query error (attempt ${attempts}):`, error.message);
+        logger.error(`[DB] ❌ Query was:`, text.substring(0, 200));
+        logger.error(`[DB] ❌ Error code:`, error.code);
+        logger.error(`[DB] ❌ Error details:`, error);
         
         if (attempts >= maxAttempts) {
           logger.error('[DB] ❌ Database query failed after all retries:', error);

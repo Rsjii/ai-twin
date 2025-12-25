@@ -775,7 +775,7 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
         // Use alias-specific filters for each table
         userTimeFilter = 'u."createdAt" >= CURRENT_DATE AND u."createdAt" < CURRENT_DATE + INTERVAL \'1 day\'';
         twinTimeFilter = 't."createdAt" >= CURRENT_DATE AND t."createdAt" < CURRENT_DATE + INTERVAL \'1 day\'';
-        chatTimeFilter = 'c."createdAt" >= CURRENT_DATE AND c."createdAt" < CURRENT_DATE + INTERVAL \'1 day\'';
+        chatTimeFilter = 'c."createdAt" >= CURRENT_DATE AND c."createdAt" < CURRENT_DATE + INTERVAL \'1 day\' AND c."messageCount" > 0';
         messageTimeFilter = 'm."createdAt" >= CURRENT_DATE AND m."createdAt" < CURRENT_DATE + INTERVAL \'1 day\'';
         eventTimeFilter = 'e."createdAt" >= CURRENT_DATE AND e."createdAt" < CURRENT_DATE + INTERVAL \'1 day\'';
         interval = '1 hour';
@@ -783,7 +783,7 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
       case 'week':
         userTimeFilter = 'u."createdAt" >= NOW() - INTERVAL \'7 days\'';
         twinTimeFilter = 't."createdAt" >= NOW() - INTERVAL \'7 days\'';
-        chatTimeFilter = 'c."createdAt" >= NOW() - INTERVAL \'7 days\'';
+        chatTimeFilter = 'c."createdAt" >= NOW() - INTERVAL \'7 days\' AND c."messageCount" > 0';
         messageTimeFilter = 'm."createdAt" >= NOW() - INTERVAL \'7 days\'';
         eventTimeFilter = 'e."createdAt" >= NOW() - INTERVAL \'7 days\'';
         interval = '1 day';
@@ -791,7 +791,7 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
       case 'month':
         userTimeFilter = 'u."createdAt" >= NOW() - INTERVAL \'30 days\'';
         twinTimeFilter = 't."createdAt" >= NOW() - INTERVAL \'30 days\'';
-        chatTimeFilter = 'c."createdAt" >= NOW() - INTERVAL \'30 days\'';
+        chatTimeFilter = 'c."createdAt" >= NOW() - INTERVAL \'30 days\' AND c."messageCount" > 0';
         messageTimeFilter = 'm."createdAt" >= NOW() - INTERVAL \'30 days\'';
         eventTimeFilter = 'e."createdAt" >= NOW() - INTERVAL \'30 days\'';
         interval = '1 day';
@@ -998,7 +998,7 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
           db.query('SELECT COUNT(*) as count FROM "User"'),
           db.query('SELECT COUNT(*) as count FROM "User" WHERE "lastLoginAt" >= NOW() - INTERVAL \'24 hours\''),
           db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
-          db.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(DISTINCT t.id) as twinCount, COUNT(DISTINCT c.id) as chatCount FROM "User" u LEFT JOIN "Twin" t ON u.id = t."userId" LEFT JOIN "Chat" c ON u.id = c."userId" GROUP BY u.id ORDER BY u."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
+          db.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(DISTINCT t.id) as twinCount, COUNT(DISTINCT c.id) as chatCount FROM "User" u LEFT JOIN "Twin" t ON u.id = t."userId" LEFT JOIN "Chat" c ON u.id = c."userId" AND c."messageCount" > 0 GROUP BY u.id ORDER BY u."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
         ]);
         
         data = {
@@ -1338,7 +1338,7 @@ export const getDetailedChatsPage = async (req: Request, res: Response) => {
     
     let whereClause = '';
     let queryParams: any[] = [];
-    const conditions: string[] = [];
+    const conditions: string[] = ['c."messageCount" > 0']; // ✅ FIX: Exclude 0-message chats
     
     if (search) {
       conditions.push('(u.email ILIKE $' + (queryParams.length + 1) + ' OR u.handle ILIKE $' + (queryParams.length + 1) + ')');
@@ -1400,7 +1400,7 @@ export const getDetailedChatsPage = async (req: Request, res: Response) => {
       SELECT COUNT(*) as total FROM "Chat" c JOIN "User" u ON c."userId" = u.id ${whereClause}
     `, queryParams);
     
-// Get summary with avg messages per chat (optimized)
+// Get summary with avg messages per chat (optimized) - only chats with messages
 const summaryResult = await db.query(`
   SELECT 
     COUNT(DISTINCT c.id) as totalChats,
@@ -1417,6 +1417,7 @@ const summaryResult = await db.query(`
       ), 0
     ) as avgMessagesPerChat
   FROM "Chat" c
+  WHERE c."messageCount" > 0
 `);
 
     

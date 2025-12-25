@@ -219,7 +219,7 @@ export const getTwinChatHistory = async (req: any, res: Response, next: NextFunc
     
     await verifyTwinOwnership(twinId, userId);
     
-    // Get all chats for this twin
+    // Get all chats for this twin - only with messages
     const chats = await db.query(`
       SELECT 
         c.id, 
@@ -231,6 +231,7 @@ export const getTwinChatHistory = async (req: any, res: Response, next: NextFunc
       LEFT JOIN "Message" m ON c.id = m."chatId"
       WHERE c."twinId" = $1 AND c."userId" = $2
       GROUP BY c.id, c."createdAt", c."lastMessage"
+      HAVING COUNT(m.id) > 0
       ORDER BY c."createdAt" DESC
       LIMIT $3 OFFSET $4
     `, [twinId, userId, safeLimit, safeOffset]);

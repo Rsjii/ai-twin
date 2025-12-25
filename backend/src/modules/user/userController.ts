@@ -102,8 +102,8 @@ export const exportUserData = async (req: AuthenticatedRequest, res: Response) =
     // 3. Activity Summary
     const [chatsCount, publicChatsCount, likesGivenCount, likesReceivedCount, 
            followsGivenCount, followsReceivedCount] = await Promise.all([
-      db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [userId]),
-      db.query('SELECT COUNT(*) as count FROM "PublicChat" WHERE "userId" = $1', [userId]),
+      db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1 AND "messageCount" > 0', [userId]),
+      db.query('SELECT COUNT(*) as count FROM "PublicChat" WHERE "userId" = $1 AND "messageCount" > 0', [userId]),
       db.query('SELECT COUNT(*) as count FROM "TwinLike" WHERE "userId" = $1', [userId]),
       db.query(`SELECT COUNT(*) as count FROM "TwinLike" tl 
                 JOIN "Twin" t ON tl."twinId" = t.id WHERE t."userId" = $1`, [userId]),
@@ -125,20 +125,20 @@ export const exportUserData = async (req: AuthenticatedRequest, res: Response) =
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    // Recent chats (last 10)
+    // Recent chats (last 10) - only with messages
     const recentChatsResult = await db.query(
       `SELECT c.id, c."createdAt", 
               (SELECT COUNT(*) FROM "Message" m WHERE m."chatId" = c.id) as messageCount
-       FROM "Chat" c WHERE c."userId" = $1 
+       FROM "Chat" c WHERE c."userId" = $1 AND c."messageCount" > 0
        ORDER BY c."createdAt" DESC LIMIT 10`,
       [userId]
     );
     userData.recentActivity.chats = recentChatsResult.rows;
     
-    // Recent public chats (last 10)
+    // Recent public chats (last 10) - only with messages
     const recentPublicChatsResult = await db.query(
       `SELECT pc.id, pc."createdAt", pc."messageCount"
-       FROM "PublicChat" pc WHERE pc."userId" = $1 
+       FROM "PublicChat" pc WHERE pc."userId" = $1 AND pc."messageCount" > 0
        ORDER BY pc."createdAt" DESC LIMIT 10`,
       [userId]
     );

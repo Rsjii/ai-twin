@@ -121,7 +121,7 @@ export const debugUserData = async (req: Request, res: Response) => {
     // Get related data counts
     const [twinsResult, chatsResult, eventsResult, invitesSentResult, invitesReceivedResult] = await Promise.all([
       db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "userId" = $1', [userId]),
-      db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1', [userId]),
+      db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "userId" = $1 AND "messageCount" > 0', [userId]),
       db.query(
         `SELECT COUNT(*) as count 
          FROM "Event" 
@@ -287,6 +287,7 @@ try {
       JOIN "Twin" t ON pc."twinId" = t.id
       WHERE t."userId" = $1
         AND pc."userId" IS NOT NULL
+        AND pc."messageCount" > 0
         AND NOT EXISTS (
           SELECT 1
           FROM "Twin" t2

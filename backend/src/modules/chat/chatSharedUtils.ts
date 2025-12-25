@@ -432,8 +432,8 @@ export async function updateChatMetadata(params: {
     userMessage,
     aiResponse,
     tokensUsed = 0,
-    lastMessageField = chatTable === 'Chat' ? 'lastMessage' : undefined,
-    updatedAtField = chatTable === 'Chat' ? 'updatedAt' : 'lastActivity'
+    lastMessageField = 'lastMessage',
+    updatedAtField = 'updatedAt'
   } = params;
 
   try {

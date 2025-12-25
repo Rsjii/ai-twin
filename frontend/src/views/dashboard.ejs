@@ -1261,7 +1261,7 @@
                         if (data.isOwner) {
                             // ✅ Same behaviour as twin profile / discover
                             showNotification(
-                                'You cannot chat with your own twin in public chat. Redirecting to Enhanced Chat...',
+                                'You cannot chat with your own twin in public chat. Redirecting to Chat...',
                                 'info'
                             );
                             setTimeout(() => {
@@ -1479,7 +1479,7 @@ function renderRecentInteractions(chats) {
                             const data = await resp.json();
                             if (data.isOwner) {
                                 showNotification(
-                                    'You cannot chat with your own twin in public chat. Redirecting to Enhanced Chat...',
+                                    'You cannot chat with your own twin in public chat. Redirecting to Chat...',
                                     'info'
                                 );
                                 setTimeout(() => {
@@ -2229,17 +2229,17 @@ setTimeout(() => {
         // ✅ NEW: Load analytics data for Twin Analytics Cards
         async function loadAnalytics() {
             try {
-                <% if (hasTwins && twinId) { %>
-                const twinId = '<%= twinId %>';
+                <% if (hasTwins && twinPublicId) { %>
+                const twinToken = '<%= twinPublicId %>';
                 
                 // Get memory count
                 try {
-                    const memoryRes = await fetch(`/api/twin/${twinId}/long-term-memory?limit=1000`);
+                    const memoryRes = await fetch(`/api/twin/${twinToken}/long-term-memory?limit=1000`);
                     if (memoryRes.ok) {
                         const memoryData = await memoryRes.json();
                         const memoryCountEl = document.getElementById('memoryCount');
                         if (memoryCountEl) {
-                            memoryCountEl.textContent = memoryData.totalMemories || 0;
+                            memoryCountEl.textContent = memoryData.memories?.length || 0;
                         }
                     }
                 } catch (error) {

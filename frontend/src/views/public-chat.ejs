@@ -1016,6 +1016,9 @@ async function createNewPublicChat() {
             const chatMessages = document.getElementById('chatMessages');
             chatMessages.innerHTML = '';
             
+            // ✅ FIX: Display messages in order received from backend (no sorting)
+            // Backend already sends messages in chronological order (sorted by createdAt ASC)
+            // This matches private chat behavior exactly
             messages.forEach(msg => {
                 addMessageToChat(msg.content, msg.sender, false, msg.createdAt);
             });
@@ -1505,15 +1508,13 @@ async function sendMessage() {
                             body: JSON.stringify({ message })
                         });
                         const retryData = await retryResponse.json();
-                        if (retryData.success && retryData.messages) {
-                            const aiMessage = retryData.messages.find(m => m.sender === 'twin');
-                            if (aiMessage) {
-                                displayWithTypingEffect('ai', aiMessage.content, {
-                                    timestamp: aiMessage.createdAt
-                                }, () => {
-                                    loadPublicChatHistory();
-                                });
-                            }
+                        // ✅ Match private chat response format: response, userMessage, aiMessage
+                        if (retryData.success && retryData.response) {
+                            displayWithTypingEffect('ai', retryData.response, {
+                                timestamp: retryData.aiMessage?.createdAt || new Date().toISOString()
+                            }, () => {
+                                loadPublicChatHistory();
+                            });
                         } else {
                             addMessageToChat('Sorry, I encountered an error. Please try again.', 'ai');
                         }
@@ -1531,7 +1532,7 @@ async function sendMessage() {
                 
                 // ✅ PHASE 2: Handle OWN_TWIN_CHAT error
                 if (!response.ok && data.errorCode === 'OWN_TWIN_CHAT') {
-                    const message = data.error || 'You cannot chat with your own twin in public chat. Redirecting to Enhanced Chat...';
+                    const message = data.error || 'You cannot chat with your own twin in public chat. Redirecting to Chat...';
                     showNotification(message, 'info');
                     if (data.redirectUrl) {
                         setTimeout(() => {
@@ -1551,22 +1552,55 @@ async function sendMessage() {
                     return;
                 }
                 
-                if (data.success && data.messages) {                    
-                    // Find the AI message (sender: 'twin')
-                    const aiMessage = data.messages.find(m => m.sender === 'twin');
-                    if (aiMessage) {
-                        // ✅ Use typing effect instead of direct display
-                        displayWithTypingEffect('ai', aiMessage.content, {
-                            timestamp: aiMessage.createdAt
-                        }, async () => {
-                            // ✅ After typing finishes, reload full chat from server
-            try {
-                await switchToPublicChat(actualChatId);
-            } catch (e) {
-                ErrorLogger.error('[sendMessage] Error reloading chat after reply', e, {});
-            }
-
-                        });
+                // ✅ Match private chat response format: response, userMessage, aiMessage
+                if (data.success && data.response) {
+                    // ✅ Handle blocked messages
+                    if (data.blocked) {
+                        addMessageToChat(data.response, 'ai');
+                        isChatting = false;
+                        if (messageInput) messageInput.disabled = false;
+                        if (sendBtn) {
+                            sendBtn.disabled = false;
+                            sendBtn.textContent = 'Send';
+                        }
+                        return;
+                    }
+                    
+                    // ✅ FIX: Update user message with server timestamp if available
+                    if (data.userMessage && data.userMessage.createdAt) {
+                        // Find the last user message in the chat and update its timestamp
+                        const chatMessages = document.getElementById('chatMessages');
+                        if (chatMessages) {
+                            const userMessages = chatMessages.querySelectorAll('.flex.justify-end');
+                            if (userMessages.length > 0) {
+                                const lastUserMsg = userMessages[userMessages.length - 1];
+                                const timestampEl = lastUserMsg.querySelector('.text-xs');
+                                if (timestampEl && window.TimeUtils) {
+                                    try {
+                                        timestampEl.textContent = formatRelativeLabel(data.userMessage.createdAt);
+                                        timestampEl.title = window.TimeUtils.formatFullDateTime(data.userMessage.createdAt);
+                                    } catch (e) {
+                                        ErrorLogger.error('Error updating user message timestamp', e, {});
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // ✅ Use typing effect for AI response (same as private chat)
+                    // ✅ FIX: Don't reload chat after typing - messages are already in correct order in DOM
+                    // This matches private chat behavior - messages stay in DOM, no reload needed
+                    displayWithTypingEffect('ai', data.response, {
+                        timestamp: data.aiMessage?.createdAt || new Date().toISOString()
+                    }, () => {
+                        // ✅ FIX: Don't call loadPublicChatHistory() - it can trigger switchToPublicChat which clears messages
+                        // Messages are already in correct order in DOM, sidebar will update on next manual switch
+                        // This exactly matches private chat behavior - no reload after typing finishes
+                    });
+                    
+                    // ✅ Handle title generation for first message
+                    if (data.generatedTitle && data.isFirstMessage) {
+                        // Title will be updated when chat reloads
                     }
                 } else {
                     addMessageToChat('Sorry, I encountered an error. Please try again.', 'ai');

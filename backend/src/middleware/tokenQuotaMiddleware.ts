@@ -216,6 +216,7 @@ async function handleBlockedOrFastPath(params: {
   );
 
   // Update chat meta: messageCount += 1, lastMessage=AI response, title if first
+  // ✅ Structure same as Chat table - both have lastMessage now
   await db.query(
     `
     UPDATE "${chatTable}"
@@ -293,16 +294,31 @@ export const checkTokenQuotaForPublicChatMessage = async (req: Request, res: Res
     const chatId = decoded.id;
 
     // minimal lookup: actor identity + tokenLimit (+ for fast-path meta)
-    const r = await db.query(
-      `
-      SELECT pc."userId", pc."visitorId", pc."title", pc."messageCount",
-             t."tokenLimit", t."personaData"
-      FROM "PublicChat" pc
-      LEFT JOIN "Twin" t ON pc."twinId" = t.id
-      WHERE pc.id = $1
-      `,
-      [chatId],
-    );
+    let r;
+    try {
+      r = await db.query(
+        `
+        SELECT pc."userId", pc."visitorId", pc."title", pc."messageCount",
+               t."tokenLimit", t."personaData"
+        FROM "PublicChat" pc
+        LEFT JOIN "Twin" t ON pc."twinId" = t.id
+        WHERE pc.id = $1
+        `,
+        [chatId],
+      );
+    } catch (queryError: any) {
+      // Log detailed error for debugging
+      logger.error('Public chat precheck query failed:', {
+        chatId,
+        error: queryError?.message,
+        code: queryError?.code,
+        detail: queryError?.detail,
+        hint: queryError?.hint,
+        stack: queryError?.stack?.substring(0, 200)
+      });
+      // Continue anyway - let controller handle it
+      return next();
+    }
     if (!r.rows?.length) return next();
 
     const row = r.rows[0];
@@ -320,7 +336,7 @@ export const checkTokenQuotaForPublicChatMessage = async (req: Request, res: Res
       actor,
       chatTable: 'PublicChat',
       messageTable: 'PublicMessage',
-      updatedAtField: 'lastActivity',
+      updatedAtField: 'updatedAt',
       source: 'public_chat',
       selectMetaSql: {
         sql: `
@@ -342,8 +358,17 @@ export const checkTokenQuotaForPublicChatMessage = async (req: Request, res: Res
     if (quota.exceeded) return quota429(res, actor.kind);
 
     return next();
-  } catch (e) {
-    logger.error('Public chat precheck failed:', e);
+  } catch (e: any) {
+    // Log detailed error for debugging
+    logger.error('Public chat precheck failed:', {
+      error: e?.message,
+      code: e?.code,
+      detail: e?.detail,
+      hint: e?.hint,
+      stack: e?.stack?.substring(0, 300),
+      chatToken: (req.params as any)?.chatToken
+    });
+    // Continue anyway - let controller handle it
     return next();
   }
 };

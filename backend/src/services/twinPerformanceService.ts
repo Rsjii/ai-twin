@@ -16,7 +16,7 @@ async function calculateRecentActivity(twinId: string, days: number = 7): Promis
       SELECT 
         (SELECT COUNT(*) FROM "TwinLike" WHERE "twinId" = $1 AND "createdAt" >= $2) as recent_likes,
         (SELECT COUNT(*) FROM "TwinFollow" WHERE "twinId" = $1 AND "createdAt" >= $2) as recent_follows,
-        (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1 AND "createdAt" >= $2) as recent_chats
+        (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1 AND "createdAt" >= $2 AND "messageCount" > 0) as recent_chats
     `, [twinId, cutoffDate.toISOString()]);
     
     if (recentActivity.rows.length === 0) return 0;

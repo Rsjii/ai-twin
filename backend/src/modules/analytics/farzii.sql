@@ -873,7 +873,7 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
           db.query('SELECT COUNT(*) as count FROM "User"'),
           db.query('SELECT COUNT(*) as count FROM "User" WHERE "lastLoginAt" >= NOW() - INTERVAL \'24 hours\''),
           db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
-          db.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(DISTINCT t.id) as twinCount, COUNT(DISTINCT c.id) as chatCount FROM "User" u LEFT JOIN "Twin" t ON u.id = t."userId" LEFT JOIN "Chat" c ON u.id = c."userId" GROUP BY u.id ORDER BY u."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
+          db.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(DISTINCT t.id) as twinCount, COUNT(DISTINCT c.id) as chatCount FROM "User" u LEFT JOIN "Twin" t ON u.id = t."userId" LEFT JOIN "Chat" c ON u.id = c."userId" AND c."messageCount" > 0 GROUP BY u.id ORDER BY u."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
         ]);
         
         data = {
@@ -1129,26 +1129,27 @@ export const getDetailedChatsPage = async (req: Request, res: Response) => {
     
     let whereClause = '';
     let queryParams: any[] = [];
+    const baseConditions: string[] = ['(SELECT COUNT(*) FROM "Message" m WHERE m."chatId" = c.id) > 0']; // ✅ FIX: Exclude 0-message chats using subquery for consistency
     
     if (search) {
-      whereClause = 'WHERE (u.email ILIKE $1 OR u.handle ILIKE $1 OR t."publicHandle" ILIKE $1)';
+      baseConditions.push('(u.email ILIKE $' + (queryParams.length + 1) + ' OR u.handle ILIKE $' + (queryParams.length + 1) + ' OR t."publicHandle" ILIKE $' + (queryParams.length + 1) + ')');
       queryParams.push(`%${search}%`);
     }
     
     // Add date range filter
     if (startDate || endDate) {
-      const dateConditions: string[] = [];
       if (startDate) {
-        dateConditions.push(`c."createdAt" >= $${queryParams.length + 1}::timestamp`);
+        baseConditions.push(`c."createdAt" >= $${queryParams.length + 1}::timestamp`);
         queryParams.push(startDate);
       }
       if (endDate) {
-        dateConditions.push(`c."createdAt" <= $${queryParams.length + 1}::timestamp`);
+        baseConditions.push(`c."createdAt" <= $${queryParams.length + 1}::timestamp`);
         queryParams.push(endDate);
       }
-      whereClause = whereClause 
-        ? `${whereClause} AND ${dateConditions.join(' AND ')}`
-        : `WHERE ${dateConditions.join(' AND ')}`;
+    }
+    
+    if (baseConditions.length > 0) {
+      whereClause = 'WHERE ' + baseConditions.join(' AND ');
     }
     
     // Enhanced query with twin info and message counts
@@ -1183,7 +1184,7 @@ export const getDetailedChatsPage = async (req: Request, res: Response) => {
       ${whereClause}
     `, queryParams);
     
-// Get summary with avg messages per chat (optimized)
+// Get summary with avg messages per chat (optimized) - only chats with messages
 const summaryResult = await db.query(`
   SELECT 
     COUNT(DISTINCT c.id) as totalChats,
@@ -1200,6 +1201,7 @@ const summaryResult = await db.query(`
       ), 0
     ) as avgMessagesPerChat
   FROM "Chat" c
+  WHERE (SELECT COUNT(*) FROM "Message" m WHERE m."chatId" = c.id) > 0
 `);
 
     

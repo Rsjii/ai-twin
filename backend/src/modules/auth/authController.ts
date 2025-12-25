@@ -118,7 +118,7 @@ const completeProfileSchema = z.object({
       
       return true;
     }, 'Phone number must be in format: +[country code] [10 digits] (e.g. +91 1234567890 or +1 1234567890)'),
-  bio: z.string().max(300, 'Bio must be at most 300 characters').optional(),
+  bio: z.string().max(300, 'Bio must be at most 300 characters').nullable().optional(),
   profileImage: z.string().nullable().optional(),
 });
 
@@ -154,10 +154,20 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
     logger.info(`Attempting signup for email: ${email}`);
     
     // Check if user already exists
-    const existingUser = await userQueries.findByEmail(email.toLowerCase());
+    let existingUser;
+    try {
+      existingUser = await userQueries.findByEmail(email.toLowerCase());
+    } catch (dbError: any) {
+      logger.error('Failed to check existing user:', dbError);
+      // If we can't check, fail safe - don't allow signup
+      return res.status(500).json({
+        error: 'Database error. Please try again later.',
+        errorCode: 'DATABASE_ERROR'
+      });
+    }
     if (existingUser) {
-      // ✅ NEW: If user exists but NOT verified, allow signup again (delete incomplete user)
-      if (!existingUser.verified) {
+      // ✅ NEW: If user exists but NOT active (not verified), allow signup again (delete incomplete user)
+      if (!existingUser.active) {
         logger.info(`User ${email} exists but not verified. Deleting incomplete user and allowing fresh signup.`);
         
         // Delete incomplete user (cascade will delete related data)
@@ -169,10 +179,10 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
         logger.info(`Incomplete user deleted. Proceeding with fresh signup.`);
         // Continue to create new user below
       } else {
-        // User exists and is verified → normal error
-        logger.warn(`Signup failed: User already exists and verified - ${email}`);
+        // User exists and is active (verified) → normal error
+        logger.warn(`Signup failed: User already exists and active - ${email}`);
         return res.status(409).json({
-          error: 'User already exists. Please login instead.',
+          error: 'Account already exists. Please login instead.',
           errorCode: 'USER_ALREADY_EXISTS'
         });
       }
@@ -267,7 +277,7 @@ if (referrerId) {
       // ✅ REMOVED: otp: otp (never send OTP in response)
       redirect: '/signup/verify?email=' + encodeURIComponent(email)
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Signup error:', error);
     
     // Handle Zod validation errors with proper messages
@@ -287,6 +297,25 @@ if (referrerId) {
 export const signupVerify = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, code } = signupVerifySchema.parse(req.body);
+    
+    // ✅ Check if user already exists and is active (verified)
+    let existingUser;
+    try {
+      existingUser = await userQueries.findByEmail(email.toLowerCase());
+    } catch (dbError: any) {
+      logger.error('Failed to check existing user in signupVerify:', dbError);
+      // If we can't check, fail safe - don't allow verification
+      return res.status(500).json({
+        error: 'Database error. Please try again later.',
+        errorCode: 'DATABASE_ERROR'
+      });
+    }
+    if (existingUser && existingUser.active) {
+      return res.status(409).json({
+        error: 'Account already exists. Please login instead.',
+        errorCode: 'USER_ALREADY_EXISTS'
+      });
+    }
     
     // Find valid OTP
     const otpRecord = await otpQueries.findByEmail(email.toLowerCase());
@@ -336,7 +365,7 @@ export const signupVerify = async (req: Request, res: Response, next: NextFuncti
       message: 'Account activated successfully', 
       redirect: '/signup/profile?email=' + encodeURIComponent(email)
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Signup verify error:', error);
     
     // Handle Zod validation errors with proper messages

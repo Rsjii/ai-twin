@@ -2,7 +2,6 @@ export const ADMIN_EMAILS: string[] = [
   'i@gmail.com',
   'k@gmail.com',
   'a@gmail.com',
-  'rsji1806@gmail.com'
 ];
 
   // Query Limits

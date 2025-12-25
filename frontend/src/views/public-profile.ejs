@@ -444,7 +444,7 @@ document.getElementById('chatNowBtn').addEventListener('click', function() {
 
     // If this is your own twin, redirect to enhanced chat (same as discover)
     if (isOwnTwin) {
-        showNotification('You cannot chat with your own twin in public chat. Redirecting to Enhanced Chat...', 'info');
+        showNotification('You cannot chat with your own twin in public chat. Redirecting to Chat...', 'info');
         setTimeout(() => {
             window.location.href = '/chat?twinId=' + twinToken;
         }, 800);

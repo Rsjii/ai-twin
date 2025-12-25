@@ -91,7 +91,7 @@ export async function getDashboard(req: any, res: Response) {
           SELECT 
             "likeCount", 
             "followCount", 
-            (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1 AND "userId" <> $2) as "chatCount"
+            (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1 AND "userId" <> $2 AND "messageCount" > 0) as "chatCount"
           FROM "Twin"
           WHERE id = $1
         `, [twin.id, fullUser.id]) : Promise.resolve({ rows: [] })        
@@ -123,7 +123,7 @@ export async function getDashboard(req: any, res: Response) {
       const recentChatsResult = await db.query(`
         SELECT c.id, c.title, c."createdAt", c."updatedAt"
         FROM "Chat" c
-        WHERE c."userId" = $1
+        WHERE c."userId" = $1 AND c."messageCount" > 0
         ORDER BY c."updatedAt" DESC
         LIMIT 5
       `, [fullUser.id]);
