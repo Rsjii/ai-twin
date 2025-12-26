@@ -261,22 +261,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
 
-    // ✅ FIX: Event delegation for twin profile clicks
-    const dataList = document.getElementById('dataList');
-    if (dataList) {
-        dataList.addEventListener('click', function(e) {
-            // Find the closest user profile item (but don't redirect if clicking the button/link)
-            if (e.target.closest('a[href^="/@"]') || e.target.closest('button')) {
-                return; // Let the link/button handle navigation
-            }
-            const userItem = e.target.closest('.user-profile-item');
-            if (userItem) {
-                const userHandle = userItem.getAttribute('data-user-handle');
-                if (userHandle) {
-                    viewTwinProfile(userHandle);
-                }
-            }
-        });
-    }
+    // ✅ FIX: Event delegation for twin profile clicks - REMOVED
+    // Now only the profile icon (<a href="/@...">) will be clickable
+    // No need for div-level click handling
 });
 </script>

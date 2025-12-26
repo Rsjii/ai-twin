@@ -60,24 +60,30 @@ export async function getPublicProfile(req: any, res: Response) {
     // 2) Find twin (if any) by userId
     const twinResult = await db.query(
       `SELECT 
-         id,
-         "isPublic",
-         bio,
-         "profileImage",
-         verified,
-         "likeCount",
-         "followCount",
-         "chatCount",
-         "sampleReply",
-         "createdAt",
-         "allowShares",
-         "allowLikes",
-         "allowFollows",
-         "requireLogin",
-         "blockNonLoggedUsers",
-         "showChatHistory"
-       FROM "Twin"
-       WHERE "userId" = $1
+         t.id,
+         t."isPublic",
+         t.bio,
+         t."profileImage",
+         t.verified,
+         t."likeCount",
+         t."followCount",
+         (SELECT COUNT(*) 
+          FROM "PublicMessage" pm
+          JOIN "PublicChat" pc ON pm."chatId" = pc.id
+          WHERE pc."twinId" = t.id
+            AND pm.sender = 'human'
+            AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
+         ) as "chatCount",
+         t."sampleReply",
+         t."createdAt",
+         t."allowShares",
+         t."allowLikes",
+         t."allowFollows",
+         t."requireLogin",
+         t."blockNonLoggedUsers",
+         t."showChatHistory"
+       FROM "Twin" t
+       WHERE t."userId" = $1
        LIMIT 1`,
       [user.id]
     );

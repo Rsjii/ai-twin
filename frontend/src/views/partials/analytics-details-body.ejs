@@ -69,38 +69,48 @@
             <div id="dataList" class="divide-y divide-gray-200 dark:divide-gray-700">
                 <% if (data && data.length > 0) { %>
                     <% data.forEach((item, index) => { %>
-                        <div class="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer group user-profile-item"
-                             data-user-handle="<%= item.handle %>">
+                        <% 
+                        const isAnonymous = item.isAnonymous || item.handle === 'anonymous';
+                        const displayName = isAnonymous ? 'Anonymous Users' : (item.name || item.handle);
+                        %>
+                        <div class="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors <%= isAnonymous ? 'bg-gray-50 dark:bg-gray-800/50' : '' %> user-profile-item"
+                             data-user-handle="<%= item.handle %>"
+                             <% if (isAnonymous) { %>data-is-anonymous="true"<% } %>>
                             <div class="flex items-center justify-between gap-3">
-                                <div class="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
-                                    <!-- Avatar: mobile + desktop दोनों में clickable, हमेशा @handle पर -->
-                                    <a href="/@<%= item.handle %>" 
-                                       class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg overflow-hidden flex-shrink-0 no-underline hover:opacity-90 transition-opacity"
-                                       aria-label="View profile">
-                                        <% if (item.profileImage) { %>
-                                            <img src="<%= item.profileImage %>" 
-                                                 alt="<%= item.name || item.handle || 'User' %>" 
-                                                 class="w-full h-full rounded-full object-cover" 
-                                                 loading="lazy">
-                                        <% } else { %>
-                                            <span><%= item.name ? item.name.charAt(0).toUpperCase() : (item.handle ? item.handle.charAt(0).toUpperCase() : 'U') %></span>
-                                        <% } %>
-                                    </a>
+                                <div class="flex items-start sm:items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                                    <!-- Avatar: only clickable for logged in users, not anonymous -->
+                                    <% if (isAnonymous) { %>
+                                        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-gray-700 dark:text-gray-300 font-bold text-base sm:text-lg overflow-hidden flex-shrink-0">
+                                            <span class="text-lg sm:text-xl">👤</span>
+                                        </div>
+                                    <% } else { %>
+                                        <a href="/@<%= item.handle %>" 
+                                           class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg overflow-hidden flex-shrink-0 no-underline hover:opacity-90 transition-opacity"
+                                           aria-label="View profile">
+                                            <% if (item.profileImage) { %>
+                                                <img src="<%= item.profileImage %>" 
+                                                     alt="<%= displayName %>" 
+                                                     class="w-full h-full rounded-full object-cover" 
+                                                     loading="lazy">
+                                            <% } else { %>
+                                                <span><%= item.name ? item.name.charAt(0).toUpperCase() : (item.handle ? item.handle.charAt(0).toUpperCase() : 'U') %></span>
+                                            <% } %>
+                                        </a>
+                                    <% } %>
                                     <div class="flex-1 min-w-0 overflow-hidden">
                                         <h3 class="font-semibold text-gray-900 dark:text-white truncate text-sm sm:text-base">
-                                            <%= item.name || item.handle %>
+                                            <%= displayName %>
                                         </h3>
-                                        <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-300 truncate">
-                                            @<%= item.handle %>
-                                        </p>
                                         <% if (type === 'chatters') { %>
-                                        <div class="flex items-center gap-3 sm:gap-4 mt-1 sm:mt-2 text-xs text-gray-500 dark:text-gray-400">
-                                            <span>📊 <strong><%= item.chatCount || 0 %></strong> chats</span>
-                                            <% if (item.messageCount) { %>
-                                            <span>💬 <strong><%= item.messageCount %></strong> messages</span>
-                                            <% } %>
-                                            <% if (item.firstChatAt) { %>
-                                            <span>📅 First: <span class="analytics-date" data-timestamp="<%= item.firstChatAt %>"></span></span>
+                                        <div class="flex flex-wrap items-center gap-1.5 sm:gap-3 sm:gap-4 mt-1 sm:mt-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                                            <span class="whitespace-nowrap">📊 <strong><%= item.chatCount || 0 %></strong> chats</span>
+                                            <span class="whitespace-nowrap">💬 <strong><%= item.messageCount || 0 %></strong> messages</span>
+                                            <% if (item.lastChatAt) { %>
+                                            <span class="flex items-center gap-0.5 sm:gap-1">
+                                                <span class="hidden sm:inline">📅 Last chatted :</span>
+                                                <span class="sm:hidden">📅 Last:</span>
+                                                <span class="analytics-date-relative whitespace-nowrap" data-timestamp="<%= item.lastChatAt %>"></span>
+                                            </span>
                                             <% } %>
                                         </div>
                                         <% } else if (type === 'likers') { %>
@@ -114,18 +124,35 @@
                                         <% } %>
                                     </div>
                                 </div>
-
-                                <!-- View button: right side, हमेशा @handle पर, 
-                                     mobile text = "View", desktop text = "View Profile", 
-                                     "No Twin" logic हटा दिया -->
-                                     <div class="flex items-center justify-end flex-shrink-0">
-                                        <a href="/@<%= item.handle %>"
-                                           class="w-full sm:w-auto sm:min-w-[120px] px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs sm:text-sm font-medium min-h-[44px] touch-manipulation no-underline flex items-center justify-center"
-                                           aria-label="View profile">
-                                           <span class="sm:hidden">View</span>
-                                           <span class="hidden sm:inline">View Profile</span>                                        
-                                        </a>
-                                    </div>                                
+                                <!-- View button: right side -->
+                                     <% if (isAnonymous && type === 'chatters') { %>
+                                        <div class="flex items-center justify-end flex-shrink-0">
+                                            <a href="/public-chat-history?view=chat&participantType=anonymous"
+                                               class="w-full sm:w-auto sm:min-w-[120px] px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs sm:text-sm font-medium min-h-[44px] touch-manipulation no-underline flex items-center justify-center"
+                                               aria-label="View anonymous chats">
+                                               <span class="sm:hidden">View</span>
+                                               <span class="hidden sm:inline">View All Chats</span>                                        
+                                            </a>
+                                        </div>
+                                     <% } else if (!isAnonymous && type === 'chatters') { %>
+                                        <div class="flex items-center justify-end flex-shrink-0">
+                                            <a href="/public-chat-history?view=user&userId=<%= item.publicUserId || item.id %>"
+                                               class="w-full sm:w-auto sm:min-w-[120px] px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs sm:text-sm font-medium min-h-[44px] touch-manipulation no-underline flex items-center justify-center"
+                                               aria-label="View all chats">
+                                               <span class="sm:hidden">View</span>
+                                               <span class="hidden sm:inline">View All Chats</span>                                        
+                                            </a>
+                                        </div>
+                                     <% } else if (!isAnonymous) { %>
+                                        <div class="flex items-center justify-end flex-shrink-0">
+                                            <a href="/@<%= item.handle %>"
+                                               class="w-full sm:w-auto sm:min-w-[120px] px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs sm:text-sm font-medium min-h-[44px] touch-manipulation no-underline flex items-center justify-center"
+                                               aria-label="View profile">
+                                               <span class="sm:hidden">View</span>
+                                               <span class="hidden sm:inline">View Profile</span>                                        
+                                            </a>
+                                        </div>
+                                     <% } %>                                
                             </div>
                         </div>                        
                     <% }); %>
@@ -195,8 +222,16 @@
 <script>
 // Format analytics dates using TimeUtils
 document.addEventListener('DOMContentLoaded', () => {
+    // Relative time for "Last chatted at"
+    document.querySelectorAll('.analytics-date-relative').forEach(el => {
+        if (el.dataset.timestamp && window.TimeUtils) {
+            el.textContent = TimeUtils.formatRelativeTime(el.dataset.timestamp);
+            el.title = TimeUtils.formatFullDateTime(el.dataset.timestamp);
+        }
+    });
+    // Keep absolute time for other dates (liked on, followed on)
     document.querySelectorAll('.analytics-date').forEach(el => {
-        if (el.dataset.timestamp) {
+        if (el.dataset.timestamp && window.TimeUtils) {
             el.textContent = TimeUtils.formatDateOnly(el.dataset.timestamp);
             el.title = TimeUtils.formatFullDateTime(el.dataset.timestamp);
         }

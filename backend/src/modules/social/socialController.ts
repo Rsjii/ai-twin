@@ -853,35 +853,85 @@ export const getTwinChatters = async (req: Request, res: Response) => {
 
     const twinOwnerId = twinResult.rows[0].userId;
     
-// Get users who have chatted with this twin (PUBLIC chats only, excluding owner)
-const chattersResult = await db.query(
-  `SELECT DISTINCT
-      u.id,
-      u.name,
-      u.handle,
-      u."profileImage",
-      MAX(c."createdAt") as "lastChatAt",
-      COUNT(DISTINCT c.id) as "chatCount"
-   FROM "PublicChat" c
-   JOIN "User" u ON c."userId" = u.id
-   WHERE c."twinId" = $1
-     AND u.id <> $2        -- ❌ owner ko hatao
-   GROUP BY u.id, u.name, u.handle, u."profileImage"
-   ORDER BY "lastChatAt" DESC
-   LIMIT 100`,
-  [twinId, twinOwnerId]      
+    // Get logged-in users who chatted (with message counts)
+    const loggedInUsersResult = await db.query(
+      `SELECT DISTINCT
+          u.id,
+          u.name,
+          u.handle,
+          u."profileImage",
+          MAX(c."createdAt") as "lastChatAt",
+          MIN(c."createdAt") as "firstChatAt",
+          COUNT(DISTINCT c.id) as "chatCount",
+          COUNT(DISTINCT m.id) as "messageCount"
+       FROM "PublicChat" c
+       JOIN "User" u ON c."userId" = u.id
+       LEFT JOIN "PublicMessage" m ON c.id = m."chatId" AND m.sender = 'human'
+       WHERE c."twinId" = $1
+         AND c."userId" IS NOT NULL
+         AND c."userId" <> $2
+         AND EXISTS (
+           SELECT 1 FROM "PublicMessage" pm 
+           WHERE pm."chatId" = c.id 
+           AND pm.sender = 'human'
+         )
+       GROUP BY u.id, u.name, u.handle, u."profileImage"
+       ORDER BY "lastChatAt" DESC
+       LIMIT 100`,
+      [twinId, twinOwnerId]
     );
+    
+    // Get anonymous users (grouped)
+    const anonymousResult = await db.query(
+      `SELECT 
+          COUNT(DISTINCT c.id) as "chatCount",
+          COUNT(DISTINCT m.id) as "messageCount",
+          MIN(c."createdAt") as "firstChatAt",
+          MAX(c."createdAt") as "lastChatAt"
+       FROM "PublicChat" c
+       LEFT JOIN "PublicMessage" m ON c.id = m."chatId" AND m.sender = 'human'
+       WHERE c."twinId" = $1
+         AND c."userId" IS NULL
+         AND EXISTS (
+           SELECT 1 FROM "PublicMessage" pm 
+           WHERE pm."chatId" = c.id 
+           AND pm.sender = 'human'
+         )`,
+      [twinId]
+    );
+    
+    const loggedInUsers = loggedInUsersResult.rows.map(row => ({
+      publicId: tokenizeId(row.id, 'user'),
+      name: row.name,
+      handle: row.handle,
+      profileImage: row.profileImage,
+      lastChatAt: row.lastChatAt,
+      firstChatAt: row.firstChatAt,
+      chatCount: parseInt(row.chatCount) || 0,
+      messageCount: parseInt(row.messageCount) || 0
+    }));
+    
+    // Add anonymous entry if exists
+    const anonymousData = anonymousResult.rows[0];
+    const anonymousEntry = anonymousData && (parseInt(anonymousData.messageCount) > 0) ? {
+      publicId: null,
+      name: 'Anonymous Users',
+      handle: 'anonymous',
+      profileImage: null,
+      lastChatAt: anonymousData.lastChatAt,
+      firstChatAt: anonymousData.firstChatAt,
+      chatCount: parseInt(anonymousData.chatCount) || 0,
+      messageCount: parseInt(anonymousData.messageCount) || 0,
+      isAnonymous: true
+    } : null;
+    
+    const chatters = anonymousEntry 
+      ? [...loggedInUsers, anonymousEntry]
+      : loggedInUsers;
     
     res.json({
       success: true,
-      chatters: chattersResult.rows.map(row => ({
-        publicId: tokenizeId(row.id, 'user'),
-        name: row.name,
-        handle: row.handle,
-        profileImage: row.profileImage,
-        lastChatAt: row.lastChatAt,
-        chatCount: parseInt(row.chatCount) || 0
-      }))
+      chatters: chatters
     });
   } catch (error) {
     logger.error('Get twin chatters error:', error);

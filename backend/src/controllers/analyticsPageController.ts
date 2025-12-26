@@ -400,7 +400,8 @@ if (twinId) {
       );
       total = parseInt(countResult.rows[0]?.count || '0');
     } else if (type === 'chatters') {
-      const result = await db.query(
+      // Get logged-in users
+      const loggedInUsersResult = await db.query(
         `SELECT DISTINCT
             u.id,
             u.name,
@@ -421,15 +422,21 @@ if (twinId) {
             ) as "twinPublicHandle"
          FROM "PublicChat" c
          JOIN "User" u ON c."userId" = u.id
-         LEFT JOIN "PublicMessage" m ON c.id = m."chatId"
+         LEFT JOIN "PublicMessage" m ON c.id = m."chatId" AND m.sender = 'human'
          WHERE c."twinId" = ANY($1::text[])
-          AND NOT EXISTS (
-            SELECT 1
-            FROM "Twin" t2
-            JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
-            WHERE t2."userId" = u.id
-              AND tbu."userId" = $2
-          )
+           AND c."userId" IS NOT NULL
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = u.id
+               AND tbu."userId" = $2
+           )
+           AND EXISTS (
+             SELECT 1 FROM "PublicMessage" pm 
+             WHERE pm."chatId" = c.id 
+             AND pm.sender = 'human'
+           )
          ${search ? `AND (u.name ILIKE $3 OR u.handle ILIKE $3)` : ''}
          GROUP BY u.id, u.name, u.handle, u."profileImage"
          ORDER BY "lastChatAt" DESC
@@ -439,23 +446,81 @@ if (twinId) {
           : [targetTwinIds, req.user.id, parsedLimit, offset],
       );
       
-      data = result.rows || [];
-    
+      // Get anonymous users (grouped) - only if not searching
+      let anonymousEntry = null;
+      if (!search) {
+        const anonymousResult = await db.query(
+          `SELECT 
+              COUNT(DISTINCT c.id) as "chatCount",
+              COUNT(DISTINCT m.id) as "messageCount",
+              MIN(c."createdAt") as "firstChatAt",
+              MAX(c."createdAt") as "lastChatAt"
+           FROM "PublicChat" c
+           LEFT JOIN "PublicMessage" m ON c.id = m."chatId" AND m.sender = 'human'
+           WHERE c."twinId" = ANY($1::text[])
+             AND c."userId" IS NULL
+             AND EXISTS (
+               SELECT 1 FROM "PublicMessage" pm 
+               WHERE pm."chatId" = c.id 
+               AND pm.sender = 'human'
+             )`,
+          [targetTwinIds]
+        );
+        
+        if (anonymousResult.rows.length > 0 && parseInt(anonymousResult.rows[0].messageCount) > 0) {
+          const anon = anonymousResult.rows[0];
+          anonymousEntry = {
+            id: null,
+            name: 'Anonymous Users',
+            handle: 'anonymous',
+            profileImage: null,
+            lastChatAt: anon.lastChatAt,
+            firstChatAt: anon.firstChatAt,
+            chatCount: parseInt(anon.chatCount) || 0,
+            messageCount: parseInt(anon.messageCount) || 0,
+            twinPublicHandle: null,
+            isAnonymous: true
+          };
+        }
+      }
+      
+      // Combine logged-in users with anonymous entry - ensure messageCount is parsed as integer
+      const loggedInUsers = (loggedInUsersResult.rows || []).map(row => ({
+        ...row,
+        chatCount: parseInt(row.chatCount) || 0,
+        messageCount: parseInt(row.messageCount) || 0,
+        publicUserId: tokenizeId(row.id, 'user') // ✅ Add tokenized user ID for query params
+      }));
+      data = anonymousEntry 
+        ? [...loggedInUsers, anonymousEntry]
+        : loggedInUsers;
+      
+      // Count query - include anonymous
       const countResult = await db.query(
-        `SELECT COUNT(DISTINCT u.id) as count
+        `SELECT 
+            COUNT(DISTINCT u.id) as count
          FROM "PublicChat" c
          JOIN "User" u ON c."userId" = u.id
          WHERE c."twinId" = ANY($1::text[])
+           AND c."userId" IS NOT NULL
            AND NOT EXISTS (
              SELECT 1
              FROM "Twin" t2
              JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
              WHERE t2."userId" = u.id
                AND tbu."userId" = $2
+           )
+           AND EXISTS (
+             SELECT 1 FROM "PublicMessage" pm 
+             WHERE pm."chatId" = c.id 
+             AND pm.sender = 'human'
            )`,
         [targetTwinIds, req.user.id],
       );
-      total = parseInt(countResult.rows[0]?.count || '0');
+      
+      // Add 1 if anonymous exists
+      const loggedInCount = parseInt(countResult.rows[0]?.count || '0');
+      total = anonymousEntry ? loggedInCount + 1 : loggedInCount;
     }      
 
    else {

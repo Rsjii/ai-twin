@@ -279,22 +279,25 @@ try {
     summary30DaysResult,
   ] = await Promise.all([
     db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "userId" = $1', [userId]),
-    // ✅ Audience-facing total chats: count public chats on all my twins,
+    // ✅ Audience-facing total chats: count messages (including anonymous)
     //    excluding users who have blocked me via their own twins.
     db.query(`
-      SELECT COUNT(DISTINCT pc.id) as count
-      FROM "PublicChat" pc
+      SELECT COUNT(*) as count
+      FROM "PublicMessage" pm
+      JOIN "PublicChat" pc ON pm."chatId" = pc.id
       JOIN "Twin" t ON pc."twinId" = t.id
       WHERE t."userId" = $1
-        AND pc."userId" IS NOT NULL
-        AND pc."messageCount" > 0
-        AND NOT EXISTS (
-          SELECT 1
-          FROM "Twin" t2
-          JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
-          WHERE t2."userId" = pc."userId"
-            AND tbu."userId" = $1
-        )
+        AND pm.sender = 'human'
+        AND (pc."userId" IS NULL OR (
+          pc."userId" IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "Twin" t2
+            JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+            WHERE t2."userId" = pc."userId"
+              AND tbu."userId" = $1
+          )
+        ))
     `, [userId]),
     db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [userId]),
     db.query('SELECT COUNT(*) as count FROM "Invite" WHERE "inviterId" = $1', [userId]),
@@ -366,11 +369,19 @@ try {
         COUNT(CASE WHEN type = 'twin_liked' THEN 1 END) as new_likes,
         COUNT(CASE WHEN type = 'twin_followed' THEN 1 END) as new_followers,
         COUNT(CASE WHEN type = 'twin_shared' THEN 1 END) as new_shares,
-        COUNT(CASE WHEN type = 'message_approved' THEN 1 END) as new_messages
+        (SELECT COUNT(*) 
+         FROM "PublicMessage" pm
+         JOIN "PublicChat" pc ON pm."chatId" = pc.id
+         JOIN "Twin" t ON pc."twinId" = t.id
+         WHERE t."userId" = $1
+           AND pm.sender = 'human'
+           AND (pc."userId" IS NULL OR pc."userId" <> $1)
+           AND pm."createdAt" >= NOW() - INTERVAL '7 days'
+        ) as new_messages
       FROM "Event"
       WHERE "userId" = $1
         AND "createdAt" >= NOW() - INTERVAL '7 days'
-        AND type IN ('public_chat_started', 'twin_liked', 'twin_followed', 'twin_shared', 'message_approved')
+        AND type IN ('public_chat_started', 'twin_liked', 'twin_followed', 'twin_shared')
     `, [userId]),
     // ✅ NEW: Last 30 days summary (only engagement events)
     db.query(`
@@ -379,11 +390,19 @@ try {
         COUNT(CASE WHEN type = 'twin_liked' THEN 1 END) as new_likes,
         COUNT(CASE WHEN type = 'twin_followed' THEN 1 END) as new_followers,
         COUNT(CASE WHEN type = 'twin_shared' THEN 1 END) as new_shares,
-        COUNT(CASE WHEN type = 'message_approved' THEN 1 END) as new_messages
+        (SELECT COUNT(*) 
+         FROM "PublicMessage" pm
+         JOIN "PublicChat" pc ON pm."chatId" = pc.id
+         JOIN "Twin" t ON pc."twinId" = t.id
+         WHERE t."userId" = $1
+           AND pm.sender = 'human'
+           AND (pc."userId" IS NULL OR pc."userId" <> $1)
+           AND pm."createdAt" >= NOW() - INTERVAL '30 days'
+        ) as new_messages
       FROM "Event"
       WHERE "userId" = $1
         AND "createdAt" >= NOW() - INTERVAL '30 days'
-        AND type IN ('public_chat_started', 'twin_liked', 'twin_followed', 'twin_shared', 'message_approved')
+        AND type IN ('public_chat_started', 'twin_liked', 'twin_followed', 'twin_shared')
     `, [userId]),
   ]);
 
