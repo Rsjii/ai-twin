@@ -116,17 +116,29 @@
                     } else {
                         content.innerHTML = list.map(user => {
                             const date = user.likedAt || user.followedAt || user.lastChatAt;
+                            const isAnonymous = user.isAnonymous || user.handle === 'anonymous';
+                            const displayName = isAnonymous ? 'Anonymous Users' : (user.name || 'Anonymous');
+                            const avatarContent = isAnonymous 
+                                ? `<span>👤</span>`
+                                : (user.profileImage 
+                                    ? `<img src="${user.profileImage}" alt="${displayName}" class="w-full h-full rounded-full object-cover">` 
+                                    : `<span>${(user.name || user.handle || 'U').charAt(0).toUpperCase()}</span>`);
+                            
+                            // For chatters type, show chat/message count - always show for logged in users
+                            const statsHtml = type === 'chatters'
+                                ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                     ${user.chatCount || 0} chats${user.messageCount ? `, ${user.messageCount} messages` : ', 0 messages'}
+                                   </p>`
+                                : '';
+                            
                             return `
-                                <div class="flex items-center py-3 border-b border-gray-200 dark:border-gray-700 last:border-0">
-                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold mr-3 overflow-hidden">
-                                        ${user.profileImage ? 
-                                            `<img src="${user.profileImage}" alt="${user.name || ''}" class="w-full h-full rounded-full object-cover">` :
-                                            `<span>${(user.name || user.handle || 'U').charAt(0).toUpperCase()}</span>`
-                                        }
+                                <div class="flex items-center py-3 border-b border-gray-200 dark:border-gray-700 last:border-0 ${isAnonymous ? 'bg-gray-50 dark:bg-gray-800/50' : ''}">
+                                    <div class="w-10 h-10 rounded-full ${isAnonymous ? 'bg-gray-300 dark:bg-gray-600' : 'bg-gradient-to-br from-blue-500 to-purple-600'} flex items-center justify-center text-white font-bold mr-3 overflow-hidden">
+                                        ${avatarContent}
                                     </div>
                                     <div class="flex-1">
-                                        <p class="font-medium text-gray-900 dark:text-white">${user.name || 'Anonymous'}</p>
-                                        ${user.handle ? `<p class="text-sm text-gray-500 dark:text-gray-400">@${user.handle}</p>` : ''}
+                                        <p class="font-medium text-gray-900 dark:text-white">${displayName}</p>
+                                        ${statsHtml}
                                     </div>
                                     ${date ? `<p class="text-xs text-gray-400 dark:text-gray-500">${formatTime(date)}</p>` : ''}
                                 </div>

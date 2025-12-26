@@ -37,8 +37,14 @@ export async function getTwinManage(req: any, res: Response) {
     // Fetch twin analytics - using CORRECT table names that exist
     const analyticsResult = await fastQuery(`
       SELECT 
-        -- Total chats: both PublicChat and private Chat
-        (SELECT COUNT(*) FROM "PublicChat" WHERE "twinId" = $1 AND "userId" <> $2 AND "messageCount" > 0) as chats,
+        -- Total chats: count messages (including anonymous)
+        (SELECT COUNT(*) 
+         FROM "PublicMessage" pm
+         JOIN "PublicChat" pc ON pm."chatId" = pc.id
+         WHERE pc."twinId" = $1
+           AND pm.sender = 'human'
+           AND (pc."userId" IS NULL OR pc."userId" <> $2)
+        ) as chats,
         -- Views (lifetime impressions): count profile_viewed events for this owner (exclude self)
         (SELECT COUNT(*)
          FROM "Event"
