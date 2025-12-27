@@ -110,6 +110,11 @@ export const addLongTermMemory = async (req: any, res: Response, next: NextFunct
       throw createError.validation('Value is required');
     }
 
+    // ✅ Max length validation for memory value (5000 characters)
+    if (value.length > 5000) {
+      throw createError.validation('Memory value must be 5000 characters or less');
+    }
+
     // ✅ NEW: Check memory limits before adding
     
     // Get current count for this category
@@ -186,6 +191,11 @@ export const updateLongTermMemory = async (req: any, res: Response, next: NextFu
     
     if (!value || typeof value !== 'string' || value.trim().length === 0) {
       throw createError.validation('Value is required');
+    }
+
+    // ✅ Max length validation for memory value (5000 characters)
+    if (value.length > 5000) {
+      throw createError.validation('Memory value must be 5000 characters or less');
     }
     
     await verifyTwinOwnership(twinId, userId);

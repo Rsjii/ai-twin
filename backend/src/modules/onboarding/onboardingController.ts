@@ -18,15 +18,16 @@ const twinService = new TwinService();
 // New onboarding schema matching the 5-step flow
 const enhancedOnboardingSchema = z.object({
   basicInfo: z.object({
-    name: z.string().min(1, 'Name is required'),
+    name: z.string().min(1, 'Name is required').max(50, 'Name must be 50 characters or less'),
     oneLineBio: z.string().min(1, 'Bio is required').max(MEMORY_LIMITS.MAX_BIO_CHARS, `Bio must be ${MEMORY_LIMITS.MAX_BIO_CHARS} characters or less`), // ✅ MANDATORY: Twin one-line bio
     role: z.string().min(1, 'Role is required'),
-    roleOther: z.string().optional().default(''),
+    roleOther: z.string().max(50, 'Role description must be 50 characters or less').optional().default(''),
     purpose: z.string().optional(), // NEW: what twin helps with
+    purposeOther: z.string().max(100, 'Purpose description must be 100 characters or less').optional().default(''),
   }),
   styleSamples: z.object({
-    casualSample: z.string().min(20, 'Casual sample must be at least 20 characters'),
-    formalSample: z.string().optional(),
+    casualSample: z.string().min(20, 'Casual sample must be at least 20 characters').max(500, 'Casual sample must be 500 characters or less'),
+    formalSample: z.string().max(500, 'Formal sample must be 500 characters or less').optional(),
   }),
   preferences: z.object({
     // topics user likes (startups, tech, games, etc.) - max 3
@@ -52,23 +53,13 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
     logger.info('=== ENHANCED TWIN CREATION (v2) ===');
     if (isDev) logger.info('Request body:', JSON.stringify(req.body, null, 2));
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'onboardingController.ts:50',message:'createEnhancedTwin entry',data:{hasUser:!!req.user,bodyKeys:Object.keys(req.body||{}),rulesAlways:req.body?.rules?.always,rulesNever:req.body?.rules?.never,bioLength:req.body?.basicInfo?.oneLineBio?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
-
     if (!req.user) return next(createError.unauthorized());
 
     // 1) Validate incoming payload against new schema
     let validatedData;
     try {
       validatedData = enhancedOnboardingSchema.parse(req.body);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'onboardingController.ts:58',message:'Schema validation success',data:{validated:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-      // #endregion
     } catch (zodError: any) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'onboardingController.ts:58',message:'Schema validation failed',data:{errors:zodError.errors,issues:zodError.issues?.map((e:any)=>({path:e.path,message:e.message,code:e.code})),bioLength:req.body?.basicInfo?.oneLineBio?.length,alwaysLengths:req.body?.rules?.always?.map((a:any)=>a?.length),neverLengths:req.body?.rules?.never?.map((n:any)=>n?.length)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-      // #endregion
       logger.error('Enhanced twin creation error:', zodError);
       return next(createError.validation('Validation failed', zodError.errors || zodError.issues));
     }

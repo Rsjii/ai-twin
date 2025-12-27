@@ -73,13 +73,28 @@ export const addTwinAnchor = async (req: any, res: Response, next: NextFunction)
       if (!userUtterance || !idealReply) {
         throw createError.validation('User utterance and ideal reply are required for interactions');
       }
+      // ✅ Max length validation (5000 characters for memory text ingestion)
+      if (userUtterance.length > 5000) {
+        throw createError.validation('User utterance must be 5000 characters or less');
+      }
+      if (idealReply.length > 5000) {
+        throw createError.validation('Ideal reply must be 5000 characters or less');
+      }
     } else if (type === 'phrase') {
       if (!phrase || phrase.trim().length === 0) {
         throw createError.validation('Phrase is required for phrase type anchors');
       }
+      // ✅ Max length validation (5000 characters for memory text ingestion)
+      if (phrase.length > 5000) {
+        throw createError.validation('Phrase must be 5000 characters or less');
+      }
     } else if (type === 'pattern') {
       if (!userUtterance || userUtterance.trim().length === 0) {
         throw createError.validation('Pattern examples (userUtterance) are required for pattern type anchors');
+      }
+      // ✅ Max length validation (5000 characters for memory text ingestion)
+      if (userUtterance.length > 5000) {
+        throw createError.validation('User utterance must be 5000 characters or less');
       }
     }
     
@@ -146,6 +161,17 @@ export const updateTwinAnchor = async (req: any, res: Response, next: NextFuncti
     
     // Verify twin ownership
     await verifyTwinOwnership(twinId, userId);
+    
+    // ✅ Max length validation for style anchor fields (5000 characters)
+    if (userUtterance && userUtterance.length > 5000) {
+      throw createError.validation('User utterance must be 5000 characters or less');
+    }
+    if (idealReply && idealReply.length > 5000) {
+      throw createError.validation('Ideal reply must be 5000 characters or less');
+    }
+    if (phrase && phrase.length > 5000) {
+      throw createError.validation('Phrase must be 5000 characters or less');
+    }
     
     // Update style anchor with all parameters
     const anchor = await styleAnchorsQueries.update(

@@ -19,14 +19,16 @@
                         <label for="name" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Your Name</label>
                         <input type="text" id="name" name="name" required
                             class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent text-base min-h-[44px]"
-                            placeholder="Enter your name" aria-label="Your Name">
+                            placeholder="Enter your name" aria-label="Your Name"
+                            maxlength="50">
                     </div>
                     
                     <div>
                         <label for="email" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
                         <input type="email" id="email" name="email" required
                             class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent text-base min-h-[44px]"
-                            placeholder="your.email@example.com" aria-label="Email Address">
+                            placeholder="your.email@example.com" aria-label="Email Address"
+                            maxlength="254">
                     </div>
                     
                     <div>
@@ -41,13 +43,26 @@
                             <option value="bug">Report a Bug</option>
                             <option value="other">Other</option>
                         </select>
+                        <input
+                            id="subjectOther"
+                            name="subjectOther"
+                            type="text"
+                            class="mt-2 w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent text-base min-h-[44px] hidden"
+                            placeholder="Please specify the subject..."
+                            maxlength="100"
+                        />
+                        <div id="subjectOther-error" class="hidden mt-1 text-xs text-red-600 dark:text-red-400"></div>
                     </div>
                     
                     <div>
                         <label for="message" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Message</label>
                         <textarea id="message" name="message" rows="6" required
                             class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent resize-none text-base"
-                            placeholder="Tell us how we can help..." aria-label="Message"></textarea>
+                            placeholder="Tell us how we can help..." aria-label="Message"
+                            maxlength="2000"></textarea>
+                        <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            <span id="contactMessageCharCount">0</span>/2000 characters
+                        </div>
                     </div>
                     
                     <button type="submit" 
@@ -99,26 +114,197 @@
         </div>
     </div>
 </div>
+` }) %>
 
 <script>
-document.getElementById('contactForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const data = {
-        name: formData.get('name'),
-        email: formData.get('email'),
-        subject: formData.get('subject'),
-        message: formData.get('message')
-    };
-    
-    // For now, just show a success message
-    // In production, this would send to your backend
-    showNotification('Thank you for contacting us! We will get back to you soon.\n\nNote: This is a demo. In production, this would send an email to support.', 'success');
-    
-    // Reset form
-    e.target.reset();
-});
+// ✅ Initialize contact form functionality - wait for elements to be available
+(function initContactForm() {
+    function setupContactForm() {
+        // ✅ Character counter for contact form message
+        const messageTextarea = document.getElementById('message');
+        const charCount = document.getElementById('contactMessageCharCount');
+        if (messageTextarea && charCount) {
+            const updateCount = () => {
+                const len = messageTextarea.value.length;
+                charCount.textContent = len;
+            };
+            messageTextarea.addEventListener('input', updateCount);
+            updateCount(); // Initial count
+        }
+
+        // ✅ Subject "other" field show/hide
+        const subjectSelect = document.getElementById('subject');
+        const subjectOther = document.getElementById('subjectOther');
+        if (subjectSelect && subjectOther) {
+            subjectSelect.addEventListener('change', () => {
+                if (subjectSelect.value === 'other') {
+                    subjectOther.classList.remove('hidden');
+                    subjectOther.required = true;
+                } else {
+                    subjectOther.classList.add('hidden');
+                    subjectOther.required = false;
+                    subjectOther.value = '';
+                }
+            });
+        }
+
+        // ✅ Form submit handler
+        const contactForm = document.getElementById('contactForm');
+        if (contactForm) {
+            contactForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // ✅ Validate subjectOther if "other" is selected
+                const subjectSelect = document.getElementById('subject');
+                const subjectOther = document.getElementById('subjectOther');
+                const subjectOtherError = document.getElementById('subjectOther-error');
+                
+                if (subjectSelect && subjectSelect.value === 'other') {
+                    const otherValue = subjectOther?.value?.trim() || '';
+                    if (!otherValue) {
+                        if (subjectOtherError) {
+                            subjectOtherError.textContent = 'Please specify the subject';
+                            subjectOtherError.classList.remove('hidden');
+                        }
+                        if (subjectOther) {
+                            subjectOther.classList.add('border-red-500', 'ring-2', 'ring-red-500/20');
+                            subjectOther.focus();
+                        }
+                        return;
+                    } else {
+                        if (subjectOtherError) {
+                            subjectOtherError.classList.add('hidden');
+                        }
+                        if (subjectOther) {
+                            subjectOther.classList.remove('border-red-500', 'ring-2', 'ring-red-500/20');
+                        }
+                    }
+                }
+                
+                const formData = new FormData(e.target);
+                const subject = formData.get('subject');
+                const data = {
+                    name: formData.get('name'),
+                    email: formData.get('email'),
+                    subject: subject === 'other' ? formData.get('subjectOther') : subject,
+                    message: formData.get('message')
+                };
+
+                // ✅ Submit to backend
+                const submitBtn = contactForm.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn?.textContent || 'Send Message';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Sending...';
+                }
+
+                try {
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || window.csrfToken;
+                    const response = await fetch('/contact', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        // Success
+                        if (window.UI && typeof window.UI.showToast === 'function') {
+                            window.UI.showToast(result.message || 'Thank you for contacting us! We will get back to you soon.', 'success');
+                        } else if (typeof showNotification === 'function') {
+                            showNotification(result.message || 'Thank you for contacting us! We will get back to you soon.', 'success');
+                        }
+                        
+                        // Reset form
+                        e.target.reset();
+                        // Reset character counter
+                        const charCount = document.getElementById('contactMessageCharCount');
+                        if (charCount) charCount.textContent = '0';
+                        // Hide subjectOther field after reset
+                        if (subjectOther) {
+                            subjectOther.classList.add('hidden');
+                            subjectOther.required = false;
+                        }
+                        if (subjectOtherError) {
+                            subjectOtherError.classList.add('hidden');
+                        }
+                    } else {
+                        // Error
+                        const errorMsg = result.error || 'Failed to submit contact form. Please try again.';
+                        if (window.UI && typeof window.UI.showToast === 'function') {
+                            window.UI.showToast(errorMsg, 'error');
+                        } else if (typeof showNotification === 'function') {
+                            showNotification(errorMsg, 'error');
+                        }
+                    }
+                } catch (error) {
+                    // Network error
+                    const errorMsg = 'Network error. Please check your connection and try again.';
+                    if (window.UI && typeof window.UI.showToast === 'function') {
+                        window.UI.showToast(errorMsg, 'error');
+                    } else if (typeof showNotification === 'function') {
+                        showNotification(errorMsg, 'error');
+                    }
+                } finally {
+                    // Re-enable button
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalBtnText;
+                    }
+                }
+            });
+        }
+    }
+
+    // ✅ Try to setup - use multiple strategies to ensure elements are available
+    function trySetup() {
+        const messageTextarea = document.getElementById('message');
+        const subjectSelect = document.getElementById('subject');
+        
+        if (messageTextarea && subjectSelect) {
+            // Elements found, setup now
+            setupContactForm();
+            return true;
+        }
+        return false;
+    }
+
+    // Strategy 1: If DOM is loading, wait for DOMContentLoaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!trySetup()) {
+                // Elements not found yet, wait a bit more
+                setTimeout(() => {
+                    trySetup();
+                }, 200);
+            }
+        });
+    } else {
+        // Strategy 2: DOM already loaded, try immediately then with delay
+        if (!trySetup()) {
+            // Wait for layout to render body
+            setTimeout(() => {
+                if (!trySetup()) {
+                    // Strategy 3: Use MutationObserver as last resort
+                    const observer = new MutationObserver(() => {
+                        if (trySetup()) {
+                            observer.disconnect();
+                        }
+                    });
+                    observer.observe(document.body, { childList: true, subtree: true });
+                    // Timeout after 5 seconds
+                    setTimeout(() => {
+                        observer.disconnect();
+                    }, 5000);
+                }
+            }, 200);
+        }
+    }
+})();
 </script>
-` }) %>
 

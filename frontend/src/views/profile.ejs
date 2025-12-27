@@ -172,6 +172,7 @@
                                         value="<%= user.name || '' %>" 
                                         readonly
                                         class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white"
+                                        maxlength="50"
                                     >
                                     <p id="nameError" class="mt-1 text-xs text-red-500 hidden"></p>
                                 </div>
@@ -192,6 +193,7 @@
                                         value="<%= user.handle || '' %>" 
                                         readonly
                                         class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white"
+                                        maxlength="20"
                                     >
                                     <p id="handleError" class="mt-1 text-xs text-red-500 hidden"></p>
                                 </div>                                
@@ -325,7 +327,7 @@
             <div>
                 <label for="currentPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Password</label>
                 <div class="relative">
-                    <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password" class="w-full px-4 py-3 pr-12 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
+                    <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password" class="w-full px-4 py-3 pr-12 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required maxlength="128">
                     <button type="button" id="toggleCurrentPassword" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                         <!-- Eye closed icon (default) -->
                         <svg id="currentPasswordEyeClosed" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -343,7 +345,7 @@
             <div>
                 <label for="newPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password</label>
                 <div class="relative">
-                    <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password (min 8 chars, uppercase, lowercase, number)" class="w-full px-4 py-3 pr-12 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
+                    <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password (min 8 chars, uppercase, lowercase, number)" class="w-full px-4 py-3 pr-12 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required maxlength="128">
                     <button type="button" id="toggleNewPassword" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                         <!-- Eye closed icon (default) -->
                         <svg id="newPasswordEyeClosed" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -361,7 +363,7 @@
             <div>
                 <label for="confirmPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm New Password</label>
                 <div class="relative">
-                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password" class="w-full px-4 py-3 pr-12 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required>
+                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password" class="w-full px-4 py-3 pr-12 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required maxlength="128">
                     <button type="button" id="toggleConfirmPassword" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                         <!-- Eye closed icon (default) -->
                         <svg id="confirmPasswordEyeClosed" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -473,9 +475,10 @@
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Bio (Optional)</label>
-                                                    <textarea id="publicBio" rows="3" placeholder="Describe your AI twin..." maxlength="150" class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white break-words overflow-wrap-anywhere"></textarea>
+                                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Bio <span class="text-red-500">*</span></label>
+                                                    <textarea id="publicBio" rows="3" placeholder="Describe your AI twin..." maxlength="150" required class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white break-words overflow-wrap-anywhere"></textarea>
                                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><span id="bioCharCount">0</span>/150 characters</p>
+                                                    <div id="publicBio-error" class="hidden mt-1 text-xs text-red-600 dark:text-red-400"></div>
                                                 </div>
                                                 <script>
                                                     // ✅ Fix bio character counter in profile settings twin visibility
@@ -1890,7 +1893,30 @@
                     return;
                 }
                 
-                const bio = document.getElementById('publicBio')?.value || '';
+                const bioInput = document.getElementById('publicBio');
+                const bio = bioInput?.value?.trim() || '';
+                const bioError = document.getElementById('publicBio-error');
+                
+                // ✅ Validate bio is required
+                if (!bio) {
+                    if (bioError) {
+                        bioError.textContent = 'Bio is required to make twin public';
+                        bioError.classList.remove('hidden');
+                    }
+                    if (bioInput) {
+                        bioInput.classList.add('border-red-500', 'ring-2', 'ring-red-500/20');
+                        bioInput.focus();
+                    }
+                    showNotification('Please enter a bio to make your twin public', 'error');
+                    return;
+                } else {
+                    if (bioError) {
+                        bioError.classList.add('hidden');
+                    }
+                    if (bioInput) {
+                        bioInput.classList.remove('border-red-500', 'ring-2', 'ring-red-500/20');
+                    }
+                }
                 
                 // Disable button during submission
                 makeTwinPublicBtn.disabled = true;

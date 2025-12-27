@@ -124,7 +124,97 @@ export class EmailService {
       logger.error('Failed to send OTP email (outer catch):', error);
       return false;
     }
-  }  
+  }
+
+  async sendContactEmail(name: string, email: string, subject: string, message: string): Promise<boolean> {
+    try {
+      // ✅ Check if SMTP credentials are configured
+      if (!config.mail.smtp.host || !config.mail.smtp.user || !config.mail.smtp.pass) {
+        logger.error('SMTP credentials not configured. Cannot send contact email.');
+        return false;
+      }
+
+      const supportEmail = config.mail.from || config.mail.smtp.user;
+      
+      const mailOptions = {
+        from: config.mail.from || config.mail.smtp.user,
+        to: supportEmail,
+        replyTo: email,
+        subject: `Contact Form: ${subject}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f5f5;">
+              <tr>
+                <td align="center" style="padding: 40px 20px;">
+                  <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <tr>
+                      <td style="padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0;">
+                        <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">New Contact Form Submission</h1>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 40px 30px;">
+                        <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 24px; font-weight: 600;">${subject}</h2>
+                        <div style="margin-bottom: 30px;">
+                          <p style="margin: 0 0 10px 0; color: #666666; font-size: 16px; line-height: 1.5;">
+                            <strong>From:</strong> ${name} (${email})
+                          </p>
+                          <p style="margin: 0 0 20px 0; color: #666666; font-size: 16px; line-height: 1.5;">
+                            <strong>Subject:</strong> ${subject}
+                          </p>
+                          <div style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                            <p style="margin: 0; color: #333333; font-size: 16px; line-height: 1.6; white-space: pre-wrap;">${message.replace(/\n/g, '<br>')}</p>
+                          </div>
+                        </div>
+                        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                          <p style="margin: 0; color: #999999; font-size: 14px; line-height: 1.5;">
+                            You can reply directly to this email to respond to ${name}.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 30px; text-align: center; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
+                        <p style="margin: 0; color: #999999; font-size: 12px;">
+                          © ${new Date().getFullYear()} AI Twin. All rights reserved.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+          </html>
+        `,
+      };
+
+      try {
+        logger.info(`Attempting to send contact form email from ${email} to ${supportEmail}`);
+        await this.transporter.sendMail(mailOptions);
+        logger.info(`✅ Contact form email sent successfully to ${supportEmail}`);
+        return true;
+      } catch (error: any) {
+        const errorDetails = {
+          message: error?.message || 'Unknown error',
+          code: error?.code || 'NO_CODE',
+          stack: error?.stack ? error.stack.substring(0, 500) : 'N/A'
+        };
+        
+        logger.error(`❌ Failed to send contact form email:`, errorDetails);
+        return false;
+      }
+    } catch (error) {
+      logger.error('Failed to send contact form email (outer catch):', error);
+      return false;
+    }
+  }
 }
 
 // OTP utilities

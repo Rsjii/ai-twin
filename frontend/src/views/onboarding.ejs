@@ -220,13 +220,14 @@
                   class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                   for="name"
                 >
-                  Name / nickname *
+                  Name / nickname <span class="text-red-500">*</span>
                 </label>
                 <input
                   id="name"
                   type="text"
                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="What do people call you?"
+                  maxlength="50"
                   required
                 />
                                 </div>
@@ -253,7 +254,7 @@
               <!-- Role (Twin role) -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Your twin's role *
+                  Your twin's role <span class="text-red-500">*</span>
                 </label>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   <button type="button" class="chip role-chip" data-value="friend">
@@ -277,6 +278,7 @@
                   type="text"
                   class="mt-2 w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 hidden"
                   placeholder="Optional: describe the role"
+                  maxlength="50"
                 />
                             </div>
 
@@ -297,6 +299,13 @@
                   <option value="remember">Remember things</option>
                   <option value="other">Other</option>
                 </select>
+                <input
+                  id="purposeOther"
+                  type="text"
+                  class="mt-2 w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent hidden"
+                  placeholder="Please specify..."
+                  maxlength="100"
+                />
               </div>
                         </div>
                     </div>
@@ -409,6 +418,7 @@
                   type="text"
                   class="mt-3 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                   placeholder="Other topic you like (press Enter to add)"
+                  maxlength="50"
                 />
                 <div id="likesCustomList" class="mt-2 flex flex-wrap gap-2"></div>
                                     </div>
@@ -443,6 +453,7 @@
                   type="text"
                   class="mt-3 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                   placeholder="Other topic to avoid (press Enter to add)"
+                  maxlength="50"
                 />
                 <div id="avoidsCustomList" class="mt-2 flex flex-wrap gap-2"></div>
                             </div>
@@ -450,7 +461,7 @@
               <!-- Tone & Language Style -->
               <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Tone & language style *
+                  Tone & language style <span class="text-red-500">*</span>
                 </label>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
                   How do you usually communicate? This affects humor and swearing in your twin's responses.
@@ -471,7 +482,7 @@
               <!-- Emojis -->
               <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Emojis *
+                  Emojis <span class="text-red-500">*</span>
                 </label>
                 <div class="flex flex-wrap gap-2">
                   <button type="button" class="chip emoji-chip" data-emoji="low">
@@ -552,7 +563,7 @@
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Engagement style *
+                    Engagement style <span class="text-red-500">*</span>
                   </label>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
                     How should your twin engage with you? This controls whether your twin asks questions to keep conversations going.
@@ -1036,6 +1047,20 @@
           }
         });
       }
+
+      // ✅ Purpose "other" field show/hide
+      const purposeSelect = document.getElementById('purpose');
+      const purposeOther = document.getElementById('purposeOther');
+      if (purposeSelect && purposeOther) {
+        purposeSelect.addEventListener('change', () => {
+          if (purposeSelect.value === 'other') {
+            purposeOther.classList.remove('hidden');
+          } else {
+            purposeOther.classList.add('hidden');
+            purposeOther.value = '';
+          }
+        });
+      }
     }
 
     function addCustomChip(container, text, type) {
@@ -1118,6 +1143,7 @@ function persistOnboardingState() {
     const oneLineBio = document.getElementById('oneLineBio');
     const roleOther = document.getElementById('roleOther');
     const purposeSelect = document.getElementById('purpose');
+    const purposeOther = document.getElementById('purposeOther');
     
     if (nameInput) nameInput.value = b.name || '';
     if (oneLineBio) oneLineBio.value = b.oneLineBio || '';
@@ -1137,6 +1163,17 @@ function persistOnboardingState() {
       } else {
         roleOther.classList.add('hidden');
         roleOther.value = '';
+      }
+    }
+
+    // ✅ Restore purposeOther
+    if (purposeOther) {
+      if (b.purpose === 'other') {
+        purposeOther.classList.remove('hidden');
+        purposeOther.value = b.purposeOther || '';
+      } else {
+        purposeOther.classList.add('hidden');
+        purposeOther.value = '';
       }
     }
   }
@@ -1420,6 +1457,7 @@ function persistOnboardingState() {
         role: getSelectedValue('.role-chip') || '',
         roleOther: document.getElementById('roleOther').value.trim(),
         purpose: document.getElementById('purpose').value || undefined,
+        purposeOther: document.getElementById('purposeOther')?.value?.trim() || undefined,
       };
     }
 
