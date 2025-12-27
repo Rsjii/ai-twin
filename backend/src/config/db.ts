@@ -57,13 +57,22 @@ export const db = {
         return res;
       } catch (error: any) {
         attempts++;
-        logger.error(`[DB] ❌ Database query error (attempt ${attempts}):`, error.message);
-        logger.error(`[DB] ❌ Query was:`, text.substring(0, 200));
-        logger.error(`[DB] ❌ Error code:`, error.code);
-        logger.error(`[DB] ❌ Error details:`, error);
+        // ✅ FIX: Properly serialize error for Pino logger
+        // Pino needs error objects to be passed as the first argument or in 'err' field
+        const errorDetails = {
+          err: error, // Pino will serialize Error objects from 'err' field
+          message: error?.message || String(error),
+          code: error?.code || 'NO_CODE',
+          detail: error?.detail || 'NO_DETAIL',
+          hint: error?.hint || 'NO_HINT',
+          position: error?.position || 'NO_POSITION',
+          query: text.substring(0, 300),
+          params: params ? params.map(p => typeof p === 'string' ? p.substring(0, 50) : p) : [],
+        };
+        logger.error({ ...errorDetails }, `[DB] ❌ Database query error (attempt ${attempts})`);
         
         if (attempts >= maxAttempts) {
-          logger.error('[DB] ❌ Database query failed after all retries:', error);
+          logger.error({ err: error }, '[DB] ❌ Database query failed after all retries:');
           throw error;
         }
         
@@ -86,3 +95,4 @@ export const db = {
 };
 
 export default db;
+export { pool }; // ✅ Export pool for session store

@@ -163,7 +163,7 @@ export const TOKEN_QUOTAS = {
 // ✅ MEMORY LIMITS - Prevent memory overload in LLM prompts
 export const MEMORY_LIMITS = {
   MAX_FACTS: 4,
-  MAX_PREFERENCES: 4,
+  MAX_PREFERENCES: 5,
   MAX_ALWAYS_NEVER_CHARS: 120, // Per item in always/never arrays
   MAX_BIO_CHARS: 150, // Maximum characters for twin bio/oneLineBio
 } as const;

@@ -1,5 +1,6 @@
 import express from 'express';
 import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit'; 
@@ -9,8 +10,11 @@ import fs from 'fs';
 import { config, isProd, isDev } from './config/env';
 import { logger } from './config/logger';
 import { db } from './config/database';
+import { pool } from './config/db'; // ✅ Import pool for session store
 import { errorHandlerMiddleware } from './middleware/errorHandler';
 import passport from 'passport';
+
+const PgSession = connectPgSimple(session);
 //import googleAuthRoutes from './modules/auth/googleAuthRoutes';
 
 // Import API route modules
@@ -186,6 +190,11 @@ const forceInsecureCookies = process.env.FORCE_INSECURE_COOKIES === 'true';
 const sessionCookieSecure = isProd && !forceInsecureCookies;
 
 app.use(session({
+  store: new PgSession({
+    pool: pool, // ✅ Use PostgreSQL pool for persistent sessions
+    tableName: 'session', // Table name (connect-pg-simple default)
+    createTableIfMissing: true, // ✅ Auto-create table if missing
+  }),
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,

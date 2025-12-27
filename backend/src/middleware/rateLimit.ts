@@ -1,15 +1,25 @@
 import rateLimit from 'express-rate-limit';
 import { RATE_LIMITS, formatRetryAfter } from '../config/rateLimitConfig';
 import { OPERATION_RATE_LIMITS } from '../config/constants';
+import { PostgreSQLRateLimitStore } from '../config/rateLimitStore';
 
 /**
  * Rate Limiting Configuration
- * All limiters now use centralized config (prod vs dev)
+ * All limiters now use PostgreSQL store for persistence across restarts
  * See: backend/src/config/rateLimitConfig.ts
  */
 
+/**
+ * Create a store instance for a specific rate limiter
+ * Each store instance knows its default windowMs for new keys
+ */
+function createRateLimitStore(windowMs: number): any {
+  return new PostgreSQLRateLimitStore(windowMs) as any;
+}
+
 // Global rate limiter (applied to all routes)
 export const globalRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.global.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.global.windowMs,
   max: RATE_LIMITS.global.max,
   message: {
@@ -22,6 +32,7 @@ export const globalRateLimit = rateLimit({
 
 // Twin creation rate limiter
 export const twinCreationRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.twinCreation.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.twinCreation.windowMs,
   max: RATE_LIMITS.twinCreation.max,
   keyGenerator: (req) => {
@@ -38,6 +49,7 @@ export const twinCreationRateLimit = rateLimit({
 
 // Draft generation rate limiter
 export const draftGenerationRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.draftGeneration.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.draftGeneration.windowMs,
   max: RATE_LIMITS.draftGeneration.max,
   keyGenerator: (req) => {
@@ -53,6 +65,7 @@ export const draftGenerationRateLimit = rateLimit({
 
 // OTP request rate limiter
 export const otpRequestRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.otpRequest.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.otpRequest.windowMs,
   max: RATE_LIMITS.otpRequest.max,
   keyGenerator: (req: any) => {
@@ -70,6 +83,7 @@ export const otpRequestRateLimit = rateLimit({
 
 // Profile link generation rate limiter
 export const profileLinkRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.profileLink.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.profileLink.windowMs,
   max: RATE_LIMITS.profileLink.max,
   keyGenerator: (req) => {
@@ -85,6 +99,7 @@ export const profileLinkRateLimit = rateLimit({
 
 // Invite creation rate limiter
 export const inviteCreationRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.inviteCreation.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.inviteCreation.windowMs,
   max: RATE_LIMITS.inviteCreation.max,
   keyGenerator: (req) => {
@@ -100,6 +115,7 @@ export const inviteCreationRateLimit = rateLimit({
 
 // API rate limiter (for general API endpoints)
 export const apiRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.api.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.api.windowMs,
   max: RATE_LIMITS.api.max,
   keyGenerator: (req) => {
@@ -115,6 +131,7 @@ export const apiRateLimit = rateLimit({
 
 // Public chat message rate limiter (for anonymous users - strict)
 export const publicChatRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.publicChatAnon.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.publicChatAnon.windowMs,
   max: RATE_LIMITS.publicChatAnon.max,
   keyGenerator: (req) => {
@@ -145,6 +162,7 @@ export const publicChatRateLimit = rateLimit({
 
 // Public chat rate limiter (for authenticated users - higher limit)
 export const publicChatRateLimitAuthenticated = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.publicChatAuth.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.publicChatAuth.windowMs,
   max: RATE_LIMITS.publicChatAuth.max,
   keyGenerator: (req) => {
@@ -170,6 +188,7 @@ export const publicChatRateLimitAuthenticated = rateLimit({
 // Public chat DAILY cap for anonymous users (login wall)
 // ✅ Goal: after N messages/day, force login
 export const publicChatDailyAnonLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.publicChatDailyAnon.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.publicChatDailyAnon.windowMs,
   max: RATE_LIMITS.publicChatDailyAnon.max,
   keyGenerator: (req) => {
@@ -195,6 +214,7 @@ export const publicChatDailyAnonLimit = rateLimit({
 
 // Login attempts limiter (per email/IP)
 export const loginRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.login.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.login.windowMs,
   max: RATE_LIMITS.login.max,
   keyGenerator: (req: any) => {
@@ -211,6 +231,7 @@ export const loginRateLimit = rateLimit({
 
 // OTP verification limiter (signup/login/forgot-password verify)
 export const otpVerifyRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.otpVerify.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.otpVerify.windowMs,
   max: RATE_LIMITS.otpVerify.max,
   keyGenerator: (req: any) => {
@@ -227,6 +248,7 @@ export const otpVerifyRateLimit = rateLimit({
 
 // Change password limiter (per authenticated user)
 export const changePasswordRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.changePassword.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.changePassword.windowMs,
   max: RATE_LIMITS.changePassword.max,
   keyGenerator: (req: any) => {
@@ -242,6 +264,7 @@ export const changePasswordRateLimit = rateLimit({
 
 // ✅ Twin deletion rate limiter (shared limit for both /twin/manage and twin-settings)
 export const twinDeletionRateLimit = rateLimit({
+  store: createRateLimitStore(OPERATION_RATE_LIMITS.TWIN_DELETION.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: OPERATION_RATE_LIMITS.TWIN_DELETION.windowMs,
   max: OPERATION_RATE_LIMITS.TWIN_DELETION.max,
   keyGenerator: (req: any) => {
@@ -275,6 +298,7 @@ export const twinDeletionRateLimit = rateLimit({
 
 // ✅ Twin visibility toggle rate limiter (shared limit for make-public and make-private)
 export const twinVisibilityToggleRateLimit = rateLimit({
+  store: createRateLimitStore(OPERATION_RATE_LIMITS.TWIN_VISIBILITY_TOGGLE.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: OPERATION_RATE_LIMITS.TWIN_VISIBILITY_TOGGLE.windowMs,
   max: OPERATION_RATE_LIMITS.TWIN_VISIBILITY_TOGGLE.max,
   keyGenerator: (req: any) => {
@@ -307,6 +331,7 @@ export const twinVisibilityToggleRateLimit = rateLimit({
 
 // ✅ Contact form rate limiter (IP + email based)
 export const contactFormRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.contactForm.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.contactForm.windowMs,
   max: RATE_LIMITS.contactForm.max,
   keyGenerator: (req: any) => {
@@ -332,6 +357,7 @@ export const contactFormRateLimit = rateLimit({
 
 // ✅ Daily contact form limit (per IP) - prevents abuse
 export const contactFormDailyLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.contactFormDaily.windowMs), // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.contactFormDaily.windowMs,
   max: RATE_LIMITS.contactFormDaily.max,
   keyGenerator: (req: any) => {
