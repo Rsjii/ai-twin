@@ -2,6 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { logger } from '../config/logger';
 import { AppError } from '../utils/errors';
+import { config } from '../config/env';
+
+// ✅ SECURITY: Track session secret hash in session itself to detect changes across restarts
+function getSessionSecretHash(): string {
+  const secret = config.sessionSecret || '';
+  return crypto.createHash('sha256').update(secret).digest('hex').substring(0, 16);
+}
 
 // ✅ Generate CSRF token only on GET (HTML pages)
 export const generateCSRFToken = (req: Request, res: Response, next: NextFunction) => {
@@ -11,11 +18,26 @@ export const generateCSRFToken = (req: Request, res: Response, next: NextFunctio
     return next();
   }
 
+  const currentSecretHash = getSessionSecretHash();
+  const sessionSecretHash = (req.session as any).secretHash;
+
+  // ✅ If secret changed (detected via session), invalidate CSRF token
+  if (sessionSecretHash && sessionSecretHash !== currentSecretHash) {
+    logger.warn('[CSRF] Session secret changed - invalidating CSRF token');
+    delete req.session.csrfToken;
+    (req.session as any).secretHash = currentSecretHash;
+  } else if (!sessionSecretHash) {
+    // First time - store current secret hash in session
+    (req.session as any).secretHash = currentSecretHash;
+  }
+
+  // ✅ Check if existing token is valid
   if (req.session.csrfToken) {
     res.locals.csrfToken = req.session.csrfToken;
     return next();
   }
 
+  // Generate new token
   const newToken = crypto.randomBytes(32).toString('hex');
   req.session.csrfToken = newToken;
   res.locals.csrfToken = newToken;
