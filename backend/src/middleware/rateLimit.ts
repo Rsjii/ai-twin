@@ -1,7 +1,8 @@
 import rateLimit from 'express-rate-limit';
 import { RATE_LIMITS, formatRetryAfter } from '../config/rateLimitConfig';
-import { OPERATION_RATE_LIMITS } from '../config/constants';
+import { OPERATION_RATE_LIMITS, EVENT_TYPES } from '../config/constants';
 import { PostgreSQLRateLimitStore } from '../config/rateLimitStore';
+import { EventLogger } from '../services/eventLogger';
 
 /**
  * Rate Limiting Configuration
@@ -17,6 +18,41 @@ function createRateLimitStore(windowMs: number): any {
   return new PostgreSQLRateLimitStore(windowMs) as any;
 }
 
+/**
+ * Helper function to log rate limit violations as events
+ */
+function logRateLimitViolation(
+  req: any,
+  limiterName: string,
+  key: string,
+  limit: number,
+  windowMs: number
+): void {
+  try {
+    const userId = req.user?.id || req.user?.userId || null;
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    
+    const meta = {
+      limiterName,
+      key: key.substring(0, 100), // Limit key length for logging
+      limit,
+      windowMs,
+      path: req.path,
+      method: req.method,
+      ip,
+      userAgent: req.get('user-agent') || null,
+    };
+
+    if (userId) {
+      EventLogger.logUserEvent(userId, EVENT_TYPES.RATE_LIMIT_EXCEEDED, meta).catch(() => {});
+    } else {
+      EventLogger.logSystemEvent(EVENT_TYPES.RATE_LIMIT_EXCEEDED, meta).catch(() => {});
+    }
+  } catch (error) {
+    // Silent fail - don't break rate limiting if event logging fails
+  }
+}
+
 // Global rate limiter (applied to all routes)
 export const globalRateLimit = rateLimit({
   store: createRateLimitStore(RATE_LIMITS.global.windowMs), // ✅ Use PostgreSQL store with windowMs
@@ -28,6 +64,16 @@ export const globalRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    const key = req.ip || req.socket.remoteAddress || 'unknown';
+    logRateLimitViolation(req, 'global', key, RATE_LIMITS.global.max, RATE_LIMITS.global.windowMs);
+    res.status(429).json({
+      success: false,
+      error: 'Too many requests from this IP, please try again later.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.global.windowMs)
+    });
+  },
 });
 
 // Twin creation rate limiter
@@ -45,6 +91,16 @@ export const twinCreationRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    const key = req.user?.userId || req.user?.id || req.ip || 'unknown';
+    logRateLimitViolation(req, 'twinCreation', key, RATE_LIMITS.twinCreation.max, RATE_LIMITS.twinCreation.windowMs);
+    res.status(429).json({
+      success: false,
+      error: `Twin creation limit exceeded. You can create ${RATE_LIMITS.twinCreation.max} twins per hour.`,
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.twinCreation.windowMs)
+    });
+  },
 });
 
 // Draft generation rate limiter
@@ -61,6 +117,16 @@ export const draftGenerationRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    const key = req.user?.userId || req.user?.id || req.ip || 'unknown';
+    logRateLimitViolation(req, 'draftGeneration', key, RATE_LIMITS.draftGeneration.max, RATE_LIMITS.draftGeneration.windowMs);
+    res.status(429).json({
+      success: false,
+      error: 'Draft generation limit exceeded. Please slow down.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.draftGeneration.windowMs)
+    });
+  },
 });
 
 // OTP request rate limiter
@@ -79,6 +145,17 @@ export const otpRequestRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    const email = (req.body?.email || '').toLowerCase();
+    const key = email || req.ip || 'unknown';
+    logRateLimitViolation(req, 'otpRequest', key, RATE_LIMITS.otpRequest.max, RATE_LIMITS.otpRequest.windowMs);
+    res.status(429).json({
+      success: false,
+      error: 'Too many OTP requests. Please wait before trying again.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.otpRequest.windowMs)
+    });
+  },
 });
 
 // Profile link generation rate limiter
@@ -95,6 +172,16 @@ export const profileLinkRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    const key = req.user?.userId || req.user?.id || req.ip || 'unknown';
+    logRateLimitViolation(req, 'profileLink', key, RATE_LIMITS.profileLink.max, RATE_LIMITS.profileLink.windowMs);
+    res.status(429).json({
+      success: false,
+      error: `Profile link generation limit exceeded. You can generate ${RATE_LIMITS.profileLink.max} links per hour.`,
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.profileLink.windowMs)
+    });
+  },
 });
 
 // Invite creation rate limiter
@@ -111,6 +198,16 @@ export const inviteCreationRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    const key = req.user?.userId || req.user?.id || req.ip || 'unknown';
+    logRateLimitViolation(req, 'inviteCreation', key, RATE_LIMITS.inviteCreation.max, RATE_LIMITS.inviteCreation.windowMs);
+    res.status(429).json({
+      success: false,
+      error: `Invite creation limit exceeded. You can create ${RATE_LIMITS.inviteCreation.max} invites per day.`,
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.inviteCreation.windowMs)
+    });
+  },
 });
 
 // API rate limiter (for general API endpoints)
@@ -127,6 +224,16 @@ export const apiRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    const key = req.user?.userId || req.user?.id || req.ip || 'unknown';
+    logRateLimitViolation(req, 'api', key, RATE_LIMITS.api.max, RATE_LIMITS.api.windowMs);
+    res.status(429).json({
+      success: false,
+      error: 'API rate limit exceeded. Please slow down your requests.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.api.windowMs)
+    });
+  },
 });
 
 // Public chat message rate limiter (for anonymous users - strict)
@@ -146,6 +253,8 @@ export const publicChatRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
+    const key = req.ip || req.socket.remoteAddress || 'unknown';
+    logRateLimitViolation(req, 'publicChatAnon', key, RATE_LIMITS.publicChatAnon.max, RATE_LIMITS.publicChatAnon.windowMs);
     res.status(429).json({
       success: false,
       error: 'Too many messages. Please wait before sending another.',
@@ -176,6 +285,8 @@ export const publicChatRateLimitAuthenticated = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
+    const key = req.user?.id || req.user?.userId || req.ip || 'unknown';
+    logRateLimitViolation(req, 'publicChatAuth', key, RATE_LIMITS.publicChatAuth.max, RATE_LIMITS.publicChatAuth.windowMs);
     res.status(429).json({
       success: false,
       error: 'Too many messages. Please wait before sending another.',
@@ -201,7 +312,9 @@ export const publicChatDailyAnonLimit = rateLimit({
     // Logged-in users should not hit anonymous daily wall
     return !!req.user?.id || !!req.user?.userId;
   },
-  handler: (_req, res) => {
+  handler: (req, res) => {
+    const key = req.ip || req.socket.remoteAddress || 'unknown';
+    logRateLimitViolation(req, 'publicChatDailyAnon', key, RATE_LIMITS.publicChatDailyAnon.max, RATE_LIMITS.publicChatDailyAnon.windowMs);
     return res.status(429).json({
       success: false,
       error: 'Daily limit reached. Please login to continue.',
@@ -227,6 +340,17 @@ export const loginRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    const email = (req.body?.email || '').toLowerCase();
+    const key = email || req.ip || 'unknown';
+    logRateLimitViolation(req, 'login', key, RATE_LIMITS.login.max, RATE_LIMITS.login.windowMs);
+    res.status(429).json({
+      success: false,
+      error: 'Too many login attempts. Please try again later.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.login.windowMs)
+    });
+  },
 });
 
 // OTP verification limiter (signup/login/forgot-password verify)
@@ -244,6 +368,17 @@ export const otpVerifyRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    const email = (req.body?.email || '').toLowerCase();
+    const key = email || req.ip || 'unknown';
+    logRateLimitViolation(req, 'otpVerify', key, RATE_LIMITS.otpVerify.max, RATE_LIMITS.otpVerify.windowMs);
+    res.status(429).json({
+      success: false,
+      error: 'Too many OTP verification attempts. Please wait a bit and try again.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.otpVerify.windowMs)
+    });
+  },
 });
 
 // Change password limiter (per authenticated user)
@@ -260,6 +395,16 @@ export const changePasswordRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    const key = req.user?.id || req.user?.userId || req.ip || 'unknown';
+    logRateLimitViolation(req, 'changePassword', key, RATE_LIMITS.changePassword.max, RATE_LIMITS.changePassword.windowMs);
+    res.status(429).json({
+      success: false,
+      error: 'Too many password change attempts. Please try again later.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.changePassword.windowMs)
+    });
+  },
 });
 
 // ✅ Twin deletion rate limiter (shared limit for both /twin/manage and twin-settings)
@@ -282,6 +427,9 @@ export const twinDeletionRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
+    const userId = req.user?.id || req.user?.userId || req.ip || 'unknown';
+    const key = `twin_deletion:${userId}`;
+    logRateLimitViolation(req, 'twinDeletion', key, OPERATION_RATE_LIMITS.TWIN_DELETION.max, OPERATION_RATE_LIMITS.TWIN_DELETION.windowMs);
     // ✅ Custom handler to ensure proper JSON response for frontend error handling
     res.status(429).json({
       success: false,
@@ -316,6 +464,9 @@ export const twinVisibilityToggleRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
+    const userId = req.user?.id || req.user?.userId || req.ip || 'unknown';
+    const key = `twin_visibility_toggle:${userId}`;
+    logRateLimitViolation(req, 'twinVisibilityToggle', key, OPERATION_RATE_LIMITS.TWIN_VISIBILITY_TOGGLE.max, OPERATION_RATE_LIMITS.TWIN_VISIBILITY_TOGGLE.windowMs);
     // ✅ Custom handler to ensure proper JSON response for frontend error handling
     res.status(429).json({
       success: false,
@@ -346,6 +497,9 @@ export const contactFormRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
+    const email = (req.body?.email || '').toLowerCase();
+    const key = email || req.ip || req.socket.remoteAddress || 'unknown';
+    logRateLimitViolation(req, 'contactForm', key, RATE_LIMITS.contactForm.max, RATE_LIMITS.contactForm.windowMs);
     res.status(429).json({
       success: false,
       error: 'Too many contact form submissions. Please wait before trying again.',
@@ -367,6 +521,8 @@ export const contactFormDailyLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
+    const key = req.ip || req.socket.remoteAddress || 'unknown';
+    logRateLimitViolation(req, 'contactFormDaily', key, RATE_LIMITS.contactFormDaily.max, RATE_LIMITS.contactFormDaily.windowMs);
     res.status(429).json({
       success: false,
       error: 'Daily contact form limit reached. Please try again tomorrow.',

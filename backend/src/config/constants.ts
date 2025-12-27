@@ -143,6 +143,7 @@ export const EVENT_TYPES = {
   // System
   ERROR: 'error',
   API_ERROR: 'api_error',
+  RATE_LIMIT_EXCEEDED: 'rate_limit_exceeded', // ✅ Rate limit violations tracking
   
   // Add if profile_completed is needed:
   PROFILE_COMPLETED: 'profile_completed', // Optional - add if you want to track this
