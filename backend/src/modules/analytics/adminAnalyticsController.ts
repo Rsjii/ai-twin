@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { db } from '../../config/database';
+import { adminAnalyticsDb } from '../../config/db'; // ✅ Use admin analytics DB (production DB when running locally)
 import { logger } from '../../config/logger';
 import { ADMIN_EMAILS, QUERY_LIMITS } from '../../config/constants';
 import { sanitizeUser, sanitizeTwin, sanitizeChat, sanitizeMessage, sanitizeEvent, sanitizeInvite, tokenizeId, detokenizeId } from '../../utils/idTokenization';
@@ -120,64 +120,64 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       topTokenUsersResult
     ] = await Promise.all([
       // Lifetime metrics
-      db.query('SELECT COUNT(*) as count FROM "User"'),
-      db.query('SELECT COUNT(*) as count FROM "Twin"'),
-      db.query('SELECT COUNT(*) as count FROM "Chat"'),
-      db.query('SELECT COUNT(*) as count FROM "Message"'),
-      db.query('SELECT COUNT(*) as count FROM "Event"'),
-      db.query('SELECT COUNT(*) as count FROM "Invite"'),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "User"'),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Twin"'),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Chat"'),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Message"'),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Event"'),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Invite"'),
       
       // Daily metrics (today) - optimized to use index-friendly range queries
-      db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
-      db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
-      db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
-      db.query('SELECT COUNT(*) as count FROM "Message" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
-      db.query('SELECT COUNT(*) as count FROM "Event" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Twin" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Chat" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Message" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Event" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
       
       // Weekly metrics (last 7 days)
-      db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
-      db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
-      db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
-      db.query('SELECT COUNT(*) as count FROM "Message" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
-      db.query('SELECT COUNT(*) as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Twin" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Chat" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Message" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
       
       // Monthly metrics (last 30 days)
-      db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
-      db.query('SELECT COUNT(*) as count FROM "Twin" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
-      db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
-      db.query('SELECT COUNT(*) as count FROM "Message" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
-      db.query('SELECT COUNT(*) as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Twin" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Chat" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Message" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
       
       // User activity metrics
-      db.query('SELECT COUNT(DISTINCT "userId") as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'1 day\''),
-      db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
-      db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
-      db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
+      adminAnalyticsDb.query('SELECT COUNT(DISTINCT "userId") as count FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'1 day\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= CURRENT_DATE AND "createdAt" < CURRENT_DATE + INTERVAL \'1 day\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'30 days\''),
       
       // Engagement metrics
-      db.query('SELECT AVG(message_count) as avg FROM (SELECT COUNT(*) as message_count FROM "Message" GROUP BY "chatId") as subquery'),
-      db.query('SELECT AVG(chat_count) as avg FROM (SELECT COUNT(*) as chat_count FROM "Chat" GROUP BY "userId") as subquery'),
-      db.query('SELECT AVG(event_count) as avg FROM (SELECT COUNT(*) as event_count FROM "Event" GROUP BY "userId") as subquery'),
+      adminAnalyticsDb.query('SELECT AVG(message_count) as avg FROM (SELECT COUNT(*) as message_count FROM "Message" GROUP BY "chatId") as subquery'),
+      adminAnalyticsDb.query('SELECT AVG(chat_count) as avg FROM (SELECT COUNT(*) as chat_count FROM "Chat" GROUP BY "userId") as subquery'),
+      adminAnalyticsDb.query('SELECT AVG(event_count) as avg FROM (SELECT COUNT(*) as event_count FROM "Event" GROUP BY "userId") as subquery'),
       
       // Top performing content
-      db.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle, u.name as userName FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."likeCount" DESC, t."chatCount" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
-      db.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(e.id) as eventCount FROM "User" u LEFT JOIN "Event" e ON u.id = e."userId" GROUP BY u.id ORDER BY eventCount DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
+      adminAnalyticsDb.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle, u.name as userName FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."likeCount" DESC, t."chatCount" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
+      adminAnalyticsDb.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(e.id) as eventCount FROM "User" u LEFT JOIN "Event" e ON u.id = e."userId" GROUP BY u.id ORDER BY eventCount DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
       
       // Event breakdown
-      db.query('SELECT type, COUNT(*) as count FROM "Event" GROUP BY type ORDER BY count DESC'),
+      adminAnalyticsDb.query('SELECT type, COUNT(*) as count FROM "Event" GROUP BY type ORDER BY count DESC'),
       
       // Recent activity
-      db.query(`SELECT id, email, handle, name, "createdAt", active FROM "User" ORDER BY "createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),      
-      db.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
-      db.query(`SELECT c.id, c."userId", c."twinId", c."createdAt", u.handle as userHandle FROM "Chat" c JOIN "User" u ON c."userId" = u.id ORDER BY c."createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
-      db.query(`SELECT e.id, e."userId", e.type, e.meta, e."createdAt", u.handle as userHandle FROM "Event" e LEFT JOIN "User" u ON e."userId" = u.id ORDER BY e."createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ACTIVITY}`),
+      adminAnalyticsDb.query(`SELECT id, email, handle, name, "createdAt", active FROM "User" ORDER BY "createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),      
+      adminAnalyticsDb.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
+      adminAnalyticsDb.query(`SELECT c.id, c."userId", c."twinId", c."createdAt", u.handle as userHandle FROM "Chat" c JOIN "User" u ON c."userId" = u.id ORDER BY c."createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
+      adminAnalyticsDb.query(`SELECT e.id, e."userId", e.type, e.meta, e."createdAt", u.handle as userHandle FROM "Event" e LEFT JOIN "User" u ON e."userId" = u.id ORDER BY e."createdAt" DESC LIMIT ${QUERY_LIMITS.RECENT_ACTIVITY}`),
       
       // NEW: Activation metrics
       // Total signups
-      db.query('SELECT COUNT(*) as count FROM "Event" WHERE type = $1', ['signup']),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Event" WHERE type = $1', ['signup']),
       
       // Signups who created twin within 24h
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT COUNT(DISTINCT s."userId") as count
         FROM "Event" s
         WHERE s.type = 'signup'
@@ -190,7 +190,7 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       `),
       
       // Signups who started chat within 24h
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT COUNT(DISTINCT s."userId") as count
         FROM "Event" s
         WHERE s.type = 'signup'
@@ -203,7 +203,7 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       `),
       
       // Signups who approved message within 72h
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT COUNT(DISTINCT s."userId") as count
         FROM "Event" s
         WHERE s.type = 'signup'
@@ -217,7 +217,7 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       
       // NEW: Retention metrics
       // D1 Retention: Users who signed up and came back within 1 day
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT COUNT(DISTINCT s."userId") as count
         FROM "Event" s
         WHERE s.type = 'signup'
@@ -232,7 +232,7 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       `),
       
       // D7 Retention: Users who signed up and came back within 7 days
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT COUNT(DISTINCT s."userId") as count
         FROM "Event" s
         WHERE s.type = 'signup'
@@ -247,7 +247,7 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       `),
       
       // D30 Retention: Users who signed up and came back within 30 days
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT COUNT(DISTINCT s."userId") as count
         FROM "Event" s
         WHERE s.type = 'signup'
@@ -262,7 +262,7 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       `),
       
       // Cohort data: Monthly cohorts with retention
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT 
           DATE_TRUNC('month', s."createdAt") as cohort_month,
           COUNT(DISTINCT s."userId") as signups,
@@ -289,13 +289,13 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       
       // NEW: Virality metrics
       // Total invites sent
-      db.query('SELECT COUNT(*) as count FROM "Event" WHERE type = $1', ['invite_sent']),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Event" WHERE type = $1', ['invite_sent']),
       
       // Total invites accepted
-      db.query('SELECT COUNT(*) as count FROM "Event" WHERE type = $1', ['invite_accepted']),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Event" WHERE type = $1', ['invite_accepted']),
       
       // Invites per active user (last 30 days)
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT 
           COUNT(DISTINCT i."userId") as active_users,
           COUNT(*) FILTER (WHERE i.type = 'invite_sent') as invites_sent
@@ -305,7 +305,7 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       `),
       
       // Shares per active user (last 30 days)
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT 
           COUNT(DISTINCT s."userId") as active_users,
           COUNT(*) FILTER (WHERE s.type IN ('twin_shared', 'share_clicked', 'profile_shared')) as shares
@@ -315,7 +315,7 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       `),
       
       // Invite conversion rate (invites accepted / invites sent)
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT 
           COUNT(*) FILTER (WHERE type = 'invite_sent') as sent,
           COUNT(*) FILTER (WHERE type = 'invite_accepted') as accepted
@@ -324,21 +324,21 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       `),
       // ✅ FIX: DAU/WAU/MAU - Count distinct users with activity (not just signups)
       // DAU: Unique users active in last 24 hours
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT COUNT(DISTINCT "userId") as count 
         FROM "Event" 
         WHERE "createdAt" >= NOW() - INTERVAL '24 hours'
         AND "userId" IS NOT NULL
       `),
       // WAU: Unique users active in last 7 days
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT COUNT(DISTINCT "userId") as count 
         FROM "Event" 
         WHERE "createdAt" >= NOW() - INTERVAL '7 days'
         AND "userId" IS NOT NULL
       `),
       // MAU: Unique users active in last 30 days
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT COUNT(DISTINCT "userId") as count 
         FROM "Event" 
         WHERE "createdAt" >= NOW() - INTERVAL '30 days'
@@ -346,17 +346,17 @@ export const getAdminAnalytics = async (req: Request, res: Response) => {
       `),
       
       // NEW: Token usage metrics (from ai_runs)
-      db.query('SELECT SUM(tokens_in + tokens_out) as total FROM ai_runs'),
-      db.query('SELECT SUM(tokens_in + tokens_out) as total FROM ai_runs WHERE ts >= CURRENT_DATE'),
+      adminAnalyticsDb.query('SELECT SUM(tokens_in + tokens_out) as total FROM ai_runs'),
+      adminAnalyticsDb.query('SELECT SUM(tokens_in + tokens_out) as total FROM ai_runs WHERE ts >= CURRENT_DATE'),
       
       // NEW: Token usage from TokenUsageDaily (user-wise tracking)
-      db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "actorType" = \'user\''),
-      db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "actorType" = \'user\' AND day = CURRENT_DATE'),
-      db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "actorType" = \'user\' AND day >= CURRENT_DATE - INTERVAL \'7 days\''),
-      db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "actorType" = \'user\' AND day >= CURRENT_DATE - INTERVAL \'30 days\''),
+      adminAnalyticsDb.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "actorType" = \'user\''),
+      adminAnalyticsDb.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "actorType" = \'user\' AND day = CURRENT_DATE'),
+      adminAnalyticsDb.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "actorType" = \'user\' AND day >= CURRENT_DATE - INTERVAL \'7 days\''),
+      adminAnalyticsDb.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "actorType" = \'user\' AND day >= CURRENT_DATE - INTERVAL \'30 days\''),
       
       // Top token users (today)
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT "userId", SUM("tokensUsed") as total 
         FROM "TokenUsageDaily" 
         WHERE "actorType" = 'user' AND day = CURRENT_DATE AND "userId" IS NOT NULL
@@ -598,19 +598,19 @@ export const getAdminUserAnalytics = async (req: Request, res: Response) => {
    userTokenUsageMonthResult,
    userTokenUsageDailyResult
  ] = await Promise.all([
-   db.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [actualUserId]),
-   db.query('SELECT id, "userId", "styleVector", "sampleReply", "instructions", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE "userId" = $1', [actualUserId]),
-   db.query('SELECT id, "userId", "twinId", "createdAt" FROM "Chat" WHERE "userId" = $1', [actualUserId]),
-   db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [actualUserId]),
-   db.query('SELECT id, "userId", type, meta, "createdAt" FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [actualUserId]),
-   db.query('SELECT id, code, "inviterId", "acceptedBy", "createdAt" FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1', [actualUserId]),
-   db.query('SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC', [actualUserId]),
-   // Token usage queries
-   db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "userId" = $1', [actualUserId]),
-   db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "userId" = $1 AND day = CURRENT_DATE', [actualUserId]),
-   db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "userId" = $1 AND day >= CURRENT_DATE - INTERVAL \'7 days\'', [actualUserId]),
-   db.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "userId" = $1 AND day >= CURRENT_DATE - INTERVAL \'30 days\'', [actualUserId]),
-   db.query('SELECT day, "tokensUsed" FROM "TokenUsageDaily" WHERE "userId" = $1 ORDER BY day DESC LIMIT 30', [actualUserId])
+  adminAnalyticsDb.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [actualUserId]),
+  adminAnalyticsDb.query('SELECT id, "userId", "styleVector", "sampleReply", "instructions", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE "userId" = $1', [actualUserId]),
+  adminAnalyticsDb.query('SELECT id, "userId", "twinId", "createdAt" FROM "Chat" WHERE "userId" = $1', [actualUserId]),
+  adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [actualUserId]),
+  adminAnalyticsDb.query('SELECT id, "userId", type, meta, "createdAt" FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [actualUserId]),
+  adminAnalyticsDb.query('SELECT id, code, "inviterId", "acceptedBy", "createdAt" FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1', [actualUserId]),
+  adminAnalyticsDb.query('SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC', [actualUserId]),
+  // Token usage queries
+  adminAnalyticsDb.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "userId" = $1', [actualUserId]),
+  adminAnalyticsDb.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "userId" = $1 AND day = CURRENT_DATE', [actualUserId]),
+  adminAnalyticsDb.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "userId" = $1 AND day >= CURRENT_DATE - INTERVAL \'7 days\'', [actualUserId]),
+  adminAnalyticsDb.query('SELECT SUM("tokensUsed") as total FROM "TokenUsageDaily" WHERE "userId" = $1 AND day >= CURRENT_DATE - INTERVAL \'30 days\'', [actualUserId]),
+  adminAnalyticsDb.query('SELECT day, "tokensUsed" FROM "TokenUsageDaily" WHERE "userId" = $1 ORDER BY day DESC LIMIT 30', [actualUserId])
  ]);    
 
     const user = userResult.rows[0];
@@ -680,15 +680,15 @@ export const getDetailedUserInfo = async (req: Request, res: Response) => {
       userEngagementResult,
       userTimelineResult
     ] = await Promise.all([
-      db.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [actualUserId]),
-      db.query('SELECT id, "userId", "styleVector", "sampleReply", "instructions", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [actualUserId]),
-      db.query('SELECT c.id, c."userId", c."twinId", c."createdAt", t.id as twinId FROM "Chat" c LEFT JOIN "Twin" t ON c."twinId" = t.id WHERE c."userId" = $1 ORDER BY c."createdAt" DESC', [actualUserId]),
-      db.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [actualUserId]),
-      db.query(`SELECT id, "userId", type, meta, "createdAt" FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`, [actualUserId]),
-      db.query('SELECT id, code, "inviterId", "acceptedBy", "createdAt" FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1 ORDER BY "createdAt" DESC', [actualUserId]),
-      db.query(`SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC LIMIT ${QUERY_LIMITS.ANALYTICS_TIMELINE}`, [actualUserId]),
-      db.query('SELECT AVG(chat_count) as avg_chats, AVG(message_count) as avg_messages FROM (SELECT COUNT(c.id) as chat_count, COUNT(m.id) as message_count FROM "Chat" c LEFT JOIN "Message" m ON c.id = m."chatId" WHERE c."userId" = $1 GROUP BY c.id) as subquery', [actualUserId]),
-      db.query(`SELECT DATE("createdAt") as date, COUNT(*) as events FROM "Event" WHERE "userId" = $1 GROUP BY DATE("createdAt") ORDER BY date DESC LIMIT ${QUERY_LIMITS.ANALYTICS_TIMELINE}`, [actualUserId])
+      adminAnalyticsDb.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [actualUserId]),
+      adminAnalyticsDb.query('SELECT id, "userId", "styleVector", "sampleReply", "instructions", "isPublic", "publicHandle", "bio", "profileImage", "verified", "likeCount", "followCount", "chatCount", "createdAt" FROM "Twin" WHERE "userId" = $1 ORDER BY "createdAt" DESC', [actualUserId]),
+      adminAnalyticsDb.query('SELECT c.id, c."userId", c."twinId", c."createdAt", t.id as twinId FROM "Chat" c LEFT JOIN "Twin" t ON c."twinId" = t.id WHERE c."userId" = $1 ORDER BY c."createdAt" DESC', [actualUserId]),
+      adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id WHERE c."userId" = $1', [actualUserId]),
+      adminAnalyticsDb.query(`SELECT id, "userId", type, meta, "createdAt" FROM "Event" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`, [actualUserId]),
+      adminAnalyticsDb.query('SELECT id, code, "inviterId", "acceptedBy", "createdAt" FROM "Invite" WHERE "inviterId" = $1 OR "acceptedBy" = $1 ORDER BY "createdAt" DESC', [actualUserId]),
+      adminAnalyticsDb.query(`SELECT type, COUNT(*) as count, DATE("createdAt") as date FROM "Event" WHERE "userId" = $1 GROUP BY type, DATE("createdAt") ORDER BY date DESC LIMIT ${QUERY_LIMITS.ANALYTICS_TIMELINE}`, [actualUserId]),
+      adminAnalyticsDb.query('SELECT AVG(chat_count) as avg_chats, AVG(message_count) as avg_messages FROM (SELECT COUNT(c.id) as chat_count, COUNT(m.id) as message_count FROM "Chat" c LEFT JOIN "Message" m ON c.id = m."chatId" WHERE c."userId" = $1 GROUP BY c.id) as subquery', [actualUserId]),
+      adminAnalyticsDb.query(`SELECT DATE("createdAt") as date, COUNT(*) as events FROM "Event" WHERE "userId" = $1 GROUP BY DATE("createdAt") ORDER BY date DESC LIMIT ${QUERY_LIMITS.ANALYTICS_TIMELINE}`, [actualUserId])
     ]);
 
     const user = userResult.rows[0];
@@ -739,13 +739,13 @@ export const removeUser = async (req: Request, res: Response) => {
     const actualUserId = decoded.id;
 
     // Check if user exists
-    const userResult = await db.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [actualUserId]);
+    const userResult = await adminAnalyticsDb.query('SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1', [actualUserId]);
     if (!userResult.rows[0]) {
       return res.status(404).json({ error: 'User not found' });
     }
 
     // Delete user and all related data (cascade)
-    await db.query('DELETE FROM "User" WHERE id = $1', [actualUserId]);
+    await adminAnalyticsDb.query('DELETE FROM "User" WHERE id = $1', [actualUserId]);
 
     res.json({
       success: true,
@@ -837,20 +837,20 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
       eventBreakdownResult
     ] = await Promise.all([
       // Count queries with alias-specific filters
-      db.query(`SELECT COUNT(*) as count FROM "User" u WHERE ${userTimeFilter}`),
-      db.query(`SELECT COUNT(*) as count FROM "Twin" t WHERE ${twinTimeFilter}`),
-      db.query(`SELECT COUNT(*) as count FROM "Chat" c WHERE ${chatTimeFilter}`),
-      db.query(`SELECT COUNT(*) as count FROM "Message" m WHERE ${messageTimeFilter}`),
-      db.query(`SELECT COUNT(*) as count FROM "Event" e WHERE ${eventTimeFilter}`),
+      adminAnalyticsDb.query(`SELECT COUNT(*) as count FROM "User" u WHERE ${userTimeFilter}`),
+      adminAnalyticsDb.query(`SELECT COUNT(*) as count FROM "Twin" t WHERE ${twinTimeFilter}`),
+      adminAnalyticsDb.query(`SELECT COUNT(*) as count FROM "Chat" c WHERE ${chatTimeFilter}`),
+      adminAnalyticsDb.query(`SELECT COUNT(*) as count FROM "Message" m WHERE ${messageTimeFilter}`),
+      adminAnalyticsDb.query(`SELECT COUNT(*) as count FROM "Event" e WHERE ${eventTimeFilter}`),
       
       // Hourly breakdown with alias
-      db.query(`SELECT EXTRACT(HOUR FROM e."createdAt") as hour, COUNT(*) as count FROM "Event" e WHERE ${eventTimeFilter} GROUP BY EXTRACT(HOUR FROM e."createdAt") ORDER BY hour`),
+      adminAnalyticsDb.query(`SELECT EXTRACT(HOUR FROM e."createdAt") as hour, COUNT(*) as count FROM "Event" e WHERE ${eventTimeFilter} GROUP BY EXTRACT(HOUR FROM e."createdAt") ORDER BY hour`),
       
       // Daily breakdown with alias
-      db.query(`SELECT DATE(e."createdAt") as date, COUNT(*) as count FROM "Event" e WHERE ${eventTimeFilter} GROUP BY DATE(e."createdAt") ORDER BY date`),
+      adminAnalyticsDb.query(`SELECT DATE(e."createdAt") as date, COUNT(*) as count FROM "Event" e WHERE ${eventTimeFilter} GROUP BY DATE(e."createdAt") ORDER BY date`),
       
       // Entities daily breakdown (users, twins, chats per day)
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT 
           d::date as date,
           COUNT(DISTINCT u.id) FILTER (WHERE DATE(u."createdAt") = d::date) as users,
@@ -869,7 +869,7 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
       `),
       
       // Top users with alias-specific filter
-      db.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(e.id) as eventCount 
+      adminAnalyticsDb.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(e.id) as eventCount 
                 FROM "User" u 
                 LEFT JOIN "Event" e ON u.id = e."userId" AND ${eventTimeFilter}
                 WHERE ${userTimeFilter}
@@ -878,7 +878,7 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
                 LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
       
       // Top twins with alias-specific filter
-      db.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle 
+      adminAnalyticsDb.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle 
                 FROM "Twin" t 
                 JOIN "User" u ON t."userId" = u.id 
                 WHERE ${twinTimeFilter}
@@ -886,7 +886,7 @@ export const getTimeBasedAnalytics = async (req: Request, res: Response) => {
                 LIMIT ${QUERY_LIMITS.RECENT_ITEMS}`),
       
       // Event breakdown with alias
-      db.query(`SELECT e.type, COUNT(*) as count FROM "Event" e WHERE ${eventTimeFilter} GROUP BY e.type ORDER BY count DESC`)
+      adminAnalyticsDb.query(`SELECT e.type, COUNT(*) as count FROM "Event" e WHERE ${eventTimeFilter} GROUP BY e.type ORDER BY count DESC`)
     ]);
 
     const timeBasedAnalytics = {
@@ -945,7 +945,7 @@ export const getUsersList = async (req: Request, res: Response) => {
       queryParams.push(`%${search}%`);
     }
     
-    const usersResult = await db.query(`
+    const usersResult = await adminAnalyticsDb.query(`
       SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", 
              COUNT(DISTINCT t.id) as twinCount,
              COUNT(DISTINCT c.id) as chatCount,
@@ -961,7 +961,7 @@ export const getUsersList = async (req: Request, res: Response) => {
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
     `, [...queryParams, safeLimit, offset]);
     
-    const totalUsersResult = await db.query(`
+    const totalUsersResult = await adminAnalyticsDb.query(`
       SELECT COUNT(*) as total FROM "User" u ${whereClause}
     `, queryParams);
     
@@ -995,10 +995,10 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
     switch (type) {
       case 'users':
         const [totalUsersResult, activeUsersResult, newUsersResult, usersListResult] = await Promise.all([
-          db.query('SELECT COUNT(*) as count FROM "User"'),
-          db.query('SELECT COUNT(*) as count FROM "User" WHERE "lastLoginAt" >= NOW() - INTERVAL \'24 hours\''),
-          db.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
-          db.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(DISTINCT t.id) as twinCount, COUNT(DISTINCT c.id) as chatCount FROM "User" u LEFT JOIN "Twin" t ON u.id = t."userId" LEFT JOIN "Chat" c ON u.id = c."userId" AND c."messageCount" > 0 GROUP BY u.id ORDER BY u."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
+          adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "User"'),
+          adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "User" WHERE "lastLoginAt" >= NOW() - INTERVAL \'24 hours\''),
+          adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "User" WHERE "createdAt" >= NOW() - INTERVAL \'7 days\''),
+          adminAnalyticsDb.query(`SELECT u.id, u.email, u."passwordHash", u.handle, u.name, u.dob, u.phone, u.bio, u.active, u."referralCode", u."createdAt", u."profileImage", COUNT(DISTINCT t.id) as twinCount, COUNT(DISTINCT c.id) as chatCount FROM "User" u LEFT JOIN "Twin" t ON u.id = t."userId" LEFT JOIN "Chat" c ON u.id = c."userId" AND c."messageCount" > 0 GROUP BY u.id ORDER BY u."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
         ]);
         
         data = {
@@ -1011,9 +1011,9 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
         
       case 'twins':
         const [totalTwinsResult, popularTwinsResult, recentTwinsResult] = await Promise.all([
-          db.query('SELECT COUNT(*) as count FROM "Twin"'),
-          db.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle, u.email as userEmail FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."likeCount" DESC, t."chatCount" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`),
-          db.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle, u.email as userEmail FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
+          adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Twin"'),
+          adminAnalyticsDb.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle, u.email as userEmail FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."likeCount" DESC, t."chatCount" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`),
+          adminAnalyticsDb.query(`SELECT t.id, t."userId", t."styleVector", t."sampleReply", t."instructions", t."isPublic", t."publicHandle", t."bio", t."profileImage", t."verified", t."likeCount", t."followCount", t."chatCount", t."createdAt", u.handle as userHandle, u.email as userEmail FROM "Twin" t JOIN "User" u ON t."userId" = u.id ORDER BY t."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
         ]);
         
         data = {
@@ -1025,9 +1025,9 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
         
       case 'chats':
         const [totalChatsResult, activeChatsResult, chatStatsResult] = await Promise.all([
-          db.query('SELECT COUNT(*) as count FROM "Chat"'),
-          db.query('SELECT COUNT(*) as count FROM "Chat" WHERE "createdAt" >= NOW() - INTERVAL \'24 hours\''),
-          db.query(`SELECT c.id, c."userId", c."twinId", c."createdAt", u.handle as userHandle, u.email as userEmail, t.id as twinId FROM "Chat" c JOIN "User" u ON c."userId" = u.id LEFT JOIN "Twin" t ON c."twinId" = t.id ORDER BY c."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
+          adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Chat"'),
+          adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Chat" WHERE "createdAt" >= NOW() - INTERVAL \'24 hours\''),
+          adminAnalyticsDb.query(`SELECT c.id, c."userId", c."twinId", c."createdAt", u.handle as userHandle, u.email as userEmail, t.id as twinId FROM "Chat" c JOIN "User" u ON c."userId" = u.id LEFT JOIN "Twin" t ON c."twinId" = t.id ORDER BY c."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
         ]);
         
         data = {
@@ -1039,9 +1039,9 @@ export const getDetailedMetrics = async (req: Request, res: Response) => {
         
       case 'messages':
         const [totalMessagesResult, recentMessagesResult, messageStatsResult] = await Promise.all([
-          db.query('SELECT COUNT(*) as count FROM "Message"'),
-          db.query('SELECT COUNT(*) as count FROM "Message" WHERE "createdAt" >= NOW() - INTERVAL \'24 hours\''),
-          db.query(`SELECT m.id, m."chatId", m.sender, m.content, m.approved, m."createdAt", u.handle as userHandle FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id JOIN "User" u ON c."userId" = u.id ORDER BY m."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
+          adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Message"'),
+          adminAnalyticsDb.query('SELECT COUNT(*) as count FROM "Message" WHERE "createdAt" >= NOW() - INTERVAL \'24 hours\''),
+          adminAnalyticsDb.query(`SELECT m.id, m."chatId", m.sender, m.content, m.approved, m."createdAt", u.handle as userHandle FROM "Message" m JOIN "Chat" c ON m."chatId" = c.id JOIN "User" u ON c."userId" = u.id ORDER BY m."createdAt" DESC LIMIT ${QUERY_LIMITS.ANALYTICS_DETAILS}`)
         ]);
         
         data = {
@@ -1103,7 +1103,7 @@ export const getDetailedUsersPage = async (req: Request, res: Response) => {
     const safeSortOrder = (sortOrder as string).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     
     // Enhanced query with all counts and lastActivity
-    const usersResult = await db.query(`
+    const usersResult = await adminAnalyticsDb.query(`
       SELECT 
         u.id, 
         u.email, 
@@ -1134,12 +1134,12 @@ export const getDetailedUsersPage = async (req: Request, res: Response) => {
     `, [...queryParams, safeLimit, offset]);    
     
     // Get total count
-    const totalResult = await db.query(`
+    const totalResult = await adminAnalyticsDb.query(`
       SELECT COUNT(*) as total FROM "User" u ${whereClause}
     `, queryParams);
     
     // Get summary with active users today
-    const summaryResult = await db.query(`
+    const summaryResult = await adminAnalyticsDb.query(`
       SELECT 
         COUNT(*) as "totalUsers",
         COUNT(CASE WHEN u."createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as "newToday",
@@ -1244,7 +1244,7 @@ export const getDetailedTwinsPage = async (req: Request, res: Response) => {
     const safeSortOrder = (sortOrder as string).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     
     // Enhanced query with all metrics
-    const twinsResult = await db.query(`
+    const twinsResult = await adminAnalyticsDb.query(`
       SELECT 
         t.id,
         t."userId",
@@ -1276,12 +1276,12 @@ export const getDetailedTwinsPage = async (req: Request, res: Response) => {
     `, [...queryParams, safeLimit, offset]);    
     
     // Get total count
-    const totalResult = await db.query(`
+    const totalResult = await adminAnalyticsDb.query(`
       SELECT COUNT(*) as total FROM "Twin" t JOIN "User" u ON t."userId" = u.id ${whereClause}
     `, queryParams);
     
 // Get summary with averages
-const summaryResult = await db.query(`
+const summaryResult = await adminAnalyticsDb.query(`
   SELECT 
     COUNT(*) as totalTwins,
     COUNT(CASE WHEN t."createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
@@ -1370,7 +1370,7 @@ export const getDetailedChatsPage = async (req: Request, res: Response) => {
     const safeSortOrder = (sortOrder as string).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     
     // Enhanced query with message count, last message, twin info
-    const chatsResult = await db.query(`
+    const chatsResult = await adminAnalyticsDb.query(`
       SELECT 
         c.id,
         c."userId",
@@ -1396,12 +1396,12 @@ export const getDetailedChatsPage = async (req: Request, res: Response) => {
     `, [...queryParams, safeLimit, offset]);    
     
     // Get total count
-    const totalResult = await db.query(`
+    const totalResult = await adminAnalyticsDb.query(`
       SELECT COUNT(*) as total FROM "Chat" c JOIN "User" u ON c."userId" = u.id ${whereClause}
     `, queryParams);
     
 // Get summary with avg messages per chat (optimized) - only chats with messages
-const summaryResult = await db.query(`
+const summaryResult = await adminAnalyticsDb.query(`
   SELECT 
     COUNT(DISTINCT c.id) as totalChats,
     COUNT(DISTINCT CASE WHEN c."createdAt" >= NOW() - INTERVAL '24 hours' THEN c.id END) as newToday,
@@ -1513,7 +1513,7 @@ export const getDetailedMessagesPage = async (req: Request, res: Response) => {
     const safeSortOrder = (sortOrder as string).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     
     // Enhanced query with sender, approved, twin info, userId
-    const messagesResult = await db.query(`
+    const messagesResult = await adminAnalyticsDb.query(`
       SELECT 
         m.id,
         m."chatId",
@@ -1541,7 +1541,7 @@ export const getDetailedMessagesPage = async (req: Request, res: Response) => {
     `, [...queryParams, safeLimit, offset]);    
     
     // Get total count
-    const totalResult = await db.query(`
+    const totalResult = await adminAnalyticsDb.query(`
       SELECT COUNT(*) as total FROM "Message" m 
       JOIN "Chat" c ON m."chatId" = c.id 
       JOIN "User" u ON c."userId" = u.id 
@@ -1549,7 +1549,7 @@ export const getDetailedMessagesPage = async (req: Request, res: Response) => {
     `, queryParams);
     
 // Get summary with avg message length
-const summaryResult = await db.query(`
+const summaryResult = await adminAnalyticsDb.query(`
   SELECT 
     COUNT(*) as totalMessages,
     COUNT(CASE WHEN m."createdAt" >= NOW() - INTERVAL '24 hours' THEN 1 END) as newToday,
@@ -1607,9 +1607,9 @@ export const getSystemHealth = async (req: Request, res: Response) => {
       recentErrorsResult,
       performanceResult
     ] = await Promise.all([
-      db.query('SELECT NOW() as current_time, version() as db_version'),
-      db.query('SELECT COUNT(*) as error_count FROM "Event" WHERE type = \'error\' AND "createdAt" >= NOW() - INTERVAL \'24 hours\''),
-      db.query('SELECT AVG(EXTRACT(EPOCH FROM ("createdAt" - LAG("createdAt") OVER (ORDER BY "createdAt")))) as avg_response_time FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'1 hour\'')
+      adminAnalyticsDb.query('SELECT NOW() as current_time, version() as db_version'),
+      adminAnalyticsDb.query('SELECT COUNT(*) as error_count FROM "Event" WHERE type = \'error\' AND "createdAt" >= NOW() - INTERVAL \'24 hours\''),
+      adminAnalyticsDb.query('SELECT AVG(EXTRACT(EPOCH FROM ("createdAt" - LAG("createdAt") OVER (ORDER BY "createdAt")))) as avg_response_time FROM "Event" WHERE "createdAt" >= NOW() - INTERVAL \'1 hour\'')
     ]);
 
     const systemHealth = {
@@ -1658,21 +1658,21 @@ export const getEventAnalytics = async (req: Request, res: Response) => {
       dailyResult,
       topUsersResult
     ] = await Promise.all([
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT type, COUNT(*) as count
         FROM "Event"
         ${timeFilter}
         GROUP BY type
         ORDER BY count DESC
       `),
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT EXTRACT(HOUR FROM "createdAt") as hour, COUNT(*) as count
         FROM "Event"
         ${timeFilter}
         GROUP BY EXTRACT(HOUR FROM "createdAt")
         ORDER BY hour
       `),
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT DATE("createdAt") as date, COUNT(*) as count
         FROM "Event"
         ${timeFilter}
@@ -1680,7 +1680,7 @@ export const getEventAnalytics = async (req: Request, res: Response) => {
         ORDER BY date DESC
         LIMIT 30
       `),
-      db.query(`
+      adminAnalyticsDb.query(`
         SELECT u.id, u.handle, u.name, COUNT(e.id) as eventCount
         FROM "User" u
         JOIN "Event" e ON u.id = e."userId"
@@ -1774,7 +1774,7 @@ export const getEventExplorer = async (req: Request, res: Response) => {
       : '';
     
     // Get events with user info
-    const eventsResult = await db.query(`
+    const eventsResult = await adminAnalyticsDb.query(`
       SELECT 
         e.id,
         e."userId",
@@ -1791,14 +1791,14 @@ export const getEventExplorer = async (req: Request, res: Response) => {
     `, [...params, safeLimit, offset]);
     
     // Get total count
-    const countResult = await db.query(`
+    const countResult = await adminAnalyticsDb.query(`
       SELECT COUNT(*) as total
       FROM "Event" e
       ${whereClause}
     `, params);
     
     // Get event type breakdown for filter dropdown
-    const typesResult = await db.query(`
+    const typesResult = await adminAnalyticsDb.query(`
       SELECT DISTINCT type
       FROM "Event"
       ORDER BY type
@@ -1834,7 +1834,7 @@ export const getAdminChatMessages = async (req: Request, res: Response) => {
     const actualChatId = decoded && decoded.type === 'chat' ? decoded.id : chatId;
     
     // Get messages for this chat (admin can see all)
-    const messagesResult = await db.query(`
+    const messagesResult = await adminAnalyticsDb.query(`
       SELECT id, "chatId", sender, content, approved, "createdAt"
       FROM "Message"
       WHERE "chatId" = $1
@@ -1861,7 +1861,7 @@ export const getAdminMessageDetails = async (req: Request, res: Response) => {
     const decoded = detokenizeId(messageId);
     const actualMessageId = decoded ? decoded.id : messageId;
     
-    const messageResult = await db.query(`
+    const messageResult = await adminAnalyticsDb.query(`
       SELECT m.id, m."chatId", m.sender, m.content, m.approved, m."createdAt",
              u.id as "userId", u.handle as "userHandle", u.email as "userEmail",
              t."publicHandle" as "twinHandle", t."sampleReply" as "twinName"
@@ -1942,7 +1942,7 @@ export const getActivityFeed = async (req: Request, res: Response) => {
     }
     
     // Activity list
-    const activityResult = await db.query(`
+    const activityResult = await adminAnalyticsDb.query(`
       SELECT 
         e.id,
         e.type,
@@ -1965,14 +1965,14 @@ LEFT JOIN "Twin" t ON
     `, [...queryParams, safeLimit, offset]);
     
     // Total count
-    const totalResult = await db.query(`
+    const totalResult = await adminAnalyticsDb.query(`
       SELECT COUNT(*) as total 
       FROM "Event" e
       ${whereClause}
     `, queryParams);
     
     // Summary stats
-    const summaryResult = await db.query(`
+    const summaryResult = await adminAnalyticsDb.query(`
       SELECT 
         COUNT(*) FILTER (WHERE e.type = 'signup') as signups,
         COUNT(*) FILTER (WHERE e.type = 'twin_created') as twinsCreated,
@@ -1985,7 +1985,7 @@ LEFT JOIN "Twin" t ON
     `, queryParams);
 
     // Daily counts for chart
-    const dailyCountsResult = await db.query(`
+    const dailyCountsResult = await adminAnalyticsDb.query(`
       SELECT 
         DATE(e."createdAt") as date,
         COUNT(*) as total
@@ -2106,7 +2106,7 @@ export const getTokenAnalytics = async (req: Request, res: Response) => {
     });
     
     // 1. Overall Summary (All Users)
-    const overallSummary = await db.query(`
+    const overallSummary = await adminAnalyticsDb.query(`
       SELECT 
         COUNT(*) as message_count,
         COALESCE(SUM((e.meta->>'totalTokens')::int), 0) as total_tokens,
@@ -2151,7 +2151,7 @@ export const getTokenAnalytics = async (req: Request, res: Response) => {
         LIMIT $${paramCount}`;
     
     const perUserParams = [...periodParams, safeLimit];
-    const perUserSummary = await db.query(perUserQuery, perUserParams);
+    const perUserSummary = await adminAnalyticsDb.query(perUserQuery, perUserParams);
     
     // 3. Per Chat Summary
     const perChatQuery = chatId
@@ -2181,7 +2181,7 @@ export const getTokenAnalytics = async (req: Request, res: Response) => {
         LIMIT $${paramCount}`;
     
     const perChatParams = [...periodParams, safeLimit];
-    const perChatSummary = await db.query(perChatQuery, perChatParams);
+    const perChatSummary = await adminAnalyticsDb.query(perChatQuery, perChatParams);
     
     // 4. Per Message Details (Recent)
     const perMessageQuery = `SELECT 
@@ -2202,7 +2202,7 @@ export const getTokenAnalytics = async (req: Request, res: Response) => {
     LIMIT $${paramCount}`;
     
     const perMessageParams = [...periodParams, safeLimit];
-    const perMessageDetails = await db.query(perMessageQuery, perMessageParams);
+    const perMessageDetails = await adminAnalyticsDb.query(perMessageQuery, perMessageParams);
     
     // ✅ ADD: Debug message details
     logger.info('Per message details count:', perMessageDetails.rows.length);
@@ -2213,7 +2213,7 @@ export const getTokenAnalytics = async (req: Request, res: Response) => {
     // 5. Daily Breakdown (Last 30 days) - ✅ FIX: Use explicit date calculation
     const thirtyDaysAgo = new Date(utcDate);
     thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
-    const dailyBreakdown = await db.query(`
+    const dailyBreakdown = await adminAnalyticsDb.query(`
       SELECT 
         DATE(e."createdAt") as date,
         COUNT(*) as message_count,
@@ -2242,7 +2242,7 @@ export const getTokenAnalytics = async (req: Request, res: Response) => {
     ORDER BY total_tokens DESC
     LIMIT 10`;
     
-    const topUsers = await db.query(topUsersQuery, topUsersParams);
+    const topUsers = await adminAnalyticsDb.query(topUsersQuery, topUsersParams);
     
     // 7. Blocked Messages Breakdown - ✅ FIX: Use periodFilter with params
     const blockedQuery = `SELECT 
@@ -2254,7 +2254,7 @@ export const getTokenAnalytics = async (req: Request, res: Response) => {
       ${periodFilter}
     GROUP BY e.meta->>'reason'`;
     
-    const blockedBreakdown = await db.query(blockedQuery, periodParams);
+    const blockedBreakdown = await adminAnalyticsDb.query(blockedQuery, periodParams);
     
     res.json({
       success: true,

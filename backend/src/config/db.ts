@@ -94,5 +94,29 @@ export const db = {
   }
 };
 
+// ✅ Admin analytics database pool (always uses production DB when ADMIN_ANALYTICS_DB_URL is set)
+let adminAnalyticsPool: Pool | null = null;
+if (config.adminAnalyticsDbUrl && config.adminAnalyticsDbUrl !== config.databaseUrl) {
+  adminAnalyticsPool = new Pool({
+    connectionString: config.adminAnalyticsDbUrl,
+    ssl: {
+      rejectUnauthorized: false
+    },
+    max: 5, // Lower pool for read-only analytics
+    idleTimeoutMillis: 30000,
+    statement_timeout: 30000,
+    query_timeout: 30000,
+  });
+  
+  adminAnalyticsPool.on('error', (err: Error) => {
+    logger.error({ err }, '[ADMIN_ANALYTICS_DB_POOL_ERROR] Database pool error');
+  });
+  
+  logger.info('✅ Admin analytics using separate production database');
+}
+
+// Export admin analytics DB (uses prod DB when running locally, falls back to main pool if not set)
+export const adminAnalyticsDb = adminAnalyticsPool || pool;
+
 export default db;
 export { pool }; // ✅ Export pool for session store

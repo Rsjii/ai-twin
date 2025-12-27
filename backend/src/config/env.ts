@@ -24,6 +24,9 @@ export const config = {
   // Database
   databaseUrl: process.env['DATABASE_URL'],
   
+  // ✅ Admin analytics database (production DB for local admin analytics)
+  adminAnalyticsDbUrl: process.env['ADMIN_ANALYTICS_DB_URL'] || process.env['DATABASE_URL'],
+  
   // OpenAI API (KEEP - for fallback)
   openaiApiKey: process.env['OPENAI_API_KEY'],
   
