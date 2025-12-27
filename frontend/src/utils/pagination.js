@@ -25,7 +25,10 @@ class Pagination {
    */
   render() {
     if (!this.container) {
-      console.error('Pagination container not specified');
+      // ✅ Use ErrorLogger if available, otherwise fail silently (production-safe)
+      if (typeof window !== 'undefined' && window.ErrorLogger) {
+        window.ErrorLogger.error('Pagination container not specified');
+      }
       return '';
     }
 

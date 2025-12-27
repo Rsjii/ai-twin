@@ -537,9 +537,14 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/invite', inviteRoutes);
 app.use('/api/metrics', analyticsRoutes);
 
-// ✅ Admin analytics API only for local/staging (never in prod)
-if (config.enableAdminAnalytics) {
+// ✅ SECURITY: Admin analytics API only for local/staging (never in prod)
+// Double-check: ensure admin routes are completely disabled in production
+if (config.enableAdminAnalytics && !isProd) {
   app.use('/api/admin/analytics', adminAnalyticsRoutes);
+  logger.info('✅ Admin analytics routes enabled (non-production mode)');
+} else if (isProd) {
+  // ✅ Explicitly log that admin routes are disabled in production
+  logger.info('✅ Admin analytics routes DISABLED in production (security)');
 }
 
 app.use('/api/onboarding', onboardingRoutes);

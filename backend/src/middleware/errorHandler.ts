@@ -79,7 +79,7 @@ export const errorHandlerMiddleware = (
         message: err.message,
         user: req.user || null,
         csrfToken: res.locals['csrfToken'] || '',
-        requestId,
+        // ✅ SECURITY: requestId not exposed to user-facing pages, only in headers/logs
       });
     }
 
@@ -89,7 +89,7 @@ export const errorHandlerMiddleware = (
         message: err.message,
         user: req.user || null,
         csrfToken: res.locals['csrfToken'] || '',
-        requestId,
+        // ✅ SECURITY: requestId not exposed to user-facing pages, only in headers/logs
       });
     }
 
@@ -99,7 +99,7 @@ export const errorHandlerMiddleware = (
       errorCode: err.errorCode,
       user: req.user || null,
       csrfToken: res.locals['csrfToken'] || '',
-      requestId,
+      // ✅ SECURITY: requestId not exposed to user-facing pages, only in headers/logs
     });
   }
 
@@ -157,6 +157,6 @@ export const errorHandlerMiddleware = (
     errorCode: ErrorCodes.INTERNAL_ERROR,
     user: req.user || null,
     csrfToken: res.locals['csrfToken'] || '',
-    requestId,
+    // ✅ SECURITY: requestId not exposed to user-facing pages, only in headers/logs
   });
 };

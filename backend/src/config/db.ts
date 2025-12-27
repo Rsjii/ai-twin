@@ -15,9 +15,30 @@ const pool = new Pool({
   query_timeout: 30000, // 30 seconds
 });
 
-pool.on('error', (err) => {
-  logger.error('Database connection error:', err);
-  // Don't exit process, just log the error
+// ✅ SECURITY: Enhanced database pool error handler
+pool.on('error', (err: Error) => {
+  // Get pool statistics for context
+  const poolStats = {
+    totalCount: pool.totalCount,
+    idleCount: pool.idleCount,
+    waitingCount: pool.waitingCount,
+  };
+
+  // Log structured error with full context
+  logger.error('[DB_POOL_ERROR] Unexpected database pool error', {
+    error: {
+      name: err.name,
+      message: err.message,
+      code: (err as any).code || 'NO_CODE',
+      stack: err.stack?.substring(0, 500), // Limit stack trace length
+    },
+    poolStats,
+    timestamp: new Date().toISOString(),
+  });
+
+  // ✅ Don't exit process - let connection pool handle reconnection
+  // The pool will automatically attempt to reconnect on next query
+  // This prevents cascading failures and allows graceful degradation
 });
 
 // Database utility functions with retry logic
