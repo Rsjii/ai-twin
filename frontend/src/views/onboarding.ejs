@@ -13,6 +13,9 @@
     rel="stylesheet"
   />
     <script>
+    // ✅ Bio limit constant (must match backend MEMORY_LIMITS.MAX_BIO_CHARS)
+    const MAX_BIO_CHARS = 150;
+    
     (function () {
             const theme = localStorage.getItem('theme') || 'light';
             if (theme === 'dark') {
@@ -239,8 +242,12 @@
                   required
                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="e.g. Replies like me — casual, witty, helpful."
-                  maxlength="500"
+                  maxlength="150"
                 />
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <span id="bioCharCount">0</span>/150 characters
+                </div>
+                <div id="oneLineBio-error" class="hidden mt-1 text-xs text-red-600 dark:text-red-400"></div>
               </div>
 
               <!-- Role (Twin role) -->
@@ -319,8 +326,12 @@
                   rows="4"
                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="Type how you would really reply..."
+                  maxlength="500"
                   required
                 ></textarea>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <span id="casualSampleCharCount">0</span>/500 characters
+                </div>
               </div>
 
               <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
@@ -335,7 +346,11 @@
                   rows="4"
                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="Type a more formal or work-style message (optional)"
+                  maxlength="500"
                 ></textarea>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <span id="formalSampleCharCount">0</span>/500 characters
+                </div>
                                         </div>
             </div>
                                     </div>
@@ -496,6 +511,9 @@
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="Example: Always stay calm and respectful.&#10;Example: Explain things in simple language."
                   ></textarea>
+                  <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Max 120 characters(<span id="alwaysRulesCharCount">0</span>/120)
+                  </div>
                                 </div>
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6">
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
@@ -507,6 +525,9 @@
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="Example: Do not insult or attack people.&#10;Example: Do not overshare my personal life."
                   ></textarea>
+                  <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Max 120 characters (<span id="neverRulesCharCount">0</span>/120)
+                  </div>
                 </div>
                             </div>
 
@@ -514,7 +535,7 @@
               <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 sm:p-6 space-y-5">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Default reply size
+                    Default reply size <span class="text-red-500">*</span>
                   </label>
                   <div class="flex flex-wrap gap-2">
                     <button type="button" class="chip reply-size-chip" data-reply-size="short">
@@ -569,7 +590,7 @@
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                   Overview
                 </h3>
-                <div id="previewBasic" class="text-sm text-gray-800 dark:text-gray-200 space-y-1">
+                <div id="previewBasic" class="text-sm text-gray-800 dark:text-gray-200 space-y-1 break-words overflow-wrap-anywhere">
                   <!-- Filled by JS -->
                 </div>
                             </div>
@@ -590,7 +611,7 @@
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                   Rules
                 </h3>
-                <div id="previewRules" class="text-sm text-gray-800 dark:text-gray-200 space-y-1">
+                <div id="previewRules" class="text-sm text-gray-800 dark:text-gray-200 space-y-1 break-words overflow-wrap-anywhere">
                   <!-- Filled by JS -->
                 </div>
                             </div>
@@ -757,6 +778,140 @@
       
       // ✅ NEW: Push initial step to history
       pushStepToHistory(currentStep);
+      
+      // ✅ Bio character counter with input prevention (max MAX_BIO_CHARS)
+      const bioInput = document.getElementById('oneLineBio');
+      const bioCharCount = document.getElementById('bioCharCount');
+      if (bioInput && bioCharCount) {
+        let bioPrevValue = bioInput.value;
+        const updateBioCount = () => {
+          bioCharCount.textContent = bioInput.value.length;
+          if (bioInput.value.length > MAX_BIO_CHARS) {
+            bioCharCount.classList.add('text-red-600', 'dark:text-red-400');
+          } else {
+            bioCharCount.classList.remove('text-red-600', 'dark:text-red-400');
+          }
+        };
+        bioInput.addEventListener('input', (e) => {
+          if (bioInput.value.length > MAX_BIO_CHARS) {
+            bioInput.value = bioPrevValue;
+            return;
+          }
+          bioPrevValue = bioInput.value;
+          updateBioCount();
+        });
+        updateBioCount(); // Initial count
+      }
+      
+      // ✅ Always/Never character counters with input prevention (like bio)
+      const alwaysInput = document.getElementById('alwaysRules');
+      const alwaysCharCount = document.getElementById('alwaysRulesCharCount');
+      if (alwaysInput && alwaysCharCount) {
+        let alwaysPrevValue = alwaysInput.value;
+        const updateAlwaysCount = () => {
+          const lines = alwaysInput.value.split('\n');
+          const longestLine = lines.length > 0 ? Math.max(...lines.map(l => l.length)) : 0;
+          alwaysCharCount.textContent = longestLine;
+          if (longestLine > 120) {
+            alwaysCharCount.classList.add('text-red-600', 'dark:text-red-400');
+          } else {
+            alwaysCharCount.classList.remove('text-red-600', 'dark:text-red-400');
+          }
+        };
+        
+        alwaysInput.addEventListener('input', (e) => {
+          const lines = alwaysInput.value.split('\n');
+          // Check if any line exceeds 120 chars
+          const exceedsLimit = lines.some(line => line.length > 120);
+          if (exceedsLimit) {
+            // Prevent input - restore previous value
+            alwaysInput.value = alwaysPrevValue;
+            return;
+          }
+          alwaysPrevValue = alwaysInput.value;
+          updateAlwaysCount();
+        });
+        updateAlwaysCount(); // Initial count
+      }
+      
+      const neverInput = document.getElementById('neverRules');
+      const neverCharCount = document.getElementById('neverRulesCharCount');
+      if (neverInput && neverCharCount) {
+        let neverPrevValue = neverInput.value;
+        const updateNeverCount = () => {
+          const lines = neverInput.value.split('\n');
+          const longestLine = lines.length > 0 ? Math.max(...lines.map(l => l.length)) : 0;
+          neverCharCount.textContent = longestLine;
+          if (longestLine > 120) {
+            neverCharCount.classList.add('text-red-600', 'dark:text-red-400');
+          } else {
+            neverCharCount.classList.remove('text-red-600', 'dark:text-red-400');
+          }
+        };
+        
+        neverInput.addEventListener('input', (e) => {
+          const lines = neverInput.value.split('\n');
+          // Check if any line exceeds 120 chars
+          const exceedsLimit = lines.some(line => line.length > 120);
+          if (exceedsLimit) {
+            // Prevent input - restore previous value
+            neverInput.value = neverPrevValue;
+            return;
+          }
+          neverPrevValue = neverInput.value;
+          updateNeverCount();
+        });
+        updateNeverCount(); // Initial count
+      }
+
+      // ✅ Chat sample character counters with input prevention (max 500 chars)
+      const MAX_CHAT_SAMPLE_CHARS = 500;
+      
+      const casualSample = document.getElementById('casualSample');
+      const casualCharCount = document.getElementById('casualSampleCharCount');
+      if (casualSample && casualCharCount) {
+        let casualPrevValue = casualSample.value;
+        const updateCasualCount = () => {
+          casualCharCount.textContent = casualSample.value.length;
+          if (casualSample.value.length > MAX_CHAT_SAMPLE_CHARS) {
+            casualCharCount.classList.add('text-red-600', 'dark:text-red-400');
+          } else {
+            casualCharCount.classList.remove('text-red-600', 'dark:text-red-400');
+          }
+        };
+        casualSample.addEventListener('input', (e) => {
+          if (casualSample.value.length > MAX_CHAT_SAMPLE_CHARS) {
+            casualSample.value = casualPrevValue;
+            return;
+          }
+          casualPrevValue = casualSample.value;
+          updateCasualCount();
+        });
+        updateCasualCount(); // Initial count
+      }
+
+      const formalSample = document.getElementById('formalSample');
+      const formalCharCount = document.getElementById('formalSampleCharCount');
+      if (formalSample && formalCharCount) {
+        let formalPrevValue = formalSample.value;
+        const updateFormalCount = () => {
+          formalCharCount.textContent = formalSample.value.length;
+          if (formalSample.value.length > MAX_CHAT_SAMPLE_CHARS) {
+            formalCharCount.classList.add('text-red-600', 'dark:text-red-400');
+          } else {
+            formalCharCount.classList.remove('text-red-600', 'dark:text-red-400');
+          }
+        };
+        formalSample.addEventListener('input', (e) => {
+          if (formalSample.value.length > MAX_CHAT_SAMPLE_CHARS) {
+            formalSample.value = formalPrevValue;
+            return;
+          }
+          formalPrevValue = formalSample.value;
+          updateFormalCount();
+        });
+        updateFormalCount(); // Initial count
+      }
 
  // Save latest answers before reload / close
  window.addEventListener('beforeunload', () => {
@@ -1182,12 +1337,38 @@ function persistOnboardingState() {
       const name = document.getElementById('name').value.trim();
       const role = getSelectedValue('.role-chip');
       const oneLineBio = document.getElementById('oneLineBio')?.value?.trim();
+      const bioError = document.getElementById('oneLineBio-error');
+      
+      // Clear previous errors
+      if (bioError) {
+        bioError.classList.add('hidden');
+        bioError.textContent = '';
+      }
+      const bioInput = document.getElementById('oneLineBio');
+      if (bioInput) {
+        bioInput.classList.remove('border-red-500', 'ring-2', 'ring-red-500/20');
+      }
+      
       if (!name || !role || !oneLineBio) {
         showMessage('Please fill in your name, select what you do, and enter a bio.', 'error');
-                return false;
-            }
-            return true;
+        return false;
+      }
+      
+      // ✅ Validate bio length (MAX_BIO_CHARS chars max)
+      if (oneLineBio.length > MAX_BIO_CHARS) {
+        if (bioError) {
+          bioError.textContent = `Bio must be ${MAX_BIO_CHARS} characters or less (currently ${oneLineBio.length})`;
+          bioError.classList.remove('hidden');
         }
+        if (bioInput) {
+          bioInput.classList.add('border-red-500', 'ring-2', 'ring-red-500/20');
+        }
+        showMessage(`Bio must be ${MAX_BIO_CHARS} characters or less.`, 'error');
+        return false;
+      }
+      
+      return true;
+    }
 
     function validateStep2() {
       const casual = document.getElementById('casualSample').value.trim();
@@ -1220,6 +1401,7 @@ function persistOnboardingState() {
         showMessage('Please choose default reply size and engagement style.', 'error');
         return false;
       }
+      // ✅ No need to validate always/never - input is already prevented beyond 120 chars
       return true;
     }
 
@@ -1378,16 +1560,61 @@ function persistOnboardingState() {
                 credentials: 'include',
         body: JSON.stringify(payload),
       })
-        .then((r) => r.json())
-        .then((data) => {
-          if (!data.success) {
+        .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok || !data.success) {
+          // ✅ Handle validation errors with field-specific display
+          if (data.details && Array.isArray(data.details)) {
+            // Clear all errors first
+            const errorFields = ['oneLineBio'];
+            errorFields.forEach(fieldId => {
+              const fieldEl = document.getElementById(fieldId);
+              const errorEl = document.getElementById(`${fieldId}-error`);
+              if (fieldEl) fieldEl.classList.remove('border-red-500', 'ring-2', 'ring-red-500/20');
+              if (errorEl) {
+                errorEl.classList.add('hidden');
+                errorEl.textContent = '';
+              }
+            });
+            
+            // Show field-specific errors (only for bio, always/never are prevented at input)
+            data.details.forEach((detail) => {
+              const fieldPath = detail.path || [];
+              const fieldName = Array.isArray(fieldPath) ? fieldPath.join('.') : String(fieldPath);
+              const message = detail.message || 'Invalid value';
+              
+              // Map backend field paths to frontend IDs
+              const fieldIdMap = {
+                'basicInfo.oneLineBio': 'oneLineBio',
+              };
+              
+              const fieldId = fieldIdMap[fieldName];
+              if (fieldId) {
+                const fieldEl = document.getElementById(fieldId);
+                const errorEl = document.getElementById(`${fieldId}-error`);
+                
+                if (fieldEl && errorEl) {
+                  fieldEl.classList.add('border-red-500', 'ring-2', 'ring-red-500/20');
+                  errorEl.textContent = message;
+                  errorEl.classList.remove('hidden');
+                }
+              }
+            });
+            
+            showMessage('Please fix the validation errors shown above.', 'error');
+          } else {
             showMessage(data.error || 'Failed to create twin.', 'error');
-            if (createBtn) {
-                    createBtn.disabled = false;
-              createBtn.textContent = originalText;
-            }
-            return;
           }
+          if (createBtn) {
+            createBtn.disabled = false;
+            createBtn.textContent = originalText;
+          }
+          return;
+        }
+        return data;
+      })
+      .then((data) => {
+        if (!data) return; // Already handled error case
           // Clear local saved onboarding so next time starts fresh
           try {
             localStorage.removeItem(ONBOARDING_STORAGE_KEY);

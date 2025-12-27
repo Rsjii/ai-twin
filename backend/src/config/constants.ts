@@ -159,3 +159,23 @@ export const TOKEN_QUOTAS = {
   // Logged-in: daily cap (adjust as you want)
   USER_DAILY_TOKENS: 100000,
 } as const;
+
+// ✅ MEMORY LIMITS - Prevent memory overload in LLM prompts
+export const MEMORY_LIMITS = {
+  MAX_FACTS: 4,
+  MAX_PREFERENCES: 4,
+  MAX_ALWAYS_NEVER_CHARS: 120, // Per item in always/never arrays
+  MAX_BIO_CHARS: 150, // Maximum characters for twin bio/oneLineBio
+} as const;
+
+// ✅ RATE LIMITS - Prevent abuse of critical operations
+export const OPERATION_RATE_LIMITS = {
+  TWIN_DELETION: {
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    max: 2, // Max 1 deletion per 24 hours
+  },
+  TWIN_VISIBILITY_TOGGLE: {
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 3, // Max 2 toggles per hour
+  },
+} as const;

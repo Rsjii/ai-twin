@@ -8,19 +8,19 @@ import { createError, ErrorCodes } from '../../utils/errors';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
 import {twinQueries} from '../../config/database';
 import { detokenizeId, sanitizeTwin, tokenizeId } from '../../utils/idTokenization';
-import { EVENT_TYPES } from '../../config/constants';
+import { EVENT_TYPES, MEMORY_LIMITS } from '../../config/constants';
 import { checkQuotaStatus } from '../../services/tokenQuotaService';
 
 // Validation schemas
 const makePublicSchema = z.object({
   twinId: z.string().min(1, 'Twin ID is required'),
   // ✅ REMOVED: publicHandle - always use user.handle for consistent URLs
-  bio: z.string().min(1, 'Bio is required').max(150, 'Bio must be less than 150 characters'), // ✅ MANDATORY: Bio is required (max 150 chars)
+  bio: z.string().min(1, 'Bio is required').max(MEMORY_LIMITS.MAX_BIO_CHARS, `Bio must be ${MEMORY_LIMITS.MAX_BIO_CHARS} characters or less`), // ✅ MANDATORY: Bio is required
   profileImage: z.string().url('Profile image must be a valid URL').optional()
 });
 
 const updateProfileSchema = z.object({
-  bio: z.string().max(150, 'Bio must be less than 150 characters').optional(),
+  bio: z.string().max(MEMORY_LIMITS.MAX_BIO_CHARS, `Bio must be ${MEMORY_LIMITS.MAX_BIO_CHARS} characters or less`).optional(),
   profileImage: z.string().url('Profile image must be a valid URL').optional(),
   publicHandle: z.string()
     .min(3, 'Handle must be at least 3 characters')

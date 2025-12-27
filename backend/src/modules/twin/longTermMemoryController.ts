@@ -4,7 +4,8 @@ import { createError, ErrorCodes } from '../../utils/errors';
 import { verifyTwinOwnership } from '../../utils/twinUtils';
 import { generateId } from '../../utils/idGenerator';
 import { detokenizeId } from '../../utils/idTokenization';
-
+import { MEMORY_LIMITS } from '../../config/constants';
+import { db } from '../../config/database';
 /**
  * Normalize visibility value to valid enum
  * - 'public' or 'public_twin' → 'public_twin'
@@ -107,6 +108,35 @@ export const addLongTermMemory = async (req: any, res: Response, next: NextFunct
 
     if (!value || typeof value !== 'string' || value.trim().length === 0) {
       throw createError.validation('Value is required');
+    }
+
+    // ✅ NEW: Check memory limits before adding
+    
+    // Get current count for this category
+    const countResult = await db.query(`
+      SELECT COUNT(*) as count
+      FROM "MemoryLongTerm"
+      WHERE "twinId" = $1 AND category = $2
+    `, [twinId, category]);
+    
+    const currentCount = parseInt(countResult.rows[0]?.count || '0', 10);
+    const maxLimit = category === 'fact' 
+      ? MEMORY_LIMITS.MAX_FACTS 
+      : category === 'preference' 
+        ? MEMORY_LIMITS.MAX_PREFERENCES 
+        : 999; // Other categories unlimited for now
+    
+    if (currentCount >= maxLimit) {
+      const categoryName = category === 'fact' ? 'facts' : 'preferences';
+      throw createError.validation(
+        `Maximum limit of ${maxLimit} ${categoryName} exceeded. Please delete some existing ${categoryName} before adding new ones.`,
+        {
+          errorCode: 'MEMORY_LIMIT_EXCEEDED',
+          category,
+          currentCount,
+          maxLimit,
+        }
+      );
     }
 
     // Auto-generate key if not provided

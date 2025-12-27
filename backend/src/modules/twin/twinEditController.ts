@@ -5,6 +5,7 @@ import { logger } from '../../config/logger';
 import { TwinService } from './twinService';
 import { detokenizeId } from '../../utils/idTokenization';
 import { createError, ErrorCodes } from '../../utils/errors';
+import { MEMORY_LIMITS } from '../../config/constants';
 
 const twinService = new TwinService();
 
@@ -34,7 +35,7 @@ const updatePersonaSchema = z.object({
     // ✅ required by new Twin Settings page
     name: z.string().optional(),
     role: z.string().optional(),
-    oneLineBio: z.string().min(1, 'Bio is required').max(150, 'Bio must be less than 150 characters'), // ✅ MANDATORY: Bio is required (max 150 chars)
+    oneLineBio: z.string().min(1, 'Bio is required').max(MEMORY_LIMITS.MAX_BIO_CHARS, `Bio must be ${MEMORY_LIMITS.MAX_BIO_CHARS} characters or less`), // ✅ MANDATORY: Bio is required
     language: z.enum(['en', 'hi', 'hinglish']).optional(),
     purpose: z.string().optional(), // ✅ ADD
   }).optional(),
@@ -59,8 +60,8 @@ const updatePersonaSchema = z.object({
     emojiPref: z.enum(['low', 'medium', 'high']).optional(), // ✅ ADD
   }).optional(),
   rules: z.object({
-    always: z.array(z.string()).optional(),
-    never: z.array(z.string()).optional(),
+    always: z.array(z.string().max(MEMORY_LIMITS.MAX_ALWAYS_NEVER_CHARS, `Each "always" rule must be ${MEMORY_LIMITS.MAX_ALWAYS_NEVER_CHARS} characters or less`)).optional(),
+    never: z.array(z.string().max(MEMORY_LIMITS.MAX_ALWAYS_NEVER_CHARS, `Each "never" rule must be ${MEMORY_LIMITS.MAX_ALWAYS_NEVER_CHARS} characters or less`)).optional(),
     replySize: z.enum(['short', 'normal', 'detailed']).optional(), // ✅ ADD
     engagementStyle: z.enum(['ask_questions', 'natural', 'mix']).optional(), // ✅ ADD
   }).optional(),

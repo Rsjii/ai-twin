@@ -7,7 +7,7 @@ import { TwinService } from '../twin/twinService';
 import type { StyleVector } from '../twin/twinService';
 import { featureFlags } from '../../config/featureFlags';
 import { generateId } from '../../utils/idGenerator';
-import { EVENT_TYPES } from '../../config/constants';
+import { EVENT_TYPES, MEMORY_LIMITS } from '../../config/constants';
 import { tokenizeId } from '../../utils/idTokenization';
 import { isDev } from '../../config/env';
 import { AppError, createError } from '../../utils/errors';
@@ -19,7 +19,7 @@ const twinService = new TwinService();
 const enhancedOnboardingSchema = z.object({
   basicInfo: z.object({
     name: z.string().min(1, 'Name is required'),
-    oneLineBio: z.string().min(1, 'Bio is required').max(150, 'Bio must be less than 150 characters'), // ✅ MANDATORY: Twin one-line bio (max 150 chars)
+    oneLineBio: z.string().min(1, 'Bio is required').max(MEMORY_LIMITS.MAX_BIO_CHARS, `Bio must be ${MEMORY_LIMITS.MAX_BIO_CHARS} characters or less`), // ✅ MANDATORY: Twin one-line bio
     role: z.string().min(1, 'Role is required'),
     roleOther: z.string().optional().default(''),
     purpose: z.string().optional(), // NEW: what twin helps with
@@ -37,8 +37,8 @@ const enhancedOnboardingSchema = z.object({
     emojiPref: z.enum(['low', 'medium', 'high']),
   }),
   rules: z.object({
-    always: z.array(z.string()).optional().default([]),
-    never: z.array(z.string()).optional().default([]),
+    always: z.array(z.string().max(MEMORY_LIMITS.MAX_ALWAYS_NEVER_CHARS, `Each "always" rule must be ${MEMORY_LIMITS.MAX_ALWAYS_NEVER_CHARS} characters or less`)).optional().default([]),
+    never: z.array(z.string().max(MEMORY_LIMITS.MAX_ALWAYS_NEVER_CHARS, `Each "never" rule must be ${MEMORY_LIMITS.MAX_ALWAYS_NEVER_CHARS} characters or less`)).optional().default([]),
     replySize: z.enum(['short', 'normal', 'detailed']),
     engagementStyle: z.enum(['ask_questions', 'natural', 'mix']), // NEW: question frequency
   }),
@@ -52,10 +52,26 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
     logger.info('=== ENHANCED TWIN CREATION (v2) ===');
     if (isDev) logger.info('Request body:', JSON.stringify(req.body, null, 2));
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'onboardingController.ts:50',message:'createEnhancedTwin entry',data:{hasUser:!!req.user,bodyKeys:Object.keys(req.body||{}),rulesAlways:req.body?.rules?.always,rulesNever:req.body?.rules?.never,bioLength:req.body?.basicInfo?.oneLineBio?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
+
     if (!req.user) return next(createError.unauthorized());
 
     // 1) Validate incoming payload against new schema
-    const validatedData = enhancedOnboardingSchema.parse(req.body);
+    let validatedData;
+    try {
+      validatedData = enhancedOnboardingSchema.parse(req.body);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'onboardingController.ts:58',message:'Schema validation success',data:{validated:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
+      // #endregion
+    } catch (zodError: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'onboardingController.ts:58',message:'Schema validation failed',data:{errors:zodError.errors,issues:zodError.issues?.map((e:any)=>({path:e.path,message:e.message,code:e.code})),bioLength:req.body?.basicInfo?.oneLineBio?.length,alwaysLengths:req.body?.rules?.always?.map((a:any)=>a?.length),neverLengths:req.body?.rules?.never?.map((n:any)=>n?.length)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
+      // #endregion
+      logger.error('Enhanced twin creation error:', zodError);
+      return next(createError.validation('Validation failed', zodError.errors || zodError.issues));
+    }
     if (isDev) logger.info('Validated onboarding data:', validatedData);
 
     // 2) Enforce one twin per user

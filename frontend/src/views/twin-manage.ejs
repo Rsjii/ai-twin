@@ -141,8 +141,8 @@
                         View Profile
                     </a>
                     <% /* ✅ MVP: AI Edit button removed (V2 feature) */ %>
-                    <a href="/twin-settings#styleSection" class="px-2 py-2 text-xs sm:text-sm bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors min-h-[36px] sm:min-h-[44px] touch-manipulation flex items-center justify-center text-center truncate">
-                        Style & Tone
+                    <a href="/analytics" class="px-2 py-2 text-xs sm:text-sm bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors min-h-[36px] sm:min-h-[44px] touch-manipulation flex items-center justify-center text-center truncate">
+                        Analytics
                     </a>
                     <a href="/twin-settings" class="px-2 py-2 text-xs sm:text-sm bg-accent text-white rounded-lg hover:bg-purple-600 transition-colors min-h-[36px] sm:min-h-[44px] touch-manipulation flex items-center justify-center text-center truncate">
                         Twin Settings
@@ -388,6 +388,9 @@
     </script>
 
 <script>
+    // ✅ Bio limit constant (must match backend MEMORY_LIMITS.MAX_BIO_CHARS)
+    const MAX_BIO_CHARS = 150;
+    
     async function confirmDeleteTwin() {
         // ✅ SECURITY: Use tokenized twinToken instead of raw twinId
         const twinToken = '<%= typeof twinToken !== "undefined" ? twinToken : (typeof twinPublicId !== "undefined" ? twinPublicId : "") %>';
@@ -448,6 +451,15 @@
                 credentials: 'include'
             });
             
+            // ✅ Handle 429 rate limit errors properly
+            if (response.status === 429) {
+                const result = await response.json().catch(() => ({ error: 'Rate limit exceeded', errorCode: 'RATE_LIMIT_EXCEEDED' }));
+                showNotification(result.error || 'Too many twin deletion attempts. Please try again later.', 'error');
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = originalText;
+                return;
+            }
+            
             const data = await response.json();
             
             if (response.ok && data.success) {
@@ -464,11 +476,23 @@
                     window.location.replace('/onboarding');
                 }, 1000);
             } else {
-                throw new Error(data.error || 'Failed to delete twin');
+                // ✅ Handle rate limit errors from response body
+                if (data.errorCode === 'RATE_LIMIT_EXCEEDED') {
+                    showNotification(data.error || 'Too many twin deletion attempts. Please try again later.', 'error');
+                } else {
+                    throw new Error(data.error || 'Failed to delete twin');
+                }
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = originalText;
             }
         } catch (error) {
             ErrorLogger.error('Delete twin error', error, {});
-            showNotification('❌ Failed to delete twin: ' + error.message, 'error');
+            // ✅ Handle JSON parsing errors (e.g., if response is not JSON)
+            if (error.message && error.message.includes('JSON')) {
+                showNotification('Rate limit exceeded. Please try again later.', 'error');
+            } else {
+                showNotification('❌ Failed to delete twin: ' + error.message, 'error');
+            }
             deleteBtn.disabled = false;
             deleteBtn.innerHTML = originalText;
         }
@@ -566,15 +590,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const twinToken = '<%= typeof twinToken !== "undefined" ? twinToken : "" %>';
     const isPublic = <%= typeof isPublic !== 'undefined' && isPublic ? 'true' : 'false' %>;
     
-    // Bio character counter
+    // ✅ Bio character counter with input prevention (max MAX_BIO_CHARS)
     const publicBio = document.getElementById('publicBio');
     const bioCharCount = document.getElementById('bioCharCount');
     if (publicBio && bioCharCount) {
-        // ✅ Initialize counter with current value
-        bioCharCount.textContent = publicBio.value.length;
+        let bioPrevValue = publicBio.value;
+        const updateBioCount = () => {
+            const length = publicBio.value.length;
+            bioCharCount.textContent = length;
+            if (length > MAX_BIO_CHARS) {
+                bioCharCount.classList.add('text-red-600', 'dark:text-red-400');
+            } else {
+                bioCharCount.classList.remove('text-red-600', 'dark:text-red-400');
+            }
+        };
         publicBio.addEventListener('input', function() {
-            bioCharCount.textContent = this.value.length;
+            if (publicBio.value.length > MAX_BIO_CHARS) {
+                publicBio.value = bioPrevValue;
+                return;
+            }
+            bioPrevValue = publicBio.value;
+            updateBioCount();
         });
+        updateBioCount(); // Initial count
     }
     
     // Make Twin Public (with bio form)
@@ -593,6 +631,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // ✅ Validate bio is not empty
             if (!bio || bio.length === 0) {
                 showNotification('Bio is required', 'error');
+                return;
+            }
+            
+            // ✅ Validate bio length (MAX_BIO_CHARS chars max)
+            if (bio.length > MAX_BIO_CHARS) {
+                showNotification(`Bio must be ${MAX_BIO_CHARS} characters or less (currently ${bio.length})`, 'error');
                 return;
             }
             
@@ -617,6 +661,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                 });
                 
+                // ✅ Handle 429 rate limit errors properly
+                if (response.status === 429) {
+                    const result = await response.json().catch(() => ({ error: 'Rate limit exceeded', errorCode: 'RATE_LIMIT_EXCEEDED' }));
+                    showNotification(result.error || 'Too many visibility changes. Please try again later.', 'error');
+                    makeTwinPublicBtn.disabled = false;
+                    makeTwinPublicBtn.textContent = originalText;
+                    return;
+                }
+                
                 const result = await response.json();
                 
                 if (response.ok && result.success) {
@@ -626,7 +679,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.reload();
                     }, 1000);
                 } else {
-                    showNotification(result.error || result.message || 'Failed to make twin public', 'error');
+                    // ✅ Handle rate limit errors from response body
+                    if (result.errorCode === 'RATE_LIMIT_EXCEEDED') {
+                        showNotification(result.error || 'Too many visibility changes. Please try again later.', 'error');
+                    } else {
+                        showNotification(result.error || result.message || 'Failed to make twin public', 'error');
+                    }
                     makeTwinPublicBtn.disabled = false;
                     makeTwinPublicBtn.textContent = originalText;
                 }
@@ -678,6 +736,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify({ twinId: twinToken })
                 });
                 
+                // ✅ Handle 429 rate limit errors properly
+                if (response.status === 429) {
+                    const data = await response.json().catch(() => ({ error: 'Rate limit exceeded', errorCode: 'RATE_LIMIT_EXCEEDED' }));
+                    showNotification(data.error || 'Too many visibility changes. Please try again later.', 'error');
+                    this.disabled = false;
+                    this.textContent = originalText;
+                    return;
+                }
+                
                 const data = await response.json();
                 
                 if (response.ok && data.success) {
@@ -685,11 +752,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Reload page to reflect changes
                     setTimeout(() => window.location.reload(), 1000);
                 } else {
-                    throw new Error(data.error || 'Failed to update status');
+                    // ✅ Handle rate limit errors from response body
+                    if (data.errorCode === 'RATE_LIMIT_EXCEEDED') {
+                        showNotification(data.error || 'Too many visibility changes. Please try again later.', 'error');
+                    } else {
+                        showNotification(data.error || 'Failed to update status', 'error');
+                    }
+                    this.disabled = false;
+                    this.textContent = originalText;
                 }
             } catch (error) {
                 ErrorLogger.error('Make twin private error', error, {});
-                showNotification('Failed to update status: ' + (error.message || 'Unknown error'), 'error');
+                // ✅ Handle JSON parsing errors (e.g., if response is not JSON)
+                if (error.message && error.message.includes('JSON')) {
+                    showNotification('Rate limit exceeded. Please try again later.', 'error');
+                } else {
+                    showNotification('Failed to update status: ' + (error.message || 'Unknown error'), 'error');
+                }
                 this.disabled = false;
                 this.textContent = originalText;
             }

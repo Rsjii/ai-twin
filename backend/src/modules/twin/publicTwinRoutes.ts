@@ -10,6 +10,7 @@ import {
 } from './publicTwinController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import { validateCSRF } from '../../middleware/csrf';
+import { twinVisibilityToggleRateLimit } from '../../middleware/rateLimit';
 
 const router = Router();
 
@@ -18,8 +19,8 @@ router.get('/public/:handle', getPublicTwinProfile);
 // router.get('/chat/:twinId', getPublicChatPage); REMOVED - moved to page routes
 
 // Protected routes (authentication required) - CSRF protection added
-router.post('/make-public', requireJWTFromCookie, validateCSRF, makeTwinPublic);
-router.post('/make-private', requireJWTFromCookie, validateCSRF, makeTwinPrivate);
+router.post('/make-public', twinVisibilityToggleRateLimit, requireJWTFromCookie, validateCSRF, makeTwinPublic);
+router.post('/make-private', twinVisibilityToggleRateLimit, requireJWTFromCookie, validateCSRF, makeTwinPrivate);
 router.put('/profile', requireJWTFromCookie, validateCSRF, updateTwinProfile);
 router.get('/my-profile', requireJWTFromCookie, getMyTwinProfile);
 router.get('/check-owner/:twinToken', requireJWTFromCookie, checkTwinOwner);

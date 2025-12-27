@@ -2365,9 +2365,9 @@ if (desktopQuickActionsButton && desktopQuickActionsDropdown) {
     if (el) {
         el.addEventListener('click', () => {
             if (id === 'learningBtn') {
-                window.open('/twin-settings', '_blank');
+                window.location.href = '/twin-settings';
             } else if (id === 'analyticsBtn') {
-                window.open('/analytics', '_blank');
+                window.location.href = '/analytics';
             }
             closeAllDesktopDropdowns();
         });
@@ -2380,9 +2380,9 @@ if (desktopQuickActionsButton && desktopQuickActionsDropdown) {
     if (el) {
         el.addEventListener('click', () => {
             if (id === 'learningBtnMobile') {
-                window.open('/twin-settings', '_blank');
+                window.location.href = '/twin-settings';
             } else if (id === 'analyticsBtnMobile') {
-                window.open('/analytics', '_blank');
+                window.location.href = '/analytics';
             }
         });
     }

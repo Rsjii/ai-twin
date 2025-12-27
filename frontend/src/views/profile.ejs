@@ -477,6 +477,20 @@
                                                     <textarea id="publicBio" rows="3" placeholder="Describe your AI twin..." maxlength="150" class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white break-words overflow-wrap-anywhere"></textarea>
                                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><span id="bioCharCount">0</span>/150 characters</p>
                                                 </div>
+                                                <script>
+                                                    // ✅ Fix bio character counter in profile settings twin visibility
+                                                    (function() {
+                                                        const publicBio = document.getElementById('publicBio');
+                                                        const bioCharCount = document.getElementById('bioCharCount');
+                                                        if (publicBio && bioCharCount) {
+                                                            const updateBioCount = () => {
+                                                                bioCharCount.textContent = publicBio.value.length;
+                                                            };
+                                                            publicBio.addEventListener('input', updateBioCount);
+                                                            updateBioCount(); // Initial count
+                                                        }
+                                                    })();
+                                                </script>
                                                 <button id="makeTwinPublicBtn" class="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2 px-4 rounded-lg hover:shadow-lg transition-all font-semibold">
                                                     Make Twin Public
                                                 </button>
@@ -1897,6 +1911,15 @@
                         })
                     });
                     
+                    // ✅ Handle 429 rate limit errors properly
+                    if (response.status === 429) {
+                        const result = await response.json().catch(() => ({ error: 'Rate limit exceeded', errorCode: 'RATE_LIMIT_EXCEEDED' }));
+                        showNotification(result.error || 'Too many visibility changes. Please try again later.', 'error');
+                        makeTwinPublicBtn.disabled = false;
+                        makeTwinPublicBtn.textContent = originalText;
+                        return;
+                    }
+                    
                     const result = await response.json();
                     
                     if (response.ok && result.success) {
@@ -1906,13 +1929,23 @@
                             window.location.reload();
                         }, 1000);
                     } else {
-                        showNotification(result.error || result.message || 'Failed to make twin public', 'error');
+                        // ✅ Handle rate limit errors from response body
+                        if (result.errorCode === 'RATE_LIMIT_EXCEEDED') {
+                            showNotification(result.error || 'Too many visibility changes. Please try again later.', 'error');
+                        } else {
+                            showNotification(result.error || result.message || 'Failed to make twin public', 'error');
+                        }
                         makeTwinPublicBtn.disabled = false;
                         makeTwinPublicBtn.textContent = originalText;
                     }
                 } catch (error) {
                     ErrorLogger.error('Make twin public error', error, {});
-                    showNotification('Network error. Please try again.', 'error');
+                    // ✅ Handle JSON parsing errors (e.g., if response is not JSON)
+                    if (error.message && error.message.includes('JSON')) {
+                        showNotification('Rate limit exceeded. Please try again later.', 'error');
+                    } else {
+                        showNotification('Network error. Please try again.', 'error');
+                    }
                     makeTwinPublicBtn.disabled = false;
                     makeTwinPublicBtn.textContent = originalText;
                 }
@@ -1980,19 +2013,38 @@ if (makeTwinPrivateBtn) {
         body: JSON.stringify({ twinId: currentTwinId })
       });
 
+      // ✅ Handle 429 rate limit errors properly
+      if (response.status === 429) {
+        const data = await response.json().catch(() => ({ error: 'Rate limit exceeded', errorCode: 'RATE_LIMIT_EXCEEDED' }));
+        showNotification(data.error || 'Too many visibility changes. Please try again later.', 'error');
+        makeTwinPrivateBtn.disabled = false;
+        makeTwinPrivateBtn.textContent = originalText;
+        return;
+      }
+
       const result = await response.json();
 
       if (response.ok && result.success) {
         showNotification('Twin made private successfully!', 'success');
         setTimeout(() => window.location.reload(), 1000);
       } else {
-        showNotification(result.error || result.message || 'Failed to make twin private', 'error');
+        // ✅ Handle rate limit errors from response body
+        if (result.errorCode === 'RATE_LIMIT_EXCEEDED') {
+          showNotification(result.error || 'Too many visibility changes. Please try again later.', 'error');
+        } else {
+          showNotification(result.error || result.message || 'Failed to make twin private', 'error');
+        }
         makeTwinPrivateBtn.disabled = false;
         makeTwinPrivateBtn.textContent = originalText;
       }
     } catch (error) {
       ErrorLogger.error('Make twin private error', error, {});
-      showNotification('Network error. Please try again.', 'error');
+      // ✅ Handle JSON parsing errors (e.g., if response is not JSON)
+      if (error.message && error.message.includes('JSON')) {
+        showNotification('Rate limit exceeded. Please try again later.', 'error');
+      } else {
+        showNotification('Network error. Please try again.', 'error');
+      }
       makeTwinPrivateBtn.disabled = false;
       makeTwinPrivateBtn.textContent = originalText;
     }

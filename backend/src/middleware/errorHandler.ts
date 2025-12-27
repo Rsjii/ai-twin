@@ -66,10 +66,18 @@ export const errorHandlerMiddleware = (
       if (requestId) {
         res.setHeader('X-Request-Id', requestId);
       }
-      res.status(err.statusCode).json({
+      const response: any = {
         error: err.message,
         errorCode: err.errorCode,
-      });
+      };
+      // ✅ Include validation details for frontend error handling
+      if (err.details && Array.isArray(err.details)) {
+        response.details = err.details.map((detail: any) => ({
+          field: detail.path?.join('.') || detail.field || '',
+          message: detail.message || 'Invalid value',
+        }));
+      }
+      res.status(err.statusCode).json(response);
       return;
     }    
 

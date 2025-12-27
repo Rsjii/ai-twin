@@ -1,5 +1,6 @@
 import rateLimit from 'express-rate-limit';
 import { RATE_LIMITS, formatRetryAfter } from '../config/rateLimitConfig';
+import { OPERATION_RATE_LIMITS } from '../config/constants';
 
 /**
  * Rate Limiting Configuration
@@ -237,4 +238,69 @@ export const changePasswordRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+});
+
+// ✅ Twin deletion rate limiter (shared limit for both /twin/manage and twin-settings)
+export const twinDeletionRateLimit = rateLimit({
+  windowMs: OPERATION_RATE_LIMITS.TWIN_DELETION.windowMs,
+  max: OPERATION_RATE_LIMITS.TWIN_DELETION.max,
+  keyGenerator: (req: any) => {
+    // ✅ Use user ID with explicit prefix to ensure shared limit across both deletion routes
+    // This ensures if user deletes once from /twin/manage and once from twin-settings, it counts as 2
+    const userId = req.user?.id || req.user?.userId || req.ip || 'unknown';
+    // ✅ Explicit prefix ensures both routes use the same key (shared limit)
+    return `twin_deletion:${userId}`;
+  },
+  message: {
+    error: `Too many twin deletion attempts. Please try again later.`,
+    errorCode: 'RATE_LIMIT_EXCEEDED',
+    retryAfter: formatRetryAfter(OPERATION_RATE_LIMITS.TWIN_DELETION.windowMs),
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    // ✅ Custom handler to ensure proper JSON response for frontend error handling
+    res.status(429).json({
+      success: false,
+      error: `Too many twin deletion attempts. Please try again later.`,
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(OPERATION_RATE_LIMITS.TWIN_DELETION.windowMs),
+    });
+  },
+  skip: (req) => {
+    // Skip rate limiting in development
+    return process.env.NODE_ENV === 'development';
+  },
+});
+
+// ✅ Twin visibility toggle rate limiter (shared limit for make-public and make-private)
+export const twinVisibilityToggleRateLimit = rateLimit({
+  windowMs: OPERATION_RATE_LIMITS.TWIN_VISIBILITY_TOGGLE.windowMs,
+  max: OPERATION_RATE_LIMITS.TWIN_VISIBILITY_TOGGLE.max,
+  keyGenerator: (req: any) => {
+    // ✅ Use user ID with explicit prefix to ensure shared limit across both make-public and make-private
+    // This ensures if user toggles once from dashboard/settings and once from /twin/manage, it counts as 2
+    const userId = req.user?.id || req.user?.userId || req.ip || 'unknown';
+    // ✅ Explicit prefix ensures both routes use the same key (shared limit)
+    return `twin_visibility_toggle:${userId}`;
+  },
+  message: {
+    error: `Too many visibility changes. Please try again later.`,
+    errorCode: 'RATE_LIMIT_EXCEEDED',
+    retryAfter: formatRetryAfter(OPERATION_RATE_LIMITS.TWIN_VISIBILITY_TOGGLE.windowMs),
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    // ✅ Custom handler to ensure proper JSON response for frontend error handling
+    res.status(429).json({
+      success: false,
+      error: `Too many visibility changes. Please try again later.`,
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(OPERATION_RATE_LIMITS.TWIN_VISIBILITY_TOGGLE.windowMs),
+    });
+  },
+  skip: (req) => {
+    return process.env.NODE_ENV === 'development';
+  },
 });

@@ -80,9 +80,9 @@
           <input id="twinBio" type="text"
             class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white min-h-[44px] break-words overflow-wrap-anywhere transition-all"
             placeholder="e.g. Replies like me on WhatsApp — casual, witty, helpful."
-            maxlength="500" />
+            maxlength="150" />
           <p id="twinBio-error" class="text-xs text-red-500 mt-1 hidden"></p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><span id="bioCharCount">0</span>/500 characters</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><span id="bioCharCount">0</span>/150 characters</p>
         </div>
 
         <!-- MVP: hide default language (V2 feature) -->
@@ -237,6 +237,10 @@
           <textarea id="alwaysInput" rows="3"
             class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white transition-all"
             placeholder="e.g. be concise, greet politely"></textarea>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Max 120 characters (<span id="alwaysInputCharCount">0</span>/120)
+          </p>
+          <p id="alwaysInput-error" class="text-xs text-red-500 mt-1 hidden"></p>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -245,6 +249,10 @@
           <textarea id="neverInput" rows="3"
             class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white transition-all"
             placeholder="e.g. insult, reveal private info"></textarea>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Max 120 characters (<span id="neverInputCharCount">0</span>/120)
+          </p>
+          <p id="neverInput-error" class="text-xs text-red-500 mt-1 hidden"></p>
         </div>
       </div>
     </section>
@@ -498,6 +506,9 @@
   </div>
 
   <script>
+    // ✅ Bio limit constant (must match backend MEMORY_LIMITS.MAX_BIO_CHARS)
+    const MAX_BIO_CHARS = 150;
+    
     const twinToken = '<%= typeof twinToken !== "undefined" ? twinToken : "" %>';
 
     let currentSettings = null;
@@ -797,7 +808,7 @@
 
     // ✅ Helper functions for field error handling
     function clearFieldErrors() {
-      const errorFields = ['twinName', 'twinRole', 'twinBio', 'twinLanguage', 'twinPurpose'];
+      const errorFields = ['twinName', 'twinRole', 'twinBio', 'twinLanguage', 'twinPurpose', 'alwaysInput', 'neverInput'];
       errorFields.forEach(fieldId => {
         const fieldEl = document.getElementById(fieldId);
         const errorEl = document.getElementById(`${fieldId}-error`);
@@ -827,7 +838,13 @@
       const bioInput = document.getElementById('twinBio');
       const charCount = document.getElementById('bioCharCount');
       if (bioInput && charCount) {
-        charCount.textContent = bioInput.value.length;
+        const length = bioInput.value.length;
+        charCount.textContent = length;
+        if (length > MAX_BIO_CHARS) {
+          charCount.classList.add('text-red-600', 'dark:text-red-400');
+        } else {
+          charCount.classList.remove('text-red-600', 'dark:text-red-400');
+        }
       }
     }
 
@@ -1348,7 +1365,19 @@
           body: JSON.stringify({ value, category: cat, visibility }),
         });
         const data = await res.json();
-        if (!data.success) throw new Error(data.error || 'Failed');
+        
+        if (!res.ok || !data.success) {
+          // ✅ NEW: Handle memory limit errors
+          if (data.errorCode === 'MEMORY_LIMIT_EXCEEDED') {
+            showNotification(data.message || `Maximum ${data.maxLimit} ${cat}s allowed. Please delete some first.`, 'error');
+          } else if (data.errorCode === 'RATE_LIMIT_EXCEEDED') {
+            showNotification(data.error || 'Too many requests. Please try again later.', 'error');
+          } else {
+            showNotification(data.error || 'Failed to add memory', 'error');
+          }
+          return;
+        }
+        
         document.getElementById('memAddValue').value = '';
         document.getElementById('memAddPublic').checked = false;
         showNotification('Memory added ✔', 'success');
@@ -1361,12 +1390,18 @@
     }
 
     function setupUI() {
-      // ✅ Bio character counter
+      // ✅ Bio character counter with input prevention (max MAX_BIO_CHARS)
       const bioInput = document.getElementById('twinBio');
       if (bioInput) {
+        let bioPrevValue = bioInput.value;
         updateBioCharCount(); // Initial count
-        bioInput.addEventListener('input', updateBioCharCount);
-        bioInput.addEventListener('input', () => {
+        bioInput.addEventListener('input', (e) => {
+          if (bioInput.value.length > MAX_BIO_CHARS) {
+            bioInput.value = bioPrevValue;
+            return;
+          }
+          bioPrevValue = bioInput.value;
+          updateBioCharCount();
           // Clear error on input
           const errorEl = document.getElementById('twinBio-error');
           if (errorEl) {
@@ -1374,6 +1409,63 @@
           }
           bioInput.classList.remove('border-red-500', 'ring-2', 'ring-red-500/20');
         });
+      }
+      
+      // ✅ Always/Never character counters with input prevention (max 120 per item, comma-separated)
+      const alwaysInput = document.getElementById('alwaysInput');
+      const alwaysCharCount = document.getElementById('alwaysInputCharCount');
+      if (alwaysInput && alwaysCharCount) {
+        let alwaysPrevValue = alwaysInput.value;
+        const updateAlwaysCount = () => {
+          const items = alwaysInput.value.split(',').map(s => s.trim()).filter(Boolean);
+          const longestItem = items.length > 0 ? Math.max(...items.map(item => item.length)) : 0;
+          alwaysCharCount.textContent = longestItem;
+          if (longestItem > 120) {
+            alwaysCharCount.classList.add('text-red-600', 'dark:text-red-400');
+          } else {
+            alwaysCharCount.classList.remove('text-red-600', 'dark:text-red-400');
+          }
+        };
+        
+        alwaysInput.addEventListener('input', (e) => {
+          const items = alwaysInput.value.split(',').map(s => s.trim()).filter(Boolean);
+          const exceedsLimit = items.some(item => item.length > 120);
+          if (exceedsLimit) {
+            alwaysInput.value = alwaysPrevValue;
+            return;
+          }
+          alwaysPrevValue = alwaysInput.value;
+          updateAlwaysCount();
+        });
+        updateAlwaysCount(); // Initial count
+      }
+      
+      const neverInput = document.getElementById('neverInput');
+      const neverCharCount = document.getElementById('neverInputCharCount');
+      if (neverInput && neverCharCount) {
+        let neverPrevValue = neverInput.value;
+        const updateNeverCount = () => {
+          const items = neverInput.value.split(',').map(s => s.trim()).filter(Boolean);
+          const longestItem = items.length > 0 ? Math.max(...items.map(item => item.length)) : 0;
+          neverCharCount.textContent = longestItem;
+          if (longestItem > 120) {
+            neverCharCount.classList.add('text-red-600', 'dark:text-red-400');
+          } else {
+            neverCharCount.classList.remove('text-red-600', 'dark:text-red-400');
+          }
+        };
+        
+        neverInput.addEventListener('input', (e) => {
+          const items = neverInput.value.split(',').map(s => s.trim()).filter(Boolean);
+          const exceedsLimit = items.some(item => item.length > 120);
+          if (exceedsLimit) {
+            neverInput.value = neverPrevValue;
+            return;
+          }
+          neverPrevValue = neverInput.value;
+          updateNeverCount();
+        });
+        updateNeverCount(); // Initial count
       }
       
       // ✅ Clear errors on input for all fields
@@ -1449,6 +1541,8 @@
                 'basicInfo.role': 'twinRole',
                 'basicInfo.language': 'twinLanguage',
                 'basicInfo.purpose': 'twinPurpose',
+                'rules.always': 'alwaysInput',
+                'rules.never': 'neverInput',
               };
               
               const fieldId = fieldIdMap[fieldName] || fieldName.split('.').pop();
@@ -1471,6 +1565,12 @@
             } else {
               showNotification('Validation failed. Please check the form fields.', 'error');
             }
+          } else if (err?.errorCode === 'MEMORY_LIMIT_EXCEEDED') {
+            // ✅ NEW: Special handling for memory limit errors
+            showNotification(err.message || 'Memory limit exceeded. Please delete some existing items first.', 'error');
+          } else if (err?.errorCode === 'RATE_LIMIT_EXCEEDED') {
+            // ✅ NEW: Special handling for rate limit errors
+            showNotification(err.message || 'Too many requests. Please try again later.', 'error');
           } else {
             showNotification(`Save failed: ${err?.message || 'Unknown error'}`, 'error');
           }
@@ -1506,25 +1606,67 @@
           return;
         }
 
+        // Get button element to manage state
+        const deleteBtn = document.getElementById('deleteTwinBtn');
+        const originalText = deleteBtn?.textContent || '';
+        if (deleteBtn) {
+          deleteBtn.disabled = true;
+          deleteBtn.textContent = 'Deleting...';
+        }
+
         try {
           const res = await fetch(`/api/twin/${twinToken}`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
             credentials: 'include',
           });
-          const data = await res.json();
-          if (!data.success) throw new Error(data.error || 'Failed');
-          // ✅ FIX: Clear onboarding localStorage before redirect
-          try {
-            localStorage.removeItem('enhancedOnboarding_v1');
-          } catch (e) {
-            ErrorLogger.warn('Failed to clear onboarding localStorage', { error: e });
+          
+          // ✅ Handle 429 rate limit errors properly
+          if (res.status === 429) {
+            const result = await res.json().catch(() => ({ error: 'Rate limit exceeded', errorCode: 'RATE_LIMIT_EXCEEDED' }));
+            showNotification(result.error || 'Too many twin deletion attempts. Please try again later.', 'error');
+            if (deleteBtn) {
+              deleteBtn.disabled = false;
+              deleteBtn.textContent = originalText;
+            }
+            return;
           }
-          showNotification('Twin reset. Redirecting…', 'success');
-          setTimeout(() => window.location.replace('/onboarding'), 800);
+          
+          const data = await res.json();
+          
+          if (res.ok && data.success) {
+            // ✅ FIX: Clear onboarding localStorage before redirect
+            try {
+              localStorage.removeItem('enhancedOnboarding_v1');
+            } catch (e) {
+              ErrorLogger.warn('Failed to clear onboarding localStorage', { error: e });
+            }
+            showNotification('Twin reset. Redirecting…', 'success');
+            setTimeout(() => window.location.replace('/onboarding'), 800);
+          } else {
+            // ✅ Handle rate limit errors from response body
+            if (data.errorCode === 'RATE_LIMIT_EXCEEDED') {
+              showNotification(data.error || 'Too many twin deletion attempts. Please try again later.', 'error');
+            } else {
+              throw new Error(data.error || 'Failed');
+            }
+            if (deleteBtn) {
+              deleteBtn.disabled = false;
+              deleteBtn.textContent = originalText;
+            }
+          }
         } catch (err) {
           ErrorLogger.error('Error', err, {});
-          showNotification('Reset failed', 'error');
+          // ✅ Handle JSON parsing errors (e.g., if response is not JSON)
+          if (err.message && err.message.includes('JSON')) {
+            showNotification('Rate limit exceeded. Please try again later.', 'error');
+          } else {
+            showNotification('Reset failed', 'error');
+          }
+          if (deleteBtn) {
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = originalText;
+          }
         }
       });
 
