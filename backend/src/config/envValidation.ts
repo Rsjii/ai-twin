@@ -48,6 +48,16 @@ export function validateEnv(): void {
     
     logger.info('✅ SMTP configuration validated for production');
   }
+
+  // ✅ ADD: Check for GROQ_API_KEY in production (warning only, not required)
+  if (isExplicitlyProd && !process.env['GROQ_API_KEY']) {
+    logger.warn('⚠️ GROQ_API_KEY not set in production. LLM features may not work.');
+  }
+
+  // ✅ ADD: Check for OPENAI_API_KEY (optional fallback)
+  if (isExplicitlyProd && !process.env['OPENAI_API_KEY'] && !process.env['GROQ_API_KEY']) {
+    logger.warn('⚠️ Neither OPENAI_API_KEY nor GROQ_API_KEY set. LLM features will not work.');
+  }
   
   logger.info('✅ Environment variables validated');
 }

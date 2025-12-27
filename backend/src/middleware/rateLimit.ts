@@ -304,3 +304,48 @@ export const twinVisibilityToggleRateLimit = rateLimit({
     return process.env.NODE_ENV === 'development';
   },
 });
+
+// ✅ Contact form rate limiter (IP + email based)
+export const contactFormRateLimit = rateLimit({
+  windowMs: RATE_LIMITS.contactForm.windowMs,
+  max: RATE_LIMITS.contactForm.max,
+  keyGenerator: (req: any) => {
+    // Use email if available (more accurate), otherwise IP
+    const email = (req.body?.email || '').toLowerCase();
+    return email || req.ip || req.socket.remoteAddress || 'unknown';
+  },
+  message: {
+    error: 'Too many contact form submissions. Please wait before trying again.',
+    retryAfter: formatRetryAfter(RATE_LIMITS.contactForm.windowMs)
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many contact form submissions. Please wait before trying again.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.contactForm.windowMs)
+    });
+  },
+});
+
+// ✅ Daily contact form limit (per IP) - prevents abuse
+export const contactFormDailyLimit = rateLimit({
+  windowMs: RATE_LIMITS.contactFormDaily.windowMs,
+  max: RATE_LIMITS.contactFormDaily.max,
+  keyGenerator: (req: any) => {
+    // Always use IP for daily limit (prevents same IP from spamming)
+    return req.ip || req.socket.remoteAddress || 'unknown';
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Daily contact form limit reached. Please try again tomorrow.',
+      errorCode: 'DAILY_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.contactFormDaily.windowMs)
+    });
+  },
+});

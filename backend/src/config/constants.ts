@@ -69,7 +69,7 @@ export const QUERY_DEFAULTS = {
 } as const;
 
 export const DB_POOL_CONFIG = {
-  max: 5,
+  max: process.env.NODE_ENV === 'production' ? 20 : 5, // ✅ Increase for production (single instance can handle 20)
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
   acquireTimeoutMillis: 10000,

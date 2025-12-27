@@ -98,7 +98,7 @@ app.use(helmet({
   },
 }));
 
-// Rate limiting
+// Rate limiting - ✅ Apply in ALL environments (with different limits)
 const limiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
   max: config.rateLimit.maxRequests,
@@ -108,7 +108,17 @@ const limiter = rateLimit({
 });
 
 if(isProd){
-  app.use(limiter);
+  app.use(limiter); // Production limits (strict)
+} else {
+  // Development: Use a more lenient limiter (but still protect against abuse)
+  const devLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100000, // High limit for dev (but not unlimited)
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use(devLimiter);
 }
 
 // Cookie parser middleware

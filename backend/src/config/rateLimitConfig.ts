@@ -91,6 +91,17 @@ const prodLimits = {
     windowMs: 24 * 60 * 60 * 1000, // 24 hours
     max: 20, // 20 invites per day per user
   } as LimitConfig,
+
+  // ✅ ADD: Contact form limits
+  contactForm: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 3, // 3 submissions per 15 min per IP/email (prevents spam)
+  } as LimitConfig,
+
+  contactFormDaily: {
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    max: 10, // 10 submissions per day per IP (prevents abuse)
+  } as LimitConfig,
 };
 
 /**
@@ -164,6 +175,17 @@ const devLimits: typeof prodLimits = {
   inviteCreation: {
     windowMs: 24 * 60 * 60 * 1000,
     max: 50, // Keep current value
+  },
+
+  // ✅ ADD: Contact form limits (loose for dev)
+  contactForm: {
+    windowMs: 15 * 60 * 1000,
+    max: 1000, // Very high for testing
+  },
+
+  contactFormDaily: {
+    windowMs: 24 * 60 * 60 * 1000,
+    max: 1000, // Very high for testing
   },
 };
 

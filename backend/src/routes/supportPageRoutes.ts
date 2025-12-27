@@ -3,6 +3,7 @@ import { generateCSRFToken, validateCSRF } from '../middleware/csrf';
 import { sanitizeInput } from '../middleware/validation';
 import * as supportPageController from '../controllers/supportPageController';
 import { asyncHandler } from '../middleware/errorHandler';
+import { contactFormRateLimit, contactFormDailyLimit } from '../middleware/rateLimit';
 
 const router = Router();
 
@@ -12,7 +13,14 @@ router.get('/contact', generateCSRFToken, asyncHandler(supportPageController.get
 router.get('/privacy', generateCSRFToken, asyncHandler(supportPageController.getPrivacy));
 router.get('/terms', generateCSRFToken, asyncHandler(supportPageController.getTerms));
 
-// Contact form submission (POST)
-router.post('/contact', generateCSRFToken, sanitizeInput, validateCSRF, asyncHandler(supportPageController.postContact));
+// Contact form submission (POST) - ✅ ADDED RATE LIMITING
+router.post('/contact', 
+  generateCSRFToken, 
+  sanitizeInput, 
+  validateCSRF,
+  contactFormDailyLimit,  // ✅ Daily limit first (10 per day per IP)
+  contactFormRateLimit,   // ✅ Per-request limit (3 per 15 min per IP/email)
+  asyncHandler(supportPageController.postContact)
+);
 
 export default router;
