@@ -358,8 +358,8 @@ export const userQueries = {
          name = $1,
          handle = $2,
          dob = CASE 
-           WHEN $3::text IS NULL OR $3::text = '' THEN dob
-           ELSE $3::date
+           WHEN $3 IS NULL OR TRIM($3::text) = '' THEN dob
+           ELSE $3::text
          END,
          phone = $4,
          bio = $5,
