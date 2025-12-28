@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import util from 'util';
 import { Resend } from 'resend';
 import { config, isProd, isDev } from '../../config/env';
 import { logger } from '../../config/logger';
@@ -143,22 +144,57 @@ export class EmailService {
 
           if (error) {
             const err = error as any;
-            logger.error('❌ [EMAIL] Resend API error (error object exists):', {
+            
+            // ✅ ADD: Extract all possible error properties
+            const errorDetails: any = {
               error: error,
-              errorType: error?.constructor?.name,
+              errorType: error?.constructor?.name || typeof error,
               message: err?.message || 'Unknown error',
               name: err?.name || 'NO_NAME',
-              statusCode: err?.statusCode || 'NO_STATUS',
+              statusCode: err?.statusCode || err?.status || 'NO_STATUS',
               response: err?.response || 'NO_RESPONSE',
               stack: err?.stack?.substring(0, 500) || 'NO_STACK',
-            });
+            };
+
+            // ✅ ADD: Try to extract Resend-specific error fields
+            if (err?.response) {
+              try {
+                const responseData = typeof err.response === 'string' ? JSON.parse(err.response) : err.response;
+                errorDetails.responseData = responseData;
+                errorDetails.responseMessage = responseData?.message || responseData?.error || 'NO_MESSAGE';
+              } catch (parseError) {
+                errorDetails.responseRaw = err.response;
+              }
+            }
+
+            logger.error('❌ [EMAIL] Resend API error (error object exists):', errorDetails);
             
-            // Try to stringify the error
+            // ✅ ADD: Try multiple ways to extract error info
             try {
-              logger.error('❌ [EMAIL] Full Resend error object (JSON):', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+              const errorString = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
+              if (errorString && errorString !== '{}') {
+                logger.error('❌ [EMAIL] Full Resend error object (JSON):', errorString);
+              } else {
+                logger.error('❌ [EMAIL] Error object is empty when stringified');
+                logger.error('❌ [EMAIL] Error toString():', String(error));
+                logger.error('❌ [EMAIL] Error inspect:', util.inspect(error, { depth: 5, showHidden: true }));
+                
+                // ✅ ADD: Try to access common Resend error properties
+                const resendError = error as any;
+                logger.error('❌ [EMAIL] Resend error properties:', {
+                  message: resendError?.message,
+                  name: resendError?.name,
+                  status: resendError?.status,
+                  statusCode: resendError?.statusCode,
+                  response: resendError?.response,
+                  data: resendError?.data,
+                  errors: resendError?.errors,
+                });
+              }
             } catch (stringifyError) {
               logger.error('❌ [EMAIL] Could not stringify error:', stringifyError);
-              logger.error('❌ [EMAIL] Error toString:', String(error));
+              logger.error('❌ [EMAIL] Error toString():', String(error));
+              logger.error('❌ [EMAIL] Error inspect:', util.inspect(error, { depth: 5, showHidden: true }));
             }
             return false;
           }
