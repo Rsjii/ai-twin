@@ -255,32 +255,16 @@ if (referrerId) {
     logger.info(`OTP created for ${email}`);
     
     // ✅ Send OTP via email (only in production)
-    logger.info(`📧 [SIGNUP] Attempting to send OTP email to ${email}`);
     const emailSent = await emailService.sendOTP(email, otp, 'signup');
-    logger.info(`📧 [SIGNUP] Email send result: ${emailSent}`, {
-      email,
-      emailSent,
-      isProd,
-    });
     
     if (isProd) {
       if (!emailSent) {
-        logger.error(`❌ [SIGNUP] Email send failed for ${email} in production. Check Resend API configuration.`, {
-          email,
-          isProd,
-          NODE_ENV: config.nodeEnv,
-          APP_ENV: config.appEnv,
-          hasApiKey: !!config.mail.smtp.pass,
-          apiKeyPrefix: config.mail.smtp.pass?.substring(0, 10) || 'MISSING',
-          from: config.mail.from,
-        });
+        logger.error(`❌ [SIGNUP] Email send failed for ${email} in production`);
         return res.status(500).json({
           error: 'Failed to send verification email. Please check your email configuration or try again later.',
           errorCode: 'EMAIL_SEND_FAILED',
-          details: 'Resend API email service failed. Please check Railway logs for details.'
         });
       }
-      logger.info(`✅ [SIGNUP] Email sent successfully to ${email}`);
     } else {
       // Development: OTP is fixed, no email needed
       logger.info(`📧 [SIGNUP] Development mode: OTP ${otp} generated (not sent via email)`);
@@ -522,14 +506,12 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
     
     if (isProd) {
       if (!emailSent) {
-        logger.error(`Email send failed for ${email} in production. Check SMTP configuration.`);
+        logger.error(`Email send failed for ${email} in production`);
         return res.status(500).json({
           error: 'Failed to send verification email. Please check your email configuration or try again later.',
           errorCode: 'EMAIL_SEND_FAILED',
-          details: 'SMTP email service is not configured or email sending failed. Please contact support.'
         });
       }
-      logger.info(`✅ Email sent successfully to ${email}`);
     } else {
       logger.info(`Development mode: OTP ${otp} generated (not sent via email)`);
     }
@@ -1069,14 +1051,12 @@ export const resendOTP = async (req: Request, res: Response, next: NextFunction)
     
     if (isProd) {
       if (!emailSent) {
-        logger.error(`Email send failed for ${email} in production. Check SMTP configuration.`);
+        logger.error(`Email send failed for ${email} in production`);
         return res.status(500).json({
           error: 'Failed to send verification email. Please check your email configuration or try again later.',
           errorCode: 'EMAIL_SEND_FAILED',
-          details: 'SMTP email service is not configured or email sending failed. Please contact support.'
         });
       }
-      logger.info(`✅ Email sent successfully to ${email}`);
     } else {
       logger.info(`Development mode: OTP ${otp} generated (not sent via email)`);
     }

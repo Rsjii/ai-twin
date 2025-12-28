@@ -357,7 +357,10 @@ export const userQueries = {
        SET
          name = $1,
          handle = $2,
-         dob = COALESCE(NULLIF($3::text, '')::date, dob),
+         dob = CASE 
+           WHEN $3::text IS NULL OR $3::text = '' THEN dob
+           ELSE $3::date
+         END,
          phone = $4,
          bio = $5,
          "profileImage" = $6,

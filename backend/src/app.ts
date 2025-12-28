@@ -618,33 +618,15 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ✅ SMTP test endpoint (for debugging email issues on Railway)
-app.get('/api/test/smtp', async (req, res) => {
+// ✅ Resend email test endpoint (for debugging email issues)
+app.get('/api/test/email', async (req, res) => {
   try {
     const { EmailService } = await import('./modules/auth/authService');
-    const { config, isProd } = await import('./config/env');
+    const { config } = await import('./config/env');
     const { logger } = await import('./config/logger');
     
     const testEmail = req.query.email as string || 'test@example.com';
     const emailService = new EmailService();
-    
-    logger.info('🧪 [SMTP_TEST] Starting SMTP test...', {
-      testEmail,
-      isProd,
-      NODE_ENV: config.nodeEnv,
-      APP_ENV: config.appEnv,
-      smtpConfig: {
-        host: config.mail.smtp.host,
-        port: config.mail.smtp.port,
-        user: config.mail.smtp.user,
-        hasPass: !!config.mail.smtp.pass,
-        from: config.mail.from,
-      },
-      railwayEnv: {
-        RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT || 'NOT_SET',
-        RAILWAY_SERVICE_NAME: process.env.RAILWAY_SERVICE_NAME || 'NOT_SET',
-      }
-    });
     
     // Test email sending
     const result = await emailService.sendOTP(testEmail, '123456', 'signup');
@@ -653,29 +635,17 @@ app.get('/api/test/smtp', async (req, res) => {
       success: result,
       message: result ? 'Email sent successfully' : 'Email sending failed',
       config: {
-        host: config.mail.smtp.host,
-        port: config.mail.smtp.port,
-        user: config.mail.smtp.user,
-        hasPassword: !!config.mail.smtp.pass,
+        hasApiKey: !!config.mail.smtp.pass,
         from: config.mail.from,
-        isProd,
-        NODE_ENV: config.nodeEnv,
-        APP_ENV: config.appEnv,
-      },
-      railway: {
-        isRailway: !!process.env.RAILWAY_ENVIRONMENT,
-        environment: process.env.RAILWAY_ENVIRONMENT || 'NOT_SET',
-        service: process.env.RAILWAY_SERVICE_NAME || 'NOT_SET',
       },
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
     const { logger } = await import('./config/logger');
-    logger.error('❌ [SMTP_TEST] Test failed:', error);
+    logger.error('❌ [EMAIL_TEST] Test failed:', error);
     res.status(500).json({
       success: false,
       error: error.message,
-      stack: error.stack,
     });
   }
 });

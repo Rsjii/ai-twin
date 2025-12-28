@@ -28,25 +28,19 @@ export function validateEnv(): void {
     throw new Error(error);
   }
   
-  // ✅ SECURITY: Validate SMTP configuration in production (required for email sending)
+  // ✅ SECURITY: Validate Resend API configuration in production (required for email sending)
   if (isProd) {
-    const smtpRequired = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'];
-    const missingSMTP = smtpRequired.filter(key => !process.env[key]);
-    
-    if (missingSMTP.length > 0) {
-      const error = `Missing required SMTP configuration for production: ${missingSMTP.join(', ')}. Email functionality will not work.`;
+    if (!config.mail.smtp.pass) {
+      const error = 'Missing required Resend API key (SMTP_PASS) for production. Email functionality will not work.';
       logger.error(error);
       throw new Error(error);
     }
     
-    // Also validate that config values are not empty strings
-    if (!config.mail.smtp.host || !config.mail.smtp.user || !config.mail.smtp.pass) {
-      const error = 'SMTP configuration incomplete in production. All SMTP settings (host, user, pass) must be provided.';
-      logger.error(error);
-      throw new Error(error);
+    if (!config.mail.smtp.pass.startsWith('re_')) {
+      logger.warn('⚠️ Resend API key format may be invalid. API key should start with "re_"');
     }
     
-    logger.info('✅ SMTP configuration validated for production');
+    logger.info('✅ Email configuration validated for production');
   }
 
   // ✅ ADD: Check for GROQ_API_KEY in production (warning only, not required)

@@ -1,8 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import util from 'util';
 import { Resend } from 'resend';
-import { config, isProd, isDev } from '../../config/env';
+import { config, isProd } from '../../config/env';
 import { logger } from '../../config/logger';
 
 // ✅ FIXED OTP for development
@@ -14,24 +13,11 @@ export class EmailService {
 
   constructor() {
     const apiKey = config.mail.smtp.pass; // Use SMTP_PASS as Resend API key
-    logger.info('📧 Initializing Resend API...', {
-      hasApiKey: !!apiKey,
-      apiKeyLength: apiKey?.length || 0,
-      apiKeyPrefix: apiKey?.substring(0, 10) || 'MISSING',
-      isValidFormat: apiKey?.startsWith('re_') || false,
-      isProd,
-      NODE_ENV: config.nodeEnv,
-      APP_ENV: config.appEnv,
-      from: config.mail.from,
-    });
 
     if (!apiKey) {
-      logger.error('❌ [EMAIL] Resend API key not configured (SMTP_PASS missing)');
+      logger.error('❌ [EMAIL] Resend API key not configured');
     } else if (!apiKey.startsWith('re_')) {
-      logger.error('❌ [EMAIL] Invalid Resend API key format! API key should start with "re_"', {
-        providedPrefix: apiKey.substring(0, 10),
-        expectedPrefix: 're_',
-      });
+      logger.error('❌ [EMAIL] Invalid Resend API key format! API key should start with "re_"');
     } else {
       this.resend = new Resend(apiKey);
       logger.info('✅ [EMAIL] Resend API initialized successfully');
@@ -40,17 +26,8 @@ export class EmailService {
 
   async sendOTP(email: string, code: string, type: 'signup' | 'login' | 'forgot' = 'login'): Promise<boolean> {
     try {
-      logger.info('📧 [EMAIL] Starting sendOTP...', {
-        email,
-        type,
-        isProd,
-        NODE_ENV: config.nodeEnv,
-        APP_ENV: config.appEnv,
-        hasApiKey: !!config.mail.smtp.pass,
-      });
-
       if (!config.mail.smtp.pass) {
-        logger.error('❌ [EMAIL] Resend API key not configured (SMTP_PASS missing)');
+        logger.error('❌ [EMAIL] Resend API key not configured');
         return false;
       }
 
@@ -60,9 +37,106 @@ export class EmailService {
       }
 
       if (isProd) {
-        logger.info('🚀 [EMAIL] Production mode - sending via Resend API');
 
         const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f5f5;">
+                <tr>
+                  <td align="center" style="padding: 40px 20px;">
+                    <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      <tr>
+                        <td style="padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0;">
+                          <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">AI Twin</h1>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 40px 30px;">
+                          <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 24px; font-weight: 600;">Verification Code</h2>
+                          <p style="margin: 0 0 30px 0; color: #666666; font-size: 16px; line-height: 1.5;">
+                            ${type === 'signup' ? 'Welcome to AI Twin! Use this code to complete your signup:' : type === 'forgot' ? 'Use this code to reset your password:' : 'Use this code to verify your login:'}
+                          </p>
+                          <div style="background-color: #f8f9fa; border: 2px dashed #667eea; border-radius: 8px; padding: 30px; text-align: center; margin: 30px 0;">
+                            <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #667eea; font-family: 'Courier New', monospace;">
+                              ${code}
+                            </div>
+                          </div>
+                          <p style="margin: 20px 0 0 0; color: #999999; font-size: 14px; line-height: 1.5;">
+                            This code will expire in <strong>${config.otp.expiryMinutes} minutes</strong>.
+                          </p>
+                          <p style="margin: 20px 0 0 0; color: #999999; font-size: 14px; line-height: 1.5;">
+                            If you didn't request this code, please ignore this email or contact support if you have concerns.
+                          </p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 30px; text-align: center; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
+                          <p style="margin: 0; color: #999999; font-size: 12px;">
+                            © ${new Date().getFullYear()} AI Twin. All rights reserved.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+        `;
+
+        try {
+          const result = await this.resend.emails.send({
+            from: config.mail.from || 'onboarding@resend.dev',
+            to: email,
+            subject: 'Your AI Twin Verification Code',
+            html: htmlContent,
+          });
+
+          const { data, error } = result || { data: null, error: null };
+
+          if (error) {
+            const err = error as any;
+            logger.error('❌ [EMAIL] Resend API error:', {
+              statusCode: err?.statusCode,
+              name: err?.name,
+              message: err?.message || 'Unknown Resend API error',
+            });
+            return false;
+          }
+
+          logger.info(`✅ [EMAIL] OTP email sent successfully`, { emailId: data?.id });
+          return true;
+        } catch (error: any) {
+          logger.error(`❌ [EMAIL] Failed to send OTP email:`, {
+            message: error?.message || 'Unknown error',
+          });
+          return false;
+        }
+      }
+      
+      // Development: Don't send email
+      return true;
+    } catch (error: any) {
+      logger.error('❌ [EMAIL] Failed to send OTP email:', error);
+      return false;
+    }
+  }
+
+  async sendContactEmail(name: string, email: string, subject: string, message: string): Promise<boolean> {
+    try {
+      if (!config.mail.smtp.pass || !this.resend) {
+        logger.error('❌ [EMAIL] Resend API not configured. Cannot send contact email.');
+        return false;
+      }
+
+      const supportEmail = config.mail.from || 'onboarding@resend.dev';
+      
+      const htmlContent = `
           <!DOCTYPE html>
           <html>
           <head>
@@ -76,26 +150,28 @@ export class EmailService {
                   <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     <tr>
                       <td style="padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0;">
-                        <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">AI Twin</h1>
+                        <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">New Contact Form Submission</h1>
                       </td>
                     </tr>
                     <tr>
                       <td style="padding: 40px 30px;">
-                        <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 24px; font-weight: 600;">Verification Code</h2>
-                        <p style="margin: 0 0 30px 0; color: #666666; font-size: 16px; line-height: 1.5;">
-                          ${type === 'signup' ? 'Welcome to AI Twin! Use this code to complete your signup:' : type === 'forgot' ? 'Use this code to reset your password:' : 'Use this code to verify your login:'}
-                        </p>
-                        <div style="background-color: #f8f9fa; border: 2px dashed #667eea; border-radius: 8px; padding: 30px; text-align: center; margin: 30px 0;">
-                          <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #667eea; font-family: 'Courier New', monospace;">
-                            ${code}
+                        <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 24px; font-weight: 600;">${subject}</h2>
+                        <div style="margin-bottom: 30px;">
+                          <p style="margin: 0 0 10px 0; color: #666666; font-size: 16px; line-height: 1.5;">
+                            <strong>From:</strong> ${name} (${email})
+                          </p>
+                          <p style="margin: 0 0 20px 0; color: #666666; font-size: 16px; line-height: 1.5;">
+                            <strong>Subject:</strong> ${subject}
+                          </p>
+                          <div style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                            <p style="margin: 0; color: #333333; font-size: 16px; line-height: 1.6; white-space: pre-wrap;">${message.replace(/\n/g, '<br>')}</p>
                           </div>
                         </div>
-                        <p style="margin: 20px 0 0 0; color: #999999; font-size: 14px; line-height: 1.5;">
-                          This code will expire in <strong>${config.otp.expiryMinutes} minutes</strong>.
-                        </p>
-                        <p style="margin: 20px 0 0 0; color: #999999; font-size: 14px; line-height: 1.5;">
-                          If you didn't request this code, please ignore this email or contact support if you have concerns.
-                        </p>
+                        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                          <p style="margin: 0; color: #999999; font-size: 14px; line-height: 1.5;">
+                            You can reply directly to this email to respond to ${name}.
+                          </p>
+                        </div>
                       </td>
                     </tr>
                     <tr>
@@ -111,215 +187,9 @@ export class EmailService {
             </table>
           </body>
           </html>
-        `;
-
-        try {
-          // ✅ ADD: Check if resend is initialized
-          if (!this.resend) {
-            logger.error('❌ [EMAIL] Resend API not initialized! Cannot send email.');
-            return false;
-          }
-
-          logger.info(`📧 [EMAIL] Sending via Resend API to ${email}`, {
-            from: config.mail.from || 'onboarding@resend.dev',
-            hasApiKey: !!config.mail.smtp.pass,
-            apiKeyPrefix: config.mail.smtp.pass?.substring(0, 10) || 'MISSING',
-            resendInitialized: !!this.resend,
-          });
-          
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'authService.ts:122',message:'Before Resend API call',data:{email:email,from:config.mail.from||'onboarding@resend.dev',hasResend:!!this.resend},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-          // #endregion
-
-          const { data, error } = await this.resend.emails.send({
-            from: config.mail.from || 'onboarding@resend.dev',
-            to: email,
-            subject: 'Your AI Twin Verification Code',
-            html: htmlContent,
-          });
-
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'authService.ts:135',message:'After Resend API call',data:{hasError:!!error,hasData:!!data,errorType:error?.constructor?.name,errorMessage:error?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-          // #endregion
-
-          if (error) {
-            const err = error as any;
-            
-            // ✅ ADD: Direct property access for Resend errors
-            logger.error('❌ [EMAIL] ========== RESEND ERROR START ==========');
-            logger.error('❌ [EMAIL] Error type:', typeof error);
-            logger.error('❌ [EMAIL] Error constructor:', error?.constructor?.name);
-            logger.error('❌ [EMAIL] Error toString():', String(error));
-            
-            // ✅ ADD: Try all possible error property access patterns
-            const errorInfo: any = {
-              // Direct properties
-              message: err?.message,
-              name: err?.name,
-              status: err?.status,
-              statusCode: err?.statusCode,
-              code: err?.code,
-              
-              // Nested error object (Resend format)
-              error_message: err?.error?.message,
-              error_name: err?.error?.name,
-              error_statusCode: err?.error?.statusCode,
-              
-              // Response data
-              response: err?.response,
-              response_message: typeof err?.response === 'object' ? err?.response?.message : null,
-              
-              // Data/errors arrays
-              data: err?.data,
-              errors: err?.errors,
-              
-              // All enumerable properties
-              allKeys: Object.keys(err || {}),
-            };
-            
-            logger.error('❌ [EMAIL] Extracted error info:', errorInfo);
-            
-            // ✅ ADD: Try util.inspect for non-enumerable properties
-            try {
-              const inspected = util.inspect(error, { depth: 10, showHidden: true, maxArrayLength: 10 });
-              logger.error('❌ [EMAIL] Error inspect (full):', inspected);
-            } catch (inspectError) {
-              logger.error('❌ [EMAIL] Inspect failed:', inspectError);
-            }
-            
-            // ✅ ADD: Try JSON.stringify with replacer
-            try {
-              const jsonError = JSON.stringify(error, (key, value) => {
-                if (value instanceof Error) {
-                  return {
-                    name: value.name,
-                    message: value.message,
-                    stack: value.stack,
-                  };
-                }
-                return value;
-              }, 2);
-              if (jsonError && jsonError !== '{}') {
-                logger.error('❌ [EMAIL] Error JSON (with replacer):', jsonError);
-              }
-            } catch (jsonError) {
-              logger.error('❌ [EMAIL] JSON stringify failed:', jsonError);
-            }
-            
-            logger.error('❌ [EMAIL] ========== RESEND ERROR END ==========');
-            
-            // ✅ ADD: Extract the actual error message for user
-            const actualMessage = err?.message || 
-                                 err?.error?.message || 
-                                 err?.response?.message ||
-                                 err?.errors?.[0]?.message ||
-                                 'Unknown Resend API error';
-            
-            logger.error('❌ [EMAIL] Actual error message:', actualMessage);
-            
-            return false;
-          }
-
-          logger.info(`✅ [EMAIL] OTP email sent successfully via Resend`, {
-            emailId: data?.id,
-            email,
-          });
-          return true;
-        } catch (error: any) {
-          logger.error(`❌ [EMAIL] Failed to send OTP email (catch block):`, {
-            error: error.message,
-            name: error.name,
-            code: error.code,
-            statusCode: error.statusCode,
-            response: error.response,
-            stack: error.stack?.substring(0, 1000),
-          });
-          
-          // Try to stringify the error
-          try {
-            logger.error(`❌ [EMAIL] Full error object (JSON):`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-          } catch (stringifyError) {
-            logger.error('❌ [EMAIL] Could not stringify error:', stringifyError);
-            logger.error('❌ [EMAIL] Error toString:', String(error));
-          }
-          return false;
-        }
-      }
-
-      // Development: Don't send email
-      logger.info(`📧 [EMAIL] Development mode - OTP generated: ${code} (email not sent)`);
-      return true;
-    } catch (error: any) {
-      logger.error('❌ [EMAIL] Failed to send OTP email (outer catch):', error);
-      return false;
-    }
-  }
-
-  async sendContactEmail(name: string, email: string, subject: string, message: string): Promise<boolean> {
-    try {
-      if (!config.mail.smtp.pass || !this.resend) {
-        logger.error('❌ [EMAIL] Resend API not configured. Cannot send contact email.');
-        return false;
-      }
-
-      const supportEmail = config.mail.from || 'onboarding@resend.dev';
-      
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
-          <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f5f5;">
-            <tr>
-              <td align="center" style="padding: 40px 20px;">
-                <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                  <tr>
-                    <td style="padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0;">
-                      <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">New Contact Form Submission</h1>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 40px 30px;">
-                      <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 24px; font-weight: 600;">${subject}</h2>
-                      <div style="margin-bottom: 30px;">
-                        <p style="margin: 0 0 10px 0; color: #666666; font-size: 16px; line-height: 1.5;">
-                          <strong>From:</strong> ${name} (${email})
-                        </p>
-                        <p style="margin: 0 0 20px 0; color: #666666; font-size: 16px; line-height: 1.5;">
-                          <strong>Subject:</strong> ${subject}
-                        </p>
-                        <div style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 4px;">
-                          <p style="margin: 0; color: #333333; font-size: 16px; line-height: 1.6; white-space: pre-wrap;">${message.replace(/\n/g, '<br>')}</p>
-                        </div>
-                      </div>
-                      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                        <p style="margin: 0; color: #999999; font-size: 14px; line-height: 1.5;">
-                          You can reply directly to this email to respond to ${name}.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 30px; text-align: center; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
-                      <p style="margin: 0; color: #999999; font-size: 12px;">
-                        © ${new Date().getFullYear()} AI Twin. All rights reserved.
-                      </p>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-        </body>
-        </html>
       `;
 
       try {
-        logger.info(`📧 [EMAIL] Sending contact form email from ${email} to ${supportEmail} via Resend`);
-        
         const { data, error } = await this.resend.emails.send({
           from: config.mail.from || 'onboarding@resend.dev',
           to: supportEmail,
@@ -329,23 +199,23 @@ export class EmailService {
         });
 
         if (error) {
-          logger.error('❌ [EMAIL] Resend API error (contact form):', error);
+          logger.error('❌ [EMAIL] Resend API error (contact form):', {
+            statusCode: error?.statusCode,
+            message: error?.message,
+          });
           return false;
         }
 
-        logger.info(`✅ [EMAIL] Contact form email sent successfully via Resend`, {
-          emailId: data?.id,
-        });
+        logger.info(`✅ [EMAIL] Contact form email sent successfully`, { emailId: data?.id });
         return true;
       } catch (error: any) {
         logger.error(`❌ [EMAIL] Failed to send contact form email:`, {
-          error: error.message,
-          stack: error.stack?.substring(0, 500),
+          message: error?.message || 'Unknown error',
         });
         return false;
       }
     } catch (error: any) {
-      logger.error('❌ [EMAIL] Failed to send contact form email (outer catch):', error);
+      logger.error('❌ [EMAIL] Failed to send contact form email:', error);
       return false;
     }
   }
