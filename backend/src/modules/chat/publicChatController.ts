@@ -807,9 +807,11 @@ if (chat.requireLogin && !userId) {
         
         // ✅ Log ONE event per message with combined totals
         try {
-          const actorId = userId || chat.visitorId;
-          if (actorId) {
-            await EventLogger.log(actorId, EVENT_TYPES.LLM_USAGE, {
+          // ✅ FIX: For anonymous users, pass null as userId and include visitorId in meta
+          // For logged-in users, pass userId directly
+          if (userId) {
+            // Logged-in user: pass userId
+            await EventLogger.log(userId, EVENT_TYPES.LLM_USAGE, {
               chatId: chat.id,
               twinId: chat.twinId,
               mode: 'public',
@@ -817,7 +819,20 @@ if (chat.requireLogin && !userId) {
               outputTokens: totalOutputTokens,
               totalTokens: totalAllTokens,
               messageId: aiMessage?.id || null,
-              isAnon: !userId
+              isAnon: false
+            });
+          } else if (chat.visitorId) {
+            // Anonymous user: pass null as userId, include visitorId in meta
+            await EventLogger.log(null, EVENT_TYPES.LLM_USAGE, {
+              chatId: chat.id,
+              twinId: chat.twinId,
+              mode: 'public',
+              inputTokens: totalInputTokens,
+              outputTokens: totalOutputTokens,
+              totalTokens: totalAllTokens,
+              messageId: aiMessage?.id || null,
+              isAnon: true,
+              visitorId: chat.visitorId // ✅ Include visitorId in meta for tracking
             });
           }
         } catch (e) {

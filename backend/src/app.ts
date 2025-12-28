@@ -103,12 +103,25 @@ app.use(helmet({
 }));
 
 // Rate limiting - ✅ Apply in ALL environments (with different limits)
+// ✅ FIX: Skip global limiter for routes that have their own specific rate limiters
+// to prevent ERR_ERL_DOUBLE_COUNT errors
 const limiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
   max: config.rateLimit.maxRequests,
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip global limiter for routes that have their own specific rate limiters
+    const path = req.path || '';
+    // Routes with specific rate limiters (auth, chat, public-chat, etc.)
+    return path.startsWith('/api/auth') ||
+           path.startsWith('/api/chat') ||
+           path.startsWith('/api/public-chat') ||
+           path.startsWith('/api/enhanced-chat') ||
+           path.startsWith('/api/twin') ||
+           path.startsWith('/api/public-twin');
+  }
 });
 
 if(isProd){
@@ -121,6 +134,16 @@ if(isProd){
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+      // Skip global limiter for routes that have their own specific rate limiters
+      const path = req.path || '';
+      return path.startsWith('/api/auth') ||
+             path.startsWith('/api/chat') ||
+             path.startsWith('/api/public-chat') ||
+             path.startsWith('/api/enhanced-chat') ||
+             path.startsWith('/api/twin') ||
+             path.startsWith('/api/public-twin');
+    }
   });
   app.use(devLimiter);
 }
@@ -189,12 +212,19 @@ const forceInsecureCookies = process.env.FORCE_INSECURE_COOKIES === 'true';
 // production in real deploy => secure cookies, local http test => allow insecure via env flag
 const sessionCookieSecure = isProd && !forceInsecureCookies;
 
+// ✅ FIX: Session store with better error handling
+// Note: connect-pg-simple automatically prunes expired sessions in the background
+// If pruning fails due to network issues, it's non-critical - sessions still work
+const sessionStore = new PgSession({
+  pool: pool, // ✅ Use PostgreSQL pool for persistent sessions
+  tableName: 'session', // Table name (connect-pg-simple default)
+  createTableIfMissing: true, // ✅ Auto-create table if missing
+  // pruneSessionInterval is handled internally by connect-pg-simple
+  // Errors are caught internally, but we can improve pool-level error handling
+});
+
 app.use(session({
-  store: new PgSession({
-    pool: pool, // ✅ Use PostgreSQL pool for persistent sessions
-    tableName: 'session', // Table name (connect-pg-simple default)
-    createTableIfMissing: true, // ✅ Auto-create table if missing
-  }),
+  store: sessionStore,
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,

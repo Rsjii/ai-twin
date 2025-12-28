@@ -24,17 +24,47 @@ pool.on('error', (err: Error) => {
     waitingCount: pool.waitingCount,
   };
 
-  // Log structured error with full context
-  logger.error('[DB_POOL_ERROR] Unexpected database pool error', {
-    error: {
-      name: err.name,
-      message: err.message,
-      code: (err as any).code || 'NO_CODE',
-      stack: err.stack?.substring(0, 500), // Limit stack trace length
-    },
-    poolStats,
-    timestamp: new Date().toISOString(),
-  });
+  const errorCode = (err as any).code || 'NO_CODE';
+  const errorMessage = err.message || 'Unknown error';
+
+  // ✅ FIX: Handle DNS/network errors more gracefully (common with session pruning)
+  // ENOTFOUND/ETIMEDOUT errors are often temporary network issues, not critical failures
+  if (errorCode === 'ENOTFOUND' || errorCode === 'ETIMEDOUT' || errorCode === 'ECONNREFUSED') {
+    // Log as debug/warn for network issues (especially from background pruning)
+    // These are non-critical - the app continues to work, sessions still function
+    if (errorMessage.includes('prune') || errorMessage.includes('session')) {
+      logger.debug('[DB_POOL_ERROR] Session pruning failed (network issue, non-critical):', {
+        error: {
+          name: err.name,
+          message: errorMessage,
+          code: errorCode,
+        },
+        poolStats,
+        note: 'This is a background cleanup operation. Sessions still work normally.',
+      });
+    } else {
+      logger.warn('[DB_POOL_ERROR] Database connection error (network issue):', {
+        error: {
+          name: err.name,
+          message: errorMessage,
+          code: errorCode,
+        },
+        poolStats,
+      });
+    }
+  } else {
+    // Log as error for other issues (actual database problems)
+    logger.error('[DB_POOL_ERROR] Unexpected database pool error', {
+      error: {
+        name: err.name,
+        message: errorMessage,
+        code: errorCode,
+        stack: err.stack?.substring(0, 500), // Limit stack trace length
+      },
+      poolStats,
+      timestamp: new Date().toISOString(),
+    });
+  }
 
   // ✅ Don't exit process - let connection pool handle reconnection
   // The pool will automatically attempt to reconnect on next query

@@ -242,9 +242,11 @@ export const publicChatRateLimit = rateLimit({
   windowMs: RATE_LIMITS.publicChatAnon.windowMs,
   max: RATE_LIMITS.publicChatAnon.max,
   keyGenerator: (req) => {
+    // ✅ FIX: Add unique prefix to prevent key conflicts with other limiters
     // For anonymous users: use IP address (most reliable)
     // IP tracking works even if visitorId changes
-    return req.ip || req.socket.remoteAddress || 'unknown';
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    return `publicChatAnon:${ip}`;
   },
   message: {
     error: 'Too many messages. Please wait before sending another.',
@@ -252,8 +254,10 @@ export const publicChatRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false, // ✅ FIX: Disable double-count validation (we have multiple independent limiters)
   handler: (req, res) => {
-    const key = req.ip || req.socket.remoteAddress || 'unknown';
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const key = `publicChatAnon:${ip}`;
     logRateLimitViolation(req, 'publicChatAnon', key, RATE_LIMITS.publicChatAnon.max, RATE_LIMITS.publicChatAnon.windowMs);
     res.status(429).json({
       success: false,
@@ -275,8 +279,10 @@ export const publicChatRateLimitAuthenticated = rateLimit({
   windowMs: RATE_LIMITS.publicChatAuth.windowMs,
   max: RATE_LIMITS.publicChatAuth.max,
   keyGenerator: (req) => {
+    // ✅ FIX: Add unique prefix to prevent key conflicts
     // Use userId if authenticated, otherwise IP
-    return req.user?.id || req.user?.userId || req.ip || 'unknown';
+    const identifier = req.user?.id || req.user?.userId || req.ip || 'unknown';
+    return `publicChatAuth:${identifier}`;
   },
   message: {
     error: 'Too many messages. Please wait before sending another.',
@@ -284,8 +290,10 @@ export const publicChatRateLimitAuthenticated = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false, // ✅ FIX: Disable double-count validation (we have multiple independent limiters)
   handler: (req, res) => {
-    const key = req.user?.id || req.user?.userId || req.ip || 'unknown';
+    const identifier = req.user?.id || req.user?.userId || req.ip || 'unknown';
+    const key = `publicChatAuth:${identifier}`;
     logRateLimitViolation(req, 'publicChatAuth', key, RATE_LIMITS.publicChatAuth.max, RATE_LIMITS.publicChatAuth.windowMs);
     res.status(429).json({
       success: false,
@@ -293,6 +301,11 @@ export const publicChatRateLimitAuthenticated = rateLimit({
       errorCode: 'RATE_LIMIT_EXCEEDED',
       retryAfter: formatRetryAfter(RATE_LIMITS.publicChatAuth.windowMs)
     });
+  },
+  skip: (req) => {
+    // ✅ FIX: Skip for anonymous users (they are handled by publicChatRateLimit)
+    // Only run for authenticated users
+    return !req.user?.id && !req.user?.userId;
   }
 });
 
@@ -303,17 +316,21 @@ export const publicChatDailyAnonLimit = rateLimit({
   windowMs: RATE_LIMITS.publicChatDailyAnon.windowMs,
   max: RATE_LIMITS.publicChatDailyAnon.max,
   keyGenerator: (req) => {
+    // ✅ FIX: Add unique prefix to prevent key conflicts with other limiters
     // Anonymous-only: IP is the most reliable
-    return req.ip || req.socket.remoteAddress || 'unknown';
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    return `publicChatDailyAnon:${ip}`;
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false, // ✅ FIX: Disable double-count validation (we have multiple independent limiters)
   skip: (req) => {
     // Logged-in users should not hit anonymous daily wall
     return !!req.user?.id || !!req.user?.userId;
   },
   handler: (req, res) => {
-    const key = req.ip || req.socket.remoteAddress || 'unknown';
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const key = `publicChatDailyAnon:${ip}`;
     logRateLimitViolation(req, 'publicChatDailyAnon', key, RATE_LIMITS.publicChatDailyAnon.max, RATE_LIMITS.publicChatDailyAnon.windowMs);
     return res.status(429).json({
       success: false,
