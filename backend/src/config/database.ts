@@ -352,23 +352,26 @@ export const userQueries = {
     bio: string,
     profileImage?: string | null
   ) => {
+    // Fix: dob column is DATE type, so we need to cast input to DATE
+    // Handle null/empty by keeping existing dob, otherwise cast input to date
+    const trimmedDob = dob ? dob.trim() : null;
+    const dobValue = trimmedDob && trimmedDob.length > 0 ? trimmedDob : null;
+    
     const result = await db.query(
       `UPDATE "User"
        SET
          name = $1,
          handle = $2,
-         dob = CASE 
-           WHEN $3 IS NULL OR TRIM($3::text) = '' THEN dob
-           ELSE $3::text
-         END,
+         dob = COALESCE($3::date, dob),
          phone = $4,
          bio = $5,
          "profileImage" = $6,
          "profileCompleted" = true
        WHERE email = $7
        RETURNING *`,
-      [name, handle, dob || null, phone, bio, profileImage || null, email]
-    );    
+      [name, handle, dobValue, phone, bio, profileImage || null, email]
+    );
+    
     return result.rows[0];
   }
 
