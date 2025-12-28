@@ -15,6 +15,9 @@ export class EmailService {
     const apiKey = config.mail.smtp.pass; // Use SMTP_PASS as Resend API key
     logger.info('📧 Initializing Resend API...', {
       hasApiKey: !!apiKey,
+      apiKeyLength: apiKey?.length || 0,
+      apiKeyPrefix: apiKey?.substring(0, 10) || 'MISSING',
+      isValidFormat: apiKey?.startsWith('re_') || false,
       isProd,
       NODE_ENV: config.nodeEnv,
       APP_ENV: config.appEnv,
@@ -23,6 +26,11 @@ export class EmailService {
 
     if (!apiKey) {
       logger.error('❌ [EMAIL] Resend API key not configured (SMTP_PASS missing)');
+    } else if (!apiKey.startsWith('re_')) {
+      logger.error('❌ [EMAIL] Invalid Resend API key format! API key should start with "re_"', {
+        providedPrefix: apiKey.substring(0, 10),
+        expectedPrefix: 're_',
+      });
     } else {
       this.resend = new Resend(apiKey);
       logger.info('✅ [EMAIL] Resend API initialized successfully');
@@ -105,7 +113,11 @@ export class EmailService {
         `;
 
         try {
-          logger.info(`📧 [EMAIL] Sending via Resend API to ${email}`);
+          logger.info(`📧 [EMAIL] Sending via Resend API to ${email}`, {
+            from: config.mail.from || 'onboarding@resend.dev',
+            hasApiKey: !!config.mail.smtp.pass,
+            apiKeyPrefix: config.mail.smtp.pass?.substring(0, 10) || 'MISSING',
+          });
           
           const { data, error } = await this.resend.emails.send({
             from: config.mail.from || 'onboarding@resend.dev',
@@ -115,7 +127,16 @@ export class EmailService {
           });
 
           if (error) {
-            logger.error('❌ [EMAIL] Resend API error:', error);
+            const err = error as any;
+            logger.error('❌ [EMAIL] Resend API error:', {
+              error: error,
+              message: err?.message || 'Unknown error',
+              name: err?.name || 'NO_NAME',
+              statusCode: err?.statusCode || 'NO_STATUS',
+              response: err?.response || 'NO_RESPONSE',
+              stack: err?.stack?.substring(0, 500) || 'NO_STACK',
+            });
+            logger.error('❌ [EMAIL] Full Resend error object:', JSON.stringify(error, null, 2));
             return false;
           }
 
@@ -125,10 +146,15 @@ export class EmailService {
           });
           return true;
         } catch (error: any) {
-          logger.error(`❌ [EMAIL] Failed to send OTP email:`, {
+          logger.error(`❌ [EMAIL] Failed to send OTP email (catch block):`, {
             error: error.message,
-            stack: error.stack?.substring(0, 500),
+            name: error.name,
+            code: error.code,
+            statusCode: error.statusCode,
+            response: error.response,
+            stack: error.stack?.substring(0, 1000),
           });
+          logger.error(`❌ [EMAIL] Full error object:`, JSON.stringify(error, null, 2));
           return false;
         }
       }
