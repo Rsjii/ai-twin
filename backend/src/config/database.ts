@@ -19,11 +19,12 @@ CREATE TABLE IF NOT EXISTS "User" (
     "passwordHash" TEXT,
     "handle" TEXT,
     "name" TEXT,
-    "dob" TEXT,
+    "dob" DATE,
     "phone" TEXT,
     "bio" TEXT,
     "active" BOOLEAN NOT NULL DEFAULT false,
     "referralCode" TEXT,
+    "personaData" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "lastHandleChangeAt" TIMESTAMPTZ NULL,
@@ -44,6 +45,7 @@ CREATE TABLE IF NOT EXISTS "Twin" (
     "likeCount" INTEGER NOT NULL DEFAULT 0,
     "followCount" INTEGER NOT NULL DEFAULT 0,
     "chatCount" INTEGER NOT NULL DEFAULT 0,
+    "tier" VARCHAR(255),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Twin_pkey" PRIMARY KEY ("id")
@@ -54,7 +56,7 @@ CREATE TABLE IF NOT EXISTS "Chat" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "twinId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Chat_pkey" PRIMARY KEY ("id")
 );
 
@@ -65,7 +67,7 @@ CREATE TABLE IF NOT EXISTS "Message" (
     "sender" "MessageSender" NOT NULL,
     "content" TEXT NOT NULL,
     "approved" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Message_pkey" PRIMARY KEY ("id")
 );
 
@@ -125,8 +127,8 @@ CREATE TABLE IF NOT EXISTS "PublicChat" (
     "visitorId" TEXT,
     "userId" TEXT,
     "messageCount" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "lastActivity" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastActivity" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "PublicChat_pkey" PRIMARY KEY ("id")
 );
 
@@ -137,7 +139,7 @@ CREATE TABLE IF NOT EXISTS "PublicMessage" (
     "sender" "MessageSender" NOT NULL,
     "content" TEXT NOT NULL,
     "approved" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "PublicMessage_pkey" PRIMARY KEY ("id")
 );
 
@@ -154,7 +156,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS "TwinFollow_twinId_userId_key" ON "TwinFollow"
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'dob') THEN
-        ALTER TABLE "User" ADD COLUMN "dob" TEXT;
+        ALTER TABLE "User" ADD COLUMN "dob" DATE;
     END IF;
     
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'phone') THEN
@@ -222,12 +224,20 @@ BEGIN
         ALTER TABLE "User" ADD COLUMN "profileCompleted" BOOLEAN NOT NULL DEFAULT false;
     END IF;
 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'personaData') THEN
+        ALTER TABLE "User" ADD COLUMN "personaData" JSONB;
+    END IF;
+
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'updatedAt') THEN
         ALTER TABLE "User" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'updatedAt') THEN
         ALTER TABLE "Twin" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'tier') THEN
+        ALTER TABLE "Twin" ADD COLUMN "tier" VARCHAR(255);
     END IF;
 
     -- ✅ Add lastMessage to PublicChat to match Chat table structure
