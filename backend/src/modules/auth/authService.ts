@@ -12,31 +12,93 @@ export class EmailService {
   private transporter: nodemailer.Transporter;
 
   constructor() {
+    // ✅ ADD: Log SMTP config (password hidden)
+    logger.info('📧 Initializing SMTP transporter...', {
+      host: config.mail.smtp.host,
+      port: config.mail.smtp.port,
+      user: config.mail.smtp.user,
+      hasPassword: !!config.mail.smtp.pass,
+      from: config.mail.from,
+      isProd: isProd,
+      NODE_ENV: config.nodeEnv,
+      APP_ENV: config.appEnv,
+    });
+
     this.transporter = nodemailer.createTransport({
       host: config.mail.smtp.host,
       port: config.mail.smtp.port,
-      secure: false,
+      secure: false, // Port 587 uses STARTTLS
+      requireTLS: true, // ✅ ADD: Force TLS for Gmail
       auth: {
         user: config.mail.smtp.user,
         pass: config.mail.smtp.pass,
       },
+      tls: {
+        rejectUnauthorized: false, // Allow self-signed certs
+        minVersion: 'TLSv1.2', // ✅ ADD: Minimum TLS version
+      },
+      connectionTimeout: 30000, // ✅ INCREASE: 30 seconds for Railway
+      greetingTimeout: 30000, // ✅ INCREASE: 30 seconds
+      socketTimeout: 30000, // ✅ INCREASE: 30 seconds
+      // ✅ ADD: Debug mode for Railway
+      debug: isProd, // Enable debug logs in production
+      logger: isProd, // Enable logger in production
+    });
+
+    // ✅ ADD: Verify connection on startup
+    this.transporter.verify((error, success) => {
+      if (error) {
+        const err = error as any;
+        logger.error('❌ SMTP connection verification FAILED:', {
+          error: error.message,
+          code: err.code,
+          command: err.command,
+          response: err.response,
+          responseCode: err.responseCode,
+          responseMessage: err.responseMessage,
+          errno: err.errno,
+          syscall: err.syscall,
+          hostname: err.hostname,
+        });
+      } else {
+        logger.info('✅ SMTP connection verified successfully!');
+      }
     });
   }
 
   async sendOTP(email: string, code: string, type: 'signup' | 'login' | 'forgot' = 'login'): Promise<boolean> {
     try {
+      logger.info('📧 [EMAIL] Starting sendOTP...', {
+        email,
+        type,
+        isProd,
+        NODE_ENV: config.nodeEnv,
+        APP_ENV: config.appEnv,
+        hasHost: !!config.mail.smtp.host,
+        hasUser: !!config.mail.smtp.user,
+        hasPass: !!config.mail.smtp.pass,
+      });
+
       // ✅ Check if SMTP credentials are configured
       if (!config.mail.smtp.host || !config.mail.smtp.user || !config.mail.smtp.pass) {
-        logger.error('SMTP credentials not configured. Missing:', {
+        logger.error('❌ [EMAIL] SMTP credentials not configured. Missing:', {
           host: !config.mail.smtp.host,
           user: !config.mail.smtp.user,
-          pass: !config.mail.smtp.pass
+          pass: !config.mail.smtp.pass,
+          actualValues: {
+            host: config.mail.smtp.host || 'MISSING',
+            user: config.mail.smtp.user || 'MISSING',
+            pass: config.mail.smtp.pass ? 'SET (hidden)' : 'MISSING',
+          }
         });
         return false;
       }
 
+      logger.info('✅ [EMAIL] SMTP credentials check passed');
+
       // ✅ Production: Must send email
       if (isProd) {
+        logger.info('🚀 [EMAIL] Production mode - will send email');
         const mailOptions = {
           from: config.mail.from || config.mail.smtp.user,
           to: email,
@@ -93,10 +155,62 @@ export class EmailService {
           `,
         };
 
+        logger.info('📧 [EMAIL] Mail options prepared:', {
+          from: mailOptions.from,
+          to: mailOptions.to,
+          subject: mailOptions.subject,
+        });
+
         try {
-          logger.info(`Attempting to send OTP email to ${email} via ${config.mail.smtp.host}:${config.mail.smtp.port}`);
-          await this.transporter.sendMail(mailOptions);
-          logger.info(`✅ OTP email sent successfully to ${email}`);
+          logger.info(`📧 [EMAIL] Attempting to send OTP email to ${email} via ${config.mail.smtp.host}:${config.mail.smtp.port}`);
+          logger.info(`🌐 [EMAIL] Railway environment check:`, {
+            RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT || 'NOT_SET',
+            RAILWAY_SERVICE_NAME: process.env.RAILWAY_SERVICE_NAME || 'NOT_SET',
+            RAILWAY_DEPLOYMENT_ID: process.env.RAILWAY_DEPLOYMENT_ID || 'NOT_SET',
+          });
+          
+          // ✅ ADD: Verify transporter before sending with timeout
+          logger.info('🔍 [EMAIL] Verifying transporter connection...');
+          const verifyStart = Date.now();
+          try {
+            await Promise.race([
+              this.transporter.verify(),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Verification timeout after 30s')), 30000)
+              )
+            ]);
+            const verifyDuration = Date.now() - verifyStart;
+            logger.info(`✅ [EMAIL] Transporter verified successfully in ${verifyDuration}ms`);
+          } catch (verifyError: any) {
+            const verifyDuration = Date.now() - verifyStart;
+            logger.error(`❌ [EMAIL] Transporter verification failed after ${verifyDuration}ms:`, {
+              error: verifyError.message,
+              code: verifyError.code,
+              errno: verifyError.errno,
+              syscall: verifyError.syscall,
+              hostname: verifyError.hostname,
+            });
+            // Continue anyway - sometimes verify fails but send works
+            logger.warn('⚠️ [EMAIL] Continuing with email send despite verification failure...');
+          }
+          
+          logger.info('📤 [EMAIL] Sending email now...');
+          const sendStart = Date.now();
+          const info = await Promise.race([
+            this.transporter.sendMail(mailOptions),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Send timeout after 30s')), 30000)
+            )
+          ]) as any;
+          const sendDuration = Date.now() - sendStart;
+          logger.info(`✅ [EMAIL] Email sent in ${sendDuration}ms`);
+          
+          logger.info(`✅ [EMAIL] OTP email sent successfully to ${email}`, {
+            messageId: info.messageId,
+            response: info.response,
+            accepted: info.accepted,
+            rejected: info.rejected,
+          });
           return true;
         } catch (error: any) {
           const errorDetails = {
@@ -106,22 +220,50 @@ export class EmailService {
             response: error?.response || 'N/A',
             responseCode: error?.responseCode || 'N/A',
             responseMessage: error?.responseMessage || 'N/A',
-            stack: error?.stack ? error.stack.substring(0, 500) : 'N/A'
+            errno: error?.errno,
+            syscall: error?.syscall,
+            hostname: error?.hostname,
+            stack: error?.stack ? error.stack.substring(0, 1000) : 'N/A'
           };
           
-          logger.error(`❌ Failed to send OTP email to ${email}:`, errorDetails);
-          logger.error(`Full error object:`, JSON.stringify(errorDetails, null, 2));
+          logger.error(`❌ [EMAIL] Failed to send OTP email to ${email}:`, errorDetails);
+          logger.error(`❌ [EMAIL] Full error object:`, JSON.stringify(errorDetails, null, 2));
+          
+          // ✅ ADD: Railway-specific error detection
+          logger.error(`🌐 [EMAIL] Railway environment info:`, {
+            RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT || 'NOT_SET',
+            RAILWAY_SERVICE_NAME: process.env.RAILWAY_SERVICE_NAME || 'NOT_SET',
+            RAILWAY_DEPLOYMENT_ID: process.env.RAILWAY_DEPLOYMENT_ID || 'NOT_SET',
+            isRailway: !!process.env.RAILWAY_ENVIRONMENT,
+          });
+          
+          // ✅ ADD: Specific error messages
+          if (error?.code === 'EAUTH') {
+            logger.error('❌ [EMAIL] SMTP Authentication failed! Check SMTP_USER and SMTP_PASS (must be App Password for Gmail)');
+            logger.error('💡 [EMAIL] Gmail requires App Password, not regular password. Generate at: https://myaccount.google.com/apppasswords');
+          } else if (error?.code === 'ETIMEDOUT' || error?.code === 'ECONNREFUSED') {
+            logger.error('❌ [EMAIL] SMTP Connection failed! Check SMTP_HOST and SMTP_PORT');
+            logger.error('💡 [EMAIL] Railway might be blocking outbound SMTP connections. Check firewall rules.');
+          } else if (error?.code === 'ECONNRESET') {
+            logger.error('❌ [EMAIL] SMTP Connection reset! Gmail might be blocking Railway IP addresses');
+            logger.error('💡 [EMAIL] Gmail may block connections from cloud providers. Try using a different email service or whitelist Railway IPs.');
+          } else if (error?.message?.includes('timeout')) {
+            logger.error('❌ [EMAIL] SMTP Timeout! Railway network might be slow or blocked');
+          }
           
           return false;          
         }
       }
       
       // ✅ Development: Don't send email, just log
-      logger.info(`OTP generated for ${email}: ${code} (Development mode - email not sent)`);
+      logger.info(`📧 [EMAIL] Development mode - OTP generated for ${email}: ${code} (email not sent)`);
       return true;
       
-    } catch (error) {
-      logger.error('Failed to send OTP email (outer catch):', error);
+    } catch (error: any) {
+      logger.error('❌ [EMAIL] Failed to send OTP email (outer catch):', {
+        error: error?.message,
+        stack: error?.stack?.substring(0, 500),
+      });
       return false;
     }
   }

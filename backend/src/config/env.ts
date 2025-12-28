@@ -19,6 +19,33 @@ export const isLocalOrStaging = APP_ENV !== 'prod';
 export const isDev = APP_ENV === 'local';
 export const isTest = NODE_ENV === 'test';
 
+// ✅ ADD: Log environment configuration (using console to avoid circular dependency)
+// This will be logged when the module loads
+const envInfo = {
+  NODE_ENV: NODE_ENV,
+  APP_ENV: APP_ENV,
+  isProd: isProd,
+  isLocalOrStaging: isLocalOrStaging,
+  isDev: isDev,
+  isTest: isTest,
+  envPath: envPath,
+  NODE_ENV_from_env: process.env['NODE_ENV'] || 'NOT_SET',
+  APP_ENV_from_env: process.env['APP_ENV'] || 'NOT_SET',
+};
+
+// Use console.log initially, logger will be available after module load
+console.log('🔧 [ENV] Environment Configuration:', JSON.stringify(envInfo, null, 2));
+
+// Export a function to log with logger once it's available
+export const logEnvConfig = () => {
+  // Dynamic import to avoid circular dependency
+  import('./logger').then(({ logger }) => {
+    logger.info('🔧 Environment Configuration:', envInfo);
+  }).catch(() => {
+    // Logger not available yet, already logged with console
+  });
+};
+
 // config now uses NODE_ENV
 export const config = {
   // Database

@@ -32,12 +32,12 @@ const prodLimits = {
 
   otpRequest: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // 3 OTP requests per 15 min per IP/email (industry standard)
+    max: 100, // 3 OTP requests per 15 min per IP/email (industry standard)
   } as LimitConfig,
 
   otpVerify: {
     windowMs: 10 * 60 * 1000, // 10 minutes
-    max: 5, // 5 OTP verification attempts per 10 min per email/IP
+    max: 500, // 5 OTP verification attempts per 10 min per email/IP
   } as LimitConfig,
 
   changePassword: {
