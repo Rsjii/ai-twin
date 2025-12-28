@@ -16,12 +16,14 @@ export interface LLMResponse {
 }
 
 export class LLMClient {
-  private groqApiKey: string | null;
+  private groqApiKey: string | null; // For logged-in users
+  private groqApiKeyAnonymous: string | null; // ✅ Free tier for anonymous users
   private openaiApiKey: string | null;
   private openai: OpenAI | null;
 
   constructor() {
     this.groqApiKey = config.groqApiKey || null;
+    this.groqApiKeyAnonymous = config.groqApiKeyAnonymous || null; // ✅ ADD: Anonymous key
     this.openaiApiKey = config.openaiApiKey || null;
     
     if (this.openaiApiKey) {
@@ -30,12 +32,18 @@ export class LLMClient {
       this.openai = null;
     }
     
-    if (!this.groqApiKey && !this.openaiApiKey) {
-      logger.warn('⚠️ No LLM API key configured. Set GROQ_API_KEY or OPENAI_API_KEY');
-    } else if (this.groqApiKey) {
-      logger.info('✅ Using Groq API for LLM calls (OpenAI fallback available)');
+    if (!this.groqApiKey && !this.groqApiKeyAnonymous && !this.openaiApiKey) {
+      logger.warn('⚠️ No LLM API key configured. Set GROQ_API_KEY, GROQ_API_KEY_ANONYMOUS, or OPENAI_API_KEY');
     } else {
-      logger.info('✅ Using OpenAI API for LLM calls');
+      if (this.groqApiKeyAnonymous) {
+        logger.info('✅ Using Groq API (anonymous free tier) for anonymous users');
+      }
+      if (this.groqApiKey) {
+        logger.info('✅ Using Groq API (logged-in users) for authenticated users');
+      }
+      if (this.openaiApiKey) {
+        logger.info('✅ OpenAI fallback available');
+      }
     }
   }
 
@@ -46,12 +54,18 @@ export class LLMClient {
       maxTokens?: number;
       temperature?: number;
       responseFormat?: { type: 'json_object' };
+      isAnonymous?: boolean; // ✅ ADD: Flag for anonymous users
     } = {}
   ): Promise<LLMResponse> {
+    // ✅ Use anonymous key for anonymous users, regular key for logged-in users
+    const apiKeyToUse = options.isAnonymous && this.groqApiKeyAnonymous
+      ? this.groqApiKeyAnonymous
+      : this.groqApiKey;
+    
     // ✅ Try Groq first if available
-    if (this.groqApiKey) {
+    if (apiKeyToUse) {
       try {
-        return await this.callGroq(messages, options);
+        return await this.callGroq(messages, options, apiKeyToUse);
       } catch (error) {
         logger.warn('⚠️ Groq API failed, falling back to OpenAI:', error instanceof Error ? error.message : String(error));
         // Fall through to OpenAI fallback
@@ -68,12 +82,13 @@ export class LLMClient {
       }
     }
     
-    throw new Error('No LLM API key configured. Set GROQ_API_KEY or OPENAI_API_KEY');
+    throw new Error('No LLM API key configured. Set GROQ_API_KEY, GROQ_API_KEY_ANONYMOUS, or OPENAI_API_KEY');
   }
 
   private async callGroq(
     messages: LLMMessage[],
-    options: any
+    options: any,
+    apiKey: string // ✅ ADD: Accept API key parameter
   ): Promise<LLMResponse> {
     // ✅ All models with HIGHEST limits (14.4K req/day each) + fallback
     const supportedModels = [
@@ -98,7 +113,7 @@ export class LLMClient {
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${this.groqApiKey}`,
+            'Authorization': `Bearer ${apiKey}`, // ✅ Use passed API key
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({

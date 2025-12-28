@@ -33,6 +33,7 @@ export interface ChatMessageContext {
   } | null;
   chatVector?: any;
   memoryVisibility?: 'none' | 'owner' | 'public_twin' | 'all';
+  isAnonymous?: boolean; // ✅ ADD: Flag to determine which Groq API key to use
 }
 
 export interface ModerationResult {
@@ -200,6 +201,7 @@ export function buildChatContext(params: {
     keyTopics: string[];
   } | null;
   memoryVisibility?: 'none' | 'owner' | 'public_twin' | 'all';
+  isAnonymous?: boolean; // ✅ ADD: Flag to determine which Groq API key to use
 }): ChatMessageContext {
   return {
     styleVector: params.styleVector,
@@ -213,6 +215,7 @@ export function buildChatContext(params: {
     twinId: params.twinId,
     isFirstMessage: params.isFirstMessage,
     memoryVisibility: params.memoryVisibility,
+    isAnonymous: params.isAnonymous, // ✅ ADD: Pass authentication flag
   };
 }
 

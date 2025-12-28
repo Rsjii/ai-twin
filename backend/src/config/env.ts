@@ -31,7 +31,8 @@ export const config = {
   openaiApiKey: process.env['OPENAI_API_KEY'],
   
   // Groq API
-  groqApiKey: process.env['GROQ_API_KEY'],
+  groqApiKey: process.env['GROQ_API_KEY'], // For logged-in users (can be paid tier)
+  groqApiKeyAnonymous: process.env['GROQ_API_KEY_ANONYMOUS'], // ✅ Free tier for anonymous users only
   
   // Session Secret
   sessionSecret: process.env['SESSION_SECRET'],

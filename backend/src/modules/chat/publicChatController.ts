@@ -657,6 +657,9 @@ if (chat.requireLogin && !userId) {
     const systemPromptForPublic =
       (chat.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.") + publicToneRules;
 
+    // ✅ Check if user is anonymous (no userId = anonymous)
+    const isAnonymous = !chat.userId;
+
     const context = chatUtils.buildChatContext({
       personaData: chat.personaData,
       systemPrompt: systemPromptForPublic,
@@ -671,6 +674,7 @@ if (chat.requireLogin && !userId) {
       isFirstMessage: shouldGenerateTitle,
       sessionMemory: sessionMemory, // ✅ ADD: Session memory for public chat (isolated)
       memoryVisibility, // ✅ SINGLE FLAG: 'public_twin' if enabled, 'none' if disabled
+      isAnonymous: isAnonymous, // ✅ ADD: Use anonymous key if not logged in, regular key if logged in
     });
 
     const actor = chat.userId

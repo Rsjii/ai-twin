@@ -194,6 +194,7 @@ Return only valid JSON, no other text.`;
     twinId?: string; // Add twinId for memory retrieval
     isFirstMessage?: boolean; // Flag to generate title too
     memoryVisibility?: 'none' | 'owner' | 'public_twin' | 'all';
+    isAnonymous?: boolean; // ✅ ADD: Flag to determine which Groq API key to use
   }): Promise<{ response: string, title?: string, tokensUsed: number, inputTokens?: number, outputTokens?: number } | string> {
     const startTime = Date.now();
     try {
@@ -278,7 +279,8 @@ Return only valid JSON, no other text.`;
           context.sessionMemory || null,
           longTermMemories,
           stylePatterns,
-          isFirstMessage
+          isFirstMessage,
+          context.isAnonymous // ✅ Pass authentication flag
         );
 
         // If first message and got JSON, return it
@@ -356,7 +358,8 @@ Rules:
             const isMathy = /(\bmath\b|\bquiz\b|=|\d+\s*[\+\-\*\/]\s*\d+)/.test(userText);
             return isMathy ? 0 : 0.7;
           })(),
-          ...(isFirstMessage ? { responseFormat: { type: 'json_object' } } : {})
+          ...(isFirstMessage ? { responseFormat: { type: 'json_object' } } : {}),
+          isAnonymous: context.isAnonymous // ✅ Pass authentication flag
         }),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('LLM API timeout')), 30000)
@@ -545,7 +548,8 @@ Rules:
       patternType?: string;
       context?: string;
     }> = [],
-    isFirstMessage: boolean = false
+    isFirstMessage: boolean = false,
+    isAnonymous?: boolean // ✅ ADD: Flag to determine which Groq API key to use
   ): Promise<{response: string, title?: string, tokensUsed: number, inputTokens?: number, outputTokens?: number} | string> {
     try {
       // ✅ Use PromptBuilder for persona prompt construction
@@ -627,7 +631,8 @@ Please respond in JSON format with "response" and "title" fields. Title should b
             /(multiplication|equation|value of x|value of y|solve)/i.test(t);
           return isMathy ? 0 : 0.7;
         })(),
-        ...(isFirstMessage ? { responseFormat: { type: 'json_object' } } : {}) // ✅ Use isFirstMessage only, not chatHistory.length
+        ...(isFirstMessage ? { responseFormat: { type: 'json_object' } } : {}), // ✅ Use isFirstMessage only, not chatHistory.length
+        isAnonymous: isAnonymous // ✅ Pass authentication flag
       });
 
       const response = llmResponse.content.trim() || '';
