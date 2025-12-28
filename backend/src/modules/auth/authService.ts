@@ -113,12 +113,23 @@ export class EmailService {
         `;
 
         try {
+          // ✅ ADD: Check if resend is initialized
+          if (!this.resend) {
+            logger.error('❌ [EMAIL] Resend API not initialized! Cannot send email.');
+            return false;
+          }
+
           logger.info(`📧 [EMAIL] Sending via Resend API to ${email}`, {
             from: config.mail.from || 'onboarding@resend.dev',
             hasApiKey: !!config.mail.smtp.pass,
             apiKeyPrefix: config.mail.smtp.pass?.substring(0, 10) || 'MISSING',
+            resendInitialized: !!this.resend,
           });
           
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'authService.ts:122',message:'Before Resend API call',data:{email:email,from:config.mail.from||'onboarding@resend.dev',hasResend:!!this.resend},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
+          // #endregion
+
           const { data, error } = await this.resend.emails.send({
             from: config.mail.from || 'onboarding@resend.dev',
             to: email,
@@ -126,17 +137,29 @@ export class EmailService {
             html: htmlContent,
           });
 
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'authService.ts:135',message:'After Resend API call',data:{hasError:!!error,hasData:!!data,errorType:error?.constructor?.name,errorMessage:error?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
+          // #endregion
+
           if (error) {
             const err = error as any;
-            logger.error('❌ [EMAIL] Resend API error:', {
+            logger.error('❌ [EMAIL] Resend API error (error object exists):', {
               error: error,
+              errorType: error?.constructor?.name,
               message: err?.message || 'Unknown error',
               name: err?.name || 'NO_NAME',
               statusCode: err?.statusCode || 'NO_STATUS',
               response: err?.response || 'NO_RESPONSE',
               stack: err?.stack?.substring(0, 500) || 'NO_STACK',
             });
-            logger.error('❌ [EMAIL] Full Resend error object:', JSON.stringify(error, null, 2));
+            
+            // Try to stringify the error
+            try {
+              logger.error('❌ [EMAIL] Full Resend error object (JSON):', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+            } catch (stringifyError) {
+              logger.error('❌ [EMAIL] Could not stringify error:', stringifyError);
+              logger.error('❌ [EMAIL] Error toString:', String(error));
+            }
             return false;
           }
 
@@ -154,7 +177,14 @@ export class EmailService {
             response: error.response,
             stack: error.stack?.substring(0, 1000),
           });
-          logger.error(`❌ [EMAIL] Full error object:`, JSON.stringify(error, null, 2));
+          
+          // Try to stringify the error
+          try {
+            logger.error(`❌ [EMAIL] Full error object (JSON):`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+          } catch (stringifyError) {
+            logger.error('❌ [EMAIL] Could not stringify error:', stringifyError);
+            logger.error('❌ [EMAIL] Error toString:', String(error));
+          }
           return false;
         }
       }
