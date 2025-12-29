@@ -62,7 +62,12 @@ export const generateShareLink = async (req: Request, res: Response) => {
       });
     }
 
-    const shareUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/@${twin.publicHandle}`;
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) {
+      logger.error('FRONTEND_URL not set in environment variables');
+      return res.status(500).json({ error: 'Server configuration error: FRONTEND_URL not set' });
+    }
+    const shareUrl = `${frontendUrl}/@${twin.publicHandle}`;
 
     // Generate share content based on platform
     let shareContent = '';
@@ -264,7 +269,12 @@ export const generateQRCode = async (req: Request, res: Response) => {
     }
 
     const twin = twinResult.rows[0];
-    const shareUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/@${twin.publicHandle}`;
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) {
+      logger.error('FRONTEND_URL not set in environment variables');
+      return res.status(500).json({ error: 'Server configuration error: FRONTEND_URL not set' });
+    }
+    const shareUrl = `${frontendUrl}/@${twin.publicHandle}`;
 
     // Generate QR code URL (using a QR code service)
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(shareUrl)}`;
@@ -323,7 +333,12 @@ export const getShareableContent = async (req: Request, res: Response) => {
       });
     }
 
-    const shareUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/@${twin.publicHandle}`;
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) {
+      logger.error('FRONTEND_URL not set in environment variables');
+      return res.status(500).json({ error: 'Server configuration error: FRONTEND_URL not set' });
+    }
+    const shareUrl = `${frontendUrl}/@${twin.publicHandle}`;
 
     // Generate content for different platforms
     const content = {

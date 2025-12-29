@@ -134,7 +134,7 @@ export class EmailService {
         return false;
       }
 
-      const supportEmail = config.mail.from || 'onboarding@resend.dev';
+      const supportEmail = config.mail.supportEmail || config.mail.from || 'onboarding@resend.dev';
       
       const htmlContent = `
           <!DOCTYPE html>

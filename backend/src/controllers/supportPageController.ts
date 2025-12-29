@@ -106,8 +106,8 @@ export async function postContact(req: any, res: Response) {
     // ✅ Save to database (optional but good for tracking)
     try {
       await db.query(
-        `INSERT INTO "ContactSubmission" (name, email, subject, message, "createdAt")
-         VALUES ($1, $2, $3, $4, NOW())`,
+        `INSERT INTO "ContactSubmission" (id, name, email, subject, message, "createdAt")
+         VALUES (gen_random_uuid()::TEXT, $1, $2, $3, $4, NOW())`,
         [name, email.toLowerCase(), subject, message]
       );
       logger.info(`Contact form submission saved to database from ${email}`);

@@ -53,5 +53,12 @@ export function validateEnv(): void {
     logger.warn('⚠️ Neither OPENAI_API_KEY nor GROQ_API_KEY set. LLM features will not work.');
   }
   
+  // ✅ ADD: Check for FRONTEND_URL in production (required for share links)
+  if (isExplicitlyProd && !process.env['FRONTEND_URL']) {
+    const error = 'FRONTEND_URL environment variable is required in production. Share links will not work.';
+    logger.error(error);
+    throw new Error(error);
+  }
+  
   logger.info('✅ Environment variables validated');
 }

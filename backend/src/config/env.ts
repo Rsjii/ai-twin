@@ -67,6 +67,7 @@ export const config = {
   // Email Configuration
   mail: {
     from: process.env['MAIL_FROM'],
+    supportEmail: process.env['SUPPORT_EMAIL'] || process.env['MAIL_FROM'], // Contact form emails go here
     smtp: {
       host: process.env['SMTP_HOST'],
       port: Number(process.env['SMTP_PORT']),
@@ -74,6 +75,9 @@ export const config = {
       pass: process.env['SMTP_PASS']
     }
   },
+  
+  // Frontend URL (required in production)
+  frontendUrl: process.env['FRONTEND_URL'],
   
   // Google OAuth Configuration
   google: {
