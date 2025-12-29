@@ -180,15 +180,13 @@ app.use((req, res, next) => {
     
     // ✅ Log cache headers being set
     try {
-      logger.info('[CACHE_HEADERS_SET]', {
-        path,
-        method: req.method,
-        cacheControl: 'no-store, no-cache, must-revalidate, max-age=0, private',
-        clientCacheHeaders: {
-          ifNoneMatch: req.headers['if-none-match'] || null,
-          ifModifiedSince: req.headers['if-modified-since'] || null,
-        },
-      });
+      // Cache headers logging (dev only)
+      if (isDev) {
+        logger.debug('[CACHE_HEADERS_SET]', {
+          path,
+          method: req.method,
+        });
+      }
     } catch (logErr) {
       // Silent fail for logging
     }
@@ -395,49 +393,21 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// ✅ NEW: Ultra-detailed request context logger (for debugging prod vs dev issues)
-app.use((req, res, next) => {
-  try {
-    const jwtCookieRaw = (req as any).cookies?.['jwtToken'] as string | undefined;
-    const jwtCookieShort = jwtCookieRaw
-      ? (isDev ? `${jwtCookieRaw.substring(0, 10)}...len=${jwtCookieRaw.length}` : 'present')
-      : null;
-
-    logger.info('[REQ_CTX]', {
-      method: req.method,
-      path: req.path,
-      query: req.query,
-      userFromReq: req.user
-        ? {
-            id: (req.user as any).userId || (req.user as any).id,
-            email: (req.user as any).email,
-            handle: (req.user as any).handle,
-          }
-        : null,
-      userFromLocals: res.locals.user
-        ? {
-            id: res.locals.user.id,
-            email: res.locals.user.email,
-            handle: res.locals.user.handle,
-          }
-        : null,
-      hasTwins: typeof res.locals.hasTwins !== 'undefined' ? res.locals.hasTwins : null,
-      twinId: typeof res.locals.twinId !== 'undefined' ? res.locals.twinId : null,
-      jwtCookiePresent: !!jwtCookieRaw,
-      jwtCookiePreview: jwtCookieShort,
-      cacheHeadersFromClient: {
-        ifNoneMatch: req.headers['if-none-match'] || null,
-        ifModifiedSince: req.headers['if-modified-since'] || null,
-        cacheControl: req.headers['cache-control'] || null,
-        pragma: req.headers['pragma'] || null,
-      },
-    });
-  } catch (logError) {
-    logger.warn('Failed to log request context:', logError);
-  }
-
-  next();
-});
+// Request context logger (dev only - removed excessive logging for production)
+if (isDev) {
+  app.use((req, res, next) => {
+    try {
+      logger.debug('[REQ_CTX]', {
+        method: req.method,
+        path: req.path,
+        user: req.user ? { id: (req.user as any).userId || (req.user as any).id } : null,
+      });
+    } catch (logError) {
+      // Ignore logging errors
+    }
+    next();
+  });
+}
 
 // ✅ NEW: Global render wrapper — ensure `user` / `hasTwins` are always correct for views
 app.use((req, res, next) => {
@@ -456,35 +426,13 @@ app.use((req, res, next) => {
       opts.hasTwins = res.locals.hasTwins;
     }
 
-    // ✅ Ultra-detailed render logging
-    try {
-      logger.info('[RENDER_CTX]', {
-        view,
-        hasUserInOpts: !!opts.user,
-        userInOpts: opts.user
-          ? {
-              id: opts.user.id,
-              email: opts.user.email,
-              handle: opts.user.handle,
-            }
-          : null,
-        hasUserInLocals: !!res.locals.user,
-        userInLocals: res.locals.user
-          ? {
-              id: res.locals.user.id,
-              email: res.locals.user.email,
-              handle: res.locals.user.handle,
-            }
-          : null,
-        hasTwinsInOpts: Object.prototype.hasOwnProperty.call(opts, 'hasTwins')
-          ? opts.hasTwins
-          : undefined,
-        hasTwinsInLocals:
-          typeof res.locals.hasTwins !== 'undefined' ? res.locals.hasTwins : undefined,
-        twinIdInLocals: typeof res.locals.twinId !== 'undefined' ? res.locals.twinId : null,
-      });
-    } catch (renderLogError) {
-      logger.warn('Failed to log render context:', renderLogError);
+    // Render logging (dev only)
+    if (isDev) {
+      try {
+        logger.debug('[RENDER]', { view });
+      } catch (renderLogError) {
+        // Ignore logging errors
+      }
     }
 
     return originalRender(view, opts, callback as any);
@@ -618,37 +566,39 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ✅ Resend email test endpoint (for debugging email issues)
-app.get('/api/test/email', async (req, res) => {
-  try {
-    const { EmailService } = await import('./modules/auth/authService');
-    const { config } = await import('./config/env');
-    const { logger } = await import('./config/logger');
-    
-    const testEmail = req.query.email as string || 'test@example.com';
-    const emailService = new EmailService();
-    
-    // Test email sending
-    const result = await emailService.sendOTP(testEmail, '123456', 'signup');
-    
-    res.json({
-      success: result,
-      message: result ? 'Email sent successfully' : 'Email sending failed',
-      config: {
-        hasApiKey: !!config.mail.smtp.pass,
-        from: config.mail.from,
-      },
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error: any) {
-    const { logger } = await import('./config/logger');
-    logger.error('❌ [EMAIL_TEST] Test failed:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
+// ✅ Resend email test endpoint (dev only - for debugging email issues)
+if (isDev) {
+  app.get('/api/test/email', async (req, res) => {
+    try {
+      const { EmailService } = await import('./modules/auth/authService');
+      const { config } = await import('./config/env');
+      const { logger } = await import('./config/logger');
+      
+      const testEmail = req.query.email as string || 'test@example.com';
+      const emailService = new EmailService();
+      
+      // Test email sending
+      const result = await emailService.sendOTP(testEmail, '123456', 'signup');
+      
+      res.json({
+        success: result,
+        message: result ? 'Email sent successfully' : 'Email sending failed',
+        config: {
+          hasApiKey: !!config.mail.smtp.pass,
+          from: config.mail.from,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      const { logger } = await import('./config/logger');
+      logger.error('❌ [EMAIL_TEST] Test failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  });
+}
 
 // Test routes , only in the development
 if(isDev){

@@ -763,13 +763,13 @@ export const twinFollowQueries = {
 export const publicChatQueries = {
   create: async (twinId: string, visitorId?: string, userId?: string) => {
     const id = generateBackendId.chat();
-    logger.info(`[publicChatQueries.create] Creating chat - Id: ${id}, TwinId: ${twinId}, UserId: ${userId || 'null'}, VisitorId: ${visitorId || 'null'}`);
+    logger.debug(`[publicChatQueries.create] Creating chat - Id: ${id}, TwinId: ${twinId}`);
     const result = await db.query(
       'INSERT INTO "PublicChat" (id, "twinId", "visitorId", "userId") VALUES ($1, $2, $3, $4) RETURNING *',
       [id, twinId, visitorId || null, userId || null]
     );
     if (result && result.rows && result.rows[0]) {
-      logger.info(`[publicChatQueries.create] Chat created - Result userId: ${result.rows[0].userId || 'null'}`);
+      logger.debug(`[publicChatQueries.create] Chat created successfully`);
     }
     
     // ✅ Cleanup old anonymous chats for this twin (keep only last 100)
@@ -793,7 +793,7 @@ export const publicChatQueries = {
   // ✅ NEW: Cleanup old anonymous chats (keep only last N)
   cleanupOldAnonymousChats: async (twinId: string, keepCount: number = 100) => {
     try {
-      logger.info(`[cleanupOldAnonymousChats] 🧹 START cleanup for twin ${twinId}, keeping ${keepCount} chats`);
+      logger.debug(`[cleanupOldAnonymousChats] Starting cleanup for twin ${twinId}`);
       
       // Get IDs of anonymous chats to keep (most recent N)
       const keepResult = await db.query(`
@@ -809,7 +809,7 @@ export const publicChatQueries = {
       const keepIds = keepResult.rows.map(row => row.id);
       
       if (keepIds.length === 0) {
-        logger.info(`[cleanupOldAnonymousChats] No anonymous chats to cleanup`);
+        logger.debug(`[cleanupOldAnonymousChats] No anonymous chats to cleanup`);
         return; // No anonymous chats to cleanup
       }
       
@@ -826,7 +826,7 @@ export const publicChatQueries = {
       
       const deletedCount = deleteResult.rowCount || 0;
       if (deletedCount > 0) {
-        logger.info(`[cleanupOldAnonymousChats] Cleaned up ${deletedCount} old anonymous chats for twin ${twinId}`);
+        logger.debug(`[cleanupOldAnonymousChats] Cleaned up ${deletedCount} old anonymous chats`);
         
         // Update chat count (subtract deleted chats)
         await db.query(`

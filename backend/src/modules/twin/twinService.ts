@@ -173,7 +173,7 @@ Return only valid JSON, no other text.`;
   // MVP (personaData-only): updateStyleVector() disabled - no automatic style learning.
   // Style adaptation will be revisited when we have a dedicated model / budget.
   async updateStyleVector(_currentVector: StyleVector, _newConversations: string[]): Promise<StyleVector> {
-    logger.debug('MVP: updateStyleVector() called but disabled (personaData-only mode)');
+    // MVP: updateStyleVector() disabled (personaData-only mode)
     return _currentVector;
   }
 
@@ -265,10 +265,7 @@ Return only valid JSON, no other text.`;
       
       // Use enhanced persona-based response ONLY if both exist (not fallback)
       if (personaData && systemPrompt && systemPrompt.trim().length > 0) {
-        logger.info('[TWIN SERVICE] Using enhanced persona-based response', {
-          isFirstMessage,
-          chatMemoryLength: chatMemory.length
-        });
+        logger.debug('[TWIN SERVICE] Using enhanced persona-based response');
   
         const personaResult = await this.generatePersonaResponse(
           currentMessages.join('\n'),

@@ -33,8 +33,10 @@ const envInfo = {
   APP_ENV_from_env: process.env['APP_ENV'] || 'NOT_SET',
 };
 
-// Use console.log initially, logger will be available after module load
-console.log('🔧 [ENV] Environment Configuration:', JSON.stringify(envInfo, null, 2));
+// Log environment config only in dev mode (logger not available yet)
+if (isDev) {
+  console.log('🔧 [ENV] Environment Configuration:', JSON.stringify(envInfo, null, 2));
+}
 
 // Export a function to log with logger once it's available
 export const logEnvConfig = () => {

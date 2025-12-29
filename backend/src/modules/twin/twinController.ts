@@ -228,16 +228,12 @@ export const getUserTwins = async (req: Request, res: Response, next: NextFuncti
       throw createError.unauthorized();
     }
     
-    logger.debug('Getting user twins:', { userId });
-    
     const twins = await db.query(`
       SELECT id, "styleVector", "sampleReply", "createdAt"
       FROM "Twin"
       WHERE "userId" = $1
       ORDER BY "createdAt" DESC
     `, [userId]);
-    
-    logger.debug('Found twins:', { count: twins.rows.length });
     res.json({ twins: twins.rows });
   } catch (error) {
     next(error);      
