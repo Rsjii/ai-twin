@@ -690,22 +690,31 @@ function setupInfiniteScroll() {
     // ✅ FIX: Handle disabled states for ALL buttons (Like, Follow, Share)
     // Check BEFORE setting initial states (hasLiked/hasFollowed)
     
-    // 1) Check if likes are disabled for this twin
-    if (twin.likesDisabled || twin.isOwnTwin) {
+    // Check if user is logged in
+    const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
+    
+    // 1) Check if likes are disabled for this twin OR user is not logged in
+    if (twin.likesDisabled || twin.isOwnTwin || !isLoggedIn) {
         likeBtn.disabled = true;
         likeBtn.classList.add('opacity-50', 'cursor-not-allowed');
         
         // ✅ FIX: Show disabled reason in tooltip (clean, per-action) - SET DIRECTLY ON BUTTON
-        if (twin.isOwnTwin) {
+        if (!isLoggedIn) {
+            likeBtn.setAttribute('title', 'You cannot like this twin, you are logged out');
+            likeBtn.setAttribute('aria-label', 'You cannot like this twin, you are logged out');
+            likeBtn.setAttribute('data-tooltip', 'You cannot like this twin, you are logged out');
+            likeBtn.setAttribute('data-disabled-reason', 'not_logged_in');
+        } else if (twin.isOwnTwin) {
             likeBtn.setAttribute('title', 'You cannot like your own twin');
             likeBtn.setAttribute('aria-label', 'You cannot like your own twin');
             likeBtn.setAttribute('data-tooltip', 'You cannot like your own twin');
+            likeBtn.setAttribute('data-disabled-reason', 'own_twin');
         } else {
             likeBtn.setAttribute('title', 'Liking is disabled for this twin');
             likeBtn.setAttribute('aria-label', 'Liking is disabled for this twin');
             likeBtn.setAttribute('data-tooltip', 'Liking is disabled for this twin');
+            likeBtn.setAttribute('data-disabled-reason', 'likes_disabled');
         }
-        likeBtn.setAttribute('data-disabled-reason', twin.isOwnTwin ? 'own_twin' : 'likes_disabled');
     } else {
         likeBtn.disabled = false;
         likeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -718,22 +727,28 @@ function setupInfiniteScroll() {
         likeBtn.setAttribute('data-tooltip', likeState);        
     }
     
-    // 2) Check if follows are disabled for this twin
-    if (twin.followsDisabled || twin.isOwnTwin) {
+    // 2) Check if follows are disabled for this twin OR user is not logged in
+    if (twin.followsDisabled || twin.isOwnTwin || !isLoggedIn) {
         followBtn.disabled = true;
         followBtn.classList.add('opacity-50', 'cursor-not-allowed');
         
         // ✅ FIX: Show disabled reason in tooltip (clean, per-action) - SET DIRECTLY ON BUTTON
-        if (twin.isOwnTwin) {
+        if (!isLoggedIn) {
+            followBtn.setAttribute('title', 'You cannot follow this twin, you are logged out');
+            followBtn.setAttribute('aria-label', 'You cannot follow this twin, you are logged out');
+            followBtn.setAttribute('data-tooltip', 'You cannot follow this twin, you are logged out');
+            followBtn.setAttribute('data-disabled-reason', 'not_logged_in');
+        } else if (twin.isOwnTwin) {
             followBtn.setAttribute('title', 'You cannot follow your own twin');
             followBtn.setAttribute('aria-label', 'You cannot follow your own twin');
             followBtn.setAttribute('data-tooltip', 'You cannot follow your own twin');
+            followBtn.setAttribute('data-disabled-reason', 'own_twin');
         } else {
             followBtn.setAttribute('title', 'Following is disabled for this twin');
             followBtn.setAttribute('aria-label', 'Following is disabled for this twin');
             followBtn.setAttribute('data-tooltip', 'Following is disabled for this twin');
+            followBtn.setAttribute('data-disabled-reason', 'follows_disabled');
         }
-        followBtn.setAttribute('data-disabled-reason', twin.isOwnTwin ? 'own_twin' : 'follows_disabled');
     } else {
         followBtn.disabled = false;
         followBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -861,6 +876,14 @@ const profileHandle = twin.userHandle || twin.publicHandle;
         // ✅ Check if button is disabled BEFORE making request
         if (likeBtn.disabled || likeBtn.classList.contains('cursor-not-allowed')) {
             e.preventDefault();
+            const disabledReason = likeBtn.getAttribute('data-disabled-reason');
+            if (disabledReason === 'not_logged_in') {
+                showNotification('Please log in to like this twin!', 'error');
+            } else if (disabledReason === 'own_twin') {
+                showNotification('You cannot like your own twin', 'info');
+            } else if (disabledReason === 'likes_disabled') {
+                showNotification('Liking is disabled for this twin', 'info');
+            }
             return false;
         }
         toggleLike(twinToken, likeBtn);
@@ -871,6 +894,14 @@ const profileHandle = twin.userHandle || twin.publicHandle;
         // ✅ Check if button is disabled BEFORE making request
         if (followBtn.disabled || followBtn.classList.contains('cursor-not-allowed')) {
             e.preventDefault();
+            const disabledReason = followBtn.getAttribute('data-disabled-reason');
+            if (disabledReason === 'not_logged_in') {
+                showNotification('Please log in to follow this twin!', 'error');
+            } else if (disabledReason === 'own_twin') {
+                showNotification('You cannot follow your own twin', 'info');
+            } else if (disabledReason === 'follows_disabled') {
+                showNotification('Following is disabled for this twin', 'info');
+            }
             return false;
         }
         toggleFollow(twinToken, followBtn);
@@ -913,6 +944,16 @@ const profileHandle = twin.userHandle || twin.publicHandle;
                 });
 
                 const data = await response.json();
+        
+        // ✅ FIX ISSUE 2: Handle 401 (not logged in) error gracefully
+        if (response.status === 401) {
+            showNotification('Please log in to like this twin!', 'error');
+            button.disabled = true;
+            button.classList.add('opacity-50', 'cursor-not-allowed');
+            button.setAttribute('title', 'You cannot like this twin, you are logged out');
+            button.setAttribute('data-disabled-reason', 'not_logged_in');
+            return;
+        }
         
         // ✅ FIX ISSUE 2: Handle 403 error gracefully
         if (response.status === 403) {
@@ -996,6 +1037,16 @@ const profileHandle = twin.userHandle || twin.publicHandle;
 
                 const data = await response.json();
                 
+      // ✅ FIX ISSUE 2: Handle 401 (not logged in) error gracefully
+      if (response.status === 401) {
+            showNotification('Please log in to follow this twin!', 'error');
+            button.disabled = true;
+            button.classList.add('opacity-50', 'cursor-not-allowed');
+            button.setAttribute('title', 'You cannot follow this twin, you are logged out');
+            button.setAttribute('data-disabled-reason', 'not_logged_in');
+            return;
+        }
+        
       // ✅ FIX ISSUE 2: Handle 403 error gracefully
       if (response.status === 403) {
             if (data.errorCode === 'FOLLOWS_DISABLED') {

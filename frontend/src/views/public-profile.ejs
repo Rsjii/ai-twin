@@ -842,10 +842,13 @@ async function toggleLike(twinToken, button) {
     // ✅ SAFETY: Check if button is disabled before making request
     if (button.disabled || button.classList.contains('cursor-not-allowed')) {
         const disabledReason = button.getAttribute('data-disabled-reason');
-        const message = disabledReason === 'own_twin' 
-            ? 'You cannot like your own twin' 
-            : 'Liking is disabled for this twin';
-        showNotification(message, 'info');
+        if (disabledReason === 'not_logged_in') {
+            showNotification('Please log in to like this twin!', 'error');
+        } else if (disabledReason === 'own_twin') {
+            showNotification('You cannot like your own twin', 'info');
+        } else if (disabledReason === 'likes_disabled') {
+            showNotification('Liking is disabled for this twin', 'info');
+        }
         return;
     }
     
@@ -861,6 +864,16 @@ async function toggleLike(twinToken, button) {
         });
 
         const data = await response.json();
+        
+        // ✅ FIX: Handle 401 (not logged in) error gracefully
+        if (response.status === 401) {
+            showNotification('Please log in to like this twin!', 'error');
+            button.disabled = true;
+            button.classList.add('opacity-50', 'cursor-not-allowed');
+            button.setAttribute('title', 'You cannot like this twin, you are logged out');
+            button.setAttribute('data-disabled-reason', 'not_logged_in');
+            return;
+        }
         
         if (data.success) {
             // Update button state
@@ -916,10 +929,13 @@ async function toggleFollow(twinToken, button) {
     // ✅ SAFETY: Check if button is disabled before making request
     if (button.disabled || button.classList.contains('cursor-not-allowed')) {
         const disabledReason = button.getAttribute('data-disabled-reason');
-        const message = disabledReason === 'own_twin' 
-            ? 'You cannot follow your own twin' 
-            : 'Following is disabled for this twin';
-        showNotification(message, 'info');
+        if (disabledReason === 'not_logged_in') {
+            showNotification('Please log in to follow this twin!', 'error');
+        } else if (disabledReason === 'own_twin') {
+            showNotification('You cannot follow your own twin', 'info');
+        } else if (disabledReason === 'follows_disabled') {
+            showNotification('Following is disabled for this twin', 'info');
+        }
         return;
     }
     
@@ -935,6 +951,16 @@ async function toggleFollow(twinToken, button) {
         });
 
         const data = await response.json();
+        
+        // ✅ FIX: Handle 401 (not logged in) error gracefully
+        if (response.status === 401) {
+            showNotification('Please log in to follow this twin!', 'error');
+            button.disabled = true;
+            button.classList.add('opacity-50', 'cursor-not-allowed');
+            button.setAttribute('title', 'You cannot follow this twin, you are logged out');
+            button.setAttribute('data-disabled-reason', 'not_logged_in');
+            return;
+        }
         
         if (data.success) {
             // Update button state
@@ -1155,14 +1181,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const followBtn = document.getElementById('followBtn');
     const shareButtons = document.querySelectorAll('[data-share-platform], [data-share-action="copy"]');
     
-    // 1) Check if likes are disabled for this twin
-    if (likesDisabled || isOwnTwin) {
+    // Get authentication status (already defined above)
+    const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
+    
+    // 1) Check if likes are disabled for this twin OR user is not logged in
+    if (likesDisabled || isOwnTwin || !isLoggedIn) {
         if (likeBtn) {
             likeBtn.disabled = true;
             likeBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            likeBtn.setAttribute('title', isOwnTwin ? 'You cannot like your own twin' : 'Liking is disabled for this twin');
-            likeBtn.setAttribute('aria-label', `Liking disabled for @${twinPublicHandle}`);
-            likeBtn.setAttribute('data-disabled-reason', isOwnTwin ? 'own_twin' : 'likes_disabled');
+            if (!isLoggedIn) {
+                likeBtn.setAttribute('title', 'You cannot like this twin, you are logged out');
+                likeBtn.setAttribute('aria-label', 'You cannot like this twin, you are logged out');
+                likeBtn.setAttribute('data-disabled-reason', 'not_logged_in');
+            } else if (isOwnTwin) {
+                likeBtn.setAttribute('title', 'You cannot like your own twin');
+                likeBtn.setAttribute('aria-label', `Liking disabled for @${twinPublicHandle}`);
+                likeBtn.setAttribute('data-disabled-reason', 'own_twin');
+            } else {
+                likeBtn.setAttribute('title', 'Liking is disabled for this twin');
+                likeBtn.setAttribute('aria-label', `Liking disabled for @${twinPublicHandle}`);
+                likeBtn.setAttribute('data-disabled-reason', 'likes_disabled');
+            }
         }
     } else {
         if (likeBtn) {
@@ -1172,14 +1211,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // 2) Check if follows are disabled for this twin
-    if (followsDisabled || isOwnTwin) {
+    // 2) Check if follows are disabled for this twin OR user is not logged in
+    if (followsDisabled || isOwnTwin || !isLoggedIn) {
         if (followBtn) {
             followBtn.disabled = true;
             followBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            followBtn.setAttribute('title', isOwnTwin ? 'You cannot follow your own twin' : 'Following is disabled for this twin');
-            followBtn.setAttribute('aria-label', `Following disabled for @${twinPublicHandle}`);
-            followBtn.setAttribute('data-disabled-reason', isOwnTwin ? 'own_twin' : 'follows_disabled');
+            if (!isLoggedIn) {
+                followBtn.setAttribute('title', 'You cannot follow this twin, you are logged out');
+                followBtn.setAttribute('aria-label', 'You cannot follow this twin, you are logged out');
+                followBtn.setAttribute('data-disabled-reason', 'not_logged_in');
+            } else if (isOwnTwin) {
+                followBtn.setAttribute('title', 'You cannot follow your own twin');
+                followBtn.setAttribute('aria-label', `Following disabled for @${twinPublicHandle}`);
+                followBtn.setAttribute('data-disabled-reason', 'own_twin');
+            } else {
+                followBtn.setAttribute('title', 'Following is disabled for this twin');
+                followBtn.setAttribute('aria-label', `Following disabled for @${twinPublicHandle}`);
+                followBtn.setAttribute('data-disabled-reason', 'follows_disabled');
+            }
         }
     } else {
         if (followBtn) {
@@ -1219,10 +1268,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // ✅ Check if button is disabled BEFORE making request
             if (likeBtn.disabled || likeBtn.classList.contains('cursor-not-allowed')) {
                 const disabledReason = likeBtn.getAttribute('data-disabled-reason');
-                const message = disabledReason === 'own_twin' 
-                    ? 'You cannot like your own twin' 
-                    : 'Liking is disabled for this twin';
-                showNotification(message, 'info');
+                if (disabledReason === 'not_logged_in') {
+                    showNotification('Please log in to like this twin!', 'error');
+                } else if (disabledReason === 'own_twin') {
+                    showNotification('You cannot like your own twin', 'info');
+                } else if (disabledReason === 'likes_disabled') {
+                    showNotification('Liking is disabled for this twin', 'info');
+                }
                 return;
             }
             toggleLike(currentTwinId, likeBtn);
@@ -1236,10 +1288,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // ✅ Check if button is disabled BEFORE making request
             if (followBtn.disabled || followBtn.classList.contains('cursor-not-allowed')) {
                 const disabledReason = followBtn.getAttribute('data-disabled-reason');
-                const message = disabledReason === 'own_twin' 
-                    ? 'You cannot follow your own twin' 
-                    : 'Following is disabled for this twin';
-                showNotification(message, 'info');
+                if (disabledReason === 'not_logged_in') {
+                    showNotification('Please log in to follow this twin!', 'error');
+                } else if (disabledReason === 'own_twin') {
+                    showNotification('You cannot follow your own twin', 'info');
+                } else if (disabledReason === 'follows_disabled') {
+                    showNotification('Following is disabled for this twin', 'info');
+                }
                 return;
             }
             toggleFollow(currentTwinId, followBtn);
