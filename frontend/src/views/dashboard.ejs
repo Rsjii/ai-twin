@@ -598,8 +598,8 @@
     <!-- Mobile Overlay -->
     <div id="mobile-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
 
-    <!-- Mobile Sidebar -->
-    <div id="mobile-sidebar" class="fixed top-0 left-0 h-full w-80 bg-white dark:bg-gray-900 shadow-xl dark:shadow-gray-900 z-50 transform -translate-x-full transition-transform duration-300 ease-in-out lg:hidden">
+    <!-- Mobile Sidebar - Hidden on mobile, only dropdown is used -->
+    <div id="mobile-sidebar" class="hidden fixed top-0 left-0 h-full w-80 bg-white dark:bg-gray-900 shadow-xl dark:shadow-gray-900 z-50 transform -translate-x-full transition-transform duration-300 ease-in-out">
         <div class="p-6">
             <!-- Close Button -->
             <button id="mobile-close-btn" class="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
@@ -664,17 +664,9 @@
         <div class="animate-fade-in">
     <div class="w-full">    
     <div class="max-w-6xl mx-auto">
-        <!-- Mobile Dashboard Header with Hamburger -->
+        <!-- Mobile Dashboard Header - Hamburger removed, only dropdown is used -->
 <div class="flex items-center justify-between mb-4 lg:mb-6 lg:hidden">
-    <button 
-        id="mobile-menu-btn" 
-        class="inline-flex items-center justify-center p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors min-h-[44px] min-w-[44px] touch-manipulation"
-        aria-label="Open navigation"
-    >
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
-    </button>
+    <div class="w-11"></div> <!-- Spacer for alignment -->
     <h1 class="flex-1 text-center text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Dashboard</h1>
     <div class="w-11"></div> <!-- Spacer for alignment -->
 </div>
@@ -1361,22 +1353,22 @@ function renderRecentInteractions(chats) {
         let createTwinButton = '';
         if (!userHasTwin) {
             createTwinButton = `
-                    <a href="/twin/create" class="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all font-medium text-sm border border-gray-200 dark:border-gray-700">
+                    <a href="/twin/create" class="inline-flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all font-medium text-xs border border-gray-200 dark:border-gray-700">
                         <span>✨</span>
                         <span>Create Your Twin</span>
                     </a>`;
         }
         container.innerHTML = `
-            <div class="bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 rounded-xl p-8 border border-primary/10 dark:border-primary/20 text-center min-w-[280px] flex-shrink-0">
-                <div class="w-16 h-16 bg-gradient-to-r from-primary/20 to-accent/20 dark:from-primary/30 dark:to-accent/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-primary dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 rounded-xl p-6 border border-primary/10 dark:border-primary/20 text-center min-w-[280px] max-w-[280px] h-[240px] flex-shrink-0 flex flex-col items-center justify-center">
+                <div class="w-12 h-12 bg-gradient-to-r from-primary/20 to-accent/20 dark:from-primary/30 dark:to-accent/30 rounded-full flex items-center justify-center mb-3 flex-shrink-0">
+                    <svg class="w-6 h-6 text-primary dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                     </svg>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Recent Chats Yet</h3>
-                <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">Start exploring twins and begin conversations!</p>
-                <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                    <a href="/discover" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-1">No Recent Chats Yet</h3>
+                <p class="text-gray-600 dark:text-gray-300 text-xs mb-3">Start exploring twins and begin conversations!</p>
+                <div class="flex flex-col sm:flex-row gap-2 justify-center flex-shrink-0">
+                    <a href="/discover" class="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-xs">
                         <span>🔍</span>
                         <span>Discover Twins</span>
                     </a>
@@ -1852,25 +1844,27 @@ async function createInvite() {
         // Add event listeners for dropdown and logout button
         document.addEventListener('DOMContentLoaded', function() {
             // Mobile menu event listeners
-            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-            const mobileCloseBtn = document.getElementById('mobile-close-btn');
-            const mobileOverlay = document.getElementById('mobile-overlay');
+            // Mobile menu removed - only dropdown is used on mobile
+            // const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            // const mobileCloseBtn = document.getElementById('mobile-close-btn');
+            // const mobileOverlay = document.getElementById('mobile-overlay');
             
-            if (mobileMenuBtn) {
-                mobileMenuBtn.addEventListener('click', openMobileMenu);
-            }
+            // Mobile sidebar functionality disabled - sidebar is hidden on mobile
+            // if (mobileMenuBtn) {
+            //     mobileMenuBtn.addEventListener('click', openMobileMenu);
+            // }
             
-            if (mobileCloseBtn) {
-                mobileCloseBtn.addEventListener('click', closeMobileMenu);
-            }
+            // if (mobileCloseBtn) {
+            //     mobileCloseBtn.addEventListener('click', closeMobileMenu);
+            // }
             
-            if (mobileOverlay) {
-                mobileOverlay.addEventListener('click', closeMobileMenu);
-            }
+            // if (mobileOverlay) {
+            //     mobileOverlay.addEventListener('click', closeMobileMenu);
+            // }
             
-            // Touch gesture event listeners
-            document.addEventListener('touchstart', handleTouchStart, { passive: true });
-            document.addEventListener('touchend', handleTouchEnd, { passive: true });
+            // Touch gesture event listeners - disabled since sidebar is hidden
+            // document.addEventListener('touchstart', handleTouchStart, { passive: true });
+            // document.addEventListener('touchend', handleTouchEnd, { passive: true });
             
             // Setup logout button
             const logoutBtn = document.querySelector('button[onclick="logout()"]');
