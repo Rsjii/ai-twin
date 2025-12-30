@@ -6,25 +6,68 @@ import { handleControllerError } from '../utils/errorHandler';
 import { tokenizeId } from '../utils/idTokenization';
 
 /**
- * Landing page - Public home page
+ * Landing page - Public home page (MVP version)
  */
-export function getLanding(req: any, res: Response) {
+export async function getLanding(req: any, res: Response) {
   try {
     // If user is logged in, redirect to dashboard
     if (req.user) {
       return res.redirect('/dashboard');
     }
 
-    res.render('landing', {
+    // ✅ Fetch 3-4 public twins for social proof
+    let publicTwins = [];
+    try {
+      const twinsResult = await db.query(`
+        SELECT 
+          t.id,
+          t."publicHandle",
+          t.bio,
+          t."profileImage",
+          t."sampleReply",
+          u.handle as "userHandle",
+          u.name as "userName",
+          t."likeCount",
+          t."chatCount"
+        FROM "Twin" t
+        JOIN "User" u ON t."userId" = u.id
+        WHERE t."isPublic" = true
+          AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)
+        ORDER BY t."chatCount" DESC, t."likeCount" DESC, t."createdAt" DESC
+        LIMIT 4
+      `);
+      publicTwins = twinsResult.rows || [];
+    } catch (dbError) {
+      // If query fails, continue without twins (graceful degradation)
+      logger.warn('Failed to fetch public twins for landing page:', dbError);
+    }
+
+    res.render('landing_mvp', {
       title: 'AI Twin - Create Your Digital Twin',
       user: req.user || null,
-      csrfToken: res.locals['csrfToken'] || ''  // ✅ FIX: Ensure csrfToken is always a string
+      csrfToken: res.locals['csrfToken'] || '',
+      publicTwins: publicTwins || [] // ✅ Pass public twins to view
+    }, (err: any, html: any) => {
+      if (err) {
+        logger.error('Template render error:', {
+          error: err.message,
+          stack: err.stack,
+          name: err.name
+        });
+        return handleControllerError(err, 'Failed to render landing page');
+      }
+      // If no error and html is provided, send it (callback mode)
+      if (html && !res.headersSent) {
+        res.send(html);
+      }
     });
   } catch (error) {
     logger.error('Landing page error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
+      errorName: error instanceof Error ? error.name : 'Unknown',
       stack: error instanceof Error ? error.stack : undefined,
-      path: req.path
+      path: req.path,
+      fullError: String(error)
     });
     handleControllerError(error, 'Failed to load landing page');
   }

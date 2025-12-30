@@ -1,0 +1,636 @@
+<%
+// Pre-process publicTwins for rendering
+var displayTwins = [];
+if (typeof publicTwins !== 'undefined' && publicTwins && publicTwins.length > 0) {
+  displayTwins = publicTwins.slice(0, 3); // Max 3 for desktop grid
+}
+var twinsJson = JSON.stringify(displayTwins);
+%>
+<%- include('layout', { title: title, user: user, csrfToken: csrfToken, body: `
+ <!-- Hero Section - Improved Dark Theme -->
+ <div class="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900 text-white">
+    <div class="absolute inset-0 bg-black opacity-10 dark:bg-blue-950/30"></div>        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
+        <div class="text-center">
+            <!-- Logo/Branding in Hero -->
+            <div class="flex justify-center items-center space-x-3 mb-6">
+                <div class="w-16 h-16 bg-white/20 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl flex items-center justify-center shadow-2xl border border-white/30 dark:border-gray-700/50">                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                </div>
+                <h1 class="text-5xl sm:text-6xl md:text-7xl font-bold">TwinOS</h1>
+            </div>
+            
+            <!-- Hero Tagline -->
+            <h2 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
+                Create Your AI Twin
+            </h2>
+            <p class="text-xl sm:text-2xl text-blue-100 dark:text-slate-200 mb-4 max-w-3xl mx-auto">
+                A digital version of you — that thinks, responds, and represents you.
+            </p>
+            
+            <!-- CTA Buttons - Solid Purple-600 in Dark Theme -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center w-full sm:w-auto">
+                <a 
+                    href="/auth"
+                    class="w-full sm:w-auto inline-block bg-white dark:bg-blue-600 dark:backdrop-blur-xl dark:border dark:border-blue-400/50 text-blue-600 dark:text-white py-4 px-10 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-700 dark:hover:shadow-blue-600/50 transition-all font-bold text-lg shadow-2xl hover:shadow-3xl dark:shadow-blue-600/40 transform hover:scale-105 min-h-[48px] sm:min-h-[44px] touch-manipulation text-center"
+                    >
+                    🚀 Create your twin
+
+                </a>
+                <a 
+                    href="/discover"
+                    class="w-full sm:w-auto inline-block bg-white dark:bg-blue-600 dark:backdrop-blur-xl dark:border dark:border-blue-400/50 text-blue-600 dark:text-white py-4 px-10 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-700 dark:hover:shadow-blue-600/50 transition-all font-bold text-lg shadow-2xl hover:shadow-3xl dark:shadow-blue-600/40 transform hover:scale-105 min-h-[48px] sm:min-h-[44px] touch-manipulation text-center"                        
+                    >
+                    🔍 Try a twin
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- ================= SECTION 2: WHY THIS EXISTS ================= -->
+    <section class="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-white dark:bg-gray-900">
+        <div class="max-w-2xl mx-auto text-center">
+            <p class="text-lg sm:text-xl md:text-2xl text-gray-700 dark:text-gray-300 leading-relaxed font-light" style="line-height: 1.8;">
+                This isn't a chatbot.<br>
+                It's a way to capture how you think, talk, and respond —<br>
+                so others can interact with a version of you, anytime.
+            </p>
+        </div>
+    </section>
+
+    <!-- ================= SECTION 3: DISCOVER / TRY ================= -->
+    <section class="pt-8 sm:pt-12 md:pt-16 pb-20 sm:pb-24 md:pb-32 px-4 sm:px-6 bg-white dark:bg-gray-900">
+        <div class="max-w-6xl mx-auto">
+            <!-- Section Header -->
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
+                    Meet early AI twins
+                </h2>
+                <p class="text-base sm:text-lg text-gray-500 dark:text-gray-400">
+                    These are early experiments. Conversations feel surprisingly real.
+                </p>
+            </div>
+            
+            <!-- Carousel Container -->
+            <div class="relative carousel-wrapper">
+                <!-- Twins Carousel - Horizontal Scroll with Snap -->
+                <div id="twins-carousel" class="twins-carousel-container overflow-x-auto scrollbar-hide">
+                    <div id="twins-container" class="twins-carousel-track flex gap-4 sm:gap-6">
+                        <!-- Twins will be inserted here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Fallback message if no twins -->
+            <div id="no-twins-message" class="hidden text-center mt-12">
+                <p class="text-lg text-gray-600 dark:text-gray-400 italic">
+                    Early access. Be among the first to create your AI twin.
+                </p>
+            </div>
+        </div>
+    </section>
+    
+    <style>
+        /* Carousel Styles */
+        .twins-carousel-container {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding: 20px 0;
+            position: relative;
+        }
+        
+        .twins-carousel-container::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .twins-carousel-track {
+            padding: 0 20px;
+        }
+        
+        /* Mobile: Show one card centered with partial views */
+        @media (max-width: 768px) {
+            .twins-carousel-container {
+                padding: 20px 0;
+            }
+            
+            .twin-carousel-card {
+                min-width: calc(100vw - 120px);
+                max-width: calc(100vw - 120px);
+            }
+            
+            .twins-carousel-track {
+                padding: 0 60px;
+            }
+        }
+        
+        /* Desktop: behave like mobile (one centered card + side peek) */
+        @media (min-width: 769px) {
+            .twin-carousel-card {
+                width: clamp(360px, 34vw, 520px);
+                min-width: clamp(360px, 34vw, 520px);
+                max-width: clamp(360px, 34vw, 520px);
+                flex: 0 0 auto;
+            }
+
+            /* Give enough side padding so card sits centered with peeking neighbors */
+            .twins-carousel-track {
+                padding: 0 clamp(120px, 10vw, 220px);
+            }
+
+            #twins-carousel {
+                cursor: grab;
+                overscroll-behavior-x: contain;
+            }
+            #twins-carousel:active {
+                cursor: grabbing;
+            }
+        }
+        
+    </style>
+    
+    <!-- ================= SECTION 4: HOW IT WORKS ================= -->
+    <section class="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-white dark:bg-gray-900">
+        <div class="max-w-6xl mx-auto">
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800/90 backdrop-blur-xl rounded-2xl p-8 sm:p-10 border border-green-200 dark:border-gray-700">
+                <h3 class="text-2xl sm:text-3xl font-semibold text-green-900 dark:text-green-300 mb-8 text-center">✨ How It Works</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8">
+                    <div class="text-center">
+                        <div class="text-4xl mb-4">1️⃣</div>
+                        <p class="text-green-800 dark:text-green-200 font-medium">Share how you write</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl mb-4">2️⃣</div>
+                        <p class="text-green-800 dark:text-green-200 font-medium">Your AI learns your style</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl mb-4">3️⃣</div>
+                        <p class="text-green-800 dark:text-green-200 font-medium">Your twin comes alive</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl mb-4">4️⃣</div>
+                        <p class="text-green-800 dark:text-green-200 font-medium">Conversations begin!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>  
+
+    <!-- Final CTA Section -->
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 mb-8 sm:mb-12">
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-slate-800 dark:via-blue-900 dark:to-indigo-900 rounded-2xl p-8 sm:p-10 md:p-12 text-center border border-blue-500/20 dark:border-blue-700/50 dark:shadow-xl dark:shadow-blue-950/50">
+            <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-white dark:text-gray-100 mb-6">Want to see yourself from the outside?</h2>
+            <a 
+                href="/auth"
+                class="inline-block bg-white dark:bg-purple-600 dark:backdrop-blur-xl dark:border dark:border-purple-400/50 text-blue-600 dark:text-white py-4 px-8 sm:px-10 rounded-xl hover:bg-blue-50 dark:hover:bg-purple-700 dark:hover:shadow-purple-600/50 transition-all font-bold text-lg shadow-2xl hover:shadow-3xl dark:shadow-purple-600/40 transform hover:scale-105 min-h-[48px] sm:min-h-[44px] touch-manipulation"
+                >
+                Create your AI twin
+            </a>                
+        </div>
+    </div>
+
+    <!-- Privacy & Safety Note -->
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 mb-8 sm:mb-12">
+        <div class="bg-blue-50 dark:bg-gray-800/90 rounded-xl p-6 sm:p-8 border border-blue-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-3 text-center">🔒 Privacy & Safety</h3>
+            <p class="text-blue-800 dark:text-blue-200 text-center max-w-2xl mx-auto">You're always in control. Your data stays yours.</p>
+        </div>
+    </div>
+
+    <!-- ================= SECTION 7: FOOTER ================= -->
+    <footer class="py-8 sm:py-10 px-4 sm:px-6 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+        <div class="max-w-4xl mx-auto text-center">
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Early access. Built slowly and intentionally.
+            </p>
+        </div>
+    </footer>
+` }) %>
+<script>
+    // True Circular Carousel - No visible duplicates, seamless loop
+    (function() {
+        var carousel = document.getElementById('twins-carousel');
+        var container = document.getElementById('twins-container');
+        var noTwinsMessage = document.getElementById('no-twins-message');
+        var prevBtn = document.getElementById('carousel-prev');
+        var nextBtn = document.getElementById('carousel-next');
+        var twins = <%- twinsJson %>;
+        
+        // Max 5 twins limit
+        var MAX_TWINS = 5;
+        if (twins && twins.length > MAX_TWINS) {
+            twins = twins.slice(0, MAX_TWINS);
+        }
+        
+        if (!container || !carousel) {
+            return;
+        }
+        
+        // If no twins, show fallback message
+        if (!twins || twins.length === 0) {
+            container.style.display = 'none';
+            if (noTwinsMessage) {
+                noTwinsMessage.classList.remove('hidden');
+            }
+            return;
+        }
+        
+        // Hide fallback message
+        if (noTwinsMessage) {
+            noTwinsMessage.classList.add('hidden');
+        }
+        
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            var map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+        
+        // Create card HTML
+        function createCardHtml(twin) {
+            var displayName = twin.userName || twin.userHandle || 'Anonymous';
+            var displayHandle = twin.userHandle || twin.publicHandle || '';
+            var chatUrl = displayHandle ? '/@' + displayHandle : '/auth';
+            
+            // Avatar
+            var avatarHtml = '';
+            if (twin.profileImage) {
+                avatarHtml = '<img src="' + escapeHtml(twin.profileImage) + '" alt="' + escapeHtml(displayName) + '" class="w-16 h-16 rounded-2xl object-cover ring-2 ring-gray-100 dark:ring-gray-700 shadow-lg hover:scale-105 transition-transform">';
+            } else {
+                var initial = displayName.charAt(0).toUpperCase();
+                avatarHtml = '<div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-2xl ring-2 ring-gray-100 dark:ring-gray-700 shadow-lg hover:scale-105 transition-transform">' + initial + '</div>';
+            }
+            
+            // Message preview
+            var messagePreview = '';
+            var previewText = '';
+            if (twin.sampleReply && twin.sampleReply.length > 0) {
+                previewText = twin.sampleReply.length > 120 ? twin.sampleReply.substring(0, 120) + '...' : twin.sampleReply;
+            } else if (twin.bio && twin.bio.length > 0) {
+                previewText = twin.bio.length > 120 ? twin.bio.substring(0, 120) + '...' : twin.bio;
+            }
+            
+            if (previewText) {
+                messagePreview = '<div class="mt-4 bg-blue-50 dark:bg-gray-700/50 rounded-lg p-4 border border-blue-100 dark:border-gray-600">' +
+                    '<p class="text-gray-700 dark:text-gray-300 text-sm sm:text-base italic leading-relaxed">"' + escapeHtml(previewText) + '"</p>' +
+                    '</div>';
+            }
+            
+            // Chat button
+            var chatButton = '<div class="mt-6">' +
+                '<a href="' + escapeHtml(chatUrl) + '" class="block w-full text-center bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-600 dark:hover:to-indigo-600 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl text-base">Chat</a>' +
+                '</div>';
+            
+            return '<div class="twin-carousel-card bg-white dark:bg-gray-800 rounded-2xl p-6 border-2 border-gray-100 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-500/50 shadow-lg dark:shadow-gray-900/50 hover:shadow-2xl dark:hover:shadow-blue-900/20 transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">' +
+                '<div class="flex items-start gap-4 mb-4">' +
+                avatarHtml +
+                '<div class="flex-1 min-w-0 pt-1">' +
+                '<h3 class="font-bold text-xl text-gray-900 dark:text-white truncate mb-1">' + escapeHtml(displayName) + '</h3>' +
+                (displayHandle ? '<p class="text-sm text-gray-500 dark:text-gray-400 truncate">@' + escapeHtml(displayHandle) + '</p>' : '') +
+                '</div>' +
+                '</div>' +
+                messagePreview +
+                chatButton +
+                '</div>';
+        }
+        
+        // Render cards with duplicates for seamless circular scroll
+        // We use bigger DUP_COUNT so user never physically hits the ends (kills iOS/Chrome edge bounce)
+        var DUP_COUNT = 3; // 3 on each side = extremely stable (no shake)
+        var isSnapping = false;
+        var snapTimer = null;
+
+        function renderCards() {
+            container.innerHTML = '';
+            if (twins.length === 0) return;
+
+            if (twins.length > 1) {
+                // Prepend last DUP_COUNT in order
+                for (var k = DUP_COUNT; k > 0; k--) {
+                    var idx = (twins.length - k + twins.length) % twins.length;
+                    var dupLeft = document.createElement('div');
+                    dupLeft.innerHTML = createCardHtml(twins[idx]);
+                    container.appendChild(dupLeft.firstElementChild);
+                }
+            }
+
+            // Real cards
+            for (var i = 0; i < twins.length; i++) {
+                var card = document.createElement('div');
+                card.innerHTML = createCardHtml(twins[i]);
+                container.appendChild(card.firstElementChild);
+            }
+
+            if (twins.length > 1) {
+                // Append first DUP_COUNT
+                for (var j = 0; j < DUP_COUNT; j++) {
+                    var idx2 = j % twins.length;
+                    var dupRight = document.createElement('div');
+                    dupRight.innerHTML = createCardHtml(twins[idx2]);
+                    container.appendChild(dupRight.firstElementChild);
+                }
+            }
+        }
+
+        // Initialize
+        renderCards();
+
+        // Carousel state
+        var currentIndex = 0; // 0..totalRealCards-1
+        var isScrolling = false; // programmatic scroll (buttons / snap)
+        var isJumping = false;   // instant normalize jump
+        var cardWidth = 0;
+        var totalRealCards = twins.length;
+        // Interaction flags (used by desktop drag + auto-scroll coordination)
+        var isUserInteracting = false;
+        var isDragging = false;
+        var interactionTimer = null;
+
+        // Get card width including gap
+        function updateCardWidth() {
+            if (container.children.length === 0) {
+                cardWidth = 0;
+                return;
+            }
+            var firstRealCardIndex = twins.length > 1 ? DUP_COUNT : 0;
+            var firstCard = container.children[firstRealCardIndex];
+            if (!firstCard) {
+                cardWidth = 0;
+                return;
+            }
+            var style = window.getComputedStyle(container);
+            var gap = parseInt(style.gap) || 24;
+            cardWidth = firstCard.offsetWidth + gap;
+        }
+
+        // Scroll to real card index (0..totalRealCards-1)
+        function scrollToIndex(realIndex, smooth) {
+            if (container.children.length === 0) return;
+
+            updateCardWidth();
+            if (!cardWidth) return;
+
+            currentIndex = realIndex;
+
+            var domIndex = twins.length > 1 ? realIndex + DUP_COUNT : realIndex;
+            var target = domIndex * cardWidth;
+
+            isScrolling = true;
+            isSnapping = true;
+
+            carousel.scrollTo({
+                left: target,
+                behavior: smooth ? 'smooth' : 'auto'
+            });
+
+            setTimeout(function() {
+                isScrolling = false;
+                isSnapping = false;
+            }, smooth ? 350 : 50);
+        }
+
+        // 핵심: normalize by cycle width (NO rounding, NO snap during momentum)
+        function normalizeInfinite() {
+            if (isJumping || isSnapping || twins.length <= 1) return;
+
+            updateCardWidth();
+            if (!cardWidth) return;
+
+            var cycleWidth = totalRealCards * cardWidth;
+            var min = DUP_COUNT * cardWidth;       // start of real range
+            var max = min + cycleWidth;            // start of right-duplicate range
+            var sl = carousel.scrollLeft;
+
+            // If we're in left duplicates, jump forward by one cycle (same visual card continues)
+            if (sl < min) {
+                isJumping = true;
+                carousel.scrollLeft = sl + cycleWidth;
+                isJumping = false;
+                return;
+            }
+
+            // If we're in right duplicates, jump back by one cycle
+            if (sl >= max) {
+                isJumping = true;
+                carousel.scrollLeft = sl - cycleWidth;
+                isJumping = false;
+                return;
+            }
+        }
+
+        // ================= AUTO SCROLL (ambient) =================
+        var prefersReducedMotion = false;
+        try {
+            prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        } catch (e) {}
+
+        var autoEnabled = !prefersReducedMotion;
+        var autoSpeedPxPerSec = 55; // visible slow drift (try 40–80)
+        var autoRaf = null;
+        var autoPausedUntil = 0;
+
+        function pauseAutoScrollFor(ms) {
+            autoPausedUntil = Date.now() + ms;
+        }
+
+        function startAutoScroll() {
+            if (!autoEnabled || twins.length <= 1) return;
+            if (autoRaf) return;
+
+            var lastT = 0;
+            function tick(t) {
+                autoRaf = requestAnimationFrame(tick);
+
+                if (!carousel || !container) return;
+                if (Date.now() < autoPausedUntil) return;
+                if (isJumping || isSnapping || isScrolling || isDragging || isUserInteracting) return;
+
+                updateCardWidth();
+                if (!cardWidth) return;
+
+                var dt = lastT ? (t - lastT) : 16;
+                lastT = t;
+
+                carousel.scrollLeft += (autoSpeedPxPerSec * (dt / 1000));
+                normalizeInfinite();
+            }
+
+            autoRaf = requestAnimationFrame(tick);
+        }
+
+        function stopAutoScroll() {
+            if (!autoRaf) return;
+            cancelAnimationFrame(autoRaf);
+            autoRaf = null;
+        }
+
+        // Any direct interaction pauses auto for a bit (mobile + desktop)
+        carousel.addEventListener('pointerdown', function() {
+            pauseAutoScrollFor(700);
+        }, { passive: true });
+        carousel.addEventListener('touchstart', function() {
+            pauseAutoScrollFor(700);
+        }, { passive: true });
+        // =========================================================
+
+        // Snap ONLY when user stops scrolling (debounced) — prevents micro shake completely
+        function snapToNearestOnEnd() {
+            if (twins.length <= 1) return;
+
+            updateCardWidth();
+            if (!cardWidth) return;
+
+            var min = DUP_COUNT * cardWidth;
+            var sl = carousel.scrollLeft;
+
+            // First normalize to ensure sl is inside real range
+            var cycleWidth = totalRealCards * cardWidth;
+            while (sl < min) sl += cycleWidth;
+            while (sl >= min + cycleWidth) sl -= cycleWidth;
+
+            var raw = (sl - min) / cardWidth;
+            var nearest = Math.round(raw);
+
+            if (nearest < 0) nearest = 0;
+            if (nearest >= totalRealCards) nearest = totalRealCards - 1;
+
+            currentIndex = nearest;
+            scrollToIndex(currentIndex, true);
+        }
+
+        // Scroll listener: normalize immediately, snap after user stops
+        carousel.addEventListener('scroll', function() {
+            if (twins.length <= 1) return;
+
+            // Keep the illusion infinite during the scroll (no edge hit)
+            normalizeInfinite();
+
+            // If auto-scroll is running (and not paused), never schedule snap from its own movement.
+            if (autoRaf && Date.now() >= autoPausedUntil) {
+                return;
+            }
+
+            // Debounced snap (no native snap at all)
+            if (snapTimer) clearTimeout(snapTimer);
+            snapTimer = setTimeout(function() {
+                if (!isJumping && !isScrolling && !isDragging && !isUserInteracting) {
+                    // one more normalize for safety then snap
+                    normalizeInfinite();
+                    snapToNearestOnEnd();
+                }
+            }, 120);
+        }, { passive: true });
+
+        // Desktop-only: make wheel + mouse-drag behave like mobile swipe (prevents "stuck")
+        if (window.matchMedia && window.matchMedia('(min-width: 769px)').matches) {
+            function markInteracting() {
+                isUserInteracting = true;
+                pauseAutoScrollFor(700);
+                if (interactionTimer) clearTimeout(interactionTimer);
+                interactionTimer = setTimeout(function() {
+                    isUserInteracting = false;
+                }, 160);
+            }
+
+            // Wheel: vertical wheel -> horizontal scroll
+            carousel.addEventListener('wheel', function(e) {
+                // If user is mostly scrolling vertically, convert it to horizontal for carousel
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                    e.preventDefault();
+                    markInteracting();
+                    carousel.scrollLeft += e.deltaY;
+                    normalizeInfinite();
+                }
+            }, { passive: false });
+
+            // Drag to scroll (mouse)
+            var startX = 0;
+            var startLeft = 0;
+
+            carousel.addEventListener('pointerdown', function(e) {
+                // only mouse-like pointers
+                if (e.pointerType === 'touch') return;
+
+                isDragging = true;
+                startX = e.clientX;
+                startLeft = carousel.scrollLeft;
+                carousel.setPointerCapture(e.pointerId);
+                markInteracting();
+            });
+
+            carousel.addEventListener('pointermove', function(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                markInteracting();
+
+                var dx = e.clientX - startX;
+                carousel.scrollLeft = startLeft - dx;
+                normalizeInfinite();
+            });
+
+            function endDrag() {
+                if (!isDragging) return;
+                isDragging = false;
+
+                // after drag ends, let the existing debounce snap do its job
+                if (snapTimer) clearTimeout(snapTimer);
+                snapTimer = setTimeout(function() {
+                    normalizeInfinite();
+                    snapToNearestOnEnd();
+                }, 120);
+            }
+
+            carousel.addEventListener('pointerup', endDrag);
+            carousel.addEventListener('pointercancel', endDrag);
+            carousel.addEventListener('pointerleave', endDrag);
+        }
+
+        // Navigation buttons
+        if (prevBtn && twins.length > 1) {
+            prevBtn.addEventListener('click', function() {
+                var nextIndex = (currentIndex - 1 + totalRealCards) % totalRealCards;
+                scrollToIndex(nextIndex, true);
+            });
+        }
+
+        if (nextBtn && twins.length > 1) {
+            nextBtn.addEventListener('click', function() {
+                var nextIndex = (currentIndex + 1) % totalRealCards;
+                scrollToIndex(nextIndex, true);
+            });
+        }
+
+        // Initialize position - start inside the real range (far from edges)
+        setTimeout(function() {
+            if (twins.length > 0) {
+                updateCardWidth();
+                if (twins.length > 1) {
+                    carousel.scrollLeft = DUP_COUNT * cardWidth;
+                } else {
+                    carousel.scrollLeft = 0;
+                }
+                startAutoScroll();
+            }
+        }, 50);
+
+        // Handle window resize
+        var resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                if (twins.length > 0) {
+                    updateCardWidth();
+                    // keep current card centered after resize
+                    scrollToIndex(currentIndex, false);
+                }
+            }, 200);
+        });
+    })();
+</script>
