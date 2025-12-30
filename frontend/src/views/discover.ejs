@@ -59,6 +59,34 @@
                 /* ✅ FIX: Single line with ellipsis */
             }
             
+            /* ✅ Sample reply box - fixed height for consistent card sizing */
+            .twin-sample-reply {
+                min-height: 70px;
+                max-height: 70px;
+                display: flex;
+                align-items: flex-start;
+                overflow: hidden;
+            }
+            
+            .twin-sample-reply p {
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                line-height: 1.5;
+                /* Remove max-height constraint - let line-clamp handle truncation */
+                word-wrap: break-word;
+                word-break: break-word;
+            }
+            
+            /* Ensure text doesn't overflow - show ellipsis after 2 lines */
+            .twin-sample-reply .sample-text {
+                display: inline;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
             /* Hide scrollbar for filter tabs */
             .scrollbar-hide {
                 -ms-overflow-style: none;
@@ -66,6 +94,13 @@
             }
             .scrollbar-hide::-webkit-scrollbar {
                 display: none;
+            }
+            
+            /* ✅ Desktop: Center tabs container */
+            @media (min-width: 768px) {
+                .filter-tabs-container {
+                    justify-content: center !important;
+                }
             }
             
             /* Gap between tabs and first twin - all screen sizes */
@@ -176,17 +211,19 @@
         </div>
     </section>
 
-        <!-- Mobile: Scrollable container with snap -->
-        <div class="flex items-center gap-2 sm:gap-3
-                    bg-gradient-to-r from-indigo-50/80 via-purple-50/80 to-pink-50/80
-                    dark:from-gray-800/80 dark:via-gray-800/80 dark:to-gray-800/80
-                    backdrop-blur-xl p-2 sm:p-3 rounded-2xl
-                    max-w-full border border-indigo-200/30 dark:border-gray-700/50
-                    shadow-lg overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
+        <!-- Mobile: Scrollable container with snap, Desktop: Centered -->
+        <div class="w-full flex justify-center mb-6 sm:mb-8">
+            <div class="filter-tabs-container flex items-center gap-2 sm:gap-3
+                        bg-gradient-to-r from-indigo-50/80 via-purple-50/80 to-pink-50/80
+                        dark:from-gray-800/80 dark:via-gray-800/80 dark:to-gray-800/80
+                        backdrop-blur-xl p-2 sm:p-3 rounded-2xl
+                        max-w-full border border-indigo-200/30 dark:border-gray-700/50
+                        shadow-lg overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth
+                        md:justify-center md:overflow-x-visible">
             <button
                 class="filter-tab active flex-shrink-0 whitespace-nowrap
                        bg-gradient-to-r from-amber-500 to-orange-500 text-white
-                       px-4 sm:px-5 md:px-6 py-2.5 sm:py-3
+                       px-5 sm:px-6 md:px-8 py-2.5 sm:py-3
                        rounded-xl font-semibold text-sm sm:text-base shadow-lg
                        transform transition-all duration-200 border-2 border-amber-400/50
                        touch-manipulation min-h-[44px] text-base snap-start"
@@ -197,7 +234,7 @@
             <button
                 class="filter-tab flex-shrink-0 whitespace-nowrap
                        bg-white/90 dark:bg-gray-700/90 text-gray-700 dark:text-gray-300
-                       px-4 sm:px-5 md:px-6 py-2.5 sm:py-3
+                       px-5 sm:px-6 md:px-8 py-2.5 sm:py-3
                        rounded-xl font-semibold text-sm sm:text-base shadow-sm
                        transform transition-all duration-200 border-2 border-transparent
                        touch-manipulation min-h-[44px] text-base snap-start
@@ -211,7 +248,7 @@
             <button
                 class="filter-tab flex-shrink-0 whitespace-nowrap
                        bg-white/90 dark:bg-gray-700/90 text-gray-700 dark:text-gray-300
-                       px-4 sm:px-5 md:px-6 py-2.5 sm:py-3
+                       px-5 sm:px-6 md:px-8 py-2.5 sm:py-3
                        rounded-xl font-semibold text-sm sm:text-base shadow-sm
                        transform transition-all duration-200 border-2 border-transparent
                        touch-manipulation min-h-[44px] text-base snap-start
@@ -225,7 +262,7 @@
             <button
                 class="filter-tab flex-shrink-0 whitespace-nowrap
                        bg-white/90 dark:bg-gray-700/90 text-gray-700 dark:text-gray-300
-                       px-4 sm:px-5 md:px-6 py-2.5 sm:py-3
+                       px-5 sm:px-6 md:px-8 py-2.5 sm:py-3
                        rounded-xl font-semibold text-sm sm:text-base shadow-sm
                        transform transition-all duration-200 border-2 border-transparent
                        touch-manipulation min-h-[44px] text-base snap-start
@@ -239,7 +276,7 @@
             <button
                 class="filter-tab flex-shrink-0 whitespace-nowrap
                        bg-white/90 dark:bg-gray-700/90 text-gray-700 dark:text-gray-300
-                       px-4 sm:px-5 md:px-6 py-2.5 sm:py-3
+                       px-5 sm:px-6 md:px-8 py-2.5 sm:py-3
                        rounded-xl font-semibold text-sm sm:text-base shadow-sm
                        transform transition-all duration-200 border-2 border-transparent
                        touch-manipulation min-h-[44px] text-base snap-start
@@ -249,6 +286,7 @@
                 data-filter="most-followed">
                 <span class="mr-1.5">👥</span>Most Followed
             </button>
+            </div>
         </div>
     <!-- Twins Grid Section -->
     <section id="twinsGridSection" aria-label="AI twins list">
@@ -327,10 +365,10 @@
                     Bio content here...
                 </p>
 
-                <!-- Sample Reply -->
-                <div class="twin-sample-reply hidden bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mb-4">
-                    <p class="text-sm text-gray-600 dark:text-gray-300 italic">
-                        "<span class="sample-text">Sample reply...</span>"
+                <!-- Sample Reply - Always visible to maintain consistent card height -->
+                <div class="twin-sample-reply bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mb-4 min-h-[80px] flex items-start overflow-hidden">
+                    <p class="text-sm text-gray-600 dark:text-gray-300 italic w-full">
+                        "<span class="sample-text"></span>"
                     </p>
                 </div>
 
@@ -670,21 +708,19 @@ function setupInfiniteScroll() {
         clone.querySelector('.twin-verified').classList.remove('hidden');
     }
     
-    // Show sample reply if available
-    if (twin.sampleReply) {
-        clone.querySelector('.twin-sample-reply').classList.remove('hidden');
-        const sampleTextEl = clone.querySelector('.sample-text');
-        const maxLength = 120;
-        if (twin.sampleReply.length > maxLength) {
-            const truncated = twin.sampleReply.substring(0, maxLength) + '...';
-            sampleTextEl.textContent = truncated;
-            sampleTextEl.classList.add('line-clamp-2');
-            sampleTextEl.setAttribute('data-full-text', twin.sampleReply);
-            sampleTextEl.setAttribute('data-truncated', 'true');
-            sampleTextEl.classList.add('cursor-pointer', 'hover:underline');
-        } else {
-            sampleTextEl.textContent = twin.sampleReply;
-        }
+    // Show sample reply - box is always visible to maintain consistent card height
+    const sampleReplyBox = clone.querySelector('.twin-sample-reply');
+    const sampleTextEl = clone.querySelector('.sample-text');
+    
+    if (twin.sampleReply && twin.sampleReply.trim()) {
+        // Set text directly - CSS line-clamp-3 will handle truncation to 3 lines
+        sampleTextEl.textContent = twin.sampleReply;
+        // Store full text for potential expansion
+        sampleTextEl.setAttribute('data-full-text', twin.sampleReply);
+    } else {
+        // If no sample reply, show empty or placeholder (box still visible for consistent height)
+        sampleTextEl.textContent = '';
+        sampleReplyBox.style.opacity = '0.5'; // Slightly fade if empty
     }    
 
     // ✅ FIX: Handle disabled states for ALL buttons (Like, Follow, Share)

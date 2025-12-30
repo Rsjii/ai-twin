@@ -1270,7 +1270,8 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
                 messageContent.appendChild(timestampEl);
             }
             
-            // Add metadata display if provided
+            // Add metadata display if provided (development only - removed in production)
+            <% if (typeof NODE_ENV !== 'undefined' && NODE_ENV === 'development') { %>
             if (metadata && (metadata.intent || metadata.criticScore !== undefined)) {
                 const metadataDiv = document.createElement('div');
                 metadataDiv.className = 'mt-2 text-xs text-gray-500 dark:text-gray-400';
@@ -1282,6 +1283,7 @@ function displayWithTypingEffect(sender, fullText, metadata = null, callback = n
                 }
                 messageContent.appendChild(metadataDiv);
             }
+            <% } %>
             
             // Call callback if provided
             if (callback) {
