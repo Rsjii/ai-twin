@@ -23,6 +23,12 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
+        /* Hide "No file chosen" text on mobile only for profile file input */
+        @media (max-width: 1023px) {
+            .file-input-mobile {
+                color: transparent;
+            }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-screen font-inter">
@@ -138,15 +144,15 @@
                                                                     </div>
                                                                 <% } %>
                                                             </div>                                
-                                <div class="flex-1">
+                                <div class="flex-1 min-w-0">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Upload New Image</label>
-                                    <div class="relative">
+                                    <div class="relative overflow-hidden">
                                         <input 
                                             type="file" 
                                             id="profileImageFile" 
                                             name="profileImageFile" 
                                             accept="image/*" 
-                                            class="w-full px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"                                            
+                                            class="w-full px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 file-input-mobile"                                            
                                         >
                                     </div>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">JPG, PNG, GIF, WebP - Max 5MB</p>
@@ -313,7 +319,7 @@
 <div>
     <div class="flex items-center justify-between mb-4">
         <div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Change Password</h3>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white hidden sm:block">Change Password</h3>
             <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Update your account password</p>
         </div>
         <button id="showChangePasswordBtn" type="button" class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg transition-colors font-medium">
@@ -441,12 +447,6 @@
                                     <div class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-4 sm:p-6 border-2 border-blue-200 dark:border-blue-800">
                                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                                             <div class="flex-1">
-                                                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center">
-                                                    <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                    </svg>
-                                                    Twin Visibility
-                                                </h3>
                                                 <p class="text-sm text-gray-600 dark:text-gray-300">
                                                   <% if (twin && twin.isPublic) { %>
                                                         Your twin is currently <span class="font-semibold text-green-600 dark:text-green-400">PUBLIC</span>. Others can discover and chat with it.
