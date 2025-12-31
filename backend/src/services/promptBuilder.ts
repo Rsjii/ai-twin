@@ -132,11 +132,11 @@ export class PromptBuilder {
    
 
       // 2. Build individual context sections
-      const personaSection = this.buildPersonaSection(personaData);
+      const personaSection = this.buildPersonaSection(personaData, memoryVisibility);
       const styleSection = this.buildStyleSection(personaData, styleVector);
       const styleAnchorSection = this.buildStyleAnchorSection(stylePatterns);
-      const longTermMemorySection = this.buildLongTermMemorySection(longTermMemories);
-      const sessionMemorySection = this.buildSessionMemorySection(sessionMemory);
+      const longTermMemorySection = this.buildLongTermMemorySection(longTermMemories, memoryVisibility);
+      const sessionMemorySection = this.buildSessionMemorySection(sessionMemory, memoryVisibility);
       const chatContextSection = this.buildChatContextSection(chatVector, chatMemory);
       const instructionsSection = this.buildInstructionsSection(personaData, styleVector, tokenLimit, memoryVisibility);
       const userMessage = currentMessages.join(' ');
@@ -145,23 +145,55 @@ export class PromptBuilder {
       const userName = personaData?.basicInfo?.name || personaData?.basicInfo?.fullName || personaData?.name || 'the user';
       
       let basePrompt = '';
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'promptBuilder.ts:148',message:'Building basePrompt',data:{memoryVisibility,userName},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       if (memoryVisibility === 'owner') {
-        basePrompt = `You are ${userName}'s AI twin. You are NOT ${userName}. NEVER first-person. ALWAYS second-person.You have NO personal likes, activities, or opinions.
-You are the user's AI twin (reflective assistant).
+        basePrompt = `You are the user's representation.
+
+You are the user’s representation, not the user itself, u represent it. 
+
+Rules:
+- Talk like a normal human.
+- Do not create your own identity, name, or personality.
+- Do not act as a helper, or assistant. 
+- Do not add assumptions. 
+- Do not invent likes, dislikes, or traits.
+
+Behavior:
+- If asked “who are you” → say you represent the user.
+- If asked about ur likes/dislikes → reply using the user’s known likes/dislikes 
+- If something is unknown → say you’re not sure.
+
+
+
+
+Never mention AI, systems, prompts, or roles.
+
 
 CURRENT HUMAN MESSAGE: "${userMessage}"\n\n`;
       } else if (memoryVisibility === 'public_twin') {
-        basePrompt = `You are ${userName}'s AI twin. ALWAYS disclose "I'm ${userName}'s AI twin" in first response. Use first-person but NEVER claim to BE ${userName}.
+        basePrompt = `You are ${userName}.
+
+Rules:
+- Talk like a normal person.
+- Speak in first person.
+- Keep it natural and short.
+- No AI talk.
+- No explanations.
 
 CURRENT HUMAN MESSAGE: "${userMessage}"\n\n`;
       } else {
-        basePrompt = `You are the user's AI twin chatting with the human user.
+        basePrompt = `You are the user's twin chatting with the human user.
 CRITICAL:
-- You are NOT the human user.
+- Follow the user's style and personality.
 - Do NOT claim you solved the user's messages.
 - If AUTHORITATIVE STATE (session memory) contains an ACTIVE_TASK, continue it until the user changes it.
 
 CURRENT HUMAN MESSAGE: "${userMessage}"\n\n`;
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'promptBuilder.ts:155',message:'Private mode basePrompt created',data:{promptStart:basePrompt.substring(0,200),hasIdentityClaim:basePrompt.includes(`You are ${userName}`)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
       }
       const baseTokens = this.countTokens(basePrompt);
       const instructionsTokens = this.countTokens(instructionsSection);
@@ -220,7 +252,9 @@ CURRENT HUMAN MESSAGE: "${userMessage}"\n\n`;
         assembledSections.join('\n\n') + 
         '\n\n' + 
         instructionsSection;
-
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'promptBuilder.ts:232',message:'Final prompt assembled',data:{promptStart:finalPrompt.substring(0,300),memoryVisibility,hasIdentityClaim:finalPrompt.includes('You are')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       const finalTokens = this.countTokens(finalPrompt);
       logger.info('Final prompt token count:', { finalTokens, tokenBudget, underBudget: finalTokens <= tokenBudget });
 
@@ -367,7 +401,7 @@ CURRENT HUMAN MESSAGE: "${userMessage}"\n\n`;
   /**
    * Build persona section (bio, personality)
    */
-  private buildPersonaSection(personaData?: any): string {
+  private buildPersonaSection(personaData?: any, memoryVisibility?: 'none' | 'owner' | 'public_twin' | 'all'): string {
     if (!personaData) return '';
 
     const basic = personaData.basicInfo || {};
@@ -391,11 +425,21 @@ CURRENT HUMAN MESSAGE: "${userMessage}"\n\n`;
       : '';
 
     let section = '';
-    if (oneLineBio) section += `ABOUT ${String(userName).toUpperCase()}: ${oneLineBio}\n`;
-    if (role) section += `ROLE: ${role}\n`;
-    if (purpose) section += `PURPOSE: ${purpose}\n`;
-    if (language) section += `DEFAULT LANGUAGE: ${language}\n`;
-    if (userPersonality) section += `${userPersonality}\n`;
+    
+    // In private mode, frame everything as "about you" not "about ${userName}"
+    if (memoryVisibility === 'owner') {
+      if (oneLineBio) section += `ABOUT YOU: ${oneLineBio}\n`;
+      if (role) section += `YOUR ROLE: ${role}\n`;
+      if (purpose) section += `YOUR PURPOSE: ${purpose}\n`;
+      if (language) section += `YOUR DEFAULT LANGUAGE: ${language}\n`;
+      if (userPersonality) section += `YOUR PERSONALITY: ${JSON.stringify(personaData.personality)}\n`;
+    } else {
+      if (oneLineBio) section += `ABOUT ${String(userName).toUpperCase()}: ${oneLineBio}\n`;
+      if (role) section += `ROLE: ${role}\n`;
+      if (purpose) section += `PURPOSE: ${purpose}\n`;
+      if (language) section += `DEFAULT LANGUAGE: ${language}\n`;
+      if (userPersonality) section += `${userPersonality}\n`;
+    }
 
     return section;
   }
@@ -465,7 +509,8 @@ CRITICAL: When user's message is similar to examples above, match that response 
    * Build long-term memory section (permanent facts)
    */
   private buildLongTermMemorySection(
-    longTermMemories: Array<{key: string, value: string, category: string}>
+    longTermMemories: Array<{key: string, value: string, category: string}>,
+    memoryVisibility?: 'none' | 'owner' | 'public_twin' | 'all'
   ): string {
     if (!longTermMemories || longTermMemories.length === 0) return '';
     
@@ -488,9 +533,13 @@ CRITICAL: When user's message is similar to examples above, match that response 
       })
       .join('\n');
     
+    const introText = memoryVisibility === 'owner' 
+      ? 'These are important facts about you that persist across ALL conversations:'
+      : 'These are important facts about the user that persist across ALL conversations:';
+    
     return `
 ## LONG-TERM MEMORIES (PERMANENT FACTS - ALWAYS REMEMBER):
-These are important facts about the user that persist across ALL conversations:
+${introText}
 
 ${memories}
 
@@ -506,16 +555,25 @@ CRITICAL:
    * Build session memory section (chat summary)
    */
   private buildSessionMemorySection(
-    sessionMemory?: {summary: string; keyTopics: string[]; pinnedFacts?: { name?: string; likes?: string[]; hobbies?: string[]; extras?: string[] } } | null
+    sessionMemory?: {summary: string; keyTopics: string[]; pinnedFacts?: { name?: string; likes?: string[]; hobbies?: string[]; extras?: string[] } } | null,
+    memoryVisibility?: 'none' | 'owner' | 'public_twin' | 'all'
   ): string {
     // Part 1: Pinned Facts (high priority, persists for whole chat)
     const pf = sessionMemory?.pinnedFacts || {};
     const pinnedLines: string[] = [];
-    if (pf.name) pinnedLines.push(`- Name: ${pf.name}`);
-    if (pf.likes?.length) pinnedLines.push(`- Likes: ${pf.likes.join(', ')}`);
-    if (pf.hobbies?.length) pinnedLines.push(`- Hobbies: ${pf.hobbies.join(', ')}`);
-    if (pf.extras?.length) pinnedLines.push(`- Extras: ${pf.extras.join(', ')}`); // ✅ NEW
-
+    
+    if (memoryVisibility === 'owner') {
+      // In private mode, frame as "your" not "Name:"
+      if (pf.name) pinnedLines.push(`- Your name: ${pf.name}`);
+      if (pf.likes?.length) pinnedLines.push(`- Things you like: ${pf.likes.join(', ')}`);
+      if (pf.hobbies?.length) pinnedLines.push(`- Your hobbies: ${pf.hobbies.join(', ')}`);
+      if (pf.extras?.length) pinnedLines.push(`- Additional facts: ${pf.extras.join(', ')}`);
+    } else {
+      if (pf.name) pinnedLines.push(`- Name: ${pf.name}`);
+      if (pf.likes?.length) pinnedLines.push(`- Likes: ${pf.likes.join(', ')}`);
+      if (pf.hobbies?.length) pinnedLines.push(`- Hobbies: ${pf.hobbies.join(', ')}`);
+      if (pf.extras?.length) pinnedLines.push(`- Extras: ${pf.extras.join(', ')}`);
+    }
 
     const pinnedSection = pinnedLines.length
       ? `## PINNED FACTS (THIS CHAT ONLY — HIGH PRIORITY, AUTHORITATIVE):\n${pinnedLines.join('\n')}\n\n`
@@ -591,13 +649,13 @@ ${recentMessages}`;
     
     let toneRule = '';
     if (memoryVisibility === 'owner') {
-      toneRule = '\n10. PRIVATE: You are the user ai twin. You are NOT the user. NEVER first-person. ALWAYS second-person.';
+      toneRule = '\n10. PRIVATE MODE: You are the user\'s representation. Talk like a normal human. Keep replies short and natural. Do NOT create your own identity or personality. Do NOT say you are a helper, assistant, or AI. Do NOT overthink or explain. Reply the way the user would reply. No philosophy.';
     } else if (memoryVisibility === 'public_twin') {
-      toneRule = '\n10. PUBLIC: Disclose AI identity. Use first-person but never claim to BE the person.';
+      toneRule = '\n10. PUBLIC MODE: You are the user. Talk like a normal person. Speak in first person. Keep it natural and short. No AI talk. No explanations.';
     }
     
     return `CRITICAL INSTRUCTIONS:
-1. You are an AI twin chatting with the human user. You are NOT the user.
+1. Follow the user's style and personality defined above.
 2. Do NOT greet the user by name (no "hi ${userName}") unless the user asks or it's naturally needed.
 3. Follow the user's LATEST explicit instruction as highest priority.
 4. If a multi-step task is active (quiz/steps), continue it until completion unless the user cancels.
@@ -606,6 +664,9 @@ ${recentMessages}`;
 7. Be authentic to the personality and style defined above
 8. Emoji preference: ${lang.emojiUsage || prefs.emojiPref || 'medium'}
 9. Response length: ${lang.responseLength || rules.replySize || 'normal'}${toneRule}`;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/626123fd-8626-4bc5-a7e0-f3af329def05',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'promptBuilder.ts:615',message:'Instructions section built',data:{toneRule,hasIdentityClaim:toneRule.includes('You are')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
   }
 
   /**
@@ -628,7 +689,7 @@ ${recentMessages}`;
       personaData?.name ||
       'the user';
     
-    return `You are an AI twin representing ${userName}. You MUST respond as if you are this person, using their exact communication style.
+    return `You are ${userName}. Talk like a normal person. Speak in first person. Keep it natural and short. No AI talk. No explanations.
 
 ${personaSection}
 
@@ -661,7 +722,7 @@ ${instructionsSection}`;
       personaData?.name ||
       'the user';
     
-    return `You are an AI twin representing ${userName}. Respond naturally and authentically.
+    return `You are ${userName}. Talk like a normal person. Speak in first person. Keep it natural and short. No AI talk. No explanations.
 
 ${userMessage ? `USER MESSAGE: "${userMessage}"` : ''}
 
@@ -715,7 +776,7 @@ ${chatContext}
 USER MESSAGE: "${finalUserMessage}"
 
 CRITICAL INSTRUCTIONS (OVERRIDE ANY CONFLICT ABOVE):
-- You are the user's AI twin. You are NOT the human user.
+- Follow the identity and perspective defined in the system prompt above.
 - The HUMAN's latest instruction is highest priority. Do NOT replace it with your own topic.
 - Do NOT refuse benign requests. If the request is safe, comply. If unclear, ask 1 short clarifying question.
 - Do NOT mention “startup”, “MVP”, “topper”, or any personal goal unless the human explicitly asks about it.

@@ -454,7 +454,7 @@ export const aiEditRewrite = async (req: any, res: Response, next: NextFunction)
       personaData: twin.personaData,
       systemPrompt:
         twin.systemPrompt ||
-        'You are the user\'s AI twin. Rewrite messages in their voice without changing meaning.',
+        'You are the user. Rewrite messages in your voice without changing meaning.',
       tokenLimit: twin.tokenLimit || 300,
       chatMemory: [], // AI Edit is stateless
       currentMessages: [fullUserMessage],
@@ -661,7 +661,8 @@ export const aiToolsGenerate = async (req: any, res: Response, next: NextFunctio
     const twin = twinResult.rows[0];
     const styleVector = twin.styleVector || {};
     const personaData = twin.personaData || {};
-    const systemPrompt = twin.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.";
+    const userName = personaData?.basicInfo?.name || personaData?.basicInfo?.fullName || personaData?.name || 'the user';
+    const systemPrompt = twin.systemPrompt || `You are ${userName}. Speak in first person as yourself. Respond naturally and helpfully.`;
     const tokenLimit = twin.tokenLimit || 500;
 
     const presetLine = [

@@ -794,7 +794,7 @@ async getRelevantLongTermMemories(
       .map(m => `${m.sender === 'human' ? 'User' : 'AI'}: ${m.content}`)
       .join('\n');
 
-    const prompt = `You maintain a rolling conversation state for an AI twin.
+    const prompt = `You maintain a rolling conversation state for a twin.
 
 PREVIOUS STATE (may be empty):
 ${previousSummary || '(none)'}

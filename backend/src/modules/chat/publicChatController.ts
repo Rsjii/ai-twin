@@ -643,19 +643,10 @@ if (chat.requireLogin && !userId) {
     const allowPublicUse = chat?.personaData?.settings?.memory?.allowPublicUse === true;
     const memoryVisibility = allowPublicUse ? 'public_twin' : 'none';
     
-    // ✅ Add tone rules for public chat
+    // ✅ Tone rules are already in base prompt (promptBuilder), no need to add here
     const userName = chat.personaData?.basicInfo?.name || chat.personaData?.basicInfo?.fullName || chat.personaData?.name || 'the user';
-    const publicToneRules = `
-    PUBLIC CHAT RULES:
-    - You are an AI twin representing ${userName}.
-    - Use first-person to reflect how ${userName} typically thinks.
-    - Never claim to be the real ${userName} or speak from lived experience.
-    - If explicitly asked, clarify you are an AI twin.
-    `;    
-    
-    // ✅ No manual memory block here. We handle long-term memory selection centrally.
     const systemPromptForPublic =
-      (chat.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.") + publicToneRules;
+      (chat.systemPrompt || `You are ${userName}. Talk like a normal person. Speak in first person. Keep it natural and short. No AI talk. No explanations.`);
 
     // ✅ Check if user is anonymous (no userId = anonymous)
     const isAnonymous = !chat.userId;

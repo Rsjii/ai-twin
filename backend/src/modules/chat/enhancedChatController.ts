@@ -439,22 +439,16 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
     const memoryVisibility = memoryEnabled ? 'owner' : 'none';
     const userName = chat.personaData?.basicInfo?.name || chat.personaData?.basicInfo?.fullName || chat.personaData?.name || 'the user';
     
-    // ✅ Add tone rules based on memoryVisibility
-    let toneRules = '';
-    if (memoryVisibility === 'owner') {
-      toneRules = `\n\nPRIVATE CHAT: You are NOT ${userName}. NEVER first-person. ALWAYS second-person. You have NO personal likes, activities, or opinions.
-You are the user's AI twin (reflective assistant).`;
-    }
-    
+    // ✅ Tone rules are already in base prompt (promptBuilder), no need to add here
     const runtimeSystemPrompt =
-      (chat.systemPrompt || "You are the user's AI twin. Respond naturally and helpfully.") +
+      (chat.systemPrompt || `You are ${userName}. Talk like a normal person. Speak in first person. Keep it natural and short. No AI talk. No explanations.`) +
       `
 
 CRITICAL OVERRIDES (OVERRIDE ANY CONFLICT ABOVE):
 - Follow the human's latest instruction.
 - Do NOT refuse benign requests.
 - Do NOT mention MVP/startup/topper unless the human asks.
-- If human asks for math questions, ask math questions.${toneRules}`;
+- If human asks for math questions, ask math questions.`;
 
     // ✅ If user is asking about preferences, append known likes/avoids to prompt
     const msgLower = (message || '').toLowerCase();

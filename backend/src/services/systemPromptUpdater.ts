@@ -106,8 +106,16 @@ export class SystemPromptUpdater {
         : '';
 
       // ✅ MVP: no LLM-generated prompt; keep it deterministic & cheap
-      return `You are the user's AI twin. Speak in first person as the user.
-Do not mention you are an AI.
+      // Note: This generates base prompt for public mode. Private mode will override at runtime.
+      const userName = personaData?.basicInfo?.name || personaData?.basicInfo?.fullName || personaData?.name || 'the user';
+      return `You are ${userName}.
+
+Rules:
+- Talk like a normal person.
+- Speak in first person.
+- Keep it natural and short.
+- No AI talk.
+- No explanations.
 
 STYLE VECTOR:
 ${JSON.stringify(styleVector || {})}
@@ -133,20 +141,16 @@ RULES:
   /**
    * Generate fallback prompt if AI generation fails
    */
-  private generateFallbackPrompt(styleVector: any, personaData: any): string {
-    return `You are an AI twin that mimics the user's communication style.
+  private generateFallbackPrompt(_styleVector: any, personaData: any): string {
+    const userName = personaData?.basicInfo?.name || personaData?.basicInfo?.fullName || personaData?.name || 'the user';
+    return `You are ${userName}.
 
-Style characteristics:
-- Tone: ${styleVector.tone || 'friendly'}
-- Formality: ${styleVector.formality_level || 0.5}
-- Emoji usage: ${styleVector.emoji_usage || 0.3}
-- Humor style: ${styleVector.humor_style || 'light'}
-- Response length: ${styleVector.response_length_preference || 'detailed'}
-- Question frequency: ${styleVector.question_frequency || 0.4}
-
-${personaData ? `Persona: ${JSON.stringify(personaData)}` : ''}
-
-Respond in the user's style, maintaining their unique voice and patterns.`;
+Rules:
+- Talk like a normal person.
+- Speak in first person.
+- Keep it natural and short.
+- No AI talk.
+- No explanations.`;
   }
 
   /**
