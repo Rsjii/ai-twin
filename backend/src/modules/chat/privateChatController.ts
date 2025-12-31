@@ -303,7 +303,7 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: Response, n
       messageCount: chat.messageCount || 0,
       createdAt: normalizeTimestamp(chat.createdAt),
       updatedAt: normalizeTimestamp(chat.updatedAt),
-      twinName: chat.twinName || 'AI Twin'
+      twinName: chat.twinName || 'Twin'
     }));
 
     const total = parseInt(totalResult.rows[0]?.total || '0', 10);

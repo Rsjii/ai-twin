@@ -2,7 +2,7 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Learning Dashboard - AI Twin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Learning Dashboard - TwinOS</title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>
@@ -468,7 +468,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
         <!-- Header -->
         <div class="mb-8">
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Twin Settings</h1>
-            <p class="text-gray-600 dark:text-gray-300">Manage your AI twin's style and personal information</p>
+            <p class="text-gray-600 dark:text-gray-300">Manage your twin's style and personal information</p>
         </div>
 
         <!-- Navigation Breadcrumbs -->
@@ -637,7 +637,7 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
                     <%- include('components/empty-state', { 
                       icon: '📚',
                       title: 'No learning events',
-                      description: 'Learning events will appear here as your AI twin learns from conversations.'
+                      description: 'Learning events will appear here as your twin learns from conversations.'
                     }) %>
                   </div>
                   
@@ -669,7 +669,7 @@ document.getElementById('personalInfoForm')?.addEventListener('submit', async (e
         <%- include('components/empty-state', { 
           icon: '💬',
           title: 'No chat history',
-          description: 'Start chatting with your AI twin to see chat history here.'
+          description: 'Start chatting with your twin to see chat history here.'
         }) %>
       </div>
       

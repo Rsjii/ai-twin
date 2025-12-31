@@ -408,7 +408,7 @@
                                     Send
                                 </button>
                             </div>
-                            <p class="text-xs text-gray-500">You can chat with this AI twin without logging in!</p>
+                            <p class="text-xs text-gray-500">You can chat with this twin without logging in!</p>
                         </form>
                     </div>
                 </div>
@@ -782,7 +782,7 @@ function displayMessages(messages) {
                 }
                 
                 if (data.success && data.messages) {
-                    // Add AI response
+                    // Add suggested reply
                     const aiMessage = data.messages.find(m => m.sender === 'twin');
                     if (aiMessage) {
                         addMessageToChat(aiMessage.content, 'twin', aiMessage.createdAt);
@@ -1099,7 +1099,7 @@ async function shareTwin(platform) {
 
         const shareUrl = window.location.href;
         const title = `Check out @${twinPublicHandle} on Twinverse!`;
-        const text = `<%= twin && twin.bio ? twin.bio : 'AI Twin' %> - Chat with this AI twin!`;
+        const text = `<%= twin && twin.bio ? twin.bio : 'Twin' %> - Chat with this twin!`;
         
         let shareWindow = '';
         

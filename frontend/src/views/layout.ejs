@@ -7,8 +7,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="AI Twin">
-    <meta name="description" content="Create your AI twin that communicates in your unique style, tone, and personality">
+    <meta name="apple-mobile-web-app-title" content="TwinOS">
+    <meta name="description" content="Create your twin that communicates in your unique style, tone, and personality">
     <meta name="theme-color" content="#6366f1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,12 +18,12 @@
 <% if (typeof metaDescription !== 'undefined' && metaDescription) { %>
     <meta name="description" content="<%= metaDescription %>">
 <% } else { %>
-    <meta name="description" content="Create your AI twin that communicates in your unique style, tone, and personality">
+    <meta name="description" content="Create your twin that communicates in your unique style, tone, and personality">
 <% } %>
 
 <!-- Open Graph Tags -->
 <meta property="og:title" content="<%= typeof ogTitle !== 'undefined' ? ogTitle : title %>">
-<meta property="og:description" content="<%= typeof ogDescription !== 'undefined' ? ogDescription : (typeof metaDescription !== 'undefined' ? metaDescription : 'Create your AI twin that communicates in your unique style') %>">
+<meta property="og:description" content="<%= typeof ogDescription !== 'undefined' ? ogDescription : (typeof metaDescription !== 'undefined' ? metaDescription : 'Create your twin that communicates in your unique style') %>">
 <meta property="og:type" content="<%= typeof ogType !== 'undefined' ? ogType : 'website' %>">
 <% if (typeof ogImage !== 'undefined' && ogImage) { %>
     <meta property="og:image" content="<%= ogImage %>">
@@ -33,7 +33,7 @@
 <!-- Twitter Card Tags -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="<%= typeof ogTitle !== 'undefined' ? ogTitle : title %>">
-<meta name="twitter:description" content="<%= typeof ogDescription !== 'undefined' ? ogDescription : (typeof metaDescription !== 'undefined' ? metaDescription : 'Create your AI twin') %>">
+<meta name="twitter:description" content="<%= typeof ogDescription !== 'undefined' ? ogDescription : (typeof metaDescription !== 'undefined' ? metaDescription : 'Create your twin') %>">
 <% if (typeof ogImage !== 'undefined' && ogImage) { %>
     <meta name="twitter:image" content="<%= ogImage %>">
 <% } %>

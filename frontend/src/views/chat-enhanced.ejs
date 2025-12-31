@@ -2,7 +2,7 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Chat - AI Twin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Chat - TwinOS</title>
     <link rel="stylesheet" href="/css/output.css?v=<%= Date.now() %>">    
     <script src="/utils/timeUtils.js?v=<%= new Date().getTime() %>"></script>
     <script src="/utils/errorHandler.js"></script>
@@ -223,7 +223,7 @@
     </button>
     <div class="flex-1 min-w-0">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white truncate">Chat</h2>
-        <p class="text-xs text-gray-600 dark:text-gray-300">AI responses with style learning</p>
+        <p class="text-xs text-gray-600 dark:text-gray-300">Suggested replies with style learning</p>
     </div>
     <!-- Mobile Tone Chip -->
     <button
@@ -241,7 +241,7 @@
                     <div>
                         <div>
                             <h1 class="text-xl font-semibold dark:text-white">Chat</h1>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">AI responses with style learning and corrections</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">Suggested replies with style learning and corrections</p>
                         </div>                        
                     </div>
                     <div class="flex items-center space-x-3">
@@ -699,7 +699,7 @@ async function downvoteResponse(responseId) {
                 
                 if (navigator.share) {
                     navigator.share({
-                        title: 'AI Twin Response',
+                        title: 'Twin Response',
                         text: text,
                         url: window.location.href
                     }).then(() => {
@@ -762,7 +762,7 @@ async function regenerateResponse(responseId) {
             return;
         }
         
-        // Find the user message before this AI response
+        // Find the user message before this suggested reply
         let lastUserMessage = null;
         let userMessageId = null;
         
@@ -782,7 +782,7 @@ async function regenerateResponse(responseId) {
         }
         
         // ✅ STEP 1: Delete the response element itself AND all messages after it (from DOM)
-        // This matches backend behavior - backend deletes the AI response and all subsequent messages
+        // This matches backend behavior - backend deletes the suggested reply and all subsequent messages
         responseElement.remove(); // Remove the response being regenerated
         
         // Remove all messages after the response
@@ -805,7 +805,7 @@ async function regenerateResponse(responseId) {
             body: JSON.stringify({
                 message: lastUserMessage,
                 strictStyle: false,
-                regenerate: true, // Backend will delete old AI response and all messages after it
+                regenerate: true, // Backend will delete old suggested reply and all messages after it
                 regenerateMessageId: dbMessageId // ✅ Pass the database message ID to backend
             })
         });
@@ -822,7 +822,7 @@ async function regenerateResponse(responseId) {
             // Find the user message element to insert after
             const userMessageElement = document.getElementById(userMessageId);
             if (userMessageElement) {
-                // Create new AI response element
+                // Create new suggested reply element
                 const newResponseId = data.messageId || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                 const newResponseDiv = document.createElement('div');
                 newResponseDiv.id = newResponseId;
@@ -1520,7 +1520,7 @@ async function loadCurrentChatMessages() {
             if (initialLoading) initialLoading.classList.add('hidden');
             
             // Show welcome message for draft
-            addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
+            addMessageToChat('ai', 'Hello! I\'m your twin. How can I help you today?', false, null, new Date().toISOString());
             return;
         }
         
@@ -1611,18 +1611,18 @@ async function loadCurrentChatMessages() {
                 // Hide loading when there is 0 history
                 if (initialLoading) initialLoading.classList.add('hidden');
                 // Show welcome message if no history
-                addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
+                addMessageToChat('ai', 'Hello! I\'m your twin. How can I help you today?', false, null, new Date().toISOString());
             }
         } else {
             // Hide skeleton on non-OK response too
             if (initialLoading) initialLoading.classList.add('hidden');
             // Show welcome message if loading fails
-            addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
+            addMessageToChat('ai', 'Hello! I\'m your twin. How can I help you today?', false, null, new Date().toISOString());
         }
     } catch (error) {
         ErrorLogger.error('Error loading chat history', error, {});
         // Show welcome message if error
-        addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
+        addMessageToChat('ai', 'Hello! I\'m your twin. How can I help you today?', false, null, new Date().toISOString());
         // Hide loading, show error
         if (initialLoading) initialLoading.classList.add('hidden');
         if (errorState) errorState.classList.remove('hidden');
@@ -1644,7 +1644,7 @@ async function loadChatMessages() {
             if (messagesContainer) messagesContainer.innerHTML = '';
             
             // Show welcome message for draft
-            addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
+            addMessageToChat('ai', 'Hello! I\'m your twin. How can I help you today?', false, null, new Date().toISOString());
             return;
         }        
         
@@ -1728,16 +1728,16 @@ async function loadChatMessages() {
                 });
             } else {
                 // Show welcome message if no history
-                addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?');
+                addMessageToChat('ai', 'Hello! I\'m your twin. How can I help you today?');
             }
         } else {
             // Show welcome message if loading fails
-            addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?');
+            addMessageToChat('ai', 'Hello! I\'m your twin. How can I help you today?');
         }
     } catch (error) {
         ErrorLogger.error('Error loading chat messages', error, {});
         // Show welcome message if error
-        addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?');
+        addMessageToChat('ai', 'Hello! I\'m your twin. How can I help you today?');
     }
 }
 
@@ -1938,7 +1938,7 @@ async function switchToChat(chatId) {
             if (errorState) errorState.classList.add('hidden');
 
             // (Optional) welcome message:
-            // addMessageToChat('ai', 'Hello! I\'m your AI twin. How can I help you today?', false, null, new Date().toISOString());
+            // addMessageToChat('ai', 'Hello! I\'m your twin. How can I help you today?', false, null, new Date().toISOString());
 
             return;
         }

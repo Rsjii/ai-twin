@@ -802,7 +802,7 @@
         <% } %>
 
         <% if (hasTwins && twin) { %>
-            <!-- Your AI Twin Section (Enhanced with 4 Quick Actions) -->
+            <!-- Your Twin Section (Enhanced with 4 Quick Actions) -->
             <div class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 mb-6 sm:mb-8 border border-blue-100 dark:border-gray-700">
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center space-x-4">
@@ -814,7 +814,7 @@
                         <div>
                             <a href="/@<%= user.handle %>" class="hover:opacity-80 transition-opacity">
                                 <h3 class="text-xl font-bold text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                                  Your AI Twin
+                                  Your Twin
                                 </h3>
                               </a>
                               <p class="text-gray-600 dark:text-gray-300">
@@ -874,7 +874,7 @@
                         <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">1</div>
                     </div>
                     <div class="flex-1">
-                        <p class="text-sm font-medium text-blue-900 dark:text-blue-200">Next Step: Create Your AI Twin</p>
+                        <p class="text-sm font-medium text-blue-900 dark:text-blue-200">Next Step: Create Your Twin</p>
                         <p class="text-xs text-blue-700 dark:text-blue-300">Complete your profile to get started</p>
                     </div>
                     <a href="/twin/create" class="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium">
@@ -898,7 +898,7 @@
                         </svg>
                     </div>
                     
-                    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">Create your AI twin</h2>
+                    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">Create your twin</h2>
                     <p class="text-base sm:text-lg lg:text-xl text-white/90 mb-4 sm:mb-6 max-w-2xl mx-auto px-2">
                         A digital version of you that talks the way you do — even when you're away.
                     </p>
@@ -1217,7 +1217,7 @@
                             <h4 class="font-semibold text-gray-900 dark:text-white truncate">@${displayHandle}</h4>
                             ${twin.verified ? '<span class="text-primary text-xs flex-shrink-0">✓</span>' : ''}
                         </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${twin.userName || twin.userHandle || 'AI Twin'}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${twin.userName || twin.userHandle || 'Twin'}</p>
                     </div>
                 </div>
                 
@@ -1407,7 +1407,7 @@ function renderRecentInteractions(chats) {
                             <h4 class="font-semibold text-gray-900 dark:text-white text-sm truncate flex-1 min-w-0">@${profileHandle || twin.publicHandle || 'twin'}</h4>
                             ${twin.verified ? '<span class="text-primary text-xs flex-shrink-0">✓</span>' : ''}
                         </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${twin.userName || twin.userHandle || 'AI Twin'}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${twin.userName || twin.userHandle || 'Twin'}</p>
                     </div>
                 </div>
                 
@@ -1536,7 +1536,7 @@ function renderRecentInteractions(chats) {
             <span class="text-2xl">💬</span>
         </div>
         <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-2 text-center flex-shrink-0">Chat with More Twins</h3>
-        <p class="text-xs text-gray-600 dark:text-gray-300 text-center mb-3 line-clamp-2 flex-shrink-0">Discover and start conversations with exciting AI twins</p>
+        <p class="text-xs text-gray-600 dark:text-gray-300 text-center mb-3 line-clamp-2 flex-shrink-0">Discover and start conversations with exciting twins</p>
         <div class="mt-auto">
             <a href="/discover" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
                 <span>🔍</span>

@@ -2,7 +2,7 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Memory Management - AI Twin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Memory Management - TwinOS</title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="/utils/timeUtils.js"></script>
     <script>
@@ -53,7 +53,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                 <div class="flex items-center justify-between">
                     <div>
                         <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Memory Management</h1>
-                        <p class="text-gray-600 dark:text-gray-400">Manage and organize your AI twin's memories</p>
+                        <p class="text-gray-600 dark:text-gray-400">Manage and organize your twin's memories</p>
                     </div>
                     <button id="ingestBtn" class="bg-gradient-to-r from-primary to-accent text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-medium shadow-md hover:scale-105 min-h-[44px] touch-manipulation text-base" aria-label="Ingest Memory">
                         <span class="flex items-center">
@@ -169,7 +169,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                         <%- include('components/empty-state', { 
                             icon: '🧠',
                             title: 'No memories found',
-                            description: 'Start adding memories to help your AI twin remember important information.',
+                            description: 'Start adding memories to help your twin remember important information.',
                             compact: true
                         }) %>
                     </div>
@@ -232,7 +232,7 @@ var FEATURE_FLAGS = (typeof FEATURE_FLAGS !== 'undefined') ? FEATURE_FLAGS : {
                         <%- include('components/empty-state', { 
                             icon: '🎯',
                             title: 'No style anchors found',
-                            description: 'Add phrases and interactions to customize your AI twin\'s communication style.',
+                            description: 'Add phrases and interactions to customize your twin\'s communication style.',
                             compact: true
                         }) %>
                     </div>

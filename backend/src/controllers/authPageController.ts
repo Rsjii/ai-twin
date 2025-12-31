@@ -32,14 +32,14 @@ export async function getAuth(req: any, res: Response) {
 
     // Show login/signup page
     return res.render('auth', {
-      title: 'Login / Signup - AI Twin',
+      title: 'Login / Signup - TwinOS',
       user: null,
       csrfToken: res.locals['csrfToken'],
     });
   } catch (err) {
     logger.error('getAuth error:', err);
     return res.render('auth', {
-      title: 'Login / Signup - AI Twin',
+      title: 'Login / Signup - TwinOS',
       user: null,
       csrfToken: res.locals['csrfToken'],
     });
@@ -66,7 +66,7 @@ export function getSignup(req: any, res: Response) {
 export function getLoginVerify(req: any, res: Response) {
   const email = req.query['email'] as string;
   res.render('login-verify', {
-    title: 'Verify OTP - AI Twin',
+    title: 'Verify OTP - TwinOS',
     user: null,
     csrfToken: res.locals['csrfToken'],
     email: email
@@ -82,7 +82,7 @@ export function getVerifyOtp(req: any, res: Response) {
   // ✅ REMOVED: const otp = req.query['otp'] as string;
   
   res.render('verify-otp', {
-    title: 'Verify OTP - AI Twin',
+    title: 'Verify OTP - TwinOS',
     user: null,
     csrfToken: res.locals['csrfToken'],
     email: email,
@@ -107,7 +107,7 @@ export function getSignupProfile(req: any, res: Response) {
   }
   
   res.render('signup-profile', {
-    title: 'Complete Profile - AI Twin',
+    title: 'Complete Profile - TwinOS',
     user: null,
     csrfToken: res.locals['csrfToken'],
     email: email
@@ -119,7 +119,7 @@ export function getSignupProfile(req: any, res: Response) {
  */
 export function getForgotPassword(req: any, res: Response) {
   res.render('forgot-password', {
-    title: 'Forgot Password - AI Twin',
+    title: 'Forgot Password - TwinOS',
     user: null,
     csrfToken: res.locals['csrfToken']
   });
@@ -132,7 +132,7 @@ export function getForgotPasswordVerify(req: any, res: Response) {
   const email = req.query['email'] as string;
   
   res.render('forgot-password-verify', {
-    title: 'Verify Reset Code - AI Twin',
+    title: 'Verify Reset Code - TwinOS',
     user: null,
     csrfToken: res.locals['csrfToken'],
     email: email
@@ -146,7 +146,7 @@ export function getResetPassword(req: any, res: Response) {
   const email = req.query['email'] as string;
   
   res.render('reset-password', {
-    title: 'Reset Password - AI Twin',
+    title: 'Reset Password - TwinOS',
     user: null,
     csrfToken: res.locals['csrfToken'],
     email: email

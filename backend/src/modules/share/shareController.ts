@@ -75,26 +75,26 @@ export const generateShareLink = async (req: Request, res: Response) => {
     
     switch (platform) {
       case 'twitter':
-        shareTitle = `Check out my AI twin @${twin.publicHandle}!`;
-        shareContent = `🤖 I created an AI twin that you can chat with! Check it out: ${shareUrl}`;
+        shareTitle = `Check out my twin @${twin.publicHandle}!`;
+        shareContent = `🤖 I created a twin that you can chat with! Check it out: ${shareUrl}`;
         break;
       case 'facebook':
-        shareTitle = `My AI Twin - @${twin.publicHandle}`;
-        shareContent = `I created an AI twin that you can chat with! It has ${twin.likeCount} likes, ${twin.followCount} followers, and ${twin.chatCount} chats. Try it out: ${shareUrl}`;
+        shareTitle = `My Twin - @${twin.publicHandle}`;
+        shareContent = `I created a twin that you can chat with! It has ${twin.likeCount} likes, ${twin.followCount} followers, and ${twin.chatCount} chats. Try it out: ${shareUrl}`;
         break;
       case 'linkedin':
-        shareTitle = `AI Twin: @${twin.publicHandle}`;
-        shareContent = `I've created an AI twin using advanced AI technology. You can chat with it and experience personalized AI interactions. Check it out: ${shareUrl}`;
+        shareTitle = `Twin: @${twin.publicHandle}`;
+        shareContent = `I've created a twin that you can chat with. Check it out: ${shareUrl}`;
         break;
       case 'whatsapp':
-        shareContent = `🤖 Check out my AI twin! You can chat with it: ${shareUrl}`;
+        shareContent = `🤖 Check out my twin! You can chat with it: ${shareUrl}`;
         break;
       case 'telegram':
-        shareContent = `🤖 I created an AI twin that you can chat with! Try it: ${shareUrl}`;
+        shareContent = `🤖 I created a twin that you can chat with! Try it: ${shareUrl}`;
         break;
       default:
         shareContent = shareUrl;
-        shareTitle = `AI Twin: @${twin.publicHandle}`;
+        shareTitle = `Twin: @${twin.publicHandle}`;
     }
 
     // Log share event
@@ -343,28 +343,28 @@ export const getShareableContent = async (req: Request, res: Response) => {
     // Generate content for different platforms
     const content = {
       twitter: {
-        text: `🤖 Check out this amazing AI twin @${twin.publicHandle}! You can chat with it and experience personalized AI interactions. ${shareUrl}`,
+        text: `🤖 Check out this amazing twin @${twin.publicHandle}! You can chat with it. ${shareUrl}`,
         hashtags: ['AI', 'Twin', 'ChatBot', 'ArtificialIntelligence']
       },
       facebook: {
-        title: `AI Twin: @${twin.publicHandle}`,
-        description: `Chat with this AI twin created by ${twin.userName}! It has ${twin.likeCount} likes, ${twin.followCount} followers, and ${twin.chatCount} chats.`,
+        title: `Twin: @${twin.publicHandle}`,
+        description: `Chat with this twin created by ${twin.userName}! It has ${twin.likeCount} likes, ${twin.followCount} followers, and ${twin.chatCount} chats.`,
         url: shareUrl
       },
       linkedin: {
-        title: `AI Twin: @${twin.publicHandle}`,
-        summary: `Experience the future of AI with this personalized twin. Created by ${twin.userName}, this AI twin has ${twin.likeCount} likes and ${twin.chatCount} conversations.`,
+        title: `Twin: @${twin.publicHandle}`,
+        summary: `A personalized twin created by ${twin.userName}. It has ${twin.likeCount} likes and ${twin.chatCount} conversations.`,
         url: shareUrl
       },
       whatsapp: {
-        text: `🤖 Check out this AI twin @${twin.publicHandle}! You can chat with it: ${shareUrl}`
+        text: `🤖 Check out this twin @${twin.publicHandle}! You can chat with it: ${shareUrl}`
       },
       telegram: {
-        text: `🤖 AI Twin: @${twin.publicHandle}\n\nChat with this amazing AI twin! ${shareUrl}`
+        text: `🤖 Twin: @${twin.publicHandle}\n\nChat with this amazing twin! ${shareUrl}`
       },
       email: {
-        subject: `Check out this AI Twin: @${twin.publicHandle}`,
-        body: `Hi!\n\nI found this amazing AI twin that you can chat with:\n\nTwin: @${twin.publicHandle}\nCreator: ${twin.userName}\n\nYou can chat with it here: ${shareUrl}\n\nTry it out and let me know what you think!`
+        subject: `Check out this Twin: @${twin.publicHandle}`,
+        body: `Hi!\n\nI found this amazing twin that you can chat with:\n\nTwin: @${twin.publicHandle}\nCreator: ${twin.userName}\n\nYou can chat with it here: ${shareUrl}\n\nTry it out and let me know what you think!`
       }
     };
 

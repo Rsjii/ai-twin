@@ -1,4 +1,4 @@
-// TypeScript Interfaces for AI Twin Project
+// TypeScript Interfaces for TwinOS Project
 
 // Express helpers
 import type { Request } from 'express';
@@ -19,7 +19,7 @@ export interface User {
   events: Event[];
 }
 
-// AI Twin Interface
+// Twin Interface
 // Instruction State Interface (user-controlled tweaks)
 export interface InstructionState {
   banned_topics?: string[];     // ["politics","romance","finance","health"]

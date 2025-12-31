@@ -142,7 +142,7 @@
                         <% if (typeof requiresLogin !== 'undefined' && requiresLogin) { %>
                             Login required to chat with this twin.
                         <% } else { %>
-                            You can chat with this AI twin without logging in!
+                            You can chat with this twin without logging in!
                         <% } %>
                     </p>
                 </div>
@@ -1587,7 +1587,7 @@ async function sendMessage() {
                         }
                     }
                     
-                    // ✅ Use typing effect for AI response (same as private chat)
+                    // ✅ Use typing effect for suggested reply (same as private chat)
                     // ✅ FIX: Don't reload chat after typing - messages are already in correct order in DOM
                     // This matches private chat behavior - messages stay in DOM, no reload needed
                     displayWithTypingEffect('ai', data.response, {

@@ -278,10 +278,10 @@ export async function generateAIResponse(
       throw new Error('Empty response from AI');
     }
 
-    logger.info('AI response generated successfully:', aiResponse.substring(0, 100));
+    logger.info('Suggested reply generated successfully:', aiResponse.substring(0, 100));
     
   } catch (error) {
-    logger.error('AI response generation failed:', error);
+    logger.error('Suggested reply generation failed:', error);
     aiResponse = "I'm having trouble thinking right now. Could you try again?";
     tokensUsed = 0;
     inputTokens = 0;

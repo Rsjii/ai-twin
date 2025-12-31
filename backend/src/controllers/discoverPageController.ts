@@ -35,7 +35,7 @@ export async function getDiscover(req: any, res: Response) {
 
 
     res.render('discover', {
-      title: 'Discover AI Twins - Twinverse',
+      title: 'Discover Twins - TwinOS',
       user: user,                 // ✅ Now includes profileImage
       pathname: '/discover',
       hasTwins,
@@ -45,7 +45,7 @@ export async function getDiscover(req: any, res: Response) {
   } catch (error) {
     logger.error('Discover page error:', error);
     res.render('discover', {
-      title: 'Discover AI Twins - Twinverse',
+      title: 'Discover Twins - TwinOS',
       user: null,
       hasTwins: false,
       twinId: null,
@@ -68,7 +68,7 @@ export async function getOnboarding(req: any, res: Response) {
   }
   
   res.render('onboarding', { 
-    title: 'Create Your AI Twin - Enhanced Onboarding',
+    title: 'Let\'s build your digital self - Enhanced Onboarding',
     user: req.user || null,
     csrfToken: res.locals['csrfToken']
   });
@@ -102,7 +102,7 @@ export async function getMemoryManagement(req: any, res: Response) {
 
 
   res.render('memory-management', { 
-    title: 'Memory Management - AI Twin',
+    title: 'Memory Management - TwinOS',
     user,
     twinToken: twinToken,  // ✅ SECURITY: Use tokenized ID
     csrfToken: res.locals['csrfToken'],

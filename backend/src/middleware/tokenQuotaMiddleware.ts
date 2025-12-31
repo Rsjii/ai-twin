@@ -215,7 +215,7 @@ async function handleBlockedOrFastPath(params: {
     [generateId.message(), chatId, aiResponse, now],
   );
 
-  // Update chat meta: messageCount += 1, lastMessage=AI response, title if first
+  // Update chat meta: messageCount += 1, lastMessage=suggested reply, title if first
   // ✅ Structure same as Chat table - both have lastMessage now
   await db.query(
     `

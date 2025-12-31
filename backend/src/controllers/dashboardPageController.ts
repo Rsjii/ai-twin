@@ -160,7 +160,7 @@ export async function getDashboard(req: any, res: Response) {
     };
     
     res.render('dashboard', {
-      title: 'Dashboard - AI Twin',
+      title: 'Dashboard - TwinOS',
       user: user,
       pathname: '/dashboard',
       hasTwins: hasTwins,

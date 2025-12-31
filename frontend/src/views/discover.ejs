@@ -2,7 +2,7 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Discover AI Twins - Twinverse</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Discover Twins - TwinOS</title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="/utils/errorHandler.js"></script>
     <script>
@@ -165,8 +165,8 @@
     <header class="mb-6 sm:mb-8">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Discover AI Twins</h1>
-                <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300">Explore trending, popular, and recommended AI twins from the community</p>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Discover Twins</h1>
+                <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300">Explore trending, popular, and recommended twins from the community</p>
             </div>
             <% 
               // Robust authentication check
@@ -200,7 +200,7 @@
                     placeholder="Search twins..." 
                     class="w-full px-4 py-3 pl-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-white/20 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary/50 shadow-lg text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                     style="font-size: 16px;"
-                    aria-label="Search for AI twins"
+                    aria-label="Search for twins"
                 >
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -289,7 +289,7 @@
             </div>
         </div>
     <!-- Twins Grid Section -->
-    <section id="twinsGridSection" aria-label="AI twins list">
+    <section id="twinsGridSection" aria-label="Twins list">
         <!-- Loading State -->
         <div id="loadingState" class="hidden">
             <%- include('components/loading-skeleton', { type: 'twin-card', count: 8 }) %>
@@ -305,7 +305,7 @@
             <%- include('components/empty-state', { 
                 icon: '🤖',
                 title: 'No twins found',
-                description: 'Try adjusting your search or filters to find more AI twins.',
+                description: 'Try adjusting your search or filters to find more twins.',
                 actionText: 'Clear Filters',
                 actionOnClick: 'clearFilters()'
             }) %>

@@ -2,7 +2,7 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Enhanced Chat - AI Twin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Enhanced Chat - TwinOS</title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="/utils/errorHandler.js"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
@@ -102,7 +102,7 @@
         <!-- Desktop Sidebar -->
         <div class="hidden lg:block w-64 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900 overflow-x-hidden flex flex-col flex-shrink-0">          
             <div class="p-4 border-b dark:border-gray-700">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">AI Twin Chat</h2>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Twin Chat</h2>
                 <p class="text-sm text-gray-600 dark:text-gray-300">Enhanced with style learning</p>
                 <!-- ADD NEW CHAT BUTTON -->
                 <button id="newChatBtn" class="w-full mt-2 bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold min-h-[48px] sm:min-h-[44px] touch-manipulation text-base">                    
@@ -167,7 +167,7 @@
                     <div>
                         <div>
                             <h1 class="text-xl font-semibold dark:text-white">Enhanced Chat</h1>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">AI responses with style learning and corrections</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">Suggested replies with style learning and corrections</p>
                         </div>                        
                     </div>
                     <div class="flex items-center space-x-4">
@@ -428,7 +428,7 @@ async function downvoteResponse(responseId) {
                 
                 if (navigator.share) {
                     navigator.share({
-                        title: 'AI Twin Response',
+                        title: 'Twin Response',
                         text: text,
                         url: window.location.href
                     }).then(() => {
@@ -476,7 +476,7 @@ async function downvoteResponse(responseId) {
         const messages = document.querySelectorAll('[id^="msg_"]');
         let lastUserMessage = null;
         
-        // Find the last user message before this AI response
+        // Find the last user message before this suggested reply
         for (let i = messages.length - 1; i >= 0; i--) {
             const msg = messages[i];
             if (msg.querySelector('.bg-blue-600')) { // User message
@@ -1038,7 +1038,7 @@ async function loadCurrentChatMessages() {
             if (messagesContainer) messagesContainer.innerHTML = '';
             
             // Show welcome message for draft
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?');
             return;
         }
         
@@ -1117,16 +1117,16 @@ async function loadCurrentChatMessages() {
 });
         } else {
                 // Show welcome message if no history
-                addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+                addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?');
             }
         } else {
             // Show welcome message if loading fails
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?');
         }
     } catch (error) {
         ErrorLogger.error('Error loading chat history', error, {});
         // Show welcome message if error
-        addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+        addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?');
         // Hide loading, show error
         if (initialLoading) initialLoading.classList.add('hidden');
         if (errorState) errorState.classList.remove('hidden');
@@ -1142,7 +1142,7 @@ async function loadChatMessages() {
             if (messagesContainer) messagesContainer.innerHTML = '';
             
             // Show welcome message for draft
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?');
             return;
         }
         
@@ -1217,16 +1217,16 @@ async function loadChatMessages() {
                 });
             } else {
                 // Show welcome message if no history
-                addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+                addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?');
             }
         } else {
             // Show welcome message if loading fails
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?');
         }
     } catch (error) {
         ErrorLogger.error('Error loading chat messages', error, {});
         // Show welcome message if error
-        addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+        addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?');
     }
 }
 
@@ -1348,7 +1348,7 @@ async function switchToChat(chatId) {
         if (chatId && chatId.startsWith('draft_')) {
             const messagesContainer = document.getElementById('chatMessages');
             if (messagesContainer) messagesContainer.innerHTML = '';
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?');
             return;
         }
         

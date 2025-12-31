@@ -2,7 +2,7 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Enhanced Chat - AI Twin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title>Enhanced Chat - TwinOS</title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="/utils/timeUtils.js?v=<%= new Date().getTime() %>"></script>
     <script src="/utils/errorHandler.js"></script>
@@ -117,7 +117,7 @@
         <div class="flex flex-col w-64 h-full bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
             <!-- Header + New Chat -->
             <div class="p-4 border-b dark:border-gray-700">                
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">AI Twin Chat</h2>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Twin Chat</h2>
                 <p class="text-sm text-gray-600 dark:text-gray-300">Enhanced with style learning</p>
                 <!-- ADD NEW CHAT BUTTON -->
                 <button id="newChatBtn" class="w-full mt-2 bg-gradient-to-r from-primary to-accent text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold min-h-[48px] sm:min-h-[44px] touch-manipulation text-base">                    
@@ -193,7 +193,7 @@
                     <div>
                         <div>
                             <h1 class="text-xl font-semibold dark:text-white">Enhanced Chat</h1>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">AI responses with style learning and corrections</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">Suggested replies with style learning and corrections</p>
                         </div>                        
                     </div>
                     <div class="flex items-center space-x-4">
@@ -463,7 +463,7 @@ async function downvoteResponse(responseId) {
                 
                 if (navigator.share) {
                     navigator.share({
-                        title: 'AI Twin Response',
+                        title: 'Twin Response',
                         text: text,
                         url: window.location.href
                     }).then(() => {
@@ -526,7 +526,7 @@ async function regenerateResponse(responseId) {
             return;
         }
         
-        // Find the user message before this AI response
+        // Find the user message before this suggested reply
         let lastUserMessage = null;
         let userMessageId = null;
         
@@ -546,7 +546,7 @@ async function regenerateResponse(responseId) {
         }
         
         // ✅ STEP 1: Delete the response element itself AND all messages after it (from DOM)
-        // This matches backend behavior - backend deletes the AI response and all subsequent messages
+        // This matches backend behavior - backend deletes the suggested reply and all subsequent messages
         responseElement.remove(); // Remove the response being regenerated
         
         // Remove all messages after the response
@@ -564,7 +564,7 @@ async function regenerateResponse(responseId) {
             body: JSON.stringify({
                 message: lastUserMessage,
                 strictStyle: false,
-                regenerate: true, // Backend will delete old AI response and all messages after it
+                regenerate: true, // Backend will delete old suggested reply and all messages after it
                 regenerateMessageId: dbMessageId // ✅ Pass the database message ID to backend
             })
         });
@@ -576,7 +576,7 @@ async function regenerateResponse(responseId) {
             // Find the user message element to insert after
             const userMessageElement = document.getElementById(userMessageId);
             if (userMessageElement) {
-                // Create new AI response element
+                // Create new suggested reply element
                 const newResponseId = data.messageId || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                 const newResponseDiv = document.createElement('div');
                 newResponseDiv.id = newResponseId;
@@ -1204,7 +1204,7 @@ async function loadCurrentChatMessages() {
             if (messagesContainer) messagesContainer.innerHTML = '';
             
             // Show welcome message for draft
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
+            addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
             return;
         }
                 
@@ -1293,16 +1293,16 @@ async function loadCurrentChatMessages() {
 });
         } else {
                 // Show welcome message if no history
-                addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
+                addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
             }
         } else {
             // Show welcome message if loading fails
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
+            addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
         }
     } catch (error) {
         ErrorLogger.error('Error loading chat history', error, {});
         // Show welcome message if error
-        addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
+        addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
         // Hide loading, show error
         if (initialLoading) initialLoading.classList.add('hidden');
         if (errorState) errorState.classList.remove('hidden');
@@ -1324,7 +1324,7 @@ async function loadChatMessages() {
             if (messagesContainer) messagesContainer.innerHTML = '';
             
             // Show welcome message for draft
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
+            addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
             return;
         }        
         
@@ -1408,16 +1408,16 @@ async function loadChatMessages() {
                 });
             } else {
                 // Show welcome message if no history
-                addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+                addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?');
             }
         } else {
             // Show welcome message if loading fails
-            addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+            addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?');
         }
     } catch (error) {
         ErrorLogger.error('Error loading chat messages', error, {});
         // Show welcome message if error
-        addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?');
+        addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?');
     }
 }
 
@@ -1548,7 +1548,7 @@ async function switchToChat(chatId) {
             if (errorState) errorState.classList.add('hidden');
 
             // (Optional) welcome message:
-            // addMessageToChat('ai', 'Hello! I\'m your AI twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
+            // addMessageToChat('ai', 'Hello! I\'m your twin with enhanced style learning. How can I help you today?', false, null, new Date().toISOString());
 
             return;
         }

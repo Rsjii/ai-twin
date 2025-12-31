@@ -14,7 +14,7 @@ export async function getPublicChatHistoryPage(req: AuthenticatedRequest, res: R
 
 
   res.render('public-chat-history', {
-    title: 'Your Chat History - AI Twin',
+    title: 'Your Chat History - TwinOS',
     user,
     csrfToken: res.locals['csrfToken'] || ''
   });

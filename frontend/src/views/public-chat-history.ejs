@@ -2,7 +2,7 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title><%= typeof title !== 'undefined' ? title : 'Your Chat History - AI Twin' %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title><%= typeof title !== 'undefined' ? title : 'Your Chat History - TwinOS' %></title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="/utils/timeUtils.js"></script>
     <script>
@@ -32,7 +32,7 @@
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                     <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Your Chat History</h1>
-                    <p class="text-gray-600 dark:text-gray-300">All the AI twins you've chatted with</p>
+                    <p class="text-gray-600 dark:text-gray-300">All the twins you've chatted with</p>
                 </div>
                 <div class="flex gap-3">
                     <a href="/discover" class="hidden md:flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-white/20 dark:border-gray-700 hover:shadow-lg transition-all">
@@ -117,7 +117,7 @@
                     </svg>
                 </div>
                 <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-3">No Chats Yet</h3>
-                <p class="text-gray-600 dark:text-gray-300 mb-6">Start exploring AI twins and begin conversations to see them here!</p>
+                <p class="text-gray-600 dark:text-gray-300 mb-6">Start exploring twins and begin conversations to see them here!</p>
                 <a href="/discover" class="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-medium min-h-[44px] touch-manipulation text-base" aria-label="Discover Twins">
                     <span>🔍</span>
                     <span>Discover Twins</span>
@@ -313,7 +313,7 @@
                                 <h3 class="font-semibold text-gray-900 dark:text-white text-lg truncate">@${profileHandle || 'twin'}</h3>
                                 ${twin.verified ? '<span class="text-sm text-primary dark:text-blue-400">✓</span>' : ''}
                             </div>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">${twin.userName || twin.userHandle || 'AI Twin'}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">${twin.userName || twin.userHandle || 'Twin'}</p>
                             <div class="flex items-center gap-3 mt-1">
                                 ${totalChats > 0 ? `<span class="text-xs text-gray-500 dark:text-gray-400">${totalChats} chat${totalChats > 1 ? 's' : ''}</span>` : ''}
                                 ${latestChat?.lastActivity ? `<span class="text-xs text-gray-400 dark:text-gray-500 timestamp-display" data-timestamp="${latestChat.lastActivity}" data-format="smart"></span>` : ''}                                

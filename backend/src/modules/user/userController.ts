@@ -33,7 +33,7 @@ export const exportUserData = async (req: AuthenticatedRequest, res: Response) =
         accountInfo: {}
       },
       
-      // 2. AI Twins
+      // 2. Twins
       twins: [],
       
       // 3. Activity Summary
