@@ -363,7 +363,8 @@
                     </html>
                 `);
             } catch (error) {
-                alert('Error loading message details: ' + (error.message || 'Unknown error'));
+                console.error('View message details error:', error);
+                alert('Error loading message details: ' + error.message);
             }
         }
 
@@ -408,7 +409,8 @@
                     </html>
                 `);
             } catch (error) {
-                alert('Error loading chat messages: ' + (error.message || 'Unknown error'));
+                console.error('View chat messages error:', error);
+                alert('Error loading chat messages: ' + error.message);
             }
         }
 
@@ -432,6 +434,7 @@
                     `);
                 }
             } catch (error) {
+                console.error('View user profile error:', error);
                 alert('Error loading user profile');
             }
         }

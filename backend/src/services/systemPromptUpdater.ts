@@ -139,7 +139,7 @@ RULES:
   }
 
   /**
-   * Generate fallback prompt if AI generation fails
+   * Generate fallback prompt if twin creation fails
    */
   private generateFallbackPrompt(_styleVector: any, personaData: any): string {
     const userName = personaData?.basicInfo?.name || personaData?.basicInfo?.fullName || personaData?.name || 'the user';

@@ -25,8 +25,8 @@ export async function generateResponseWithTone(
     
     const { twinId, chatVector, styleVector, systemPrompt } = chatResult.rows[0];
     
-    // Use your existing AI service to generate response
-    // This is a placeholder - replace with your actual AI generation logic
+    // Use your existing service to generate response
+    // This is a placeholder - replace with your actual twin response generation logic
     const newResponse = `Regenerated response with ${tonePreference} tone for chat ${chatId}`;
     
     return newResponse;

@@ -55,9 +55,9 @@ export const createTwin = async (req: Request, res: Response, next: NextFunction
     }); 
   }
 
-    // Check if AI generation is enabled
+    // Check if twin creation is enabled
     if (!featureFlags.ENABLE_AI_GENERATION) {
-      throw createError.internal('AI generation is currently disabled');
+      throw createError.internal('Twin creation is currently disabled');
     }
 
     // Validate samples using safety utils

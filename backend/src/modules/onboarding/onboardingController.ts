@@ -87,7 +87,7 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
 
     // 3) Check feature flag
     if (!featureFlags.ENABLE_AI_GENERATION) {
-      return next(new AppError(503, 'AI generation is currently disabled', 'SERVICE_UNAVAILABLE'));
+      return next(new AppError(503, 'Twin creation is currently disabled', 'SERVICE_UNAVAILABLE'));
     }
 
     // 4) Build personaData object from onboarding payload

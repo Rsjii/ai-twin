@@ -236,8 +236,19 @@
                 document.getElementById('avgTokensPerMessage').textContent = formatNumber(overall.avg_tokens_per_message || 0);
 
                 // Update charts
-                updateDailyChart(data.details?.daily || []);
-                updateTopUsersChart(data.details?.topUsers || []);
+                if (data.details?.daily) {
+                    updateDailyChart(data.details.daily);
+                } else {
+                    console.warn('No daily data');
+                    updateDailyChart([]);
+                }
+                
+                if (data.details?.topUsers) {
+                    updateTopUsersChart(data.details.topUsers);
+                } else {
+                    console.warn('No top users data');
+                    updateTopUsersChart([]);
+                }
 
                 // Update per user summary
                 updatePerUserSummary(data.summary?.perUser || []);
@@ -249,7 +260,9 @@
                 updatePerMessageDetails(data.details?.messages || []);
 
             } catch (error) {
-                alert('Failed to load token analytics: ' + (error.message || 'Unknown error'));
+                console.error('Error loading token analytics:', error);
+                console.error('Error stack:', error.stack);
+                alert('Failed to load token analytics: ' + error.message);
             }
         }
 

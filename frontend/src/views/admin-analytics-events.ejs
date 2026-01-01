@@ -122,6 +122,7 @@
                     showError('Failed to load events: ' + data.error);
                 }
             } catch (error) {
+                console.error('Load events error:', error);
                 showError('Error loading events');
             }
         }
@@ -170,7 +171,7 @@
                                 el.textContent = window.TimeUtils.formatTimeWithContext(timestamp);
                                 el.title = window.TimeUtils.formatFullDateTime(timestamp);
                             } catch (e) {
-                                // Silently handle timestamp formatting errors
+                                console.error('Error formatting timestamp:', e);
                             }
                         }
                     });
