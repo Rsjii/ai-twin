@@ -7,7 +7,8 @@ import {
   getPublicChatsByTwin,
   createNewPublicChat,
   getUserPublicChats,
-  deletePublicChat,
+  // V2: Re-enable delete functionality for owners
+  // deletePublicChat,
   updatePublicChatTitle,
   getAllPublicChatsForTwin,
   viewPublicChatHistory,
@@ -47,8 +48,9 @@ router.get('/twin/:twinToken/all-chats', requireJWTFromCookie, getAllPublicChats
 // Authenticated route - Get user's public chats
 router.get('/user/my-chats', requireJWTFromCookie, getUserPublicChats);
 
+// V2: Re-enable delete functionality for owners
 // Delete public chat endpoint (with authentication) - CSRF protection added
-router.delete('/:chatToken', requireJWTFromCookie, validateCSRF, deletePublicChat);
+// router.delete('/:chatToken', requireJWTFromCookie, validateCSRF, deletePublicChat);
 
 // Update public chat title endpoint (no authentication required)
 router.put('/:chatToken/title', updatePublicChatTitle);

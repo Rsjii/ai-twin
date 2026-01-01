@@ -1427,7 +1427,9 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
 
 
 
+// V2: Re-enable delete functionality for owners
 // Delete public chat
+/*
 export const deletePublicChat = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { chatToken } = req.params;
@@ -1509,6 +1511,7 @@ export const deletePublicChat = async (req: Request, res: Response, next: NextFu
     handleErrorWithSuccessFormat(error, res, 'Failed to delete public chat');
   }
 };
+*/
 
 // Update public chat title
 export const updatePublicChatTitle = async (req: Request, res: Response, next: NextFunction) => {

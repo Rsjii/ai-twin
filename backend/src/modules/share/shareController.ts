@@ -76,21 +76,21 @@ export const generateShareLink = async (req: Request, res: Response) => {
     switch (platform) {
       case 'twitter':
         shareTitle = `Check out my twin @${twin.publicHandle}!`;
-        shareContent = `🤖 I created a twin that you can chat with! Check it out: ${shareUrl}`;
+        shareContent = `💬 Meet my twin @${twin.publicHandle}! Chat with it and see how it responds in my style. ${shareUrl}`;
         break;
       case 'facebook':
         shareTitle = `My Twin - @${twin.publicHandle}`;
-        shareContent = `I created a twin that you can chat with! It has ${twin.likeCount} likes, ${twin.followCount} followers, and ${twin.chatCount} chats. Try it out: ${shareUrl}`;
+        shareContent = `I created a digital version of myself that you can chat with! It talks just like me — same style, same personality. Give it a try and let me know what you think! ${shareUrl}`;
         break;
       case 'linkedin':
         shareTitle = `Twin: @${twin.publicHandle}`;
-        shareContent = `I've created a twin that you can chat with. Check it out: ${shareUrl}`;
+        shareContent = `I've built a digital version of myself that captures how I communicate. Have a conversation with it and experience personalized digital interaction. ${shareUrl}`;
         break;
       case 'whatsapp':
-        shareContent = `🤖 Check out my twin! You can chat with it: ${shareUrl}`;
+        shareContent = `💬 Hey! I created a digital version of myself that you can chat with. It responds just like I would. Check it out: ${shareUrl}`;
         break;
       case 'telegram':
-        shareContent = `🤖 I created a twin that you can chat with! Try it: ${shareUrl}`;
+        shareContent = `💬 I built my twin @${twin.publicHandle}! Chat with it and see how it responds in my style. ${shareUrl}`;
         break;
       default:
         shareContent = shareUrl;
@@ -343,28 +343,28 @@ export const getShareableContent = async (req: Request, res: Response) => {
     // Generate content for different platforms
     const content = {
       twitter: {
-        text: `🤖 Check out this amazing twin @${twin.publicHandle}! You can chat with it. ${shareUrl}`,
-        hashtags: ['AI', 'Twin', 'ChatBot', 'ArtificialIntelligence']
+        text: `💬 Meet this amazing twin @${twin.publicHandle}! Chat with it and see how it responds in ${twin.userName}'s style. ${shareUrl}`,
+        hashtags: ['Twin', 'DigitalSelf', 'Chat', 'Personalized']
       },
       facebook: {
         title: `Twin: @${twin.publicHandle}`,
-        description: `Chat with this twin created by ${twin.userName}! It has ${twin.likeCount} likes, ${twin.followCount} followers, and ${twin.chatCount} chats.`,
+        description: `Chat with this twin created by ${twin.userName}! It's a digital version that talks just like them — same style, same personality. Give it a try!`,
         url: shareUrl
       },
       linkedin: {
         title: `Twin: @${twin.publicHandle}`,
-        summary: `A personalized twin created by ${twin.userName}. It has ${twin.likeCount} likes and ${twin.chatCount} conversations.`,
+        summary: `A personalized digital version created by ${twin.userName}. Experience how it communicates in their unique style by having a conversation with it.`,
         url: shareUrl
       },
       whatsapp: {
-        text: `🤖 Check out this twin @${twin.publicHandle}! You can chat with it: ${shareUrl}`
+        text: `💬 Hey! Check out this twin @${twin.publicHandle}! It's a digital version that chats just like ${twin.userName}. Try it: ${shareUrl}`
       },
       telegram: {
-        text: `🤖 Twin: @${twin.publicHandle}\n\nChat with this amazing twin! ${shareUrl}`
+        text: `💬 Twin: @${twin.publicHandle}\n\nChat with this digital version and see how it responds in ${twin.userName}'s style! ${shareUrl}`
       },
       email: {
         subject: `Check out this Twin: @${twin.publicHandle}`,
-        body: `Hi!\n\nI found this amazing twin that you can chat with:\n\nTwin: @${twin.publicHandle}\nCreator: ${twin.userName}\n\nYou can chat with it here: ${shareUrl}\n\nTry it out and let me know what you think!`
+        body: `Hi!\n\nI found this amazing twin that you can chat with:\n\nTwin: @${twin.publicHandle}\nCreator: ${twin.userName}\n\nIt's a digital version that talks just like ${twin.userName} — same communication style and personality. You can chat with it here:\n${shareUrl}\n\nTry it out and let me know what you think!`
       }
     };
 
