@@ -36,7 +36,7 @@ import {
   deleteLongTermMemory
 } from './longTermMemoryController';
 import { asyncHandler } from '../../middleware/errorHandler';
-import { twinDeletionRateLimit } from '../../middleware/rateLimit';
+import { twinDeletionRateLimit, twinCreationRateLimit } from '../../middleware/rateLimit';
 
 const router = Router();
 
@@ -49,7 +49,7 @@ router.use((req, res, next) => {
 });
 
 // Twin routes
-router.post('/create', requireJWTFromCookie, asyncHandler(createTwin));
+router.post('/create', requireJWTFromCookie, twinCreationRateLimit, asyncHandler(createTwin));
 router.get('/', asyncHandler(getUserTwins));
 // ✅ SECURITY: Use tokenized IDs for owner routes
 router.get('/:twinToken', asyncHandler(getTwinById));

@@ -120,7 +120,7 @@ export const COMMON_WORDS_MAP: Record<FastPathCategory, {
         'Hey!',
         "Hi! What's going on?",
         'Yo! What\'s up?',
-        'Hey hey — what\'s up?',
+        'Hey hey, what\'s up?',
         'Sup! How\'s it going?',
         'Hey there! What\'s happening?',
         'Hi! How\'s everything?',
