@@ -482,23 +482,23 @@ setTab('tester');
         const s = settingsData?.settings || {};
 
         const basic = pd.basicInfo || {};
-        const role = basic.role || basic.primaryUseCase || '—';
-        const language = basic.language || '—';
-        const purpose = basic.purpose ? basic.purpose.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : '—'; // ✅ ADD
-        const toneStyle = pd.preferences?.toneStyle || sv.tone || '—'; // ✅ FIX: use toneStyle
-        const replySize = pd.rules?.replySize || sv.response_length_preference || '—'; // ✅ FIX: use replySize
-        const engagementStyle = pd.rules?.engagementStyle || '—'; // ✅ ADD
+        const role = basic.role || basic.primaryUseCase || '-';
+        const language = basic.language || '-';
+        const purpose = basic.purpose ? basic.purpose.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : '-'; // ✅ ADD
+        const toneStyle = pd.preferences?.toneStyle || sv.tone || '-'; // ✅ FIX: use toneStyle
+        const replySize = pd.rules?.replySize || sv.response_length_preference || '-'; // ✅ FIX: use replySize
+        const engagementStyle = pd.rules?.engagementStyle || '-'; // ✅ ADD
         const memoryEnabled = s.memory?.enabled !== false; // Default true
         const memoryOn = memoryEnabled ? 'ON' : 'OFF';
 
         snapshotBox.innerHTML = `
-          <p><strong>Name:</strong> ${escapeHtml(basic.name || basic.fullName || '—')}</p>
+          <p><strong>Name:</strong> ${escapeHtml(basic.name || basic.fullName || '-')}</p>
           <p><strong>Role:</strong> ${escapeHtml(role)}</p>
           <p><strong>Purpose:</strong> ${escapeHtml(purpose)}</p>
           <p><strong>Language:</strong> ${escapeHtml(language)}</p>
           <p class="mt-2"><strong>Tone:</strong> ${escapeHtml(toneStyle === 'polite' ? 'Polite & respectful' : toneStyle === 'normal' ? 'Normal & friendly' : toneStyle === 'casual' ? 'Casual & relaxed' : toneStyle)}</p>
           <p><strong>Reply length:</strong> ${escapeHtml(replySize === 'short' ? 'Short' : replySize === 'normal' ? 'Normal' : replySize === 'detailed' ? 'Detailed' : replySize)}</p>
-          <p><strong>Engagement:</strong> ${escapeHtml(engagementStyle === 'ask_questions' ? 'Ask questions' : engagementStyle === 'natural' ? 'Natural' : engagementStyle === 'mix' ? 'Mix' : '—')}</p>
+          <p><strong>Engagement:</strong> ${escapeHtml(engagementStyle === 'ask_questions' ? 'Ask questions' : engagementStyle === 'natural' ? 'Natural' : engagementStyle === 'mix' ? 'Mix' : '-')}</p>
           <p><strong>Memory:</strong> ${escapeHtml(memoryOn)}</p>
         `;
       } catch (e) {
