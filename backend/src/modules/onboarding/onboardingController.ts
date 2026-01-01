@@ -12,6 +12,7 @@ import { tokenizeId } from '../../utils/idTokenization';
 import { isDev } from '../../config/env';
 import { AppError, createError } from '../../utils/errors';
 import { memoryService } from '../../services/memoryService';
+import { reserveDailyTokens, reconcileDailyTokens, TokenQuotaError } from '../../services/tokenQuotaService';
 
 const twinService = new TwinService();
 
@@ -103,24 +104,84 @@ export const createEnhancedTwin = async (req: Request, res: Response, next: Next
     logger.info('MVP: Skipping styleVector generation (personaData-only)');
 
     // 7) Generate a sample reply using the systemPrompt (personaData-only)
-    const sampleReplyResult = await twinService.generateDraftWithContext({
-      personaData,
-      systemPrompt,
-      tokenLimit: 120,
-      chatMemory: [],
-      currentMessages: ['Say a short hello in my style.'],
-      isFirstMessage: false,
-    });
-    const sampleReply =
-      typeof sampleReplyResult === 'object' && sampleReplyResult && 'response' in sampleReplyResult
-        ? (sampleReplyResult as any).response
-        : (typeof sampleReplyResult === 'string' ? sampleReplyResult : 'Hey!');
-
+    // ✅ Token quota: Reserve tokens for sampleReply generation
+    const actor = { kind: 'user', userId: req.user.id } as const;
+    const reserveTokens = 200; // Reserve for sampleReply generation (120 limit + buffer)
+    
+    let reservation: { day: string; actorKey: string; reserved: number } | null = null;
+    try {
+      reservation = await reserveDailyTokens({
+        actor,
+        reserveTokens,
+      });
+    } catch (e: any) {
+      if (e instanceof TokenQuotaError) {
+        logger.warn('Token quota exceeded during onboarding sampleReply generation:', e);
+        // Continue without sampleReply if quota exceeded
+        reservation = null;
+      } else {
+        throw e;
+      }
+    }
+    
+    let sampleReply = 'Hey!'; // Default fallback
+    let tokensUsed = 0;
+    let inputTokens = 0;
+    let outputTokens = 0;
+    
+    try {
+      const sampleReplyResult = await twinService.generateDraftWithContext({
+        personaData,
+        systemPrompt,
+        tokenLimit: 120,
+        chatMemory: [],
+        currentMessages: ['Say a short hello in my style.'],
+        isFirstMessage: false,
+      });
+      
+      sampleReply =
+        typeof sampleReplyResult === 'object' && sampleReplyResult && 'response' in sampleReplyResult
+          ? (sampleReplyResult as any).response
+          : (typeof sampleReplyResult === 'string' ? sampleReplyResult : 'Hey!');
+      
+      // Extract token usage
+      if (typeof sampleReplyResult === 'object' && sampleReplyResult) {
+        tokensUsed = sampleReplyResult.tokensUsed || 0;
+        inputTokens = sampleReplyResult.inputTokens || 0;
+        outputTokens = sampleReplyResult.outputTokens || 0;
+      }
+    } catch (error) {
+      logger.error('Sample reply generation failed during onboarding:', error);
+      // Continue with default sampleReply
+    } finally {
+      // ✅ Reconcile actual tokens used
+      if (reservation) {
+        await reconcileDailyTokens({
+          day: reservation.day,
+          actorKey: reservation.actorKey,
+          reserved: reservation.reserved,
+          actualTokensUsed: tokensUsed,
+        }).catch(() => {}); // Silent fail
+      }
+    }
+    
     // 8) Update user profile with persona data and onboardingCompleted flag
     await updateUserProfile(req.user.id, validatedData);
 
     // 9) Insert Twin row
     const twinId = generateId.twin();
+    
+    // ✅ Log token usage event (after twinId is created)
+    if (tokensUsed > 0) {
+      await EventLogger.logUserEvent(req.user.id, EVENT_TYPES.LLM_USAGE, {
+        source: 'dashboard', // Using dashboard as source since onboarding not in type
+        mode: 'sample_reply_generation',
+        inputTokens: inputTokens,
+        outputTokens: outputTokens,
+        totalTokens: tokensUsed,
+        twinId: twinId,
+      }).catch(() => {}); // Silent fail
+    }
     const isPublic = validatedData.isPublic || false; // ✅ Get isPublic from validated data (defaults to false)
     
     let insertQuery: string;

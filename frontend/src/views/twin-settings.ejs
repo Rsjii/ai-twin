@@ -115,6 +115,13 @@
             <option value="remember">Remember things</option>
             <option value="other">Other</option>
           </select>
+          <input
+            id="twinPurposeOther"
+            type="text"
+            class="mt-2 w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 hidden"
+            placeholder="Please specify..."
+            maxlength="100"
+          />
           <p id="twinPurpose-error" class="text-xs text-red-500 mt-1 hidden"></p>
         </div>
       </div>
@@ -622,7 +629,23 @@
         updateBioCharCount(); // Update counter after loading
       }
       document.getElementById('twinLanguage').value = basic.language || '';
-      document.getElementById('twinPurpose').value = basic.purpose || ''; // ✅ ADD
+      const purposeSelect = document.getElementById('twinPurpose');
+      const purposeOtherInput = document.getElementById('twinPurposeOther');
+      if (purposeSelect) {
+        purposeSelect.value = basic.purpose || '';
+        // Show/hide purposeOther input based on selection
+        if (basic.purpose === 'other') {
+          if (purposeOtherInput) {
+            purposeOtherInput.classList.remove('hidden');
+            purposeOtherInput.value = basic.purposeOther || '';
+          }
+        } else {
+          if (purposeOtherInput) {
+            purposeOtherInput.classList.add('hidden');
+            purposeOtherInput.value = '';
+          }
+        }
+      }
 
       // Rules
       const always = pd?.rules?.always || [];
@@ -765,6 +788,7 @@
       const oneLineBio = document.getElementById('twinBio').value.trim();
       const language = document.getElementById('twinLanguage').value;
       const purpose = document.getElementById('twinPurpose').value;
+      const purposeOther = document.getElementById('twinPurposeOther')?.value?.trim() || undefined;
       const alwaysRaw = document.getElementById('alwaysInput').value || '';
       const neverRaw = document.getElementById('neverInput').value || '';
 
@@ -788,6 +812,7 @@
           oneLineBio: oneLineBio, // ✅ MANDATORY: Always send (backend will validate)
           language: language || undefined,
           purpose: purpose || undefined,
+          purposeOther: purposeOther, // ✅ ADD: Include purposeOther when "other" is selected
         },
         preferences: {
           toneStyle: toneStyle,    // ✅ Used by PromptBuilder
@@ -1462,6 +1487,20 @@
           updateNeverCount();
         });
         updateNeverCount(); // Initial count
+      }
+      
+      // ✅ Purpose "other" field show/hide
+      const purposeSelect = document.getElementById('twinPurpose');
+      const purposeOtherInput = document.getElementById('twinPurposeOther');
+      if (purposeSelect && purposeOtherInput) {
+        purposeSelect.addEventListener('change', () => {
+          if (purposeSelect.value === 'other') {
+            purposeOtherInput.classList.remove('hidden');
+          } else {
+            purposeOtherInput.classList.add('hidden');
+            purposeOtherInput.value = '';
+          }
+        });
       }
       
       // ✅ Clear errors on input for all fields

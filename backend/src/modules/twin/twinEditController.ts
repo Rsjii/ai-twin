@@ -38,6 +38,7 @@ const updatePersonaSchema = z.object({
     oneLineBio: z.string().min(1, 'Bio is required').max(MEMORY_LIMITS.MAX_BIO_CHARS, `Bio must be ${MEMORY_LIMITS.MAX_BIO_CHARS} characters or less`), // ✅ MANDATORY: Bio is required
     language: z.enum(['en', 'hi', 'hinglish']).optional(),
     purpose: z.string().optional(), // ✅ ADD
+    purposeOther: z.string().max(100, 'Purpose description must be 100 characters or less').optional(), // ✅ ADD: For "other" purpose option
   }).optional(),
   communicationStyle: z.object({
     tone: z.object({
@@ -225,7 +226,10 @@ export const updateTwinStyle = async (req: Request, res: Response, next: NextFun
       `, [JSON.stringify(updatedStyleVector), newSystemPrompt, utcTimestamp, twinId]);
     }
 
-    // MVP (personaData-only): Generate sample reply using systemPrompt
+    // ✅ V2: SampleReply generation on updates - commented out for now
+    // SampleReply is only generated during onboarding (first time)
+    // Uncomment below for V2 when update-based regeneration is needed
+    /*
     const sampleReplyResult = await twinService.generateDraftWithContext({
       personaData: updatedPersonaData,
       systemPrompt: newSystemPrompt,
@@ -238,12 +242,13 @@ export const updateTwinStyle = async (req: Request, res: Response, next: NextFun
       typeof sampleReplyResult === 'object' && sampleReplyResult && 'response' in sampleReplyResult
         ? (sampleReplyResult as any).response
         : (typeof sampleReplyResult === 'string' ? sampleReplyResult : 'Hey!');
+    */
 
     res.json({
       success: true,
       message: 'Twin style updated successfully',
       updatedStyleVector,
-      newSampleReply,
+      // newSampleReply, // V2: Uncomment when sampleReply regeneration is enabled
       systemPrompt: newSystemPrompt,
     });
   } catch (error) {
