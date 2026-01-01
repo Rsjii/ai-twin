@@ -1,7 +1,6 @@
 export const ADMIN_EMAILS: string[] = [
-  'i@gmail.com',
-  'k@gmail.com',
-  'a@gmail.com',
+  'admin@selflyx.com', // ✅ Update with your actual admin email
+  'a@gmail.com'
 ];
 
   // Query Limits
@@ -144,6 +143,7 @@ export const EVENT_TYPES = {
   ERROR: 'error',
   API_ERROR: 'api_error',
   RATE_LIMIT_EXCEEDED: 'rate_limit_exceeded', // ✅ Rate limit violations tracking
+  CONTACT_FORM_SUBMITTED: 'contact_form_submitted', // ✅ Contact form submissions
   
   // Add if profile_completed is needed:
   PROFILE_COMPLETED: 'profile_completed', // Optional - add if you want to track this
@@ -155,7 +155,7 @@ export const EVENT_TYPES = {
 // Token Quotas - Daily limits for LLM usage
 export const TOKEN_QUOTAS = {
   // Anonymous public chat: hard wall → login required
-  ANON_DAILY_TOKENS: 1000,
+  ANON_DAILY_TOKENS: 10000,
 
   // Logged-in: daily cap (adjust as you want)
   USER_DAILY_TOKENS: 100000,

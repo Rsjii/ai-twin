@@ -26,6 +26,13 @@ export const getMyReferralCode = async (req: AuthenticatedRequest, res: Response
       await db.query('UPDATE "User" SET "referralCode" = $1 WHERE id = $2', 
         [code, req.user.id]);
       
+      // ✅ Log invite sent event (referral code generated)
+      try {
+        await EventLogger.logInviteSent(req.user.id, code, { method: 'generated' });
+      } catch (eventError) {
+        logger.warn('Failed to log invite_sent event:', eventError);
+      }
+      
       return res.json({
         success: true,
         referralCode: code,
@@ -34,6 +41,13 @@ export const getMyReferralCode = async (req: AuthenticatedRequest, res: Response
     }
     
     const code = result.rows[0].referralCode;
+    
+    // ✅ Log invite sent event (referral code retrieved)
+    try {
+      await EventLogger.logInviteSent(req.user.id, code, { method: 'retrieved' });
+    } catch (eventError) {
+      logger.warn('Failed to log invite_sent event:', eventError);
+    }
     
     res.json({
       success: true,

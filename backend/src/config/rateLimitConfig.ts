@@ -32,12 +32,12 @@ const prodLimits = {
 
   otpRequest: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // 3 OTP requests per 15 min per IP/email (industry standard)
+    max: 5, // 5 OTP requests per 15 min per IP/email (OWASP standard: 3-5 per 15 min)
   } as LimitConfig,
 
   otpVerify: {
     windowMs: 10 * 60 * 1000, // 10 minutes
-    max: 500, // 5 OTP verification attempts per 10 min per email/IP
+    max: 10, // 10 OTP verification attempts per 10 min per email/IP (OWASP standard: 5-10 per 10 min)
   } as LimitConfig,
 
   changePassword: {
@@ -48,12 +48,12 @@ const prodLimits = {
   // Public/content flows - reasonable limits (industry standard: 60-100 msg/min for auth, 20-40 for anon)
   publicChatAnon: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 15, // 30 messages per minute for anonymous users (prevents spam)
+    max: 15, // 15 messages per 15 minutes (1 msg/min) for anonymous users (prevents spam)
   } as LimitConfig,
 
   publicChatAuth: {
-    windowMs: 15 * 60 * 1000, // 1 minute
-    max: 20, // 60 messages per minute for authenticated users (allows normal conversation)
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 60, // 60 messages per 15 minutes (~1.3 msg/min) for authenticated users (allows normal conversation)
   } as LimitConfig,
 
   global: {

@@ -1,7 +1,7 @@
 {
   "name": "ai-twin-project",
   "version": "1.0.0",
-  "description": "AI Twin - Create Your Digital Twin",
+  "description": "TwinOS - Create Your Digital Twin",
   "private": true,
   "workspaces": [
     "backend",
@@ -36,7 +36,7 @@
     "fullstack",
     "typescript"
   ],
-  "author": "AI Twin Team",
+  "author": "TwinOS Team",
   "license": "MIT",
   "repository": {
     "type": "git",

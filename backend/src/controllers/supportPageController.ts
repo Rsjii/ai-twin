@@ -3,6 +3,8 @@ import { userQueries, twinQueries, db } from '../config/database';
 import { logger } from '../config/logger';
 import { EmailService } from '../modules/auth/authService';
 import { z } from 'zod';
+import { EventLogger } from '../services/eventLogger';
+import { EVENT_TYPES } from '../config/constants';
 
 const emailService = new EmailService();
 
@@ -110,6 +112,20 @@ export async function postContact(req: any, res: Response) {
     if (!emailSent) {
       logger.warn(`Failed to send contact form email from ${email}, but submission was saved to database`);
       // Still return success if DB save worked
+    }
+
+    // ✅ Log contact form submission event (for monitoring/analytics)
+    try {
+      // Try to get userId from session if user is logged in
+      const userId = req.user?.id || req.session?.userId || null;
+      await EventLogger.log(userId, EVENT_TYPES.CONTACT_FORM_SUBMITTED, {
+        email: email.toLowerCase(),
+        subject,
+        hasUser: !!userId
+      });
+    } catch (eventError) {
+      logger.warn('Failed to log contact form event:', eventError);
+      // Don't fail the request if event logging fails
     }
 
     res.json({

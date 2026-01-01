@@ -5,10 +5,13 @@ import { generateCSRFToken } from '../../middleware/csrf';
 
 const router = Router();
 
+// ⚠️ COMMENTED FOR V2 - Not used in frontend (button doesn't exist)
+/*
 // Get my referral code
 router.get('/my-code', generateCSRFToken, requireJWTFromCookie, getMyReferralCode);
 
 // Get my referrals
 router.get('/my-referrals', generateCSRFToken, requireJWTFromCookie, getMyReferrals);
+*/
 
 export default router;
