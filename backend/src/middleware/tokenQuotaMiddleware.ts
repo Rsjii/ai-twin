@@ -96,23 +96,26 @@ const DEFAULT_TITLES = [
   'Chat',
 ];
 
-// ✅ Banned words: 10-15 default replies (random selection)
+// ✅ Banned words: 15+ default replies (random selection) - NO AI LANGUAGE
 const BANNED_REPLIES = [
-  "Sorry, I can't answer this like this. Please try asking in a different way.",
-  "I can't respond to that. Could you rephrase your question?",
-  "I'm not able to help with that. Please try asking differently.",
+  "Sorry, I can't respond to that. Please try asking differently.",
   "That's not something I can address. Can you ask in another way?",
   "I can't answer that. Please try a different approach.",
-  "Sorry, I can't help with that. Could you rephrase?",
-  "I'm unable to respond to that. Please try asking differently.",
-  "That's not something I can assist with. Can you reword your question?",
-  "I can't provide an answer to that. Please try another way.",
   "Sorry, I can't address that. Could you ask differently?",
-  "I'm not able to help with that request. Please try rephrasing.",
-  "That's outside what I can help with. Can you ask in a different way?",
+  "I'm not able to respond to that. Please try rephrasing.",
+  "That's outside what I can address. Can you ask in a different way?",
   "I can't respond to that. Please try a different question.",
-  "Sorry, I can't assist with that. Could you rephrase?",
-  "I'm unable to help with that. Please try asking in another way.",
+  "Sorry, I can't answer that. Could you rephrase?",
+  "I'm unable to respond to that. Please try asking in another way.",
+  "That's not something I can answer. Can you reword your question?",
+  "I can't provide a response to that. Please try another way.",
+  "Sorry, I can't address that topic. Could you ask differently?",
+  "I'm not able to respond to that request. Please try rephrasing.",
+  "That's outside what I can answer. Can you ask in a different way?",
+  "I can't respond to that. Please try a different question.",
+  "Sorry, I can't answer that. Could you rephrase?",
+  "I'm unable to respond to that. Please try asking in another way.",
+  "That's not something I can address. Can you reword your question?",
 ];
 
 // ✅ Banned words: 10-15 default titles (random selection)
@@ -200,7 +203,7 @@ async function handleBlockedOrFastPath(params: {
   // ✅ Banned: random from 10-15 replies
   const aiResponse = isBanned 
     ? BANNED_REPLIES[Math.floor(Math.random() * BANNED_REPLIES.length)]
-    : fastPathReply(cat!, personaData);
+    : fastPathReply(cat!, personaData, message);
 
   // Save user + AI messages (counts as 1 turn; we store both rows)
   await db.query(

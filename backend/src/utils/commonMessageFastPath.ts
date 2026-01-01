@@ -90,21 +90,34 @@ export const COMMON_WORDS_MAP: Record<FastPathCategory, {
       'hicutie', 'hibabes', 'hibaby', 'hibabe',
       'heysunshine', 'heymoonlight', 'heystar', 'heysparkle',
       'hisunshine', 'himoonlight', 'histar', 'hisparkle',
+      // More variations
+      'hii', 'hiii', 'hiiii', 'heyy', 'heyyy', 'helloo', 'hellooo',
+      'hiiii', 'heyyyy', 'helloooo', 'yooo', 'yoooo',
+      'salam', 'salaam', 'adab', 'adaab',
+      'vanakkam', 'namaskaram', 'pranam', 'pranaam',
+      'satsriakal', 'sat sri akal', 'waheguru',
+      'jai shri ram', 'jai shri krishna', 'jai mata di',
+      'radhe radhe', 'har har mahadev',
+      'assalamu alaikum', 'wa alaikum assalam',
+      'goodmorning', 'goodafternoon', 'goodevening', 'goodnight',
+      'gm', 'ga', 'ge', 'gn',
+      'morning', 'afternoon', 'evening', 'night',
+      'morn', 'aft', 'eve', 'nite',
     ]),
     replies: {
       formal: [
-        'Hello! How can I help you today?',
-        'Hello. How can I assist you?',
-        'Hi. What would you like to do?',
-        'Good day. How can I help?',
-        'Greetings! How may I assist you?',
-        'Hello there! How can I be of service?',
-        'Good day! What can I help you with?',
-        'Hello! I\'m here to assist.',
+        'Hello.',
+        'Good day.',
+        'Greetings.',
+        'Hello there.',
+        'Good day to you.',
+        'Greetings to you.',
+        'Hello, how are you?',
+        'Good day, how are you?',
       ],
       casual: [
         "Hey! What's up?",
-        'Hey! How can I help?',
+        'Hey!',
         "Hi! What's going on?",
         'Yo! What\'s up?',
         'Hey hey — what\'s up?',
@@ -113,13 +126,13 @@ export const COMMON_WORDS_MAP: Record<FastPathCategory, {
         'Hi! How\'s everything?',
       ],
       neutral: [
-        'Hi! How can I help?',
-        'Hello! How can I help?',
+        'Hi.',
+        'Hello.',
         "Hey! What's up?",
-        'Hi there—what can I do for you?',
-        'Hello there! How can I assist?',
-        'Hi! What can I do for you?',
-        'Hello! Nice to hear from you.',
+        'Hi there.',
+        'Hello there.',
+        'Hi.',
+        'Hello. Nice to hear from you.',
       ],
     },
     titles: ['Hello', 'Hi there', 'Greetings', 'Hey', 'Quick chat'],
@@ -161,17 +174,35 @@ export const COMMON_WORDS_MAP: Record<FastPathCategory, {
       'thanksforallthehelp', 'thanksforallthesupport',
       'thanksforallthelove', 'thanksforallthecare',
       'thanksforallthekindness', 'thanksforallthepatience',
+      // More variations
+      'thnx', 'thnks', 'thnku', 'thnq', 'thnkq',
+      'tyvm', 'tysm', 'tyty', 'tytyty',
+      'thanksagain', 'thanksalotagain', 'thankssomuchagain',
+      'thanksanyway', 'thanksanyhow', 'thanksregardless',
+      'thanksinadvance', 'thanksahead', 'thanksbeforehand',
+      'thanksnow', 'thankshere', 'thanksthere',
+      'thanksbro', 'thankssis', 'thanksdude', 'thanksman',
+      'thanksgirl', 'thanksguy', 'thanksfolks', 'thanksall',
+      'thanksguys', 'thanksgirls', 'thankspeople', 'thankseveryone',
+      'thanksfam', 'thanksfamily', 'thankscrew', 'thanksteam',
+      'thankssquad', 'thanksgang', 'thanksgroup', 'thanksbunch',
+      'thankslot', 'thanksheap', 'thanksbundle', 'thanksload',
+      'thanksmillion', 'thanksbillion', 'thanksworld',
+      'thanksheaps', 'thanksbunches', 'thanksloads',
+      'thanksmuch', 'thanksverymuch', 'thankssomuch',
+      'shukriyabhai', 'dhanyawadbhai', 'thanksbhai',
+      'shukriyayaar', 'dhanyawadyaar', 'thanksyaar',
+      'shukriyafriend', 'dhanyawadfriend', 'thanksfriend',
     ]),
     replies: {
       formal: [
         "You're welcome.",
         "You're very welcome.",
         'My pleasure.',
-        'Happy to assist.',
-        'Glad I could help.',
-        'It was my pleasure to help.',
+        'Glad to hear it.',
+        'Happy to hear that.',
         'You\'re most welcome.',
-        'I\'m happy to assist.',
+        'Anytime.',
       ],
       casual: [
         'No problem!',
@@ -181,16 +212,15 @@ export const COMMON_WORDS_MAP: Record<FastPathCategory, {
         'No worries at all!',
         'All good!',
         'No biggie!',
-        'Happy to help!',
+        'Of course!',
       ],
       neutral: [
         "You're welcome!",
-        'Happy to help!',
         'No worries!',
-        'Glad I could help!',
+        'Glad to hear it!',
         'My pleasure!',
         'You\'re welcome! Anytime.',
-        'Happy to assist!',
+        'Happy to hear that.',
       ],
     },
     titles: ['Thanks', 'Appreciation', 'Gratitude', 'Thank you', 'Acknowledgment'],
@@ -225,6 +255,31 @@ export const COMMON_WORDS_MAP: Record<FastPathCategory, {
       'goodnightandsweetdreams', 'goodnightandsleepwell',
       'goodnightandsweetdreams', 'goodnightandsleepwell',
       'goodnightandsweetdreams', 'goodnightandsleepwell',
+      // More variations
+      'byebye', 'byebyebye', 'byebyebyebye',
+      'seeyalater', 'seeyasoon', 'seeyaround',
+      'catchyalater', 'catchyoulater', 'talktoyoulater',
+      'talklater', 'talksoon', 'talklateralligator',
+      'seeyoulateralligator', 'inawhilecrocodile',
+      'latersgators', 'latersalligator',
+      'phirmilenge', 'phirmilte', 'phirmiltehain',
+      'miltehain', 'miltehainphir', 'miltehainsoon',
+      'byebhai', 'byeyaar', 'byebuddy', 'byefriend',
+      'byebro', 'byesis', 'byedude', 'byeman',
+      'byegirl', 'byeguy', 'byefolks', 'byeeveryone',
+      'byeguys', 'byegirls', 'byep people', 'byeeveryone',
+      'byefam', 'byefamily', 'byecrew', 'byeteam',
+      'byesquad', 'byegang', 'byegroup', 'byebunch',
+      'goodbyefornow', 'goodbyefornow', 'seeyouaround',
+      'catchyoulater', 'talktoyousoon', 'talktoyoulater',
+      'untilnexttime', 'untilwemeetagain', 'untilnextime',
+      'goodbyemyfriend', 'goodbyebuddy', 'goodbyepal',
+      'seeyouthen', 'seeyouthere', 'seeyouwhen',
+      'takeiteasy', 'takecareofyourself', 'takecarebuddy',
+      'haveagreatday', 'haveawonderfulday', 'haveaniceday',
+      'haveagoodone', 'haveagoodnight', 'haveagoodevening',
+      'sleepwell', 'sweetdreams', 'dreamsweet',
+      'restwell', 'resteasy', 'restpeacefully',
     ]),
     replies: {
       formal: [
@@ -658,22 +713,22 @@ export const COMMON_WORDS_MAP: Record<FastPathCategory, {
     ]),
     replies: {
       formal: [
-        'Good morning! How can I help?',
-        'Good afternoon! How may I assist?',
-        'Good evening! How can I help?',
-        'Good night! Sleep well.',
+        'Good morning.',
+        'Good afternoon.',
+        'Good evening.',
+        'Good night. Sleep well.',
       ],
       casual: [
-        'Morning! What\'s up?',
-        'Afternoon! How\'s it going?',
-        'Evening! What\'s happening?',
-        'Night! Take care!',
+        'Morning!',
+        'Afternoon!',
+        'Evening!',
+        'Night!',
       ],
       neutral: [
-        'Good morning!',
-        'Good afternoon!',
-        'Good evening!',
-        'Good night!',
+        'Good morning.',
+        'Good afternoon.',
+        'Good evening.',
+        'Good night.',
       ],
     },
     titles: ['Good morning', 'Good afternoon', 'Good evening', 'Good night', 'Time greeting'],
@@ -834,14 +889,39 @@ export function getCategoryTitles(category: FastPathCategory): string[] {
 }
 
 /**
+ * Simple time greeting detection - just match keywords
+ * Returns: 'morning' | 'afternoon' | 'night' | null
+ */
+function getTimeGreeting(message: string): 'morning' | 'afternoon' | 'night' | null {
+  const lower = message.toLowerCase();
+  
+  // Morning: good morning, gm, morning, suprabhat, etc.
+  if (lower.includes('morning') || lower.includes('gm') || lower.includes('suprabhat') || lower.includes('morn')) {
+    return 'morning';
+  }
+  
+  // Afternoon: good afternoon, afternoon
+  if (lower.includes('afternoon') || lower.includes('aft')) {
+    return 'afternoon';
+  }
+  
+  // Night: good night, gn, night, nite
+  if (lower.includes('night') || lower.includes('gn') || lower.includes('nite')) {
+    return 'night';
+  }
+  
+  return null;
+}
+
+/**
  * Generate persona-matched reply based on category and persona data
  * Uses tone (formal/casual), emoji preference, and language settings
  * Returns random selection from 5-10 options per category
  */
-export function fastPathReply(category: FastPathCategory, personaData: any): string {
+export function fastPathReply(category: FastPathCategory, personaData: any, originalMessage?: string): string {
   const categoryData = COMMON_WORDS_MAP[category];
   if (!categoryData) {
-    return 'Hello! How can I help?';
+    return 'Hi there.';
   }
 
   const tone = personaData?.communicationStyle?.tone || {};
@@ -856,12 +936,60 @@ export function fastPathReply(category: FastPathCategory, personaData: any): str
   const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)] || arr[0];
 
   let text = '';
-  if (formal) {
-    text = pick(categoryData.replies.formal);
-  } else if (casual) {
-    text = pick(categoryData.replies.casual);
+  
+  // Simple time greeting handling
+  if (category === 'time_greeting' && originalMessage) {
+    const timeGreeting = getTimeGreeting(originalMessage);
+    
+    if (timeGreeting === 'morning') {
+      // Return "good morning" type reply
+      if (formal) text = pick(categoryData.replies.formal.filter((r: string) => r.toLowerCase().includes('morning')));
+      else if (casual) text = pick(categoryData.replies.casual.filter((r: string) => r.toLowerCase().includes('morning')));
+      else text = pick(categoryData.replies.neutral.filter((r: string) => r.toLowerCase().includes('morning')));
+      
+      // Fallback if no morning replies found
+      if (!text) {
+        text = formal ? pick(categoryData.replies.formal) : casual ? pick(categoryData.replies.casual) : pick(categoryData.replies.neutral);
+      }
+    } else if (timeGreeting === 'afternoon') {
+      // Return "good afternoon" type reply
+      if (formal) text = pick(categoryData.replies.formal.filter((r: string) => r.toLowerCase().includes('afternoon')));
+      else if (casual) text = pick(categoryData.replies.casual.filter((r: string) => r.toLowerCase().includes('afternoon')));
+      else text = pick(categoryData.replies.neutral.filter((r: string) => r.toLowerCase().includes('afternoon')));
+      
+      // Fallback if no afternoon replies found
+      if (!text) {
+        text = formal ? pick(categoryData.replies.formal) : casual ? pick(categoryData.replies.casual) : pick(categoryData.replies.neutral);
+      }
+    } else if (timeGreeting === 'night') {
+      // Return "good night" type reply
+      if (formal) text = pick(categoryData.replies.formal.filter((r: string) => r.toLowerCase().includes('night')));
+      else if (casual) text = pick(categoryData.replies.casual.filter((r: string) => r.toLowerCase().includes('night')));
+      else text = pick(categoryData.replies.neutral.filter((r: string) => r.toLowerCase().includes('night')));
+      
+      // Fallback if no night replies found
+      if (!text) {
+        text = formal ? pick(categoryData.replies.formal) : casual ? pick(categoryData.replies.casual) : pick(categoryData.replies.neutral);
+      }
+    } else {
+      // No time detected, use normal logic
+      if (formal) {
+        text = pick(categoryData.replies.formal);
+      } else if (casual) {
+        text = pick(categoryData.replies.casual);
+      } else {
+        text = pick(categoryData.replies.neutral);
+      }
+    }
   } else {
-    text = pick(categoryData.replies.neutral);
+    // Normal category handling
+    if (formal) {
+      text = pick(categoryData.replies.formal);
+    } else if (casual) {
+      text = pick(categoryData.replies.casual);
+    } else {
+      text = pick(categoryData.replies.neutral);
+    }
   }
 
   // Add emoji if preference is high

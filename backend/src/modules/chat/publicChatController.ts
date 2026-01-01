@@ -508,7 +508,7 @@ if (chat.requireLogin && !userId) {
       });
 
       // Use already-loaded chat data (personaData, messageCount, title are already in chat object from line 407)
-      const aiResponse = fastPathReply(fastPathCategory, chat.personaData);
+      const aiResponse = fastPathReply(fastPathCategory, chat.personaData, message);
 
       const isFirstMessage = chat.messageCount === 0;
       const currentTitle = chat.title;

@@ -119,7 +119,7 @@ export const generateEnhancedReply = async (req: any, res: Response, next: NextF
 
       // Only use fast-path if no active task (let LLM handle context-aware replies during work)
       if (!hasActiveTask) {
-        const aiResponse = fastPathReply(fastPathCategory, chat.personaData);
+        const aiResponse = fastPathReply(fastPathCategory, chat.personaData, message);
 
         // Get minimal chat info for fast-path
         const chatInfoResult = await db.query(`

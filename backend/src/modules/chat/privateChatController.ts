@@ -917,7 +917,7 @@ export const handleUserMessage = async (req: AuthenticatedRequest, res: Response
         tokensSaved: 'YES - No LLM call'
       });
 
-      const aiResponse = fastPathReply(fastPathCategory, chat.personaData);
+      const aiResponse = fastPathReply(fastPathCategory, chat.personaData, message);
 
       // Get minimal chat info for fast-path
       const chatInfoResult = await db.query(`

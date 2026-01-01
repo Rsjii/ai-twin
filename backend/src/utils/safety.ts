@@ -26,23 +26,37 @@ const PROFANITY_WORDS = [
   'chink', 'gook', // Racial slurs
   
   // Hindi/Urdu profanity (common gaali)
-  'chutiya', 'chutiyapa', 'chutiye',
-  'bhenchod', 'behenchod', 'bc',
-  'madarchod', 'madarchod', 'mc',
-  'bhosdike', 'bhosdi', 'bsdk',
-  'lund', 'loda', 'lode',
-  'gandu', 'gand',
-  'harami', 'haramkhor',
-  'kutta', 'kutte',
-  'sala', 'saala',
-  'randi', 'rand',
-  'chakka', 'chakke',
-  'hijra', 'hijre',
+  'chutiya', 'chutiyapa', 'chutiye', 'chutiyaa',
+  'bhenchod', 'behenchod', 'bc', 'bhenchodd',
+  'madarchod', 'madarchod', 'mc', 'madarchodd',
+  'bhosdike', 'bhosdi', 'bsdk', 'bhosdikey',
+  'lund', 'loda', 'lode', 'loond',
+  'gandu', 'gand', 'gaandu', 'gaand',
+  'harami', 'haramkhor', 'haraami',
+  'kutta', 'kutte', 'kuttey',
+  'sala', 'saala', 'saale',
+  'randi', 'raand', 'raandi',
+  'chakka', 'chakke', 'chakkey',
+  'hijra', 'hijre', 'hijrey',
+  'laude', 'lawde', 'lawda',
+  'terima', 'teri maa', 'teri ma',
+  'maa chuda', 'maa chod', 'machuda',
+  'behen ki', 'behen ke', 'behen ka',
+  'bhosdi ke', 'bhosdi ka', 'bhosdi ki',
+  
+  // More variations
+  'fuck off', 'fuck you', 'fuck u',
+  'go to hell', 'go fuck yourself',
+  'piece of shit', 'pos',
+  'son of a bitch', 'sob',
+  'mother fucker', 'motherfucker',
   
   // Serious threats only (keep these)
-  'kill yourself', 'kys', 'suicide', 'self-harm',
-  'bomb', 'terrorist', 'terrorism',
-  'rape', 'rapist', 'raping',
+  'kill yourself', 'kys', 'suicide', 'self-harm', 'self harm',
+  'bomb', 'terrorist', 'terrorism', 'bomb threat',
+  'rape', 'rapist', 'raping', 'sexual assault',
+  'murder', 'kill you', 'i will kill',
+  'bombing', 'terror attack',
 ];
 
 // ========== SERIOUS THREATS (Keep these, but only exact phrases) ==========
