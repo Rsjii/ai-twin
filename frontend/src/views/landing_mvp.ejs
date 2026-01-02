@@ -50,12 +50,18 @@ var twinsJson = JSON.stringify(displayTwins);
 
     <!-- ================= SECTION 2: WHY THIS EXISTS ================= -->
     <section class="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-white dark:bg-gray-900">
-        <div class="max-w-2xl mx-auto text-center">
-            <p class="text-lg sm:text-xl md:text-2xl text-gray-700 dark:text-gray-300 leading-relaxed font-light" style="line-height: 1.8;">
-                This isn't a chatbot.<br>
-                It's a way to preserve how you think, speak, and respond —<br>
-                so people can interact with <em>you</em>, even when you're not around.
-            </p>
+        <div class="max-w-3xl mx-auto">
+            <!-- Simple Styled Card -->
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-blue-900/10 rounded-2xl p-8 sm:p-10 md:p-12 border border-blue-100 dark:border-gray-700 shadow-lg dark:shadow-xl">
+                <div class="text-center">
+                    <p class="text-xl sm:text-2xl md:text-3xl text-gray-900 dark:text-white leading-relaxed font-medium">
+                        <span class="block mb-4 sm:mb-5"><p class="text-2xl sm:text-3xl md:text-3xl lg:text-3xl font-bold">This isn't a chatbot.</p></span>
+                        <span class="block text-gray-700 dark:text-gray-300 text-lg sm:text-xl md:text-2xl">
+                            It preserves how you think, speak, and respond — so people can interact with <span class="font-semibold text-blue-600 dark:text-blue-400">you</span>, even when you're not around.
+                        </span>
+                    </p>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -145,6 +151,31 @@ var twinsJson = JSON.stringify(displayTwins);
             }
             #twins-carousel:active {
                 cursor: grabbing;
+            }
+        }
+        
+        /* Text Clamping Styles */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Fixed height for message preview (2 lines) */
+        .message-preview-fixed {
+            height: 3.5rem; /* Fixed height for 2 lines */
+            min-height: 3.5rem;
+            max-height: 3.5rem;
+        }
+        
+        @media (min-width: 640px) {
+            .message-preview-fixed {
+                height: 4rem; /* Slightly taller on larger screens */
+                min-height: 4rem;
+                max-height: 4rem;
             }
         }
         
@@ -273,20 +304,19 @@ var twinsJson = JSON.stringify(displayTwins);
                 avatarHtml = '<div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-2xl ring-2 ring-gray-100 dark:ring-gray-700 shadow-lg hover:scale-105 transition-transform">' + initial + '</div>';
             }
             
-            // Message preview
-            var messagePreview = '';
+            // Message preview - always show, even if empty (for consistent card height)
             var previewText = '';
             if (twin.sampleReply && twin.sampleReply.length > 0) {
-                previewText = twin.sampleReply.length > 120 ? twin.sampleReply.substring(0, 120) + '...' : twin.sampleReply;
+                previewText = twin.sampleReply;
             } else if (twin.bio && twin.bio.length > 0) {
-                previewText = twin.bio.length > 120 ? twin.bio.substring(0, 120) + '...' : twin.bio;
+                previewText = twin.bio;
             }
             
-            if (previewText) {
-                messagePreview = '<div class="mt-4 bg-blue-50 dark:bg-gray-700/50 rounded-lg p-4 border border-blue-100 dark:border-gray-600">' +
-                    '<p class="text-gray-700 dark:text-gray-300 text-sm sm:text-base italic leading-relaxed">"' + escapeHtml(previewText) + '"</p>' +
-                    '</div>';
-            }
+            var messagePreview = '<div class="mt-4 bg-blue-50 dark:bg-gray-700/50 rounded-lg p-4 border border-blue-100 dark:border-gray-600 message-preview-fixed flex items-center">' +
+                '<p class="text-gray-700 dark:text-gray-300 text-sm sm:text-base italic leading-relaxed line-clamp-2 w-full">' + 
+                (previewText ? '"' + escapeHtml(previewText) + '"' : '<span class="text-gray-400 dark:text-gray-500">No preview available</span>') +
+                '</p>' +
+                '</div>';
             
             // Chat button
             var chatButton = '<div class="mt-6">' +
@@ -296,9 +326,9 @@ var twinsJson = JSON.stringify(displayTwins);
             return '<div class="twin-carousel-card bg-white dark:bg-gray-800 rounded-2xl p-6 border-2 border-gray-100 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-500/50 shadow-lg dark:shadow-gray-900/50 hover:shadow-2xl dark:hover:shadow-blue-900/20 transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">' +
                 '<div class="flex items-start gap-4 mb-4">' +
                 avatarHtml +
-                '<div class="flex-1 min-w-0 pt-1">' +
-                '<h3 class="font-bold text-xl text-gray-900 dark:text-white truncate mb-1">' + escapeHtml(displayName) + '</h3>' +
-                (displayHandle ? '<p class="text-sm text-gray-500 dark:text-gray-400 truncate">@' + escapeHtml(displayHandle) + '</p>' : '') +
+                '<div class="flex-1 min-w-0 pt-1 overflow-hidden">' +
+                '<h3 class="font-bold text-xl text-gray-900 dark:text-white truncate mb-1" title="' + escapeHtml(displayName) + '">' + escapeHtml(displayName) + '</h3>' +
+                (displayHandle ? '<p class="text-sm text-gray-500 dark:text-gray-400 truncate" title="@' + escapeHtml(displayHandle) + '">@' + escapeHtml(displayHandle) + '</p>' : '') +
                 '</div>' +
                 '</div>' +
                 messagePreview +
