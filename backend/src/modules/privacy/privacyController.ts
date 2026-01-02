@@ -121,6 +121,14 @@ export const updatePrivacySettings = async (req: Request, res: Response) => {
 
     // Handle blocked users separately
     if (settings.blockSpecificUsers !== undefined) {
+      // ✅ Check if user is trying to block themselves
+      if (settings.blockSpecificUsers.includes(req.user.id)) {
+        return res.status(400).json({ 
+          error: 'You cannot block yourself',
+          errorCode: 'VALIDATION_ERROR'
+        });
+      }
+
       // First, remove existing blocks
       await db.query(`
         DELETE FROM "TwinBlockedUsers"
@@ -270,6 +278,14 @@ export const blockUser = async (req: Request, res: Response) => {
 
     if (twinResult.rows.length === 0) {
       return res.status(404).json({ error: 'Twin not found or not owned by user' });
+    }
+
+    // ✅ Check if user is trying to block themselves
+    if (targetUserId === req.user.id) {
+      return res.status(400).json({ 
+        error: 'You cannot block yourself',
+        errorCode: 'VALIDATION_ERROR'
+      });
     }
 
     // Check if user is already blocked

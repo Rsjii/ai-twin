@@ -1699,7 +1699,9 @@
                                 window.location.href = reloadUrl; // Preserve URL params
                             }, 1500);
                         } else {
-                            showNotification(result.error || 'Failed to update privacy settings', 'error');
+                            // ✅ Show proper error message from backend
+                            const errorMsg = result.error || result.message || 'Failed to update privacy settings';
+                            showNotification(errorMsg, 'error');
                             // Re-enable button on error
                             checkForChanges();
                         }
@@ -1820,17 +1822,29 @@
                         body: JSON.stringify(payload)
                     });
 
-                    const data = await response.json();
+                    // ✅ Check if response is JSON before parsing
+                    const contentType = response.headers.get('content-type');
+                    let data;
+                    if (contentType && contentType.includes('application/json')) {
+                        data = await response.json();
+                    } else {
+                        const text = await response.text();
+                        ErrorLogger.error('Non-JSON response from block user', null, { text: text.substring(0, 200) });
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
 
                     if (response.ok && data.success) {
                         showNotification('User blocked successfully.', 'success');
                         await loadBlockedUsers();
                     } else {
-                        showNotification(data.error || 'Failed to block user.', 'error');
+                        // ✅ Show proper error message from backend
+                        const errorMsg = data.error || data.message || 'Failed to block user.';
+                        showNotification(errorMsg, 'error');
                     }
                 } catch (error) {
                     ErrorLogger.error('Block user error', error, {});
-                    showNotification('Network error. Please try again.', 'error');
+                    const errorMsg = error.message || 'Network error. Please try again.';
+                    showNotification(errorMsg, 'error');
                 }
             });
 
