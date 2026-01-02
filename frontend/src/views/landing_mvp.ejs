@@ -293,7 +293,13 @@ var twinsJson = JSON.stringify(displayTwins);
         function createCardHtml(twin) {
             var displayName = twin.userName || twin.userHandle || 'Anonymous';
             var displayHandle = twin.userHandle || twin.publicHandle || '';
-            var chatUrl = displayHandle ? '/@' + displayHandle : '/auth';
+            var profileUrl = displayHandle ? '/@' + displayHandle : '/auth';
+            
+            // Option chosen (best UX):
+            // - Chat button => Public Chat (if token exists)
+            // - Card click  => Profile
+            var publicTwinId = twin.publicId || '';
+            var chatUrl = publicTwinId ? ('/public-twin/chat/' + publicTwinId) : profileUrl;
             
             // Avatar
             var avatarHtml = '';
@@ -320,10 +326,10 @@ var twinsJson = JSON.stringify(displayTwins);
             
             // Chat button
             var chatButton = '<div class="mt-6">' +
-                '<a href="' + escapeHtml(chatUrl) + '" class="block w-full text-center bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-600 dark:hover:to-indigo-600 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl text-base">Chat</a>' +
+                '<a href="' + escapeHtml(chatUrl) + '" class="block w-full text-center bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-600 dark:hover:to-indigo-600 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl text-base js-chat-btn">Chat</a>' +
                 '</div>';
             
-            return '<div class="twin-carousel-card bg-white dark:bg-gray-800 rounded-2xl p-6 border-2 border-gray-100 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-500/50 shadow-lg dark:shadow-gray-900/50 hover:shadow-2xl dark:hover:shadow-blue-900/20 transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">' +
+            return '<div class="twin-carousel-card cursor-pointer bg-white dark:bg-gray-800 rounded-2xl p-6 border-2 border-gray-100 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-500/50 shadow-lg dark:shadow-gray-900/50 hover:shadow-2xl dark:hover:shadow-blue-900/20 transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full" data-profile-url="' + escapeHtml(profileUrl) + '">' +
                 '<div class="flex items-start gap-4 mb-4">' +
                 avatarHtml +
                 '<div class="flex-1 min-w-0 pt-1 overflow-hidden">' +
@@ -387,6 +393,7 @@ var twinsJson = JSON.stringify(displayTwins);
         var isUserInteracting = false;
         var isDragging = false;
         var interactionTimer = null;
+        var lastDragAt = 0; // Track drag end time to prevent accidental clicks
 
         // Get card width including gap
         function updateCardWidth() {
@@ -563,7 +570,7 @@ var twinsJson = JSON.stringify(displayTwins);
             }, 120);
         }, { passive: true });
 
-        // Desktop-only: make wheel + mouse-drag behave like mobile swipe (prevents "stuck")
+        // Desktop-only: wheel + drag behavior (fix vertical scroll stuck + click not working)
         if (window.matchMedia && window.matchMedia('(min-width: 769px)').matches) {
             function markInteracting() {
                 isUserInteracting = true;
@@ -574,58 +581,111 @@ var twinsJson = JSON.stringify(displayTwins);
                 }, 160);
             }
 
-            // Wheel: vertical wheel -> horizontal scroll
+            // ✅ FIX: Don't hijack normal vertical wheel.
+            // Only scroll carousel horizontally when user indicates horizontal intent:
+            // - trackpad horizontal deltaX, OR shift+wheel
             carousel.addEventListener('wheel', function(e) {
-                // If user is mostly scrolling vertically, convert it to horizontal for carousel
-                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-                    e.preventDefault();
-                    markInteracting();
-                    carousel.scrollLeft += e.deltaY;
-                    normalizeInfinite();
-                }
+                var horizontalIntent = !!e.shiftKey || (Math.abs(e.deltaX) > Math.abs(e.deltaY));
+
+                // allow normal page vertical scrolling
+                if (!horizontalIntent) return;
+
+                e.preventDefault();
+                markInteracting();
+
+                var delta = (Math.abs(e.deltaX) > 0) ? e.deltaX : e.deltaY; // shift+wheel uses deltaY
+                carousel.scrollLeft += delta;
+                normalizeInfinite();
             }, { passive: false });
 
-            // Drag to scroll (mouse)
+            // ✅ FIX: Drag should start only after threshold (so clicks work)
+            var isPointerDown = false;
+            var didDrag = false;
+            var startY = 0;
+            var DRAG_THRESHOLD = 6;
             var startX = 0;
             var startLeft = 0;
 
             carousel.addEventListener('pointerdown', function(e) {
-                // only mouse-like pointers
                 if (e.pointerType === 'touch') return;
+                if (e.button != null && e.button !== 0) return; // only left-click
 
-                isDragging = true;
+                isPointerDown = true;
+                didDrag = false;
+                isDragging = false;
+
                 startX = e.clientX;
+                startY = e.clientY;
                 startLeft = carousel.scrollLeft;
-                carousel.setPointerCapture(e.pointerId);
+
                 markInteracting();
-            });
+            }, { passive: true });
 
             carousel.addEventListener('pointermove', function(e) {
-                if (!isDragging) return;
+                if (!isPointerDown) return;
+
+                var dx = e.clientX - startX;
+                var dy = e.clientY - startY;
+
+                // require horizontal intent + threshold
+                if (!didDrag) {
+                    if (Math.abs(dx) < DRAG_THRESHOLD) return;
+                    if (Math.abs(dy) > Math.abs(dx)) return; // user is scrolling vertically
+
+                    didDrag = true;
+                    isDragging = true;
+                    try { carousel.setPointerCapture(e.pointerId); } catch (_e) {}
+                }
+
                 e.preventDefault();
                 markInteracting();
 
-                var dx = e.clientX - startX;
                 carousel.scrollLeft = startLeft - dx;
                 normalizeInfinite();
-            });
+            }, { passive: false });
 
-            function endDrag() {
-                if (!isDragging) return;
+            function endPointer() {
+                if (!isPointerDown) return;
+                isPointerDown = false;
+
+                if (didDrag) {
+                    lastDragAt = Date.now();
+                    // let existing snap debounce run
+                    if (snapTimer) clearTimeout(snapTimer);
+                    snapTimer = setTimeout(function() {
+                        normalizeInfinite();
+                        snapToNearestOnEnd();
+                    }, 120);
+                }
+
+                didDrag = false;
                 isDragging = false;
-
-                // after drag ends, let the existing debounce snap do its job
-                if (snapTimer) clearTimeout(snapTimer);
-                snapTimer = setTimeout(function() {
-                    normalizeInfinite();
-                    snapToNearestOnEnd();
-                }, 120);
             }
 
-            carousel.addEventListener('pointerup', endDrag);
-            carousel.addEventListener('pointercancel', endDrag);
-            carousel.addEventListener('pointerleave', endDrag);
+            carousel.addEventListener('pointerup', endPointer, { passive: true });
+            carousel.addEventListener('pointercancel', endPointer, { passive: true });
+            carousel.addEventListener('pointerleave', endPointer, { passive: true });
         }
+
+        // ✅ Card click => twin profile (works on all devices, but never when user dragged, and never override Chat button)
+        carousel.addEventListener('click', function(e) {
+            // Prevent click if user just finished dragging
+            if (Date.now() - lastDragAt < 250) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
+            // Don't interfere with Chat button or any other links
+            var a = e.target && e.target.closest ? e.target.closest('a') : null;
+            if (a) return; // Chat button (or any link) handles itself
+
+            // Find the card and navigate to twin profile
+            var card = e.target && e.target.closest ? e.target.closest('.twin-carousel-card') : null;
+            if (card && card.dataset && card.dataset.profileUrl) {
+                window.location.href = card.dataset.profileUrl;
+            }
+        }, true);
 
         // Navigation buttons
         if (prevBtn && twins.length > 1) {

@@ -36,7 +36,11 @@ export async function getLanding(req: any, res: Response) {
         ORDER BY t."chatCount" DESC, t."likeCount" DESC, t."createdAt" DESC
         LIMIT 4
       `);
-      publicTwins = twinsResult.rows || [];
+      // ✅ Add publicId (twin token) for public chat URLs
+      publicTwins = (twinsResult.rows || []).map((t: any) => ({
+        ...t,
+        publicId: tokenizeId(t.id, 'twin') // used by /public-twin/chat/:twinToken
+      }));
     } catch (dbError) {
       // If query fails, continue without twins (graceful degradation)
       logger.warn('Failed to fetch public twins for landing page:', dbError);

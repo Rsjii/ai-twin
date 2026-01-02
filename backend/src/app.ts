@@ -32,6 +32,7 @@ import moderationRoutes from './modules/moderation/moderationRoutes';
 import profileRoutes from './modules/profile/profileRoutes';
 import inviteRoutes from './modules/invite/inviteRoutes';
 import analyticsRoutes from './modules/analytics/analyticsRoutes';
+import localDebugIngestRoutes from './routes/localDebugIngestRoutes';
 import { getTwinPerformance } from './modules/analytics/analyticsController';
 import adminAnalyticsRoutes from './modules/analytics/adminAnalyticsRoutes';
 import onboardingRoutes from './modules/onboarding/onboardingRoutes';
@@ -71,17 +72,6 @@ app.use((req, res, next) => {
   const requestId = randomUUID();
   (req as any).requestId = requestId;
   res.locals.requestId = requestId;
-
-  // Lightweight start log – no heavy data here
-  try {
-    logger.info('[REQUEST_START]', {
-      requestId,
-      method: req.method,
-      path: req.path,
-    });
-  } catch {
-    // ignore logging errors
-  }
 
   next();
 });
@@ -177,19 +167,6 @@ app.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    
-    // ✅ Log cache headers being set
-    try {
-      // Cache headers logging (dev only)
-      if (isDev) {
-        logger.debug('[CACHE_HEADERS_SET]', {
-          path,
-          method: req.method,
-        });
-      }
-    } catch (logErr) {
-      // Silent fail for logging
-    }
   }
 
   next();
@@ -393,21 +370,6 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Request context logger (dev only - removed excessive logging for production)
-if (isDev) {
-  app.use((req, res, next) => {
-    try {
-      logger.debug('[REQ_CTX]', {
-        method: req.method,
-        path: req.path,
-        user: req.user ? { id: (req.user as any).userId || (req.user as any).id } : null,
-      });
-    } catch (logError) {
-      // Ignore logging errors
-    }
-    next();
-  });
-}
 
 // ✅ NEW: Global render wrapper — ensure `user` / `hasTwins` are always correct for views
 app.use((req, res, next) => {
@@ -424,15 +386,6 @@ app.use((req, res, next) => {
     // If controller didn't set hasTwins, but global hasTwins exists, use it
     if ((!("hasTwins" in opts)) && typeof res.locals.hasTwins !== 'undefined') {
       opts.hasTwins = res.locals.hasTwins;
-    }
-
-    // Render logging (dev only)
-    if (isDev) {
-      try {
-        logger.debug('[RENDER]', { view });
-      } catch (renderLogError) {
-        // Ignore logging errors
-      }
     }
 
     return originalRender(view, opts, callback as any);
@@ -533,6 +486,11 @@ app.use('/api/moderation', moderationRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/invite', inviteRoutes);
 app.use('/api/metrics', analyticsRoutes);
+
+// Local debug ingest (writes NDJSON to .cursor/debug.log). Keep disabled in prod.
+if (config.nodeEnv !== 'production') {
+  app.use('/__debug', localDebugIngestRoutes);
+}
 
 // ✅ SECURITY: Admin analytics API only for local/staging (never in prod)
 // Double-check: ensure admin routes are completely disabled in production
