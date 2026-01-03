@@ -1097,27 +1097,34 @@ async function shareTwin(platform) {
             return;
         }
 
-        const shareUrl = window.location.href;
-        const title = `Check out @${twinPublicHandle} on TwinOS!`;
-        const text = `<%= twin && twin.bio ? twin.bio : 'Twin' %> - Chat with this twin!`;
+        // ✅ FIX: Use API response content instead of hardcoded text
+        const shareUrl = data.shareUrl || window.location.href;
+        const content = data.content;
+        
+        if (!content) {
+            showNotification('Error: Share content not available', 'error');
+            return;
+        }
         
         let shareWindow = '';
         
         switch (platform) {
             case 'twitter':
-                shareWindow = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
+                shareWindow = `https://twitter.com/intent/tweet?text=${encodeURIComponent(content.text)}&url=${encodeURIComponent(shareUrl)}`;
                 break;
             case 'facebook':
-                shareWindow = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+                // Facebook uses quote parameter for description
+                shareWindow = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}${content.description ? '&quote=' + encodeURIComponent(content.description) : ''}`;
                 break;
             case 'linkedin':
-                shareWindow = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+                // LinkedIn supports title and summary
+                shareWindow = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}${content.title ? '&title=' + encodeURIComponent(content.title) : ''}${content.summary ? '&summary=' + encodeURIComponent(content.summary) : ''}`;
                 break;
             case 'whatsapp':
-                shareWindow = `https://wa.me/?text=${encodeURIComponent(text + ' ' + shareUrl)}`;
+                shareWindow = `https://wa.me/?text=${encodeURIComponent(content.text)}`;
                 break;
             case 'telegram':
-                shareWindow = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
+                shareWindow = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(content.text)}`;
                 break;
         }
         

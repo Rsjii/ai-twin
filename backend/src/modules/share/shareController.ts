@@ -338,33 +338,38 @@ export const getShareableContent = async (req: Request, res: Response) => {
       logger.error('FRONTEND_URL not set in environment variables');
       return res.status(500).json({ error: 'Server configuration error: FRONTEND_URL not set' });
     }
-    const shareUrl = `${frontendUrl}/@${twin.publicHandle}`;
+    // ✅ FIX: Use fallback for publicHandle to prevent null in share messages
+    const publicHandle = twin.publicHandle || twin.userHandle || 'twin';
+    const shareUrl = `${frontendUrl}/@${publicHandle}`;
+
+    // ✅ FIX: Use fallback for userName to prevent null in share messages
+    const creatorName = twin.userName || twin.userHandle || 'the creator';
 
     // Generate content for different platforms
     const content = {
       twitter: {
-        text: `💬 Meet this amazing twin @${twin.publicHandle}! Chat with it and see how it responds in ${twin.userName}'s style. ${shareUrl}`,
+        text: `💬 Meet this amazing twin @${publicHandle}! Chat with it and see how it responds in ${creatorName}'s style. ${shareUrl}`,
         hashtags: ['Twin', 'DigitalSelf', 'Chat', 'Personalized']
       },
       facebook: {
-        title: `Twin: @${twin.publicHandle}`,
-        description: `Chat with this twin created by ${twin.userName}! It's a digital version that talks just like them — same style, same personality. Give it a try!`,
+        title: `Twin: @${publicHandle}`,
+        description: `Chat with this twin created by ${creatorName}! It's a digital version that talks just like them — same style, same personality. Give it a try!`,
         url: shareUrl
       },
       linkedin: {
-        title: `Twin: @${twin.publicHandle}`,
-        summary: `A personalized digital version created by ${twin.userName}. Experience how it communicates in their unique style by having a conversation with it.`,
+        title: `Twin: @${publicHandle}`,
+        summary: `A personalized digital version created by ${creatorName}. Experience how it communicates in their unique style by having a conversation with it.`,
         url: shareUrl
       },
       whatsapp: {
-        text: `💬 Hey! Check out this twin @${twin.publicHandle}! It's a digital version that chats just like ${twin.userName}. Try it: ${shareUrl}`
+        text: `💬 Hey! Check out this twin @${publicHandle}! It's a digital version that chats just like ${creatorName}. Try it: ${shareUrl}`
       },
       telegram: {
-        text: `💬 Twin: @${twin.publicHandle}\n\nChat with this digital version and see how it responds in ${twin.userName}'s style! ${shareUrl}`
+        text: `💬 Twin: @${publicHandle}\n\nChat with this digital version and see how it responds in ${creatorName}'s style! ${shareUrl}`
       },
       email: {
-        subject: `Check out this Twin: @${twin.publicHandle}`,
-        body: `Hi!\n\nI found this amazing twin that you can chat with:\n\nTwin: @${twin.publicHandle}\nCreator: ${twin.userName}\n\nIt's a digital version that talks just like ${twin.userName} — same communication style and personality. You can chat with it here:\n${shareUrl}\n\nTry it out and let me know what you think!`
+        subject: `Check out this Twin: @${publicHandle}`,
+        body: `Hi!\n\nI found this amazing twin that you can chat with:\n\nTwin: @${publicHandle}\nCreator: ${creatorName}\n\nIt's a digital version that talks just like ${creatorName} — same communication style and personality. You can chat with it here:\n${shareUrl}\n\nTry it out and let me know what you think!`
       }
     };
 
@@ -374,14 +379,13 @@ export const getShareableContent = async (req: Request, res: Response) => {
       content: platform ? content[platform as keyof typeof content] : content,
       twin: {
         id: twin.id,
-        publicHandle: twin.publicHandle,
+        publicHandle: publicHandle,
         bio: twin.bio,
         likeCount: twin.likeCount,
         followCount: twin.followCount,
         chatCount: twin.chatCount,
         creator: {
-          handle: twin.userHandle,
-          name: twin.userName
+          name: creatorName
         }
       }
     });
