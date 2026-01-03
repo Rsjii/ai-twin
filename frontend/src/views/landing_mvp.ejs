@@ -8,8 +8,11 @@ var twinsJson = JSON.stringify(displayTwins);
 %>
 <%- include('layout', { title: title, user: user, csrfToken: csrfToken, body: `
  <!-- Hero Section - Improved Dark Theme -->
- <div class="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900 text-white rounded-2xl mx-4 sm:mx-6 mt-4 sm:mt-6">
-    <div class="absolute inset-0 bg-black opacity-10 dark:bg-blue-950/30"></div>        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
+ <!-- Mobile: Full width, Desktop: Rounded with margins -->
+ <div class="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900 text-white rounded-none md:rounded-2xl mx-0 md:mx-4 sm:mx-6 mt-0 md:mt-4 sm:mt-6">
+    <div class="absolute inset-0 bg-black opacity-10 dark:bg-blue-950/30"></div>
+    <!-- Mobile: Full width padding, Desktop: Constrained -->
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 md:py-32">
         <div class="text-center">
             <!-- Logo/Branding in Hero -->
             <div class="flex justify-center items-center space-x-3 mb-6">
@@ -49,10 +52,11 @@ var twinsJson = JSON.stringify(displayTwins);
 </div>
 
     <!-- ================= SECTION 2: WHY THIS EXISTS ================= -->
-    <section class="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-white dark:bg-gray-900">
-        <div class="max-w-4xl mx-auto">
+    <section class="py-12 sm:py-16 md:py-20 px-0 md:px-4 sm:px-6 bg-white dark:bg-gray-900">
+        <!-- Mobile: Direct card, Desktop: Wrapped -->
+        <div class="md:max-w-4xl md:mx-auto">
             <!-- Simple Styled Card -->
-            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-blue-900/10 rounded-2xl p-8 sm:p-10 md:p-12 border border-blue-100 dark:border-gray-700 shadow-lg dark:shadow-xl hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300">
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-blue-900/10 rounded-none md:rounded-2xl p-6 sm:p-10 md:p-12 border-0 md:border border-blue-100 dark:border-gray-700 shadow-none md:shadow-lg dark:shadow-xl hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300">
                 <div class="text-center">
                     <p class="text-xl sm:text-2xl md:text-3xl text-gray-900 dark:text-white leading-relaxed font-medium">
                         <span class="block mb-4 sm:mb-5"><p class="text-2xl sm:text-3xl md:text-3xl lg:text-3xl font-bold text-gray-900 dark:text-white">This isn't a chatbot.</p></span>
@@ -66,18 +70,18 @@ var twinsJson = JSON.stringify(displayTwins);
     </section>
 
     <!-- ================= SECTION 3: DISCOVER / TRY ================= -->
-    <section class="pt-8 sm:pt-12 md:pt-16 pb-8 sm:pb-10 md:pb-12 px-4 sm:px-6 bg-white dark:bg-gray-900">
-        <div class="max-w-6xl mx-auto">
+    <section class="pt-8 sm:pt-12 md:pt-16 pb-8 sm:pb-10 md:pb-12 px-0 md:px-4 sm:px-6 bg-white dark:bg-gray-900">
+        <!-- Mobile: Direct card, Desktop: Wrapped -->
+        <div class="md:max-w-6xl md:mx-auto">
             <!-- Common Container for Text and Twins -->
-            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-blue-900/10 rounded-2xl p-8 sm:p-10 md:p-12 border border-blue-100 dark:border-gray-700 shadow-lg dark:shadow-xl hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300">
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-blue-900/10 rounded-none md:rounded-2xl p-6 sm:p-10 md:p-12 border-0 md:border border-blue-100 dark:border-gray-700 shadow-none md:shadow-lg dark:shadow-xl hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300">
                 <!-- Section Header -->
                 <div class="text-center mb-12">
                     <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
                         Real people. Real voices.
                     </h2>
                     <p class="text-base sm:text-lg text-gray-500 dark:text-gray-400">
-                        These twins are shaped from real conversations.<br>
-                        No scripts. No acting.
+                        These twins are shaped from real conversations.
                     </p>
                 </div>
                 
@@ -185,9 +189,10 @@ var twinsJson = JSON.stringify(displayTwins);
     </style>
     
     <!-- ================= SECTION 4: HOW IT WORKS ================= -->
-    <section class="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-white dark:bg-gray-900">
-        <div class="max-w-6xl mx-auto">
-            <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800/90 backdrop-blur-xl rounded-2xl p-8 sm:p-10 border border-green-200 dark:border-gray-700 shadow-lg dark:shadow-xl hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300">
+    <section class="py-12 sm:py-16 md:py-20 px-0 md:px-4 sm:px-6 bg-white dark:bg-gray-900">
+        <!-- Mobile: Direct card, Desktop: Wrapped -->
+        <div class="md:max-w-6xl md:mx-auto">
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800/90 backdrop-blur-xl rounded-none md:rounded-2xl p-6 sm:p-10 border-0 md:border border-green-200 dark:border-gray-700 shadow-none md:shadow-lg dark:shadow-xl hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300">
                 <h3 class="text-2xl sm:text-3xl font-semibold text-green-900 dark:text-green-300 mb-8 text-center">✨ How It Works</h3>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8">
                     <div class="text-center hover:transform hover:scale-105 transition-transform duration-300">
@@ -212,8 +217,9 @@ var twinsJson = JSON.stringify(displayTwins);
     </section>  
 
     <!-- Final CTA Section -->
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 mb-8 sm:mb-12">
-        <div class="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-slate-800 dark:via-blue-900 dark:to-indigo-900 rounded-2xl p-8 sm:p-10 md:p-12 text-center border border-blue-500/20 dark:border-blue-700/50 shadow-lg dark:shadow-xl dark:shadow-blue-950/50 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-blue-950/70 transition-all duration-300">
+    <div class="md:max-w-6xl md:mx-auto px-0 md:px-4 sm:px-6 mb-8 sm:mb-12">
+        <!-- Mobile: Full width, Desktop: Wrapped -->
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-slate-800 dark:via-blue-900 dark:to-indigo-900 rounded-none md:rounded-2xl p-6 sm:p-10 md:p-12 text-center border-0 md:border border-blue-500/20 dark:border-blue-700/50 shadow-none md:shadow-lg dark:shadow-xl dark:shadow-blue-950/50 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-blue-950/70 transition-all duration-300">
             <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-white dark:text-gray-100 mb-4">Want to see how you come across to others?</h2>
             <p class="text-lg sm:text-xl text-white/90 dark:text-gray-200 mb-6">Your twin shows you — in real conversations.</p>
             <a 
@@ -226,8 +232,9 @@ var twinsJson = JSON.stringify(displayTwins);
     </div>
 
     <!-- Privacy & Safety Note -->
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 mb-8 sm:mb-12">
-        <div class="bg-blue-50 dark:bg-gray-800/90 rounded-xl p-6 sm:p-8 border border-blue-200 dark:border-gray-700 shadow-md dark:shadow-lg hover:shadow-lg dark:hover:shadow-xl transition-all duration-300">
+    <div class="md:max-w-6xl md:mx-auto px-0 md:px-4 sm:px-6 mb-8 sm:mb-12">
+        <!-- Mobile: Full width, Desktop: Wrapped -->
+        <div class="bg-blue-50 dark:bg-gray-800/90 rounded-none md:rounded-xl p-6 sm:p-8 border-0 md:border border-blue-200 dark:border-gray-700 shadow-none md:shadow-md dark:shadow-lg hover:shadow-lg dark:hover:shadow-xl transition-all duration-300">
             <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-3 text-center">🔒 You're in control. Always.</h3>
             <p class="text-blue-800 dark:text-blue-200 text-center max-w-2xl mx-auto">Your data stays yours. Your twin only does what you allow.</p>
         </div>
