@@ -32,7 +32,7 @@ const prodLimits = {
 
   otpRequest: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 OTP requests per 15 min per IP/email (OWASP standard: 3-5 per 15 min)
+    max: 10, // 10 OTP requests per 15 min per IP/email (OWASP standard: 3-5 per 15 min)
   } as LimitConfig,
 
   otpVerify: {
@@ -42,33 +42,33 @@ const prodLimits = {
 
   changePassword: {
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 3, // 3 password change attempts per hour per user (allows retry with typos)
+    max: 1, // 1 password change attempt per hour per user (allows retry with typos)
   } as LimitConfig,
 
   // Public/content flows - reasonable limits (industry standard: 60-100 msg/min for auth, 20-40 for anon)
   publicChatAnon: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 15, // 15 messages per 15 minutes (1 msg/min) for anonymous users (prevents spam)
+    max: 40, // 40 messages per 15 minutes (1 msg/min) for anonymous users (prevents spam)
   } as LimitConfig,
 
   publicChatAuth: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 60, // 60 messages per 15 minutes (~1.3 msg/min) for authenticated users (allows normal conversation)
+    max: 150, // 150 messages per 15 minutes (~10 msg/min) for authenticated users (allows normal conversation)
   } as LimitConfig,
 
   global: {
     windowMs: 15 * 60 * 1000,
-    max: 2000,
+    max: 500, // 500 requests per 15 minutes (prevents abuse)
   } as LimitConfig,
 
   api: {
     windowMs: 15 * 60 * 1000,
-    max: 1000,
+    max: 500,// 500 requests per 15 minutes (prevents abuse)
   } as LimitConfig,
 
   publicChatDailyAnon: {
     windowMs: 24 * 60 * 60 * 1000,
-    max: 30,
+    max: 150, // 150 messages per day for anonymous users (prevents spam)
   } as LimitConfig,
 
   draftGeneration: {
@@ -94,13 +94,13 @@ const prodLimits = {
 
   // ✅ ADD: Contact form limits
   contactForm: {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 3, // 3 submissions per 15 min per IP/email (prevents spam)
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 1, // 1 submission per hour per IP/email (prevents spam)
   } as LimitConfig,
 
   contactFormDaily: {
     windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    max: 10, // 10 submissions per day per IP (prevents abuse)
+    max: 5, // 5 submissions per day per IP (prevents abuse)
   } as LimitConfig,
 };
 
