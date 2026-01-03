@@ -20,6 +20,10 @@ export class LLMClient {
   private groqApiKeyAnonymous: string | null; // ✅ Free tier for anonymous users
   private openaiApiKey: string | null;
   private openai: OpenAI | null;
+  
+  // ✅ ADD: Track current model index per API key (circular rotation)
+  // Key: apiKey, Value: current model index in supportedModels array
+  private currentModelIndexMap: Map<string, number> = new Map();
 
   constructor() {
     this.groqApiKey = config.groqApiKey || null;
@@ -90,25 +94,60 @@ export class LLMClient {
     options: any,
     apiKey: string // ✅ ADD: Accept API key parameter
   ): Promise<LLMResponse> {
-    // ✅ All models with HIGHEST limits (14.4K req/day each) + fallback
+    // ✅ OPTIMIZED: Best models first (highest limits) - Free Tier Strategy
+    // Priority order based on: requests/day, tokens/day, quality
     const supportedModels = [
-      'llama-3.1-8b-instant',                    // ✅ 14.4K req/day, 500K tokens/day
-      'meta-llama/llama-guard-4-12b',            // ✅ 14.4K req/day, 500K tokens/day
-      'meta-llama/llama-prompt-guard-2-22m',     // ✅ 14.4K req/day, 500K tokens/day
-      'meta-llama/llama-prompt-guard-2-86m',     // ✅ 14.4K req/day, 500K tokens/day
+      // Tier 1: Highest limits (14.4K req/day, 500K tokens/day each)
+      'llama-3.1-8b-instant',                    // ✅ PRIMARY: Best balance of speed + quality
+      'meta-llama/llama-guard-4-12b',            // ✅ Backup 1: 14.4K req/day, 500K tokens/day
+      'meta-llama/llama-prompt-guard-2-86m',      // ✅ Backup 2: 14.4K req/day, 500K tokens/day
+      'meta-llama/llama-prompt-guard-2-22m',     // ✅ Backup 3: 14.4K req/day, 500K tokens/day
+      
+      // Tier 2: Good limits (7K req/day, 500K tokens/day)
       'llama-2-7b',                              // ✅ 7K req/day, 500K tokens/day
-      'llama-3.3-70b-versatile'                  // ⚠️ LAST RESORT: 1K req/day (better quality)
+      
+      // Tier 3: High quality, lower requests (1K req/day, 500K tokens/day)
+      'meta-llama/llama-4-scout-17b-16e-instruct', // ✅ Best quality: 1K req/day, 500K tokens/day, 30K tokens/min
+      'meta-llama/llama-4-maverick-17b-128e-instruct', // ✅ 1K req/day, 500K tokens/day
+      'qwen/qwen3-32b',                          // ✅ 1K req/day, 500K tokens/day
+      
+      // Tier 4: Special cases - Unlimited tokens (250 req/day, NO LIMIT tokens/day)
+      'groq/compound-mini',                      // ✅ 250 req/day, UNLIMITED tokens/day (for high token usage)
+      'groq/compound',                           // ✅ 250 req/day, UNLIMITED tokens/day
+      
+      // Tier 5: Lower limits (avoid if possible)
+      'moonshotai/kimi-k2-instruct',             // ⚠️ 1K req/day, 300K tokens/day
+      'moonshotai/kimi-k2-instruct-0905',       // ⚠️ 1K req/day, 300K tokens/day
+      
+      // Last resort (lowest limits)
+      'llama-3.3-70b-versatile'                  // ⚠️ 1K req/day, 100K tokens/day (lowest token limit)
     ];
     
-    // Total potential: 14.4K × 4 + 7K = 64.6K requests/day! 🚀
+    // Total potential with rotation:
+    // Tier 1: 14.4K × 4 = 57.6K requests/day, 500K × 4 = 2M tokens/day
+    // Tier 2: 7K = 7K requests/day, 500K tokens/day
+    // Tier 3: 1K × 3 = 3K requests/day, 500K × 3 = 1.5M tokens/day
+    // Tier 4: 250 × 2 = 500 requests/day, UNLIMITED tokens
+    // Total: ~68K requests/day, ~4M+ tokens/day! 🚀
     
-    const modelToUse = options.model || supportedModels[0];
+    // ✅ CIRCULAR ROTATION LOGIC:
+    // 1. Get current model index for this API key (default: 0)
+    // 2. Start from current index
+    // 3. If model fails, try next (circular: wrap around to 0 if at end)
+    // 4. If model succeeds, save that index as current for next request
+    let currentIndex = this.currentModelIndexMap.get(apiKey) ?? 0;
     let lastError: Error | null = null;
+    let attempts = 0;
+    const maxAttempts = supportedModels.length; // Try all models once
 
-    // Try the requested/default model first
-    for (const model of [modelToUse, ...supportedModels.filter(m => m !== modelToUse)]) {
+    // ✅ Circular loop: Start from current index, wrap around if needed
+    while (attempts < maxAttempts) {
+      const modelIndex = (currentIndex + attempts) % supportedModels.length;
+      const model = supportedModels[modelIndex];
+      attempts++;
+
       try {
-        logger.info(`🔄 Trying Groq model: ${model}`);
+        logger.info(`🔄 Trying Groq model ${attempts}/${maxAttempts}: ${model} (index ${modelIndex})`);
         const startedAt = Date.now();
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
@@ -153,12 +192,12 @@ export class LLMClient {
           // ✅ Check for 500/502/503 errors (server errors - should fallback to OpenAI)
           const isServerError = response.status === 500 || response.status === 502 || response.status === 503;
           
-          // ✅ If rate limit or decommissioned, try next model (each has separate quota)
+          // ✅ If rate limit or decommissioned, try next model (circular rotation)
           if (isRateLimit || isDecommissioned) {
             const errorType = isRateLimit ? 'rate limit/quota exceeded' : 'decommissioned';
-            logger.warn(`⚠️ Model ${model} ${errorType}, trying next model with separate quota...`);
+            logger.warn(`⚠️ Model ${model} (index ${modelIndex}) ${errorType}, trying next model...`);
             lastError = new Error(`Model ${model} ${errorType}`);
-            continue; // Try next model (each has its own quota)
+            continue; // Try next model in circular loop
           }
           
           // ✅ If server error (500/502/503), throw to trigger OpenAI fallback
@@ -178,17 +217,19 @@ export class LLMClient {
         
         const durationMs = Date.now() - startedAt;
 
+        // ✅ SUCCESS: Save this model index as current for next request
+        this.currentModelIndexMap.set(apiKey, modelIndex);
+        
         const responseObj: LLMResponse = {
           content: data.choices[0]?.message?.content?.trim() || '',
           model: model,
           tokensUsed: data.usage?.total_tokens || 0,
-          // ✅ ADD: Store breakdown
           inputTokens: data.usage?.prompt_tokens || 0,
           outputTokens: data.usage?.completion_tokens || 0
         };
 
-        // ✅ ADD: Log breakdown
-        logger.info(`✅ Successfully used Groq model: ${model}`, {
+        // ✅ Log breakdown
+        logger.info(`✅ Successfully used Groq model: ${model} (saved as current, index ${modelIndex})`, {
           durationMs,
           usage: data.usage || null,
           breakdown: {
@@ -222,20 +263,21 @@ export class LLMClient {
           throw error;
         }
         
-        // ✅ If rate limit or decommissioned, try next model
+        // ✅ If rate limit or decommissioned, try next model (circular rotation)
         if (isRateLimit || isDecommissioned) {
           const errorType = isRateLimit ? 'rate limit exceeded' : 'decommissioned';
-          logger.warn(`⚠️ Model ${model} ${errorType}, trying next model...`);
+          logger.warn(`⚠️ Model ${model} (index ${modelIndex}) ${errorType}, trying next model...`);
           lastError = error;
-          continue;
+          continue; // Continue to next iteration in while loop
         }
         // For other errors, throw immediately to trigger OpenAI fallback
         throw error;
       }
     }
 
-    // If all models failed
-    logger.error('❌ All Groq models failed');
+    // ✅ If all models failed, reset to start from beginning next time
+    this.currentModelIndexMap.set(apiKey, 0);
+    logger.error('❌ All Groq models failed, resetting to model 0 for next request');
     throw lastError || new Error('All Groq models failed');
   }
 
