@@ -1,7 +1,7 @@
 {
   "name": "ai-twin-project",
   "version": "1.0.0",
-  "description": "TwinOS - Create Your Digital Twin",
+  "description": "Selflyx - Create Your Digital Twin",
   "private": true,
   "workspaces": [
     "backend",
@@ -36,7 +36,7 @@
     "fullstack",
     "typescript"
   ],
-  "author": "TwinOS Team",
+  "author": "Selflyx Team",
   "license": "MIT",
   "repository": {
     "type": "git",

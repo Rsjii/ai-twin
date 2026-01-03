@@ -27,7 +27,7 @@ export async function getHelpCenter(req: any, res: Response) {
 
 
   res.render('help-center', {
-    title: 'Help Center - TwinOS',
+    title: 'Help Center - Selflyx',
     user,
     hasTwins,
     twinId,
@@ -43,7 +43,7 @@ export async function getContact(req: any, res: Response) {
 
 
   res.render('contact', {
-    title: 'Contact Us - TwinOS',
+    title: 'Contact Us - Selflyx',
     user,
     hasTwins,
     twinId,
@@ -59,7 +59,7 @@ export async function getPrivacy(req: any, res: Response) {
 
 
   res.render('privacy', {
-    title: 'Privacy Policy - TwinOS',
+    title: 'Privacy Policy - Selflyx',
     user,
     hasTwins,
     twinId,
@@ -75,7 +75,7 @@ export async function getTerms(req: any, res: Response) {
 
 
   res.render('terms', {
-    title: 'Terms of Service - TwinOS',
+    title: 'Terms of Service - Selflyx',
     user,
     hasTwins,
     twinId,

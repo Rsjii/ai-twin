@@ -581,7 +581,7 @@ app.use(errorHandlerMiddleware);
 // 404 handler
 app.use((_req, res) => {
   res.status(404).render('404', {
-    title: 'Page Not Found - TwinOS',
+    title: 'Page Not Found - Selflyx',
     csrfToken: res.locals['csrfToken'],
   });
 });

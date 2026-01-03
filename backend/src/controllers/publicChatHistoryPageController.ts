@@ -14,7 +14,7 @@ export async function getPublicChatHistoryPage(req: AuthenticatedRequest, res: R
 
 
   res.render('public-chat-history', {
-    title: 'Your Chat History - TwinOS',
+    title: 'Your Chat History - Selflyx',
     user,
     csrfToken: res.locals['csrfToken'] || ''
   });

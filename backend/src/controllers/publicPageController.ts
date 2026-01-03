@@ -47,7 +47,7 @@ export async function getLanding(req: any, res: Response) {
     }
 
     res.render('landing_mvp', {
-      title: 'TwinOS - Create Your Digital Twin',
+      title: 'Selflyx - Create Your Digital Twin',
       user: req.user || null,
       csrfToken: res.locals['csrfToken'] || '',
       publicTwins: publicTwins || [] // ✅ Pass public twins to view
@@ -143,7 +143,7 @@ export async function getPublicProfile(req: any, res: Response) {
     // If no twin → always show basic user profile with hasNoTwin = true
     if (!hasTwin) {
       return res.render('public-profile', {
-        title: `@${user.handle} - TwinOS`,
+        title: `@${user.handle} - Selflyx`,
         user: req.user || null,
         twin: null,
         userInfo: {
@@ -200,7 +200,7 @@ let isBlocked = false;
     // If twin is private and viewer is not owner, show as if no twin exists
     if (!isPublic && !isOwner) {
       return res.render('public-profile', {
-        title: `@${user.handle} - TwinOS`,
+        title: `@${user.handle} - Selflyx`,
         user: req.user || null,
         twin: null,
         userInfo: {
@@ -257,7 +257,7 @@ let isBlocked = false;
     }
 
     return res.render('public-profile', {
-      title: `@${user.handle} - TwinOS`,
+      title: `@${user.handle} - Selflyx`,
       user: req.user || null,
       twin: showTwinDetails
         ? {
@@ -332,7 +332,7 @@ export function getPublicProfileAlt(req: any, res: Response) {
  */
 export function getSimple(req: any, res: Response) {
   res.render('landing', {
-    title: 'TwinOS - Create Your Digital Twin',
+    title: 'Selflyx - Create Your Digital Twin',
     user: null,
     csrfToken: 'test-token',
   });

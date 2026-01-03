@@ -1,7 +1,7 @@
 {
   "name": "ai-twin-backend",
   "version": "1.0.0",
-  "description": "TwinOS Backend API Server",
+  "description": "Selflyx Backend API Server",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -76,6 +76,6 @@
     "typescript",
     "prisma"
   ],
-  "author": "TwinOS Team",
+  "author": "Selflyx Team",
   "license": "MIT"
 }

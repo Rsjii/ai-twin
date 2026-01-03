@@ -149,7 +149,7 @@ export async function getChatEnhanced(req: any, res: Response) {
     // ✅ PHASE 4: Tokenize IDs before passing to view
     
     res.render('chat-enhanced', { 
-      title: 'Enhanced Chat - TwinOS',
+      title: 'Enhanced Chat - Selflyx',
       user: user,
       pathname: '/chat-enhanced',
       chatId: tokenizeId(chat.id, 'chat'),       // token for frontend
