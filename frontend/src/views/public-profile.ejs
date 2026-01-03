@@ -2,7 +2,36 @@
 <html lang="en" id="html-root">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">    <title><%= title %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title><%= title %></title>
+    
+    <!-- Open Graph Tags for Social Sharing -->
+    <% 
+    const frontendUrl = typeof baseUrl !== 'undefined' ? baseUrl : '';
+    const ogTitle = twin && twin.publicHandle ? `@${twin.publicHandle} - Selflyx` : (userInfo && userInfo.handle ? `@${userInfo.handle} - Selflyx` : 'Selflyx');
+    // Clean description - remove HTML tags and newlines, limit length
+    let ogDescription = twin && twin.bio ? twin.bio : (twin && twin.sampleReply ? twin.sampleReply : 'Chat with this twin on Selflyx');
+    ogDescription = ogDescription.replace(/<[^>]*>/g, '').replace(/\n/g, ' ').trim().substring(0, 200);
+    const ogImage = (twin && twin.profileImage) || (userInfo && userInfo.profileImage) || '';
+    const finalOgUrl = typeof ogUrl !== 'undefined' ? ogUrl : (frontendUrl + (twin && twin.publicHandle ? '/@' + twin.publicHandle : (userInfo && userInfo.handle ? '/@' + userInfo.handle : '')));
+    %>
+    <meta property="og:title" content="<%= ogTitle.replace(/"/g, '&quot;') %>">
+    <meta property="og:description" content="<%= ogDescription.replace(/"/g, '&quot;') %>">
+    <meta property="og:type" content="profile">
+    <meta property="og:url" content="<%= finalOgUrl %>">
+    <% if (ogImage) { %>
+    <meta property="og:image" content="<%= ogImage %>">
+    <% } %>
+    <meta property="og:site_name" content="Selflyx">
+    
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<%= ogTitle.replace(/"/g, '&quot;') %>">
+    <meta name="twitter:description" content="<%= ogDescription.replace(/"/g, '&quot;') %>">
+    <% if (ogImage) { %>
+    <meta name="twitter:image" content="<%= ogImage %>">
+    <% } %>
+    
     <link rel="stylesheet" href="/css/output.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="/utils/timeUtils.js"></script>

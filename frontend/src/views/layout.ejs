@@ -7,12 +7,16 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="TwinOS">
+    <meta name="apple-mobile-web-app-title" content="Selflyx">
     <meta name="description" content="Create your twin that communicates in your unique style, tone, and personality">
     <meta name="theme-color" content="#6366f1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="dns-prefetch" href="https://unpkg.com">
+    <!-- Favicon - Bulb Icon (Same as Landing Hero Section) -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/favicon.svg?v=3">
     <title><%= title %></title>
     <!-- SEO Meta Tags -->
 <% if (typeof metaDescription !== 'undefined' && metaDescription) { %>
@@ -29,6 +33,7 @@
     <meta property="og:image" content="<%= ogImage %>">
 <% } %>
 <meta property="og:url" content="<%= typeof ogUrl !== 'undefined' ? ogUrl : (typeof baseUrl !== 'undefined' ? baseUrl + req.path : '') %>">
+<meta property="og:site_name" content="Selflyx">
 
 <!-- Twitter Card Tags -->
 <meta name="twitter:card" content="summary_large_image">
@@ -845,7 +850,7 @@
                     <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                         <span class="text-white font-bold text-sm">AI</span>
                     </div>
-                    <span class="text-xl font-bold text-gray-900 dark:text-white">TwinOS</span>
+                    <span class="text-xl font-bold text-gray-900 dark:text-white">Selflyx</span>
                 </a>
             </div>
             
