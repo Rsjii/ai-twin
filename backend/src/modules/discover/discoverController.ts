@@ -745,6 +745,7 @@ export const getMostLikedTwins = async (req: Request, res: Response, next: NextF
       WHERE t."isPublic" = true 
       ${blockNonLoggedFilter}
       ${blockedFilter.sql}
+      AND t."likeCount" > 0
       ORDER BY t."likeCount" DESC, t."createdAt" DESC
       LIMIT $1 OFFSET $2
     `, [limit, offset, ...blockedFilter.params]);
@@ -818,6 +819,7 @@ export const getMostFollowedTwins = async (req: Request, res: Response, next: Ne
       WHERE t."isPublic" = true 
       ${blockNonLoggedFilter}
       ${blockedFilter.sql}
+      AND t."followCount" > 0
       ORDER BY t."followCount" DESC, t."likeCount" DESC, t."createdAt" DESC
       LIMIT $1 OFFSET $2
     `, [limit, offset, ...blockedFilter.params]);
