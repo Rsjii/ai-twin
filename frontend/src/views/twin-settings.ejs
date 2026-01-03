@@ -394,15 +394,22 @@
       <!-- Tabs + compact filters + bulk actions -->
       <div class="mt-4 flex flex-col gap-2">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div class="inline-flex flex-wrap rounded-xl bg-gray-100 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 p-1">
-            <button id="memTabFact" type="button"
-              class="px-3 py-2 text-sm rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm">
-              Facts
-            </button>
-            <button id="memTabPreference" type="button"
-              class="px-3 py-2 text-sm rounded-lg text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-800/70">
-              Preferences
-            </button>
+          <!-- Mobile: Tabs + Search in one row -->
+          <div class="flex flex-row items-center gap-2 flex-1 md:flex-initial">
+            <div class="inline-flex rounded-xl bg-gray-100 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 p-1 shrink-0">
+              <button id="memTabFact" type="button"
+                class="px-2 sm:px-3 py-2 text-xs sm:text-sm rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm">
+                Facts
+              </button>
+              <button id="memTabPreference" type="button"
+                class="px-2 sm:px-3 py-2 text-xs sm:text-sm rounded-lg text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-800/70">
+                Preferences
+              </button>
+            </div>
+
+            <input id="memSearchInput" type="text"
+              placeholder="Search…"
+              class="flex-1 px-2 sm:px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-xs sm:text-sm text-gray-900 dark:text-white min-h-[44px]" />
           </div>
 
           <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 sm:justify-end">
@@ -417,39 +424,36 @@
           <option value="preference">Preferences</option>
         </select>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <!-- Visibility filter -->
+        <div class="grid grid-cols-1 gap-2">
           <select id="memFilterVisibility"
             class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]">
             <option value="all">All (Private + Public)</option>
             <option value="owner">Private only</option>
             <option value="public_twin">Public only</option>
           </select>
-
-          <input id="memSearchInput" type="text"
-            placeholder="Search…"
-            class="sm:col-span-2 px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-white min-h-[44px]" />
         </div>
 
         <div id="memBulkBar"
           class="hidden mt-1 p-2 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div class="text-sm text-gray-700 dark:text-gray-200">
+          <div class="text-xs sm:text-sm text-gray-700 dark:text-gray-200 shrink-0">
             <span id="memSelectedCount" class="font-semibold">0</span> selected
           </div>
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-row items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-hide">
             <button id="memBulkPrivate" type="button"
-              class="px-3 py-2 text-sm rounded-lg bg-white/80 dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-              Make Private
+              class="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg bg-white/80 dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 whitespace-nowrap shrink-0">
+              Private
             </button>
             <button id="memBulkPublic" type="button"
-              class="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700">
-              Make Public
+              class="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap shrink-0">
+              Public
             </button>
             <button id="memBulkDelete" type="button"
-              class="px-3 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700">
+              class="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 whitespace-nowrap shrink-0">
               Delete
             </button>
             <button id="memBulkClear" type="button"
-              class="px-3 py-2 text-sm rounded-lg bg-white/80 dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+              class="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg bg-white/80 dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 whitespace-nowrap shrink-0">
               Clear
             </button>
           </div>
@@ -463,24 +467,26 @@
       <div id="memModalList" class="mt-3 space-y-2 pr-1 overflow-y-auto overscroll-contain flex-1 min-h-0 pb-4"></div>
 
       <div class="mt-3 p-3 sm:p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 shrink-0">
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-          <div id="memAddTitle" class="text-sm font-semibold text-gray-900 dark:text-white sm:pr-2 shrink-0">
+        <div class="flex flex-row items-center gap-2">
+          <div id="memAddTitle" class="hidden sm:block text-sm font-semibold text-gray-900 dark:text-white sm:pr-2 shrink-0">
             Add fact
           </div>
 
           <input id="memAddCategory" type="hidden" value="fact" />
 
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 px-2 shrink-0">
+          <label class="inline-flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 px-1 sm:px-2 shrink-0">
             <input id="memAddPublic" type="checkbox" class="rounded border-gray-300 dark:border-gray-600" />
-            <span>Public</span>
+            <span class="hidden sm:inline">Public</span>
+            <span class="sm:hidden">Public</span>
           </label>
 
           <input id="memAddValue" type="text"
             placeholder="e.g. I like chess"
-            class="flex-1 px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white min-h-[44px]" />
+            maxlength="120"
+            class="flex-1 min-w-0 px-2 sm:px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs sm:text-sm text-gray-900 dark:text-white min-h-[44px]" />
 
           <button id="memAddBtn" type="button"
-            class="inline-flex justify-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors min-h-[44px] items-center text-sm font-medium shrink-0">
+            class="inline-flex justify-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors min-h-[44px] items-center text-xs sm:text-sm font-medium shrink-0">
             Add
           </button>
         </div>
@@ -1119,45 +1125,46 @@
 
         // Compact row UI (icons + single-line edit)
         row.innerHTML = `
-          <div class="flex items-stretch gap-2">
-            <div class="pt-1">
-              <input type="checkbox" class="memSelect rounded border-gray-300 dark:border-gray-600" />
+          <div class="flex items-stretch gap-1.5 sm:gap-2">
+            <div class="pt-1 shrink-0">
+              <input type="checkbox" class="memSelect rounded border-gray-300 dark:border-gray-600 w-4 h-4 sm:w-5 sm:h-5" />
             </div>
 
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between gap-2 mb-0.5">
-                <div class="flex items-center gap-2 min-w-0">
-                  <span class="memVisibilityBadge text-[11px] px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">
+            <div class="flex-1 min-w-0 overflow-hidden">
+              <div class="flex items-center justify-between gap-1 sm:gap-2 mb-0.5">
+                <div class="flex items-center gap-1 sm:gap-2 min-w-0 flex-shrink-0">
+                  <span class="memVisibilityBadge px-1.5 sm:px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 whitespace-nowrap shrink-0" style="font-size: 11px;">
                     ${visibility === 'public_twin' ? 'Public' : 'Private'}
                   </span>
                 </div>
 
                 <!-- Right controls: Public toggle + Save + Delete (one row) -->
-                <div class="flex items-center gap-2 shrink-0">
-                  <label class="inline-flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer select-none">
-                    <input type="checkbox" class="memPublic rounded border-gray-300 dark:border-gray-600"
+                <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+                  <label class="inline-flex items-center gap-1 sm:gap-2 text-gray-600 dark:text-gray-300 cursor-pointer select-none shrink-0" style="font-size: 11px;">
+                    <input type="checkbox" class="memPublic rounded border-gray-300 dark:border-gray-600 w-3 h-3 sm:w-4 sm:h-4"
                       ${visibility === 'public_twin' ? 'checked' : ''} />
-                    <span>Public</span>
+                    <span class="hidden sm:inline">Public</span>
+                    <span class="sm:hidden">Public</span>
                   </label>
 
                   <button type="button"
-                    class="memSaveIcon p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    class="memSaveIcon p-1 sm:p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 shrink-0"
                     title="Save"
                     aria-label="Save"
                     disabled
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M5 13l4 4L19 7" />
                     </svg>
                   </button>
 
                   <button type="button"
-                    class="memDelIcon p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    class="memDelIcon p-1 sm:p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 shrink-0"
                     title="Delete"
                     aria-label="Delete"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0V5a2 2 0 012-2h4a2 2 0 012 2v2" />
                     </svg>
@@ -1166,8 +1173,9 @@
               </div>
 
               <textarea
-                class="memEdit w-full text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-gray-900 dark:text-white resize-none leading-tight"
+                class="memEdit w-full text-xs sm:text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-1.5 sm:px-2 py-1 text-gray-900 dark:text-white resize-none leading-tight"
                 rows="1"
+                maxlength="120"
               >${escapeHtml(value)}</textarea>
             </div>
           </div>
