@@ -364,8 +364,25 @@ export const userQueries = {
   ) => {
     // Fix: dob column is DATE type, so we need to cast input to DATE
     // Handle null/empty by keeping existing dob, otherwise cast input to date
-    const trimmedDob = dob ? dob.trim() : null;
-    const dobValue = trimmedDob && trimmedDob.length > 0 ? trimmedDob : null;
+    // ✅ FIX: Handle Date objects and strings - convert Date to ISO string first
+    let dobString: string | null = null;
+    if (dob !== null && dob !== undefined) {
+      const dobValue = dob as any; // Type assertion to handle Date objects
+      // Check if it's a Date object (can happen when dob comes from database)
+      if (typeof dobValue === 'object' && 'toISOString' in dobValue && typeof dobValue.toISOString === 'function') {
+        dobString = dobValue.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      } else if (typeof dobValue === 'string') {
+        dobString = dobValue.trim();
+      }
+    }
+    const dobValue = dobString && dobString.length > 0 ? dobString : null;
+    
+    // ✅ FIX: Handle profileImage properly - empty string means remove image, null means keep current
+    const profileImageValue = profileImage === undefined 
+      ? null  // Not provided, keep current
+      : (profileImage === null || profileImage === '' 
+          ? null  // Explicitly null or empty string means remove image (set to NULL in DB)
+          : profileImage);  // Otherwise use the provided value
     
     const result = await db.query(
       `UPDATE "User"
@@ -379,7 +396,7 @@ export const userQueries = {
          "profileCompleted" = true
        WHERE email = $7
        RETURNING *`,
-      [name, handle, dobValue, phone, bio, profileImage || null, email]
+      [name, handle, dobValue, phone, bio, profileImageValue, email]
     );
     
     return result.rows[0];
