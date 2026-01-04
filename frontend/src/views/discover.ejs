@@ -1264,7 +1264,7 @@ async function shareTwinFromDiscover(twinToken, handle) {
         
         // ✅ FIX: Use navigator.share API like chat message share (same screen)
         const shareUrl = `${window.location.origin}/@${handle}`;
-        const shareText = `Check out this twin @${handle}! Chat with it and see how it responds. ${shareUrl}`;
+        const shareText = `Check out this twin @${handle}! Chat with it and see how it responds.`;
         
         if (navigator.share) {
             // Use native share dialog (same as chat message share)

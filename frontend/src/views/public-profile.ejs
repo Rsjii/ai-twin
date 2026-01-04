@@ -1232,14 +1232,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!isLoggedIn) {
                 likeBtn.setAttribute('title', 'You cannot like this twin, you are logged out');
                 likeBtn.setAttribute('aria-label', 'You cannot like this twin, you are logged out');
+                likeBtn.setAttribute('data-tooltip', 'You cannot like this twin, you are logged out');
                 likeBtn.setAttribute('data-disabled-reason', 'not_logged_in');
             } else if (isOwnTwin) {
                 likeBtn.setAttribute('title', 'You cannot like your own twin');
                 likeBtn.setAttribute('aria-label', `Liking disabled for @${twinPublicHandle}`);
+                likeBtn.setAttribute('data-tooltip', 'You cannot like your own twin');
                 likeBtn.setAttribute('data-disabled-reason', 'own_twin');
             } else {
                 likeBtn.setAttribute('title', 'Liking is disabled for this twin');
                 likeBtn.setAttribute('aria-label', `Liking disabled for @${twinPublicHandle}`);
+                likeBtn.setAttribute('data-tooltip', 'Liking is disabled for this twin');
                 likeBtn.setAttribute('data-disabled-reason', 'likes_disabled');
             }
         }
@@ -1259,14 +1262,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!isLoggedIn) {
                 followBtn.setAttribute('title', 'You cannot follow this twin, you are logged out');
                 followBtn.setAttribute('aria-label', 'You cannot follow this twin, you are logged out');
+                followBtn.setAttribute('data-tooltip', 'You cannot follow this twin, you are logged out');
                 followBtn.setAttribute('data-disabled-reason', 'not_logged_in');
             } else if (isOwnTwin) {
                 followBtn.setAttribute('title', 'You cannot follow your own twin');
                 followBtn.setAttribute('aria-label', `Following disabled for @${twinPublicHandle}`);
+                followBtn.setAttribute('data-tooltip', 'You cannot follow your own twin');
                 followBtn.setAttribute('data-disabled-reason', 'own_twin');
             } else {
                 followBtn.setAttribute('title', 'Following is disabled for this twin');
                 followBtn.setAttribute('aria-label', `Following disabled for @${twinPublicHandle}`);
+                followBtn.setAttribute('data-tooltip', 'Following is disabled for this twin');
                 followBtn.setAttribute('data-disabled-reason', 'follows_disabled');
             }
         }
