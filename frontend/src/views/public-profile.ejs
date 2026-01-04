@@ -280,6 +280,8 @@
                                     disabled
                                     title="<%= twin.isOwnTwin ? 'You cannot like your own twin' : 'Liking is disabled for this twin' %>"
                                     data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'likes_disabled' %>"
+                                    data-tooltip="<%= twin.isOwnTwin ? 'You cannot like your own twin' : 'Liking is disabled for this twin' %>"
+                                    aria-label="<%= twin.isOwnTwin ? 'You cannot like your own twin' : 'Liking is disabled for this twin' %>"
                                 <% } %>
                             >
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -1142,8 +1144,9 @@ async function shareTwin(platform) {
                 shareWindow = `https://twitter.com/intent/tweet?text=${encodeURIComponent(content.text)}&url=${encodeURIComponent(shareUrl)}`;
                 break;
             case 'facebook':
-                // Facebook uses quote parameter for description
-                shareWindow = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}${content.description ? '&quote=' + encodeURIComponent(content.description) : ''}`;
+                // ✅ FIX: Facebook sharer only supports 'u' parameter (URL), not 'quote'
+                // Remove quote parameter to fix "Parameter 'href' should represent a valid URL" error
+                shareWindow = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
                 break;
             case 'linkedin':
                 // LinkedIn supports title and summary
@@ -1157,8 +1160,9 @@ async function shareTwin(platform) {
                 break;
         }
         
+        // ✅ FIX: Open in same tab instead of new tab
         if (shareWindow) {
-            window.open(shareWindow, '_blank', 'width=600,height=400');
+            window.location.href = shareWindow;
         }
     } catch (error) {
         ErrorLogger.error('Share error', error, {});

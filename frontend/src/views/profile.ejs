@@ -740,8 +740,8 @@
             window.history.replaceState({}, '', newUrl);
         }
         
-        // ✅ FIX ISSUE 3: Update switchSettingsTab to preserve in URL
-        function switchSettingsTab(tabName) {
+        // ✅ FIX ISSUE 3: Update switchSettingsTab to preserve in URL - Make it global
+        window.switchSettingsTab = function(tabName) {
             // Hide all settings tab contents
             document.querySelectorAll('.settings-tab-content').forEach(content => {
                 content.classList.add('hidden');
@@ -765,6 +765,23 @@
             if (button) {
                 button.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
                 button.classList.add('border-primary', 'text-primary', 'dark:text-blue-400');
+            }
+            
+            // ✅ FIX: Re-initialize theme toggle when appearance tab is shown
+            if (tabName === 'appearance') {
+                // Small delay to ensure DOM is updated
+                setTimeout(() => {
+                    if (typeof window.initThemeToggle === 'function') {
+                        window.initThemeToggle();
+                    } else {
+                        // If function not defined yet, try again
+                        setTimeout(() => {
+                            if (typeof window.initThemeToggle === 'function') {
+                                window.initThemeToggle();
+                            }
+                        }, 100);
+                    }
+                }, 100);
             }
             
             // ✅ FIX ISSUE 3: Update URL with subtab parameter
@@ -1136,9 +1153,23 @@
                 });
             }
 
-            // ✅ FIX 2: Handle file input change to show preview
+            // ✅ FIX 2: Handle file input change to show preview + restore from sessionStorage on load
             const profileImageFile = document.getElementById('profileImageFile');
             if (profileImageFile) {
+                // ✅ FIX: Restore preview from sessionStorage on page load
+                const savedPreview = sessionStorage.getItem('profileImagePreview');
+                if (savedPreview) {
+                    const imageContainer = document.querySelector('.flex-shrink-0');
+                    if (imageContainer) {
+                        const existingImg = imageContainer.querySelector('img');
+                        if (existingImg) {
+                            existingImg.src = savedPreview;
+                        }
+                    }
+                    // Clear after restoring
+                    sessionStorage.removeItem('profileImagePreview');
+                }
+                
                 profileImageFile.addEventListener('change', function(e) {
                     if (e.target.files.length > 0) {
                         // ✅ FIX 3: Show preview immediately
@@ -1585,52 +1616,79 @@
             privacyToggles.forEach(toggle => {
                 toggle.addEventListener('change', checkForChanges);
             });
-
-                        // ✅ FIX: Theme toggle button functionality
-                        const themeToggleBtn = document.getElementById('themeToggleBtn');
-            const themeIconSun = document.getElementById('themeIconSun');
-            const themeIconMoon = document.getElementById('themeIconMoon');
-            
-            function updateThemeIcons() {
-                const currentTheme = localStorage.getItem('theme') || 'light';
-                if (currentTheme === 'dark') {
-                    if (themeIconSun) themeIconSun.classList.remove('hidden');
-                    if (themeIconMoon) themeIconMoon.classList.add('hidden');
-                } else {
-                    if (themeIconSun) themeIconSun.classList.add('hidden');
-                    if (themeIconMoon) themeIconMoon.classList.remove('hidden');
-                }
-            }
-            
-            function toggleTheme() {
-                const currentTheme = localStorage.getItem('theme') || 'light';
-                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                localStorage.setItem('theme', newTheme);
-                
-                if (newTheme === 'dark') {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
-                
-                updateThemeIcons();
-            }
-            
-            if (themeToggleBtn) {
-                // Set initial icon state
-                updateThemeIcons();
-                
-                // Add click listener
-                themeToggleBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    toggleTheme();
-                });
-            }
             
             // Initial check (button should be disabled if no changes)
             checkForChanges();
+        
+        // ✅ FIX: Simple theme toggle - EXACTLY like global toggle (works for ALL users, no twin needed)
+        function initThemeToggle() {
+            const themeToggleBtn = document.getElementById('themeToggleBtn');
+            const themeIconSun = document.getElementById('themeIconSun');
+            const themeIconMoon = document.getElementById('themeIconMoon');
             
-            // ✅ FIX: Add click handler to save button with CORRECT endpoint and format
+            if (!themeToggleBtn || !themeIconSun || !themeIconMoon) {
+                // Button not found yet - retry
+                setTimeout(initThemeToggle, 100);
+                return;
+            }
+            
+            // Check if already initialized
+            if (themeToggleBtn.hasAttribute('data-theme-initialized')) {
+                return;
+            }
+            themeToggleBtn.setAttribute('data-theme-initialized', 'true');
+            
+            // Set initial icon state (like global toggle)
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            if (currentTheme === 'dark') {
+                themeIconSun.classList.remove('hidden');
+                themeIconMoon.classList.add('hidden');
+            } else {
+                themeIconSun.classList.add('hidden');
+                themeIconMoon.classList.remove('hidden');
+            }
+            
+            // Simple toggle function - EXACTLY like global toggle
+            themeToggleBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const html = document.documentElement;
+                const isDark = html.classList.contains('dark');
+                
+                if (isDark) {
+                    html.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                    themeIconSun.classList.add('hidden');
+                    themeIconMoon.classList.remove('hidden');
+                } else {
+                    html.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                    themeIconSun.classList.remove('hidden');
+                    themeIconMoon.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initThemeToggle);
+        } else {
+            initThemeToggle();
+        }
+        
+        // ✅ FIX: Re-initialize when appearance tab is shown
+        const originalSwitchSettingsTab = window.switchSettingsTab;
+        if (typeof originalSwitchSettingsTab === 'function') {
+            window.switchSettingsTab = function(tabName) {
+                originalSwitchSettingsTab(tabName);
+                if (tabName === 'appearance') {
+                    setTimeout(initThemeToggle, 100);
+                }
+            };
+        }
+        
+        // ✅ FIX: Add click handler to save button with CORRECT endpoint and format
             if (savePrivacyBtn && currentTwinId) {
                 savePrivacyBtn.addEventListener('click', async function(e) {
                     e.preventDefault();
@@ -2133,7 +2191,7 @@ if (profileImageFile) {
             reader.readAsDataURL(file);
             // --- preview part yahi tak ---
 
-            // --- ✅ NEW: immediately persist to backend via /upload ---
+            // --- ✅ FIX: immediately persist to backend via /upload and save to formData for form submit ---
             const uploadFormData = new FormData();
             uploadFormData.append('profileImage', file); // NOTE: backend uploadController expects 'profileImage'
 
@@ -2150,6 +2208,12 @@ if (profileImageFile) {
                 if (data && data.success) {
                     // backend already updated User.profileImage
                     showNotification('Profile photo saved!', 'success');
+                    // ✅ FIX: Store uploaded file in sessionStorage to persist after reload
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        sessionStorage.setItem('profileImagePreview', e.target.result);
+                    };
+                    reader.readAsDataURL(file);
                 } else {
                     showNotification(data.error || 'Failed to save profile photo', 'error');
                 }

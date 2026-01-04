@@ -64,12 +64,22 @@ export const handleProfileImageUpload = async (req: Request, res: Response) => {
       // Update user profile with new image path
       const imagePath = `/uploads/profiles/${req.file.filename}`;
       
+      // ✅ FIX: Convert dob to string if it's a Date object (dob.trim is not a function error)
+      let dobString = '';
+      if (currentUser.dob) {
+        if (currentUser.dob instanceof Date) {
+          dobString = currentUser.dob.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        } else if (typeof currentUser.dob === 'string') {
+          dobString = currentUser.dob;
+        }
+      }
+      
       // ✅ SIMPLE: Sirf DB update, extra logs / fs checks hata diye
       await userQueries.updateProfile(
         req.user.email,
         currentUser.name || '',
         currentUser.handle || '',
-        currentUser.dob || '',
+        dobString,
         currentUser.phone || '',
         currentUser.bio || '',
         imagePath

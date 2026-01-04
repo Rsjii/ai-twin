@@ -667,12 +667,24 @@ async function downvoteResponse(responseId) {
         function copyResponse(responseId) {
             const responseElement = document.getElementById(responseId);
             if (responseElement) {
-                // Get only the main content, not the timestamp
-                const contentDiv = responseElement.querySelector('.bg-white.border, .message-content, .response-content');
-                let text = contentDiv ? contentDiv.textContent : responseElement.textContent;
+                // ✅ FIX: Get only the main content, not the timestamp
+                // Find the message text element (p tag with message content)
+                const messageText = responseElement.querySelector('p.text-sm');
+                let text = messageText ? messageText.textContent : '';
                 
-                // Remove timestamp if it exists (format: 7:39:43 PM)
+                // ✅ FIX: Remove any timestamp patterns (time formats and "ago" patterns)
                 text = text.replace(/\d{1,2}:\d{2}:\d{2} [AP]M/g, '').trim();
+                text = text.replace(/\d+\s*(min|mins|minute|minutes|hour|hours|day|days|week|weeks|month|months|year|years)\s*ago/gi, '').trim();
+                text = text.replace(/Just now/gi, '').trim();
+                
+                if (!text) {
+                    // Fallback: get all text and remove timestamp elements
+                    text = responseElement.textContent || '';
+                    // Remove timestamp patterns
+                    text = text.replace(/\d{1,2}:\d{2}:\d{2} [AP]M/g, '').trim();
+                    text = text.replace(/\d+\s*(min|mins|minute|minutes|hour|hours|day|days|week|weeks|month|months|year|years)\s*ago/gi, '').trim();
+                    text = text.replace(/Just now/gi, '').trim();
+                }
                 
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(text).then(() => {
@@ -691,24 +703,61 @@ async function downvoteResponse(responseId) {
         function shareResponse(responseId) {
             const responseElement = document.getElementById(responseId);
             if (responseElement) {
-                const contentDiv = responseElement.querySelector('.bg-white.border, .message-content, .response-content');
-                let text = contentDiv ? contentDiv.textContent : responseElement.textContent;
+                // ✅ FIX: Get only the message text from <p class="text-sm"> element
+                // The timestamp is in a separate div, so p.text-sm should only have message
+                const messageTextEl = responseElement.querySelector('p.text-sm');
+                let text = '';
                 
-                // Remove timestamp if it exists
+                if (messageTextEl) {
+                    text = messageTextEl.textContent || messageTextEl.innerText || '';
+                } else {
+                    // Fallback: find message content div and get first p tag
+                    const contentDiv = responseElement.querySelector('.bg-white.border, .message-content, .response-content, [class*="max-w"]');
+                    if (contentDiv) {
+                        const firstP = contentDiv.querySelector('p');
+                        text = firstP ? (firstP.textContent || firstP.innerText || '') : '';
+                    }
+                }
+                
+                // ✅ FIX: Remove all timestamp patterns including "ago" text
+                text = text.trim();
                 text = text.replace(/\d{1,2}:\d{2}:\d{2} [AP]M/g, '').trim();
+                text = text.replace(/\d+\s*(min|mins|minute|minutes|hour|hours|day|days|week|weeks|month|months|year|years)\s*ago/gi, '').trim();
+                text = text.replace(/Just now/gi, '').trim();
+                
+                if (!text) {
+                    showNotification('Could not find message to share', 'error');
+                    return;
+                }
+                
+                // ✅ FIX: Use public profile link instead of chat link
+                const userHandle = '<%= typeof user !== "undefined" && user && user.handle ? user.handle : "" %>';
+                const profileUrl = userHandle ? `${window.location.origin}/@${userHandle}` : window.location.href;
+                const shareText = `💬 Check out this amazing response from my Twin!\n\n"${text}"\n\n✨ Chat with this Twin: ${profileUrl}`;
                 
                 if (navigator.share) {
                     navigator.share({
                         title: 'Twin Response',
-                        text: text,
-                        url: window.location.href
-                    }).then(() => {
-                        showNotification('Response shared! 📤', 'success');
+                        text: shareText
                     }).catch(() => {
-                        fallbackShare(text);
+                        // Fallback: copy message + link to clipboard
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(shareText).catch(() => {
+                                fallbackShare(shareText);
+                            });
+                        } else {
+                            fallbackShare(shareText);
+                        }
                     });
                 } else {
-                    fallbackShare(text);
+                    // Fallback: copy message + link to clipboard
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(shareText).catch(() => {
+                            fallbackShare(shareText);
+                        });
+                    } else {
+                        fallbackShare(shareText);
+                    }
                 }
             } else {
                 showNotification('Could not find response to share', 'error');
@@ -937,8 +986,10 @@ async function regenerateResponse(responseId) {
 
         // Helper functions
         function fallbackCopyTextToClipboard(text) {
-            // Remove timestamp if it exists
-            const cleanText = text.replace(/\d{1,2}:\d{2}:\d{2} [AP]M/g, '').trim();
+            // ✅ FIX: Remove timestamp patterns including "ago" text
+            let cleanText = text.replace(/\d{1,2}:\d{2}:\d{2} [AP]M/g, '').trim();
+            cleanText = cleanText.replace(/\d+\s*(min|mins|minute|minutes|hour|hours|day|days|week|weeks|month|months|year|years)\s*ago/gi, '').trim();
+            cleanText = cleanText.replace(/Just now/gi, '').trim();
             
             const textArea = document.createElement("textarea");
             textArea.value = cleanText;
@@ -960,13 +1011,13 @@ async function regenerateResponse(responseId) {
         }
         
         function fallbackShare(text) {
-            // Remove timestamp if it exists
-            const cleanText = text.replace(/\d{1,2}:\d{2}:\d{2} [AP]M/g, '').trim();
+            // ✅ FIX: Remove timestamp patterns including "ago" text
+            let cleanText = text.replace(/\d{1,2}:\d{2}:\d{2} [AP]M/g, '').trim();
+            cleanText = cleanText.replace(/\d+\s*(min|mins|minute|minutes|hour|hours|day|days|week|weeks|month|months|year|years)\s*ago/gi, '').trim();
+            cleanText = cleanText.replace(/Just now/gi, '').trim();
             
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(cleanText).then(() => {
-                    showNotification('Response copied to clipboard for sharing! 📤', 'success');
-                });
+                navigator.clipboard.writeText(cleanText);
             } else {
                 showNotification('Share feature not available on this device', 'error');
             }
