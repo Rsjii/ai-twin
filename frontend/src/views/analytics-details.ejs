@@ -160,6 +160,14 @@ async function loadData() {
                         el.title = TimeUtils.formatFullDateTime(el.dataset.timestamp);
                     }
                 });
+                
+                // ✅ FIX: Re-run relative time formatting for chatters (last chat time)
+                document.querySelectorAll('.analytics-date-relative').forEach(el => {
+                    if (el.dataset.timestamp && window.TimeUtils) {
+                        el.textContent = TimeUtils.formatRelativeTime(el.dataset.timestamp);
+                        el.title = TimeUtils.formatFullDateTime(el.dataset.timestamp);
+                    }
+                });
             } else {
                 // Failed to load data
                 if (dataList) {
@@ -256,9 +264,10 @@ document.addEventListener('DOMContentLoaded', function() {
         clearBtn.addEventListener('click', clearSearch);
     }
     
-    if (exportCSVBtn) {
-        exportCSVBtn.addEventListener('click', exportAnalyticsCSV);
-    }
+    // ✅ v2 feature - export functionality commented out for now
+    // if (exportCSVBtn) {
+    //     exportCSVBtn.addEventListener('click', exportAnalyticsCSV);
+    // }
     
 
     // ✅ FIX: Event delegation for twin profile clicks - REMOVED

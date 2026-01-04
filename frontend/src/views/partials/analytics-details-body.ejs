@@ -15,6 +15,7 @@
                        aria-label="Back to Analytics">
                         ← Back to Analytics
                     </a>
+                    <% /* v2 feature - export functionality commented out for now
                     <button
                        type="button"
                        id="exportCSVBtn"
@@ -22,6 +23,7 @@
                        aria-label="Export CSV">
                         Export CSV
                     </button>
+                    */ %>
                 </div>
             </div>
         </div>
@@ -73,17 +75,18 @@
                         const isAnonymous = item.isAnonymous || item.handle === 'anonymous';
                         const displayName = isAnonymous ? 'Anonymous Users' : (item.name || item.handle);
                         %>
-                        <div class="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors <%= isAnonymous ? 'bg-gray-50 dark:bg-gray-800/50' : '' %> user-profile-item"
+                        <div class="p-3 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors <%= isAnonymous ? 'bg-gray-50 dark:bg-gray-800/50' : '' %> user-profile-item"
                              data-user-handle="<%= item.handle %>"
                              <% if (isAnonymous) { %>data-is-anonymous="true"<% } %>>
-                            <div class="flex items-center justify-between gap-3">
-                                <div class="flex items-start sm:items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
-                                    <!-- Avatar: only clickable for logged in users, not anonymous -->
+                            <div class="flex items-center justify-between gap-2 sm:gap-3">
+                                <div class="flex items-start sm:items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
+                                    <!-- Avatar: non-clickable for like/follow types, clickable link for chatters -->
                                     <% if (isAnonymous) { %>
                                         <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-gray-700 dark:text-gray-300 font-bold text-base sm:text-lg overflow-hidden flex-shrink-0">
                                             <span class="text-lg sm:text-xl">👤</span>
                                         </div>
-                                    <% } else { %>
+                                    <% } else if (type === 'chatters') { %>
+                                        <!-- For chatters: avatar is clickable link -->
                                         <a href="/@<%= item.handle %>" 
                                            class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg overflow-hidden flex-shrink-0 no-underline hover:opacity-90 transition-opacity"
                                            aria-label="View profile">
@@ -96,13 +99,25 @@
                                                 <span><%= item.name ? item.name.charAt(0).toUpperCase() : (item.handle ? item.handle.charAt(0).toUpperCase() : 'U') %></span>
                                             <% } %>
                                         </a>
+                                    <% } else { %>
+                                        <!-- For like/follow: avatar is non-clickable div -->
+                                        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg overflow-hidden flex-shrink-0">
+                                            <% if (item.profileImage) { %>
+                                                <img src="<%= item.profileImage %>" 
+                                                     alt="<%= displayName %>" 
+                                                     class="w-full h-full rounded-full object-cover" 
+                                                     loading="lazy">
+                                            <% } else { %>
+                                                <span><%= item.name ? item.name.charAt(0).toUpperCase() : (item.handle ? item.handle.charAt(0).toUpperCase() : 'U') %></span>
+                                            <% } %>
+                                        </div>
                                     <% } %>
                                     <div class="flex-1 min-w-0 overflow-hidden">
                                         <h3 class="font-semibold text-gray-900 dark:text-white truncate text-sm sm:text-base">
                                             <%= displayName %>
                                         </h3>
                                         <% if (type === 'chatters') { %>
-                                        <div class="flex flex-wrap items-center gap-1.5 sm:gap-3 sm:gap-4 mt-1 sm:mt-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                                        <div class="flex flex-wrap items-center gap-1 sm:gap-2 sm:gap-3 mt-1 sm:mt-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
                                             <span class="whitespace-nowrap">📊 <strong><%= item.chatCount || 0 %></strong> chats</span>
                                             <span class="whitespace-nowrap">💬 <strong><%= item.messageCount || 0 %></strong> messages</span>
                                             <% if (item.lastChatAt) { %>
@@ -124,11 +139,11 @@
                                         <% } %>
                                     </div>
                                 </div>
-                                <!-- View button: right side -->
+                                <!-- View button: for chatters and like/follow types -->
                                      <% if (isAnonymous && type === 'chatters') { %>
                                         <div class="flex items-center justify-end flex-shrink-0">
                                             <a href="/public-chat-history?view=chat&participantType=anonymous"
-                                               class="w-full sm:w-auto sm:min-w-[120px] px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs sm:text-sm font-medium min-h-[44px] touch-manipulation no-underline flex items-center justify-center"
+                                               class="w-full sm:w-auto sm:min-w-[100px] px-3 sm:px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs sm:text-sm font-medium min-h-[44px] touch-manipulation no-underline flex items-center justify-center"
                                                aria-label="View anonymous chats">
                                                <span class="sm:hidden">View</span>
                                                <span class="hidden sm:inline">View All Chats</span>                                        
@@ -137,16 +152,17 @@
                                      <% } else if (!isAnonymous && type === 'chatters') { %>
                                         <div class="flex items-center justify-end flex-shrink-0">
                                             <a href="/public-chat-history?view=user&userId=<%= item.publicUserId || item.id %>"
-                                               class="w-full sm:w-auto sm:min-w-[120px] px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs sm:text-sm font-medium min-h-[44px] touch-manipulation no-underline flex items-center justify-center"
+                                               class="w-full sm:w-auto sm:min-w-[100px] px-3 sm:px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs sm:text-sm font-medium min-h-[44px] touch-manipulation no-underline flex items-center justify-center"
                                                aria-label="View all chats">
                                                <span class="sm:hidden">View</span>
                                                <span class="hidden sm:inline">View All Chats</span>                                        
                                             </a>
                                         </div>
-                                     <% } else if (!isAnonymous) { %>
+                                     <% } else if (!isAnonymous && (type === 'likers' || type === 'followers')) { %>
+                                        <!-- View button for like/follow types: "View" on mobile, "View Profile" on desktop -->
                                         <div class="flex items-center justify-end flex-shrink-0">
                                             <a href="/@<%= item.handle %>"
-                                               class="w-full sm:w-auto sm:min-w-[120px] px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs sm:text-sm font-medium min-h-[44px] touch-manipulation no-underline flex items-center justify-center"
+                                               class="w-full sm:w-auto sm:min-w-[100px] px-3 sm:px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs sm:text-sm font-medium min-h-[44px] touch-manipulation no-underline flex items-center justify-center"
                                                aria-label="View profile">
                                                <span class="sm:hidden">View</span>
                                                <span class="hidden sm:inline">View Profile</span>                                        

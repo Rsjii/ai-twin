@@ -306,13 +306,26 @@ if (elements.chartContainer) {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: true, position: 'top' },
+                        legend: { 
+                            display: true, 
+                            position: 'top',
+                            // ✅ FIX: Disable legend click to prevent deselection (MVP requirement)
+                            // Legend is for display only, not interactive - clicking won't hide/show dataset
+                            onClick: () => {
+                                // Do nothing - prevent default legend click behavior
+                                return false;
+                            }
+                        },
                         tooltip: { enabled: true }
                     },
                     scales: {
                         y: {
                             beginAtZero: true
                         }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
                     }
                 }
             });
