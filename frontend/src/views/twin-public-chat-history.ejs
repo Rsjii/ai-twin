@@ -373,27 +373,85 @@
                 return;
             }
 
-            container.innerHTML = chats.map(chat => `
+            container.innerHTML = chats.map(chat => {
+                const handle = chat.user?.handle || 'unknown';
+                const truncatedHandle = handle.length > 15 ? handle.substring(0, 15) + '...' : handle;
+                
+                return `
                 <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-6">
-                    <div class="flex items-start justify-between mb-4">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-3 mb-2">
+                    <!-- Mobile: Top div with icon, name, handle, and View Chat button -->
+                    <div class="flex flex-col sm:hidden mb-4">
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
                                 ${chat.user ? `
-                                    <a href="/@${escapeHtml(chat.user.handle || 'unknown')}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                                    <a href="/@${escapeHtml(handle)}" class="flex items-center gap-2 hover:opacity-80 transition-opacity flex-1 min-w-0">
                                         ${chat.user.profileImage ? `
-                                            <img src="${escapeHtml(chat.user.profileImage)}" alt="${escapeHtml(chat.user.name || chat.user.handle)}" class="w-10 h-10 rounded-full">
+                                            <img src="${escapeHtml(chat.user.profileImage)}" alt="${escapeHtml(chat.user.name || handle)}" class="w-10 h-10 rounded-full flex-shrink-0">
                                         ` : `
-                                            <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                                <span class="text-primary font-semibold">${escapeHtml((chat.user.name || chat.user.handle || 'U').charAt(0).toUpperCase())}</span>
+                                            <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                                <span class="text-primary font-semibold">${escapeHtml((chat.user.name || handle || 'U').charAt(0).toUpperCase())}</span>
                                             </div>
                                         `}
-                                        <div>
-                                            <h3 class="font-semibold text-gray-900 dark:text-white">${escapeHtml(chat.user.name || chat.user.handle || 'Unknown User')}</h3>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">@${escapeHtml(chat.user.handle || 'unknown')}</p>
+                                        <div class="min-w-0 flex-1">
+                                            <h3 class="font-semibold text-gray-900 dark:text-white truncate">${escapeHtml(chat.user.name || handle || 'Unknown User')}</h3>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">@${escapeHtml(truncatedHandle)}</p>
                                         </div>
                                     </a>
                                 ` : `
-                                    <!-- Anonymous user -->
+                                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                                        <div class="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
+                                            <span class="text-gray-600 dark:text-gray-300 font-semibold">?</span>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <h3 class="font-semibold text-gray-900 dark:text-white truncate">Anonymous User</h3>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Visitor ID: ${escapeHtml(chat.visitorId?.substring(0, 8) || 'unknown')}</p>
+                                        </div>
+                                    </div>
+                                `}
+                            </div>
+                            <a 
+                                href="/public-chat-history/view/${chat.publicId}" 
+                                class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors whitespace-nowrap text-center flex-shrink-0"
+                            >
+                                View Chat
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Mobile: 2nd div with total messages, last time message -->
+                    <div class="flex flex-col sm:hidden mb-3">
+                        <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span>${chat.messageCount} messages</span>
+                            ${chat.lastMessage ? `
+                                <span>•</span>
+                                <span class="timestamp-display" data-timestamp="${chat.lastMessage.createdAt}" data-format="relative"></span>                                    
+                            ` : ''}
+                        </div>
+                        ${chat.lastMessage ? `
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">${escapeHtml(chat.lastMessage.content)}</p>
+                        ` : ''}
+                    </div>
+                    
+                    <!-- Desktop: Original layout -->
+                    <div class="hidden sm:block">
+                        <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                ${chat.user ? `
+                                    <a href="/@${escapeHtml(handle)}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                                        ${chat.user.profileImage ? `
+                                            <img src="${escapeHtml(chat.user.profileImage)}" alt="${escapeHtml(chat.user.name || handle)}" class="w-10 h-10 rounded-full">
+                                        ` : `
+                                            <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                                                <span class="text-primary font-semibold">${escapeHtml((chat.user.name || handle || 'U').charAt(0).toUpperCase())}</span>
+                                            </div>
+                                        `}
+                                        <div>
+                                            <h3 class="font-semibold text-gray-900 dark:text-white">${escapeHtml(chat.user.name || handle || 'Unknown User')}</h3>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">@${escapeHtml(handle)}</p>
+                                        </div>
+                                    </a>
+                                ` : `
                                     <div class="flex items-center gap-2">
                                         <div class="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
                                             <span class="text-gray-600 dark:text-gray-300 font-semibold">?</span>
@@ -416,29 +474,19 @@
                                 <p class="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">${escapeHtml(chat.lastMessage.content)}</p>
                             ` : ''}
                         </div>
-                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <div class="flex justify-end">
                             <a 
                                 href="/public-chat-history/view/${chat.publicId}" 
-                                class="w-full sm:w-auto px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors whitespace-nowrap text-center"
+                                class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors whitespace-nowrap text-center"
                             >
                                 View Chat
                             </a>
-                            <!-- V2: Re-enable delete functionality for owners -->
-                            <!--
-                            <button 
-                                id="deleteChatBtn_${chat.publicId}"
-                                class="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
-                                title="Delete Chat"
-                            >
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                            </button>
-                            -->
+                        </div>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
             
             // Format timestamps
             if (window.TimeUtils) {

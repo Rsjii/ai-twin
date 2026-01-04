@@ -26,7 +26,7 @@
                     <p class="text-gray-600 dark:text-gray-300 text-sm">Read-only view of public chat</p>
                 </div>
                 <a href="/public-chat-history" class="w-full sm:w-auto inline-flex justify-center px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
-                    Back to Manage
+                    Back to Chat History
                 </a>
             </div>
         </div>
@@ -107,7 +107,7 @@
                     </div>
                     <div class="text-right">
                         <p class="text-sm text-gray-600 dark:text-gray-400">${chat.messageCount} messages</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-500 timestamp-display" data-timestamp="${chat.createdAt}" data-format="date"></p>                        
+                        <p class="text-xs text-gray-500 dark:text-gray-500 timestamp-display" data-timestamp="${chat.createdAt}" data-format="relative"></p>                        
                     </div>
                 </div>
             `;
@@ -116,11 +116,14 @@
             if (window.TimeUtils) {
                 container.querySelectorAll('.timestamp-display').forEach(el => {
                     const timestamp = el.dataset.timestamp;
-                    const format = el.dataset.format || 'smart';
+                    const format = el.dataset.format || 'relative';
                     if (timestamp) {
                         try {
                             let displayTime, fullTime;
-                            if (format === 'date') {
+                            if (format === 'relative') {
+                                displayTime = window.TimeUtils.formatRelativeTime(timestamp);
+                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                            } else if (format === 'date') {
                                 displayTime = window.TimeUtils.formatDateOnly(timestamp);
                                 fullTime = window.TimeUtils.formatFullDateTime(timestamp);
                             } else {
@@ -164,7 +167,7 @@
                             ? 'bg-blue-600 text-white' 
                             : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border dark:border-gray-700'
                     }">
-                        <p class="text-sm break-words text-gray-800 dark:text-gray-100" id="${messageId}-content">${escapeHtml(truncatedContent)}</p>                        
+                        <p class="text-sm break-words ${msg.sender === 'human' ? 'text-white' : 'text-gray-800 dark:text-gray-100'}" id="${messageId}-content">${escapeHtml(truncatedContent)}</p>                        
                         ${isLong ? `
                             <button 
                                 id="${messageId}-expand-btn"
@@ -175,7 +178,7 @@
                                 Read more
                             </button>
                         ` : ''}
-                        <p class="text-xs mt-1 opacity-70 timestamp-display" data-timestamp="${msg.createdAt}" data-relative-time="${escapeHtml(msg.relativeTime || '')}" data-format="context"></p>
+                        <p class="text-xs mt-1 opacity-70 timestamp-display" data-timestamp="${msg.createdAt}" data-relative-time="${escapeHtml(msg.relativeTime || '')}" data-format="relative"></p>
                     </div>
                 </div>
             `;
@@ -206,23 +209,20 @@
                     if (timestamp) {
                         try {
                             let displayTime, fullTime;
-                            if (format === 'context') {
-                                // ✅ FIX: Use backend relativeTime if available, otherwise format client-side
+                            if (format === 'relative') {
+                                // ✅ Always use relative format
                                 if (backendRelativeTime) {
                                     displayTime = backendRelativeTime;
                                 } else {
-                                    displayTime = window.TimeUtils.formatTimeWithContext(timestamp);
+                                    displayTime = window.TimeUtils.formatRelativeTime(timestamp);
                                 }
                                 fullTime = window.TimeUtils.formatFullDateTime(timestamp);
-                            } else if (format === 'date') {
-                                displayTime = window.TimeUtils.formatDateOnly(timestamp);
-                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
                             } else {
-                                // ✅ FIX: Use backend relativeTime if available for smart format
+                                // Fallback to relative if format not recognized
                                 if (backendRelativeTime) {
                                     displayTime = backendRelativeTime;
                                 } else {
-                                    displayTime = window.TimeUtils.formatSmartTime(timestamp);
+                                    displayTime = window.TimeUtils.formatRelativeTime(timestamp);
                                 }
                                 fullTime = window.TimeUtils.formatFullDateTime(timestamp);
                             }

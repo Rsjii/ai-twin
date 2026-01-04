@@ -684,15 +684,30 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900 p-3 sm:p-4 md:p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all duration-300 cursor-pointer" 
      id="topChatsCard"
      <% if (twin) { %>data-twin-id="<%= twin.publicId || twinPublicId %>" data-list-type="chatters"<% } %>>                
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Messages</p>
-                        <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white"><%= stats?.totalChats || 0 %></p>
+                <!-- Mobile: Split layout -->
+                <div class="flex flex-col sm:hidden">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">Total Messages</p>
+                    <div class="flex items-center justify-between">
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats?.totalChats || 0 %></p>
+                        <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                        </svg>
+                </div>
+                <!-- Desktop: Original layout -->
+                <div class="hidden sm:block">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Messages</p>
+                            <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white"><%= stats?.totalChats || 0 %></p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -701,15 +716,30 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900 p-3 sm:p-4 md:p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] hover:bg-red-50/50 dark:hover:bg-red-900/20 transition-all duration-300 cursor-pointer" 
      id="topLikesCard"
      <% if (twin) { %>data-twin-id="<%= twin.publicId || twinPublicId %>" data-list-type="likers"<% } %>>                
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Likes</p>
-                        <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white"><%= stats?.totalLikes || 0 %></p>
+                <!-- Mobile: Split layout -->
+                <div class="flex flex-col sm:hidden">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">Total Likes</p>
+                    <div class="flex items-center justify-between">
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats?.totalLikes || 0 %></p>
+                        <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                        </svg>
+                </div>
+                <!-- Desktop: Original layout -->
+                <div class="hidden sm:block">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Likes</p>
+                            <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white"><%= stats?.totalLikes || 0 %></p>
+                        </div>
+                        <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-6 h-6 text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -718,15 +748,30 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900 p-4 sm:p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] hover:bg-green-50/50 dark:hover:bg-green-900/20 transition-all duration-300 cursor-pointer" 
             id="topFollowersCard"
             <% if (twin) { %>data-twin-id="<%= twin.publicId || twinPublicId %>" data-list-type="followers"<% } %>>                
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Followers</p>
-                        <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white"><%= stats?.totalFollowers || 0 %></p>
+                <!-- Mobile: Split layout -->
+                <div class="flex flex-col sm:hidden">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">Total Followers</p>
+                    <div class="flex items-center justify-between">
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats?.totalFollowers || 0 %></p>
+                        <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
+                </div>
+                <!-- Desktop: Original layout -->
+                <div class="hidden sm:block">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Followers</p>
+                            <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white"><%= stats?.totalFollowers || 0 %></p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-6 h-6 text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -735,16 +780,32 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900 p-3 sm:p-4 md:p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:scale-[1.02] hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-all duration-300 cursor-pointer" 
      id="topViewsCard"
      <% if (twin) { %>data-twin-id="<%= twin.publicId || twinPublicId %>" data-list-type="viewers"<% } %>>                
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Views</p>
-                        <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white"><%= stats?.totalViews || 0 %></p>
+                <!-- Mobile: Split layout -->
+                <div class="flex flex-col sm:hidden">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">Total Views</p>
+                    <div class="flex items-center justify-between">
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats?.totalViews || 0 %></p>
+                        <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                        </svg>
+                </div>
+                <!-- Desktop: Original layout -->
+                <div class="hidden sm:block">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Views</p>
+                            <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white"><%= stats?.totalViews || 0 %></p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-6 h-6 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>

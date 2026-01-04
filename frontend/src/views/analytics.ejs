@@ -197,9 +197,20 @@ const twinIdValue = typeof userTwinId !== 'undefined' && userTwinId ? userTwinId
             const chats = Number.isInteger(data.analytics.totalChats) ? data.analytics.totalChats : 0;
 
             if (elements.totalViews) elements.totalViews.textContent = views;
+            const totalViewsDesktop = document.getElementById('totalViewsDesktop');
+            if (totalViewsDesktop) totalViewsDesktop.textContent = views;
+            
             if (elements.totalLikes) elements.totalLikes.textContent = likes;
+            const totalLikesDesktop = document.getElementById('totalLikesDesktop');
+            if (totalLikesDesktop) totalLikesDesktop.textContent = likes;
+            
             if (elements.totalFollowers) elements.totalFollowers.textContent = followers;
+            const totalFollowersDesktop = document.getElementById('totalFollowersDesktop');
+            if (totalFollowersDesktop) totalFollowersDesktop.textContent = followers;
+            
             if (elements.totalChats) elements.totalChats.textContent = chats;
+            const totalChatsDesktop = document.getElementById('totalChatsDesktop');
+            if (totalChatsDesktop) totalChatsDesktop.textContent = chats;
 
             if (views === 0 && likes === 0 && followers === 0 && chats === 0) {
                 showOverviewEmpty();

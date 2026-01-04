@@ -267,7 +267,7 @@
 
     <!-- Memory (Facts & Preferences) -->
     <section id="memorySection" class="mb-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg dark:shadow-gray-900 border border-white/20 dark:border-gray-700 p-4 sm:p-6">
-      <div class="flex items-center justify-between gap-2 mb-4">
+      <div class="mb-4">
         <div>
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
@@ -275,10 +275,6 @@
           </h2>
           <p class="text-xs text-gray-500 dark:text-gray-400">Manage what your twin knows about you and what it shares publicly.</p>
         </div>
-        <button id="openMemoryManagerBtn" type="button"
-          class="inline-flex justify-center px-4 py-2 bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors min-h-[44px] items-center text-sm font-medium">
-          View all
-        </button>
       </div>
 
       <div class="mt-3 space-y-3">
@@ -299,10 +295,13 @@
 
       <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between gap-2">
-          <p class="text-sm font-semibold text-gray-900 dark:text-white">Quick preview</p>
-          <button id="refreshMemoryPreviewBtn" type="button"
+          <div>
+            <p class="text-sm font-semibold text-gray-900 dark:text-white">Quick preview</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Shows facts and preferences only (not editable here)</p>
+          </div>
+          <button id="openMemoryManagerBtn" type="button"
             class="inline-flex justify-center px-3 py-2 bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-[36px] items-center text-xs font-medium">
-            Refresh
+            View all
           </button>
         </div>
         <ul id="memoryBullets" class="mt-2 list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
@@ -378,8 +377,8 @@
   <%- include('partials/modal-helpers') %>
 
   <!-- Memory Manager Modal (custom UI, uses same visual language) -->
-  <div id="memModalBackdrop" class="fixed inset-0 bg-black/50 hidden z-[9999] items-center justify-center overflow-hidden">
-    <div id="memModalShell" class="relative bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full mx-4 p-4 sm:p-6 shadow-2xl border border-gray-200 dark:border-gray-700 h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+  <div id="memModalBackdrop" class="fixed inset-0 bg-black/50 hidden z-[9999] items-center justify-center overflow-hidden p-2 sm:p-4">
+    <div id="memModalShell" class="relative bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full p-4 sm:p-6 shadow-2xl border border-gray-200 dark:border-gray-700 h-[90vh] max-h-[90vh] overflow-hidden flex flex-col max-w-[calc(100vw-1rem)] sm:max-w-3xl">
       <div class="flex items-start justify-between gap-3">
         <div>
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Manage memories</h3>
@@ -395,7 +394,7 @@
       <div class="mt-4 flex flex-col gap-2">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <!-- Mobile: Tabs + Search in one row -->
-          <div class="flex flex-row items-center gap-2 flex-1 md:flex-initial">
+          <div class="flex flex-row items-center gap-2 flex-1 md:flex-initial min-w-0">
             <div class="inline-flex rounded-xl bg-gray-100 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 p-1 shrink-0">
               <button id="memTabFact" type="button"
                 class="px-2 sm:px-3 py-2 text-xs sm:text-sm rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm">
@@ -409,7 +408,7 @@
 
             <input id="memSearchInput" type="text"
               placeholder="Search…"
-              class="flex-1 px-2 sm:px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-xs sm:text-sm text-gray-900 dark:text-white min-h-[44px]" />
+              class="flex-1 min-w-0 px-2 sm:px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 text-xs sm:text-sm text-gray-900 dark:text-white min-h-[44px]" />
           </div>
 
           <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 sm:justify-end">
@@ -713,7 +712,13 @@
         return;
       }
 
-      const bullets = safe.slice(0, 5).map(m => {
+      // ✅ Filter to only show facts and preferences (exclude interest/context)
+      const filtered = safe.filter(m => {
+        const cat = (m.category || 'fact');
+        return cat === 'fact' || cat === 'preference';
+      });
+      
+      const bullets = filtered.slice(0, 5).map(m => {
         const cat = (m.category || 'fact');
         const vis = (m.visibility || 'owner');
         const tag = vis === 'public_twin' ? 'Public' : 'Private';
@@ -1172,11 +1177,14 @@
                 </div>
               </div>
 
-              <textarea
-                class="memEdit w-full text-xs sm:text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-1.5 sm:px-2 py-1 text-gray-900 dark:text-white resize-none leading-tight"
-                rows="1"
-                maxlength="120"
-              >${escapeHtml(value)}</textarea>
+              <div class="overflow-x-auto sm:overflow-visible -mx-1.5 sm:mx-0">
+                <textarea
+                  class="memEdit w-full text-xs sm:text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-1.5 sm:px-2 py-1 text-gray-900 dark:text-white resize-none leading-tight whitespace-nowrap sm:whitespace-normal"
+                  rows="1"
+                  maxlength="120"
+                  style="min-width: max-content;"
+                >${escapeHtml(value)}</textarea>
+              </div>
             </div>
           </div>
         `;
@@ -1188,9 +1196,21 @@
         const delBtn = row.querySelector('.memDelIcon');
         const badgeEl = row.querySelector('.memVisibilityBadge'); // Badge showing Public/Private
 
-        // Expand textarea on focus to avoid clutter but allow editing
-        editEl?.addEventListener('focus', () => { editEl.rows = 3; });
-        editEl?.addEventListener('blur', () => { editEl.rows = 1; });
+        // ✅ Mobile: Keep single line with horizontal scroll; Desktop: Expand on focus
+        const isMobile = window.innerWidth < 640; // sm breakpoint
+        if (!isMobile) {
+          editEl?.addEventListener('focus', () => { 
+            editEl.rows = 3; 
+            editEl.classList.remove('whitespace-nowrap');
+            editEl.classList.add('whitespace-normal');
+          });
+          editEl?.addEventListener('blur', () => { 
+            editEl.rows = 1; 
+            editEl.classList.remove('whitespace-normal');
+            editEl.classList.add('whitespace-nowrap');
+          });
+        }
+        // Mobile: Always keep single line with horizontal scroll (handled by CSS classes)
 
         // Dirty tracking (save only)
         let originalValue = String(value || '');
@@ -1851,10 +1871,6 @@
       document.getElementById('memAddBtn')?.addEventListener('click', (e) => {
         e.preventDefault();
         addMemoryFromModal();
-      });
-      document.getElementById('refreshMemoryPreviewBtn')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        loadMemoryPreviewFromLTM();
       });
     }
 

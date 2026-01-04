@@ -15,57 +15,117 @@
         <!-- Overview Cards Container -->
         <div id="overviewContainer" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
-                <div class="flex items-center">
-                    <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                        <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                        </svg>
+                <!-- Mobile: Split layout -->
+                <div class="flex flex-col sm:hidden">
+                    <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">Total Views</p>
+                    <div class="flex items-center justify-between">
+                        <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white" id="totalViews">-</p>
+                        <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="ml-4 min-w-0 flex-1">
-                        <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 line-clamp-2 sm:truncate">Total Views</p>
-                        <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white truncate" id="totalViews">-</p>
+                </div>
+                <!-- Desktop: Original layout -->
+                <div class="hidden sm:block">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4 min-w-0 flex-1">
+                            <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 line-clamp-2 sm:truncate">Total Views</p>
+                            <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white truncate" id="totalViewsDesktop">-</p>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
-                <div class="flex items-center">
-                    <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                        <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                        </svg>
+                <!-- Mobile: Split layout -->
+                <div class="flex flex-col sm:hidden">
+                    <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">Total Likes</p>
+                    <div class="flex items-center justify-between">
+                        <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white" id="totalLikes">-</p>
+                        <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                            <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="ml-4 min-w-0 flex-1">
-                        <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 line-clamp-2 sm:truncate">Total Likes</p>
-                        <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white truncate" id="totalLikes">-</p>
+                </div>
+                <!-- Desktop: Original layout -->
+                <div class="hidden sm:block">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                            <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4 min-w-0 flex-1">
+                            <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 line-clamp-2 sm:truncate">Total Likes</p>
+                            <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white truncate" id="totalLikesDesktop">-</p>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
-                <div class="flex items-center">
-                    <div class="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                        <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
+                <!-- Mobile: Split layout -->
+                <div class="flex flex-col sm:hidden">
+                    <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">Total Followers</p>
+                    <div class="flex items-center justify-between">
+                        <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white" id="totalFollowers">-</p>
+                        <div class="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                            <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="ml-4 min-w-0 flex-1">
-                        <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 line-clamp-2 sm:truncate">Total Followers</p>
-                        <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white truncate" id="totalFollowers">-</p>
+                </div>
+                <!-- Desktop: Original layout -->
+                <div class="hidden sm:block">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                            <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4 min-w-0 flex-1">
+                            <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 line-clamp-2 sm:truncate">Total Followers</p>
+                            <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white truncate" id="totalFollowersDesktop">-</p>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 sm:p-6">
-                <div class="flex items-center">
-                    <div class="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                        <svg class="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                        </svg>
+                <!-- Mobile: Split layout -->
+                <div class="flex flex-col sm:hidden">
+                    <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">Total Messages</p>
+                    <div class="flex items-center justify-between">
+                        <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white" id="totalChats">-</p>
+                        <div class="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                            <svg class="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="ml-4 min-w-0 flex-1">
-                        <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 line-clamp-2 sm:truncate">Total Messages</p>
-                        <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white truncate" id="totalChats">-</p>
+                </div>
+                <!-- Desktop: Original layout -->
+                <div class="hidden sm:block">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                            <svg class="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4 min-w-0 flex-1">
+                            <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 line-clamp-2 sm:truncate">Total Messages</p>
+                            <p class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white truncate" id="totalChatsDesktop">-</p>
+                        </div>
                     </div>
                 </div>
             </div>
