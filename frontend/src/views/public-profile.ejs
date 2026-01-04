@@ -76,6 +76,67 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
+        
+        /* ✅ Tooltip styles for disabled buttons (same as discover.ejs) */
+        [data-tooltip] {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Tooltip on hover/touch for mobile (works even when button is disabled) */
+        [data-tooltip]:hover::after,
+        [data-tooltip]:active::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            font-size: 12px;
+            white-space: nowrap;
+            border-radius: 6px;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 1;
+            animation: tooltipFadeIn 0.2s ease-in;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-tooltip]:hover::before,
+        [data-tooltip]:active::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 2px;
+            border: 5px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.9);
+            pointer-events: none;
+            z-index: 1001;
+        }
+
+        @keyframes tooltipFadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* Mobile touch support - show tooltip on touch */
+        @media (hover: none) and (pointer: coarse) {
+            [data-tooltip]:active::after,
+            [data-tooltip]:active::before {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -294,6 +355,8 @@
                                     disabled
                                     title="<%= twin.isOwnTwin ? 'You cannot follow your own twin' : 'Following is disabled for this twin' %>"
                                     data-disabled-reason="<%= twin.isOwnTwin ? 'own_twin' : 'follows_disabled' %>"
+                                    data-tooltip="<%= twin.isOwnTwin ? 'You cannot follow your own twin' : 'Following is disabled for this twin' %>"
+                                    aria-label="<%= twin.isOwnTwin ? 'You cannot follow your own twin' : 'Following is disabled for this twin' %>"
                                 <% } %>
                             >
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
