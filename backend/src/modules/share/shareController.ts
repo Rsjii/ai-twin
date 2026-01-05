@@ -348,7 +348,7 @@ export const getShareableContent = async (req: Request, res: Response) => {
     // Generate content for different platforms
     const content = {
       twitter: {
-        text: `💬 Meet this amazing twin @${publicHandle}! Chat with it and see how it responds in ${creatorName}'s style. ${shareUrl}`,
+        text: `💬 Meet this amazing twin @${publicHandle}! Chat with it and see how it responds in ${creatorName}'s style.`,
         hashtags: ['Twin', 'DigitalSelf', 'Chat', 'Personalized']
       },
       facebook: {

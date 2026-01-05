@@ -247,7 +247,7 @@
               <% if (userInfo.isOwner) { %>
                 <div class="text-left mb-5 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
                   <p class="text-sm text-gray-800 dark:text-gray-200 font-medium mb-1">Your Public Twin is not created yet.</p>
-                  <p class="text-sm text-gray-600 dark:text-gray-400">Create it to appear in Discover + let others chat with you.</p>
+                  <p class="text-sm text-gray-600 dark:text-gray-400">Create it to appear in Discover and let others chat with you.</p>
                 </div>
 
                 <a href="/twin/create" class="inline-flex items-center justify-center w-full px-5 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-all font-semibold min-h-[44px]">
@@ -488,39 +488,39 @@
 
             <!-- Chat Modal (Hidden by default) -->
             <% if (showTwinSections && twin) { %>
-            <div id="chatModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[9999] flex items-center justify-center p-4">
-                <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl dark:shadow-gray-900">
-                    <div class="p-6 border-b dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800 flex-shrink-0">
-                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Chat with @<%= twin.publicHandle %></h3>
-                        <button id="closeChatBtn" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-2">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div id="chatModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[9999] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[80vh] overflow-hidden flex flex-col shadow-2xl dark:shadow-gray-900 m-2 sm:m-4">
+                    <div class="p-3 sm:p-6 border-b dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800 flex-shrink-0">
+                        <h3 class="text-base sm:text-xl font-semibold text-gray-900 dark:text-white truncate pr-2">Chat with @<%= twin.publicHandle %></h3>
+                        <button id="closeChatBtn" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-2 flex-shrink-0">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                         </button>
                     </div>
                     
                     <!-- Chat Messages Area -->
-                    <div id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-4 min-h-[250px] max-h-[350px] bg-gray-50">
+                    <div id="chatMessages" class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4 min-h-[150px] max-h-[calc(95vh-180px)] sm:max-h-[350px] bg-gray-50 dark:bg-gray-900">
                         <!-- Messages will be loaded here -->
                     </div>
                     
                     <!-- Chat Input -->
-                    <div class="p-6 border-t bg-white dark:bg-gray-800 flex-shrink-0">
-                        <form id="chatForm" class="space-y-4">
-                            <div class="flex space-x-4">
+                    <div class="p-3 sm:p-6 border-t bg-white dark:bg-gray-800 flex-shrink-0">
+                        <form id="chatForm" class="space-y-2 sm:space-y-4">
+                            <div class="flex flex-col sm:flex-row gap-2 sm:space-x-4">
                                 <input 
                                     type="text" 
                                     id="messageInput" 
                                     placeholder="Type your message..." 
-                                    class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    class="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                                     maxlength="1000"
                                     required
                                 >
-                                <button type="submit" id="sendMessageBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                                <button type="submit" id="sendMessageBtn" class="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm sm:text-base whitespace-nowrap">
                                     Send
                                 </button>
                             </div>
-                            <p class="text-xs text-gray-500">You can chat with this twin without logging in!</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">You can chat with this twin without logging in!</p>
                         </form>
                     </div>
                 </div>
@@ -982,7 +982,7 @@ async function toggleLike(twinToken, button) {
             showNotification('Please log in to like this twin!', 'error');
             button.disabled = true;
             button.classList.add('cursor-not-allowed', 'disabled-ui');
-            button.setAttribute('title', 'You cannot like this twin, you are logged out');
+            button.setAttribute('title', 'Please login to like this twin');
             button.setAttribute('data-disabled-reason', 'not_logged_in');
             return;
         }
@@ -1069,7 +1069,7 @@ async function toggleFollow(twinToken, button) {
             showNotification('Please log in to follow this twin!', 'error');
             button.disabled = true;
             button.classList.add('cursor-not-allowed', 'disabled-ui');
-            button.setAttribute('title', 'You cannot follow this twin, you are logged out');
+            button.setAttribute('title', 'Please login to follow this twin');
             button.setAttribute('data-disabled-reason', 'not_logged_in');
             return;
         }
@@ -1311,9 +1311,9 @@ document.addEventListener('DOMContentLoaded', function() {
             likeBtn.disabled = true;
             likeBtn.classList.add('cursor-not-allowed', 'disabled-ui');
             if (!isLoggedIn) {
-                likeBtn.setAttribute('title', 'You cannot like this twin, you are logged out');
-                likeBtn.setAttribute('aria-label', 'You cannot like this twin, you are logged out');
-                likeBtn.setAttribute('data-tooltip', 'You cannot like this twin, you are logged out');
+                likeBtn.setAttribute('title', 'Please login to like this twin');
+                likeBtn.setAttribute('aria-label', 'Please login to like this twin');
+                likeBtn.setAttribute('data-tooltip', 'Please login to like this twin');
                 likeBtn.setAttribute('data-disabled-reason', 'not_logged_in');
             } else if (isOwnTwin) {
                 likeBtn.setAttribute('title', 'You cannot like your own twin');
@@ -1341,9 +1341,9 @@ document.addEventListener('DOMContentLoaded', function() {
             followBtn.disabled = true;
             followBtn.classList.add('cursor-not-allowed', 'disabled-ui');
             if (!isLoggedIn) {
-                followBtn.setAttribute('title', 'You cannot follow this twin, you are logged out');
-                followBtn.setAttribute('aria-label', 'You cannot follow this twin, you are logged out');
-                followBtn.setAttribute('data-tooltip', 'You cannot follow this twin, you are logged out');
+                followBtn.setAttribute('title', 'Please login to follow this twin');
+                followBtn.setAttribute('aria-label', 'Please login to follow this twin');
+                followBtn.setAttribute('data-tooltip', 'Please login to follow this twin');
                 followBtn.setAttribute('data-disabled-reason', 'not_logged_in');
             } else if (isOwnTwin) {
                 followBtn.setAttribute('title', 'You cannot follow your own twin');

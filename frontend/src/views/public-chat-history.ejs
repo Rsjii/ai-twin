@@ -389,15 +389,10 @@
                     if (timestamp) {
                         try {
                             let displayTime, fullTime;
-                            if (format === 'smart') {
-                                displayTime = window.TimeUtils.formatSmartTime(timestamp);
-                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
-                                el.textContent = 'Last: ' + displayTime;
-                            } else {
-                                displayTime = window.TimeUtils.formatDateOnly(timestamp);
-                                fullTime = window.TimeUtils.formatFullDateTime(timestamp);
-                                el.textContent = displayTime;
-                            }
+                            // ✅ Always use relative time format
+                            displayTime = window.TimeUtils.formatRelativeTime(timestamp);
+                            fullTime = window.TimeUtils.formatFullDateTime(timestamp);
+                            el.textContent = 'Last: ' + displayTime;
                             el.title = fullTime;
                         } catch (e) {
                             // Silently handle timestamp formatting errors

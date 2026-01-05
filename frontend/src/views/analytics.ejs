@@ -572,7 +572,7 @@ function escapeHtml(text) {
                 const user = group.user || {};
                 const div = document.createElement('div');
                 div.className =
-                    'w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center justify-between ' +
+                    'w-full text-left p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center justify-between gap-2 sm:gap-3 ' +
                     'transition-colors';
 
                 const name = escapeHtml(user.name || user.handle || 'Unknown user');
@@ -613,25 +613,25 @@ function escapeHtml(text) {
                     : '';
 
                 div.innerHTML = `
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
                         ${user.profileImage
-                            ? `<img src="${escapeHtml(user.profileImage)}" alt="${name}" class="w-8 h-8 rounded-full ${profileIconClickable}" data-user-handle="${escapeHtml(handle)}">`
-                            : `<div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center ${profileIconClickable}" data-user-handle="${escapeHtml(handle)}">
+                            ? `<img src="${escapeHtml(user.profileImage)}" alt="${name}" class="w-8 h-8 rounded-full flex-shrink-0 ${profileIconClickable}" data-user-handle="${escapeHtml(handle)}">`
+                            : `<div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 ${profileIconClickable}" data-user-handle="${escapeHtml(handle)}">
                                    <span class="text-primary font-semibold text-sm">${escapeHtml((name || 'U').charAt(0).toUpperCase())}</span>
                                </div>`
                         }
-                        <div>
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">${name}</p>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${name}</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
                                 ${totalMessages} messages, ${totalChats} chats
                             </p>
                         </div>
                     </div>
-                    <div class="text-right">
+                    <div class="flex-shrink-0 text-right ml-2 md:ml-4">
                         <p class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                             Last active: ${escapeHtml(lastActiveText)}
                         </p>
-                        <p class="text-xs font-medium text-primary dark:text-primary mt-1 cursor-pointer" data-view-history="true" data-user-public-id="${user.publicId || ''}">View full history →</p>
+                        <p class="text-xs font-medium text-primary dark:text-primary mt-1 cursor-pointer whitespace-nowrap" data-view-history="true" data-user-public-id="${user.publicId || ''}">View full history →</p>
                     </div>
                 `;
 

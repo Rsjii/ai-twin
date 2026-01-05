@@ -722,7 +722,9 @@
         const cat = (m.category || 'fact');
         const vis = (m.visibility || 'owner');
         const tag = vis === 'public_twin' ? 'Public' : 'Private';
-        return `<li><span class="text-xs text-gray-500 dark:text-gray-400">[${escapeHtml(cat)} • ${escapeHtml(tag)}]</span> ${escapeHtml(m.value || '')}</li>`;
+        const value = String(m.value || '');
+        const truncatedValue = value.length > 60 ? value.substring(0, 60) + '...' : value;
+        return `<li class="truncate"><span class="text-xs text-gray-500 dark:text-gray-400">[${escapeHtml(cat)} • ${escapeHtml(tag)}]</span> ${escapeHtml(truncatedValue)}</li>`;
       });
 
       bulletsEl.innerHTML = bullets.join('');
@@ -1094,8 +1096,12 @@
     function anySelectedRowDirty() {
       for (const k of memSelectedKeys) {
         const row = document.querySelector(`#memModalList [data-mem-key="${escAttr(k)}"]`);
-        const saveBtn = row?.querySelector('.memSaveIcon');
-        if (saveBtn && saveBtn.disabled === false) return true; // save enabled => dirty
+        // Removed individual save button - check if value changed instead
+        const editEl = row?.querySelector('.memEdit');
+        if (editEl) {
+          const originalValue = editEl.dataset.originalValue || '';
+          if (editEl.value.trim() !== originalValue.trim()) return true; // value changed => dirty
+        }
       }
       return false;
     }
@@ -1142,39 +1148,6 @@
                     ${visibility === 'public_twin' ? 'Public' : 'Private'}
                   </span>
                 </div>
-
-                <!-- Right controls: Public toggle + Save + Delete (one row) -->
-                <div class="flex items-center gap-1 sm:gap-2 shrink-0">
-                  <label class="inline-flex items-center gap-1 sm:gap-2 text-gray-600 dark:text-gray-300 cursor-pointer select-none shrink-0" style="font-size: 11px;">
-                    <input type="checkbox" class="memPublic rounded border-gray-300 dark:border-gray-600 w-3 h-3 sm:w-4 sm:h-4"
-                      ${visibility === 'public_twin' ? 'checked' : ''} />
-                    <span class="hidden sm:inline">Public</span>
-                    <span class="sm:hidden">Public</span>
-                  </label>
-
-                  <button type="button"
-                    class="memSaveIcon p-1 sm:p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 shrink-0"
-                    title="Save"
-                    aria-label="Save"
-                    disabled
-                  >
-                    <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M5 13l4 4L19 7" />
-                    </svg>
-                  </button>
-
-                  <button type="button"
-                    class="memDelIcon p-1 sm:p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 shrink-0"
-                    title="Delete"
-                    aria-label="Delete"
-                  >
-                    <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0V5a2 2 0 012-2h4a2 2 0 012 2v2" />
-                    </svg>
-                  </button>
-                </div>
               </div>
 
               <div class="overflow-x-auto sm:overflow-visible -mx-1.5 sm:mx-0">
@@ -1189,11 +1162,13 @@
           </div>
         `;
 
-        const getVisibility = () => (row.querySelector('.memPublic')?.checked ? 'public_twin' : 'owner');
+        const getVisibility = () => {
+          // Get visibility from badge or default to owner
+          const badge = row.querySelector('.memVisibilityBadge');
+          return badge?.textContent?.trim() === 'Public' ? 'public_twin' : 'owner';
+        };
         const editEl = row.querySelector('.memEdit');
         const selectEl = row.querySelector('.memSelect');
-        const saveBtn = row.querySelector('.memSaveIcon');
-        const delBtn = row.querySelector('.memDelIcon');
         const badgeEl = row.querySelector('.memVisibilityBadge'); // Badge showing Public/Private
 
         // ✅ Mobile: Keep single line with horizontal scroll; Desktop: Expand on focus
@@ -1212,24 +1187,12 @@
         }
         // Mobile: Always keep single line with horizontal scroll (handled by CSS classes)
 
-        // Dirty tracking (save only)
+        // Store original value for dirty checking
         let originalValue = String(value || '');
         let originalVisibility = visibility === 'public_twin' ? 'public_twin' : 'owner';
-
-        const updateRowDirtyUI = () => {
-          const currentValue = String(editEl?.value || '');
-          const currentVisibility = getVisibility();
-          const dirty =
-            currentValue.trim() !== originalValue.trim() ||
-            currentVisibility !== originalVisibility;
-
-          if (saveBtn) {
-            saveBtn.disabled = !dirty;
-            saveBtn.className = dirty
-              ? 'memSaveIcon p-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700'
-              : 'memSaveIcon p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700';
-          }
-        };
+        if (editEl) {
+          editEl.dataset.originalValue = originalValue;
+        }
 
         // ✅ Update badge to reflect current visibility state
         const updateBadge = () => {
@@ -1238,8 +1201,6 @@
             badgeEl.textContent = currentVisibility === 'public_twin' ? 'Public' : 'Private';
           }
         };
-
-        updateRowDirtyUI();
 
         // Selection
         if (selectEl) {
@@ -1251,16 +1212,13 @@
           });
         }
 
-        // Only mark dirty; no auto-save
-        row.querySelector('.memPublic')?.addEventListener('change', updateRowDirtyUI);
-        editEl?.addEventListener('input', updateRowDirtyUI);
-
-        // Save
-        saveBtn?.addEventListener('click', async () => {
+        // Auto-save on blur (removed individual buttons, use bulk actions for visibility/delete)
+        editEl?.addEventListener('blur', async () => {
+          const newVal = String(editEl?.value || '').trim();
+          if (newVal === originalValue.trim()) return; // No change
+          
           try {
-            const newVal = String(editEl?.value || '');
             const currentVisibility = getVisibility();
-
             const res = await fetch(`/api/twin/${twinToken}/long-term-memory/${encodeURIComponent(key)}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.csrfToken },
@@ -1273,42 +1231,12 @@
 
             originalValue = newVal;
             originalVisibility = currentVisibility;
-            updateRowDirtyUI();
-            updateBadge(); // ✅ Update badge immediately after successful save
-
+            if (editEl) editEl.dataset.originalValue = newVal;
             showNotification('Saved ✔', 'success');
             await loadMemoryPreviewFromLTM();
           } catch (e) {
             ErrorLogger.error('Error', e, {});
             showNotification('Save failed', 'error');
-          }
-        });
-
-        // Delete (single)
-        delBtn?.addEventListener('click', async () => {
-          const ok = await memInlineConfirm({
-            title: 'Delete memory',
-            message: 'Delete this memory permanently?',
-            okLabel: 'Delete',
-          });
-          if (!ok) return;
-
-          try {
-            const res = await fetch(`/api/twin/${twinToken}/long-term-memory/${encodeURIComponent(key)}`, {
-              method: 'DELETE',
-              headers: { 'X-CSRF-Token': window.csrfToken },
-              credentials: 'include',
-            });
-            const data = await res.json();
-            if (!data.success) throw new Error(data.error || 'Failed');
-
-            memSelectedKeys.delete(String(key));
-            showNotification('Deleted ✔', 'success');
-            await loadMemoryModalList();
-            await loadMemoryPreviewFromLTM();
-          } catch (e) {
-            ErrorLogger.error('Error', e, {});
-            showNotification('Delete failed', 'error');
           }
         });
 
@@ -1328,26 +1256,46 @@
 
         const params = new URLSearchParams();
         params.set('limit', '50');
-        params.set('visibility', vis || 'all');
+        // ✅ FIX: Only set visibility filter if not 'all' - backend will handle filtering properly
+        if (vis && vis !== 'all') {
+          params.set('visibility', vis);
+        }
 
         // ✅ Always request current tab category (facts vs preferences)
         params.set('category', memActiveTab);
 
         const res = await fetch(`/api/twin/${twinToken}/long-term-memory?${params.toString()}`, {
-          credentials: 'include',
-          cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache' },
+            credentials: 'include',
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' },
         });
 
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Failed');
 
         // ✅ client-side search so category separation is always respected
+        // ✅ FIX: Also filter by visibility on client-side to ensure "only private" works correctly
         const qNorm = String(q || '').trim().toLowerCase();
         const list = Array.isArray(data.memories) ? data.memories : [];
-        const filtered = qNorm
-          ? list.filter(m => String(m?.value || m?.text || '').toLowerCase().includes(qNorm))
-          : list;
+        let filtered = list;
+        
+        // Apply visibility filter on client-side (double-check)
+        if (vis && vis !== 'all') {
+          filtered = filtered.filter(m => {
+            const memVis = m.visibility || 'owner';
+            if (vis === 'owner') {
+              return memVis === 'owner'; // Only private
+            } else if (vis === 'public_twin') {
+              return memVis === 'public_twin'; // Only public
+            }
+            return true;
+          });
+        }
+        
+        // Apply search filter
+        if (qNorm) {
+          filtered = filtered.filter(m => String(m?.value || m?.text || '').toLowerCase().includes(qNorm));
+        }
 
         renderMemoryModalList(filtered);
       } catch (e) {
@@ -1865,9 +1813,26 @@
       // Default tab UI
       updateMemTabUI();
 
-      document.getElementById('memSearchInput')?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') loadMemoryModalList();
+      // ✅ Immediate search on input
+      let searchTimeout;
+      document.getElementById('memSearchInput')?.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          loadMemoryModalList();
+        }, 150); // Small delay for debouncing
       });
+      
+      // ✅ Clear search immediately
+      const searchInput = document.getElementById('memSearchInput');
+      if (searchInput) {
+        // Add clear button functionality if needed
+        searchInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            searchInput.value = '';
+            loadMemoryModalList();
+          }
+        });
+      }
       document.getElementById('memAddBtn')?.addEventListener('click', (e) => {
         e.preventDefault();
         addMemoryFromModal();

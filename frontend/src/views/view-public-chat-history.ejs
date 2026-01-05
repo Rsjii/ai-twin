@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Chat History</title>
+    <title>View Chat History - Public Chat</title>
     <link rel="stylesheet" href="/css/output.css">
     <script src="/utils/timeUtils.js"></script>
     <script>
@@ -22,8 +22,8 @@
         <div class="mb-8">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">Chat History</h1>
-                    <p class="text-gray-600 dark:text-gray-300 text-sm">Read-only view of public chat</p>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">Public Chat History</h1>
+                    <p class="text-gray-600 dark:text-gray-300 text-sm">Read-only view of public chat conversation</p>
                 </div>
                 <a href="/public-chat-history" class="w-full sm:w-auto inline-flex justify-center px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
                     Back to Chat History
@@ -161,7 +161,7 @@
                 const truncatedContent = isLong ? msg.content.substring(0, maxLength) + '...' : msg.content;
                 
                 return `
-                <div class="flex ${msg.sender === 'human' ? 'justify-end' : 'justify-start'} mb-4">
+                <div class="flex ${msg.sender === 'human' ? 'justify-start' : 'justify-end'} mb-4">
                     <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                         msg.sender === 'human' 
                             ? 'bg-blue-600 text-white' 
