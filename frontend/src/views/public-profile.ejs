@@ -80,7 +80,6 @@
         /* ✅ Tooltip styles for disabled buttons (same as discover.ejs) */
         [data-tooltip] {
             position: relative;
-            display: inline-block;
         }
 
         /* Tooltip on hover/touch for mobile (works even when button is disabled) */
@@ -93,16 +92,19 @@
             transform: translateX(-50%);
             margin-bottom: 8px;
             padding: 8px 12px;
-            background-color: rgba(0, 0, 0, 0.9);
+            background-color: #000000 !important;
+            background: #000000 !important;
             color: white;
             font-size: 12px;
             white-space: nowrap;
             border-radius: 6px;
             pointer-events: none;
-            z-index: 1000;
-            opacity: 1;
+            z-index: 99999 !important;
+            opacity: 1 !important;
             animation: tooltipFadeIn 0.2s ease-in;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            will-change: opacity, transform;
+            isolation: isolate;
         }
 
         [data-tooltip]:hover::before,
@@ -114,9 +116,12 @@
             transform: translateX(-50%);
             margin-bottom: 2px;
             border: 5px solid transparent;
-            border-top-color: rgba(0, 0, 0, 0.9);
+            border-top-color: #000000 !important;
             pointer-events: none;
-            z-index: 1001;
+            z-index: 99999 !important;
+            opacity: 1 !important;
+            will-change: opacity;
+            isolation: isolate;
         }
 
         @keyframes tooltipFadeIn {
@@ -136,6 +141,19 @@
             [data-tooltip]:active::before {
                 display: block;
             }
+        }
+
+        /* Disabled button styles - keep button full opacity so tooltip stays opaque */
+        button:disabled,
+        button.cursor-not-allowed {
+            cursor: not-allowed !important;
+            opacity: 1 !important; /* IMPORTANT: keep button full opacity so tooltip stays opaque */
+        }
+
+        /* Dim only button content (not tooltip pseudo-element) */
+        button.disabled-ui > svg,
+        button.disabled-ui > span {
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -336,7 +354,7 @@
                         
                         <!-- Row 2: Like + Follow -->
                         <div class="flex flex-row flex-wrap gap-3">
-                            <button id="likeBtn" class="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-3 rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.likesDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>" 
+                            <button id="likeBtn" class="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-3 rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.likesDisabled || twin.isOwnTwin) ? 'cursor-not-allowed disabled-ui' : '' %>" 
                                 <% if (twin.likesDisabled || twin.isOwnTwin) { %>
                                     disabled
                                     title="<%= twin.isOwnTwin ? 'You cannot like your own twin' : 'Liking is disabled for this twin' %>"
@@ -350,7 +368,7 @@
                                 </svg>
                                 <span>Like</span>
                             </button>
-                            <button id="followBtn" class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-3 rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.followsDisabled || twin.isOwnTwin) ? 'opacity-50 cursor-not-allowed' : '' %>"
+                            <button id="followBtn" class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-3 rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 min-h-[48px] sm:min-h-[44px] touch-manipulation <%= (twin.followsDisabled || twin.isOwnTwin) ? 'cursor-not-allowed disabled-ui' : '' %>"
                                 <% if (twin.followsDisabled || twin.isOwnTwin) { %>
                                     disabled
                                     title="<%= twin.isOwnTwin ? 'You cannot follow your own twin' : 'Following is disabled for this twin' %>"
@@ -385,7 +403,7 @@
                                          sm:w-auto sm:h-11 sm:px-5 sm:py-2.5 sm:text-sm
                                          rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105
                                          font-medium flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation
-                                         <%= twin.sharesDisabled ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                         <%= twin.sharesDisabled ? 'cursor-not-allowed disabled-ui' : '' %>"
                                   <% if (twin.sharesDisabled) { %>
                                       disabled
                                       title="Sharing is disabled for this twin"
@@ -406,7 +424,7 @@
                                          sm:w-auto sm:h-11 sm:px-5 sm:py-2.5 sm:text-sm
                                          rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105
                                          font-medium flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation
-                                         <%= twin.sharesDisabled ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                         <%= twin.sharesDisabled ? 'cursor-not-allowed disabled-ui' : '' %>"
                                   <% if (twin.sharesDisabled) { %>
                                       disabled
                                       title="Sharing is disabled for this twin"
@@ -427,7 +445,7 @@
                                          sm:w-auto sm:h-11 sm:px-5 sm:py-2.5 sm:text-sm
                                          rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105
                                          font-medium flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation
-                                         <%= twin.sharesDisabled ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                         <%= twin.sharesDisabled ? 'cursor-not-allowed disabled-ui' : '' %>"
                                   <% if (twin.sharesDisabled) { %>
                                       disabled
                                       title="Sharing is disabled for this twin"
@@ -448,7 +466,7 @@
                                          sm:w-auto sm:h-11 sm:px-5 sm:py-2.5 sm:text-sm
                                          rounded-xl hover:shadow-lg transition-all duration-300 transform hover:scale-105
                                          font-medium flex items-center justify-center sm:justify-center sm:space-x-2 min-h-[44px] touch-manipulation
-                                         <%= twin.sharesDisabled ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                         <%= twin.sharesDisabled ? 'cursor-not-allowed disabled-ui' : '' %>"
                                   <% if (twin.sharesDisabled) { %>
                                       disabled
                                       title="Sharing is disabled for this twin"
@@ -963,7 +981,7 @@ async function toggleLike(twinToken, button) {
         if (response.status === 401) {
             showNotification('Please log in to like this twin!', 'error');
             button.disabled = true;
-            button.classList.add('opacity-50', 'cursor-not-allowed');
+            button.classList.add('cursor-not-allowed', 'disabled-ui');
             button.setAttribute('title', 'You cannot like this twin, you are logged out');
             button.setAttribute('data-disabled-reason', 'not_logged_in');
             return;
@@ -1050,7 +1068,7 @@ async function toggleFollow(twinToken, button) {
         if (response.status === 401) {
             showNotification('Please log in to follow this twin!', 'error');
             button.disabled = true;
-            button.classList.add('opacity-50', 'cursor-not-allowed');
+            button.classList.add('cursor-not-allowed', 'disabled-ui');
             button.setAttribute('title', 'You cannot follow this twin, you are logged out');
             button.setAttribute('data-disabled-reason', 'not_logged_in');
             return;
@@ -1291,7 +1309,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (likesDisabled || isOwnTwin || !isLoggedIn) {
         if (likeBtn) {
             likeBtn.disabled = true;
-            likeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            likeBtn.classList.add('cursor-not-allowed', 'disabled-ui');
             if (!isLoggedIn) {
                 likeBtn.setAttribute('title', 'You cannot like this twin, you are logged out');
                 likeBtn.setAttribute('aria-label', 'You cannot like this twin, you are logged out');
@@ -1312,7 +1330,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         if (likeBtn) {
             likeBtn.disabled = false;
-            likeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            likeBtn.classList.remove('cursor-not-allowed', 'disabled-ui');
             likeBtn.removeAttribute('data-disabled-reason');
         }
     }
@@ -1321,7 +1339,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (followsDisabled || isOwnTwin || !isLoggedIn) {
         if (followBtn) {
             followBtn.disabled = true;
-            followBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            followBtn.classList.add('cursor-not-allowed', 'disabled-ui');
             if (!isLoggedIn) {
                 followBtn.setAttribute('title', 'You cannot follow this twin, you are logged out');
                 followBtn.setAttribute('aria-label', 'You cannot follow this twin, you are logged out');
@@ -1342,7 +1360,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         if (followBtn) {
             followBtn.disabled = false;
-            followBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            followBtn.classList.remove('cursor-not-allowed', 'disabled-ui');
             followBtn.removeAttribute('data-disabled-reason');
         }
     }
@@ -1351,14 +1369,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (sharesDisabled) {
         shareButtons.forEach(shareBtn => {
             shareBtn.disabled = true;
-            shareBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            shareBtn.classList.add('cursor-not-allowed', 'disabled-ui');
             shareBtn.setAttribute('title', 'Sharing is disabled for this twin');
             shareBtn.setAttribute('data-disabled-reason', 'shares_disabled');
         });
     } else {
         shareButtons.forEach(shareBtn => {
             shareBtn.disabled = false;
-            shareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            shareBtn.classList.remove('cursor-not-allowed', 'disabled-ui');
             shareBtn.removeAttribute('data-disabled-reason');
         });
     }
