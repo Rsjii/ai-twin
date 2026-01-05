@@ -225,14 +225,84 @@
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white truncate">Chat</h2>
         <p class="text-xs text-gray-600 dark:text-gray-300">Suggested replies with style learning</p>
     </div>
-    <!-- Mobile Tone Chip -->
-    <button
-        id="mobileToneButton"
-        class="md:hidden inline-flex items-center px-3 py-1 rounded-full border border-gray-200 dark:border-gray-600 text-[11px] font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors min-h-[32px]"
-        type="button"
-    >
-        <span id="mobileToneLabel">Tone: Auto</span>
-    </button>
+    <!-- Mobile/Medium Header Buttons -->
+    <div class="flex items-center gap-2">
+        <!-- Mobile Quick Actions Button with Dropdown - Only for Medium Screens -->
+        <div class="relative hidden md:block lg:hidden">
+            <button
+                id="mobileQuickActionsButton"
+                type="button"
+                class="inline-flex items-center px-3 py-1 rounded-full border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors min-h-[32px]"
+            >
+                <span>⚡ Quick Actions</span>
+                <svg class="w-3 h-3 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            
+            <!-- Mobile Quick Actions Dropdown (hidden by default) -->
+            <div id="mobileQuickActionsDropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                <button
+                    id="learningBtnMobileHeader"
+                    class="w-full text-left px-4 py-3 text-sm font-medium flex items-center gap-2 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
+                    type="button"
+                >
+                    <span>⚙️</span>
+                    <span>Twin Settings</span>
+                </button>
+                <button
+                    id="analyticsBtnMobileHeader"
+                    class="w-full text-left px-4 py-3 text-sm font-medium flex items-center gap-2 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+                    type="button"
+                >
+                    <span>📈</span>
+                    <span>Analytics</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Tone Button with Dropdown - For Small and Medium Screens -->
+        <div class="relative">
+            <button
+                id="mobileToneButton"
+                class="inline-flex items-center px-3 py-1 rounded-full border border-gray-200 dark:border-gray-600 text-[11px] font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors min-h-[32px]"
+                type="button"
+            >
+                <span id="mobileToneLabel">Tone: Auto</span>
+                <svg class="w-3 h-3 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            
+            <!-- Mobile Tone Dropdown (hidden by default) -->
+            <div id="mobileToneDropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                <button
+                    class="w-full text-left px-4 py-3 text-sm font-medium flex flex-col items-start gap-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                    type="button"
+                    data-tone-mode="casual"
+                >
+                    <span class="font-semibold">Casual</span>
+                    <span class="text-xs text-blue-600 dark:text-blue-300 font-normal">More friendly</span>
+                </button>
+                <button
+                    class="w-full text-left px-4 py-3 text-sm font-medium flex flex-col items-start gap-1 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+                    type="button"
+                    data-tone-mode="formal"
+                >
+                    <span class="font-semibold">Formal</span>
+                    <span class="text-xs text-purple-600 dark:text-purple-300 font-normal">More professional</span>
+                </button>
+                <button
+                    class="w-full text-left px-4 py-3 text-sm font-medium flex flex-col items-start gap-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    type="button"
+                    data-tone-mode="auto"
+                >
+                    <span class="font-semibold">Auto</span>
+                    <span class="text-xs text-gray-600 dark:text-gray-400 font-normal">Let AI decide</span>
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
             <!-- Desktop Chat Header -->
@@ -371,27 +441,6 @@
                                 </div>
             </div>
 
-                        <!-- Quick Style (Above Composer) -->
-<!-- Quick Style (Above Composer) -->
-<div class="hidden sm:block lg:hidden bg-white dark:bg-gray-800 border-t dark:border-gray-700 px-3 sm:px-4 py-3 flex-shrink-0">   
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Tone:</span>
-                                <button id="styleSettingsToggle" class="text-xs text-primary dark:text-blue-400 hover:underline font-medium transition-colors">
-                                    ⚙️ More Settings
-                                </button>
-                            </div>
-                            <div class="flex gap-2">
-                                <button id="casualBtn" class="flex-1 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-colors min-h-[44px] touch-manipulation font-medium">
-                                    Casual
-                                </button>
-                                <button id="formalBtn" class="flex-1 px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-sm hover:bg-purple-200 dark:hover:bg-purple-900/40 transition-colors min-h-[44px] touch-manipulation font-medium">
-                                    Formal
-                                </button>
-                                <button id="toggleStyleBtn" class="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors min-h-[44px] touch-manipulation font-medium">
-                                    Auto
-                                </button>
-                            </div>
-                        </div>
 
             <!-- Chat Input -->
             <div id="chatInputSection" class="bg-gray-50 dark:bg-gray-900 p-3 sm:p-4 w-full flex-shrink-0" style="padding-bottom: calc(env(safe-area-inset-bottom) + 8px); border: none !important; box-shadow: none !important;">                
@@ -2441,6 +2490,44 @@ if (desktopQuickActionsButton && desktopQuickActionsDropdown) {
     }
 });
 
+// Mobile Quick Actions Button in Header (with dropdown)
+const mobileQuickActionsButton = document.getElementById('mobileQuickActionsButton');
+const mobileQuickActionsDropdown = document.getElementById('mobileQuickActionsDropdown');
+const mobileToneDropdown = document.getElementById('mobileToneDropdown');
+
+// Function to close all mobile header dropdowns
+function closeAllMobileHeaderDropdowns() {
+    if (mobileQuickActionsDropdown) mobileQuickActionsDropdown.classList.add('hidden');
+    if (mobileToneDropdown) mobileToneDropdown.classList.add('hidden');
+}
+
+// Mobile Quick Actions button handler (header)
+if (mobileQuickActionsButton && mobileQuickActionsDropdown) {
+    mobileQuickActionsButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = mobileQuickActionsDropdown.classList.contains('hidden');
+        closeAllMobileHeaderDropdowns();
+        if (isHidden) {
+            mobileQuickActionsDropdown.classList.remove('hidden');
+        }
+    });
+}
+
+// Mobile Quick Actions buttons (header dropdown)
+['learningBtnMobileHeader', 'analyticsBtnMobileHeader'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('click', () => {
+            if (id === 'learningBtnMobileHeader') {
+                window.location.href = '/twin-settings';
+            } else if (id === 'analyticsBtnMobileHeader') {
+                window.location.href = '/analytics';
+            }
+            closeAllMobileHeaderDropdowns();
+        });
+    }
+});
+
 
     // Mobile Tone sheet (open/close + selection)
     const mobileToneButton = document.getElementById('mobileToneButton');
@@ -2487,20 +2574,36 @@ if (desktopToneButton && desktopToneDropdown) {
                 desktopToneLabel.textContent = `Tone: ${pretty}`;
             }
             
+            // Update mobile label to stay in sync
+            if (mobileToneLabel) {
+                mobileToneLabel.textContent = `Tone: ${pretty}`;
+            }
+            
             // Close dropdown
             closeAllDesktopDropdowns();
         });
     });
 }
 
-// Close dropdowns when clicking outside (both Quick Actions and Tone)
+// Close dropdowns when clicking outside (both Quick Actions and Tone - Desktop and Mobile Header)
 document.addEventListener('click', (e) => {
+    // Desktop dropdowns
     if (desktopQuickActionsButton && desktopToneButton) {
         if (!desktopQuickActionsButton.contains(e.target) && 
             !desktopQuickActionsDropdown?.contains(e.target) &&
             !desktopToneButton.contains(e.target) && 
             !desktopToneDropdown?.contains(e.target)) {
             closeAllDesktopDropdowns();
+        }
+    }
+    
+    // Mobile header dropdowns
+    if (mobileQuickActionsButton && mobileToneButton) {
+        if (!mobileQuickActionsButton.contains(e.target) && 
+            !mobileQuickActionsDropdown?.contains(e.target) &&
+            !mobileToneButton.contains(e.target) && 
+            !mobileToneDropdown?.contains(e.target)) {
+            closeAllMobileHeaderDropdowns();
         }
     }
 });
@@ -2512,7 +2615,48 @@ document.addEventListener('click', (e) => {
         }
     }
 
-    if (mobileToneButton && toneSheet && toneSheetOverlay) {
+    // Mobile Tone Button in Header (with dropdown instead of sheet)
+    if (mobileToneButton && mobileToneDropdown) {
+        mobileToneButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = mobileToneDropdown.classList.contains('hidden');
+            closeAllMobileHeaderDropdowns();
+            if (isHidden) {
+                mobileToneDropdown.classList.remove('hidden');
+            }
+        });
+        
+        // Handle tone selection in mobile dropdown
+        mobileToneDropdown.querySelectorAll('[data-tone-mode]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.getAttribute('data-tone-mode') || 'auto';
+                
+                // Call existing style logic
+                setStyleMode(mode);
+                
+                const pretty =
+                    mode === 'casual' ? 'Casual' :
+                    mode === 'formal' ? 'Formal' :
+                    'Auto';
+                
+                // Update mobile label
+                if (mobileToneLabel) {
+                    mobileToneLabel.textContent = `Tone: ${pretty}`;
+                }
+                
+                // Update desktop label to stay in sync
+                if (desktopToneLabel) {
+                    desktopToneLabel.textContent = `Tone: ${pretty}`;
+                }
+                
+                // Close dropdown
+                closeAllMobileHeaderDropdowns();
+            });
+        });
+    }
+    
+    // Keep old tone sheet functionality for backward compatibility (if toneSheet exists)
+    if (mobileToneButton && toneSheet && toneSheetOverlay && !mobileToneDropdown) {
         mobileToneButton.addEventListener('click', openToneSheet);
         toneSheetOverlay.addEventListener('click', closeToneSheet);
     }
