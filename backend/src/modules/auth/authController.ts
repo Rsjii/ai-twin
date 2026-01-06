@@ -12,6 +12,8 @@ import { logEvent } from '../../services/eventLogger';
 import { EventLogger } from '../../services/eventLogger';
 import { EVENT_TYPES } from '../../config/constants';
 import { identifyPostHogUser } from '../../services/posthogService';
+import { PostgreSQLRateLimitStore } from '../../config/rateLimitStore';
+import { RATE_LIMITS, formatRetryAfter } from '../../config/rateLimitConfig';
 
 const emailService = new EmailService();
 
@@ -917,11 +919,56 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response, n
       });
     }
     
+    // ✅ Rate limit check - only AFTER password validation passes
+    // This ensures wrong password attempts don't count toward the limit
+    const rateLimitKey = req.user?.id || req.user?.userId || req.ip || 'unknown';
+    const rateLimitStore = new PostgreSQLRateLimitStore(RATE_LIMITS.changePassword.windowMs);
+    
+    // Check current rate limit status
+    const currentLimit = await rateLimitStore.get(rateLimitKey);
+    if (currentLimit && currentLimit.totalHits >= RATE_LIMITS.changePassword.max) {
+      // Rate limit exceeded
+      const retryAfter = formatRetryAfter(RATE_LIMITS.changePassword.windowMs);
+      
+      // Log rate limit violation
+      try {
+        const userId = req.user?.id || req.user?.userId || null;
+        const ip = req.ip || req.socket.remoteAddress || 'unknown';
+        const meta = {
+          limiterName: 'changePassword',
+          key: rateLimitKey.substring(0, 100),
+          limit: RATE_LIMITS.changePassword.max,
+          windowMs: RATE_LIMITS.changePassword.windowMs,
+          path: req.path,
+          method: req.method,
+          ip,
+          userAgent: req.get('user-agent') || null,
+        };
+        if (userId) {
+          EventLogger.logUserEvent(userId, EVENT_TYPES.RATE_LIMIT_EXCEEDED, meta).catch(() => {});
+        } else {
+          EventLogger.logSystemEvent(EVENT_TYPES.RATE_LIMIT_EXCEEDED, meta).catch(() => {});
+        }
+      } catch (logError) {
+        // Silent fail - don't break rate limiting if event logging fails
+      }
+      
+      return res.status(429).json({
+        success: false,
+        error: 'Too many password change attempts. Please try again later.',
+        errorCode: 'RATE_LIMIT_EXCEEDED',
+        retryAfter
+      });
+    }
+    
     // Hash new password
     const passwordHash = await hashPassword(newPassword);
     
     // Update password
     await userQueries.updatePassword(user.email, passwordHash);
+    
+    // ✅ Increment rate limit counter only after password actually changed in DB
+    await rateLimitStore.increment(rateLimitKey);
     
     logger.info(`Password changed for user: ${user.email}`);
     

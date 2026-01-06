@@ -1783,8 +1783,7 @@ if (dateTo) {
           WHERE "chatId" = pc.id 
           ORDER BY "createdAt" DESC 
           LIMIT 1
-        ) as last_message_time,
-        CASE WHEN pc."userId" IS NOT NULL THEN 0 ELSE 1 END as user_priority
+        ) as last_message_time
       FROM "PublicChat" pc
       LEFT JOIN "User" u ON pc."userId" = u.id
       ${searchJoin}
@@ -1792,8 +1791,8 @@ if (dateTo) {
       ${searchCondition}
       ${search && search.trim() ? 'GROUP BY pc.id, pc."twinId", pc."userId", pc."visitorId", pc."messageCount", pc."title", pc."createdAt", pc."lastActivity", u.id, u.handle, u.name, u."profileImage"' : ''}
       ORDER BY 
-        user_priority,
-        ${orderByClause}
+        ${orderByClause},
+        pc.id DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `, [...params, limit, offset]);    
 

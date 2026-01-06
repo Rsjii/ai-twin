@@ -56,8 +56,11 @@
     <!--Header-->
     <%- include('header') %>
 
+    <% const isLoggedInView = (typeof user !== 'undefined' && user); %>
+
     <div class="flex flex-col md:flex-row w-full flex-1 min-h-0 overflow-hidden">        
-        <!-- Chat Sidebar -->
+        <!-- Chat Sidebar (logged-in only) -->
+        <% if (isLoggedInView) { %>
         <div
         id="chatSidebar"
         class="fixed top-16 bottom-0 left-0 w-72 bg-white dark:bg-gray-800 shadow-xl z-40 transform -translate-x-full transition-transform duration-200 ease-out flex flex-col min-h-0 overflow-x-hidden md:static md:transform-none md:w-64 md:h-full md:shadow-lg md:border-r border-gray-200 dark:border-gray-700"   
@@ -113,12 +116,14 @@
                 <!-- Chat items will be loaded here -->
             </div>
         </div>
+        <% } %>
         
         <!-- Main Chat Area -->
         <div class="flex-1 flex flex-col w-full min-w-0 min-h-0">                 
             <!-- Chat Header -->
             <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 sm:gap-3 flex-shrink-0">                
                 <!-- Mobile Hamburger (left) -->
+                <% if (isLoggedInView) { %>
                 <button
                     id="mobile-public-chat-menu-btn"
                     class="md:hidden inline-flex items-center justify-center p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-h-[44px] min-w-[44px] touch-manipulation flex-shrink-0"
@@ -128,6 +133,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h6"></path>
                     </svg>
                 </button>
+                <% } %>
             
                 <!-- Avatar (desktop/tablet only) -->
                 <a href="/@<%= twin.publicHandle %>" class="hidden md:flex flex-shrink-0 hover:opacity-80 transition-opacity" title="View @<%= twin.publicHandle %> profile" aria-label="View @<%= twin.publicHandle %> profile">
@@ -542,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                             </svg>
                         </button>
-                        <button class="delete-chat-btn invisible group-hover:visible transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Delete chat">
+                        <button class="delete-chat-btn text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Delete chat">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
@@ -1661,22 +1667,52 @@ async function sendMessage() {
             }, 3000);
         }
 
-        // Event listeners
-        document.getElementById('newPublicChatBtn').addEventListener('click', createNewPublicChat);
-        // ✅ Add this line for mobile "New Chat" button:
-const newChatBtnMobile = document.getElementById('newPublicChatBtnMobile');
-if (newChatBtnMobile) {
-    newChatBtnMobile.addEventListener('click', createNewPublicChat);
-}
-        document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
-        document.getElementById('messageInput').addEventListener('keydown', function(e) {
-            // Enter without Shift = submit
-            if (e.key === 'Enter' && !e.shiftKey) {
+        // Event listeners (safe for logged-in + non-logged users)
+        const newChatBtn = document.getElementById('newPublicChatBtn');
+        if (newChatBtn) {
+            newChatBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                createNewPublicChat();
+            });
+        }
+
+        // Mobile "New Chat" (if exists)
+        const newChatBtnMobile = document.getElementById('newPublicChatBtnMobile');
+        if (newChatBtnMobile) {
+            newChatBtnMobile.addEventListener('click', (e) => {
+                e.preventDefault();
+                createNewPublicChat();
+            });
+        }
+
+        // ✅ Ensure Send works even if button click/Enter behaves differently across devices
+        const chatForm = document.getElementById('chatForm');
+        if (chatForm) {
+            chatForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 sendMessage();
-            }
-            // Shift+Enter = new line (default behavior)
-        });
+            });
+        }
+
+        const sendBtn = document.getElementById('sendMessageBtn');
+        if (sendBtn) {
+            sendBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                sendMessage();
+            });
+        }
+
+        const msgInput = document.getElementById('messageInput');
+        if (msgInput) {
+            msgInput.addEventListener('keydown', function (e) {
+                // Enter without Shift = submit
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+                // Shift+Enter = newline
+            });
+        }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', async function() {
