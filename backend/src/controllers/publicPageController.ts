@@ -48,7 +48,7 @@ export async function getLanding(req: any, res: Response) {
 
     res.render('landing_mvp', {
       title: 'Selflyx - Create Your Digital Twin',
-      user: req.user || null,
+      user: res.locals.user || null,
       csrfToken: res.locals['csrfToken'] || '',
       publicTwins: publicTwins || [] // ✅ Pass public twins to view
     }, (err: any, html: any) => {
@@ -144,7 +144,7 @@ export async function getPublicProfile(req: any, res: Response) {
     if (!hasTwin) {
       return res.render('public-profile', {
         title: `@${user.handle} - Selflyx`,
-        user: req.user || null,
+        user: res.locals.user || null,
         twin: null,
         userInfo: {
           handle: user.handle,
@@ -201,7 +201,7 @@ let isBlocked = false;
     if (!isPublic && !isOwner) {
       return res.render('public-profile', {
         title: `@${user.handle} - Selflyx`,
-        user: req.user || null,
+        user: res.locals.user || null,
         twin: null,
         userInfo: {
           handle: user.handle,
@@ -258,7 +258,7 @@ let isBlocked = false;
 
     return res.render('public-profile', {
       title: `@${user.handle} - Selflyx`,
-      user: req.user || null,
+      user: res.locals.user || null,
       twin: showTwinDetails
         ? {
             id: twin.id,
@@ -320,7 +320,7 @@ let isBlocked = false;
 export function getPublicProfileAlt(req: any, res: Response) {
   res.render('profile_public', {
     title: `Profile - ${req.params.handle}`,
-    user: req.user || null,  // Always pass, even if null
+    user: res.locals.user || null,  // Always pass, even if null
     handle: req.params.handle,
     token: req.query['t'],
     csrfToken: res.locals['csrfToken'],
@@ -405,7 +405,7 @@ export async function getUserProfile(req: any, res: Response) {
     // Render user profile page
     res.render('user-profile', {
       title: `@${handle} - User Profile`,
-      user: req.user || null,
+      user: res.locals.user || null,
       profileUser: {
         id: user.id,
         handle: user.handle,

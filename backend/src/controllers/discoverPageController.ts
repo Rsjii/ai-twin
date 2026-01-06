@@ -69,7 +69,7 @@ export async function getOnboarding(req: any, res: Response) {
   
   res.render('onboarding', { 
     title: 'Let\'s build your digital self - Enhanced Onboarding',
-    user: req.user || null,
+    user: res.locals.user || null,
     csrfToken: res.locals['csrfToken']
   });
 }

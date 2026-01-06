@@ -131,7 +131,7 @@ export async function getViewPublicChatHistoryPage(req: any, res: Response) {
     // ✅ Let the API (/api/public-chat/:chatId/view-history) enforce twin ownership
     res.render('view-public-chat-history', {
       title: 'View Chat History',
-      user: req.user,
+      user: res.locals.user || req.user,
       chatId: chatId,          // raw DB id; view page APIs use this
       csrfToken: res.locals['csrfToken'],
     });

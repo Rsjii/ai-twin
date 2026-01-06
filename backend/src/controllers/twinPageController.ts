@@ -25,7 +25,7 @@ export function getTwinCreate(req: any, res: Response) {
   }
   res.render('twin_create', {
     title: 'Create Twin - Selflyx',
-    user: user,
+    user: res.locals.user || user, // ✅ ensures profileImage
     csrfToken: res.locals['csrfToken'],
   });
 }

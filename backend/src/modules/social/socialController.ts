@@ -743,6 +743,7 @@ export const getTwinLikers = async (req: Request, res: Response) => {
         u.id,
         u.name,
         u.handle,
+        u."profileImage",
         u.email,
         tl."createdAt" as likedAt
        FROM "TwinLike" tl
@@ -759,6 +760,7 @@ export const getTwinLikers = async (req: Request, res: Response) => {
         publicId: tokenizeId(row.id, 'user'),
         name: row.name,
         handle: row.handle,
+        profileImage: row.profileImage,
         likedAt: row.likedAt
         // Don't expose email for privacy
       }))
@@ -801,6 +803,7 @@ export const getTwinFollowers = async (req: Request, res: Response) => {
         u.id,
         u.name,
         u.handle,
+        u."profileImage",
         tf."createdAt" as followedAt
        FROM "TwinFollow" tf
        JOIN "User" u ON tf."userId" = u.id
@@ -816,6 +819,7 @@ export const getTwinFollowers = async (req: Request, res: Response) => {
         publicId: tokenizeId(row.id, 'user'),
         name: row.name,
         handle: row.handle,
+        profileImage: row.profileImage,
         followedAt: row.followedAt
       }))
     });

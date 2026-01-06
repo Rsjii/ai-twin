@@ -244,7 +244,7 @@ export async function getAnalyticsDetails(req: any, res: Response, next: NextFun
 
       return res.render('analytics-details', {
         title: `Analytics Details - ${type}`,
-        user: req.user,
+        user: res.locals.user || req.user,
         type,
         data: [],
         pagination: { page: 1, limit: 50, total: 0 },
@@ -534,7 +534,7 @@ if (twinId) {
 
     return res.render('analytics-details', {
       title: `Analytics Details - ${type}`,
-      user: req.user,
+      user: res.locals.user || req.user,
       type,
       data,
       pagination: {
