@@ -382,34 +382,34 @@
                 </h3>
                 <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2" id="likesChips">
                   <button type="button" class="chip like-chip w-full sm:w-auto text-center line-clamp-2" data-value="startups">
-                    Startups / business
+                    Startups
                   </button>
                   <button type="button" class="chip like-chip w-full sm:w-auto text-center line-clamp-2" data-value="tech">
-                    Tech / coding
+                    Tech
                   </button>
                   <button type="button" class="chip like-chip w-full sm:w-auto text-center line-clamp-2" data-value="money">
-                    Money / investing
+                    Investing
                   </button>
                   <button type="button" class="chip like-chip w-full sm:w-auto text-center line-clamp-2" data-value="fitness">
-                    Fitness / health
+                    Fitness
                   </button>
                   <button type="button" class="chip like-chip w-full sm:w-auto text-center line-clamp-2" data-value="games_anime">
-                    Games / anime
+                    Games
                   </button>
                   <button type="button" class="chip like-chip w-full sm:w-auto text-center line-clamp-2" data-value="movies_series">
-                    Movies / series
+                    Movies
                   </button>
                   <button type="button" class="chip like-chip w-full sm:w-auto text-center line-clamp-2" data-value="music">
                     Music
                   </button>
                   <button type="button" class="chip like-chip w-full sm:w-auto text-center line-clamp-2" data-value="memes">
-                    Memes & jokes
+                    Memes
                   </button>
                   <button type="button" class="chip like-chip w-full sm:w-auto text-center line-clamp-2" data-value="relationships">
-                    Relationships / feelings
+                    Relationships
                   </button>
                   <button type="button" class="chip like-chip w-full sm:w-auto text-center line-clamp-2" data-value="random_chat">
-                    Random small talk
+                    Small talk
                   </button>
                                         </div>
                 <input
@@ -431,20 +431,17 @@
                   <button type="button" class="chip avoid-chip w-full sm:w-auto text-center line-clamp-2" data-value="politics">
                     Politics
                   </button>
-                  <button type="button" class="chip avoid-chip w-full sm:w-auto text-center line-clamp-2" data-value="religion">
-                    Religion
-                  </button>
                   <button type="button" class="chip avoid-chip w-full sm:w-auto text-center line-clamp-2" data-value="family_drama">
-                    Family drama
+                    Family issues
                   </button>
                   <button type="button" class="chip avoid-chip w-full sm:w-auto text-center line-clamp-2" data-value="dark_jokes">
-                    Dark jokes
+                    Dark humor
                   </button>
                   <button type="button" class="chip avoid-chip w-full sm:w-auto text-center line-clamp-2" data-value="office_gossip">
                     Office gossip
                   </button>
                   <button type="button" class="chip avoid-chip w-full sm:w-auto text-center line-clamp-2" data-value="deep_mental_health">
-                    Very personal mental health
+                    Mental health
                   </button>
                                 </div>
                 <input
@@ -575,10 +572,10 @@
                   </p>
                   <div class="grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
                     <button type="button" class="chip engagement-style-chip w-full sm:w-auto text-center line-clamp-2" data-engagement-style="ask_questions">
-                      Ask questions to keep conversation going
+                      Ask questions
                     </button>
                     <button type="button" class="chip engagement-style-chip w-full sm:w-auto text-center line-clamp-2" data-engagement-style="natural">
-                      Respond naturally without forcing questions
+                      Respond naturally
                     </button>
                     <button type="button" class="chip engagement-style-chip w-full sm:w-auto text-center line-clamp-2" data-engagement-style="mix">
                       Mix of both
@@ -1549,16 +1546,42 @@ function persistOnboardingState() {
       }
 
       if (previewPreferences) {
-        const likes = Array.isArray(p.likes) ? p.likes.join(', ') : 'N/A';
-        const avoids = Array.isArray(p.avoids) ? p.avoids.join(', ') : 'N/A';
-        const toneStyleText = p.toneStyle === 'polite' ? 'Polite & respectful' : p.toneStyle === 'normal' ? 'Normal & friendly' : 'Casual & relaxed';
-        previewPreferences.innerHTML = `
-          <p><strong>Likes:</strong> ${escapeHtml(likes)}</p>
-          <p><strong>Topics to avoid:</strong> ${escapeHtml(avoids)}</p>
-          <p><strong>Tone & language:</strong> ${escapeHtml(toneStyleText)}</p>
-          <p><strong>Emoji usage:</strong> ${escapeHtml(p.emojiPref || 'medium')}</p>
-        `;
-      }
+  // ✅ SHOW user-facing labels (button text), not internal keys (data-value)
+  const getSelectedChipTexts = (selector) =>
+    Array.from(document.querySelectorAll(`${selector}.selected`))
+      .map((btn) => (btn.textContent || '').trim())
+      .filter(Boolean);
+
+  const getCustomChipValues = (containerSelector, type) =>
+    Array.from(document.querySelectorAll(`${containerSelector} [data-type="${type}"]`))
+      .map((el) => String(el.getAttribute('data-value') || '').trim())
+      .filter(Boolean);
+
+  const likesDisplayArr = [
+    ...getSelectedChipTexts('.like-chip'),
+    ...getCustomChipValues('#likesCustomList', 'like-custom'),
+  ].slice(0, 3);
+
+  const avoidsDisplayArr = [
+    ...getSelectedChipTexts('.avoid-chip'),
+    ...getCustomChipValues('#avoidsCustomList', 'avoid-custom'),
+  ].slice(0, 3);
+
+  const likesDisplay = likesDisplayArr.length ? likesDisplayArr.join(', ') : 'None';
+  const avoidsDisplay = avoidsDisplayArr.length ? avoidsDisplayArr.join(', ') : 'None';
+
+  const toneStyleText =
+    p.toneStyle === 'polite' ? 'Polite & respectful' :
+    p.toneStyle === 'normal' ? 'Normal & friendly' :
+    'Casual & relaxed';
+
+  previewPreferences.innerHTML = `
+    <p><strong>Likes:</strong> ${escapeHtml(likesDisplay)}</p>
+    <p><strong>Topics to avoid:</strong> ${escapeHtml(avoidsDisplay)}</p>
+    <p><strong>Tone & language:</strong> ${escapeHtml(toneStyleText)}</p>
+    <p><strong>Emoji usage:</strong> ${escapeHtml(p.emojiPref || 'medium')}</p>
+  `;
+}      
 
       if (previewRules) {
         const engagementText = r.engagementStyle === 'ask_questions' ? 'Ask questions' : r.engagementStyle === 'natural' ? 'Respond naturally' : 'Mix of both';
