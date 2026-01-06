@@ -1,5 +1,5 @@
 <!-- Global Modal Root -->
-<div id="app-modal-backdrop" class="fixed inset-0 bg-black/50 hidden z-[1000000] items-center justify-center">
+<div id="app-modal-backdrop" class="fixed inset-0 bg-black/50 hidden z-[9999] items-center justify-center" style="z-index: 9999 !important;">
     <div id="app-modal-shell" class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full mx-4 p-6 shadow-2xl border border-gray-200 dark:border-gray-700">
       <h3 id="app-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white mb-2"></h3>
       <p id="app-modal-message" class="text-sm text-gray-600 dark:text-gray-300 mb-4"></p>
@@ -37,7 +37,9 @@
             const btn = document.createElement('button');
             btn.textContent = action.label;
             btn.className = action.className || 'px-4 py-2 rounded-lg text-sm bg-gray-200';
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+              // ✅ IMPORTANT: prevent modal button clicks from closing sidebar
+              e.stopPropagation();
               close();
               resolve(action.value);
             });
@@ -45,6 +47,9 @@
           });
   
           function onBackdropClick(e) {
+            // ✅ IMPORTANT: don't let modal clicks trigger "outside click closes sidebar" handlers
+            e.stopPropagation();
+            
             if (e.target === backdrop) {
               close();
               resolve(null);
@@ -57,6 +62,10 @@
           }
   
           backdrop.addEventListener('click', onBackdropClick);
+          // ✅ IMPORTANT: prevent all modal clicks from bubbling to document (which closes sidebar)
+          shell.addEventListener('click', (e) => {
+            e.stopPropagation();
+          });
           backdrop.classList.remove('hidden');
           backdrop.classList.add('flex');
         });
@@ -152,7 +161,9 @@
               const root = document.getElementById('app-modal-body');
               if (!root) return;
               root.querySelectorAll('[data-option-value]').forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', (e) => {
+                  // ✅ IMPORTANT: prevent option button clicks from closing sidebar
+                  e.stopPropagation();
                   const v = btn.getAttribute('data-option-value');
                   document.getElementById('app-modal-backdrop').classList.add('hidden');
                   resolve(v);
