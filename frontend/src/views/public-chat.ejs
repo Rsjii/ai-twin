@@ -548,8 +548,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                             </svg>
                         </button>
-                        <button class="delete-chat-btn text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto" data-chat-id="${chat.publicId}" title="Delete chat">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button class="delete-chat-btn transition-opacity text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 pointer-events-auto relative z-10 cursor-pointer" data-chat-id="${chat.publicId}" title="Delete chat">
+                            <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
                         </button>
@@ -597,7 +597,9 @@ if (window.TimeUtils) {
                 container.querySelectorAll('.chat-item').forEach(item => {
                     item.addEventListener('click', async (e) => {
                         // Don't trigger if clicking on buttons
-                        if (e.target.closest('button')) return;
+                        if (e.target.closest('.delete-chat-btn') || e.target.closest('.edit-chat-btn')) {
+                            return; // button click already handled above
+                        }
                         
                         const chatId = item.dataset.chatId;
                         await switchToPublicChat(chatId);
@@ -616,8 +618,13 @@ if (window.TimeUtils) {
                 container.querySelectorAll('.delete-chat-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         const chatId = btn.dataset.chatId;
-                        deletePublicChat(chatId);
+                        if (chatId && typeof deletePublicChat === 'function') {
+                            deletePublicChat(chatId);
+                        } else {
+                            ErrorLogger.error('deletePublicChat function not found or chatId missing', null, {});
+                        }
                     });
                 });
             } catch (error) {

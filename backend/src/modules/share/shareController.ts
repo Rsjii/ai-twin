@@ -370,6 +370,9 @@ export const getShareableContent = async (req: Request, res: Response) => {
       email: {
         subject: `Check out this Twin: @${publicHandle}`,
         body: `Hi!\n\nI found this amazing twin that you can chat with:\n\nTwin: @${publicHandle}\nCreator: ${creatorName}\n\nIt's a digital version that talks just like ${creatorName} — same communication style and personality. You can chat with it here:\n${shareUrl}\n\nTry it out and let me know what you think!`
+      },
+      copy: {
+        text: `💬 Hey! Check out this twin @${publicHandle}! It's a digital version that chats just like ${creatorName}. Try it: ${shareUrl}`
       }
     };
 

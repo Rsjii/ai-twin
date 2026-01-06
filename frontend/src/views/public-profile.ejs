@@ -1253,19 +1253,44 @@ async function shareTwin(platform) {
 
         async function copyShareLink() {
             try {
-
                 // ✅ FIX: Check allowShares BEFORE copying
-        if (sharesDisabled) {
-            showNotification('Shares are disabled for this twin. You cannot share this profile.', 'info');
-            return;
-        }
+                if (sharesDisabled) {
+                    showNotification('Shares are disabled for this twin. You cannot share this profile.', 'info');
+                    return;
+                }
 
-                const shareUrl = window.location.href;
-                await navigator.clipboard.writeText(shareUrl);
-                showNotification('Link copied to clipboard!', 'success');
+                // ✅ FIX: Fetch share content from API (same as other share options)
+                const response = await fetch(`/api/share/content/${twinPublicHandle}?platform=copy`, {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    if (data.errorCode === 'SHARES_DISABLED') {
+                        showNotification('Shares are disabled for this twin. You cannot share this profile.', 'info');
+                        return;
+                    }
+                    showNotification('Error: ' + (data.error || 'Failed to get share content'), 'error');
+                    return;
+                }
+
+                // ✅ FIX: Use content.text which includes message + link (like other share options)
+                const content = data.content;
+                if (!content || !content.text) {
+                    // Fallback to just URL if content not available
+                    const shareUrl = data.shareUrl || window.location.href;
+                    await navigator.clipboard.writeText(shareUrl);
+                    showNotification('Link copied to clipboard!', 'success');
+                    return;
+                }
+
+                // Copy message + link (same format as other share options)
+                await navigator.clipboard.writeText(content.text);
+                showNotification('Message copied to clipboard!', 'success');
             } catch (error) {
                 ErrorLogger.error('Copy error', error, {});
-                showNotification('Failed to copy link. Please copy manually: ' + window.location.href, 'error');
+                showNotification('Failed to copy. Please try again.', 'error');
             }
         }
 

@@ -1423,7 +1423,6 @@ export const getUserPublicChats = async (req: AuthenticatedRequest, res: Respons
 
 // V2: Re-enable delete functionality for owners
 // Delete public chat
-/*
 export const deletePublicChat = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { chatToken } = req.params;
@@ -1463,22 +1462,15 @@ export const deletePublicChat = async (req: Request, res: Response, next: NextFu
 
     const chat = chatResult.rows[0];
     
-    // ✅ FIX: Check ownership
+    // ✅ FIX: Only allow chat owner to delete (NOT twin owner)
     if (userId) {
-      // Check if user owns the chat
+      // Only allow if user owns the chat
       if (chat.userId !== userId) {
-        // Check if user owns the twin
-        const twinCheck = await db.query(`
-          SELECT "userId" FROM "Twin" WHERE id = $1
-        `, [chat.twinId]);
-        
-        if (twinCheck.rows.length === 0 || twinCheck.rows[0].userId !== userId) {
-          return res.status(403).json({
-            success: false,
-            error: 'You do not have permission to delete this chat',
-            errorCode: 'UNAUTHORIZED'
-          });
-        }
+        return res.status(403).json({
+          success: false,
+          error: 'You can only delete your own chats',
+          errorCode: 'UNAUTHORIZED'
+        });
       }
     } else {
       // For anonymous users, require authentication
@@ -1505,7 +1497,6 @@ export const deletePublicChat = async (req: Request, res: Response, next: NextFu
     handleErrorWithSuccessFormat(error, res, 'Failed to delete public chat');
   }
 };
-*/
 
 // Update public chat title
 export const updatePublicChatTitle = async (req: Request, res: Response, next: NextFunction) => {

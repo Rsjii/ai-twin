@@ -36,13 +36,13 @@
             <span class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">View:</span>
             <button 
                 id="viewChatBtn" 
-                class="px-3 py-1.5 rounded-full text-xs sm:text-sm bg-primary text-white"
+                class="px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-primary text-white transition-colors"
             >
                 Chat-wise
             </button>
             <button 
                 id="viewUserBtn" 
-                class="px-3 py-1.5 rounded-full text-xs sm:text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                class="px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
             >
                 User-wise
             </button>
@@ -1131,18 +1131,29 @@
             url.searchParams.set('view', view);
             window.history.replaceState({}, '', url.toString());
             
-            // ✅ FIX: Update button states synchronously
+            // ✅ FIX: Update button states synchronously with proper theme handling
+            const viewChatBtn = document.getElementById('viewChatBtn');
+            const viewUserBtn = document.getElementById('viewUserBtn');
+            
             if (view === 'chat') {
-                document.getElementById('viewChatBtn').classList.add('bg-primary', 'text-white');
-                document.getElementById('viewChatBtn').classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
-                document.getElementById('viewUserBtn').classList.remove('bg-primary', 'text-white');
-                document.getElementById('viewUserBtn').classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-300', 'dark:text-gray-300');
+                // Chat-wise is active
+                viewChatBtn.classList.add('bg-primary', 'text-white');
+                viewChatBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+                
+                // User-wise is inactive
+                viewUserBtn.classList.remove('bg-primary', 'text-white');
+                viewUserBtn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+                
                 document.getElementById('userSortByContainer').classList.add('hidden');
             } else {
-                document.getElementById('viewChatBtn').classList.remove('bg-primary', 'text-white');
-                document.getElementById('viewChatBtn').classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
-                document.getElementById('viewUserBtn').classList.add('bg-primary', 'text-white');
-                document.getElementById('viewUserBtn').classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-300', 'dark:text-gray-300');
+                // Chat-wise is inactive
+                viewChatBtn.classList.remove('bg-primary', 'text-white');
+                viewChatBtn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+                
+                // User-wise is active
+                viewUserBtn.classList.add('bg-primary', 'text-white');
+                viewUserBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+                
                 document.getElementById('userSortByContainer').classList.remove('hidden');
             }
 
@@ -1161,22 +1172,36 @@
         // ✅ FIX: Restore view state on page load
         // Load on page load
         document.addEventListener('DOMContentLoaded', () => {
-            // ✅ Restore view toggle state from URL
+            // ✅ Restore view toggle state from URL with proper theme handling
+            const viewChatBtn = document.getElementById('viewChatBtn');
+            const viewUserBtn = document.getElementById('viewUserBtn');
+            
             if (currentView === 'chat') {
-                document.getElementById('viewChatBtn').classList.add('bg-primary', 'text-white');
-                document.getElementById('viewUserBtn').classList.remove('bg-primary', 'text-white');
+                // Chat-wise is active
+                viewChatBtn.classList.add('bg-primary', 'text-white');
+                viewChatBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+                
+                // User-wise is inactive
+                viewUserBtn.classList.remove('bg-primary', 'text-white');
+                viewUserBtn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+                
                 document.getElementById('userSortByContainer').classList.add('hidden');
             } else {
-                document.getElementById('viewChatBtn').classList.remove('bg-primary', 'text-white');
-                document.getElementById('viewUserBtn').classList.add('bg-primary', 'text-white');
+                // Chat-wise is inactive
+                viewChatBtn.classList.remove('bg-primary', 'text-white');
+                viewChatBtn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+                
+                // User-wise is active
+                viewUserBtn.classList.add('bg-primary', 'text-white');
+                viewUserBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+                
                 document.getElementById('userSortByContainer').classList.remove('hidden');
             }
             
             loadPublicChatHistory(currentPage);
             
             // ✅ Setup event listeners for buttons
-            const viewChatBtn = document.getElementById('viewChatBtn');
-            const viewUserBtn = document.getElementById('viewUserBtn');
+            // viewChatBtn and viewUserBtn already declared above
             const applyFiltersBtn = document.getElementById('applyFiltersBtn');
             const clearFiltersBtn = document.getElementById('clearFiltersBtn');
             const filterSearch = document.getElementById('filterSearch');
