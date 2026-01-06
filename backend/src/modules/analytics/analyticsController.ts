@@ -346,14 +346,100 @@ try {
         )
     `, [userId]),
     db.query('SELECT type, COUNT(*) as count FROM "Event" WHERE "userId" = $1 GROUP BY type', [userId]),
-    db.query(`
-      SELECT DATE("createdAt") as date, COUNT(*) as count
-      FROM "Event"
-      WHERE "userId" = $1
-        AND "createdAt" >= NOW() - INTERVAL '30 days'
-      GROUP BY DATE("createdAt")
-      ORDER BY date ASC
-    `, [userId]),
+    // ✅ Daily engagement graph: messages + views + likes + follows + shares (including anonymous) - LAST 7 DAYS ONLY
+    db.query(
+      `
+      WITH days AS (
+        SELECT generate_series(
+          CURRENT_DATE - INTERVAL '6 days',
+          CURRENT_DATE,
+          INTERVAL '1 day'
+        )::date AS day
+      )
+      SELECT
+        d.day AS date,
+        (
+          COALESCE(pm.msg_count, 0)
+          + COALESCE(pv.view_count, 0)
+          + COALESCE(lk.like_count, 0)
+          + COALESCE(fw.follow_count, 0)
+          + COALESCE(sh.share_count, 0)
+        ) AS count
+      FROM days d
+      LEFT JOIN (
+        SELECT DATE(pm."createdAt") AS day, COUNT(*) AS msg_count
+        FROM "PublicMessage" pm
+        JOIN "PublicChat" pc ON pm."chatId" = pc.id
+        JOIN "Twin" t ON pc."twinId" = t.id
+        WHERE t."userId" = $1
+          AND pm.sender = 'human'
+          AND pm."createdAt" >= NOW() - INTERVAL '7 days'
+          AND (pc."userId" IS NULL OR pc."userId" <> $1)
+          AND (
+            pc."userId" IS NULL OR (
+              pc."userId" IS NOT NULL
+              AND NOT EXISTS (
+                SELECT 1
+                FROM "Twin" t2
+                JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+                WHERE t2."userId" = pc."userId"
+                  AND tbu."userId" = $1
+              )
+            )
+          )
+        GROUP BY DATE(pm."createdAt")
+      ) pm ON pm.day = d.day
+      LEFT JOIN (
+        SELECT DATE("createdAt") AS day, COUNT(*) AS view_count
+        FROM "Event"
+        WHERE "userId" = $1
+          AND type = 'profile_viewed'
+          AND "createdAt" >= NOW() - INTERVAL '7 days'
+          AND (meta->>'viewerId' IS NULL OR meta->>'viewerId' != $2)
+        GROUP BY DATE("createdAt")
+      ) pv ON pv.day = d.day
+      LEFT JOIN (
+        SELECT DATE(tl."createdAt") AS day, COUNT(*) AS like_count
+        FROM "TwinLike" tl
+        JOIN "Twin" t ON tl."twinId" = t.id
+        WHERE t."userId" = $1
+          AND tl."createdAt" >= NOW() - INTERVAL '7 days'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "Twin" t2
+            JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+            WHERE t2."userId" = tl."userId"
+              AND tbu."userId" = $1
+          )
+        GROUP BY DATE(tl."createdAt")
+      ) lk ON lk.day = d.day
+      LEFT JOIN (
+        SELECT DATE(tf."createdAt") AS day, COUNT(*) AS follow_count
+        FROM "TwinFollow" tf
+        JOIN "Twin" t ON tf."twinId" = t.id
+        WHERE t."userId" = $1
+          AND tf."createdAt" >= NOW() - INTERVAL '7 days'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "Twin" t2
+            JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+            WHERE t2."userId" = tf."userId"
+              AND tbu."userId" = $1
+          )
+        GROUP BY DATE(tf."createdAt")
+      ) fw ON fw.day = d.day
+      LEFT JOIN (
+        SELECT DATE("createdAt") AS day, COUNT(*) AS share_count
+        FROM "Event"
+        WHERE "userId" = $1
+          AND type = 'twin_shared'
+          AND "createdAt" >= NOW() - INTERVAL '7 days'
+        GROUP BY DATE("createdAt")
+      ) sh ON sh.day = d.day
+      ORDER BY d.day ASC
+      `,
+      [userId, ownerPublicId]
+    ),
     db.query(`
       SELECT type, COUNT(*) as count
       FROM "Event"

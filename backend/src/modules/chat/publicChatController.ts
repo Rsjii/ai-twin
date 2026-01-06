@@ -230,26 +230,20 @@ export const startPublicChat = async (req: AuthenticatedRequest, res: Response, 
       }
     }    
 
-    // Log event (don't fail if this fails)
-    if (userId) {
-      try {
-        await EventLogger.logUserEvent(userId, EVENT_TYPES.PUBLIC_CHAT_STARTED, {
-          publicTwinId: twinId,
-          publicChatId: publicChat.id,
-          source: 'public_profile'
-        });
-      } catch (eventError) {
-        logger.warn('[startPublicChat] Failed to log event:', eventError);
-      }
-    } else if (finalVisitorId && !finalVisitorId.startsWith('visitor_')) {
-      try {
-        await EventLogger.logUserEvent(finalVisitorId, EVENT_TYPES.PUBLIC_CHAT_STARTED, {
-          twinId,
-          chatId: publicChat.id,
-        });
-      } catch (eventError) {
-        logger.warn('[startPublicChat] Failed to log event:', eventError);
-      }
+    // ✅ Log event (don't fail if this fails)
+    // Always log correctly:
+    // - logged-in: userId stored
+    // - anonymous: userId = null, visitorId stored in meta (not as userId)
+    try {
+      await EventLogger.log(userId ?? null, EVENT_TYPES.PUBLIC_CHAT_STARTED, {
+        publicTwinId: twinId,        // internal id ok; EventLogger will tokenize
+        publicChatId: publicChat.id,  // internal id ok; EventLogger will tokenize
+        source: 'public_profile',
+        isAnon: !userId,
+        visitorId: userId ? undefined : (finalVisitorId || null),
+      });
+    } catch (eventError) {
+      logger.warn('[startPublicChat] Failed to log public_chat_started event:', eventError);
     }
 
     // ✅ Response: always return the chatId token (stable for logged-in, new for anonymous)
