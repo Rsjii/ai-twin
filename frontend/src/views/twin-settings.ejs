@@ -822,7 +822,7 @@
         basicInfo: {
           name: name || undefined,
           role: role || undefined,
-          oneLineBio: oneLineBio, // ✅ MANDATORY: Always send (backend will validate)
+          oneLineBio: oneLineBio, // ✅ ALWAYS send (empty -> backend shows proper error)
           language: language || undefined,
           purpose: purpose || undefined,
           purposeOther: purposeOther, // ✅ ADD: Include purposeOther when "other" is selected
@@ -1522,6 +1522,26 @@
         const btn = document.getElementById('twinSettingsSave');
         const oldText = btn?.textContent;
 
+        // ✅ Pre-validate mandatory bio (instant UI error, no API call, no "stuck")
+        const bioEl = document.getElementById('twinBio');
+        const bioVal = (bioEl?.value || '').trim();
+
+        if (!bioVal) {
+          clearFieldErrors();
+
+          if (bioEl) bioEl.classList.add('border-red-500', 'ring-2', 'ring-red-500/20');
+          const bioErr = document.getElementById('twinBio-error');
+          if (bioErr) {
+            bioErr.textContent = 'Bio is required';
+            bioErr.classList.remove('hidden');
+          }
+
+          showNotification('Bio is required and cannot be empty', 'error');
+          updateSaveButtonState();
+          return;
+        }
+
+        let didReload = false;
         try {
           if (btn) {
             btn.disabled = true;
@@ -1530,6 +1550,7 @@
 
           await saveAll();
 
+          didReload = true;
           // ✅ set flag so toast shows after reload
           sessionStorage.setItem('twinSettings.justSaved', '1');
           window.location.reload();
@@ -1585,10 +1606,12 @@
           } else {
             showNotification(`Save failed: ${err?.message || 'Unknown error'}`, 'error');
           }
-          
-          if (btn) btn.disabled = false;
         } finally {
-          if (btn && !btn.disabled) btn.textContent = oldText || 'Save settings';
+          // ✅ "stuck-proof": always restore button if we didn't reload
+          if (btn && !didReload) {
+            btn.disabled = false;
+            btn.textContent = oldText || 'Save settings';
+          }
           updateSaveButtonState();
         }
       });

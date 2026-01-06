@@ -790,27 +790,42 @@ function normalizeNoSpaces(msg: string): string {
  * Get variations for repeated characters
  * If character repeats 3+ times, return variations with 1 and 2 repetitions
  * Example: "hiiii" -> ["hi", "hii"]
+ * ✅ FIX: Better handling of excessive repetitions + short inputs (<3 chars) to prevent errors
  */
 function getRepeatedCharVariations(msg: string): string[] {
-  const normalized = normalizeNoSpaces(msg);
-  const variations: string[] = [];
-  
-  // Check if any character repeats 3+ times
-  if (/(.)\1{2,}/.test(normalized)) {
-    // Create variation with 1 repetition
-    const var1 = normalized.replace(/(.)\1{2,}/g, '$1');
-    if (var1 !== normalized) {
-      variations.push(var1);
+  try {
+    const normalized = normalizeNoSpaces(msg);
+    if (!normalized) return [];
+
+    // Hard safety cap (even if someone calls this directly elsewhere)
+    if (normalized.length > 40) return [];
+
+    const out = new Set<string>();
+
+    const push = (v: string) => {
+      if (!v) return;
+      if (v === normalized) return;
+      if (v.length > 20) return; // match detectFastPathCategory limits
+      out.add(v);
+    };
+
+    // ✅ For very short inputs (<=4), also handle 2+ repeats (covers "okk", "hii")
+    if (normalized.length <= 4 && /(.)\1+/.test(normalized)) {
+      push(normalized.replace(/(.)\1+/g, '$1'));   // collapse to 1
+      push(normalized.replace(/(.)\1+/g, '$1$1')); // collapse to 2
+      return Array.from(out).slice(0, 2);
     }
-    
-    // Create variation with 2 repetitions
-    const var2 = normalized.replace(/(.)\1{2,}/g, '$1$1');
-    if (var2 !== normalized && var2 !== var1) {
-      variations.push(var2);
+
+    // ✅ For general inputs, only treat 3+ repeats (avoid damaging normal words)
+    if (/(.)\1{2,}/.test(normalized)) {
+      push(normalized.replace(/(.)\1{2,}/g, '$1'));
+      push(normalized.replace(/(.)\1{2,}/g, '$1$1'));
     }
+
+    return Array.from(out).slice(0, 2);
+  } catch {
+    return [];
   }
-  
-  return variations;
 }
 
 /**
