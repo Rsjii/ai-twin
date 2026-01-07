@@ -1,6 +1,7 @@
 export const ADMIN_EMAILS: string[] = [
   'admin@selflyx.com', // ✅ Update with your actual admin email
-  'a@gmail.com'
+  'a@gmail.com',
+  'e@gmail.com'
 ];
 
   // Query Limits

@@ -1224,6 +1224,28 @@ async function shareTwin(platform) {
             return;
         }
 
+        // ✅ FIX: Log the share event BEFORE opening share window
+        const twinId = data.twin?.id;
+        if (twinId) {
+            try {
+                await fetch('/api/share/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '<%= csrfToken %>'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        twinId: twinId,
+                        platform: platform
+                    })
+                });
+            } catch (logError) {
+                // Don't block sharing if logging fails
+                ErrorLogger.error('Failed to log share event', logError, {});
+            }
+        }
+
         // ✅ FIX: Use API response content instead of hardcoded text
         const shareUrl = data.shareUrl || window.location.href;
         const content = data.content;
@@ -1288,6 +1310,28 @@ async function shareTwin(platform) {
                     }
                     showNotification('Error: ' + (data.error || 'Failed to get share content'), 'error');
                     return;
+                }
+
+                // ✅ FIX: Log the share event BEFORE copying
+                const twinId = data.twin?.id;
+                if (twinId) {
+                    try {
+                        await fetch('/api/share/generate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': '<%= csrfToken %>'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                twinId: twinId,
+                                platform: 'copy'
+                            })
+                        });
+                    } catch (logError) {
+                        // Don't block copying if logging fails
+                        ErrorLogger.error('Failed to log share event', logError, {});
+                    }
                 }
 
                 // ✅ FIX: Use content.text which includes message + link (like other share options)

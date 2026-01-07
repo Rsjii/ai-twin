@@ -1262,9 +1262,34 @@ async function shareTwinFromDiscover(twinToken, handle) {
             return;
         }
         
-        // ✅ FIX: Use navigator.share API like chat message share (same screen)
-        const shareUrl = `${window.location.origin}/@${handle}`;
-        const shareText = `Check out this twin @${handle}! Chat with it and see how it responds.`;
+        // ✅ FIX: Get twinId from response and log the share event
+        const twinId = data.twin?.id;
+        if (!twinId) {
+            return;
+        }
+        
+        // ✅ FIX: Log the share event BEFORE sharing (using /api/share/generate)
+        try {
+            await fetch('/api/share/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    twinId: twinId,
+                    platform: 'copy'
+                })
+            });
+        } catch (logError) {
+            // Don't block sharing if logging fails
+            ErrorLogger.error('Failed to log share event', logError, {});
+        }
+        
+        // ✅ FIX: Use API response content instead of hardcoded
+        const shareUrl = data.shareUrl || `${window.location.origin}/@${handle}`;
+        const shareText = data.content?.text || `Check out this twin @${handle}! Chat with it and see how it responds.`;
         
         if (navigator.share) {
             // Use native share dialog (same as chat message share)
@@ -1272,9 +1297,6 @@ async function shareTwinFromDiscover(twinToken, handle) {
                 title: `Twin: @${handle}`,
                 text: shareText,
                 url: shareUrl
-            }).then(() => {
-                // Track share event
-                trackShareEvent(twinToken, 'native_share');
             }).catch((err) => {
                 // User cancelled or error - fallback to copy link
                 if (err.name !== 'AbortError') {
@@ -1290,7 +1312,7 @@ async function shareTwinFromDiscover(twinToken, handle) {
             // Fallback: copy link to clipboard
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(shareUrl);
-                trackShareEvent(twinToken, 'copy');
+                showNotification('Link copied to clipboard!', 'success');
             } else {
                 showNotification('Share feature not available on this device', 'error');
             }

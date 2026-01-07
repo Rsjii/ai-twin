@@ -71,3 +71,20 @@ export const validateCSRF = (req: Request, _res: Response, next: NextFunction) =
 
   return next();
 };
+
+// ✅ Optional CSRF validation - only validates if user is logged in (for anonymous users)
+export const validateCSRFOptional = (req: Request, _res: Response, next: NextFunction) => {
+  // If no user is logged in, skip CSRF validation (anonymous user)
+  if (!req.user) {
+    return next();
+  }
+
+  // If user is logged in, validate CSRF token
+  // But if no session or no token, also skip (might be API call)
+  if (!req.session || !req.session.csrfToken) {
+    return next();
+  }
+
+  // User is logged in and has session token - validate CSRF
+  return validateCSRF(req, _res, next);
+};

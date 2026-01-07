@@ -32,18 +32,29 @@
     (function() {
         'use strict';
         
-        // Format date helper - uses TimeUtils if available
+        // ✅ FIX: Format date helper - Always use relative time
         function formatTime(date) {
             if (!date) return 'N/A';
-            if (window.TimeUtils) {
-                return window.TimeUtils.formatTimeWithContext(date);
+
+            // ✅ Always relative
+            if (window.TimeUtils && typeof window.TimeUtils.formatRelativeTime === 'function') {
+                return window.TimeUtils.formatRelativeTime(date);
             }
+
+            // Fallback relative-only
             const d = new Date(date);
             const diff = Date.now() - d.getTime();
-            if (diff < 60000) return 'Just now';
-            if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-            if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-            return window.TimeUtils ? window.TimeUtils.formatDateOnly(date) : d.toLocaleDateString();
+            if (!Number.isFinite(diff)) return 'N/A';
+
+            const minutes = Math.floor(diff / 60000);
+            if (minutes < 1) return 'Just now';
+            if (minutes < 60) return `${minutes}m ago`;
+
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+
+            const days = Math.floor(hours / 24);
+            return `${days}d ago`;
         }
         // Main function - make it global immediately
         window.showSocialList = async function(twinId, type, showDetailsBtn = false) {
@@ -116,6 +127,12 @@
                     } else {
                         content.innerHTML = list.map(user => {
                             const date = user.likedAt || user.followedAt || user.lastChatAt;
+                            // ✅ FIX: Add full datetime for tooltip
+                            const dateTitle = date
+                                ? (window.TimeUtils && typeof window.TimeUtils.formatFullDateTime === 'function'
+                                    ? window.TimeUtils.formatFullDateTime(date)
+                                    : new Date(date).toLocaleString())
+                                : '';
                             const isAnonymous = user.isAnonymous || user.handle === 'anonymous';
                             const displayName = isAnonymous ? 'Anonymous Users' : (user.name || 'Anonymous');
                             const avatarContent = isAnonymous 
@@ -140,7 +157,7 @@
                                         <p class="font-medium text-gray-900 dark:text-white">${displayName}</p>
                                         ${statsHtml}
                                     </div>
-                                    ${date ? `<p class="text-xs text-gray-400 dark:text-gray-500">${formatTime(date)}</p>` : ''}
+                                    ${date ? `<p class="text-xs text-gray-400 dark:text-gray-500" title="${dateTitle}">${formatTime(date)}</p>` : ''}
                                 </div>
                             `;
                         }).join('');

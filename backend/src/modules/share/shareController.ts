@@ -4,6 +4,7 @@ import { logger } from '../../config/logger';
 import { EventLogger } from '../../services/eventLogger';
 import { z } from 'zod';
 import { EVENT_TYPES } from '../../config/constants';
+import { tokenizeId } from '../../utils/idTokenization';
 
 // Validation schemas
 const generateShareLinkSchema = z.object({
@@ -20,27 +21,23 @@ const shareAnalyticsSchema = z.object({
 // Generate shareable URL for a twin
 export const generateShareLink = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
     const { twinId, platform } = generateShareLinkSchema.parse(req.body);
 
-    // Verify twin belongs to user and is public
+    // ✅ FIX: Verify twin is public (anyone can share public twins, not just owner)
     const twinResult = await db.query(`
-      SELECT id, "publicHandle", "isPublic", "likeCount", "followCount", "chatCount", "allowShares"
+      SELECT id, "publicHandle", "isPublic", "likeCount", "followCount", "chatCount", "allowShares", "userId"
       FROM "Twin"
-      WHERE id = $1 AND "userId" = $2 AND "isPublic" = true
-    `, [twinId, req.user.id]);
+      WHERE id = $1 AND "isPublic" = true
+    `, [twinId]);
 
     if (twinResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Public twin not found or not owned by user' });
+      return res.status(404).json({ error: 'Public twin not found' });
     }
 
     const twin = twinResult.rows[0];
 
-     // ✅ Check if user is blocked
-     if (req.user) {
+    // ✅ Check if user is blocked (only if user is logged in)
+    if (req.user) {
       const blockedCheck = await db.query(`
         SELECT id FROM "TwinBlockedUsers"
         WHERE "twinId" = $1 AND "userId" = $2
@@ -97,11 +94,23 @@ export const generateShareLink = async (req: Request, res: Response) => {
         shareTitle = `Twin: @${twin.publicHandle}`;
     }
 
-    // Log share event
-    await EventLogger.logProfileShared(req.user.id, twinId, {
-      shareMethod: platform,
-      shareUrl
-    });
+    // ✅ FIX: Log share event (userId can be null for anonymous users)
+    const userId = req.user?.id || null;
+    if (userId) {
+      // Logged-in user: use logProfileShared
+      await EventLogger.logProfileShared(userId, twinId, {
+        shareMethod: platform,
+        shareUrl
+      });
+    } else {
+      // Anonymous user: log with null userId
+      await EventLogger.log(null, EVENT_TYPES.TWIN_SHARED, {
+        twinId,
+        publicTwinId: tokenizeId(twinId, 'twin'),
+        shareMethod: platform,
+        shareUrl
+      });
+    }
 
     res.json({
       success: true,

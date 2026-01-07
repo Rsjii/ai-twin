@@ -448,13 +448,59 @@ try {
       ORDER BY count DESC
       LIMIT 5
     `, [userId]),
-    // ✅ NEW: Last 7 days summary (only engagement events)
+    // ✅ FIX: Last 7 days summary - Get actual values from DB tables (not events)
     db.query(`
       SELECT 
-        COUNT(CASE WHEN type = 'public_chat_started' THEN 1 END) as new_chats,
-        COUNT(CASE WHEN type = 'twin_liked' THEN 1 END) as new_likes,
-        COUNT(CASE WHEN type = 'twin_followed' THEN 1 END) as new_followers,
-        COUNT(CASE WHEN type = 'twin_shared' THEN 1 END) as new_shares,
+        -- New Chats: Count distinct PublicChats created in last 7 days
+        (SELECT COUNT(DISTINCT pc.id)
+         FROM "PublicChat" pc
+         JOIN "Twin" t ON pc."twinId" = t.id
+         WHERE t."userId" = $1
+           AND pc."createdAt" >= NOW() - INTERVAL '7 days'
+           AND (pc."userId" IS NULL OR pc."userId" <> $1)
+           AND EXISTS (
+             SELECT 1 FROM "PublicMessage" pm 
+             WHERE pm."chatId" = pc.id 
+             AND pm.sender = 'human'
+           )
+        ) as new_chats,
+        -- New Likes: Count TwinLike records created in last 7 days
+        (SELECT COUNT(*)
+         FROM "TwinLike" tl
+         JOIN "Twin" t ON tl."twinId" = t.id
+         WHERE t."userId" = $1
+           AND tl."createdAt" >= NOW() - INTERVAL '7 days'
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = tl."userId"
+               AND tbu."userId" = $1
+           )
+        ) as new_likes,
+        -- New Followers: Count TwinFollow records created in last 7 days
+        (SELECT COUNT(*)
+         FROM "TwinFollow" tf
+         JOIN "Twin" t ON tf."twinId" = t.id
+         WHERE t."userId" = $1
+           AND tf."createdAt" >= NOW() - INTERVAL '7 days'
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = tf."userId"
+               AND tbu."userId" = $1
+           )
+        ) as new_followers,
+        -- New Shares: Count twin_shared events in last 7 days
+        (SELECT COUNT(*)
+         FROM "Event" e
+         JOIN "Twin" t ON e.meta->>'twinId' = t.id
+         WHERE e.type = 'twin_shared'
+           AND t."userId" = $1
+           AND e."createdAt" >= NOW() - INTERVAL '7 days'
+        ) as new_shares,
+        -- New Messages: Count PublicMessages in last 7 days
         (SELECT COUNT(*) 
          FROM "PublicMessage" pm
          JOIN "PublicChat" pc ON pm."chatId" = pc.id
@@ -464,18 +510,60 @@ try {
            AND (pc."userId" IS NULL OR pc."userId" <> $1)
            AND pm."createdAt" >= NOW() - INTERVAL '7 days'
         ) as new_messages
-      FROM "Event"
-      WHERE "userId" = $1
-        AND "createdAt" >= NOW() - INTERVAL '7 days'
-        AND type IN ('public_chat_started', 'twin_liked', 'twin_followed', 'twin_shared')
     `, [userId]),
-    // ✅ NEW: Last 30 days summary (only engagement events)
+    // ✅ FIX: Last 30 days summary - Get actual values from DB tables (not events)
     db.query(`
       SELECT 
-        COUNT(CASE WHEN type = 'public_chat_started' THEN 1 END) as new_chats,
-        COUNT(CASE WHEN type = 'twin_liked' THEN 1 END) as new_likes,
-        COUNT(CASE WHEN type = 'twin_followed' THEN 1 END) as new_followers,
-        COUNT(CASE WHEN type = 'twin_shared' THEN 1 END) as new_shares,
+        -- New Chats: Count distinct PublicChats created in last 30 days
+        (SELECT COUNT(DISTINCT pc.id)
+         FROM "PublicChat" pc
+         JOIN "Twin" t ON pc."twinId" = t.id
+         WHERE t."userId" = $1
+           AND pc."createdAt" >= NOW() - INTERVAL '30 days'
+           AND (pc."userId" IS NULL OR pc."userId" <> $1)
+           AND EXISTS (
+             SELECT 1 FROM "PublicMessage" pm 
+             WHERE pm."chatId" = pc.id 
+             AND pm.sender = 'human'
+           )
+        ) as new_chats,
+        -- New Likes: Count TwinLike records created in last 30 days
+        (SELECT COUNT(*)
+         FROM "TwinLike" tl
+         JOIN "Twin" t ON tl."twinId" = t.id
+         WHERE t."userId" = $1
+           AND tl."createdAt" >= NOW() - INTERVAL '30 days'
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = tl."userId"
+               AND tbu."userId" = $1
+           )
+        ) as new_likes,
+        -- New Followers: Count TwinFollow records created in last 30 days
+        (SELECT COUNT(*)
+         FROM "TwinFollow" tf
+         JOIN "Twin" t ON tf."twinId" = t.id
+         WHERE t."userId" = $1
+           AND tf."createdAt" >= NOW() - INTERVAL '30 days'
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = tf."userId"
+               AND tbu."userId" = $1
+           )
+        ) as new_followers,
+        -- New Shares: Count twin_shared events in last 30 days
+        (SELECT COUNT(*)
+         FROM "Event" e
+         JOIN "Twin" t ON e.meta->>'twinId' = t.id
+         WHERE e.type = 'twin_shared'
+           AND t."userId" = $1
+           AND e."createdAt" >= NOW() - INTERVAL '30 days'
+        ) as new_shares,
+        -- New Messages: Count PublicMessages in last 30 days
         (SELECT COUNT(*) 
          FROM "PublicMessage" pm
          JOIN "PublicChat" pc ON pm."chatId" = pc.id
@@ -485,10 +573,6 @@ try {
            AND (pc."userId" IS NULL OR pc."userId" <> $1)
            AND pm."createdAt" >= NOW() - INTERVAL '30 days'
         ) as new_messages
-      FROM "Event"
-      WHERE "userId" = $1
-        AND "createdAt" >= NOW() - INTERVAL '30 days'
-        AND type IN ('public_chat_started', 'twin_liked', 'twin_followed', 'twin_shared')
     `, [userId]),
   ]);
 
