@@ -32,17 +32,17 @@ const prodLimits = {
 
   otpRequest: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // 10 OTP requests per 15 min per IP/email (OWASP standard: 3-5 per 15 min)
+    max: 5, // 5 OTP requests per 15 min per IP/email (OWASP standard: 3-5 per 15 min)
   } as LimitConfig,
 
   otpVerify: {
     windowMs: 10 * 60 * 1000, // 10 minutes
-    max: 10, // 10 OTP verification attempts per 10 min per email/IP (OWASP standard: 5-10 per 10 min)
+    max: 5, // 5 OTP verification attempts per 10 min per email/IP (OWASP standard: 5-10 per 10 min)
   } as LimitConfig,
 
   changePassword: {
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 1, // 1 password change attempt per hour per user (allows retry with typos)
+    max: 2, // 2 password change attempt per hour per user (allows retry with typos)
   } as LimitConfig,
 
   // Public/content flows - reasonable limits (industry standard: 60-100 msg/min for auth, 20-40 for anon)
@@ -79,7 +79,7 @@ const prodLimits = {
   // Other limits (industry standard: 5-10 resource creations per hour)
   twinCreation: {
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 3, // 3 twins per hour per user (prevents spam, allows testing)
+    max: 1, // 1 twins per hour per user (prevents spam, allows testing)
   } as LimitConfig,
 
   profileLink: {
@@ -95,7 +95,7 @@ const prodLimits = {
   // ✅ ADD: Contact form limits
   contactForm: {
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 1, // 1 submission per hour per IP/email (prevents spam)
+    max: 2, // 2 submission per hour per IP/email (prevents spam)
   } as LimitConfig,
 
   contactFormDaily: {

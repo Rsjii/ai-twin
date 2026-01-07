@@ -3,6 +3,7 @@ import { RATE_LIMITS, formatRetryAfter } from '../config/rateLimitConfig';
 import { OPERATION_RATE_LIMITS, EVENT_TYPES } from '../config/constants';
 import { PostgreSQLRateLimitStore } from '../config/rateLimitStore';
 import { EventLogger } from '../services/eventLogger';
+import { logger } from '../config/logger';
 
 /**
  * Rate Limiting Configuration
@@ -32,6 +33,19 @@ function logRateLimitViolation(
     const userId = req.user?.id || req.user?.userId || null;
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     
+    // Log to console/logger
+    logger.warn({
+      type: 'RATE_LIMIT_EXCEEDED',
+      limiter: limiterName,
+      key: key.substring(0, 100),
+      limit,
+      windowMs,
+      path: req.path,
+      method: req.method,
+      ip,
+      userId: userId || 'anonymous',
+    }, `[RATE_LIMIT] ⚠️ ${limiterName} EXCEEDED - ${req.method} ${req.path} - IP: ${ip}`);
+    
     const meta = {
       limiterName,
       key: key.substring(0, 100), // Limit key length for logging
@@ -54,8 +68,11 @@ function logRateLimitViolation(
 }
 
 // Global rate limiter (applied to all routes)
+// ✅ CRITICAL: Uses PostgreSQL store for DDoS protection (persists across restarts, works with horizontal scaling)
+const globalRateLimitStore = createRateLimitStore(RATE_LIMITS.global.windowMs);
+
 export const globalRateLimit = rateLimit({
-  store: createRateLimitStore(RATE_LIMITS.global.windowMs), // ✅ Use PostgreSQL store with windowMs
+  store: globalRateLimitStore, // ✅ Use PostgreSQL store with windowMs
   windowMs: RATE_LIMITS.global.windowMs,
   max: RATE_LIMITS.global.max,
   message: {
@@ -64,6 +81,39 @@ export const globalRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // ✅ Skip global limiter for routes that have their own specific rate limiters
+    // to prevent ERR_ERL_DOUBLE_COUNT errors
+    const path = req.path || '';
+    
+    // ✅ Skip static files (CSS, JS, images, uploads, fonts) - these shouldn't be rate limited
+    const isStatic = path.startsWith('/css/') ||
+                     path.startsWith('/js/') ||
+                     path.startsWith('/images/') ||
+                     path.startsWith('/uploads/') ||
+                     path.startsWith('/utils/') ||
+                     path.startsWith('/favicon') ||
+                     path.endsWith('.png') ||
+                     path.endsWith('.jpg') ||
+                     path.endsWith('.jpeg') ||
+                     path.endsWith('.svg') ||
+                     path.endsWith('.ico') ||
+                     path.endsWith('.woff') ||
+                     path.endsWith('.woff2') ||
+                     path.endsWith('.ttf') ||
+                     path.endsWith('.css') ||
+                     path.endsWith('.js');
+    
+    // ✅ Skip routes with specific rate limiters
+    const hasSpecificLimiter = path.startsWith('/api/auth') ||
+           path.startsWith('/api/chat') ||
+           path.startsWith('/api/public-chat') ||
+           path.startsWith('/api/enhanced-chat') ||
+           path.startsWith('/api/twin') ||
+           path.startsWith('/api/public-twin');
+    
+    return isStatic || hasSpecificLimiter;
+  },
   handler: (req, res) => {
     const key = req.ip || req.socket.remoteAddress || 'unknown';
     logRateLimitViolation(req, 'global', key, RATE_LIMITS.global.max, RATE_LIMITS.global.windowMs);
@@ -75,6 +125,7 @@ export const globalRateLimit = rateLimit({
     });
   },
 });
+
 
 // Twin creation rate limiter
 export const twinCreationRateLimit = rateLimit({

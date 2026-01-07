@@ -13,6 +13,9 @@ import { db } from './config/database';
 import { pool } from './config/db'; // ✅ Import pool for session store
 import { errorHandlerMiddleware } from './middleware/errorHandler';
 import passport from 'passport';
+import { globalRateLimit } from './middleware/rateLimit'; // ✅ Import proper global limiter with PostgreSQL store
+import { PostgreSQLRateLimitStore } from './config/rateLimitStore'; // ✅ Import PostgreSQL store
+import { formatRetryAfter } from './config/rateLimitConfig'; // ✅ Import formatRetryAfter for error messages
 
 const PgSession = connectPgSimple(session);
 //import googleAuthRoutes from './modules/auth/googleAuthRoutes';
@@ -92,48 +95,76 @@ app.use(helmet({
   },
 }));
 
+// ✅ Helper function to create PostgreSQL-based rate limit store
+function createRateLimitStore(windowMs: number): any {
+  return new PostgreSQLRateLimitStore(windowMs) as any;
+}
+
 // Rate limiting - ✅ Apply in ALL environments (with different limits)
+// ✅ CRITICAL FIX: Use PostgreSQL store for DDoS protection (persists across restarts, works with horizontal scaling)
 // ✅ FIX: Skip global limiter for routes that have their own specific rate limiters
 // to prevent ERR_ERL_DOUBLE_COUNT errors
-const limiter = rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.maxRequests,
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    // Skip global limiter for routes that have their own specific rate limiters
-    const path = req.path || '';
-    // Routes with specific rate limiters (auth, chat, public-chat, etc.)
-    return path.startsWith('/api/auth') ||
-           path.startsWith('/api/chat') ||
-           path.startsWith('/api/public-chat') ||
-           path.startsWith('/api/enhanced-chat') ||
-           path.startsWith('/api/twin') ||
-           path.startsWith('/api/public-twin');
-  }
-});
-
 if(isProd){
-  app.use(limiter); // Production limits (strict)
+  // Production: Use globalRateLimit which has PostgreSQL store + proper IP tracking
+  app.use(globalRateLimit);
 } else {
   // Development: Use a more lenient limiter (but still protect against abuse)
+  // ✅ CRITICAL: Still use PostgreSQL store even in dev for consistency
   const devLimiter = rateLimit({
+    store: createRateLimitStore(15 * 60 * 1000), // ✅ Use PostgreSQL store (not in-memory)
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100000, // High limit for dev (but not unlimited)
+    max: 1000000, // High limit for dev (but not unlimited)
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => {
-      // Skip global limiter for routes that have their own specific rate limiters
       const path = req.path || '';
-      return path.startsWith('/api/auth') ||
+      
+      // ✅ Skip static files (CSS, JS, images, uploads, fonts) - these shouldn't be rate limited
+      const isStatic = path.startsWith('/css/') ||
+                       path.startsWith('/js/') ||
+                       path.startsWith('/images/') ||
+                       path.startsWith('/uploads/') ||
+                       path.startsWith('/utils/') ||
+                       path.startsWith('/favicon') ||
+                       path.endsWith('.png') ||
+                       path.endsWith('.jpg') ||
+                       path.endsWith('.jpeg') ||
+                       path.endsWith('.svg') ||
+                       path.endsWith('.ico') ||
+                       path.endsWith('.woff') ||
+                       path.endsWith('.woff2') ||
+                       path.endsWith('.ttf') ||
+                       path.endsWith('.css') ||
+                       path.endsWith('.js');
+      
+      // ✅ Skip routes with specific rate limiters
+      const hasSpecificLimiter = path.startsWith('/api/auth') ||
              path.startsWith('/api/chat') ||
              path.startsWith('/api/public-chat') ||
              path.startsWith('/api/enhanced-chat') ||
              path.startsWith('/api/twin') ||
              path.startsWith('/api/public-twin');
-    }
+      
+      return isStatic || hasSpecificLimiter;
+    },
+    handler: (req, res) => {
+      const key = req.ip || req.socket.remoteAddress || 'unknown';
+      logger.warn({
+        type: 'RATE_LIMIT_EXCEEDED',
+        limiter: 'dev-global',
+        path: req.path,
+        method: req.method,
+        ip: key,
+      }, `[RATE_LIMIT] ⚠️ Dev global limiter EXCEEDED - ${req.method} ${req.path}`);
+      
+      res.status(429).json({
+        success: false,
+        error: 'Too many requests from this IP, please try again later.',
+        errorCode: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: formatRetryAfter(15 * 60 * 1000)
+      });
+    },
   });
   app.use(devLimiter);
 }
