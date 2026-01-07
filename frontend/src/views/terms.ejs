@@ -5,10 +5,10 @@
   twinId: typeof twinId !== 'undefined' ? twinId : null,
   csrfToken: typeof csrfToken !== 'undefined' ? csrfToken : '',
   pathname: typeof pathname !== 'undefined' ? pathname : '/terms',
+  fullBleed: true,
   body: `
-<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-12 px-1 sm:px-4 lg:px-8">
-    <div class="max-w-full sm:max-w-4xl mx-auto">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl dark:shadow-gray-900 p-3 sm:p-6 lg:p-8 xl:p-12">
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl dark:shadow-gray-900 p-6 sm:p-8 lg:p-10 xl:p-12 max-w-4xl mx-auto">
             <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold gradient-text mb-4 text-center">Terms of Service</h1>
             <p class="text-gray-600 dark:text-gray-300 text-center mb-2">Last updated: December 2025</p>
             
@@ -53,8 +53,8 @@
 
                 <section>
                     <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">4. Acceptable Use</h2>
-                    <p class="text-gray-700 leading-relaxed mb-4">You agree not to:</p>
-                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                    <p class="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">You agree not to:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
                         <li>Use the service for any illegal or unauthorized purpose</li>
                         <li>Upload content that is harmful, abusive, defamatory, or violates any laws</li>
                         <li>Impersonate any person or entity</li>
@@ -140,12 +140,11 @@
                     </p>
                         <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mt-4 border border-gray-200 dark:border-gray-700">
                         <p class="text-gray-700 dark:text-gray-200"><strong class="dark:text-white">Email:</strong> support@selflyx.com</p>
-                        <p class="text-gray-700 dark:text-gray-200"><strong class="dark:text-white">Support:</strong> <a href="/contact" class="text-primary dark:text-blue-400 hover:text-secondary">Contact Us</a></p>
+                        <p class="text-gray-700 dark:text-gray-200"><strong class="dark:text-white">Support:</strong> <a href="/contact" class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">Contact Us</a></p>
                     </div>
                 </section>
             </div>
         </div>
-    </div>
 </div>
 ` }) %>
 
