@@ -6,10 +6,10 @@ if (typeof publicTwins !== 'undefined' && publicTwins && publicTwins.length > 0)
 }
 var twinsJson = JSON.stringify(displayTwins);
 %>
-<%- include('layout', { title: title, user: user, csrfToken: csrfToken, body: `
+<%- include('layout', { title: title, user: user, csrfToken: csrfToken, fullBleed: true, body: `
  <!-- Hero Section - Improved Dark Theme -->
- <!-- Mobile: Full width, Desktop: Rounded with margins -->
- <div class="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900 text-white rounded-none md:rounded-2xl mx-0 md:mx-4 sm:mx-6 mt-0 md:mt-4 sm:mt-6">
+ <!-- Full width, full bleed -->
+ <div class="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900 text-white">
     <div class="absolute inset-0 bg-black opacity-10 dark:bg-blue-950/30"></div>
     <!-- Mobile: Full width padding, Desktop: Constrained -->
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 md:py-32">
@@ -56,7 +56,7 @@ var twinsJson = JSON.stringify(displayTwins);
         <!-- Mobile: Direct card, Desktop: Wrapped -->
         <div class="md:max-w-4xl md:mx-auto">
             <!-- Simple Styled Card -->
-            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-blue-900/10 rounded-none md:rounded-2xl p-6 sm:p-10 md:p-12 border-0 md:border border-blue-100 dark:border-gray-700 shadow-none md:shadow-lg dark:shadow-xl hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300">
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-950/90 rounded-none md:rounded-2xl p-6 sm:p-10 md:p-12 border-0 md:border border-blue-100 dark:border-white/15 shadow-none md:shadow-lg dark:shadow-black/50 hover:shadow-xl dark:hover:shadow-black/70 transition-all duration-300">
                 <div class="text-center">
                     <p class="text-xl sm:text-2xl md:text-3xl text-gray-900 dark:text-white leading-relaxed font-medium">
                         <span class="block mb-4 sm:mb-5"><p class="text-2xl sm:text-3xl md:text-3xl lg:text-3xl font-bold text-gray-900 dark:text-white">This isn't a chatbot.</p></span>
@@ -74,7 +74,7 @@ var twinsJson = JSON.stringify(displayTwins);
         <!-- Mobile: Direct card, Desktop: Wrapped -->
         <div class="md:max-w-6xl md:mx-auto">
             <!-- Common Container for Text and Twins -->
-            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-blue-900/10 rounded-none md:rounded-2xl p-6 sm:p-10 md:p-12 border-0 md:border border-blue-100 dark:border-gray-700 shadow-none md:shadow-lg dark:shadow-xl hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300">
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-950/90 rounded-none md:rounded-2xl p-6 sm:p-10 md:p-12 border-0 md:border border-blue-100 dark:border-white/15 shadow-none md:shadow-lg dark:shadow-black/50 hover:shadow-xl dark:hover:shadow-black/70 transition-all duration-300">
                 <!-- Section Header -->
                 <div class="text-center mb-12">
                     <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
@@ -129,12 +129,12 @@ var twinsJson = JSON.stringify(displayTwins);
             }
             
             .twin-carousel-card {
-                min-width: calc(100vw - 120px);
-                max-width: calc(100vw - 120px);
+                min-width: calc(100vw - 80px);
+                max-width: calc(100vw - 80px);
             }
             
             .twins-carousel-track {
-                padding: 0 60px;
+                padding: 0 40px;
             }
         }
         
@@ -192,7 +192,7 @@ var twinsJson = JSON.stringify(displayTwins);
     <section class="py-12 sm:py-16 md:py-20 px-0 md:px-4 sm:px-6 bg-white dark:bg-gray-900">
         <!-- Mobile: Direct card, Desktop: Wrapped -->
         <div class="md:max-w-6xl md:mx-auto">
-            <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800/90 backdrop-blur-xl rounded-none md:rounded-2xl p-6 sm:p-10 border-0 md:border border-green-200 dark:border-gray-700 shadow-none md:shadow-lg dark:shadow-xl hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300">
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-900 dark:to-gray-950/90 backdrop-blur-xl rounded-none md:rounded-2xl p-6 sm:p-10 border-0 md:border border-green-200 dark:border-white/15 shadow-none md:shadow-lg dark:shadow-black/50 hover:shadow-xl dark:hover:shadow-black/70 transition-all duration-300">
                 <h3 class="text-2xl sm:text-3xl font-semibold text-green-900 dark:text-green-300 mb-8 text-center">✨ How It Works</h3>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8">
                     <div class="text-center hover:transform hover:scale-105 transition-transform duration-300">
@@ -219,7 +219,7 @@ var twinsJson = JSON.stringify(displayTwins);
     <!-- Final CTA Section -->
     <div class="md:max-w-6xl md:mx-auto px-0 md:px-4 sm:px-6 mb-8 sm:mb-12">
         <!-- Mobile: Full width, Desktop: Wrapped -->
-        <div class="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-slate-800 dark:via-blue-900 dark:to-indigo-900 rounded-none md:rounded-2xl p-6 sm:p-10 md:p-12 text-center border-0 md:border border-blue-500/20 dark:border-blue-700/50 shadow-none md:shadow-lg dark:shadow-xl dark:shadow-blue-950/50 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-blue-950/70 transition-all duration-300">
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-gray-900 dark:via-blue-950 dark:to-indigo-950 rounded-none md:rounded-2xl p-6 sm:p-10 md:p-12 text-center border-0 md:border border-blue-500/20 dark:border-white/20 shadow-none md:shadow-lg dark:shadow-black/60 dark:shadow-blue-950/30 hover:shadow-xl dark:hover:shadow-black/80 dark:hover:shadow-blue-950/50 transition-all duration-300">
             <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-white dark:text-gray-100 mb-4">Want to see how you come across to others?</h2>
             <p class="text-lg sm:text-xl text-white/90 dark:text-gray-200 mb-6">Your twin shows you — in real conversations.</p>
             <a 
@@ -234,14 +234,14 @@ var twinsJson = JSON.stringify(displayTwins);
     <!-- Privacy & Safety Note -->
     <div class="md:max-w-6xl md:mx-auto px-0 md:px-4 sm:px-6 mb-8 sm:mb-12">
         <!-- Mobile: Full width, Desktop: Wrapped -->
-        <div class="bg-blue-50 dark:bg-gray-800/90 rounded-none md:rounded-xl p-6 sm:p-8 border-0 md:border border-blue-200 dark:border-gray-700 shadow-none md:shadow-md dark:shadow-lg hover:shadow-lg dark:hover:shadow-xl transition-all duration-300">
+        <div class="bg-blue-50 dark:bg-gray-900/95 rounded-none md:rounded-xl p-6 sm:p-8 border-0 md:border border-blue-200 dark:border-white/15 shadow-none md:shadow-md dark:shadow-black/40 hover:shadow-lg dark:hover:shadow-black/60 transition-all duration-300">
             <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-3 text-center">🔒 You're in control. Always.</h3>
             <p class="text-blue-800 dark:text-blue-200 text-center max-w-2xl mx-auto">Your data stays yours. Your twin only does what you allow.</p>
         </div>
     </div>
 
     <!-- ================= SECTION 7: FOOTER ================= -->
-    <footer class="py-8 sm:py-10 px-4 sm:px-6 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+    <footer class="py-8 sm:py-10 px-4 sm:px-6 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-white/10">
         <div class="max-w-4xl mx-auto text-center">
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
                 Built slowly. Intentionally. Early access.
@@ -325,8 +325,8 @@ var twinsJson = JSON.stringify(displayTwins);
                 previewText = twin.sampleReply;
             }
             
-            var messagePreview = '<div class="mt-4 bg-blue-50 dark:bg-gray-700/50 rounded-lg p-4 border border-blue-100 dark:border-gray-600 message-preview-fixed flex items-center">' +
-                '<p class="text-gray-700 dark:text-gray-300 text-sm sm:text-base leading-relaxed line-clamp-2 w-full">' + 
+            var messagePreview = '<div class="mt-4 bg-blue-50 dark:bg-gray-900/70 rounded-lg p-4 border border-blue-100 dark:border-white/10 message-preview-fixed flex items-center">' +
+                '<p class="text-gray-700 dark:text-gray-900 text-sm sm:text-base leading-relaxed line-clamp-2 w-full">' + 
                 (previewText ? escapeHtml(previewText) : '<span class="text-gray-400 dark:text-gray-500">No preview available</span>') +
                 '</p>' +
                 '</div>';
@@ -336,7 +336,7 @@ var twinsJson = JSON.stringify(displayTwins);
                 '<a href="' + escapeHtml(chatUrl) + '" class="block w-full text-center bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-600 dark:hover:to-indigo-600 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl text-base js-chat-btn">Chat</a>' +
                 '</div>';
             
-            return '<div class="twin-carousel-card cursor-pointer bg-white dark:bg-gray-800 rounded-2xl p-6 border-2 border-gray-100 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-500/50 shadow-lg dark:shadow-gray-900/50 hover:shadow-2xl dark:hover:shadow-blue-900/20 transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full" data-profile-url="' + escapeHtml(profileUrl) + '">' +
+            return '<div class="twin-carousel-card cursor-pointer bg-white dark:bg-gray-900 rounded-2xl p-6 border-2 border-gray-100 dark:border-white/15 hover:border-blue-300 dark:hover:border-white/25 shadow-lg dark:shadow-black/50 hover:shadow-2xl dark:hover:shadow-black/70 transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full" data-profile-url="' + escapeHtml(profileUrl) + '">' +
                 '<div class="flex items-start gap-4 mb-4">' +
                 avatarHtml +
                 '<div class="flex-1 min-w-0 pt-1 overflow-hidden">' +
