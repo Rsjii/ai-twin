@@ -303,6 +303,13 @@ export const deleteTwin = async (req: any, res: Response, next: NextFunction) =>
     // Delete twin (CASCADE will handle all related data)
     await twinQueries.delete(twinId, userId);
 
+    // ✅ Log twin deletion event
+    await EventLogger.logUserEvent(userId, EVENT_TYPES.TWIN_DELETED, {
+      publicTwinId: twinId, // Will be tokenized automatically
+      twinPublicHandle: twin.publicHandle || null,
+      wasPublic: twin.isPublic || false,
+    }).catch(() => {}); // Silent fail - don't break deletion if logging fails
+
     logger.info(`Twin ${twinId} deleted by user ${userId}`);
 
     res.json({

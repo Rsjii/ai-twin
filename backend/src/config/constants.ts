@@ -108,6 +108,7 @@ export const EVENT_TYPES = {
   ENHANCED_TWIN_CREATED: 'enhanced_twin_created',
   TWIN_MADE_PUBLIC: 'twin_made_public',
   TWIN_MADE_PRIVATE: 'twin_made_private',
+  TWIN_DELETED: 'twin_deleted',
   
   // Chat & Messaging
   CHAT_STARTED: 'chat_started',
@@ -151,6 +152,9 @@ export const EVENT_TYPES = {
   
   // Add if enhanced_twin_creation_failed is needed separately:
   ENHANCED_TWIN_CREATION_FAILED: 'enhanced_twin_creation_failed', // Optional
+  
+  // User Account Management
+  ACCOUNT_DELETED: 'account_deleted',
 } as const;
 
 // Token Quotas - Daily limits for LLM usage

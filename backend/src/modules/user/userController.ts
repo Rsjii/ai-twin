@@ -6,6 +6,8 @@ import { createError, ErrorCodes, AppError } from '../../utils/errors';
 import { verifyPassword } from '../auth/authService';
 import { userQueries } from '../../config/database';
 import { isProd } from '../../config/env';
+import { EventLogger } from '../../services/eventLogger';
+import { EVENT_TYPES } from '../../config/constants';
 
 /**
  * Export user data
@@ -249,6 +251,13 @@ export const deleteAccount = async (req: AuthenticatedRequest, res: Response) =>
 
     // Delete user (CASCADE will handle all related data)
     await db.query('DELETE FROM "User" WHERE id = $1', [userId]);    
+
+    // ✅ Log account deletion event
+    await EventLogger.logUserEvent(userId, EVENT_TYPES.ACCOUNT_DELETED, {
+      email: user.email,
+      handle: user.handle || null,
+      deletionMethod: user.passwordHash ? 'password_verified' : 'otp_only',
+    }).catch(() => {}); // Silent fail - don't break deletion if logging fails
 
     logger.info(`User account deleted: ${userId}`);
 
