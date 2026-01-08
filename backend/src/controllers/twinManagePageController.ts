@@ -34,16 +34,29 @@ export async function getTwinManage(req: any, res: Response) {
     // Compute owner publicId for self-view exclusion
     const ownerPublicId = tokenizeId(userId, 'user');
     
-    // Fetch twin analytics - using CORRECT table names that exist
+    // Fetch twin analytics - using CORRECT table names that exist with block filters
     const analyticsResult = await fastQuery(`
       SELECT 
-        -- Total chats: count messages (including anonymous)
-        (SELECT COUNT(*) 
+        -- Total chats/messages (visible)
+        (SELECT COUNT(*)
          FROM "PublicMessage" pm
          JOIN "PublicChat" pc ON pm."chatId" = pc.id
          WHERE pc."twinId" = $1
            AND pm.sender = 'human'
            AND (pc."userId" IS NULL OR pc."userId" <> $2)
+           AND (pc."userId" IS NULL OR (
+             pc."userId" IS NOT NULL
+             AND NOT EXISTS (
+               SELECT 1 FROM "TwinBlockedUsers" tbu_self
+               WHERE tbu_self."twinId" = $1 AND tbu_self."userId" = pc."userId"
+             )
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "Twin" t2
+               JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+               WHERE t2."userId" = pc."userId" AND tbu."userId" = $2
+             )
+           ))
         ) as chats,
         -- Views (lifetime impressions): count profile_viewed events for this owner (exclude self)
         (SELECT COUNT(*)
@@ -55,10 +68,36 @@ export async function getTwinManage(req: any, res: Response) {
              OR meta->>'viewerId' != $3
            )
         ) as views,
-        -- Likes: from TwinLike table (used everywhere in codebase)
-        (SELECT COUNT(*) FROM "TwinLike" WHERE "twinId" = $1) as likes,
-        -- Follows: from TwinFollow table (used everywhere in codebase)
-        (SELECT COUNT(*) FROM "TwinFollow" WHERE "twinId" = $1) as followers,
+        -- Likes (visible)
+        (SELECT COUNT(*)
+         FROM "TwinLike" tl
+         WHERE tl."twinId" = $1
+           AND NOT EXISTS (
+             SELECT 1 FROM "TwinBlockedUsers" tbu_self
+             WHERE tbu_self."twinId" = $1 AND tbu_self."userId" = tl."userId"
+           )
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = tl."userId" AND tbu."userId" = $2
+           )
+        ) as likes,
+        -- Followers (visible)
+        (SELECT COUNT(*)
+         FROM "TwinFollow" tf
+         WHERE tf."twinId" = $1
+           AND NOT EXISTS (
+             SELECT 1 FROM "TwinBlockedUsers" tbu_self
+             WHERE tbu_self."twinId" = $1 AND tbu_self."userId" = tf."userId"
+           )
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = tf."userId" AND tbu."userId" = $2
+           )
+        ) as followers,
         -- Memory chunks: from MemoryLongTerm and style_anchors
         (SELECT COUNT(*) FROM "MemoryLongTerm" WHERE "twinId" = $1) + 
         (SELECT COUNT(*) FROM "style_anchors" WHERE twin_id = $1) as memories,        
@@ -84,11 +123,27 @@ export async function getTwinManage(req: any, res: Response) {
           FROM "PublicChat" pc
           LEFT JOIN "PublicMessage" pm ON pc.id = pm."chatId"
           WHERE pc."twinId" = $1
+            AND (
+              pc."userId" IS NULL
+              OR (
+                pc."userId" IS NOT NULL
+                AND NOT EXISTS (
+                  SELECT 1 FROM "TwinBlockedUsers" tbu_self
+                  WHERE tbu_self."twinId" = $1 AND tbu_self."userId" = pc."userId"
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM "Twin" t2
+                  JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+                  WHERE t2."userId" = pc."userId" AND tbu."userId" = $2
+                )
+              )
+            )
           GROUP BY pc.id, pc.title, pc."createdAt", pc."lastActivity"
           HAVING COUNT(pm.id) > 0
           ORDER BY COALESCE(pc."lastActivity", pc."createdAt") DESC
           LIMIT 5
-      `, [twinId]);
+      `, [twinId, userId]);
 
       // 🔥 Add publicId token for URLs
       recentChats = (recentChatsResult.rows || []).map(chat => ({

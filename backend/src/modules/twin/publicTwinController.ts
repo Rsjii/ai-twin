@@ -319,7 +319,83 @@ export const getPublicTwinProfile = async (req: Request, res: Response, next: Ne
       if (blockedCheck.rows.length > 0) {
         throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
       }
+
+      // ✅ NEW: viewer blocked this twin owner => hide (mutual hide)
+      const ownerRes = await db.query(`SELECT "userId" FROM "Twin" WHERE id = $1`, [publicTwin.id]);
+      const ownerUserId = ownerRes.rows[0]?.userId;
+      
+      if (ownerUserId) {
+        const viewerBlocksOwner = await db.query(
+          `
+          SELECT 1
+          FROM "TwinBlockedUsers" tbu
+          JOIN "Twin" t_self ON t_self.id = tbu."twinId"
+          WHERE t_self."userId" = $1
+            AND tbu."userId" = $2
+          LIMIT 1
+          `,
+          [viewerId, ownerUserId]
+        );
+
+        if (viewerBlocksOwner.rows.length > 0) {
+          throw createError.notFound('Public twin not found', ErrorCodes.TWIN_NOT_FOUND);
+        }
+      }
     }
+
+    // ✅ Compute visible counts (excluding users blocked by this twin)
+    const [likeCountRes, followCountRes, chatCountRes] = await Promise.all([
+      db.query(
+        `
+        SELECT COUNT(*)::int AS cnt
+        FROM "TwinLike" tl
+        WHERE tl."twinId" = $1
+          AND NOT EXISTS (
+            SELECT 1 FROM "TwinBlockedUsers" tbu
+            WHERE tbu."twinId" = $1
+              AND tbu."userId" = tl."userId"
+          )
+        `,
+        [publicTwin.id]
+      ),
+      db.query(
+        `
+        SELECT COUNT(*)::int AS cnt
+        FROM "TwinFollow" tf
+        WHERE tf."twinId" = $1
+          AND NOT EXISTS (
+            SELECT 1 FROM "TwinBlockedUsers" tbu
+            WHERE tbu."twinId" = $1
+              AND tbu."userId" = tf."userId"
+          )
+        `,
+        [publicTwin.id]
+      ),
+      db.query(
+        `
+        SELECT COUNT(*)::int AS cnt
+        FROM "PublicMessage" pm
+        JOIN "PublicChat" pc ON pm."chatId" = pc.id
+        JOIN "Twin" t ON pc."twinId" = t.id
+        WHERE pc."twinId" = $1
+          AND pm.sender = 'human'
+          AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
+          AND (
+            pc."userId" IS NULL
+            OR NOT EXISTS (
+              SELECT 1 FROM "TwinBlockedUsers" tbu
+              WHERE tbu."twinId" = $1
+                AND tbu."userId" = pc."userId"
+            )
+          )
+        `,
+        [publicTwin.id]
+      )
+    ]);
+
+    const visibleLikeCount = likeCountRes.rows[0]?.cnt ?? 0;
+    const visibleFollowCount = followCountRes.rows[0]?.cnt ?? 0;
+    const visibleChatCount = chatCountRes.rows[0]?.cnt ?? 0;
 
     // Return public data only (no sensitive information)
     const sanitizedTwin = sanitizeTwin(publicTwin);
@@ -327,6 +403,9 @@ export const getPublicTwinProfile = async (req: Request, res: Response, next: Ne
       success: true,
       twin: {
         ...sanitizedTwin,
+        likeCount: visibleLikeCount,
+        followCount: visibleFollowCount,
+        chatCount: visibleChatCount,
         sampleReply: publicTwin.sampleReply,
         userHandle: publicTwin.userHandle,
         userName: publicTwin.userName
@@ -482,6 +561,7 @@ export const getPublicChatPage = async (req: AuthenticatedRequest, res: Response
 const twinCheck = await db.query(
   `SELECT 
      id,
+     "userId",
      "isPublic",
      "blockNonLoggedUsers",
      "requireLogin"
@@ -517,6 +597,26 @@ if (userId) {
     logger.warn('getPublicChatPage: Blocked user tried to access', { twinId, userId });
  // Pretend the twin does not exist
  throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);    
+  }
+}
+
+// ✅ NEW: mutual hide (A blocked B) -> pretend twin/chat does not exist
+if (userId) {
+  const viewerBlocksOwner = await db.query(
+    `
+    SELECT 1
+    FROM "TwinBlockedUsers" tbu
+    JOIN "Twin" t_self ON t_self.id = tbu."twinId"
+    WHERE t_self."userId" = $1
+      AND tbu."userId" = $2
+    LIMIT 1
+    `,
+    [userId, twinInfo.userId] // twinInfo.userId = owner of this twin
+  );
+
+  if (viewerBlocksOwner.rows.length > 0) {
+    logger.warn('getPublicChatPage: Viewer blocked owner, mutual hide', { twinId, userId, ownerId: twinInfo.userId });
+    throw createError.notFound('This chat does not exist', ErrorCodes.TWIN_NOT_FOUND);
   }
 }
 

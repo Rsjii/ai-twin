@@ -390,11 +390,62 @@ export const getTwinStats = async (req: Request, res: Response) => {
     }
     const twinId = decoded.id;
 
-    // Get twin stats
+    // Get twin stats with visible counts (exclude blocked users + users who blocked owner)
     const twinResult = await db.query(`
-      SELECT "likeCount", "followCount", "chatCount", "isPublic"
-      FROM "Twin"
-      WHERE id = $1
+      SELECT
+        t."isPublic",
+        (SELECT COUNT(*)
+         FROM "TwinLike" tl
+         WHERE tl."twinId" = t.id
+           AND NOT EXISTS (
+             SELECT 1 FROM "TwinBlockedUsers" tbu_self
+             WHERE tbu_self."twinId" = t.id AND tbu_self."userId" = tl."userId"
+           )
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = tl."userId" AND tbu."userId" = t."userId"
+           )
+        ) as "likeCount",
+        (SELECT COUNT(*)
+         FROM "TwinFollow" tf
+         WHERE tf."twinId" = t.id
+           AND NOT EXISTS (
+             SELECT 1 FROM "TwinBlockedUsers" tbu_self
+             WHERE tbu_self."twinId" = t.id AND tbu_self."userId" = tf."userId"
+           )
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = tf."userId" AND tbu."userId" = t."userId"
+           )
+        ) as "followCount",
+        (SELECT COUNT(*)
+         FROM "PublicMessage" pm
+         JOIN "PublicChat" pc ON pm."chatId" = pc.id
+         WHERE pc."twinId" = t.id
+           AND pm.sender = 'human'
+           AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
+           AND (
+             pc."userId" IS NULL
+             OR (
+               NOT EXISTS (
+                 SELECT 1 FROM "TwinBlockedUsers" tbu_self
+                 WHERE tbu_self."twinId" = t.id AND tbu_self."userId" = pc."userId"
+               )
+               AND NOT EXISTS (
+                 SELECT 1
+                 FROM "Twin" t2
+                 JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+                 WHERE t2."userId" = pc."userId" AND tbu."userId" = t."userId"
+               )
+             )
+           )
+        ) as "chatCount"
+      FROM "Twin" t
+      WHERE t.id = $1
     `, [twinId]);
 
     if (twinResult.rows.length === 0) {
@@ -442,30 +493,96 @@ export const getUserLikedTwins = async (req: Request, res: Response) => {
     }
 
     const likedTwins = await db.query(`
-      SELECT t.id, t."publicHandle", t."bio", t."profileImage", t."likeCount", t."followCount", t."chatCount",
-             u.handle as userHandle, u.name as userName
+      SELECT 
+        t.id, 
+        t."publicHandle", 
+        t."bio", 
+        t."profileImage",
+        u.handle as userHandle, 
+        u.name as userName,
+        (SELECT COUNT(*)
+         FROM "TwinLike" tl2
+         WHERE tl2."twinId" = t.id
+           AND NOT EXISTS (
+             SELECT 1 FROM "TwinBlockedUsers" tbu_self
+             WHERE tbu_self."twinId" = t.id AND tbu_self."userId" = tl2."userId"
+           )
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = tl2."userId" AND tbu."userId" = t."userId"
+           )
+        ) as "likeCount",
+        (SELECT COUNT(*)
+         FROM "TwinFollow" tf
+         WHERE tf."twinId" = t.id
+           AND NOT EXISTS (
+             SELECT 1 FROM "TwinBlockedUsers" tbu_self
+             WHERE tbu_self."twinId" = t.id AND tbu_self."userId" = tf."userId"
+           )
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = tf."userId" AND tbu."userId" = t."userId"
+           )
+        ) as "followCount",
+        (SELECT COUNT(*)
+         FROM "PublicMessage" pm
+         JOIN "PublicChat" pc ON pm."chatId" = pc.id
+         WHERE pc."twinId" = t.id
+           AND pm.sender = 'human'
+           AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
+           AND (
+             pc."userId" IS NULL
+             OR (
+               NOT EXISTS (
+                 SELECT 1 FROM "TwinBlockedUsers" tbu_self
+                 WHERE tbu_self."twinId" = t.id AND tbu_self."userId" = pc."userId"
+               )
+               AND NOT EXISTS (
+                 SELECT 1
+                 FROM "Twin" t2
+                 JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+                 WHERE t2."userId" = pc."userId" AND tbu."userId" = t."userId"
+               )
+             )
+           )
+        ) as "chatCount"
       FROM "TwinLike" tl
       JOIN "Twin" t ON tl."twinId" = t.id
       JOIN "User" u ON t."userId" = u.id
-      WHERE tl."userId" = $1 AND t."isPublic" = true
+      WHERE tl."userId" = $1 
+        AND t."isPublic" = true
+        AND NOT EXISTS (
+          SELECT 1 FROM "TwinBlockedUsers" tbu
+          WHERE tbu."twinId" = t.id AND tbu."userId" = $1
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "TwinBlockedUsers" tbu2
+          JOIN "Twin" t_self ON t_self.id = tbu2."twinId"
+          WHERE t_self."userId" = $1
+            AND tbu2."userId" = t."userId"
+        )
       ORDER BY tl."createdAt" DESC
     `, [req.user.id]);
 
-// ✅ FIX:
-res.json({
-  success: true,
-  twins: likedTwins.rows.map(twin => ({
-    publicId: tokenizeId(twin.id, 'twin'),  // Tokenize twin ID
-    publicHandle: twin.publicHandle,
-    bio: twin.bio,
-    profileImage: twin.profileImage,
-    likeCount: twin.likeCount,
-    followCount: twin.followCount,
-    chatCount: twin.chatCount,
-    userHandle: twin.userHandle,
-    userName: twin.userName
-  }))
-});    
+    res.json({
+      success: true,
+      twins: likedTwins.rows.map(twin => ({
+        publicId: tokenizeId(twin.id, 'twin'),
+        publicHandle: twin.publicHandle,
+        bio: twin.bio,
+        profileImage: twin.profileImage,
+        likeCount: twin.likeCount,
+        followCount: twin.followCount,
+        chatCount: twin.chatCount,
+        userHandle: twin.userHandle,
+        userName: twin.userName
+      }))
+    });    
 
   } catch (error) {
     logger.error('Get user liked twins error:', error);
@@ -481,30 +598,96 @@ export const getUserFollowedTwins = async (req: Request, res: Response) => {
     }
 
     const followedTwins = await db.query(`
-      SELECT t.id, t."publicHandle", t."bio", t."profileImage", t."likeCount", t."followCount", t."chatCount",
-             u.handle as userHandle, u.name as userName
+      SELECT 
+        t.id, 
+        t."publicHandle", 
+        t."bio", 
+        t."profileImage",
+        u.handle as userHandle, 
+        u.name as userName,
+        (SELECT COUNT(*)
+         FROM "TwinLike" tl
+         WHERE tl."twinId" = t.id
+           AND NOT EXISTS (
+             SELECT 1 FROM "TwinBlockedUsers" tbu_self
+             WHERE tbu_self."twinId" = t.id AND tbu_self."userId" = tl."userId"
+           )
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = tl."userId" AND tbu."userId" = t."userId"
+           )
+        ) as "likeCount",
+        (SELECT COUNT(*)
+         FROM "TwinFollow" tf2
+         WHERE tf2."twinId" = t.id
+           AND NOT EXISTS (
+             SELECT 1 FROM "TwinBlockedUsers" tbu_self
+             WHERE tbu_self."twinId" = t.id AND tbu_self."userId" = tf2."userId"
+           )
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+             WHERE t2."userId" = tf2."userId" AND tbu."userId" = t."userId"
+           )
+        ) as "followCount",
+        (SELECT COUNT(*)
+         FROM "PublicMessage" pm
+         JOIN "PublicChat" pc ON pm."chatId" = pc.id
+         WHERE pc."twinId" = t.id
+           AND pm.sender = 'human'
+           AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
+           AND (
+             pc."userId" IS NULL
+             OR (
+               NOT EXISTS (
+                 SELECT 1 FROM "TwinBlockedUsers" tbu_self
+                 WHERE tbu_self."twinId" = t.id AND tbu_self."userId" = pc."userId"
+               )
+               AND NOT EXISTS (
+                 SELECT 1
+                 FROM "Twin" t2
+                 JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+                 WHERE t2."userId" = pc."userId" AND tbu."userId" = t."userId"
+               )
+             )
+           )
+        ) as "chatCount"
       FROM "TwinFollow" tf
       JOIN "Twin" t ON tf."twinId" = t.id
       JOIN "User" u ON t."userId" = u.id
-      WHERE tf."userId" = $1 AND t."isPublic" = true
+      WHERE tf."userId" = $1 
+        AND t."isPublic" = true
+        AND NOT EXISTS (
+          SELECT 1 FROM "TwinBlockedUsers" tbu
+          WHERE tbu."twinId" = t.id AND tbu."userId" = $1
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "TwinBlockedUsers" tbu2
+          JOIN "Twin" t_self ON t_self.id = tbu2."twinId"
+          WHERE t_self."userId" = $1
+            AND tbu2."userId" = t."userId"
+        )
       ORDER BY tf."createdAt" DESC
     `, [req.user.id]);
 
-// ✅ FIX:
-res.json({
-  success: true,
-  twins: followedTwins.rows.map(twin => ({
-    publicId: tokenizeId(twin.id, 'twin'),  // Tokenize twin ID
-    publicHandle: twin.publicHandle,
-    bio: twin.bio,
-    profileImage: twin.profileImage,
-    likeCount: twin.likeCount,
-    followCount: twin.followCount,
-    chatCount: twin.chatCount,
-    userHandle: twin.userHandle,
-    userName: twin.userName
-  }))
-});    
+    res.json({
+      success: true,
+      twins: followedTwins.rows.map(twin => ({
+        publicId: tokenizeId(twin.id, 'twin'),
+        publicHandle: twin.publicHandle,
+        bio: twin.bio,
+        profileImage: twin.profileImage,
+        likeCount: twin.likeCount,
+        followCount: twin.followCount,
+        chatCount: twin.chatCount,
+        userHandle: twin.userHandle,
+        userName: twin.userName
+      }))
+    });    
 
   } catch (error) {
     logger.error('Get user followed twins error:', error);
@@ -737,7 +920,7 @@ export const getTwinLikers = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Twin not found' });
     }
 
-    // Get users who liked this twin
+    // Get users who liked this twin (exclude blocked users)
     const likersResult = await db.query(
       `SELECT 
         u.id,
@@ -748,7 +931,18 @@ export const getTwinLikers = async (req: Request, res: Response) => {
         tl."createdAt" as likedAt
        FROM "TwinLike" tl
        JOIN "User" u ON tl."userId" = u.id
+       JOIN "Twin" t ON tl."twinId" = t.id
        WHERE tl."twinId" = $1
+         AND NOT EXISTS (
+           SELECT 1 FROM "TwinBlockedUsers" tbu_self
+           WHERE tbu_self."twinId" = tl."twinId" AND tbu_self."userId" = tl."userId"
+         )
+         AND NOT EXISTS (
+           SELECT 1
+           FROM "Twin" t2
+           JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+           WHERE t2."userId" = tl."userId" AND tbu."userId" = t."userId"
+         )
        ORDER BY tl."createdAt" DESC
        LIMIT 100`,
       [twinId]
@@ -797,7 +991,7 @@ export const getTwinFollowers = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Twin not found' });
     }
 
-    // Get users who followed this twin
+    // Get users who followed this twin (exclude blocked users)
     const followersResult = await db.query(
       `SELECT 
         u.id,
@@ -807,7 +1001,18 @@ export const getTwinFollowers = async (req: Request, res: Response) => {
         tf."createdAt" as followedAt
        FROM "TwinFollow" tf
        JOIN "User" u ON tf."userId" = u.id
+       JOIN "Twin" t ON tf."twinId" = t.id
        WHERE tf."twinId" = $1
+         AND NOT EXISTS (
+           SELECT 1 FROM "TwinBlockedUsers" tbu_self
+           WHERE tbu_self."twinId" = tf."twinId" AND tbu_self."userId" = tf."userId"
+         )
+         AND NOT EXISTS (
+           SELECT 1
+           FROM "Twin" t2
+           JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+           WHERE t2."userId" = tf."userId" AND tbu."userId" = t."userId"
+         )
        ORDER BY tf."createdAt" DESC
        LIMIT 100`,
       [twinId]
@@ -857,7 +1062,7 @@ export const getTwinChatters = async (req: Request, res: Response) => {
 
     const twinOwnerId = twinResult.rows[0].userId;
     
-    // Get logged-in users who chatted (with message counts)
+    // Get logged-in users who chatted (with message counts) - exclude blocked users
     const loggedInUsersResult = await db.query(
       `SELECT DISTINCT
           u.id,
@@ -878,6 +1083,16 @@ export const getTwinChatters = async (req: Request, res: Response) => {
            SELECT 1 FROM "PublicMessage" pm 
            WHERE pm."chatId" = c.id 
            AND pm.sender = 'human'
+         )
+         AND NOT EXISTS (
+           SELECT 1 FROM "TwinBlockedUsers" tbu_self
+           WHERE tbu_self."twinId" = $1 AND tbu_self."userId" = c."userId"
+         )
+         AND NOT EXISTS (
+           SELECT 1
+           FROM "Twin" t2
+           JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+           WHERE t2."userId" = c."userId" AND tbu."userId" = $2
          )
        GROUP BY u.id, u.name, u.handle, u."profileImage"
        ORDER BY "lastChatAt" DESC

@@ -121,6 +121,15 @@ CREATE TABLE IF NOT EXISTS "TwinFollow" (
 );
 
 -- CreateTable
+CREATE TABLE IF NOT EXISTS "TwinBlockedUsers" (
+    "id" TEXT NOT NULL,
+    "twinId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "TwinBlockedUsers_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE IF NOT EXISTS "PublicChat" (
     "id" TEXT NOT NULL,
     "twinId" TEXT NOT NULL,
@@ -151,6 +160,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS "Twin_userId_key" ON "Twin"("userId");
 CREATE UNIQUE INDEX IF NOT EXISTS "Twin_publicHandle_key" ON "Twin"("publicHandle");
 CREATE UNIQUE INDEX IF NOT EXISTS "TwinLike_twinId_userId_key" ON "TwinLike"("twinId", "userId");
 CREATE UNIQUE INDEX IF NOT EXISTS "TwinFollow_twinId_userId_key" ON "TwinFollow"("twinId", "userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "TwinBlockedUsers_twinId_userId_key" ON "TwinBlockedUsers"("twinId", "userId");
+CREATE INDEX IF NOT EXISTS "TwinBlockedUsers_userId_idx" ON "TwinBlockedUsers"("userId");
+CREATE INDEX IF NOT EXISTS "TwinBlockedUsers_twinId_idx" ON "TwinBlockedUsers"("twinId");
 
 -- Add missing columns to User table if they don't exist
 DO $$ 
@@ -285,11 +297,69 @@ ALTER TABLE "TwinFollow" ADD CONSTRAINT "TwinFollow_twinId_fkey" FOREIGN KEY ("t
 ALTER TABLE "TwinFollow" DROP CONSTRAINT IF EXISTS "TwinFollow_userId_fkey";
 ALTER TABLE "TwinFollow" ADD CONSTRAINT "TwinFollow_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+ALTER TABLE "TwinBlockedUsers" DROP CONSTRAINT IF EXISTS "TwinBlockedUsers_twinId_fkey";
+ALTER TABLE "TwinBlockedUsers" ADD CONSTRAINT "TwinBlockedUsers_twinId_fkey"
+  FOREIGN KEY ("twinId") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "TwinBlockedUsers" DROP CONSTRAINT IF EXISTS "TwinBlockedUsers_userId_fkey";
+ALTER TABLE "TwinBlockedUsers" ADD CONSTRAINT "TwinBlockedUsers_userId_fkey"
+  FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
 ALTER TABLE "PublicChat" DROP CONSTRAINT IF EXISTS "PublicChat_twinId_fkey";
 ALTER TABLE "PublicChat" ADD CONSTRAINT "PublicChat_twinId_fkey" FOREIGN KEY ("twinId") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+-- ✅ ADD (new): when a user is deleted, keep chats but anonymize them
+-- ✅ FIX: Clean orphaned userId values BEFORE adding constraint
+UPDATE "PublicChat" 
+SET "userId" = NULL 
+WHERE "userId" IS NOT NULL 
+  AND NOT EXISTS (SELECT 1 FROM "User" u WHERE u.id = "PublicChat"."userId");
+
+ALTER TABLE "PublicChat" DROP CONSTRAINT IF EXISTS "PublicChat_userId_fkey";
+ALTER TABLE "PublicChat" ADD CONSTRAINT "PublicChat_userId_fkey"
+  FOREIGN KEY ("userId") REFERENCES "User"("id")
+  ON DELETE SET NULL
+  ON UPDATE CASCADE;
+
 ALTER TABLE "PublicMessage" DROP CONSTRAINT IF EXISTS "PublicMessage_chatId_fkey";
 ALTER TABLE "PublicMessage" ADD CONSTRAINT "PublicMessage_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES "PublicChat"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- === Counters sync (source of truth: TwinLike/TwinFollow tables) ===
+CREATE OR REPLACE FUNCTION "sync_twin_like_count"() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE "Twin" SET "likeCount" = "likeCount" + 1 WHERE id = NEW."twinId";
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE "Twin" SET "likeCount" = GREATEST("likeCount" - 1, 0) WHERE id = OLD."twinId";
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "trg_sync_twin_like_count" ON "TwinLike";
+CREATE TRIGGER "trg_sync_twin_like_count"
+AFTER INSERT OR DELETE ON "TwinLike"
+FOR EACH ROW EXECUTE FUNCTION "sync_twin_like_count"();
+
+CREATE OR REPLACE FUNCTION "sync_twin_follow_count"() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE "Twin" SET "followCount" = "followCount" + 1 WHERE id = NEW."twinId";
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE "Twin" SET "followCount" = GREATEST("followCount" - 1, 0) WHERE id = OLD."twinId";
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "trg_sync_twin_follow_count" ON "TwinFollow";
+CREATE TRIGGER "trg_sync_twin_follow_count"
+AFTER INSERT OR DELETE ON "TwinFollow"
+FOR EACH ROW EXECUTE FUNCTION "sync_twin_follow_count"();
 `;
 
 export async function initializeDatabase() {
@@ -674,8 +744,7 @@ export const twinLikeQueries = {
       'INSERT INTO "TwinLike" (id, "twinId", "userId") VALUES ($1, $2, $3) RETURNING *',
       [id, twinId, userId]
     );
-    // Update like count
-    await db.query('UPDATE "Twin" SET "likeCount" = "likeCount" + 1 WHERE id = $1', [twinId]);
+    // ✅ Count updated by DB trigger (sync_twin_like_count)
     
     // ✅ OPTIMIZED: Update performance scores async (non-blocking)
     const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
@@ -691,10 +760,8 @@ export const twinLikeQueries = {
       'DELETE FROM "TwinLike" WHERE "twinId" = $1 AND "userId" = $2 RETURNING *',
       [twinId, userId]
     );
-    // Update like count
+    // ✅ Count updated by DB trigger (sync_twin_like_count)
     if (result.rows.length > 0) {
-      await db.query('UPDATE "Twin" SET "likeCount" = "likeCount" - 1 WHERE id = $1', [twinId]);
-      
       // ✅ OPTIMIZED: Update performance scores async (non-blocking)
       const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
       updateTwinPerformanceScores(twinId).catch(err => 
@@ -729,8 +796,7 @@ export const twinFollowQueries = {
       'INSERT INTO "TwinFollow" (id, "twinId", "userId") VALUES ($1, $2, $3) RETURNING *',
       [id, twinId, userId]
     );
-    // Update follow count
-    await db.query('UPDATE "Twin" SET "followCount" = "followCount" + 1 WHERE id = $1', [twinId]);
+    // ✅ Count updated by DB trigger (sync_twin_follow_count)
     
     // ✅ OPTIMIZED: Update performance scores async (non-blocking)
     const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
@@ -746,10 +812,8 @@ export const twinFollowQueries = {
       'DELETE FROM "TwinFollow" WHERE "twinId" = $1 AND "userId" = $2 RETURNING *',
       [twinId, userId]
     );
-    // Update follow count
+    // ✅ Count updated by DB trigger (sync_twin_follow_count)
     if (result.rows.length > 0) {
-      await db.query('UPDATE "Twin" SET "followCount" = "followCount" - 1 WHERE id = $1', [twinId]);
-      
       // ✅ OPTIMIZED: Update performance scores async (non-blocking)
       const { updateTwinPerformanceScores } = await import('../services/twinPerformanceService');
       updateTwinPerformanceScores(twinId).catch(err => 

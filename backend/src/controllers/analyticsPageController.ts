@@ -325,6 +325,13 @@ if (twinId) {
             WHERE t2."userId" = u.id
               AND tbu."userId" = $2
           )
+          -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "TwinBlockedUsers" tbu2
+            WHERE tbu2."twinId" = tl."twinId"
+              AND tbu2."userId" = u.id
+          )
          ${search ? `AND (u.name ILIKE $3 OR u.handle ILIKE $3)` : ''}
          ORDER BY tl."createdAt" DESC
          LIMIT $${search ? '4' : '3'} OFFSET $${search ? '5' : '4'}`,
@@ -346,6 +353,13 @@ if (twinId) {
              JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
              WHERE t2."userId" = u.id
                AND tbu."userId" = $2
+           )
+           -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "TwinBlockedUsers" tbu2
+             WHERE tbu2."twinId" = tl."twinId"
+               AND tbu2."userId" = u.id
            )`,
         [targetTwinIds, req.user.id],
       );
@@ -374,6 +388,13 @@ if (twinId) {
             WHERE t2."userId" = u.id
               AND tbu."userId" = $2
           )
+          -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "TwinBlockedUsers" tbu2
+            WHERE tbu2."twinId" = tf."twinId"
+              AND tbu2."userId" = u.id
+          )
          ${search ? `AND (u.name ILIKE $3 OR u.handle ILIKE $3)` : ''}
          ORDER BY tf."createdAt" DESC
          LIMIT $${search ? '4' : '3'} OFFSET $${search ? '5' : '4'}`,
@@ -395,6 +416,13 @@ if (twinId) {
              JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
              WHERE t2."userId" = u.id
                AND tbu."userId" = $2
+           )
+           -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "TwinBlockedUsers" tbu2
+             WHERE tbu2."twinId" = tf."twinId"
+               AND tbu2."userId" = u.id
            )`,
         [targetTwinIds, req.user.id],
       );
@@ -431,6 +459,13 @@ if (twinId) {
              JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
              WHERE t2."userId" = u.id
                AND tbu."userId" = $2
+           )
+           -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "TwinBlockedUsers" tbu2
+             WHERE tbu2."twinId" = c."twinId"
+               AND tbu2."userId" = u.id
            )
            AND EXISTS (
              SELECT 1 FROM "PublicMessage" pm 
@@ -509,6 +544,13 @@ if (twinId) {
              JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
              WHERE t2."userId" = u.id
                AND tbu."userId" = $2
+           )
+           -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "TwinBlockedUsers" tbu2
+             WHERE tbu2."twinId" = c."twinId"
+               AND tbu2."userId" = u.id
            )
            AND EXISTS (
              SELECT 1 FROM "PublicMessage" pm 
@@ -606,6 +648,13 @@ export async function exportAnalyticsDetailsCSV(req: any, res: Response) {
              WHERE t2."userId" = u.id
                AND tbu."userId" = $2
            )
+           -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "TwinBlockedUsers" tbu2
+             WHERE tbu2."twinId" = tl."twinId"
+               AND tbu2."userId" = u.id
+           )
            ${searchTerm ? `AND (u.name ILIKE $3 OR u.handle ILIKE $3)` : ''}
          ORDER BY tl."createdAt" DESC
          LIMIT $${searchTerm ? '4' : '3'}`,
@@ -633,6 +682,13 @@ export async function exportAnalyticsDetailsCSV(req: any, res: Response) {
              JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
              WHERE t2."userId" = u.id
                AND tbu."userId" = $2
+           )
+           -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "TwinBlockedUsers" tbu2
+             WHERE tbu2."twinId" = tf."twinId"
+               AND tbu2."userId" = u.id
            )
            ${searchTerm ? `AND (u.name ILIKE $3 OR u.handle ILIKE $3)` : ''}
          ORDER BY tf."createdAt" DESC
@@ -666,6 +722,13 @@ export async function exportAnalyticsDetailsCSV(req: any, res: Response) {
              JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
              WHERE t2."userId" = u.id
                AND tbu."userId" = $2
+           )
+           -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "TwinBlockedUsers" tbu2
+             WHERE tbu2."twinId" = c."twinId"
+               AND tbu2."userId" = u.id
            )
            ${searchTerm ? `AND (u.name ILIKE $3 OR u.handle ILIKE $3)` : ''}
          GROUP BY u.name, u.handle, u.email

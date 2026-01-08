@@ -18,19 +18,36 @@ const trendingSchema = z.object({
   timeframe: z.enum(['day', 'week', 'month', 'all']).optional().default('week')
 });
 
-// Helper function to get blocked twin IDs for a user
+// Helper function to get blocked twin IDs for a user (mutual hide)
 async function getBlockedTwinIds(userId: string | undefined): Promise<string[]> {
-  if (!userId) {
-    return [];
-  }
-  
+  if (!userId) return [];
+
   try {
-    const result = await db.query(
-      'SELECT "twinId" FROM "TwinBlockedUsers" WHERE "userId" = $1',
+    // (1) Twins that blocked the viewer (existing behavior)
+    const blockedMe = await db.query(
+      `SELECT "twinId" FROM "TwinBlockedUsers" WHERE "userId" = $1`,
       [userId]
     );
-    
-    return result.rows.map(row => row.twinId);
+
+    // (2) Twins owned by users the viewer blocked (NEW: mutual hide)
+    const iBlockedOwners = await db.query(
+      `
+      SELECT t_target.id AS "twinId"
+      FROM "Twin" t_target
+      WHERE t_target."userId" IN (
+        SELECT tbu."userId"
+        FROM "TwinBlockedUsers" tbu
+        JOIN "Twin" t_self ON t_self.id = tbu."twinId"
+        WHERE t_self."userId" = $1
+      )
+      `,
+      [userId]
+    );
+
+    return [...new Set([
+      ...blockedMe.rows.map(r => r.twinId),
+      ...iBlockedOwners.rows.map(r => r.twinId),
+    ])];
   } catch (error) {
     logger.error('Error getting blocked twin IDs:', error);
     return [];
@@ -57,6 +74,78 @@ function buildBlockNonLoggedUsersFilter(hasUser: boolean): string {
   }
   // Non-logged users: hide twins where blockNonLoggedUsers = true
   return `AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)`;
+}
+
+// Helper functions for visible counts (excluding users blocked by the twin + users who blocked owner)
+function visibleLikeCountSql(alias = 't') {
+  return `
+    (SELECT COUNT(*)
+     FROM "TwinLike" tl
+     WHERE tl."twinId" = ${alias}.id
+       AND NOT EXISTS (
+         SELECT 1 FROM "TwinBlockedUsers" tbu
+         WHERE tbu."twinId" = ${alias}.id
+           AND tbu."userId" = tl."userId"
+       )
+       AND NOT EXISTS (
+         SELECT 1
+         FROM "Twin" t2
+         JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+         WHERE t2."userId" = tl."userId"
+           AND tbu2."userId" = ${alias}."userId"
+       )
+    )
+  `;
+}
+
+function visibleFollowCountSql(alias = 't') {
+  return `
+    (SELECT COUNT(*)
+     FROM "TwinFollow" tf
+     WHERE tf."twinId" = ${alias}.id
+       AND NOT EXISTS (
+         SELECT 1 FROM "TwinBlockedUsers" tbu
+         WHERE tbu."twinId" = ${alias}.id
+           AND tbu."userId" = tf."userId"
+       )
+       AND NOT EXISTS (
+         SELECT 1
+         FROM "Twin" t2
+         JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+         WHERE t2."userId" = tf."userId"
+           AND tbu2."userId" = ${alias}."userId"
+       )
+    )
+  `;
+}
+
+function visibleChatCountSql(alias = 't') {
+  return `
+    (SELECT COUNT(*)
+     FROM "PublicMessage" pm
+     JOIN "PublicChat" pc ON pm."chatId" = pc.id
+     WHERE pc."twinId" = ${alias}.id
+       AND pm.sender = 'human'
+       AND (pc."userId" IS NULL OR pc."userId" <> ${alias}."userId")
+       AND (
+         pc."userId" IS NULL
+         OR (
+           NOT EXISTS (
+             SELECT 1 FROM "TwinBlockedUsers" tbu
+             WHERE tbu."twinId" = ${alias}.id
+               AND tbu."userId" = pc."userId"
+           )
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "Twin" t2
+             JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+             WHERE t2."userId" = pc."userId"
+               AND tbu2."userId" = ${alias}."userId"
+           )
+         )
+       )
+    )
+  `;
 }
 
 // Add after line 60, before getTrendingTwins
@@ -201,16 +290,9 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
         break;
     }
 
- // ✅ Get blocked twin IDs for logged-in user
+ // ✅ Get hidden twins for logged-in user (mutual hide)
  const hasUser = !!(req.user && req.user.id);
- let blockedTwinIds: string[] = [];
- 
- if (hasUser) {
-   const blockedResult = await db.query(`
-     SELECT "twinId" FROM "TwinBlockedUsers" WHERE "userId" = $1
-   `, [req.user.id]);
-   blockedTwinIds = blockedResult.rows.map(row => row.twinId);
- }
+ const blockedTwinIds: string[] = hasUser ? await getBlockedTwinIds(req.user!.id) : [];
 
  // Build filters
  const blockedFilter = blockedTwinIds.length > 0 
@@ -226,7 +308,7 @@ export const getTrendingTwins = async (req: Request, res: Response, next: NextFu
   WHERE t."isPublic" = true 
   ${blockNonLoggedFilter}
   ${timeFilter}
-  AND (t."likeCount" > 0 OR t."followCount" > 0 OR t."chatCount" > 0)
+  AND (${visibleLikeCountSql('t')} > 0 OR ${visibleFollowCountSql('t')} > 0 OR ${visibleChatCountSql('t')} > 0)
   ${blockedFilter}
 `, blockedTwinIds.length > 0 
   ? [...blockedTwinIds]
@@ -242,15 +324,9 @@ const totalCount = parseInt(totalCountResult.rows[0].total);
         t."bio",
         t."profileImage",
         t."verified",
-        t."likeCount",
-        t."followCount",
-        (SELECT COUNT(*) 
-         FROM "PublicMessage" pm
-         JOIN "PublicChat" pc ON pm."chatId" = pc.id
-         WHERE pc."twinId" = t.id
-           AND pm.sender = 'human'
-           AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-        ) as "chatCount",
+        ${visibleLikeCountSql('t')} as "likeCount",
+        ${visibleFollowCountSql('t')} as "followCount",
+        ${visibleChatCountSql('t')} as "chatCount",
         t."sampleReply",
         t."createdAt",
         t."allowShares",
@@ -267,24 +343,11 @@ const totalCount = parseInt(totalCountResult.rows[0].total);
             -- This is just a fallback if TwinPerformance doesn't exist
             (
               -- Recent activity score (65% weight) - approximate with current counts
-              (t."likeCount" + t."followCount" + 
-               (SELECT COUNT(*) 
-                FROM "PublicMessage" pm
-                JOIN "PublicChat" pc ON pm."chatId" = pc.id
-                WHERE pc."twinId" = t.id
-                  AND pm.sender = 'human'
-                  AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-               )) * 10 * 0.65
+              (${visibleLikeCountSql('t')} + ${visibleFollowCountSql('t')} + ${visibleChatCountSql('t')}) * 10 * 0.65
             ) + (
               -- Engagement metrics (35% weight)
-              (t."likeCount" * 0.25 + t."followCount" * 0.35 + 
-               (SELECT COUNT(*) 
-                FROM "PublicMessage" pm
-                JOIN "PublicChat" pc ON pm."chatId" = pc.id
-                WHERE pc."twinId" = t.id
-                  AND pm.sender = 'human'
-                  AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-               ) * 0.4 +
+              (${visibleLikeCountSql('t')} * 0.25 + ${visibleFollowCountSql('t')} * 0.35 + 
+               ${visibleChatCountSql('t')} * 0.4 +
                CASE WHEN t."verified" = true THEN 10 ELSE 0 END) * 0.35
             )
           )
@@ -295,14 +358,7 @@ const totalCount = parseInt(totalCountResult.rows[0].total);
       WHERE t."isPublic" = true 
       ${blockNonLoggedFilter}
       ${timeFilter}
-      AND (t."likeCount" > 0 OR t."followCount" > 0 OR 
-           (SELECT COUNT(*) 
-            FROM "PublicMessage" pm
-            JOIN "PublicChat" pc ON pm."chatId" = pc.id
-            WHERE pc."twinId" = t.id
-              AND pm.sender = 'human'
-              AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-           ) > 0)
+      AND (${visibleLikeCountSql('t')} > 0 OR ${visibleFollowCountSql('t')} > 0 OR ${visibleChatCountSql('t')} > 0)
       ${blockedFilter}
       ORDER BY engagement_score DESC, t."createdAt" DESC
       LIMIT $${blockedTwinIds.length + 1} OFFSET $${blockedTwinIds.length + 2}
@@ -319,15 +375,9 @@ const totalCount = parseInt(totalCountResult.rows[0].total);
           t."bio",
           t."profileImage",
           t."verified",
-          t."likeCount",
-          t."followCount",
-          (SELECT COUNT(*) 
-           FROM "PublicMessage" pm
-           JOIN "PublicChat" pc ON pm."chatId" = pc.id
-           WHERE pc."twinId" = t.id
-             AND pm.sender = 'human'
-             AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-          ) as "chatCount",
+          ${visibleLikeCountSql('t')} as "likeCount",
+          ${visibleFollowCountSql('t')} as "followCount",
+          ${visibleChatCountSql('t')} as "chatCount",
           t."sampleReply",
           t."createdAt",
           t."allowShares",
@@ -446,9 +496,9 @@ export const searchTwins = async (req: Request, res: Response, next: NextFunctio
         t."bio",
         t."profileImage",
         t."verified",
-        t."likeCount",
-        t."followCount",
-        t."chatCount",
+        ${visibleLikeCountSql('t')} as "likeCount",
+        ${visibleFollowCountSql('t')} as "followCount",
+        ${visibleChatCountSql('t')} as "chatCount",
         t."sampleReply",
         t."createdAt",
         t."allowShares",
@@ -491,7 +541,7 @@ export const searchTwins = async (req: Request, res: Response, next: NextFunctio
         LOWER(u.handle) LIKE LOWER($1) OR
         LOWER(u.name) LIKE LOWER($1)
       )
-      ORDER BY relevance_score DESC, t."likeCount" DESC, t."createdAt" DESC
+      ORDER BY relevance_score DESC, ${visibleLikeCountSql('t')} DESC, t."createdAt" DESC
       LIMIT $3 OFFSET $4
     `, [`%${query}%`, `%${query}%`, limit, offset, ...blockedFilter.params]);
 
@@ -555,9 +605,9 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
             t."bio",
             t."profileImage",
             t."verified",
-            t."likeCount",
-            t."followCount",
-            t."chatCount",
+            ${visibleLikeCountSql('t')} as "likeCount",
+            ${visibleFollowCountSql('t')} as "followCount",
+            ${visibleChatCountSql('t')} as "chatCount",
             t."sampleReply",
             t."createdAt",
             u.handle as "userHandle",
@@ -570,7 +620,7 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
           AND t.id NOT IN (${likedTwinIds.map((_, i) => `$${i + 2}`).join(', ')})
           AND t."userId" != $1
           ${blockedFilterForLiked.sql}
-          ORDER BY t."likeCount" DESC, t."chatCount" DESC, t."createdAt" DESC
+          ORDER BY ${visibleLikeCountSql('t')} DESC, ${visibleChatCountSql('t')} DESC, t."createdAt" DESC
           LIMIT $${likedTwinIds.length + 2} OFFSET $${likedTwinIds.length + 3}
         `, [req.user.id, ...likedTwinIds, limit, offset, ...blockedFilterForLiked.params]);
       }
@@ -585,9 +635,9 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
           t."bio",
           t."profileImage",
           t."verified",
-          t."likeCount",
-          t."followCount",
-          t."chatCount",
+          ${visibleLikeCountSql('t')} as "likeCount",
+          ${visibleFollowCountSql('t')} as "followCount",
+          ${visibleChatCountSql('t')} as "chatCount",
           t."sampleReply",
           t."createdAt",
           u.handle as "userHandle",
@@ -598,7 +648,7 @@ export const getRecommendedTwins = async (req: Request, res: Response, next: Nex
         WHERE t."isPublic" = true 
         ${blockNonLoggedFilter}
         ${blockedFilter.sql}
-        ORDER BY t."likeCount" DESC, t."chatCount" DESC, t."createdAt" DESC
+        ORDER BY ${visibleLikeCountSql('t')} DESC, ${visibleChatCountSql('t')} DESC, t."createdAt" DESC
         LIMIT $1 OFFSET $2
       `, [limit, offset, ...blockedFilter.params]);
     }
@@ -650,15 +700,9 @@ export const getRecentTwins = async (req: Request, res: Response, next: NextFunc
         t."bio",
         t."profileImage",
         t."verified",
-        t."likeCount",
-        t."followCount",
-        (SELECT COUNT(*) 
-         FROM "PublicMessage" pm
-         JOIN "PublicChat" pc ON pm."chatId" = pc.id
-         WHERE pc."twinId" = t.id
-           AND pm.sender = 'human'
-           AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-        ) as "chatCount",
+        ${visibleLikeCountSql('t')} as "likeCount",
+        ${visibleFollowCountSql('t')} as "followCount",
+        ${visibleChatCountSql('t')} as "chatCount",
         t."sampleReply",
         t."createdAt",
         t."allowShares",
@@ -723,15 +767,9 @@ export const getMostLikedTwins = async (req: Request, res: Response, next: NextF
         t."bio",
         t."profileImage",
         t."verified",
-        t."likeCount",
-        t."followCount",
-        (SELECT COUNT(*) 
-         FROM "PublicMessage" pm
-         JOIN "PublicChat" pc ON pm."chatId" = pc.id
-         WHERE pc."twinId" = t.id
-           AND pm.sender = 'human'
-           AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-        ) as "chatCount",
+        ${visibleLikeCountSql('t')} as "likeCount",
+        ${visibleFollowCountSql('t')} as "followCount",
+        ${visibleChatCountSql('t')} as "chatCount",
         t."sampleReply",
         t."createdAt",
         t."allowShares",
@@ -745,8 +783,8 @@ export const getMostLikedTwins = async (req: Request, res: Response, next: NextF
       WHERE t."isPublic" = true 
       ${blockNonLoggedFilter}
       ${blockedFilter.sql}
-      AND t."likeCount" > 0
-      ORDER BY t."likeCount" DESC, t."createdAt" DESC
+      AND ${visibleLikeCountSql('t')} > 0
+      ORDER BY ${visibleLikeCountSql('t')} DESC, t."createdAt" DESC
       LIMIT $1 OFFSET $2
     `, [limit, offset, ...blockedFilter.params]);
 
@@ -797,15 +835,9 @@ export const getMostFollowedTwins = async (req: Request, res: Response, next: Ne
         t."bio",
         t."profileImage",
         t."verified",
-        t."likeCount",
-        t."followCount",
-        (SELECT COUNT(*) 
-         FROM "PublicMessage" pm
-         JOIN "PublicChat" pc ON pm."chatId" = pc.id
-         WHERE pc."twinId" = t.id
-           AND pm.sender = 'human'
-           AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-        ) as "chatCount",
+        ${visibleLikeCountSql('t')} as "likeCount",
+        ${visibleFollowCountSql('t')} as "followCount",
+        ${visibleChatCountSql('t')} as "chatCount",
         t."sampleReply",
         t."createdAt",
         t."allowShares",
@@ -819,8 +851,8 @@ export const getMostFollowedTwins = async (req: Request, res: Response, next: Ne
       WHERE t."isPublic" = true 
       ${blockNonLoggedFilter}
       ${blockedFilter.sql}
-      AND t."followCount" > 0
-      ORDER BY t."followCount" DESC, t."likeCount" DESC, t."createdAt" DESC
+      AND ${visibleFollowCountSql('t')} > 0
+      ORDER BY ${visibleFollowCountSql('t')} DESC, ${visibleLikeCountSql('t')} DESC, t."createdAt" DESC
       LIMIT $1 OFFSET $2
     `, [limit, offset, ...blockedFilter.params]);
 
@@ -872,15 +904,9 @@ export const getPopularTwins = async (req: Request, res: Response, next: NextFun
         t."bio",
         t."profileImage",
         t."verified",
-        t."likeCount",
-        t."followCount",
-        (SELECT COUNT(*) 
-         FROM "PublicMessage" pm
-         JOIN "PublicChat" pc ON pm."chatId" = pc.id
-         WHERE pc."twinId" = t.id
-           AND pm.sender = 'human'
-           AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-        ) as "chatCount",
+        ${visibleLikeCountSql('t')} as "likeCount",
+        ${visibleFollowCountSql('t')} as "followCount",
+        ${visibleChatCountSql('t')} as "chatCount",
         t."sampleReply",
         t."createdAt",
         t."allowShares",
@@ -893,15 +919,9 @@ export const getPopularTwins = async (req: Request, res: Response, next: NextFun
         COALESCE(
           tp."popularityScore",
           (
-            t."likeCount" * 0.4 +
-            t."followCount" * 0.3 +
-            (SELECT COUNT(*) 
-             FROM "PublicMessage" pm
-             JOIN "PublicChat" pc ON pm."chatId" = pc.id
-             WHERE pc."twinId" = t.id
-               AND pm.sender = 'human'
-               AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-            ) * 0.3
+            ${visibleLikeCountSql('t')} * 0.4 +
+            ${visibleFollowCountSql('t')} * 0.3 +
+            ${visibleChatCountSql('t')} * 0.3
           )
         ) as popularity_score
       FROM "Twin" t
@@ -963,15 +983,9 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
           t."bio",
           t."profileImage",
           t."verified",
-          t."likeCount",
-          t."followCount",
-          (SELECT COUNT(*) 
-           FROM "PublicMessage" pm
-           JOIN "PublicChat" pc ON pm."chatId" = pc.id
-           WHERE pc."twinId" = t.id
-             AND pm.sender = 'human'
-             AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-          ) as "chatCount",
+          ${visibleLikeCountSql('t')} as "likeCount",
+          ${visibleFollowCountSql('t')} as "followCount",
+          ${visibleChatCountSql('t')} as "chatCount",
           t."sampleReply",
           t."createdAt",
           u.handle as "userHandle",
@@ -985,14 +999,7 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
         ${blockNonLoggedFilter}
         ${blockedFilter.sql}
         ORDER BY COALESCE(tp."engagementScore", 
-          (t."likeCount" * 0.3 + t."followCount" * 0.4 + 
-           (SELECT COUNT(*) 
-            FROM "PublicMessage" pm
-            JOIN "PublicChat" pc ON pm."chatId" = pc.id
-            WHERE pc."twinId" = t.id
-              AND pm.sender = 'human'
-              AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-           ) * 0.3)
+          (${visibleLikeCountSql('t')} * 0.3 + ${visibleFollowCountSql('t')} * 0.4 + ${visibleChatCountSql('t')} * 0.3)
         ) DESC, t."createdAt" DESC         
         LIMIT $1
       `, [Math.ceil(limit / 3), ...blockedFilter.params]),
@@ -1004,15 +1011,9 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
           t."bio",
           t."profileImage",
           t."verified",
-          t."likeCount",
-          t."followCount",
-          (SELECT COUNT(*) 
-           FROM "PublicMessage" pm
-           JOIN "PublicChat" pc ON pm."chatId" = pc.id
-           WHERE pc."twinId" = t.id
-             AND pm.sender = 'human'
-             AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-          ) as "chatCount",
+          ${visibleLikeCountSql('t')} as "likeCount",
+          ${visibleFollowCountSql('t')} as "followCount",
+          ${visibleChatCountSql('t')} as "chatCount",
           t."sampleReply",
           t."createdAt",
           u.handle as "userHandle",
@@ -1035,15 +1036,9 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
           t."bio",
           t."profileImage",
           t."verified",
-          t."likeCount",
-          t."followCount",
-          (SELECT COUNT(*) 
-           FROM "PublicMessage" pm
-           JOIN "PublicChat" pc ON pm."chatId" = pc.id
-           WHERE pc."twinId" = t.id
-             AND pm.sender = 'human'
-             AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-          ) as "chatCount",
+          ${visibleLikeCountSql('t')} as "likeCount",
+          ${visibleFollowCountSql('t')} as "followCount",
+          ${visibleChatCountSql('t')} as "chatCount",
           t."sampleReply",
           t."createdAt",
           u.handle as "userHandle",
@@ -1057,14 +1052,7 @@ export const getDiscoverFeed = async (req: Request, res: Response, next: NextFun
         ${blockNonLoggedFilter}
         ${blockedFilter.sql}
         ORDER BY COALESCE(tp."popularityScore",
-          (t."likeCount" * 0.4 + t."followCount" * 0.3 + 
-           (SELECT COUNT(*) 
-            FROM "PublicMessage" pm
-            JOIN "PublicChat" pc ON pm."chatId" = pc.id
-            WHERE pc."twinId" = t.id
-              AND pm.sender = 'human'
-              AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
-           ) * 0.3)
+          (${visibleLikeCountSql('t')} * 0.4 + ${visibleFollowCountSql('t')} * 0.3 + ${visibleChatCountSql('t')} * 0.3)
         ) DESC, t."createdAt" DESC
         LIMIT $1
       `, [Math.ceil(limit / 3), ...blockedFilter.params])

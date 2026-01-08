@@ -86,20 +86,62 @@ export async function getDashboard(req: any, res: Response) {
           `,
           [fullUser.id, ownerPublicId]
         ),        
-        // Twin stats (if twin exists)
+        // Twin stats (if twin exists) - table-based counts with block filters
         twin ? db.query(`
-          SELECT 
-            "likeCount", 
-            "followCount", 
-            (SELECT COUNT(*) 
+          SELECT
+            -- Likes: exclude blocked users + users who blocked owner
+            (SELECT COUNT(*)
+             FROM "TwinLike" tl
+             WHERE tl."twinId" = $1
+               AND NOT EXISTS (
+                 SELECT 1 FROM "TwinBlockedUsers" tbu_self
+                 WHERE tbu_self."twinId" = $1 AND tbu_self."userId" = tl."userId"
+               )
+               AND NOT EXISTS (
+                 SELECT 1
+                 FROM "Twin" t2
+                 JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+                 WHERE t2."userId" = tl."userId" AND tbu."userId" = $2
+               )
+            ) as "likeCount",
+
+            -- Follows: exclude blocked users + users who blocked owner
+            (SELECT COUNT(*)
+             FROM "TwinFollow" tf
+             WHERE tf."twinId" = $1
+               AND NOT EXISTS (
+                 SELECT 1 FROM "TwinBlockedUsers" tbu_self
+                 WHERE tbu_self."twinId" = $1 AND tbu_self."userId" = tf."userId"
+               )
+               AND NOT EXISTS (
+                 SELECT 1
+                 FROM "Twin" t2
+                 JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+                 WHERE t2."userId" = tf."userId" AND tbu."userId" = $2
+               )
+            ) as "followCount",
+
+            -- Messages: exclude blocked users + users who blocked owner
+            (SELECT COUNT(*)
              FROM "PublicMessage" pm
              JOIN "PublicChat" pc ON pm."chatId" = pc.id
              WHERE pc."twinId" = $1
                AND pm.sender = 'human'
                AND (pc."userId" IS NULL OR pc."userId" <> $2)
+               AND (pc."userId" IS NULL OR (
+                 pc."userId" IS NOT NULL
+                 AND NOT EXISTS (
+                   SELECT 1 FROM "TwinBlockedUsers" tbu_self
+                   WHERE tbu_self."twinId" = $1 AND tbu_self."userId" = pc."userId"
+                 )
+                 AND NOT EXISTS (
+                   SELECT 1
+                   FROM "Twin" t2
+                   JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+                   WHERE t2."userId" = pc."userId" AND tbu."userId" = $2
+                 )
+               ))
             ) as "chatCount"
-          FROM "Twin"
-          WHERE id = $1
         `, [twin.id, fullUser.id]) : Promise.resolve({ rows: [] })        
       ]);
       

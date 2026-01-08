@@ -27,13 +27,89 @@ export async function getLanding(req: any, res: Response) {
           t."sampleReply",
           u.handle as "userHandle",
           u.name as "userName",
-          t."likeCount",
-          t."chatCount"
+          (SELECT COUNT(*)
+           FROM "TwinLike" tl
+           WHERE tl."twinId" = t.id
+             AND NOT EXISTS (
+               SELECT 1 FROM "TwinBlockedUsers" tbu
+               WHERE tbu."twinId" = t.id
+                 AND tbu."userId" = tl."userId"
+             )
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "Twin" t2
+               JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+               WHERE t2."userId" = tl."userId"
+                 AND tbu2."userId" = t."userId"
+             )
+          ) as "likeCount",
+          (SELECT COUNT(*)
+           FROM "PublicMessage" pm
+           JOIN "PublicChat" pc ON pm."chatId" = pc.id
+           WHERE pc."twinId" = t.id
+             AND pm.sender = 'human'
+             AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
+             AND (
+               pc."userId" IS NULL
+               OR (
+                 NOT EXISTS (
+                   SELECT 1 FROM "TwinBlockedUsers" tbu
+                   WHERE tbu."twinId" = t.id
+                     AND tbu."userId" = pc."userId"
+                 )
+                 AND NOT EXISTS (
+                   SELECT 1
+                   FROM "Twin" t2
+                   JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+                   WHERE t2."userId" = pc."userId"
+                     AND tbu2."userId" = t."userId"
+                 )
+               )
+             )
+          ) as "chatCount"
         FROM "Twin" t
         JOIN "User" u ON t."userId" = u.id
         WHERE t."isPublic" = true
           AND (t."blockNonLoggedUsers" = false OR t."blockNonLoggedUsers" IS NULL)
-        ORDER BY t."chatCount" DESC, t."likeCount" DESC, t."createdAt" DESC
+        ORDER BY (SELECT COUNT(*)
+           FROM "PublicMessage" pm
+           JOIN "PublicChat" pc ON pm."chatId" = pc.id
+           WHERE pc."twinId" = t.id
+             AND pm.sender = 'human'
+             AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
+             AND (
+               pc."userId" IS NULL
+               OR (
+                 NOT EXISTS (
+                   SELECT 1 FROM "TwinBlockedUsers" tbu
+                   WHERE tbu."twinId" = t.id
+                     AND tbu."userId" = pc."userId"
+                 )
+                 AND NOT EXISTS (
+                   SELECT 1
+                   FROM "Twin" t2
+                   JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+                   WHERE t2."userId" = pc."userId"
+                     AND tbu2."userId" = t."userId"
+                 )
+               )
+             )
+          ) DESC, (SELECT COUNT(*)
+           FROM "TwinLike" tl
+           WHERE tl."twinId" = t.id
+             AND NOT EXISTS (
+               SELECT 1 FROM "TwinBlockedUsers" tbu
+               WHERE tbu."twinId" = t.id
+                 AND tbu."userId" = tl."userId"
+             )
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "Twin" t2
+               JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+               WHERE t2."userId" = tl."userId"
+                 AND tbu2."userId" = t."userId"
+             )
+          ) DESC, t."createdAt" DESC
         LIMIT 4
       `);
       // ✅ Add publicId (twin token) for public chat URLs
@@ -112,14 +188,61 @@ export async function getPublicProfile(req: any, res: Response) {
          t.bio,
          t."profileImage",
          t.verified,
-         t."likeCount",
-         t."followCount",
+         (SELECT COUNT(*)
+          FROM "TwinLike" tl
+          WHERE tl."twinId" = t.id
+            AND NOT EXISTS (
+              SELECT 1 FROM "TwinBlockedUsers" tbu
+              WHERE tbu."twinId" = t.id
+                AND tbu."userId" = tl."userId"
+            )
+            AND NOT EXISTS (
+              SELECT 1
+              FROM "Twin" t2
+              JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+              WHERE t2."userId" = tl."userId"
+                AND tbu2."userId" = t."userId"
+            )
+         ) as "likeCount",
+         (SELECT COUNT(*)
+          FROM "TwinFollow" tf
+          WHERE tf."twinId" = t.id
+            AND NOT EXISTS (
+              SELECT 1 FROM "TwinBlockedUsers" tbu
+              WHERE tbu."twinId" = t.id
+                AND tbu."userId" = tf."userId"
+            )
+            AND NOT EXISTS (
+              SELECT 1
+              FROM "Twin" t2
+              JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+              WHERE t2."userId" = tf."userId"
+                AND tbu2."userId" = t."userId"
+            )
+         ) as "followCount",
          (SELECT COUNT(*) 
           FROM "PublicMessage" pm
           JOIN "PublicChat" pc ON pm."chatId" = pc.id
           WHERE pc."twinId" = t.id
             AND pm.sender = 'human'
             AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
+            AND (
+              pc."userId" IS NULL
+              OR (
+                NOT EXISTS (
+                  SELECT 1 FROM "TwinBlockedUsers" tbu
+                  WHERE tbu."twinId" = t.id
+                    AND tbu."userId" = pc."userId"
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM "Twin" t2
+                  JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+                  WHERE t2."userId" = pc."userId"
+                    AND tbu2."userId" = t."userId"
+                )
+              )
+            )
          ) as "chatCount",
          t."sampleReply",
          t."createdAt",
@@ -190,6 +313,25 @@ let isBlocked = false;
 
     if (isBlocked) {
       throw createError.notFound('This profile does not exist', ErrorCodes.NOT_FOUND);
+    }
+
+    // ✅ NEW: viewer blocked this profile owner => hide (mutual hide)
+    if (viewerId) {
+      const viewerBlocksOwner = await db.query(
+        `
+        SELECT 1
+        FROM "TwinBlockedUsers" tbu
+        JOIN "Twin" t_self ON t_self.id = tbu."twinId"
+        WHERE t_self."userId" = $1
+          AND tbu."userId" = $2
+        LIMIT 1
+        `,
+        [viewerId, user.id]
+      );
+
+      if (viewerBlocksOwner.rows.length > 0) {
+        throw createError.notFound('This profile does not exist', ErrorCodes.NOT_FOUND);
+      }
     }
 
     // Private twin: if not owner and !isPublic → show basic user only (same as no twin)
@@ -368,15 +510,78 @@ export async function getUserProfile(req: any, res: Response) {
       twinsQuery = `
         SELECT 
           t.id, t."publicHandle", t.bio, t."profileImage", t.verified, 
-          t."likeCount", t."followCount", t."chatCount", t."sampleReply", t."createdAt",
+          (SELECT COUNT(*)
+           FROM "TwinLike" tl
+           WHERE tl."twinId" = t.id
+             AND NOT EXISTS (
+               SELECT 1 FROM "TwinBlockedUsers" tbu
+               WHERE tbu."twinId" = t.id
+                 AND tbu."userId" = tl."userId"
+             )
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "Twin" t2
+               JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+               WHERE t2."userId" = tl."userId"
+                 AND tbu2."userId" = t."userId"
+             )
+          ) as "likeCount",
+          (SELECT COUNT(*)
+           FROM "TwinFollow" tf
+           WHERE tf."twinId" = t.id
+             AND NOT EXISTS (
+               SELECT 1 FROM "TwinBlockedUsers" tbu
+               WHERE tbu."twinId" = t.id
+                 AND tbu."userId" = tf."userId"
+             )
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "Twin" t2
+               JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+               WHERE t2."userId" = tf."userId"
+                 AND tbu2."userId" = t."userId"
+             )
+          ) as "followCount",
+          (SELECT COUNT(*)
+           FROM "PublicMessage" pm
+           JOIN "PublicChat" pc ON pm."chatId" = pc.id
+           WHERE pc."twinId" = t.id
+             AND pm.sender = 'human'
+             AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
+             AND (
+               pc."userId" IS NULL
+               OR (
+                 NOT EXISTS (
+                   SELECT 1 FROM "TwinBlockedUsers" tbu
+                   WHERE tbu."twinId" = t.id
+                     AND tbu."userId" = pc."userId"
+                 )
+                 AND NOT EXISTS (
+                   SELECT 1
+                   FROM "Twin" t2
+                   JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+                   WHERE t2."userId" = pc."userId"
+                     AND tbu2."userId" = t."userId"
+                 )
+               )
+             )
+          ) as "chatCount",
+          t."sampleReply", t."createdAt",
           t."allowShares", t."requireLogin"
         FROM "Twin" t
         WHERE t."userId" = $1 
           AND t."isPublic" = true
-           AND NOT EXISTS (
-        SELECT 1 FROM "TwinBlockedUsers" tbu
-        WHERE tbu."twinId" = t.id AND tbu."userId" = $2
-      )
+          AND NOT EXISTS (
+            SELECT 1 FROM "TwinBlockedUsers" tbu
+            WHERE tbu."twinId" = t.id AND tbu."userId" = $2
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "TwinBlockedUsers" tbu2
+            JOIN "Twin" t_self ON t_self.id = tbu2."twinId"
+            WHERE t_self."userId" = $2
+              AND tbu2."userId" = $1
+          )
         ORDER BY t."createdAt" DESC
       `;
       twinsParams = [user.id, userId];
@@ -385,7 +590,63 @@ export async function getUserProfile(req: any, res: Response) {
       twinsQuery = `
         SELECT 
           t.id, t."publicHandle", t.bio, t."profileImage", t.verified, 
-          t."likeCount", t."followCount", t."chatCount", t."sampleReply", t."createdAt",
+          (SELECT COUNT(*)
+           FROM "TwinLike" tl
+           WHERE tl."twinId" = t.id
+             AND NOT EXISTS (
+               SELECT 1 FROM "TwinBlockedUsers" tbu
+               WHERE tbu."twinId" = t.id
+                 AND tbu."userId" = tl."userId"
+             )
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "Twin" t2
+               JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+               WHERE t2."userId" = tl."userId"
+                 AND tbu2."userId" = t."userId"
+             )
+          ) as "likeCount",
+          (SELECT COUNT(*)
+           FROM "TwinFollow" tf
+           WHERE tf."twinId" = t.id
+             AND NOT EXISTS (
+               SELECT 1 FROM "TwinBlockedUsers" tbu
+               WHERE tbu."twinId" = t.id
+                 AND tbu."userId" = tf."userId"
+             )
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "Twin" t2
+               JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+               WHERE t2."userId" = tf."userId"
+                 AND tbu2."userId" = t."userId"
+             )
+          ) as "followCount",
+          (SELECT COUNT(*)
+           FROM "PublicMessage" pm
+           JOIN "PublicChat" pc ON pm."chatId" = pc.id
+           WHERE pc."twinId" = t.id
+             AND pm.sender = 'human'
+             AND (pc."userId" IS NULL OR pc."userId" <> t."userId")
+             AND (
+               pc."userId" IS NULL
+               OR (
+                 NOT EXISTS (
+                   SELECT 1 FROM "TwinBlockedUsers" tbu
+                   WHERE tbu."twinId" = t.id
+                     AND tbu."userId" = pc."userId"
+                 )
+                 AND NOT EXISTS (
+                   SELECT 1
+                   FROM "Twin" t2
+                   JOIN "TwinBlockedUsers" tbu2 ON tbu2."twinId" = t2.id
+                   WHERE t2."userId" = pc."userId"
+                     AND tbu2."userId" = t."userId"
+                 )
+               )
+             )
+          ) as "chatCount",
+          t."sampleReply", t."createdAt",
           t."allowShares", t."requireLogin"
         FROM "Twin" t
         WHERE t."userId" = $1 

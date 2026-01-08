@@ -290,12 +290,20 @@ try {
         AND pm.sender = 'human'
         AND (pc."userId" IS NULL OR (
           pc."userId" IS NOT NULL
+          -- ✅ exclude users who blocked the owner (existing behavior)
           AND NOT EXISTS (
             SELECT 1
             FROM "Twin" t2
             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
             WHERE t2."userId" = pc."userId"
               AND tbu."userId" = $1
+          )
+          -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "TwinBlockedUsers" tbu_self
+            WHERE tbu_self."twinId" = pc."twinId"
+              AND tbu_self."userId" = pc."userId"
           )
         ))
     `, [userId]),
@@ -330,6 +338,13 @@ try {
           WHERE t2."userId" = tl."userId"
             AND tbu."userId" = $1
         )
+        -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "TwinBlockedUsers" tbu_self
+          WHERE tbu_self."twinId" = t.id
+            AND tbu_self."userId" = tl."userId"
+        )
     `, [userId]),
     // ✅ Followers: exclude users who have blocked this owner
     db.query(`
@@ -343,6 +358,13 @@ try {
           JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
           WHERE t2."userId" = tf."userId"
             AND tbu."userId" = $1
+        )
+        -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "TwinBlockedUsers" tbu_self
+          WHERE tbu_self."twinId" = t.id
+            AND tbu_self."userId" = tf."userId"
         )
     `, [userId]),
     db.query('SELECT type, COUNT(*) as count FROM "Event" WHERE "userId" = $1 GROUP BY type', [userId]),
@@ -378,12 +400,20 @@ try {
           AND (
             pc."userId" IS NULL OR (
               pc."userId" IS NOT NULL
+              -- ✅ exclude users who blocked the owner (existing behavior)
               AND NOT EXISTS (
                 SELECT 1
                 FROM "Twin" t2
                 JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
                 WHERE t2."userId" = pc."userId"
                   AND tbu."userId" = $1
+              )
+              -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+              AND NOT EXISTS (
+                SELECT 1
+                FROM "TwinBlockedUsers" tbu_self
+                WHERE tbu_self."twinId" = pc."twinId"
+                  AND tbu_self."userId" = pc."userId"
               )
             )
           )
@@ -411,6 +441,13 @@ try {
             WHERE t2."userId" = tl."userId"
               AND tbu."userId" = $1
           )
+          -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "TwinBlockedUsers" tbu_self
+            WHERE tbu_self."twinId" = t.id
+              AND tbu_self."userId" = tl."userId"
+          )
         GROUP BY DATE(tl."createdAt")
       ) lk ON lk.day = d.day
       LEFT JOIN (
@@ -425,6 +462,13 @@ try {
             JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
             WHERE t2."userId" = tf."userId"
               AND tbu."userId" = $1
+          )
+          -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "TwinBlockedUsers" tbu_self
+            WHERE tbu_self."twinId" = t.id
+              AND tbu_self."userId" = tf."userId"
           )
         GROUP BY DATE(tf."createdAt")
       ) fw ON fw.day = d.day
@@ -458,6 +502,24 @@ try {
          WHERE t."userId" = $1
            AND pc."createdAt" >= NOW() - INTERVAL '7 days'
            AND (pc."userId" IS NULL OR pc."userId" <> $1)
+           AND (pc."userId" IS NULL OR (
+             pc."userId" IS NOT NULL
+             -- ✅ exclude users who blocked the owner
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "Twin" t2
+               JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+               WHERE t2."userId" = pc."userId"
+                 AND tbu."userId" = $1
+             )
+             -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "TwinBlockedUsers" tbu_self
+               WHERE tbu_self."twinId" = pc."twinId"
+                 AND tbu_self."userId" = pc."userId"
+             )
+           ))
            AND EXISTS (
              SELECT 1 FROM "PublicMessage" pm 
              WHERE pm."chatId" = pc.id 
@@ -477,6 +539,13 @@ try {
              WHERE t2."userId" = tl."userId"
                AND tbu."userId" = $1
            )
+           -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "TwinBlockedUsers" tbu_self
+             WHERE tbu_self."twinId" = t.id
+               AND tbu_self."userId" = tl."userId"
+           )
         ) as new_likes,
         -- New Followers: Count TwinFollow records created in last 7 days
         (SELECT COUNT(*)
@@ -490,6 +559,13 @@ try {
              JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
              WHERE t2."userId" = tf."userId"
                AND tbu."userId" = $1
+           )
+           -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "TwinBlockedUsers" tbu_self
+             WHERE tbu_self."twinId" = t.id
+               AND tbu_self."userId" = tf."userId"
            )
         ) as new_followers,
         -- New Shares: Count twin_shared events in last 7 days
@@ -508,6 +584,24 @@ try {
          WHERE t."userId" = $1
            AND pm.sender = 'human'
            AND (pc."userId" IS NULL OR pc."userId" <> $1)
+           AND (pc."userId" IS NULL OR (
+             pc."userId" IS NOT NULL
+             -- ✅ exclude users who blocked the owner
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "Twin" t2
+               JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+               WHERE t2."userId" = pc."userId"
+                 AND tbu."userId" = $1
+             )
+             -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "TwinBlockedUsers" tbu_self
+               WHERE tbu_self."twinId" = pc."twinId"
+                 AND tbu_self."userId" = pc."userId"
+             )
+           ))
            AND pm."createdAt" >= NOW() - INTERVAL '7 days'
         ) as new_messages
     `, [userId]),
@@ -521,6 +615,24 @@ try {
          WHERE t."userId" = $1
            AND pc."createdAt" >= NOW() - INTERVAL '30 days'
            AND (pc."userId" IS NULL OR pc."userId" <> $1)
+           AND (pc."userId" IS NULL OR (
+             pc."userId" IS NOT NULL
+             -- ✅ exclude users who blocked the owner
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "Twin" t2
+               JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+               WHERE t2."userId" = pc."userId"
+                 AND tbu."userId" = $1
+             )
+             -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "TwinBlockedUsers" tbu_self
+               WHERE tbu_self."twinId" = pc."twinId"
+                 AND tbu_self."userId" = pc."userId"
+             )
+           ))
            AND EXISTS (
              SELECT 1 FROM "PublicMessage" pm 
              WHERE pm."chatId" = pc.id 
@@ -540,6 +652,13 @@ try {
              WHERE t2."userId" = tl."userId"
                AND tbu."userId" = $1
            )
+           -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "TwinBlockedUsers" tbu_self
+             WHERE tbu_self."twinId" = t.id
+               AND tbu_self."userId" = tl."userId"
+           )
         ) as new_likes,
         -- New Followers: Count TwinFollow records created in last 30 days
         (SELECT COUNT(*)
@@ -553,6 +672,13 @@ try {
              JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
              WHERE t2."userId" = tf."userId"
                AND tbu."userId" = $1
+           )
+           -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+           AND NOT EXISTS (
+             SELECT 1
+             FROM "TwinBlockedUsers" tbu_self
+             WHERE tbu_self."twinId" = t.id
+               AND tbu_self."userId" = tf."userId"
            )
         ) as new_followers,
         -- New Shares: Count twin_shared events in last 30 days
@@ -571,6 +697,24 @@ try {
          WHERE t."userId" = $1
            AND pm.sender = 'human'
            AND (pc."userId" IS NULL OR pc."userId" <> $1)
+           AND (pc."userId" IS NULL OR (
+             pc."userId" IS NOT NULL
+             -- ✅ exclude users who blocked the owner
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "Twin" t2
+               JOIN "TwinBlockedUsers" tbu ON tbu."twinId" = t2.id
+               WHERE t2."userId" = pc."userId"
+                 AND tbu."userId" = $1
+             )
+             -- ✅ NEW: exclude users blocked by this twin owner (mutual hide)
+             AND NOT EXISTS (
+               SELECT 1
+               FROM "TwinBlockedUsers" tbu_self
+               WHERE tbu_self."twinId" = pc."twinId"
+                 AND tbu_self."userId" = pc."userId"
+             )
+           ))
            AND pm."createdAt" >= NOW() - INTERVAL '30 days'
         ) as new_messages
     `, [userId]),
