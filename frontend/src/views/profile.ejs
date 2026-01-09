@@ -1174,6 +1174,10 @@
                     if (e.target.files.length > 0) {
                         const file = e.target.files[0];
                         
+                        // ✅ NEW: snapshot original avatar HTML (this includes the default letter icon)
+                        const imageContainer = document.querySelector('.flex-shrink-0');
+                        const originalAvatarHTML = imageContainer?.innerHTML ?? null;
+                        
                         // ✅ FIX 3: Show preview immediately
                         const reader = new FileReader();
                         reader.onload = function(e2) {
@@ -1181,6 +1185,10 @@
                             if (imageContainer) {
                                 const existingImg = imageContainer.querySelector('img');
                                 if (existingImg) {
+                                    // Store original src before replacing with preview
+                                    if (!existingImg.getAttribute('data-original-src')) {
+                                        existingImg.setAttribute('data-original-src', existingImg.src);
+                                    }
                                     existingImg.src = e2.target.result;
                                 } else {
                                     // If no image exists, create preview
@@ -1196,7 +1204,7 @@
                                         imageContainer.innerHTML = `
                                             <div class="flex flex-col items-start space-y-3">
                                                 <img src="${e2.target.result}" alt="Profile" class="w-24 h-24 rounded-2xl object-cover shadow-xl border-4 border-white dark:border-gray-800" loading="lazy">
-                                                <button type="button" id="removeProfileImageBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-300 text-red-600 bg-red-50 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:bg-red-900/30 dark:hover:bg-red-900/50 transition-colors">
+                                                <button type="button" id="removeProfileImageBtn" data-preview="1" class="hidden px-3 py-1.5 text-xs font-medium rounded-lg border border-red-300 text-red-600 bg-red-50 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:bg-red-900/30 dark:hover:bg-red-900/50 transition-colors">
                                                     Remove Photo
                                                 </button>
                                             </div>
@@ -1227,40 +1235,65 @@
                             },
                             body: uploadFormData
                         })
-                        .then(res => {
-                            if (!res.ok) {
-                                return res.text().then(text => {
-                                    throw new Error(`Upload failed: ${res.status} ${text.substring(0, 100)}`);
-                                });
+                        .then(async (res) => {
+                            const data = await res.json().catch(() => ({}));
+                            if (!res.ok || !data.success) {
+                                const msg = data?.error || (res.status === 413 ? 'Image too large. Max size is 5MB.' : 'Upload failed.');
+                                throw new Error(msg);
                             }
-                            const contentType = res.headers.get('content-type');
-                            if (contentType && contentType.includes('application/json')) {
-                                return res.json();
-                            } else {
-                                return res.text().then(text => {
-                                    throw new Error(`Expected JSON but got ${contentType}: ${text.substring(0, 100)}`);
-                                });
-                            }
+                            return data;
                         })
                         .then(data => {
-                            if (data && data.success) {
-                                showNotification('Profile photo saved!', 'success');
-                                // Update image src with backend URL
-                                const imageContainer = document.querySelector('.flex-shrink-0');
-                                if (imageContainer && data.imageUrl) {
-                                    const existingImg = imageContainer.querySelector('img');
-                                    if (existingImg) {
-                                        existingImg.src = data.imageUrl;
-                                    }
+                            showNotification('Profile photo saved!', 'success');
+                            // Update image src with backend URL
+                            const imageContainer = document.querySelector('.flex-shrink-0');
+                            if (imageContainer && data.imageUrl) {
+                                const existingImg = imageContainer.querySelector('img');
+                                if (existingImg) {
+                                    existingImg.src = data.imageUrl;
                                 }
-                                setTimeout(() => window.location.reload(), 1500);
-                            } else {
-                                showNotification(data?.error || 'Failed to save profile photo', 'error');
                             }
+                            // Show remove button if it was preview-created
+                            const removeBtn = document.getElementById('removeProfileImageBtn');
+                            if (removeBtn?.dataset?.preview === '1') {
+                                removeBtn.classList.remove('hidden');
+                            }
+                            setTimeout(() => window.location.reload(), 1500);
                         })
                         .catch(err => {
-                            ErrorLogger.error('Profile image upload error', err, {});
-                            showNotification('Failed to upload image. Please try again.', 'error');
+                            try { window.ErrorLogger?.error?.('Profile image upload error', err, {}); } catch (_) {}
+                            showNotification(err?.message || 'Failed to upload image. Please try again.', 'error');
+                            
+                            // ✅ NEW: restore EXACT previous UI (letter avatar etc.)
+                            const imageContainer = document.querySelector('.flex-shrink-0');
+                            if (imageContainer && originalAvatarHTML !== null) {
+                                imageContainer.innerHTML = originalAvatarHTML;
+                                
+                                // if original HTML had Remove button (when user already had a saved image)
+                                if (typeof attachRemoveButtonListener === 'function') {
+                                    attachRemoveButtonListener();
+                                }
+                                return;
+                            }
+                            
+                            // Fallback: revert preview image on error (if snapshot failed)
+                            if (imageContainer) {
+                                const existingImg = imageContainer.querySelector('img');
+                                if (existingImg && existingImg.src.startsWith('data:')) {
+                                    // If it's a data URL (preview), remove it or restore original
+                                    const originalSrc = existingImg.getAttribute('data-original-src');
+                                    if (originalSrc) {
+                                        existingImg.src = originalSrc;
+                                    } else {
+                                        existingImg.remove();
+                                    }
+                                }
+                            }
+                            // Remove preview-created remove button on error
+                            const removeBtn = document.getElementById('removeProfileImageBtn');
+                            if (removeBtn?.dataset?.preview === '1') {
+                                removeBtn.remove();
+                            }
                         })
                         .finally(() => {
                             if (wasReadonly) {
@@ -2223,6 +2256,10 @@ if (profileImageFile) {
         if (e.target.files.length > 0) {
             const file = e.target.files[0];
 
+            // ✅ NEW: snapshot original avatar HTML (default letter icon included)
+            const imageContainer = document.querySelector('.flex-shrink-0');
+            const originalAvatarHTML = imageContainer?.innerHTML ?? null;
+
             // --- existing preview logic (ye wala part as-is rehne do) ---
             const reader = new FileReader();
             reader.onload = function(e2) {
@@ -2230,6 +2267,10 @@ if (profileImageFile) {
                 if (imageContainer) {
                     const existingImg = imageContainer.querySelector('img');
                     if (existingImg) {
+                        // Store original src before replacing with preview
+                        if (!existingImg.getAttribute('data-original-src')) {
+                            existingImg.setAttribute('data-original-src', existingImg.src);
+                        }
                         existingImg.src = e2.target.result;
                     } else {
                         const existingDiv = imageContainer.querySelector('div.flex.flex-col');
@@ -2244,7 +2285,7 @@ if (profileImageFile) {
                             imageContainer.innerHTML = `
                                 <div class="flex flex-col items-start space-y-3">
                                     <img src="${e2.target.result}" alt="Profile" class="w-24 h-24 rounded-2xl object-cover shadow-xl border-4 border-white dark:border-gray-800" loading="lazy">
-                                    <button type="button" id="removeProfileImageBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-300 text-red-600 bg-red-50 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:bg-red-900/30 dark:hover:bg-red-900/50 transition-colors">
+                                    <button type="button" id="removeProfileImageBtn" data-preview="1" class="hidden px-3 py-1.5 text-xs font-medium rounded-lg border border-red-300 text-red-600 bg-red-50 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:bg-red-900/30 dark:hover:bg-red-900/50 transition-colors">
                                         Remove Photo
                                     </button>
                                 </div>
@@ -2270,24 +2311,63 @@ if (profileImageFile) {
                 },
                 body: uploadFormData
             })
-            .then(res => res.json())
+            .then(async (res) => {
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) {
+                    const msg = data?.error || (res.status === 413 ? 'Image too large. Max size is 5MB.' : 'Upload failed.');
+                    throw new Error(msg);
+                }
+                return data;
+            })
             .then(data => {
-                if (data && data.success) {
-                    // backend already updated User.profileImage
-                    showNotification('Profile photo saved!', 'success');
-                    // ✅ FIX: Store uploaded file in sessionStorage to persist after reload
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        sessionStorage.setItem('profileImagePreview', e.target.result);
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    showNotification(data.error || 'Failed to save profile photo', 'error');
+                // backend already updated User.profileImage
+                showNotification('Profile photo saved!', 'success');
+                // ✅ FIX: Store uploaded file in sessionStorage to persist after reload
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    sessionStorage.setItem('profileImagePreview', e.target.result);
+                };
+                reader.readAsDataURL(file);
+                // Show remove button if it was preview-created
+                const removeBtn = document.getElementById('removeProfileImageBtn');
+                if (removeBtn?.dataset?.preview === '1') {
+                    removeBtn.classList.remove('hidden');
                 }
             })
             .catch(err => {
-                ErrorLogger.error('Profile image upload error', err, {});
-                showNotification('Failed to upload image. Please try again.', 'error');
+                try { window.ErrorLogger?.error?.('Profile image upload error', err, {}); } catch (_) {}
+                showNotification(err?.message || 'Failed to upload image. Please try again.', 'error');
+                
+                // ✅ NEW: restore EXACT previous UI (letter avatar etc.)
+                const imageContainer = document.querySelector('.flex-shrink-0');
+                if (imageContainer && originalAvatarHTML !== null) {
+                    imageContainer.innerHTML = originalAvatarHTML;
+                    
+                    // if original HTML had Remove button (when user already had a saved image)
+                    if (typeof attachRemoveButtonListener === 'function') {
+                        attachRemoveButtonListener();
+                    }
+                    return;
+                }
+                
+                // Fallback: revert preview image on error (if snapshot failed)
+                if (imageContainer) {
+                    const existingImg = imageContainer.querySelector('img');
+                    if (existingImg && existingImg.src.startsWith('data:')) {
+                        // If it's a data URL (preview), remove it or restore original
+                        const originalSrc = existingImg.getAttribute('data-original-src');
+                        if (originalSrc) {
+                            existingImg.src = originalSrc;
+                        } else {
+                            existingImg.remove();
+                        }
+                    }
+                }
+                // Remove preview-created remove button on error
+                const removeBtn = document.getElementById('removeProfileImageBtn');
+                if (removeBtn?.dataset?.preview === '1') {
+                    removeBtn.remove();
+                }
             });
         }
     });

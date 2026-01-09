@@ -181,14 +181,16 @@
                             body: uploadFormData
                         });
                         
-                        if (uploadResponse.ok) {
-                            const uploadResult = await uploadResponse.json();
-                            finalProfileImage = uploadResult.imageUrl;
+                        const uploadJson = await uploadResponse.json().catch(() => ({}));
+                        
+                        if (uploadResponse.ok && uploadJson && uploadJson.success) {
+                            finalProfileImage = uploadJson.imageUrl;
                         } else {
-                            throw new Error('File upload failed');
+                            const msg = uploadJson?.error || (uploadResponse.status === 413 ? 'Image too large. Max size is 5MB.' : 'File upload failed');
+                            throw new Error(msg);
                         }
                     } catch (error) {
-                        showNotification('Failed to upload image. Please try again.', 'error');
+                        showNotification(error?.message || 'Failed to upload image. Please try again.', 'error');
                         return;
                     }
                 }

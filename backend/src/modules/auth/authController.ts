@@ -43,7 +43,7 @@ const completeProfileSchema = z.object({
     .min(1, 'Username is required')
     .min(3, 'Username must be at least 3 characters')
     .max(20, 'Username must be at most 20 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, hyphens, and underscores'),
     dob: z.string()
     .min(1, 'Date of birth is required')
     // 1) Valid date format

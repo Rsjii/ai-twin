@@ -198,11 +198,11 @@ export const updateProfile = async (req: Request, res: Response) => {
     const updateProfileSchema = z.object({
       name: z.string().min(2, 'Name must be at least 2 characters').optional(),
     
-      // ✅ tighten: no spaces, only a-z0-9_ and hyphen if you want
+      // ✅ tighten: no spaces, only a-z0-9_ and hyphen
       handle: z.string()
         .min(3, 'Handle must be at least 3 characters')
         .max(20, 'Handle must be at most 20 characters')
-        .regex(/^[a-zA-Z0-9_]+$/, 'Handle can only contain letters, numbers, and underscores')
+        .regex(/^[a-zA-Z0-9_-]+$/, 'Handle can only contain letters, numbers, hyphens, and underscores')
         .optional(),
     
       dob: z.string().optional()
