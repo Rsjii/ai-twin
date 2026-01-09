@@ -5,10 +5,15 @@ import path from 'path';
 import fs from 'fs';
 import { userQueries } from '../../config/database';
 
+// ✅ FIX: Use ENV-driven uploads root (prod persistent volume support)
+const uploadsRoot = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.resolve(process.cwd(), 'public/uploads');
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.resolve(process.cwd(), 'public/uploads/profiles');
+    const uploadDir = path.join(uploadsRoot, 'profiles');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -55,7 +60,8 @@ export const handleProfileImageUpload = async (req: Request, res: Response) => {
 
       // Delete old profile image if exists
       if (currentUser.profileImage && currentUser.profileImage.startsWith('/uploads/')) {
-        const oldImagePath = path.resolve(process.cwd(), `public${currentUser.profileImage}`);
+        const rel = currentUser.profileImage.replace(/^\/uploads\//, ''); // e.g. profiles/x.png
+        const oldImagePath = path.join(uploadsRoot, rel);
         if (fs.existsSync(oldImagePath)) {
           fs.unlinkSync(oldImagePath);
         }

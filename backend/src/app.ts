@@ -470,7 +470,10 @@ app.use(express.static(path.resolve(__dirname, '../../frontend/src/public'), sta
 logger.info('Static files cache:', config.nodeEnv === 'production' ? 'ENABLED (1y)' : 'DISABLED (dev mode)');
 
 // ✅ SIMPLE STATIC SERVE FOR UPLOADS
-const uploadsPath = path.resolve(process.cwd(), 'public/uploads');
+// ✅ FIX: Use ENV-driven path for prod (persistent volume support)
+const uploadsPath = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.resolve(process.cwd(), 'public/uploads');
 if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath, { recursive: true });
 }

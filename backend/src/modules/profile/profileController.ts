@@ -159,9 +159,14 @@ export const updateProfile = async (req: Request, res: Response) => {
     // ✅ FIX: Handle file upload if present
     let profileImagePath = undefined;
     
+    // ✅ FIX: Use ENV-driven uploads root (prod persistent volume support)
+    const uploadsRoot = process.env.UPLOADS_DIR
+      ? path.resolve(process.env.UPLOADS_DIR)
+      : path.resolve(process.cwd(), 'public/uploads');
+    
     if (req.file) {
       // File was uploaded
-      const uploadDir = path.resolve(process.cwd(), 'public/uploads/profiles');
+      const uploadDir = path.join(uploadsRoot, 'profiles');
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
@@ -169,7 +174,8 @@ export const updateProfile = async (req: Request, res: Response) => {
       // Get current user to delete old image
       const currentUser = await userQueries.findByEmail(req.user.email);
       if (currentUser && currentUser.profileImage && currentUser.profileImage.startsWith('/uploads/')) {
-        const oldImagePath = path.resolve(process.cwd(), `public${currentUser.profileImage}`);
+        const rel = currentUser.profileImage.replace(/^\/uploads\//, ''); // e.g. profiles/x.png
+        const oldImagePath = path.join(uploadsRoot, rel);
         if (fs.existsSync(oldImagePath)) {
           fs.unlinkSync(oldImagePath);
         }

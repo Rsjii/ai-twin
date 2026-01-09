@@ -1029,6 +1029,8 @@
             likeCustom.value = '';
           }
         });
+        // ✅ FIX: Mobile - also commit on blur (when user taps away)
+        likeCustom.addEventListener('blur', commitPendingTopicInputs);
       }
 
       const avoidCustom = document.getElementById('avoidCustom');
@@ -1047,6 +1049,8 @@
             avoidCustom.value = '';
           }
         });
+        // ✅ FIX: Mobile - also commit on blur (when user taps away)
+        avoidCustom.addEventListener('blur', commitPendingTopicInputs);
       }
 
       // ✅ Purpose "other" field show/hide
@@ -1077,6 +1081,39 @@
       const btn = span.querySelector('button');
       btn.addEventListener('click', () => span.remove());
       container.appendChild(span);
+    }
+
+    // ✅ FIX: Mobile - Auto-commit pending topic inputs on Next/Submit/blur
+    function commitPendingTopicInputs() {
+      if (currentStep !== 3) return;
+
+      const likeCustom = document.getElementById('likeCustom');
+      const likesCustomList = document.getElementById('likesCustomList');
+      const avoidCustom = document.getElementById('avoidCustom');
+      const avoidsCustomList = document.getElementById('avoidsCustomList');
+
+      const MAX = 3;
+      const selectedCount = (sel) => document.querySelectorAll(sel + '.selected').length;
+      const customCount = (listSel, type) => document.querySelectorAll(`${listSel} [data-type="${type}"]`).length;
+
+      const canAddLike = () => (selectedCount('.like-chip') + customCount('#likesCustomList', 'like-custom')) < MAX;
+      const canAddAvoid = () => (selectedCount('.avoid-chip') + customCount('#avoidsCustomList', 'avoid-custom')) < MAX;
+
+      if (likeCustom && likesCustomList) {
+        const v = likeCustom.value.trim();
+        if (v && canAddLike()) {
+          addCustomChip(likesCustomList, v, 'like-custom');
+          likeCustom.value = '';
+        }
+      }
+
+      if (avoidCustom && avoidsCustomList) {
+        const v = avoidCustom.value.trim();
+        if (v && canAddAvoid()) {
+          addCustomChip(avoidsCustomList, v, 'avoid-custom');
+          avoidCustom.value = '';
+        }
+      }
     }
 
 function persistOnboardingState() {
@@ -1275,6 +1312,7 @@ function persistOnboardingState() {
 
       if (nextBtn) {
         nextBtn.addEventListener('click', () => {
+          commitPendingTopicInputs(); // ✅ FIX: Mobile - auto-commit pending topic inputs
           if (!validateCurrentStep()) return;
           saveCurrentStep();
           if (currentStep < totalSteps) {
@@ -1309,6 +1347,7 @@ function persistOnboardingState() {
       if (form) {
         form.addEventListener('submit', (e) => {
           e.preventDefault();
+          commitPendingTopicInputs(); // ✅ FIX: Mobile - auto-commit pending topic inputs
           if (!validateCurrentStep()) return;
           saveCurrentStep();
           submitOnboarding();
