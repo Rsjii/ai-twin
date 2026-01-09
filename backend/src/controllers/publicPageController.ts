@@ -24,6 +24,7 @@ export async function getLanding(req: any, res: Response) {
           t."publicHandle",
           t.bio,
           t."profileImage",
+          u."profileImage" as "userProfileImage",
           t."sampleReply",
           u.handle as "userHandle",
           u.name as "userName",

@@ -308,10 +308,17 @@ var twinsJson = JSON.stringify(displayTwins);
             var publicTwinId = twin.publicId || '';
             var chatUrl = publicTwinId ? ('/public-twin/chat/' + publicTwinId) : profileUrl;
             
-            // Avatar
+            // Avatar - ✅ FIX: Use userProfileImage || profileImage (like discover/dashboard)
             var avatarHtml = '';
-            if (twin.profileImage) {
-                avatarHtml = '<img src="' + escapeHtml(twin.profileImage) + '" alt="' + escapeHtml(displayName) + '" class="w-16 h-16 rounded-2xl object-cover ring-2 ring-gray-100 dark:ring-gray-700 shadow-lg hover:scale-105 transition-transform">';
+            var profileImage = twin.userProfileImage || twin.profileImage;
+            
+            // Normalize relative paths (ensure leading slash for local paths)
+            if (profileImage && !/^https?:\/\//i.test(profileImage) && profileImage.charAt(0) !== '/') {
+                profileImage = '/' + profileImage;
+            }
+            
+            if (profileImage) {
+                avatarHtml = '<img src="' + escapeHtml(profileImage) + '" alt="' + escapeHtml(displayName) + '" class="w-16 h-16 rounded-2xl object-cover ring-2 ring-gray-100 dark:ring-gray-700 shadow-lg hover:scale-105 transition-transform" loading="lazy">';
             } else {
                 var initial = displayName.charAt(0).toUpperCase();
                 avatarHtml = '<div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-2xl ring-2 ring-gray-100 dark:ring-gray-700 shadow-lg hover:scale-105 transition-transform">' + initial + '</div>';
