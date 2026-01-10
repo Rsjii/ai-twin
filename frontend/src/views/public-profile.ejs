@@ -326,7 +326,7 @@
                                 </svg>
                             </div>
                             <div class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1"><%= twin.chatCount %></div>
-                            <div class="text-xs font-medium text-gray-600 dark:text-gray-400">Chats</div>
+                            <div class="text-xs font-medium text-gray-600 dark:text-gray-400">Messages</div>
                         </div>
                     </div>
                 </div>            
@@ -747,7 +747,7 @@ function displayPublicChatHistory(chats) {
     const container = document.getElementById('publicChatHistoryList');
     
     if (chats.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 text-sm">No chats yet</p>';
+        container.innerHTML = '<p class="text-gray-500 text-sm">No messages yet</p>';
         return;
     }
 
@@ -755,7 +755,7 @@ function displayPublicChatHistory(chats) {
         <div class="chat-item p-3 border-b cursor-pointer hover:bg-gray-50 rounded-lg ${chat.publicId === currentChatId ? 'bg-blue-50 border-blue-200' : ''}" data-chat-id="${chat.publicId}">
             <div class="flex justify-between items-start">
                 <div class="flex-1">
-                    <h4 class="font-medium text-sm ${chat.publicId === currentChatId ? 'text-blue-700' : ''}">Chat #${chat.publicId.slice(-6)}</h4>
+                    <h4 class="font-medium text-sm ${chat.publicId === currentChatId ? 'text-blue-700' : ''}">Message #${chat.publicId.slice(-6)}</h4>
                     <p class="text-xs text-gray-500 truncate">${chat.lastMessage ? chat.lastMessage.content : 'No messages yet'}</p>
                 </div>
 <div class="text-xs text-gray-400 timestamp-display" data-timestamp="${chat.createdAt}" data-format="smart"></div>                

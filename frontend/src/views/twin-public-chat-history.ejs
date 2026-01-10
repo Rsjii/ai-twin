@@ -598,7 +598,8 @@
                         }
                     }
                 });
-            }            
+            }
+
         }
 
         function escapeHtml(text) {
@@ -706,16 +707,31 @@
                     value: currentFilters.dateTo
                 });
             }
-            if (currentFilters.sortBy && currentFilters.sortBy !== 'lastActivity') {
-                const sortLabels = {
-                    'createdAt': 'Date Created',
-                    'messageCount': 'Message Count'
-                };
-                activeFilters.push({
-                    key: 'sortBy',
-                    label: `Sort: ${sortLabels[currentFilters.sortBy] || currentFilters.sortBy}`,
-                    value: currentFilters.sortBy
-                });
+            // ✅ FIX: show correct sort filter label for current view
+            if (currentView === 'user') {
+                if (currentFilters.userSortBy && currentFilters.userSortBy !== 'lastActivity') {
+                    const userSortLabels = {
+                        totalMessages: 'Total Messages',
+                        totalChats: 'Total Chats',
+                    };
+                    activeFilters.push({
+                        key: 'userSortBy',
+                        label: `Sort: ${userSortLabels[currentFilters.userSortBy] || currentFilters.userSortBy}`,
+                        value: currentFilters.userSortBy
+                    });
+                }
+            } else {
+                if (currentFilters.sortBy && currentFilters.sortBy !== 'lastActivity') {
+                    const sortLabels = {
+                        createdAt: 'Date Created',
+                        messageCount: 'Message Count'
+                    };
+                    activeFilters.push({
+                        key: 'sortBy',
+                        label: `Sort: ${sortLabels[currentFilters.sortBy] || currentFilters.sortBy}`,
+                        value: currentFilters.sortBy
+                    });
+                }
             }
             // ✅ NEW: Advanced filter chips
             if (currentFilters.minMessages) {
@@ -787,6 +803,10 @@
                     document.getElementById('filterSortBy').value = 'lastActivity';
                     currentFilters.sortBy = 'lastActivity';
                     break;
+                case 'userSortBy':
+                    document.getElementById('filterUserSortBy').value = 'lastActivity';
+                    currentFilters.userSortBy = 'lastActivity';
+                    break;
                 // ✅ NEW: Advanced filters
                 case 'minMessages':
                     document.getElementById('filterMinMessages').value = '';
@@ -799,6 +819,9 @@
                 case 'participantType':
                     document.getElementById('filterParticipantType').value = 'all';
                     currentFilters.participantType = 'all';
+                    break;
+                case 'userId':
+                    currentFilters.userId = '';
                     break;
             }
             updateActiveFiltersDisplay();
@@ -849,7 +872,18 @@
             const quickPresetEl = document.getElementById('quickDatePreset');
             const quickPreset = quickPresetEl ? quickPresetEl.value || '' : '';
             const participant = currentFilters.participantType || 'all';
-            const sortBy = currentFilters.sortBy || 'lastActivity';
+            
+            // ✅ FIX: user-wise uses userSortBy, but chip value is "messageCount"
+            const effectiveSort = (currentView === 'user'
+                ? (currentFilters.userSortBy || 'lastActivity')
+                : (currentFilters.sortBy || 'lastActivity')
+            );
+
+            // Map user-wise sort to chip value
+            const sortChipValue =
+                (currentView === 'user' && effectiveSort === 'totalMessages')
+                    ? 'messageCount'
+                    : effectiveSort;
 
             document.querySelectorAll('.twin-filter-chip').forEach(chip => {
                 const type = chip.dataset.filterType;
@@ -867,7 +901,7 @@
                         active = (value === '30days');
                     }
                 } else if (type === 'sort') {
-                    active = (value === sortBy);
+                    active = (value === sortChipValue);
                 } else if (type === 'participant') {
                     active = (value === participant);
                 }
@@ -1307,10 +1341,18 @@
                     }
                     
                     if (dateFromInput) {
-                        dateFromInput.value = fromDate.toISOString().split('T')[0];
+                        // ✅ FIX: Use local date format (not UTC) to avoid timezone issues
+                        const year = fromDate.getFullYear();
+                        const month = String(fromDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(fromDate.getDate()).padStart(2, '0');
+                        dateFromInput.value = `${year}-${month}-${day}`;
                     }
                     if (dateToInput) {
-                        dateToInput.value = today.toISOString().split('T')[0];
+                        // ✅ FIX: Use local date format (not UTC) to avoid timezone issues
+                        const year = today.getFullYear();
+                        const month = String(today.getMonth() + 1).padStart(2, '0');
+                        const day = String(today.getDate()).padStart(2, '0');
+                        dateToInput.value = `${year}-${month}-${day}`;
                     }
                     applyFilters();
                 });

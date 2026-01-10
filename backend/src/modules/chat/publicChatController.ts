@@ -2101,13 +2101,13 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
     }
 
     if (dateFrom) {
-      whereConditions.push(`pc."createdAt" >= $${paramIndex}::timestamptz`);
+      whereConditions.push(`pc."createdAt" >= ($${paramIndex})::date`);
       params.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`pc."createdAt" <= $${paramIndex}::timestamptz`);
+      whereConditions.push(`pc."createdAt" < (($${paramIndex})::date + INTERVAL '1 day')`);
       params.push(dateTo);
       paramIndex++;
     }
@@ -2259,15 +2259,15 @@ export const getUserWisePublicChats = async (req: AuthenticatedRequest, res: Res
         let chatParams: any[] = [twinId, userRow.user_id, userId];
         let chatParamIndex = 4;
 
-        // Apply date filters to individual chats
+        // Apply date filters to individual chats (✅ inclusive day range)
         if (dateFrom) {
-          chatWhereConditions.push(`pc."createdAt" >= $${chatParamIndex}::timestamptz`);
+          chatWhereConditions.push(`pc."createdAt" >= ($${chatParamIndex})::date`);
           chatParams.push(dateFrom);
           chatParamIndex++;
         }
 
         if (dateTo) {
-          chatWhereConditions.push(`pc."createdAt" <= $${chatParamIndex}::timestamptz`);
+          chatWhereConditions.push(`pc."createdAt" < (($${chatParamIndex})::date + INTERVAL '1 day')`);
           chatParams.push(dateTo);
           chatParamIndex++;
         }

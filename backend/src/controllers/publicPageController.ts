@@ -181,6 +181,26 @@ export async function getPublicProfile(req: any, res: Response) {
     const user = userResult.rows[0];
     const isOwner = viewerId && viewerId === user.id;
 
+    // ✅ FIX: If viewer blocked this profile owner, hide profile ALWAYS (even if owner has no twin)
+    // This check must happen BEFORE twin lookup to prevent showing profile when user has no twin
+    if (viewerId && !isOwner) {
+      const viewerBlocksOwner = await db.query(
+        `
+        SELECT 1
+        FROM "TwinBlockedUsers" tbu
+        JOIN "Twin" t_self ON t_self.id = tbu."twinId"
+        WHERE t_self."userId" = $1
+          AND tbu."userId" = $2
+        LIMIT 1
+        `,
+        [viewerId, user.id]
+      );
+
+      if (viewerBlocksOwner.rows.length > 0) {
+        throw createError.notFound('This profile does not exist', ErrorCodes.NOT_FOUND);
+      }
+    }
+
     // 2) Find twin (if any) by userId
     const twinResult = await db.query(
       `SELECT 
