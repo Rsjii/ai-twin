@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit'; 
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import path from 'path';  // ✅ ADD: For path resolution
 import fs from 'fs';
 import { config, isProd, isDev } from './config/env';
@@ -94,6 +95,9 @@ app.use(helmet({
     },
   },
 }));
+
+// ✅ Compression middleware (gzip) - must be before static files
+app.use(compression());
 
 // ✅ Helper function to create PostgreSQL-based rate limit store
 function createRateLimitStore(windowMs: number): any {
@@ -448,9 +452,9 @@ const viewsPath = path.resolve(__dirname, '../../frontend/src/views');
 app.set('views', viewsPath);
 logger.info('Views directory set to:', viewsPath);
 
-// ✅ FIX: ALWAYS disable EJS cache for development (even if NODE_ENV is set wrong)
-app.set('view cache', false);
-logger.info('EJS view cache DISABLED. Views path:', viewsPath);
+// ✅ FIX: Enable EJS cache in production for performance
+app.set('view cache', config.nodeEnv === 'production');
+logger.info('EJS view cache:', config.nodeEnv === 'production' ? 'ENABLED (production)' : 'DISABLED (development)');
 
 // Verify path exists
 if (!fs.existsSync(viewsPath)) {
