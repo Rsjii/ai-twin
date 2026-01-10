@@ -24,7 +24,8 @@ const signupSchema = z.object({
     .max(72, 'Password must be at most 72 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .refine((p) => !/\s/.test(p), 'Password must not contain spaces'),
   referralCode: z.string().optional(),
 });
 
@@ -143,7 +144,8 @@ const resetPasswordSchema = z.object({
     .max(72, 'Password must be at most 72 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .refine((p) => !/\s/.test(p), 'Password must not contain spaces'),
 });
 
 export const signup = async (req: Request, res: Response, next: NextFunction) => {
@@ -880,7 +882,8 @@ const changePasswordSchema = z.object({
     .max(72, 'Password must be at most 72 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),  
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .refine((p) => !/\s/.test(p), 'Password must not contain spaces'),  
 });
 
 export const changePassword = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
