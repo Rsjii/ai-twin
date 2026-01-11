@@ -20,6 +20,9 @@ const PROFANITY_WORDS = [
   'whore', 'whores',
   'slut', 'sluts',
   'cunt', 'cunts',
+  // Porn / explicit content
+  'porn', 'porno', 'pornography', 'pornographic',
+  'xxx',
   'motherfucker', 'motherfucking',
   'retard', 'retarded',
   'nigger', 'nigga', 'niggas', // Racial slurs
@@ -106,16 +109,51 @@ export const CELEBRITY_BRAND_BLACKLIST = CELEBRITY_BRAND_LIST.map(s => s.toLower
 // ========== CONTENT CHECKING FUNCTIONS ==========
 
 /**
+ * Get repeated character variations (same logic as common words).
+ * Collapses 3+ repeats to BOTH 1 and 2 variations, and handles short inputs.
+ * Keeps spaces/punctuation intact for word boundary matching.
+ * Examples:
+ * - "pornnnnn" -> ["pornnnnn", "porn", "pornn"]
+ * - "fuuuck" -> ["fuuuck", "fuck", "fuuck"]
+ * - "hii" -> ["hii", "hi", "hii"] (short input, 2+ repeats)
+ * - "cool" -> ["cool"] (no repeats, stays as is)
+ */
+function getRepeatedCharVariationsForProfanity(text: string): string[] {
+  if (!text || typeof text !== 'string') return [text];
+  
+  const lowerText = text.toLowerCase();
+  const variations = new Set<string>([lowerText]); // Always include original
+  
+  // ✅ For very short inputs (<=4), also handle 2+ repeats (covers "okk", "hii")
+  if (lowerText.length <= 4 && /(.)\1+/.test(lowerText)) {
+    variations.add(lowerText.replace(/(.)\1+/g, '$1'));   // collapse to 1
+    variations.add(lowerText.replace(/(.)\1+/g, '$1$1')); // collapse to 2
+  }
+  
+  // ✅ For general inputs, only treat 3+ repeats (avoid damaging normal words)
+  if (/(.)\1{2,}/.test(lowerText)) {
+    variations.add(lowerText.replace(/(.)\1{2,}/g, '$1'));   // collapse to 1
+    variations.add(lowerText.replace(/(.)\1{2,}/g, '$1$1')); // collapse to 2
+  }
+  
+  return Array.from(variations);
+}
+
+/**
  * Check if text contains profanity/swear words (actual bad words only)
+ * Uses same repeated-character normalization logic as common words
  */
 export function hasProfanity(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
   
-  const lowerText = text.toLowerCase();
+  // ✅ Get all variations (same logic as common words)
+  const variations = getRepeatedCharVariationsForProfanity(text);
+  
   // Use word boundaries to avoid false positives (e.g., "class" shouldn't match "ass")
   return PROFANITY_WORDS.some(word => {
     const regex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    return regex.test(lowerText);
+    // Check ALL variations (original + collapsed versions)
+    return variations.some(variation => regex.test(variation));
   });
 }
 
