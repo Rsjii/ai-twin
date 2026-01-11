@@ -50,6 +50,16 @@ const prodLimits = {
     max: 5, // 5 password reset attempts per 15 min per email/IP (prevents abuse)
   } as LimitConfig,
 
+  deleteAccount: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 failed delete-account attempts per 15 min per user/IP (prevents brute force)
+  } as LimitConfig,
+
+  deleteAccountSuccess: {
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    max: 1, // ✅ 1 successful deletion per email per 24 hours (prevents abuse: create → delete → create loop)
+  } as LimitConfig,
+
   // Public/content flows - reasonable limits (industry standard: 60-100 msg/min for auth, 20-40 for anon)
   publicChatAnon: {
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -137,6 +147,16 @@ const devLimits: typeof prodLimits = {
 
   resetPassword: {
     windowMs: 15 * 60 * 1000,
+    max: 1000, // Very high for testing
+  },
+
+  deleteAccount: {
+    windowMs: 15 * 60 * 1000,
+    max: 1000, // Very high for testing
+  },
+
+  deleteAccountSuccess: {
+    windowMs: 24 * 60 * 60 * 1000,
     max: 1000, // Very high for testing
   },
 

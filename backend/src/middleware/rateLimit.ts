@@ -511,6 +511,66 @@ export const resetPasswordRateLimit = rateLimit({
   },
 });
 
+// ✅ Delete account rate limiter (per user/IP) - prevents brute force on password
+export const deleteAccountRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.deleteAccount.windowMs), // ✅ Use PostgreSQL store with windowMs
+  windowMs: RATE_LIMITS.deleteAccount.windowMs,
+  max: RATE_LIMITS.deleteAccount.max,
+  keyGenerator: (req: any) => {
+    const userId = req.user?.id || req.user?.userId || null;
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    // Prefer userId (authenticated route), fallback to IP
+    return `delete_account:${userId || ip}`;
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  // ✅ FIX: Only count failed delete account attempts (wrong password etc.) - brute force protection
+  skipSuccessfulRequests: true,
+  handler: (req, res) => {
+    const userId = req.user?.id || req.user?.userId || null;
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    const key = `delete_account:${userId || ip}`;
+    logRateLimitViolation(req, 'deleteAccount', key, RATE_LIMITS.deleteAccount.max, RATE_LIMITS.deleteAccount.windowMs);
+    // ✅ Custom handler to ensure proper JSON response for frontend error handling
+    return res.status(429).json({
+      success: false,
+      error: 'Too many account deletion attempts. Please try again later.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.deleteAccount.windowMs),
+    });
+  },
+});
+
+// ✅ Delete account success cooldown limiter (per email) - prevents create → delete → create abuse loop
+export const deleteAccountSuccessRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.deleteAccountSuccess.windowMs), // ✅ Use PostgreSQL store with windowMs
+  windowMs: RATE_LIMITS.deleteAccountSuccess.windowMs,
+  max: RATE_LIMITS.deleteAccountSuccess.max,
+  keyGenerator: (req: any) => {
+    const email = (req.user?.email || '').toLowerCase();
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    // ✅ Use email as primary key (prevents same email from deleting multiple times in 24h)
+    return `delete_account_success:${email || ip}`;
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  // ✅ FIX: Only count SUCCESSFUL deletions (cooldown after successful delete)
+  skipFailedRequests: true,
+  handler: (req, res) => {
+    const email = (req.user?.email || '').toLowerCase();
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    const key = `delete_account_success:${email || ip}`;
+    logRateLimitViolation(req, 'deleteAccountSuccess', key, RATE_LIMITS.deleteAccountSuccess.max, RATE_LIMITS.deleteAccountSuccess.windowMs);
+    // ✅ Custom handler to ensure proper JSON response for frontend error handling
+    return res.status(429).json({
+      success: false,
+      error: 'Account deletion cooldown active. You can delete an account once per 24 hours per email. Please try again later.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.deleteAccountSuccess.windowMs),
+    });
+  },
+});
+
 // ✅ Twin deletion rate limiter (shared limit for both /twin/manage and twin-settings)
 export const twinDeletionRateLimit = rateLimit({
   store: createRateLimitStore(OPERATION_RATE_LIMITS.TWIN_DELETION.windowMs), // ✅ Use PostgreSQL store with windowMs

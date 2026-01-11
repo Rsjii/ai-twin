@@ -3,6 +3,7 @@ import { exportUserData, deleteAccount } from './userController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import { sanitizeInput } from '../../middleware/validation';
 import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
+import { deleteAccountRateLimit, deleteAccountSuccessRateLimit } from '../../middleware/rateLimit';
 
 const router = Router();
 
@@ -17,6 +18,7 @@ router.use((req, res, next) => {
 });
 
 router.get('/export-data', exportUserData);
-router.delete('/account', deleteAccount);
+// ✅ Apply success cooldown FIRST (prevents abuse), then failed attempts limiter (brute force protection)
+router.delete('/account', deleteAccountSuccessRateLimit, deleteAccountRateLimit, deleteAccount);
 
 export default router;
