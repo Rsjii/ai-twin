@@ -615,7 +615,26 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
     // ✅ Use resetPasswordSchema instead of inline schema for consistency
     const { email, password } = resetPasswordSchema.parse(req.body);
 
-    // Check if password is same as current password
+    // ✅ SECURITY FIX: Require OTP verification before allowing password reset
+    // Check if a verified OTP exists for this email (must be marked as used)
+    const otpRecord = await otpQueries.findByEmail(email.toLowerCase());
+    if (!otpRecord || !otpRecord.used) {
+      return res.status(400).json({
+        error: 'OTP verification required. Please verify OTP first.',
+        errorCode: 'OTP_REQUIRED'
+      });
+    }
+
+    // ✅ Check if OTP has expired
+    const now = new Date();
+    if (new Date(otpRecord.expiresAt) < now) {
+      return res.status(400).json({
+        error: 'OTP has expired. Please request a new one.',
+        errorCode: 'OTP_EXPIRED'
+      });
+    }
+
+    // Check if user exists
     const user = await userQueries.findByEmail(email.toLowerCase());
     if (!user) {
       throw createError.notFound('User not found', ErrorCodes.USER_NOT_FOUND);
@@ -634,6 +653,9 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
     
     // Update password
     await userQueries.updatePassword(email.toLowerCase(), passwordHash);
+    
+    // ✅ SECURITY: Delete OTP after successful password reset (prevent reuse)
+    await otpQueries.deleteByEmail(email.toLowerCase());
     
     res.json({ 
       message: 'Password reset successfully', 

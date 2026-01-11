@@ -4,6 +4,7 @@ import {
     otpRequestRateLimit,
     loginRateLimit,
     otpVerifyRateLimit,
+    resetPasswordRateLimit,
   } from '../../middleware/rateLimit';
 import { validateCSRF } from '../../middleware/csrf';
 import { sanitizeInput } from '../../middleware/validation';
@@ -26,7 +27,7 @@ router.post('/login/verify', sanitizeInput, validateCSRF, otpVerifyRateLimit, lo
 // Password reset routes
 router.post('/forgot-password', sanitizeInput, otpRequestRateLimit, forgotPassword);
 router.post('/forgot-password/verify', sanitizeInput, validateCSRF, otpVerifyRateLimit, forgotPasswordVerify);
-router.post('/reset-password', sanitizeInput, validateCSRF, resetPassword);
+router.post('/reset-password', sanitizeInput, validateCSRF, resetPasswordRateLimit, resetPassword);
 
 // Change password route (requires authentication)
 // ✅ Rate limit is now applied in controller AFTER password validation (not on button click)

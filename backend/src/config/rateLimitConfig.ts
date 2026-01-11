@@ -45,6 +45,11 @@ const prodLimits = {
     max: 2, // 2 password change attempt per hour per user (allows retry with typos)
   } as LimitConfig,
 
+  resetPassword: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 password reset attempts per 15 min per email/IP (prevents abuse)
+  } as LimitConfig,
+
   // Public/content flows - reasonable limits (industry standard: 60-100 msg/min for auth, 20-40 for anon)
   publicChatAnon: {
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -68,7 +73,7 @@ const prodLimits = {
 
   publicChatDailyAnon: {
     windowMs: 24 * 60 * 60 * 1000,
-    max: 150, // 150 messages per day for anonymous users (prevents spam)
+    max: 20, // 20 messages per day for anonymous users (prevents spam)
   } as LimitConfig,
 
   draftGeneration: {
@@ -127,6 +132,11 @@ const devLimits: typeof prodLimits = {
 
   changePassword: {
     windowMs: 60 * 60 * 1000,
+    max: 1000, // Very high for testing
+  },
+
+  resetPassword: {
+    windowMs: 15 * 60 * 1000,
     max: 1000, // Very high for testing
   },
 

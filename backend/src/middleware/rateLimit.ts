@@ -142,6 +142,8 @@ export const twinCreationRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // ✅ FIX: Only count when twin creation actually succeeds (2xx/3xx responses)
+  skipFailedRequests: true,
   handler: (req, res) => {
     const key = req.user?.userId || req.user?.id || req.ip || 'unknown';
     logRateLimitViolation(req, 'twinCreation', key, RATE_LIMITS.twinCreation.max, RATE_LIMITS.twinCreation.windowMs);
@@ -196,6 +198,8 @@ export const otpRequestRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // ✅ FIX: Only count when OTP request actually succeeds (OTP sent successfully)
+  skipFailedRequests: true,
   handler: (req, res) => {
     const email = (req.body?.email || '').toLowerCase();
     const key = email || req.ip || 'unknown';
@@ -408,6 +412,8 @@ export const loginRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // ✅ FIX: Only count failed login attempts (brute force protection)
+  skipSuccessfulRequests: true,
   handler: (req, res) => {
     const email = (req.body?.email || '').toLowerCase();
     const key = email || req.ip || 'unknown';
@@ -436,6 +442,8 @@ export const otpVerifyRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // ✅ FIX: Only count failed OTP verification attempts (brute force protection)
+  skipSuccessfulRequests: true,
   handler: (req, res) => {
     const email = (req.body?.email || '').toLowerCase();
     const key = email || req.ip || 'unknown';
@@ -471,6 +479,34 @@ export const changePasswordRateLimit = rateLimit({
       error: 'Too many password change attempts. Please try again later.',
       errorCode: 'RATE_LIMIT_EXCEEDED',
       retryAfter: formatRetryAfter(RATE_LIMITS.changePassword.windowMs)
+    });
+  },
+});
+
+// Reset password limiter (per email/IP) - prevents abuse
+export const resetPasswordRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.resetPassword.windowMs), // ✅ Use PostgreSQL store with windowMs
+  windowMs: RATE_LIMITS.resetPassword.windowMs,
+  max: RATE_LIMITS.resetPassword.max,
+  keyGenerator: (req: any) => {
+    const email = (req.body?.email || '').toLowerCase();
+    return email || req.ip || 'unknown';
+  },
+  message: {
+    error: 'Too many password reset attempts. Please try again later.',
+    retryAfter: formatRetryAfter(RATE_LIMITS.resetPassword.windowMs),
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    const email = (req.body?.email || '').toLowerCase();
+    const key = email || req.ip || 'unknown';
+    logRateLimitViolation(req, 'resetPassword', key, RATE_LIMITS.resetPassword.max, RATE_LIMITS.resetPassword.windowMs);
+    res.status(429).json({
+      success: false,
+      error: 'Too many password reset attempts. Please try again later.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.resetPassword.windowMs)
     });
   },
 });
@@ -564,6 +600,8 @@ export const contactFormRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // ✅ FIX: Only count when contact form submission actually succeeds
+  skipFailedRequests: true,
   handler: (req, res) => {
     const email = (req.body?.email || '').toLowerCase();
     const key = email || req.ip || req.socket.remoteAddress || 'unknown';
@@ -588,6 +626,8 @@ export const contactFormDailyLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // ✅ FIX: Only count when contact form submission actually succeeds
+  skipFailedRequests: true,
   handler: (req, res) => {
     const key = req.ip || req.socket.remoteAddress || 'unknown';
     logRateLimitViolation(req, 'contactFormDaily', key, RATE_LIMITS.contactFormDaily.max, RATE_LIMITS.contactFormDaily.windowMs);
