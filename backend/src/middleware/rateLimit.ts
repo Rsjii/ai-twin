@@ -471,6 +471,8 @@ export const changePasswordRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // ✅ FIX: Only count successful password changes (not button clicks or failed attempts)
+  skipFailedRequests: true,
   handler: (req, res) => {
     const key = req.user?.id || req.user?.userId || req.ip || 'unknown';
     logRateLimitViolation(req, 'changePassword', key, RATE_LIMITS.changePassword.max, RATE_LIMITS.changePassword.windowMs);
@@ -498,6 +500,8 @@ export const resetPasswordRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // ✅ FIX: Only count successful password resets (not button clicks or failed attempts)
+  skipFailedRequests: true,
   handler: (req, res) => {
     const email = (req.body?.email || '').toLowerCase();
     const key = email || req.ip || 'unknown';

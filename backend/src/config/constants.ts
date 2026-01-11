@@ -178,10 +178,10 @@ export const MEMORY_LIMITS = {
 export const OPERATION_RATE_LIMITS = {
   TWIN_DELETION: {
     windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    max: 2, // Max 1 deletion per 24 hours
+    max: 2, // Max 2 deletions per 24 hours (comment matches code)
   },
   TWIN_VISIBILITY_TOGGLE: {
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 3, // Max 2 toggles per hour
+    max: 3, // Max 3 toggles per hour (comment matches code)
   },
 } as const;

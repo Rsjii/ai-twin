@@ -42,17 +42,17 @@ const prodLimits = {
 
   changePassword: {
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 2, // 2 password change attempt per hour per user (allows retry with typos)
+    max: 1, // 1 password change attempt per hour per user (allows retry with typos)
   } as LimitConfig,
 
   resetPassword: {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 password reset attempts per 15 min per email/IP (prevents abuse)
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 1, // 1 password reset attempt per 15 min per email/IP (prevents abuse)
   } as LimitConfig,
 
   deleteAccount: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 failed delete-account attempts per 15 min per user/IP (prevents brute force)
+    max: 3, // 3 failed delete-account attempts per 15 min per user/IP (prevents brute force)
   } as LimitConfig,
 
   deleteAccountSuccess: {
@@ -63,7 +63,7 @@ const prodLimits = {
   // Public/content flows - reasonable limits (industry standard: 60-100 msg/min for auth, 20-40 for anon)
   publicChatAnon: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 40, // 40 messages per 15 minutes (1 msg/min) for anonymous users (prevents spam)
+    max: 25, // 25 messages per 15 minutes (~1.67 msg/min) for anonymous users (prevents spam)
   } as LimitConfig,
 
   publicChatAuth: {
@@ -83,7 +83,7 @@ const prodLimits = {
 
   publicChatDailyAnon: {
     windowMs: 24 * 60 * 60 * 1000,
-    max: 20, // 20 messages per day for anonymous users (prevents spam)
+    max: 30, // 30 messages per day for anonymous users (prevents spam, forces login after limit)
   } as LimitConfig,
 
   draftGeneration: {
@@ -99,7 +99,7 @@ const prodLimits = {
 
   profileLink: {
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 50, // 50 profile links per hour per user
+    max: 25, // 25 profile links per hour per user (prevents abuse)
   } as LimitConfig,
 
   inviteCreation: {
