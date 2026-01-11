@@ -289,10 +289,78 @@ export const updateTwinPersona = async (req: Request, res: Response, next: NextF
 
     const currentPersonaData = twinResult.rows[0].personaData;
     
-    // Merge updates with current persona data
+    // ✅ Deep-merge so partial updates from Twin Settings don't wipe likes/avoids/etc.
+    const current = (currentPersonaData || {}) as any;
+    const updates = (personaUpdates || {}) as any;
+
     const updatedPersonaData = {
-      ...currentPersonaData,
-      ...personaUpdates
+      ...current,
+      ...updates,
+
+      basicInfo: {
+        ...(current.basicInfo || {}),
+        ...(updates.basicInfo || {}),
+      },
+
+      preferences: {
+        ...(current.preferences || {}),
+        ...(updates.preferences || {}),
+        // ✅ Preserve arrays if not provided in payload
+        likes: updates.preferences?.likes ?? current.preferences?.likes ?? [],
+        avoids: updates.preferences?.avoids ?? current.preferences?.avoids ?? [],
+      },
+
+      rules: {
+        ...(current.rules || {}),
+        ...(updates.rules || {}),
+        always: updates.rules?.always ?? current.rules?.always ?? [],
+        never: updates.rules?.never ?? current.rules?.never ?? [],
+      },
+
+      communicationStyle: {
+        ...(current.communicationStyle || {}),
+        ...(updates.communicationStyle || {}),
+        tone: {
+          ...(current.communicationStyle?.tone || {}),
+          ...(updates.communicationStyle?.tone || {}),
+        },
+        language: {
+          ...(current.communicationStyle?.language || {}),
+          ...(updates.communicationStyle?.language || {}),
+        },
+      },
+
+      context: {
+        ...(current.context || {}),
+        ...(updates.context || {}),
+        interests: updates.context?.interests ?? current.context?.interests ?? [],
+      },
+
+      personality: {
+        ...(current.personality || {}),
+        ...(updates.personality || {}),
+      },
+
+      settings: {
+        ...(current.settings || {}),
+        ...(updates.settings || {}),
+        memory: {
+          ...(current.settings?.memory || {}),
+          ...(updates.settings?.memory || {}),
+        },
+        safety: {
+          ...(current.settings?.safety || {}),
+          ...(updates.settings?.safety || {}),
+        },
+        adaptation: {
+          ...(current.settings?.adaptation || {}),
+          ...(updates.settings?.adaptation || {}),
+        },
+        replyBehavior: {
+          ...(current.settings?.replyBehavior || {}),
+          ...(updates.settings?.replyBehavior || {}),
+        },
+      },
     };
 
     // MVP (personaData-only): Regenerate system prompt with new persona

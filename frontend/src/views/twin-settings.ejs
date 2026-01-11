@@ -818,6 +818,15 @@
           .map(s => s.trim())
           .filter(Boolean);
 
+      // ✅ Preserve existing likes/avoids so Twin Settings save doesn't wipe them
+      const existingLikes = Array.isArray(currentPersonaData?.preferences?.likes)
+        ? currentPersonaData.preferences.likes
+        : [];
+
+      const existingAvoids = Array.isArray(currentPersonaData?.preferences?.avoids)
+        ? currentPersonaData.preferences.avoids
+        : [];
+
       return {
         basicInfo: {
           name: name || undefined,
@@ -830,6 +839,8 @@
         preferences: {
           toneStyle: toneStyle,    // ✅ Used by PromptBuilder
           emojiPref: emojiPref,    // ✅ Used by PromptBuilder
+          likes: existingLikes,    // ✅ Preserve existing likes (from onboarding/LTM)
+          avoids: existingAvoids,  // ✅ Preserve existing avoids (from onboarding/LTM)
         },
         rules: {
           replySize: replySize,         // ✅ Used by PromptBuilder
