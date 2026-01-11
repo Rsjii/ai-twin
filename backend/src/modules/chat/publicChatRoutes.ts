@@ -28,10 +28,12 @@ router.post('/start', extractJWTFromCookie, startPublicChat);
 // Apply rate limiting: anonymous users get strict limit, authenticated get higher limit
 router.post('/:chatToken/message',
   extractJWTFromCookie, // Extract JWT to set req.user (optional, doesn't fail if no JWT)
-  checkTokenQuotaForPublicChatMessage, // ✅ NEW: Check token quota FIRST - before any processing (prevents token wastage)
+  // ✅ MOVE UP: rate limits FIRST so banned/common/fast-path also count
   publicChatDailyAnonLimit,          // ✅ NEW: daily login wall for anonymous
   publicChatRateLimit, // First check: strict limit for anonymous (IP-based)
   publicChatRateLimitAuthenticated, // Then check: higher limit for authenticated
+  // ✅ MOVE DOWN: fast-path/blocked/token precheck AFTER rate limiters
+  checkTokenQuotaForPublicChatMessage, // ✅ Check token quota AFTER rate limits (prevents token wastage but counts in rate limit)
   sendPublicMessage
 );
 

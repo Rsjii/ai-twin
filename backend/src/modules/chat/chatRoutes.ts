@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { startChat, getChat, getUserChats, generateDraft, sendMessage, getChatHistory, getChatMessages, continueChat, handleUserMessage, deleteChat } from './privateChatController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
-import { draftGenerationRateLimit } from '../../middleware/rateLimit';
+import { draftGenerationRateLimit, privateChatMessageRateLimit } from '../../middleware/rateLimit';
 import { checkTokenQuotaForPrivateChatMessage } from '../../middleware/tokenQuotaMiddleware';
 import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
 import { sanitizeInput } from '../../middleware/validation';
@@ -22,7 +22,7 @@ router.get('/:chatToken', getChat);
 router.get('/:chatToken/messages', getChatMessages);
 router.post('/:chatToken/draft', sanitizeInput, validateCSRF, draftGenerationRateLimit, generateDraft);
 router.post('/:chatToken/send', sanitizeInput, validateCSRF, sendMessage);
-router.post('/:chatToken/message', sanitizeInput, checkTokenQuotaForPrivateChatMessage, handleUserMessage);
+router.post('/:chatToken/message', sanitizeInput, privateChatMessageRateLimit, checkTokenQuotaForPrivateChatMessage, handleUserMessage);
 
 // Delete chat endpoint
 router.delete('/:chatToken', sanitizeInput, validateCSRF, deleteChat);

@@ -123,6 +123,18 @@ const prodLimits = {
     windowMs: 24 * 60 * 60 * 1000, // 24 hours
     max: 5, // 5 submissions per day per IP (prevents abuse)
   } as LimitConfig,
+
+  // ✅ ADD: Private chat message limit (logged-in)
+  privateChatMessageAuth: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 150, // 150 messages per 15 minutes (aligns with publicChatAuth)
+  } as LimitConfig,
+
+  // ✅ ADD: Enhanced reply limit (logged-in) - heavier endpoint
+  enhancedChatReplyAuth: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 150, // 150 enhanced replies per 15 minutes (heavier operation)
+  } as LimitConfig,
 };
 
 /**
@@ -228,6 +240,18 @@ const devLimits: typeof prodLimits = {
   contactFormDaily: {
     windowMs: 24 * 60 * 60 * 1000,
     max: 1000, // Very high for testing
+  },
+
+  // ✅ ADD (dev loose)
+  privateChatMessageAuth: {
+    windowMs: 15 * 60 * 1000,
+    max: 500000,
+  },
+
+  // ✅ ADD (dev loose)
+  enhancedChatReplyAuth: {
+    windowMs: 15 * 60 * 1000,
+    max: 500000,
   },
 };
 

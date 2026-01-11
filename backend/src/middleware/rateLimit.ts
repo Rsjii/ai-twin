@@ -715,3 +715,43 @@ export const contactFormDailyLimit = rateLimit({
     });
   },
 });
+
+// ✅ ADD: Private chat message limiter (counts ALL requests incl. banned/common fast-path)
+export const privateChatMessageRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.privateChatMessageAuth.windowMs),
+  windowMs: RATE_LIMITS.privateChatMessageAuth.windowMs,
+  max: RATE_LIMITS.privateChatMessageAuth.max,
+  keyGenerator: (req) => rlKey('privateChatMsg', getUserOrIp(req)),
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    const key = rlKey('privateChatMsg', getUserOrIp(req));
+    logRateLimitViolation(req, 'privateChatMessageAuth', key, RATE_LIMITS.privateChatMessageAuth.max, RATE_LIMITS.privateChatMessageAuth.windowMs);
+    return res.status(429).json({
+      success: false,
+      error: 'Too many messages. Please wait before sending another.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.privateChatMessageAuth.windowMs),
+    });
+  },
+});
+
+// ✅ ADD: Enhanced reply limiter (counts ALL requests incl. banned/common fast-path)
+export const enhancedChatReplyRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.enhancedChatReplyAuth.windowMs),
+  windowMs: RATE_LIMITS.enhancedChatReplyAuth.windowMs,
+  max: RATE_LIMITS.enhancedChatReplyAuth.max,
+  keyGenerator: (req) => rlKey('enhancedReply', getUserOrIp(req)),
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    const key = rlKey('enhancedReply', getUserOrIp(req));
+    logRateLimitViolation(req, 'enhancedChatReplyAuth', key, RATE_LIMITS.enhancedChatReplyAuth.max, RATE_LIMITS.enhancedChatReplyAuth.windowMs);
+    return res.status(429).json({
+      success: false,
+      error: 'Too many requests. Please slow down.',
+      errorCode: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: formatRetryAfter(RATE_LIMITS.enhancedChatReplyAuth.windowMs),
+    });
+  },
+});
