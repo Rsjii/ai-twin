@@ -97,6 +97,12 @@ const prodLimits = {
     max: 1, // 1 twins per hour per user (prevents spam, allows testing)
   } as LimitConfig,
 
+  // ✅ ADD: 1 successful twin delete per 24h per user
+  twinDeletionSuccess: {
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    max: 1, // 1 successful twin delete per day per user
+  } as LimitConfig,
+
   profileLink: {
     windowMs: 60 * 60 * 1000, // 1 hour
     max: 25, // 25 profile links per hour per user (prevents abuse)
@@ -195,6 +201,12 @@ const devLimits: typeof prodLimits = {
   twinCreation: {
     windowMs: 60 * 60 * 1000,
     max: 50, // Keep current value
+  },
+
+  // ✅ ADD (dev loose)
+  twinDeletionSuccess: {
+    windowMs: 24 * 60 * 60 * 1000,
+    max: 1000, // Very high for testing
   },
 
   profileLink: {

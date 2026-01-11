@@ -949,7 +949,8 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response, n
     
     // ✅ Rate limit check - only AFTER password validation passes
     // This ensures wrong password attempts don't count toward the limit
-    const rateLimitKey = req.user?.id || req.user?.userId || req.ip || 'unknown';
+    const raw = req.user?.id || req.ip || 'unknown';
+    const rateLimitKey = `changePassword:${raw}`;
     const rateLimitStore = new PostgreSQLRateLimitStore(RATE_LIMITS.changePassword.windowMs);
     
     // Check current rate limit status
@@ -960,7 +961,7 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response, n
       
       // Log rate limit violation
       try {
-        const userId = req.user?.id || req.user?.userId || null;
+        const userId = req.user?.id || null;
         const ip = req.ip || req.socket.remoteAddress || 'unknown';
         const meta = {
           limiterName: 'changePassword',
