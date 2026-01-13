@@ -93,8 +93,8 @@ export const config = {
   appEnv: APP_ENV,
   port: Number(process.env['PORT']),
 
-  // ✅ Admin analytics only for local + staging, never in prod
-  enableAdminAnalytics: isLocalOrStaging,
+  // ✅ Admin analytics enabled in all environments (protected by admin email check)
+  enableAdminAnalytics: true,
   
   // Rate Limiting
   rateLimit: {

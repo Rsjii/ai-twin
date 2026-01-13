@@ -530,14 +530,10 @@ if (config.nodeEnv !== 'production') {
   app.use('/__debug', localDebugIngestRoutes);
 }
 
-// ✅ SECURITY: Admin analytics API only for local/staging (never in prod)
-// Double-check: ensure admin routes are completely disabled in production
-if (config.enableAdminAnalytics && !isProd) {
+// ✅ SECURITY: Admin analytics API enabled (protected by admin email check via requireAdminAuth middleware)
+if (config.enableAdminAnalytics) {
   app.use('/api/admin/analytics', adminAnalyticsRoutes);
-  logger.info('✅ Admin analytics routes enabled (non-production mode)');
-} else if (isProd) {
-  // ✅ Explicitly log that admin routes are disabled in production
-  logger.info('✅ Admin analytics routes DISABLED in production (security)');
+  logger.info('✅ Admin analytics routes enabled (protected by admin email authentication)');
 }
 
 app.use('/api/onboarding', onboardingRoutes);

@@ -1,8 +1,8 @@
-export const ADMIN_EMAILS: string[] = [
-  'admin@selflyx.com', // ✅ Update with your actual admin email
-  'a@gmail.com',
-  'e@gmail.com'
-];
+// ✅ Replace hardcoded ADMIN_EMAILS with env-based allowlist (secure-by-default)
+export const ADMIN_EMAILS: string[] = (process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map(s => s.trim().toLowerCase())
+  .filter(Boolean);
 
   // Query Limits
 export const QUERY_LIMITS = {
