@@ -18,6 +18,15 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
+-- ✅ FIX: Create pg_trgm extension if it doesn't exist (required for gin_trgm_ops)
+DO $$ BEGIN
+    CREATE EXTENSION IF NOT EXISTS pg_trgm;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Extension might not be available, continue without it
+        NULL;
+END $$;
+
 -- CreateTable
 CREATE TABLE IF NOT EXISTS "User" (
     "id" TEXT NOT NULL,
@@ -394,7 +403,7 @@ CREATE TABLE IF NOT EXISTS "style_corrections" (
 CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX IF NOT EXISTS "User_handle_key" ON "User"("handle");
 CREATE INDEX IF NOT EXISTS "User_referralCode_idx" ON "User"("referralCode");
-CREATE UNIQUE INDEX IF NOT EXISTS "User_referralCode_key" ON "User"("referralCode");
+-- ✅ Removed: User_referralCode_key index (created as constraint in DO block below)
 CREATE INDEX IF NOT EXISTS "idx_user_onboarding_completed" ON "User"("onboardingCompleted");
 -- ✅ googleId and OTP purpose indexes are created in DO $$ block AFTER columns are added
 CREATE UNIQUE INDEX IF NOT EXISTS "Invite_code_key" ON "Invite"("code");
@@ -488,7 +497,18 @@ CREATE INDEX IF NOT EXISTS "idx_style_anchors_twin_id" ON "style_anchors"("twin_
 CREATE INDEX IF NOT EXISTS "idx_style_anchors_twinid_type" ON "style_anchors"("twin_id", "type");
 CREATE INDEX IF NOT EXISTS "idx_style_anchors_twinid_type_createdat" ON "style_anchors"("twin_id", "type", "created_at" DESC);
 CREATE INDEX IF NOT EXISTS "idx_style_anchors_type" ON "style_anchors"("type");
-CREATE INDEX IF NOT EXISTS "idx_style_anchors_user_utterance_trgm" ON "style_anchors" USING gin (user_utterance gin_trgm_ops);
+-- ✅ FIX: Create trigram index only if extension is available
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm') THEN
+        CREATE INDEX IF NOT EXISTS "idx_style_anchors_user_utterance_trgm" 
+        ON "style_anchors" USING gin (user_utterance gin_trgm_ops);
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- If extension doesn't exist or index creation fails, skip it
+        NULL;
+END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS "style_anchors_twin_id_user_utterance_key" ON "style_anchors"("twin_id", "user_utterance");
 CREATE INDEX IF NOT EXISTS "idx_style_corrections_knob" ON "style_corrections"("knob");
 CREATE INDEX IF NOT EXISTS "idx_style_corrections_ts" ON "style_corrections"("ts");
@@ -559,8 +579,15 @@ BEGIN
         CREATE INDEX "User_referralCode_idx" ON "User"("referralCode");
     END IF;
     
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_referralCode_key') THEN
-        ALTER TABLE "User" ADD CONSTRAINT "User_referralCode_key" UNIQUE ("referralCode");
+    -- ✅ FIX: Safe constraint addition - check both constraint and index/table
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_referralCode_key')
+       AND NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'User_referralCode_key') THEN
+        BEGIN
+            ALTER TABLE "User" ADD CONSTRAINT "User_referralCode_key" UNIQUE ("referralCode");
+        EXCEPTION
+            WHEN duplicate_table OR duplicate_object THEN
+                NULL;
+        END;
     END IF;
 
     -- Add missing User columns
@@ -807,7 +834,16 @@ ALTER TABLE "PublicMessage" ADD CONSTRAINT "PublicMessage_chatId_fkey" FOREIGN K
 
 -- Foreign keys for new tables
 ALTER TABLE "AILearning" DROP CONSTRAINT IF EXISTS "AILearning_twinId_fkey";
-ALTER TABLE "AILearning" ADD CONSTRAINT "AILearning_twinId_fkey" FOREIGN KEY ("twinId") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- ✅ FIX: Cleanup orphan rows before adding FK constraint
+DELETE FROM "AILearning" al
+WHERE NOT EXISTS (
+  SELECT 1 FROM "Twin" t WHERE t.id = al."twinId"
+);
+
+ALTER TABLE "AILearning" ADD CONSTRAINT "AILearning_twinId_fkey"
+  FOREIGN KEY ("twinId") REFERENCES "Twin"("id")
+  ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE "ContentReport" DROP CONSTRAINT IF EXISTS "ContentReport_reporterId_fkey";
 ALTER TABLE "ContentReport" ADD CONSTRAINT "ContentReport_reporterId_fkey" FOREIGN KEY ("reporterId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
