@@ -170,7 +170,7 @@ export const TOKEN_QUOTAS = {
 export const MEMORY_LIMITS = {
   MAX_FACTS: 30,
   MAX_PREFERENCES: 30,
-  MAX_ALWAYS_NEVER_CHARS: 120, // Per item in always/never arrays
+  MAX_ALWAYS_NEVER_CHARS: 150, // Per item in always/never arrays (increased from 120 to 150)
   MAX_BIO_CHARS: 150, // Maximum characters for twin bio/oneLineBio
 } as const;
 

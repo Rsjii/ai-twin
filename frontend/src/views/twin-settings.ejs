@@ -246,7 +246,7 @@
             class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white transition-all"
             placeholder="e.g. be concise, greet politely"></textarea>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Max 120 characters (<span id="alwaysInputCharCount">0</span>/120)
+            Max 150 characters (<span id="alwaysInputCharCount">0</span>/150)
           </p>
           <p id="alwaysInput-error" class="text-xs text-red-500 mt-1 hidden"></p>
         </div>
@@ -258,7 +258,7 @@
             class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white transition-all"
             placeholder="e.g. insult, reveal private info"></textarea>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Max 120 characters (<span id="neverInputCharCount">0</span>/120)
+            Max 150 characters (<span id="neverInputCharCount">0</span>/150)
           </p>
           <p id="neverInput-error" class="text-xs text-red-500 mt-1 hidden"></p>
         </div>
@@ -1419,27 +1419,28 @@
         });
       }
       
-      // ✅ Always/Never character counters with input prevention (max 120 per item, comma-separated)
+      // ✅ Always/Never character counters with input prevention (max 150 TOTAL chars)
+      // Unicode-safe character counting (handles emoji, special chars correctly)
+      const countChars = (s) => Array.from(String(s || '')).length;
+      
       const alwaysInput = document.getElementById('alwaysInput');
       const alwaysCharCount = document.getElementById('alwaysInputCharCount');
       if (alwaysInput && alwaysCharCount) {
         let alwaysPrevValue = alwaysInput.value;
         const updateAlwaysCount = () => {
-          const items = alwaysInput.value.split(',').map(s => s.trim()).filter(Boolean);
-          const longestItem = items.length > 0 ? Math.max(...items.map(item => item.length)) : 0;
-          alwaysCharCount.textContent = longestItem;
-          if (longestItem > 120) {
+          const total = countChars(alwaysInput.value);
+          alwaysCharCount.textContent = total;
+          if (total > 150) {
             alwaysCharCount.classList.add('text-red-600', 'dark:text-red-400');
           } else {
             alwaysCharCount.classList.remove('text-red-600', 'dark:text-red-400');
           }
         };
         
-        alwaysInput.addEventListener('input', (e) => {
-          const items = alwaysInput.value.split(',').map(s => s.trim()).filter(Boolean);
-          const exceedsLimit = items.some(item => item.length > 120);
-          if (exceedsLimit) {
-            alwaysInput.value = alwaysPrevValue;
+        alwaysInput.addEventListener('input', () => {
+          const total = countChars(alwaysInput.value);
+          if (total > 150) {
+            alwaysInput.value = alwaysPrevValue; // prevent input beyond 150 total
             return;
           }
           alwaysPrevValue = alwaysInput.value;
@@ -1453,21 +1454,19 @@
       if (neverInput && neverCharCount) {
         let neverPrevValue = neverInput.value;
         const updateNeverCount = () => {
-          const items = neverInput.value.split(',').map(s => s.trim()).filter(Boolean);
-          const longestItem = items.length > 0 ? Math.max(...items.map(item => item.length)) : 0;
-          neverCharCount.textContent = longestItem;
-          if (longestItem > 120) {
+          const total = countChars(neverInput.value);
+          neverCharCount.textContent = total;
+          if (total > 150) {
             neverCharCount.classList.add('text-red-600', 'dark:text-red-400');
           } else {
             neverCharCount.classList.remove('text-red-600', 'dark:text-red-400');
           }
         };
         
-        neverInput.addEventListener('input', (e) => {
-          const items = neverInput.value.split(',').map(s => s.trim()).filter(Boolean);
-          const exceedsLimit = items.some(item => item.length > 120);
-          if (exceedsLimit) {
-            neverInput.value = neverPrevValue;
+        neverInput.addEventListener('input', () => {
+          const total = countChars(neverInput.value);
+          if (total > 150) {
+            neverInput.value = neverPrevValue; // prevent input beyond 150 total
             return;
           }
           neverPrevValue = neverInput.value;
