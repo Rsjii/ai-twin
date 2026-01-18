@@ -7,7 +7,13 @@ import { generateId as generateBackendId } from '../utils/idGenerator';
 const createTablesSQL = `
 -- CreateEnum
 DO $$ BEGIN
-    CREATE TYPE "MessageSender" AS ENUM ('human', 'twin');
+    CREATE TYPE "MessageSender" AS ENUM ('human', 'twin', 'none');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "mem_bucket" AS ENUM ('facts', 'voice');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
@@ -28,9 +34,13 @@ CREATE TABLE IF NOT EXISTS "User" (
     "active" BOOLEAN NOT NULL DEFAULT false,
     "referralCode" TEXT,
     "personaData" JSONB,
+    "onboardingCompleted" BOOLEAN DEFAULT false,
+    "usernameLastChanged" TIMESTAMP,
+    "usernameChangeCount" INTEGER DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "lastHandleChangeAt" TIMESTAMPTZ NULL,
+    "profileCompleted" BOOLEAN NOT NULL DEFAULT false,
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
@@ -40,17 +50,30 @@ CREATE TABLE IF NOT EXISTS "Twin" (
     "userId" TEXT NOT NULL,
     "styleVector" JSONB NOT NULL,
     "sampleReply" TEXT,
-    "isPublic" BOOLEAN NOT NULL DEFAULT false,
+    "instructions" JSONB,
+    "isPublic" BOOLEAN DEFAULT false,
     "publicHandle" TEXT,
     "bio" TEXT,
     "profileImage" TEXT,
-    "verified" BOOLEAN NOT NULL DEFAULT false,
-    "likeCount" INTEGER NOT NULL DEFAULT 0,
-    "followCount" INTEGER NOT NULL DEFAULT 0,
-    "chatCount" INTEGER NOT NULL DEFAULT 0,
-    "tier" VARCHAR(255),
+    "verified" BOOLEAN DEFAULT false,
+    "likeCount" INTEGER DEFAULT 0,
+    "followCount" INTEGER DEFAULT 0,
+    "chatCount" INTEGER DEFAULT 0,
+    "tier" VARCHAR(20) DEFAULT 'free',
+    "showChatHistory" BOOLEAN DEFAULT true,
+    "requireLogin" BOOLEAN DEFAULT false,
+    "allowLikes" BOOLEAN DEFAULT true,
+    "allowFollows" BOOLEAN DEFAULT true,
+    "allowShares" BOOLEAN DEFAULT true,
+    "personaData" JSONB,
+    "systemPrompt" TEXT,
+    "tokenLimit" INTEGER DEFAULT 500,
+    "last_updated" TIMESTAMPTZ DEFAULT now(),
+    "style_version" INTEGER DEFAULT 1,
+    "requireApproval" BOOLEAN DEFAULT false,
+    "blockNonLoggedUsers" BOOLEAN DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) DEFAULT now(),
     CONSTRAINT "Twin_pkey" PRIMARY KEY ("id")
 );
 
@@ -59,6 +82,12 @@ CREATE TABLE IF NOT EXISTS "Chat" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "twinId" TEXT NOT NULL,
+    "chatVector" JSONB,
+    "updatedAt" TIMESTAMPTZ(3) DEFAULT now(),
+    "title" TEXT,
+    "summary" TEXT,
+    "lastMessage" TEXT,
+    "messageCount" INTEGER DEFAULT 0,
     "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Chat_pkey" PRIMARY KEY ("id")
 );
@@ -70,6 +99,7 @@ CREATE TABLE IF NOT EXISTS "Message" (
     "sender" "MessageSender" NOT NULL,
     "content" TEXT NOT NULL,
     "approved" BOOLEAN NOT NULL DEFAULT false,
+    "requestId" TEXT,
     "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Message_pkey" PRIMARY KEY ("id")
 );
@@ -140,6 +170,10 @@ CREATE TABLE IF NOT EXISTS "PublicChat" (
     "visitorId" TEXT,
     "userId" TEXT,
     "messageCount" INTEGER NOT NULL DEFAULT 0,
+    "title" TEXT,
+    "summary" TEXT,
+    "lastMessage" TEXT,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "lastActivity" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "PublicChat_pkey" PRIMARY KEY ("id")
@@ -152,22 +186,313 @@ CREATE TABLE IF NOT EXISTS "PublicMessage" (
     "sender" "MessageSender" NOT NULL,
     "content" TEXT NOT NULL,
     "approved" BOOLEAN NOT NULL DEFAULT false,
+    "requestId" TEXT,
     "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "PublicMessage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AILearning" (
+    "id" SERIAL NOT NULL,
+    "twinId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "learningData" JSONB,
+    "lastUpdated" TIMESTAMP DEFAULT now(),
+    CONSTRAINT "AILearning_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "ChatFeedback" (
+    "id" SERIAL NOT NULL,
+    "chatId" VARCHAR(255) NOT NULL,
+    "responseId" VARCHAR(255) NOT NULL,
+    "userId" TEXT NOT NULL,
+    "rating" VARCHAR(20) NOT NULL,
+    "suggestion" TEXT,
+    "tonePreference" VARCHAR(50),
+    "createdAt" TIMESTAMP DEFAULT now(),
+    CONSTRAINT "ChatFeedback_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "ContactSubmission" (
+    "id" TEXT NOT NULL DEFAULT (gen_random_uuid())::text,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "subject" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT "ContactSubmission_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "ContentReport" (
+    "id" TEXT NOT NULL,
+    "contentId" TEXT NOT NULL,
+    "contentType" TEXT NOT NULL,
+    "reason" TEXT NOT NULL,
+    "description" TEXT,
+    "reporterId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ContentReport_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MemoryLongTerm" (
+    "id" TEXT NOT NULL,
+    "twinId" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "category" TEXT,
+    "embedding" JSONB,
+    "confidence" DOUBLE PRECISION DEFAULT 1.0,
+    "source" TEXT,
+    "updatedAt" TIMESTAMPTZ DEFAULT now(),
+    "createdAt" TIMESTAMPTZ DEFAULT now(),
+    "visibility" TEXT NOT NULL DEFAULT 'owner',
+    CONSTRAINT "MemoryLongTerm_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "MemoryLongTerm_visibility_check" CHECK (visibility = ANY (ARRAY['owner'::text, 'public_twin'::text]))
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MemorySession" (
+    "id" TEXT NOT NULL,
+    "chatId" TEXT NOT NULL,
+    "summary" TEXT NOT NULL,
+    "vector" JSONB,
+    "keyTopics" TEXT[],
+    "messageCount" INTEGER DEFAULT 0,
+    "lastUpdated" TIMESTAMPTZ DEFAULT now(),
+    "createdAt" TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT "MemorySession_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MemorySessionPublic" (
+    "id" TEXT NOT NULL,
+    "chatId" TEXT NOT NULL,
+    "summary" TEXT NOT NULL,
+    "vector" JSONB,
+    "keyTopics" TEXT[],
+    "messageCount" INTEGER DEFAULT 0,
+    "lastUpdated" TIMESTAMPTZ DEFAULT now(),
+    "createdAt" TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT "MemorySessionPublic_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "ModerationSettings" (
+    "id" TEXT NOT NULL,
+    "useAIModeration" BOOLEAN DEFAULT true,
+    "moderationLevel" TEXT DEFAULT 'basic',
+    "spamThreshold" DOUBLE PRECISION DEFAULT 0.7,
+    "requireApproval" BOOLEAN DEFAULT false,
+    "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ModerationSettings_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "TokenUsageDaily" (
+    "id" TEXT NOT NULL,
+    "day" DATE NOT NULL,
+    "actorKey" TEXT NOT NULL,
+    "actorType" TEXT NOT NULL,
+    "userId" TEXT,
+    "visitorId" TEXT,
+    "ipHash" TEXT,
+    "tokensUsed" INTEGER NOT NULL DEFAULT 0,
+    "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT "TokenUsageDaily_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "TwinPerformance" (
+    "id" TEXT NOT NULL,
+    "twinId" TEXT NOT NULL,
+    "engagementScore" DOUBLE PRECISION DEFAULT 0,
+    "popularityScore" DOUBLE PRECISION DEFAULT 0,
+    "updatedAt" TIMESTAMPTZ DEFAULT now(),
+    "createdAt" TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT "TwinPerformance_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "ai_runs" (
+    "id" TEXT NOT NULL,
+    "twin_id" TEXT NOT NULL,
+    "mode" TEXT,
+    "tokens_in" INTEGER,
+    "tokens_out" INTEGER,
+    "critic_score" INTEGER,
+    "regen" BOOLEAN NOT NULL DEFAULT false,
+    "latency_ms" INTEGER,
+    "ts" TIMESTAMPTZ NOT NULL DEFAULT now(),
+    "feedback_score" INTEGER,
+    "user_rating" TEXT,
+    CONSTRAINT "ai_runs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "mem_chunks" (
+    "id" TEXT NOT NULL,
+    "twin_id" TEXT NOT NULL,
+    "bucket" "mem_bucket" NOT NULL,
+    "text" TEXT NOT NULL,
+    "embedding" JSONB,
+    "ts" TIMESTAMPTZ NOT NULL DEFAULT now(),
+    "is_public" BOOLEAN DEFAULT false,
+    CONSTRAINT "mem_chunks_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "rate_limits" (
+    "key" TEXT NOT NULL,
+    "count" INTEGER NOT NULL DEFAULT 1,
+    "reset_time" BIGINT NOT NULL,
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+    "window_ms" BIGINT NOT NULL,
+    CONSTRAINT "rate_limits_pkey" PRIMARY KEY ("key")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "session" (
+    "sid" VARCHAR NOT NULL,
+    "sess" JSON NOT NULL,
+    "expire" TIMESTAMP NOT NULL,
+    CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "style_anchors" (
+    "id" TEXT NOT NULL,
+    "twin_id" TEXT NOT NULL,
+    "user_utterance" TEXT NOT NULL,
+    "ideal_reply" TEXT NOT NULL,
+    "tags" TEXT[],
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+    "type" TEXT DEFAULT 'interaction',
+    "phrase" TEXT,
+    "pattern_type" TEXT,
+    "context" TEXT,
+    CONSTRAINT "style_anchors_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "style_anchors_type_check" CHECK (type = ANY (ARRAY['interaction'::text, 'phrase'::text, 'pattern'::text]))
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "style_corrections" (
+    "id" TEXT NOT NULL,
+    "twin_id" TEXT NOT NULL,
+    "knob" TEXT NOT NULL,
+    "delta" INTEGER NOT NULL,
+    "source" TEXT,
+    "ts" TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT "style_corrections_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX IF NOT EXISTS "User_handle_key" ON "User"("handle");
+CREATE INDEX IF NOT EXISTS "User_referralCode_idx" ON "User"("referralCode");
+CREATE UNIQUE INDEX IF NOT EXISTS "User_referralCode_key" ON "User"("referralCode");
+CREATE INDEX IF NOT EXISTS "idx_user_onboarding_completed" ON "User"("onboardingCompleted");
 -- ✅ googleId and OTP purpose indexes are created in DO $$ block AFTER columns are added
 CREATE UNIQUE INDEX IF NOT EXISTS "Invite_code_key" ON "Invite"("code");
+CREATE INDEX IF NOT EXISTS "Invite_acceptedBy_createdAt_idx" ON "Invite"("acceptedBy", "createdAt");
+CREATE INDEX IF NOT EXISTS "Invite_createdAt_idx" ON "Invite"("createdAt");
+CREATE INDEX IF NOT EXISTS "Invite_inviterId_createdAt_idx" ON "Invite"("inviterId", "createdAt");
 CREATE UNIQUE INDEX IF NOT EXISTS "Twin_userId_key" ON "Twin"("userId");
 CREATE UNIQUE INDEX IF NOT EXISTS "Twin_publicHandle_key" ON "Twin"("publicHandle");
+CREATE INDEX IF NOT EXISTS "idx_twin_block_non_logged" ON "Twin"("blockNonLoggedUsers", "isPublic") WHERE ("isPublic" = true);
+CREATE INDEX IF NOT EXISTS "idx_twin_ispublic_engagement" ON "Twin"("isPublic", "likeCount" DESC, "followCount" DESC, "chatCount" DESC) WHERE ("isPublic" = true);
+CREATE INDEX IF NOT EXISTS "idx_twin_last_updated" ON "Twin"("last_updated");
+CREATE INDEX IF NOT EXISTS "idx_twin_tier" ON "Twin"("tier");
+CREATE INDEX IF NOT EXISTS "Chat_createdAt_idx" ON "Chat"("createdAt");
+CREATE INDEX IF NOT EXISTS "Chat_twinId_createdAt_idx" ON "Chat"("twinId", "createdAt");
+CREATE INDEX IF NOT EXISTS "Chat_userId_createdAt_idx" ON "Chat"("userId", "createdAt");
+CREATE INDEX IF NOT EXISTS "idx_chat_chatvector" ON "Chat"("chatVector");
+CREATE INDEX IF NOT EXISTS "idx_chat_twinid" ON "Chat"("twinId");
+CREATE INDEX IF NOT EXISTS "idx_chat_userid_createdat" ON "Chat"("userId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "idx_chat_userid_twinid_createdat" ON "Chat"("userId", "twinId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "Message_chatId_createdAt_idx" ON "Message"("chatId", "createdAt");
+CREATE INDEX IF NOT EXISTS "Message_createdAt_idx" ON "Message"("createdAt");
+CREATE INDEX IF NOT EXISTS "idx_message_chatid_createdat" ON "Message"("chatId", "createdAt" DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_message_chatid_requestid_unique" ON "Message"("chatId", "requestId");
+CREATE INDEX IF NOT EXISTS "idx_message_chatid_sender_createdat" ON "Message"("chatId", "sender", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "Event_createdAt_idx" ON "Event"("createdAt");
+CREATE INDEX IF NOT EXISTS "Event_type_createdAt_idx" ON "Event"("type", "createdAt");
+CREATE INDEX IF NOT EXISTS "Event_type_idx" ON "Event"("type");
+CREATE INDEX IF NOT EXISTS "Event_userId_createdAt_idx" ON "Event"("userId", "createdAt");
+CREATE INDEX IF NOT EXISTS "Event_userId_type_createdAt_idx" ON "Event"("userId", "type", "createdAt");
+CREATE INDEX IF NOT EXISTS "Event_meta_publicChatId_idx" ON "Event" USING btree (((meta ->> 'publicChatId'::text)));
+CREATE INDEX IF NOT EXISTS "Event_meta_viewerId_idx" ON "Event" USING btree (((meta ->> 'viewerId'::text)));
 CREATE UNIQUE INDEX IF NOT EXISTS "TwinLike_twinId_userId_key" ON "TwinLike"("twinId", "userId");
 CREATE UNIQUE INDEX IF NOT EXISTS "TwinFollow_twinId_userId_key" ON "TwinFollow"("twinId", "userId");
 CREATE UNIQUE INDEX IF NOT EXISTS "TwinBlockedUsers_twinId_userId_key" ON "TwinBlockedUsers"("twinId", "userId");
 CREATE INDEX IF NOT EXISTS "TwinBlockedUsers_userId_idx" ON "TwinBlockedUsers"("userId");
 CREATE INDEX IF NOT EXISTS "TwinBlockedUsers_twinId_idx" ON "TwinBlockedUsers"("twinId");
+CREATE INDEX IF NOT EXISTS "idx_publicchat_twinid_createdat" ON "PublicChat"("twinId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "idx_publicchat_twinid_lastactivity" ON "PublicChat"("twinId", "lastActivity" DESC NULLS LAST);
+CREATE INDEX IF NOT EXISTS "idx_publicchat_twinid_messagecount" ON "PublicChat"("twinId", "messageCount" DESC);
+CREATE INDEX IF NOT EXISTS "idx_publicchat_twinid_userid_createdat" ON "PublicChat"("twinId", "userId", "createdAt" DESC) WHERE ("userId" IS NOT NULL);
+CREATE INDEX IF NOT EXISTS "idx_publicchat_twinid_visitorid" ON "PublicChat"("twinId", "visitorId");
+CREATE INDEX IF NOT EXISTS "idx_publicchat_userid" ON "PublicChat"("userId");
+CREATE INDEX IF NOT EXISTS "idx_publicchat_userid_twinid" ON "PublicChat"("twinId", "userId");
+CREATE INDEX IF NOT EXISTS "idx_publicchat_visitorid" ON "PublicChat"("visitorId");
+CREATE INDEX IF NOT EXISTS "idx_publicmessage_chatid_createdat" ON "PublicMessage"("chatId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "idx_publicmessage_chatid_createdat_desc" ON "PublicMessage"("chatId", "createdAt" DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_publicmessage_chatid_requestid_unique" ON "PublicMessage"("chatId", "requestId");
+CREATE INDEX IF NOT EXISTS "idx_publicmessage_chatid_sender_createdat" ON "PublicMessage"("chatId", "sender", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "idx_publicmessage_content_gin" ON "PublicMessage" USING gin (to_tsvector('english'::regconfig, content));
+CREATE INDEX IF NOT EXISTS "idx_publicmessage_sender" ON "PublicMessage"("sender");
+CREATE UNIQUE INDEX IF NOT EXISTS "AILearning_twinId_key" ON "AILearning"("twinId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ChatFeedback_chatId_responseId_userId_key" ON "ChatFeedback"("chatId", "responseId", "userId");
+CREATE INDEX IF NOT EXISTS "ContactSubmission_createdAt_idx" ON "ContactSubmission"("createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "ContactSubmission_email_idx" ON "ContactSubmission"("email");
+CREATE INDEX IF NOT EXISTS "ContentReport_contentId_idx" ON "ContentReport"("contentId");
+CREATE INDEX IF NOT EXISTS "ContentReport_reporterId_idx" ON "ContentReport"("reporterId");
+CREATE INDEX IF NOT EXISTS "idx_memory_longterm_category" ON "MemoryLongTerm"("category");
+CREATE INDEX IF NOT EXISTS "idx_memory_longterm_key" ON "MemoryLongTerm"("key");
+CREATE INDEX IF NOT EXISTS "idx_memory_longterm_twinid" ON "MemoryLongTerm"("twinId");
+CREATE INDEX IF NOT EXISTS "idx_memory_longterm_twinid_category" ON "MemoryLongTerm"("twinId", "category") WHERE (category IS NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_memory_longterm_twinid_key" ON "MemoryLongTerm"("twinId", "key");
+CREATE INDEX IF NOT EXISTS "idx_memory_longterm_twinid_key_updatedat" ON "MemoryLongTerm"("twinId", "key", "updatedAt" DESC);
+CREATE INDEX IF NOT EXISTS "idx_memory_longterm_twinid_visibility_updatedat" ON "MemoryLongTerm"("twinId", "visibility", "updatedAt" DESC);
+CREATE INDEX IF NOT EXISTS "idx_memory_longterm_updatedat" ON "MemoryLongTerm"("updatedAt");
+CREATE INDEX IF NOT EXISTS "idx_memory_session_chatid_lastupdated" ON "MemorySession"("chatId", "lastUpdated" DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_memory_session_chatid_unique" ON "MemorySession"("chatId");
+CREATE INDEX IF NOT EXISTS "idx_memory_session_lastupdated" ON "MemorySession"("lastUpdated");
+CREATE INDEX IF NOT EXISTS "idx_memory_session_public_chatid" ON "MemorySessionPublic"("chatId");
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_memory_session_public_chatid_unique" ON "MemorySessionPublic"("chatId");
+CREATE INDEX IF NOT EXISTS "idx_memory_session_public_lastupdated" ON "MemorySessionPublic"("lastUpdated");
+CREATE INDEX IF NOT EXISTS "idx_moderation_settings_requireapproval" ON "ModerationSettings"("requireApproval");
+CREATE UNIQUE INDEX IF NOT EXISTS "TokenUsageDaily_day_actorKey_key" ON "TokenUsageDaily"("day", "actorKey");
+CREATE INDEX IF NOT EXISTS "TokenUsageDaily_day_actorType_idx" ON "TokenUsageDaily"("day", "actorType");
+CREATE INDEX IF NOT EXISTS "TokenUsageDaily_day_userId_idx" ON "TokenUsageDaily"("day", "userId");
+CREATE INDEX IF NOT EXISTS "idx_twin_performance_engagement" ON "TwinPerformance"("engagementScore" DESC);
+CREATE INDEX IF NOT EXISTS "idx_twin_performance_popularity" ON "TwinPerformance"("popularityScore" DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_twin_performance_twinid" ON "TwinPerformance"("twinId");
+CREATE INDEX IF NOT EXISTS "idx_twin_performance_twinid_engagement" ON "TwinPerformance"("twinId", "engagementScore" DESC);
+CREATE INDEX IF NOT EXISTS "idx_ai_runs_critic_score" ON "ai_runs"("critic_score");
+CREATE INDEX IF NOT EXISTS "idx_ai_runs_mode" ON "ai_runs"("mode");
+CREATE INDEX IF NOT EXISTS "idx_ai_runs_ts" ON "ai_runs"("ts");
+CREATE INDEX IF NOT EXISTS "idx_ai_runs_twin_id" ON "ai_runs"("twin_id");
+CREATE INDEX IF NOT EXISTS "idx_mem_chunks_bucket" ON "mem_chunks"("bucket");
+CREATE INDEX IF NOT EXISTS "idx_mem_chunks_public" ON "mem_chunks"("is_public");
+CREATE INDEX IF NOT EXISTS "idx_mem_chunks_ts" ON "mem_chunks"("ts");
+CREATE INDEX IF NOT EXISTS "idx_mem_chunks_twin_id" ON "mem_chunks"("twin_id");
+CREATE INDEX IF NOT EXISTS "idx_rate_limits_reset_time" ON "rate_limits"("reset_time");
+CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session"("expire");
+CREATE INDEX IF NOT EXISTS "idx_style_anchors_created_at" ON "style_anchors"("created_at");
+CREATE INDEX IF NOT EXISTS "idx_style_anchors_twin_id" ON "style_anchors"("twin_id");
+CREATE INDEX IF NOT EXISTS "idx_style_anchors_twinid_type" ON "style_anchors"("twin_id", "type");
+CREATE INDEX IF NOT EXISTS "idx_style_anchors_twinid_type_createdat" ON "style_anchors"("twin_id", "type", "created_at" DESC);
+CREATE INDEX IF NOT EXISTS "idx_style_anchors_type" ON "style_anchors"("type");
+CREATE INDEX IF NOT EXISTS "idx_style_anchors_user_utterance_trgm" ON "style_anchors" USING gin (user_utterance gin_trgm_ops);
+CREATE UNIQUE INDEX IF NOT EXISTS "style_anchors_twin_id_user_utterance_key" ON "style_anchors"("twin_id", "user_utterance");
+CREATE INDEX IF NOT EXISTS "idx_style_corrections_knob" ON "style_corrections"("knob");
+CREATE INDEX IF NOT EXISTS "idx_style_corrections_ts" ON "style_corrections"("ts");
+CREATE INDEX IF NOT EXISTS "idx_style_corrections_twin_id" ON "style_corrections"("twin_id");
 
 -- Add missing columns to User table if they don't exist
 DO $$ 
@@ -229,8 +554,30 @@ BEGIN
         ALTER TABLE "User" ADD COLUMN "referralCode" TEXT;
     END IF;
     
+    -- Fix referralCode: create non-unique index first, then unique constraint
     IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename = 'User' AND indexname = 'User_referralCode_idx') THEN
-        CREATE UNIQUE INDEX "User_referralCode_idx" ON "User"("referralCode");
+        CREATE INDEX "User_referralCode_idx" ON "User"("referralCode");
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_referralCode_key') THEN
+        ALTER TABLE "User" ADD CONSTRAINT "User_referralCode_key" UNIQUE ("referralCode");
+    END IF;
+
+    -- Add missing User columns
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'onboardingCompleted') THEN
+        ALTER TABLE "User" ADD COLUMN "onboardingCompleted" BOOLEAN DEFAULT false;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'usernameLastChanged') THEN
+        ALTER TABLE "User" ADD COLUMN "usernameLastChanged" TIMESTAMP;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'usernameChangeCount') THEN
+        ALTER TABLE "User" ADD COLUMN "usernameChangeCount" INTEGER DEFAULT 0;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename = 'User' AND indexname = 'idx_user_onboarding_completed') THEN
+        CREATE INDEX "idx_user_onboarding_completed" ON "User"("onboardingCompleted");
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'lastHandleChangeAt') THEN
@@ -270,17 +617,121 @@ BEGIN
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'tier') THEN
-        ALTER TABLE "Twin" ADD COLUMN "tier" VARCHAR(255);
+        ALTER TABLE "Twin" ADD COLUMN "tier" VARCHAR(20) DEFAULT 'free';
     END IF;
-
-    -- ✅ Add lastMessage to PublicChat to match Chat table structure
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'PublicChat' AND column_name = 'lastMessage') THEN
-        ALTER TABLE "PublicChat" ADD COLUMN "lastMessage" TEXT;
+    
+    -- Fix Twin column types: make nullable
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'isPublic' AND is_nullable = 'NO') THEN
+        ALTER TABLE "Twin" ALTER COLUMN "isPublic" DROP NOT NULL;
     END IF;
-
-    -- ✅ Add updatedAt to PublicChat to match Chat table structure
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'PublicChat' AND column_name = 'updatedAt') THEN
-        ALTER TABLE "PublicChat" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'verified' AND is_nullable = 'NO') THEN
+        ALTER TABLE "Twin" ALTER COLUMN "verified" DROP NOT NULL;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'likeCount' AND is_nullable = 'NO') THEN
+        ALTER TABLE "Twin" ALTER COLUMN "likeCount" DROP NOT NULL;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'followCount' AND is_nullable = 'NO') THEN
+        ALTER TABLE "Twin" ALTER COLUMN "followCount" DROP NOT NULL;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'chatCount' AND is_nullable = 'NO') THEN
+        ALTER TABLE "Twin" ALTER COLUMN "chatCount" DROP NOT NULL;
+    END IF;
+    
+    -- Add missing Twin columns
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'showChatHistory') THEN
+        ALTER TABLE "Twin" ADD COLUMN "showChatHistory" BOOLEAN DEFAULT true;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'requireLogin') THEN
+        ALTER TABLE "Twin" ADD COLUMN "requireLogin" BOOLEAN DEFAULT false;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'allowLikes') THEN
+        ALTER TABLE "Twin" ADD COLUMN "allowLikes" BOOLEAN DEFAULT true;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'allowFollows') THEN
+        ALTER TABLE "Twin" ADD COLUMN "allowFollows" BOOLEAN DEFAULT true;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'allowShares') THEN
+        ALTER TABLE "Twin" ADD COLUMN "allowShares" BOOLEAN DEFAULT true;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'personaData') THEN
+        ALTER TABLE "Twin" ADD COLUMN "personaData" JSONB;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'systemPrompt') THEN
+        ALTER TABLE "Twin" ADD COLUMN "systemPrompt" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'tokenLimit') THEN
+        ALTER TABLE "Twin" ADD COLUMN "tokenLimit" INTEGER DEFAULT 500;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'last_updated') THEN
+        ALTER TABLE "Twin" ADD COLUMN "last_updated" TIMESTAMPTZ DEFAULT now();
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'style_version') THEN
+        ALTER TABLE "Twin" ADD COLUMN "style_version" INTEGER DEFAULT 1;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'requireApproval') THEN
+        ALTER TABLE "Twin" ADD COLUMN "requireApproval" BOOLEAN DEFAULT false;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Twin' AND column_name = 'blockNonLoggedUsers') THEN
+        ALTER TABLE "Twin" ADD COLUMN "blockNonLoggedUsers" BOOLEAN DEFAULT false;
+    END IF;
+    
+    -- Add missing Chat columns
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Chat' AND column_name = 'chatVector') THEN
+        ALTER TABLE "Chat" ADD COLUMN "chatVector" JSONB;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Chat' AND column_name = 'updatedAt') THEN
+        ALTER TABLE "Chat" ADD COLUMN "updatedAt" TIMESTAMPTZ DEFAULT now();
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Chat' AND column_name = 'title') THEN
+        ALTER TABLE "Chat" ADD COLUMN "title" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Chat' AND column_name = 'summary') THEN
+        ALTER TABLE "Chat" ADD COLUMN "summary" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Chat' AND column_name = 'lastMessage') THEN
+        ALTER TABLE "Chat" ADD COLUMN "lastMessage" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Chat' AND column_name = 'messageCount') THEN
+        ALTER TABLE "Chat" ADD COLUMN "messageCount" INTEGER DEFAULT 0;
+    END IF;
+    
+    -- Add missing Message columns
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Message' AND column_name = 'requestId') THEN
+        ALTER TABLE "Message" ADD COLUMN "requestId" TEXT;
+    END IF;
+    
+    -- Add missing PublicChat columns
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'PublicChat' AND column_name = 'title') THEN
+        ALTER TABLE "PublicChat" ADD COLUMN "title" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'PublicChat' AND column_name = 'summary') THEN
+        ALTER TABLE "PublicChat" ADD COLUMN "summary" TEXT;
+    END IF;
+    
+    -- Add missing PublicMessage columns
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'PublicMessage' AND column_name = 'requestId') THEN
+        ALTER TABLE "PublicMessage" ADD COLUMN "requestId" TEXT;
     END IF;
 
     -- ✅ Add purpose column to OTP table for better security
@@ -353,6 +804,37 @@ ALTER TABLE "PublicChat" ADD CONSTRAINT "PublicChat_userId_fkey"
 
 ALTER TABLE "PublicMessage" DROP CONSTRAINT IF EXISTS "PublicMessage_chatId_fkey";
 ALTER TABLE "PublicMessage" ADD CONSTRAINT "PublicMessage_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES "PublicChat"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Foreign keys for new tables
+ALTER TABLE "AILearning" DROP CONSTRAINT IF EXISTS "AILearning_twinId_fkey";
+ALTER TABLE "AILearning" ADD CONSTRAINT "AILearning_twinId_fkey" FOREIGN KEY ("twinId") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "ContentReport" DROP CONSTRAINT IF EXISTS "ContentReport_reporterId_fkey";
+ALTER TABLE "ContentReport" ADD CONSTRAINT "ContentReport_reporterId_fkey" FOREIGN KEY ("reporterId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "MemoryLongTerm" DROP CONSTRAINT IF EXISTS "MemoryLongTerm_twinId_fkey";
+ALTER TABLE "MemoryLongTerm" ADD CONSTRAINT "MemoryLongTerm_twinId_fkey" FOREIGN KEY ("twinId") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "MemorySession" DROP CONSTRAINT IF EXISTS "MemorySession_chatId_fkey";
+ALTER TABLE "MemorySession" ADD CONSTRAINT "MemorySession_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES "Chat"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "MemorySessionPublic" DROP CONSTRAINT IF EXISTS "MemorySessionPublic_chatId_fkey";
+ALTER TABLE "MemorySessionPublic" ADD CONSTRAINT "MemorySessionPublic_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES "PublicChat"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "TwinPerformance" DROP CONSTRAINT IF EXISTS "TwinPerformance_twinId_fkey";
+ALTER TABLE "TwinPerformance" ADD CONSTRAINT "TwinPerformance_twinId_fkey" FOREIGN KEY ("twinId") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "ai_runs" DROP CONSTRAINT IF EXISTS "ai_runs_twin_id_fkey";
+ALTER TABLE "ai_runs" ADD CONSTRAINT "ai_runs_twin_id_fkey" FOREIGN KEY ("twin_id") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "mem_chunks" DROP CONSTRAINT IF EXISTS "mem_chunks_twin_id_fkey";
+ALTER TABLE "mem_chunks" ADD CONSTRAINT "mem_chunks_twin_id_fkey" FOREIGN KEY ("twin_id") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "style_anchors" DROP CONSTRAINT IF EXISTS "style_anchors_twin_id_fkey";
+ALTER TABLE "style_anchors" ADD CONSTRAINT "style_anchors_twin_id_fkey" FOREIGN KEY ("twin_id") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "style_corrections" DROP CONSTRAINT IF EXISTS "style_corrections_twin_id_fkey";
+ALTER TABLE "style_corrections" ADD CONSTRAINT "style_corrections_twin_id_fkey" FOREIGN KEY ("twin_id") REFERENCES "Twin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- === Counters sync (source of truth: TwinLike/TwinFollow tables) ===
 CREATE OR REPLACE FUNCTION "sync_twin_like_count"() RETURNS trigger AS $$
