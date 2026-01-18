@@ -6,14 +6,12 @@ import { config, isProd } from '../../config/env';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { generateJWT } from '../../services/jwtService';
-import { createError, ErrorCodes } from '../../utils/errors';
+import { createError, ErrorCodes, AppError } from '../../utils/errors';
 import { handleErrorWithResponse } from '../../utils/errorHandler';
 import { logEvent } from '../../services/eventLogger';
 import { EventLogger } from '../../services/eventLogger';
 import { EVENT_TYPES } from '../../config/constants';
 import { identifyPostHogUser } from '../../services/posthogService';
-import { PostgreSQLRateLimitStore } from '../../config/rateLimitStore';
-import { RATE_LIMITS, formatRetryAfter } from '../../config/rateLimitConfig';
 
 const emailService = new EmailService();
 
@@ -180,12 +178,22 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
         await db.query(`DELETE FROM "User" WHERE id = $1`, [existingUser.id]);
         
         // Also delete any pending OTP for this email
-        await otpQueries.deleteByEmail(email.toLowerCase());
+        await otpQueries.deleteByEmail(email.toLowerCase(), 'signup');
         
         logger.info(`Incomplete user deleted. Proceeding with fresh signup.`);
         // Continue to create new user below
       } else {
-        // User exists and is active (verified) → normal error
+        // User exists and is active (verified)
+        // Check if it's a Google OAuth account
+        if (existingUser.googleId && !existingUser.passwordHash) {
+          logger.warn(`Signup failed: Email already registered via Google - ${email}`);
+          return res.status(409).json({
+            error: 'This email is registered via Google. Please login with Google or use a different email.',
+            errorCode: 'EMAIL_USED_WITH_GOOGLE',
+            suggestGoogleLogin: true
+          });
+        }
+        // Normal email/password account
         logger.warn(`Signup failed: User already exists and active - ${email}`);
         return res.status(409).json({
           error: 'Account already exists. Please login instead.',
@@ -257,7 +265,7 @@ if (referrerId) {
     const hashedOTP = await hashOTP(otp);
     const expiresAt = new Date(Date.now() + config.otp.expiryMinutes * 60 * 1000);
     
-    await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt);
+    await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt, 'signup');
     logger.info(`OTP created for ${email}`);
     
     // ✅ Send OTP via email (only in production)
@@ -322,7 +330,7 @@ export const signupVerify = async (req: Request, res: Response, next: NextFuncti
     }
     
     // Find valid OTP
-    const otpRecord = await otpQueries.findByEmail(email.toLowerCase());
+    const otpRecord = await otpQueries.findByEmail(email.toLowerCase(), 'signup');
     
     if (!otpRecord) {
       return res.status(400).json({
@@ -499,13 +507,22 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
       });
     }
     
+    // ✅ OAuth-only user → guide them to Google login
+    if (!user.passwordHash && user.googleId) {
+      return res.status(400).json({
+        error: 'This account uses Google login. Please login with Google instead.',
+        errorCode: 'OAUTH_ONLY_ACCOUNT',
+        suggestGoogleLogin: true
+      });
+    }
+    
     // Generate OTP for password reset
     const otp = generateOTP(config.otp.codeLength);
     const hashedOTP = await hashOTP(otp);
     const expiresAt = new Date(Date.now() + config.otp.expiryMinutes * 60 * 1000);
     
     // Store OTP
-    await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt);
+    await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt, 'forgot');
     
     // ✅ Send OTP via email (only in production)
     const emailSent = await emailService.sendOTP(email, otp, 'forgot');
@@ -549,7 +566,7 @@ export const forgotPasswordVerify = async (req: Request, res: Response, next: Ne
     const { email, code } = forgotPasswordVerifySchema.parse(req.body);
     
     // Find valid OTP
-    const otpRecord = await otpQueries.findByEmail(email.toLowerCase());
+    const otpRecord = await otpQueries.findByEmail(email.toLowerCase(), 'forgot');
     
     if (!otpRecord) {
       return res.status(400).json({
@@ -617,7 +634,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
 
     // ✅ SECURITY FIX: Require OTP verification before allowing password reset
     // Check if a verified OTP exists for this email (must be marked as used)
-    const otpRecord = await otpQueries.findByEmail(email.toLowerCase());
+    const otpRecord = await otpQueries.findByEmail(email.toLowerCase(), 'forgot');
     if (!otpRecord || !otpRecord.used) {
       return res.status(400).json({
         error: 'OTP verification required. Please verify OTP first.',
@@ -655,7 +672,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
     await userQueries.updatePassword(email.toLowerCase(), passwordHash);
     
     // ✅ SECURITY: Delete OTP after successful password reset (prevent reuse)
-    await otpQueries.deleteByEmail(email.toLowerCase());
+    await otpQueries.deleteByEmail(email.toLowerCase(), 'forgot');
     
     res.json({ 
       message: 'Password reset successfully', 
@@ -695,7 +712,22 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     // Find user
     const user = await userQueries.findByEmail(email.toLowerCase());
     
-    if (!user || !user.passwordHash) {
+    if (!user) {
+      return res.status(401).json({
+        error: 'Invalid email or password',
+        errorCode: 'UNAUTHORIZED'
+      });
+    }
+
+    if (!user.passwordHash && user.googleId) {
+      return res.status(400).json({
+        error: 'This email uses Google login. Please continue with Google.',
+        errorCode: 'OAUTH_ONLY_ACCOUNT',
+        suggestGoogleLogin: true
+      });
+    }
+
+    if (!user.passwordHash) {
       return res.status(401).json({
         error: 'Invalid email or password',
         errorCode: 'UNAUTHORIZED'
@@ -786,7 +818,7 @@ export const loginVerify = async (req: Request, res: Response, next: NextFunctio
     const { email, code } = loginVerifySchema.parse(req.body);
     
     // Find valid OTP
-    const otpRecord = await otpQueries.findByEmail(email.toLowerCase());
+    const otpRecord = await otpQueries.findByEmail(email.toLowerCase(), 'login');
     
     if (!otpRecord) {
       return res.status(400).json({
@@ -922,10 +954,19 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response, n
     
     // Find user
     const user = await userQueries.findByEmail(req.user.email);
-    if (!user || !user.passwordHash) {
+    if (!user) {
       return res.status(404).json({
-        error: 'User not found or no password set',
+        error: 'User not found',
         errorCode: ErrorCodes.USER_NOT_FOUND
+      });
+    }
+    
+    // ✅ OAuth-only users cannot change password (they don't have one)
+    if (!user.passwordHash) {
+      return res.status(400).json({
+        error: 'This account uses Google login and does not have a password. To set a password, please use the "Set Password" option.',
+        errorCode: 'OAUTH_ONLY_ACCOUNT',
+        suggestSetPassword: true
       });
     }
     
@@ -947,57 +988,11 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response, n
       });
     }
     
-    // ✅ Rate limit check - only AFTER password validation passes
-    // This ensures wrong password attempts don't count toward the limit
-    const raw = req.user?.id || req.ip || 'unknown';
-    const rateLimitKey = `changePassword:${raw}`;
-    const rateLimitStore = new PostgreSQLRateLimitStore(RATE_LIMITS.changePassword.windowMs);
-    
-    // Check current rate limit status
-    const currentLimit = await rateLimitStore.get(rateLimitKey);
-    if (currentLimit && currentLimit.totalHits >= RATE_LIMITS.changePassword.max) {
-      // Rate limit exceeded
-      const retryAfter = formatRetryAfter(RATE_LIMITS.changePassword.windowMs);
-      
-      // Log rate limit violation
-      try {
-        const userId = req.user?.id || null;
-        const ip = req.ip || req.socket.remoteAddress || 'unknown';
-        const meta = {
-          limiterName: 'changePassword',
-          key: rateLimitKey.substring(0, 100),
-          limit: RATE_LIMITS.changePassword.max,
-          windowMs: RATE_LIMITS.changePassword.windowMs,
-          path: req.path,
-          method: req.method,
-          ip,
-          userAgent: req.get('user-agent') || null,
-        };
-        if (userId) {
-          EventLogger.logUserEvent(userId, EVENT_TYPES.RATE_LIMIT_EXCEEDED, meta).catch(() => {});
-        } else {
-          EventLogger.logSystemEvent(EVENT_TYPES.RATE_LIMIT_EXCEEDED, meta).catch(() => {});
-        }
-      } catch (logError) {
-        // Silent fail - don't break rate limiting if event logging fails
-      }
-      
-      return res.status(429).json({
-        success: false,
-        error: 'Too many password change attempts. Please try again later.',
-        errorCode: 'RATE_LIMIT_EXCEEDED',
-        retryAfter
-      });
-    }
-    
     // Hash new password
     const passwordHash = await hashPassword(newPassword);
     
     // Update password
     await userQueries.updatePassword(user.email, passwordHash);
-    
-    // ✅ Increment rate limit counter only after password actually changed in DB
-    await rateLimitStore.increment(rateLimitKey);
     
     logger.info(`Password changed for user: ${user.email}`);
     
@@ -1019,6 +1014,201 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response, n
     
     // Handle other errors
     handleErrorWithResponse(error, res, 'Failed to change password. Please try again.');
+  }
+};
+
+const setPasswordSchema = z.object({
+  otpCode: z.string().length(6, 'OTP must be 6 digits').regex(/^\d{6}$/, 'OTP must contain only numbers'),
+  newPassword: z.string()
+    .min(8, 'New password must be at least 8 characters')
+    .max(72, 'Password must be at most 72 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .refine((p) => !/\s/.test(p), 'Password must not contain spaces'),
+});
+
+/**
+ * Request OTP for setting password (Google-only users)
+ * POST /api/auth/set-password/request-otp
+ */
+export const requestSetPasswordOTP = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        error: 'Authentication required',
+        errorCode: ErrorCodes.UNAUTHORIZED
+      });
+    }
+
+    const user = await userQueries.findByEmail(req.user.email);
+    
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        errorCode: ErrorCodes.USER_NOT_FOUND
+      });
+    }
+
+    // Only allow OTP request for users without password (Google-only)
+    if (user.passwordHash) {
+      return res.status(400).json({
+        error: 'You already have a password. Use "Change Password" instead.',
+        errorCode: ErrorCodes.VALIDATION_ERROR
+      });
+    }
+
+    // Delete old OTP
+    await otpQueries.deleteByEmail(user.email.toLowerCase(), 'set_password');
+    
+    // Generate new OTP
+    const otp = generateOTP(config.otp.codeLength);
+    const hashedOTP = await hashOTP(otp);
+    const expiresAt = new Date(Date.now() + config.otp.expiryMinutes * 60 * 1000);
+    
+    // Store OTP
+    await otpQueries.create(user.email.toLowerCase(), hashedOTP, expiresAt, 'set_password');
+    
+    logger.info(`Set password OTP created for ${user.email}`);
+    
+    // Send OTP via email
+    const emailSent = await emailService.sendOTP(user.email, otp, 'set_password');
+    
+    if (isProd) {
+      if (!emailSent) {
+        logger.error(`Email send failed for ${user.email} in production`);
+        return res.status(500).json({
+          error: 'Failed to send verification email. Please check your email configuration or try again later.',
+          errorCode: 'EMAIL_SEND_FAILED',
+        });
+      }
+    } else {
+      logger.info(`Development mode: Set password OTP ${otp} generated (not sent via email)`);
+    }
+    
+    res.json({ 
+      success: true,
+      message: 'OTP sent to your email'
+    });
+  } catch (error: any) {
+    logger.error('Request set password OTP error:', error);
+    
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        error: error.message,
+        errorCode: error.errorCode || ErrorCodes.INTERNAL_ERROR
+      });
+    }
+    
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to send set password OTP. Please try again.',
+      errorCode: ErrorCodes.INTERNAL_ERROR
+    });
+  }
+};
+
+/**
+ * Set password for Google-only users (after OTP verification)
+ * POST /api/auth/set-password
+ */
+export const setPassword = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        error: 'Authentication required',
+        errorCode: ErrorCodes.UNAUTHORIZED
+      });
+    }
+
+    const { otpCode, newPassword } = setPasswordSchema.parse(req.body);
+
+    const user = await userQueries.findByEmail(req.user.email);
+    
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        errorCode: ErrorCodes.USER_NOT_FOUND
+      });
+    }
+
+    // Only allow setting password for users without password
+    if (user.passwordHash) {
+      return res.status(400).json({
+        error: 'You already have a password. Use "Change Password" instead.',
+        errorCode: ErrorCodes.VALIDATION_ERROR
+      });
+    }
+
+    // Find valid OTP
+    const otpRecord = await otpQueries.findByEmail(user.email.toLowerCase(), 'set_password');
+    
+    if (!otpRecord) {
+      return res.status(400).json({
+        error: 'No OTP found. Please request a new OTP code.',
+        errorCode: 'INVALID_OTP'
+      });
+    }
+
+    // Check if OTP is expired
+    const now = new Date();
+    if (new Date(otpRecord.expiresAt) < now) {
+      return res.status(400).json({
+        error: 'OTP has expired. Please request a new one.',
+        errorCode: 'OTP_EXPIRED'
+      });
+    }
+
+    // Check if OTP is already used
+    if (otpRecord.used) {
+      return res.status(400).json({
+        error: 'This OTP has already been used. Please request a new one.',
+        errorCode: 'OTP_ALREADY_USED'
+      });
+    }
+
+    // Verify OTP
+    const isValid = await verifyOTP(otpCode, otpRecord.codeHash);
+    if (!isValid) {
+      return res.status(400).json({
+        error: 'Invalid OTP code',
+        errorCode: 'INVALID_OTP'
+      });
+    }
+
+    // Mark OTP as used
+    await otpQueries.markAsUsed(otpRecord.id);
+
+    // Hash new password
+    const passwordHash = await hashPassword(newPassword);
+    
+    // Update password
+    await userQueries.updatePassword(user.email, passwordHash);
+    
+    // Delete OTP after successful password set
+    await otpQueries.deleteByEmail(user.email.toLowerCase(), 'set_password');
+    
+    logger.info(`Password set for Google-only user: ${user.email}`);
+    
+    return res.json({ 
+      success: true,
+      message: 'Password set successfully' 
+    });
+  } catch (error: any) {
+    logger.error('Set password error:', error);
+    
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: error.errors[0]?.message || 'Validation failed',
+        errorCode: ErrorCodes.VALIDATION_ERROR,
+        details: error.errors
+      });
+    }
+    
+    // Handle other errors
+    handleErrorWithResponse(error, res, 'Failed to set password. Please try again.');
   }
 };
 
@@ -1083,7 +1273,7 @@ export const resendOTP = async (req: Request, res: Response, next: NextFunction)
             errorCode: 'NO_SIGNUP_REQUEST'
           });
         }
-        if (user.verified) {
+        if (user.active) {
           return res.status(409).json({
             error: 'Account already verified. Please login instead.',
             errorCode: 'ALREADY_VERIFIED'
@@ -1110,7 +1300,7 @@ export const resendOTP = async (req: Request, res: Response, next: NextFunction)
     }
     
     // Delete old OTP
-    await otpQueries.deleteByEmail(email.toLowerCase());
+    await otpQueries.deleteByEmail(email.toLowerCase(), type);
     
     // Generate new OTP
     const otp = generateOTP(config.otp.codeLength);
@@ -1118,7 +1308,7 @@ export const resendOTP = async (req: Request, res: Response, next: NextFunction)
     const expiresAt = new Date(Date.now() + config.otp.expiryMinutes * 60 * 1000);
     
     // Store OTP
-    await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt);
+    await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt, type);
     
     logger.info(`OTP created for ${email}`);
     

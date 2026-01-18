@@ -30,6 +30,11 @@ const prodLimits = {
     max: 5, // 5 login attempts per 15 min per email/IP (stricter for security)
   } as LimitConfig,
 
+  googleOAuth: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 8, // 8 Google OAuth GET hits per 15 min per IP (prevents abuse)
+  } as LimitConfig,
+
   otpRequest: {
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5, // 5 OTP requests per 15 min per IP/email (OWASP standard: 3-5 per 15 min)
@@ -146,6 +151,11 @@ const devLimits: typeof prodLimits = {
   login: {
     windowMs: 15 * 60 * 1000,
     max: 1000, // Very high to avoid blocking
+  },
+
+  googleOAuth: {
+    windowMs: 15 * 60 * 1000,
+    max: 1000000, // Very high for dev
   },
 
   otpRequest: {

@@ -24,7 +24,7 @@ export class EmailService {
     }
   }
 
-  async sendOTP(email: string, code: string, type: 'signup' | 'login' | 'forgot' = 'login'): Promise<boolean> {
+  async sendOTP(email: string, code: string, type: 'signup' | 'login' | 'forgot' | 'delete' | 'set_password' = 'login'): Promise<boolean> {
     try {
       if (!config.mail.smtp.pass) {
         logger.error('❌ [EMAIL] Resend API key not configured');
@@ -59,7 +59,7 @@ export class EmailService {
                         <td style="padding: 40px 30px;">
                           <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 24px; font-weight: 600;">Verification Code</h2>
                           <p style="margin: 0 0 30px 0; color: #666666; font-size: 16px; line-height: 1.5;">
-                            ${type === 'signup' ? 'Welcome to Selflyx! Use this code to complete your signup:' : type === 'forgot' ? 'Use this code to reset your password:' : 'Use this code to verify your login:'}
+                            ${type === 'signup' ? 'Welcome to Selflyx! Use this code to complete your signup:' : type === 'forgot' ? 'Use this code to reset your password:' : type === 'delete' ? 'Use this code to confirm account deletion:' : type === 'set_password' ? 'Use this code to set your password:' : 'Use this code to verify your login:'}
                           </p>
                           <div style="background-color: #f8f9fa; border: 2px dashed #667eea; border-radius: 8px; padding: 30px; text-align: center; margin: 30px 0;">
                             <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #667eea; font-family: 'Courier New', monospace;">

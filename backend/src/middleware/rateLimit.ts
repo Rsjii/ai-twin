@@ -422,6 +422,22 @@ export const loginRateLimit = rateLimit({
   },
 });
 
+// Google OAuth GET limiter (init + callback)
+export const googleOAuthRateLimit = rateLimit({
+  store: createRateLimitStore(RATE_LIMITS.googleOAuth.windowMs),
+  windowMs: RATE_LIMITS.googleOAuth.windowMs,
+  max: RATE_LIMITS.googleOAuth.max,
+  keyGenerator: (req: any) => rlKey('googleOAuth', req.ip || req.socket?.remoteAddress || 'unknown'),
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    const key = rlKey('googleOAuth', req.ip || req.socket?.remoteAddress || 'unknown');
+    logRateLimitViolation(req, 'googleOAuth', key, RATE_LIMITS.googleOAuth.max, RATE_LIMITS.googleOAuth.windowMs);
+    // Browser navigation route → redirect back to /auth (so user isn't stuck on JSON)
+    return res.redirect('/auth?error=rate_limit_exceeded&details=' + encodeURIComponent('Too many Google login attempts. Please try again later.'));
+  },
+});
+
 // OTP verification limiter (signup/login/forgot-password verify)
 export const otpVerifyRateLimit = rateLimit({
   store: createRateLimitStore(RATE_LIMITS.otpVerify.windowMs), // ✅ Use PostgreSQL store with windowMs

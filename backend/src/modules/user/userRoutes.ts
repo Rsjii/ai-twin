@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { exportUserData, deleteAccount } from './userController';
+import { exportUserData, deleteAccount, requestDeleteAccountOTP } from './userController';
 import { requireJWTFromCookie } from '../../middleware/jwtCookie';
 import { sanitizeInput } from '../../middleware/validation';
 import { generateCSRFToken, validateCSRF } from '../../middleware/csrf';
-import { deleteAccountRateLimit, deleteAccountSuccessRateLimit } from '../../middleware/rateLimit';
+import { deleteAccountRateLimit, deleteAccountSuccessRateLimit, otpRequestRateLimit } from '../../middleware/rateLimit';
 
 const router = Router();
 
@@ -18,6 +18,8 @@ router.use((req, res, next) => {
 });
 
 router.get('/export-data', exportUserData);
+// Request OTP for account deletion (OAuth-only users)
+router.post('/account/delete-otp', otpRequestRateLimit, requestDeleteAccountOTP);
 // ✅ Apply success cooldown FIRST (prevents abuse), then failed attempts limiter (brute force protection)
 router.delete('/account', deleteAccountSuccessRateLimit, deleteAccountRateLimit, deleteAccount);
 

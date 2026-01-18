@@ -315,7 +315,8 @@
                                 </div>
                                 
                                 <div class="p-4 sm:p-6 space-y-6">
-<!-- Replace the existing Change Password section (lines 314-337) -->
+<!-- Change Password Section (only for users with password) -->
+<% if (typeof user !== 'undefined' && user.hasPassword) { %>
 <div>
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div class="flex-1">
@@ -383,7 +384,6 @@
                     </button>
                 </div>
             </div>            
-            
             <div class="flex flex-col sm:flex-row gap-3">
                 <button type="submit" class="w-full sm:flex-1 bg-gradient-to-r from-primary to-accent text-white py-3 px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-sm sm:text-base min-h-[44px] touch-manipulation">
                     Update Password
@@ -394,7 +394,100 @@
             </div>
         </form>
     </div>
-</div>                                    
+</div>
+<% } else { %>
+<!-- Set Password Section (for Google-only users) -->
+<div>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div class="flex-1">
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Set Password</h3>
+            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-1">Add a password to your account for additional security</p>
+        </div>
+        <button id="showSetPasswordBtn" type="button" class="w-full sm:w-auto px-4 py-2.5 bg-primary hover:bg-secondary text-white rounded-lg transition-colors font-medium text-sm sm:text-base min-h-[44px] touch-manipulation">
+            Set Password
+        </button>
+    </div>
+    
+    <!-- Set Password form (hidden by default) -->
+    <div id="setPasswordFormContainer" class="hidden mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+        <form id="setPasswordForm" class="space-y-4">
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                We'll send a verification code to your email. Enter it below along with your new password.
+            </p>
+
+            <button
+                type="button"
+                id="requestSetPasswordOTP"
+                class="w-full mb-4 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            >
+                Send verification code
+            </button>
+
+            <div>
+                <label for="setPasswordOTP" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Verification code</label>
+                <input
+                    id="setPasswordOTP"
+                    type="text"
+                    maxlength="6"
+                    class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                    placeholder="Enter 6-digit code"
+                    autocomplete="one-time-code"
+                />
+            </div>
+
+            <div>
+                <label for="setPasswordNew" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password</label>
+                <div class="relative">
+                    <input type="password" id="setPasswordNew" name="newPassword" placeholder="Enter new password (min 8 chars, uppercase, lowercase, number)" class="w-full px-4 py-3 pr-12 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required maxlength="128">
+                    <button type="button" id="toggleSetPasswordNew" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                        <!-- Eye closed icon (default) -->
+                        <svg id="setPasswordNewEyeClosed" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                        </svg>
+                        <!-- Eye open icon (hidden by default) -->
+                        <svg id="setPasswordNewEyeOpen" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>            
+            
+            <div>
+                <label for="setPasswordConfirm" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm New Password</label>
+                <div class="relative">
+                    <input type="password" id="setPasswordConfirm" name="confirmPassword" placeholder="Confirm new password" class="w-full px-4 py-3 pr-12 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" required maxlength="128">
+                    <button type="button" id="toggleSetPasswordConfirm" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                        <!-- Eye closed icon (default) -->
+                        <svg id="setPasswordConfirmEyeClosed" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                        </svg>
+                        <!-- Eye open icon (hidden by default) -->
+                        <svg id="setPasswordConfirmEyeOpen" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <p id="setPasswordError"
+               class="hidden text-sm text-red-600 dark:text-red-400 mb-3 bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                <!-- error text injected here -->
+            </p>
+            
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button type="submit" class="w-full sm:flex-1 bg-gradient-to-r from-primary to-accent text-white py-3 px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold text-sm sm:text-base min-h-[44px] touch-manipulation">
+                    Set Password
+                </button>
+                <button type="button" id="cancelSetPasswordBtn" class="w-full sm:w-auto px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium text-sm sm:text-base min-h-[44px] touch-manipulation">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<% } %>                                    
                                     
                                     <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
                                         <h3 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Account Management</h3>
@@ -1442,6 +1535,164 @@
                 });
             }
 
+            // ===== Account & Security – Set Password (for Google-only users) =====
+            const showSetPasswordBtn = document.getElementById('showSetPasswordBtn');
+            const setPasswordFormContainer = document.getElementById('setPasswordFormContainer');
+            const setPasswordForm = document.getElementById('setPasswordForm');
+            const cancelSetPasswordBtn = document.getElementById('cancelSetPasswordBtn');
+            const requestSetPasswordOTP = document.getElementById('requestSetPasswordOTP');
+            const setPasswordError = document.getElementById('setPasswordError');
+
+            if (showSetPasswordBtn && setPasswordFormContainer) {
+                showSetPasswordBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    setPasswordFormContainer.classList.remove('hidden');
+                    showSetPasswordBtn.classList.add('hidden'); // ✅ Hide top button
+                });
+            }
+
+            if (cancelSetPasswordBtn && setPasswordFormContainer && setPasswordForm) {
+                cancelSetPasswordBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    setPasswordFormContainer.classList.add('hidden');
+                    setPasswordForm.reset();
+                    if (setPasswordError) {
+                        setPasswordError.classList.add('hidden');
+                        setPasswordError.textContent = '';
+                    }
+                    if (showSetPasswordBtn) {
+                        showSetPasswordBtn.classList.remove('hidden'); // ✅ Show top button again
+                    }
+                });
+            }
+
+            // Eye toggles for Set Password fields
+            setupPasswordToggle('setPasswordNew', 'toggleSetPasswordNew', 'setPasswordNewEyeClosed', 'setPasswordNewEyeOpen');
+            setupPasswordToggle('setPasswordConfirm', 'toggleSetPasswordConfirm', 'setPasswordConfirmEyeClosed', 'setPasswordConfirmEyeOpen');
+
+            // Request OTP for Set Password
+            if (requestSetPasswordOTP) {
+                requestSetPasswordOTP.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    
+                    if (requestSetPasswordOTP.disabled) return;
+                    
+                    requestSetPasswordOTP.disabled = true;
+                    const originalText = requestSetPasswordOTP.textContent;
+                    requestSetPasswordOTP.textContent = 'Sending...';
+                    
+                    if (setPasswordError) {
+                        setPasswordError.classList.add('hidden');
+                        setPasswordError.textContent = '';
+                    }
+                    
+                    try {
+                        const res = await fetch('/api/auth/set-password/request-otp', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': '<%= csrfToken %>'
+                            },
+                            credentials: 'include'
+                        });
+                        
+                        const data = await res.json();
+                        
+                        if (res.ok && data.success) {
+                            showNotification('Verification code sent to your email', 'success');
+                            const otpInput = document.getElementById('setPasswordOTP');
+                            if (otpInput) {
+                                otpInput.focus();
+                            }
+                        } else {
+                            if (setPasswordError) {
+                                setPasswordError.textContent = data.error || 'Failed to send verification code';
+                                setPasswordError.classList.remove('hidden');
+                            }
+                            showNotification(data.error || 'Failed to send verification code', 'error');
+                        }
+                    } catch (err) {
+                        ErrorLogger.error('Request set password OTP error', err, {});
+                        if (setPasswordError) {
+                            setPasswordError.textContent = 'Network error. Please try again.';
+                            setPasswordError.classList.remove('hidden');
+                        }
+                        showNotification('Network error. Please try again.', 'error');
+                    } finally {
+                        requestSetPasswordOTP.disabled = false;
+                        requestSetPasswordOTP.textContent = originalText;
+                    }
+                });
+            }
+
+            // Set Password form submission
+            if (setPasswordForm) {
+                setPasswordForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const otpCode = document.getElementById('setPasswordOTP')?.value.trim() || '';
+                    const newPassword = document.getElementById('setPasswordNew')?.value.trim() || '';
+                    const confirmPassword = document.getElementById('setPasswordConfirm')?.value.trim() || '';
+
+                    if (!otpCode || otpCode.length !== 6) {
+                        if (setPasswordError) {
+                            setPasswordError.textContent = 'Please enter a valid 6-digit verification code';
+                            setPasswordError.classList.remove('hidden');
+                        }
+                        return;
+                    }
+
+                    if (!newPassword || !confirmPassword) {
+                        if (setPasswordError) {
+                            setPasswordError.textContent = 'Please fill all password fields';
+                            setPasswordError.classList.remove('hidden');
+                        }
+                        return;
+                    }
+
+                    if (newPassword !== confirmPassword) {
+                        if (setPasswordError) {
+                            setPasswordError.textContent = 'New password and confirm password do not match';
+                            setPasswordError.classList.remove('hidden');
+                        }
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch('/api/auth/set-password', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': '<%= csrfToken %>'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({ otpCode, newPassword })
+                        });
+                        const data = await res.json();
+                        if (!res.ok || !data.success) {
+                            if (setPasswordError) {
+                                setPasswordError.textContent = data.error || 'Failed to set password';
+                                setPasswordError.classList.remove('hidden');
+                            }
+                            showNotification(data.error || 'Failed to set password', 'error');
+                            return;
+                        }
+                        showNotification('Password set successfully. Redirecting...', 'success');
+                        setPasswordForm.reset();
+                        setPasswordFormContainer.classList.add('hidden');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } catch (err) {
+                        ErrorLogger.error('Set password error', err, {});
+                        if (setPasswordError) {
+                            setPasswordError.textContent = 'Network error. Please try again.';
+                            setPasswordError.classList.remove('hidden');
+                        }
+                        showNotification('Network error. Please try again.', 'error');
+                    }
+                });
+            }
+
             // ===== Account Management – Export Data =====
             /*mvp hideen for now not neede in v1
             const exportDataBtn = document.getElementById('exportDataBtn');
@@ -1467,12 +1718,19 @@
             const deleteAccountStep1 = document.getElementById('deleteAccountStep1');
             const deleteAccountStep2 = document.getElementById('deleteAccountStep2');
             const deleteAccountPasswordInput = document.getElementById('deleteAccountPassword');
+            const deleteAccountOTPInput = document.getElementById('deleteAccountOTP');
+            const deleteAccountPasswordSection = document.getElementById('deleteAccountPasswordSection');
+            const deleteAccountOTPSection = document.getElementById('deleteAccountOTPSection');
+            const requestDeleteOTP = document.getElementById('requestDeleteOTP');
             const deleteAccountError = document.getElementById('deleteAccountError');
             const deleteAccountCancel = document.getElementById('deleteAccountCancel');
             const deleteAccountCancelStep2 = document.getElementById('deleteAccountCancelStep2');
             const deleteAccountYes = document.getElementById('deleteAccountYes');
             const deleteAccountConfirm = document.getElementById('deleteAccountConfirm');
             const toggleDeletePassword = document.getElementById('toggleDeletePassword');
+            
+            // Get user info from EJS (hasPassword flag)
+            const userHasPassword = <%= typeof user !== 'undefined' && user.hasPassword ? 'true' : 'false' %>;
 
             let currentStep = 1; // Track which step we're on
 
@@ -1506,10 +1764,23 @@
                 currentStep = 2;
                 if (deleteAccountStep1) deleteAccountStep1.classList.add('hidden');
                 if (deleteAccountStep2) deleteAccountStep2.classList.remove('hidden');
-                if (deleteAccountPasswordInput) {
-                    deleteAccountPasswordInput.value = '';
-                    deleteAccountPasswordInput.focus();
+                
+                // Show appropriate section based on user type
+                if (userHasPassword) {
+                    if (deleteAccountPasswordSection) deleteAccountPasswordSection.classList.remove('hidden');
+                    if (deleteAccountOTPSection) deleteAccountOTPSection.classList.add('hidden');
+                    if (deleteAccountPasswordInput) {
+                        deleteAccountPasswordInput.value = '';
+                        deleteAccountPasswordInput.focus();
+                    }
+                } else {
+                    if (deleteAccountPasswordSection) deleteAccountPasswordSection.classList.add('hidden');
+                    if (deleteAccountOTPSection) deleteAccountOTPSection.classList.remove('hidden');
+                    if (deleteAccountOTPInput) {
+                        deleteAccountOTPInput.value = '';
+                    }
                 }
+                
                 if (deleteAccountError) {
                     deleteAccountError.classList.add('hidden');
                     deleteAccountError.textContent = '';
@@ -1566,12 +1837,90 @@
                 });
             }
 
+            // Request OTP for OAuth users
+            if (requestDeleteOTP) {
+                requestDeleteOTP.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    
+                    if (requestDeleteOTP.disabled) return;
+                    
+                    requestDeleteOTP.disabled = true;
+                    const originalText = requestDeleteOTP.textContent;
+                    requestDeleteOTP.textContent = 'Sending...';
+                    
+                    if (deleteAccountError) {
+                        deleteAccountError.classList.add('hidden');
+                        deleteAccountError.textContent = '';
+                    }
+                    
+                    try {
+                        const res = await fetch('/api/user/account/delete-otp', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': '<%= csrfToken %>'
+                            },
+                            credentials: 'include'
+                        });
+                        
+                        const data = await res.json();
+                        
+                        if (res.ok && data.success) {
+                            showNotification('Verification code sent to your email', 'success');
+                            if (deleteAccountOTPInput) {
+                                deleteAccountOTPInput.focus();
+                            }
+                        } else {
+                            if (deleteAccountError) {
+                                deleteAccountError.textContent = data.error || 'Failed to send verification code';
+                                deleteAccountError.classList.remove('hidden');
+                            }
+                            showNotification(data.error || 'Failed to send verification code', 'error');
+                        }
+                    } catch (err) {
+                        ErrorLogger.error('Request delete OTP error', err, {});
+                        if (deleteAccountError) {
+                            deleteAccountError.textContent = 'Network error. Please try again.';
+                            deleteAccountError.classList.remove('hidden');
+                        }
+                        showNotification('Network error. Please try again.', 'error');
+                    } finally {
+                        requestDeleteOTP.disabled = false;
+                        requestDeleteOTP.textContent = originalText;
+                    }
+                });
+            }
+
             // Step 2: Confirm delete (final step)
             if (deleteAccountConfirm) {
                 deleteAccountConfirm.addEventListener('click', async (e) => {
                     e.preventDefault();
 
-                    const password = deleteAccountPasswordInput ? (deleteAccountPasswordInput.value || null) : null;
+                    let requestBody = {};
+                    
+                    if (userHasPassword) {
+                        // Password-based deletion
+                        const password = deleteAccountPasswordInput ? (deleteAccountPasswordInput.value || null) : null;
+                        if (!password) {
+                            if (deleteAccountError) {
+                                deleteAccountError.textContent = 'Password is required';
+                                deleteAccountError.classList.remove('hidden');
+                            }
+                            return;
+                        }
+                        requestBody = { password };
+                    } else {
+                        // OTP-based deletion
+                        const otpCode = deleteAccountOTPInput ? (deleteAccountOTPInput.value || '').trim() : '';
+                        if (!otpCode || otpCode.length !== 6) {
+                            if (deleteAccountError) {
+                                deleteAccountError.textContent = 'Please enter a valid 6-digit verification code';
+                                deleteAccountError.classList.remove('hidden');
+                            }
+                            return;
+                        }
+                        requestBody = { otpCode };
+                    }
 
                     try {
                         const res = await fetch('/api/user/account', {
@@ -1581,15 +1930,16 @@
                                 'X-CSRF-Token': '<%= csrfToken %>'
                             },
                             credentials: 'include',
-                            body: JSON.stringify({ password })
+                            body: JSON.stringify(requestBody)
                         });
 
                         const data = await res.json();
 
                         if (!res.ok || !data.success) {
-                            // Wrong password or error → close modal, user will need to start from Step 1 next time
+                            // Wrong password/OTP or error → show notification at top and close modal
+                            const errorMessage = data.error || 'Wrong password entered';
+                            showNotification(errorMessage, 'error');
                             closeDeleteModal();
-                            showNotification(data.error || 'Failed to delete account', 'error');
                             return;
                         }
 
@@ -1601,9 +1951,9 @@
                         }, 1500);
                     } catch (err) {
                         ErrorLogger.error('Delete account error', err, {});
-                        // Network error → close modal
+                        const errorMessage = 'Network error. Please try again.';
+                        showNotification(errorMessage, 'error');
                         closeDeleteModal();
-                        showNotification('Network error. Please try again.', 'error');
                     }
                 });
             }
@@ -2414,7 +2764,7 @@ if (profileImageFile) {
                 </div>
             </div>
 
-            <!-- STEP 2: Password confirmation -->
+            <!-- STEP 2: Password/OTP confirmation -->
             <div id="deleteAccountStep2" class="hidden">
                 <!-- Warning Icon -->
                 <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full">
@@ -2426,29 +2776,62 @@ if (profileImageFile) {
                 <h3 class="text-xl font-semibold text-red-600 dark:text-red-400 mb-2 text-center">
                     Confirm deletion
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-300 mb-6 text-center">
-                    Enter your password to confirm account deletion.
-                </p>
+                
+                <!-- Password-based deletion (if user has password) -->
+                <div id="deleteAccountPasswordSection" class="<%= typeof user !== 'undefined' && user.hasPassword ? '' : 'hidden' %>">
+                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-6 text-center">
+                        Enter your password to confirm account deletion.
+                    </p>
 
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                    Current password
-                </label>
-                <div class="relative mb-3">
-                    <input
-                        id="deleteAccountPassword"
-                        type="password"
-                        class="w-full px-3 py-2 pr-12 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-400 dark:focus:border-red-400 placeholder-gray-500 dark:placeholder-gray-400"
-                        placeholder="Enter your password"
-                        autocomplete="current-password"
-                    />
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                        Current password
+                    </label>
+                    <div class="relative mb-3">
+                        <input
+                            id="deleteAccountPassword"
+                            type="password"
+                            class="w-full px-3 py-2 pr-12 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-400 dark:focus:border-red-400 placeholder-gray-500 dark:placeholder-gray-400"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                        />
+                        <button
+                            type="button"
+                            id="toggleDeletePassword"
+                            class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs font-medium transition-colors"
+                            aria-label="Toggle password visibility"
+                        >
+                            Show
+                        </button>
+                    </div>
+                </div>
+
+                <!-- OTP-based deletion (if user has no password) -->
+                <div id="deleteAccountOTPSection" class="<%= typeof user !== 'undefined' && !user.hasPassword ? '' : 'hidden' %>">
+                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-6 text-center">
+                        We'll send a verification code to your email. Enter it below to confirm account deletion.
+                    </p>
+
                     <button
                         type="button"
-                        id="toggleDeletePassword"
-                        class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs font-medium transition-colors"
-                        aria-label="Toggle password visibility"
+                        id="requestDeleteOTP"
+                        class="w-full mb-4 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                     >
-                        Show
+                        Send verification code
                     </button>
+
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                        Verification code
+                    </label>
+                    <div class="relative mb-3">
+                        <input
+                            id="deleteAccountOTP"
+                            type="text"
+                            maxlength="6"
+                            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-400 dark:focus:border-red-400 placeholder-gray-500 dark:placeholder-gray-400"
+                            placeholder="Enter 6-digit code"
+                            autocomplete="one-time-code"
+                        />
+                    </div>
                 </div>
 
                 <p id="deleteAccountError"

@@ -97,8 +97,7 @@
 
                         <button type="submit" class="w-full bg-gradient-to-r from-primary to-accent text-white py-3 sm:py-4 px-4 sm:px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold mb-6 transform hover:scale-[1.02] min-h-[44px] touch-manipulation text-base" aria-label="Login">Login</button>
                         
-                        <!-- Google OAuth Section
-                         // ✅ v2: Google OAuth routes - not needed in v1, not needed for mvp
+                        <!-- Google OAuth Section -->
                         <div class="mb-4">
                             <div class="relative">
                                 <div class="absolute inset-0 flex items-center">
@@ -119,7 +118,6 @@
                             </svg>
                             <span>Continue with Google</span>
                         </a>
-                    -->
                         
                         <div class="text-center">
                             <button type="button" id="forgotPasswordBtn" class="text-sm text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200 font-medium">Forgot Password?</button>
@@ -169,10 +167,7 @@
 
                         <button type="submit" class="w-full bg-gradient-to-r from-primary to-accent text-white py-4 px-6 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold mb-6 transform hover:scale-[1.02] min-h-[48px] sm:min-h-[44px] touch-manipulation text-base" aria-label="Create Account">Create Account</button>
                         
-                        <!-- Google OAuth Section 
-
-                        // ✅ v2: Google OAuth routes - not needed in v1, not needed for mvp
-
+                        <!-- Google OAuth Section -->
                         <div class="mb-4">
                             <div class="relative">
                                 <div class="absolute inset-0 flex items-center">
@@ -193,7 +188,6 @@
                             </svg>
                             <span>Continue with Google</span>
                         </a>
-                    -->
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     </form>
                 </div>
@@ -332,6 +326,37 @@ if (toggleSignupPassword) {
                 setTimeout(() => {
                     flashDiv.style.display = 'none';
                 }, 5000);
+            }
+            
+            // ✅ Check for error messages from OAuth redirects
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            const details = urlParams.get('details');
+            
+            if (error) {
+                let errorMessage = 'Authentication failed';
+                
+                // Map error codes to user-friendly messages
+                if (error === 'google_auth_failed') {
+                    errorMessage = details 
+                        ? decodeURIComponent(details) 
+                        : 'Google authentication failed. Please try again.';
+                } else if (error === 'google_oauth_not_configured') {
+                    errorMessage = 'Google OAuth is not configured. Please contact support.';
+                } else if (error === 'user_not_found') {
+                    errorMessage = 'User not found. Please sign up first.';
+                } else if (error === 'internal_error') {
+                    errorMessage = details 
+                        ? decodeURIComponent(details) 
+                        : 'An internal error occurred. Please try again.';
+                }
+                
+                // Show error message
+                showFlashMessage(errorMessage, 'error');
+                
+                // Clean URL (remove query params after showing error)
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
             }
             
             // Event listeners

@@ -3,9 +3,9 @@ import { AuthenticatedRequest } from '../../types/interfaces';
 import { db } from '../../config/database';
 import { logger } from '../../config/logger';
 import { createError, ErrorCodes, AppError } from '../../utils/errors';
-import { verifyPassword } from '../auth/authService';
-import { userQueries } from '../../config/database';
-import { isProd } from '../../config/env';
+import { verifyPassword, generateOTP, hashOTP, verifyOTP, EmailService } from '../auth/authService';
+import { otpQueries, userQueries } from '../../config/database';
+import { config, isProd } from '../../config/env';
 import { EventLogger } from '../../services/eventLogger';
 import { EVENT_TYPES } from '../../config/constants';
 
@@ -209,6 +209,85 @@ export const exportUserData = async (req: AuthenticatedRequest, res: Response) =
 };
 
 /**
+ * Request OTP for account deletion (OAuth-only users)
+ * POST /api/user/account/delete-otp
+ */
+export const requestDeleteAccountOTP = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      throw createError.unauthorized();
+    }
+
+    const user = await userQueries.findByEmail(req.user.email);
+    
+    if (!user) {
+      throw createError.notFound('User not found', ErrorCodes.USER_NOT_FOUND);
+    }
+
+    // Only allow OTP request for OAuth-only users (no password)
+    if (user.passwordHash) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password-based accounts must use password for deletion',
+        errorCode: ErrorCodes.VALIDATION_ERROR
+      });
+    }
+
+    const emailService = new EmailService();
+
+    // Delete old OTP
+    await otpQueries.deleteByEmail(user.email.toLowerCase(), 'delete');
+    
+    // Generate new OTP
+    const otp = generateOTP(config.otp.codeLength);
+    const hashedOTP = await hashOTP(otp);
+    const expiresAt = new Date(Date.now() + config.otp.expiryMinutes * 60 * 1000);
+    
+    // Store OTP
+    await otpQueries.create(user.email.toLowerCase(), hashedOTP, expiresAt, 'delete');
+    
+    logger.info(`Delete account OTP created for ${user.email}`);
+    
+    // Send OTP via email
+    const emailSent = await emailService.sendOTP(user.email, otp, 'delete');
+    
+    if (isProd) {
+      if (!emailSent) {
+        logger.error(`Email send failed for ${user.email} in production`);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to send verification email. Please check your email configuration or try again later.',
+          errorCode: 'EMAIL_SEND_FAILED',
+        });
+      }
+    } else {
+      logger.info(`Development mode: Delete account OTP ${otp} generated (not sent via email)`);
+    }
+    
+    res.json({ 
+      success: true,
+      message: 'OTP sent to your email'
+    });
+  } catch (error: any) {
+    logger.error('Request delete account OTP error:', error);
+    
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        error: error.message,
+        errorCode: error.errorCode || ErrorCodes.INTERNAL_ERROR
+      });
+    }
+    
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to send delete account OTP. Please try again.',
+      errorCode: ErrorCodes.INTERNAL_ERROR
+    });
+  }
+};
+
+/**
  * Delete user account
  * DELETE /api/user/account
  */
@@ -219,7 +298,7 @@ export const deleteAccount = async (req: AuthenticatedRequest, res: Response) =>
     }
 
     const userId = req.user.id;
-    const { password } = req.body;
+    const { password, otpCode } = req.body;
 
     // Always load user to see if they have a password
     const user = await userQueries.findByEmail(req.user.email);
@@ -246,18 +325,74 @@ export const deleteAccount = async (req: AuthenticatedRequest, res: Response) =>
           errorCode: ErrorCodes.VALIDATION_ERROR
         });
       }
+    } else {
+      // OAuth-only user → require OTP verification
+      if (!otpCode || typeof otpCode !== 'string' || otpCode.trim() === '') {
+        return res.status(400).json({
+          success: false,
+          error: 'OTP code is required to delete your account. Please request an OTP first.',
+          errorCode: 'OTP_REQUIRED',
+          requiresOTP: true
+        });
+      }
+
+      // Find valid OTP
+      const otpRecord = await otpQueries.findByEmail(user.email.toLowerCase(), 'delete');
+      
+      if (!otpRecord) {
+        return res.status(400).json({
+          success: false,
+          error: 'No OTP found. Please request a new OTP code.',
+          errorCode: 'INVALID_OTP'
+        });
+      }
+
+      // Check if OTP is expired
+      const now = new Date();
+      if (new Date(otpRecord.expiresAt) < now) {
+        return res.status(400).json({
+          success: false,
+          error: 'OTP has expired. Please request a new one.',
+          errorCode: 'OTP_EXPIRED'
+        });
+      }
+
+      // Check if OTP is already used
+      if (otpRecord.used) {
+        return res.status(400).json({
+          success: false,
+          error: 'This OTP has already been used. Please request a new one.',
+          errorCode: 'OTP_ALREADY_USED'
+        });
+      }
+
+      // Verify OTP
+      const isValid = await verifyOTP(otpCode, otpRecord.codeHash);
+      if (!isValid) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid OTP code',
+          errorCode: 'INVALID_OTP'
+        });
+      }
+
+      // Mark OTP as used
+      await otpQueries.markAsUsed(otpRecord.id);
     }
-    // If user.passwordHash is null (pure OTP / SSO account), allow delete without password
 
-    // Delete user (CASCADE will handle all related data)
-    await db.query('DELETE FROM "User" WHERE id = $1', [userId]);    
-
-    // ✅ Log account deletion event
+    // ✅ FIX: Log account deletion event BEFORE deleting user
+    // (Foreign key constraint requires userId to exist in User table)
     await EventLogger.logUserEvent(userId, EVENT_TYPES.ACCOUNT_DELETED, {
       email: user.email,
       handle: user.handle || null,
-      deletionMethod: user.passwordHash ? 'password_verified' : 'otp_only',
-    }).catch(() => {}); // Silent fail - don't break deletion if logging fails
+      deletionMethod: user.passwordHash ? 'password_verified' : 'otp_verified',
+    }).catch((err) => {
+      // Silent fail - don't break deletion if logging fails
+      logger.error('Failed to log account deletion event:', err);
+    });
+
+    // Delete user (CASCADE will handle all related data)
+    await db.query('DELETE FROM "User" WHERE id = $1', [userId]);
 
     logger.info(`User account deleted: ${userId}`);
 

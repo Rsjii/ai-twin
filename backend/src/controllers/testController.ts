@@ -75,12 +75,12 @@ export const testOTP = async (req: Request, res: Response) => {
       const { verifyOTP } = await import('../modules/auth/authService.js');
       const { otpQueries } = await import('../config/database.js');
       
-      const storedOTP = await otpQueries.findByEmail(email.toLowerCase());
+      const storedOTP = await otpQueries.findByEmail(email.toLowerCase(), 'test');
       if (!storedOTP) {
         throw createError.notFound('No OTP found for this email');
       }
       
-      if (new Date() > storedOTP.expires_at) {
+      if (new Date() > storedOTP.expiresAt) {
         throw createError.validation('OTP has expired');
       }
       
@@ -119,7 +119,7 @@ export const testOTP = async (req: Request, res: Response) => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     
     const { otpQueries } = await import('../config/database.js');
-    await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt);
+    await otpQueries.create(email.toLowerCase(), hashedOTP, expiresAt, 'test');
     
     logger.info('OTP generated (test)', { email });
     

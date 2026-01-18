@@ -1,15 +1,13 @@
-// ✅ v2: Google OAuth routes - not needed in v1, not needed for mvp
-
-/*
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { config } from '../../config/env';
-import { userQueries } from '../../config/database';
+import { userQueries, db } from '../../config/database';
 import { generateJWT } from '../../services/jwtService';
 import { generateInviteCode } from './authService';
 import { logger } from '../../config/logger';
 import { AppError, createError } from '../../utils/errors';
+import { generateId } from '../../utils/idGenerator';
 
 // Validate Google OAuth config
 if (!config.google || !config.google.clientId || !config.google.clientSecret) {
@@ -27,55 +25,97 @@ if (!config.google || !config.google.clientId || !config.google.clientSecret) {
     logger.info('Profile emails:', profile.emails);
     logger.info('Profile displayName:', profile.displayName);
     
-    try {
+      try {
       const email = profile.emails?.[0]?.value?.toLowerCase();
+      const googleId = profile.id;
+      const googleEmail = email;
+      // ✅ More reliable email verification check (Google profile structure varies)
+      const emailEntry: any = profile.emails?.[0];
+      const googleEmailVerified = Boolean(
+        emailEntry?.verified ??
+        (profile as any)?._json?.email_verified ??
+        (profile as any)?._json?.verified_email ??
+        false
+      );
       const name = profile.displayName || profile.name?.givenName || '';
       const photo = profile.photos?.[0]?.value || null;
       
-      logger.info(`Processing Google profile for email: ${email}`);
+      logger.info(`Processing Google profile for email: ${email}, googleId: ${googleId}`);
       
       if (!email) {
         logger.error('No email found in Google profile');
         return done(new Error('No email found in Google profile'), null);
       }
 
-      // Check if user exists
+      // Check if user exists by email
       logger.info(`Checking if user exists: ${email}`);
       let user = await userQueries.findByEmail(email);
       
       if (user) {
-        // User exists - update last login
-        logger.info(`Google OAuth: Existing user found: ${email}`);
-        return done(null, user);
-      } else {
-        // Create new user
-        logger.info(`Creating new user: ${email}`);
-        const referralCode = generateInviteCode();
-        
-        try {
-          user = await userQueries.create(
-            email,
-            undefined, // handle - will be set later
-            undefined, // passwordHash - not needed for OAuth
-            referralCode
-          );
-          logger.info(`User created successfully: ${user.id}`);
-        } catch (createError: any) {
-          logger.error('Error creating user:', createError);
-          logger.error('Error stack:', createError?.stack);
-          return done(createError, null);
+        // User exists with this email
+        if (user.googleId && user.googleId !== googleId) {
+          // Different Google account with same email → error
+          logger.error(`Email ${email} already linked to different Google account`);
+          return done(new Error('Email already registered with different Google account'), null);
         }
         
-        // ✅ REMOVE: Don't call updateProfile - it sets profileCompleted = true
-        // User will complete profile via /signup/profile form
+       // ✅ If user is active:
+// - allow Google login if it's the SAME googleId (even if passwordHash also exists)
+// - block only when it's a password-only account (no googleId)
+if (user.active) {
+  if (user.googleId) {
+    if (user.googleId !== googleId) {
+      logger.warn(`Google login blocked: different googleId for same email - ${email}`);
+      return done(new Error('Email already registered with different Google account'), null);
+    }
+    // ✅ same googleId => allow login (continue)
+  } else if (user.passwordHash) {
+    logger.warn(`Google login blocked: password account exists - ${email}`);
+    return done(new Error('This email is already registered with email/password. Please login with your password.'), null);
+  }
+}
         
-        // Activate user account (email verified via Google)
-        try {
+        // ✅ Only allow linking if user is INACTIVE (incomplete signup)
+        // Link Google account if not already linked
+        // ✅ SECURITY: Only link if Google email is verified
+        if (!user.googleId) {
+          if (!googleEmailVerified) {
+            logger.error(`Cannot link Google account: email not verified for ${email}`);
+            return done(new Error('Google email is not verified. Please verify your email with Google first.'), null);
+          }
+          logger.info(`Linking Google account to inactive email user: ${email}`);
+          await userQueries.linkGoogleByEmail(email, googleId, googleEmail, googleEmailVerified);
+          // Reload user to get updated fields
+          user = await userQueries.findByEmail(email);
+        }
+        
+        // Activate user if inactive (e.g., from incomplete email signup)
+        if (!user.active) {
           await userQueries.activateUser(email);
-          logger.info('User account activated (email verified via Google)');
-        } catch (activateError: any) {
-          logger.error('Error activating user:', activateError);
-          // Don't fail if activation fails
+          user = await userQueries.findByEmail(email);
+        }
+        
+        logger.info(`Google OAuth: Existing user found/linked: ${email}`);
+        return done(null, user);
+      } else {
+        // Create new OAuth user (no password)
+        logger.info(`Creating new OAuth user: ${email}`);
+        const referralCode = generateInviteCode();
+        const userId = generateId.user();
+        const now = new Date();
+        
+        try {
+          const result = await db.query(
+            `INSERT INTO "User" (id, email, "googleId", "googleEmail", "googleEmailVerified", "referralCode", active, "createdAt", "updatedAt") 
+             VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8) RETURNING *`,
+            [userId, email, googleId, googleEmail, googleEmailVerified, referralCode, now, now]
+          );
+          user = result.rows[0];
+          logger.info(`OAuth user created successfully: ${user.id}`);
+        } catch (createError: any) {
+          logger.error('Error creating OAuth user:', createError);
+          logger.error('Error stack:', createError?.stack);
+          return done(createError, null);
         }
         
         logger.info(`Google OAuth: New user created (profile incomplete): ${email}`);
@@ -201,4 +241,3 @@ export const googleAuthCallback = (req: Request, res: Response, next: NextFuncti
       }
     })(req, res, next);
   };
-  */

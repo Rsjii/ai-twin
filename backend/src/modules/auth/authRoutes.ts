@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { signup, signupVerify, completeProfile, login, loginVerify, forgotPassword, forgotPasswordVerify, resetPassword, logout, changePassword, resendOTP } from './authController';
+import { signup, signupVerify, completeProfile, login, loginVerify, forgotPassword, forgotPasswordVerify, resetPassword, logout, changePassword, resendOTP, requestSetPasswordOTP, setPassword } from './authController';
 import {
     otpRequestRateLimit,
     loginRateLimit,
     otpVerifyRateLimit,
     resetPasswordRateLimit,
+    changePasswordRateLimit,
   } from '../../middleware/rateLimit';
 import { validateCSRF } from '../../middleware/csrf';
 import { sanitizeInput } from '../../middleware/validation';
@@ -30,8 +31,11 @@ router.post('/forgot-password/verify', sanitizeInput, validateCSRF, otpVerifyRat
 router.post('/reset-password', sanitizeInput, validateCSRF, resetPasswordRateLimit, resetPassword);
 
 // Change password route (requires authentication)
-// ✅ Rate limit is now applied in controller AFTER password validation (not on button click)
-router.post('/change-password', requireJWTFromCookie, sanitizeInput, validateCSRF, changePassword);
+router.post('/change-password', requireJWTFromCookie, sanitizeInput, validateCSRF, changePasswordRateLimit, changePassword);
+
+// Set password routes (for Google-only users)
+router.post('/set-password/request-otp', requireJWTFromCookie, sanitizeInput, validateCSRF, otpRequestRateLimit, requestSetPasswordOTP);
+router.post('/set-password', requireJWTFromCookie, sanitizeInput, validateCSRF, otpVerifyRateLimit, setPassword);
 
 // Logout
 router.post('/logout', logout);

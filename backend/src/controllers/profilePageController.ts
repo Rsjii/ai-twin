@@ -70,7 +70,10 @@ export async function getProfile(req: any, res: Response) {
       ...user,
       dob: user.dob || null,
       phone: user?.phone || null,
-      bio: user?.bio || null
+      bio: user?.bio || null,
+      // ✅ Critical for UI: password/Google auth flags
+      hasPassword: !!user.passwordHash,
+      hasGoogle: !!user.googleId,
     };
     
     res.render('profile', {

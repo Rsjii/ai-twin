@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "passwordHash" TEXT,
+    "googleId" TEXT,
+    "googleEmail" TEXT,
+    "googleEmailVerified" BOOLEAN,
     "handle" TEXT,
     "name" TEXT,
     "dob" DATE,
@@ -75,6 +78,7 @@ CREATE TABLE IF NOT EXISTS "Message" (
 CREATE TABLE IF NOT EXISTS "OTP" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
+    "purpose" TEXT NOT NULL DEFAULT 'generic',
     "codeHash" TEXT NOT NULL,
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -155,6 +159,7 @@ CREATE TABLE IF NOT EXISTS "PublicMessage" (
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX IF NOT EXISTS "User_handle_key" ON "User"("handle");
+-- ✅ googleId and OTP purpose indexes are created in DO $$ block AFTER columns are added
 CREATE UNIQUE INDEX IF NOT EXISTS "Invite_code_key" ON "Invite"("code");
 CREATE UNIQUE INDEX IF NOT EXISTS "Twin_userId_key" ON "Twin"("userId");
 CREATE UNIQUE INDEX IF NOT EXISTS "Twin_publicHandle_key" ON "Twin"("publicHandle");
@@ -240,6 +245,22 @@ BEGIN
         ALTER TABLE "User" ADD COLUMN "personaData" JSONB;
     END IF;
 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'googleId') THEN
+        ALTER TABLE "User" ADD COLUMN "googleId" TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'googleEmail') THEN
+        ALTER TABLE "User" ADD COLUMN "googleEmail" TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'googleEmailVerified') THEN
+        ALTER TABLE "User" ADD COLUMN "googleEmailVerified" BOOLEAN;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename = 'User' AND indexname = 'User_googleId_key') THEN
+        CREATE UNIQUE INDEX "User_googleId_key" ON "User"("googleId");
+    END IF;
+
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'updatedAt') THEN
         ALTER TABLE "User" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
     END IF;
@@ -260,6 +281,15 @@ BEGIN
     -- ✅ Add updatedAt to PublicChat to match Chat table structure
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'PublicChat' AND column_name = 'updatedAt') THEN
         ALTER TABLE "PublicChat" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+
+    -- ✅ Add purpose column to OTP table for better security
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'OTP' AND column_name = 'purpose') THEN
+        ALTER TABLE "OTP" ADD COLUMN "purpose" TEXT NOT NULL DEFAULT 'generic';
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename = 'OTP' AND indexname = 'OTP_email_purpose_idx') THEN
+        CREATE INDEX "OTP_email_purpose_idx" ON "OTP"("email", "purpose");
     END IF;
 END $$;
 
@@ -385,7 +415,7 @@ export const userQueries = {
 
   findByEmail: async (email: string) => {
     const result = await db.query(
-      'SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage", "lastHandleChangeAt", "profileCompleted" FROM "User" WHERE email = $1',
+      'SELECT id, email, "passwordHash", "googleId", "googleEmail", "googleEmailVerified", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage", "lastHandleChangeAt", "profileCompleted" FROM "User" WHERE email = $1',
       [email]
     );
     return result.rows[0];
@@ -393,7 +423,7 @@ export const userQueries = {
 
   findById: async (id: string) => {
     const result = await db.query(
-      'SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1',
+      'SELECT id, email, "passwordHash", "googleId", "googleEmail", "googleEmailVerified", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE id = $1',
       [id]
     );
     return result.rows[0];
@@ -401,7 +431,7 @@ export const userQueries = {
 
   findByReferralCode: async (referralCode: string) => {
     const result = await db.query(
-      'SELECT id, email, "passwordHash", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE "referralCode" = $1',
+      'SELECT id, email, "passwordHash", "googleId", "googleEmail", "googleEmailVerified", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage" FROM "User" WHERE "referralCode" = $1',
       [referralCode]
     );
     return result.rows[0];
@@ -469,6 +499,25 @@ export const userQueries = {
       [name, handle, dobValue, phone, bio, profileImageValue, email]
     );
     
+    return result.rows[0];
+  },
+
+  findByGoogleId: async (googleId: string) => {
+    const result = await db.query(
+      'SELECT id, email, "passwordHash", "googleId", "googleEmail", "googleEmailVerified", handle, name, dob, phone, bio, active, "referralCode", "createdAt", "profileImage", "lastHandleChangeAt", "profileCompleted" FROM "User" WHERE "googleId" = $1',
+      [googleId]
+    );
+    return result.rows[0];
+  },
+
+  linkGoogleByEmail: async (email: string, googleId: string, googleEmail?: string, googleEmailVerified?: boolean) => {
+    const result = await db.query(
+      `UPDATE "User" 
+       SET "googleId" = $1, "googleEmail" = $2, "googleEmailVerified" = $3, active = true, "updatedAt" = $4
+       WHERE email = $5 
+       RETURNING *`,
+      [googleId, googleEmail || null, googleEmailVerified || false, new Date(), email]
+    );
     return result.rows[0];
   }
 
@@ -617,19 +666,19 @@ export const messageQueries = {
 export { db };
 
 export const otpQueries = {
-  create: async (email: string, codeHash: string, expiresAt: Date) => {
+  create: async (email: string, codeHash: string, expiresAt: Date, purpose: string) => {
     const id = generateBackendId.otp();
     const result = await db.query(
-      'INSERT INTO "OTP" (id, email, "codeHash", "expiresAt") VALUES ($1, $2, $3, $4) RETURNING *',
-      [id, email, codeHash, expiresAt]
+      'INSERT INTO "OTP" (id, email, purpose, "codeHash", "expiresAt") VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [id, email, purpose, codeHash, expiresAt]
     );
     return result.rows[0];
   },
 
-  findByEmail: async (email: string) => {
+  findByEmail: async (email: string, purpose: string) => {
     const result = await db.query(
-      'SELECT id, email, "codeHash", "expiresAt", "createdAt", used FROM "OTP" WHERE email = $1 ORDER BY "createdAt" DESC LIMIT 1',
-      [email]
+      'SELECT id, email, purpose, "codeHash", "expiresAt", "createdAt", used FROM "OTP" WHERE email = $1 AND purpose = $2 ORDER BY "createdAt" DESC LIMIT 1',
+      [email, purpose]
     );    
     return result.rows[0];
   },
@@ -639,9 +688,13 @@ export const otpQueries = {
     return result.rows[0];
   },
 
-  deleteByEmail: async (email: string) => {
-  await db.query(`DELETE FROM "OTP" WHERE email = $1`, [email.toLowerCase()]);
-}
+  deleteByEmail: async (email: string, purpose?: string) => {
+    if (purpose) {
+      await db.query('DELETE FROM "OTP" WHERE email = $1 AND purpose = $2', [email.toLowerCase(), purpose]);
+      return;
+    }
+    await db.query('DELETE FROM "OTP" WHERE email = $1', [email.toLowerCase()]);
+  }
 };
 
 // Public Twin Queries - Updated to use TwinProfile

@@ -19,7 +19,7 @@ import { PostgreSQLRateLimitStore } from './config/rateLimitStore'; // ✅ Impor
 import { formatRetryAfter } from './config/rateLimitConfig'; // ✅ Import formatRetryAfter for error messages
 
 const PgSession = connectPgSimple(session);
-//import googleAuthRoutes from './modules/auth/googleAuthRoutes';
+import googleAuthRoutes from './modules/auth/googleAuthRoutes';
 
 // Import API route modules
 import authRoutes from './modules/auth/authRoutes';
@@ -362,6 +362,8 @@ app.use(async (req, res, next) => {
           handle: req.user.handle,
           name: fullUser.name,
           profileImage: fullUser.profileImage || null,
+          hasPassword: !!fullUser.passwordHash,
+          hasGoogle: !!fullUser.googleId,
         };
       } else {
         res.locals.user = {
@@ -369,6 +371,8 @@ app.use(async (req, res, next) => {
           email: req.user.email,
           handle: req.user.handle,
           profileImage: null,
+          hasPassword: false,
+          hasGoogle: false,
         };
       }
     } catch (error) {
@@ -377,6 +381,8 @@ app.use(async (req, res, next) => {
         email: req.user.email,
         handle: req.user.handle,
         profileImage: null,
+        hasPassword: false,
+        hasGoogle: false,
       };
     }
   }
@@ -509,8 +515,7 @@ app.use('/', pageRoutes);
 
 // API Routes (JSON responses)
 app.use('/api/auth', authRoutes);
-// ✅ v2: Google OAuth routes - not needed in v1, not needed for mvp
-//app.use('/api/auth', googleAuthRoutes); // Add this line
+app.use('/api/auth', googleAuthRoutes);
 app.use('/api/twin', twinRoutes);
 app.use('/api/public-twin', publicTwinRoutes);
 app.use('/api/chat', chatRoutes);
