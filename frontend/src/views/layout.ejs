@@ -29,9 +29,27 @@
 <meta property="og:title" content="<%= typeof ogTitle !== 'undefined' ? ogTitle : title %>">
 <meta property="og:description" content="<%= typeof ogDescription !== 'undefined' ? ogDescription : (typeof metaDescription !== 'undefined' ? metaDescription : 'Create your twin that communicates in your unique style') %>">
 <meta property="og:type" content="<%= typeof ogType !== 'undefined' ? ogType : 'website' %>">
-<% if (typeof ogImage !== 'undefined' && ogImage) { %>
-    <meta property="og:image" content="<%= ogImage %>">
-<% } %>
+<% 
+// Ensure absolute URL for OG image
+let finalOgImage = '';
+if (typeof ogImage !== 'undefined' && ogImage) {
+    // If already absolute URL, use as is
+    if (ogImage.startsWith('http://') || ogImage.startsWith('https://')) {
+        finalOgImage = ogImage;
+    } else {
+        // Make it absolute
+        const base = typeof baseUrl !== 'undefined' ? baseUrl : (typeof req !== 'undefined' ? (req.protocol + '://' + req.get('host')) : 'https://selfylx.com');
+        finalOgImage = base + (ogImage.startsWith('/') ? ogImage : '/' + ogImage);
+    }
+} else {
+    // Default OG image
+    const base = typeof baseUrl !== 'undefined' ? baseUrl : (typeof req !== 'undefined' ? (req.protocol + '://' + req.get('host')) : 'https://selfylx.com');
+    finalOgImage = base + '/og-image.png';
+}
+%>
+<meta property="og:image" content="<%= finalOgImage %>">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:url" content="<%= typeof ogUrl !== 'undefined' ? ogUrl : (typeof baseUrl !== 'undefined' ? baseUrl + req.path : '') %>">
 <meta property="og:site_name" content="Selflyx">
 
@@ -39,9 +57,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="<%= typeof ogTitle !== 'undefined' ? ogTitle : title %>">
 <meta name="twitter:description" content="<%= typeof ogDescription !== 'undefined' ? ogDescription : (typeof metaDescription !== 'undefined' ? metaDescription : 'Create your twin') %>">
-<% if (typeof ogImage !== 'undefined' && ogImage) { %>
-    <meta name="twitter:image" content="<%= ogImage %>">
-<% } %>
+<meta name="twitter:image" content="<%= finalOgImage %>">
     <link rel="stylesheet" href="/css/output.css">
     <script src="/utils/timeUtils.js"></script>
     <script src="/utils/errorHandler.js"></script>
