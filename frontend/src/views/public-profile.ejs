@@ -7,7 +7,7 @@
     
     <!-- Open Graph Tags for Social Sharing -->
     <% 
-    const frontendUrl = typeof baseUrl !== 'undefined' ? baseUrl : (typeof req !== 'undefined' ? (req.protocol + '://' + req.get('host')) : 'https://selfylx.com');
+    const frontendUrl = typeof baseUrl !== 'undefined' ? baseUrl : (typeof req !== 'undefined' ? (req.protocol + '://' + req.get('host')) : 'https://selflyx.com');
     const ogTitle = twin && twin.publicHandle ? `@${twin.publicHandle} - Selflyx` : (userInfo && userInfo.handle ? `@${userInfo.handle} - Selflyx` : 'Selflyx');
     // Clean description - remove HTML tags and newlines, limit length
     let ogDescription = twin && twin.bio ? twin.bio : (twin && twin.sampleReply ? twin.sampleReply : 'Chat with this twin on Selflyx');

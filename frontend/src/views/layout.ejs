@@ -30,27 +30,32 @@
 <meta property="og:description" content="<%= typeof ogDescription !== 'undefined' ? ogDescription : (typeof metaDescription !== 'undefined' ? metaDescription : 'Create your twin that communicates in your unique style') %>">
 <meta property="og:type" content="<%= typeof ogType !== 'undefined' ? ogType : 'website' %>">
 <% 
-// Ensure absolute URL for OG image
+// Ensure absolute URL for OG image + URL
 let finalOgImage = '';
+const base = (typeof baseUrl !== 'undefined' && baseUrl)
+  ? baseUrl
+  : (typeof req !== 'undefined'
+      ? (req.protocol + '://' + req.get('host'))
+      : 'https://selflyx.com'); // ✅ fixed fallback domain
+
 if (typeof ogImage !== 'undefined' && ogImage) {
-    // If already absolute URL, use as is
-    if (ogImage.startsWith('http://') || ogImage.startsWith('https://')) {
-        finalOgImage = ogImage;
-    } else {
-        // Make it absolute
-        const base = typeof baseUrl !== 'undefined' ? baseUrl : (typeof req !== 'undefined' ? (req.protocol + '://' + req.get('host')) : 'https://selfylx.com');
-        finalOgImage = base + (ogImage.startsWith('/') ? ogImage : '/' + ogImage);
-    }
+  finalOgImage = (ogImage.startsWith('http://') || ogImage.startsWith('https://'))
+    ? ogImage
+    : base + (ogImage.startsWith('/') ? ogImage : '/' + ogImage);
 } else {
-    // Default OG image
-    const base = typeof baseUrl !== 'undefined' ? baseUrl : (typeof req !== 'undefined' ? (req.protocol + '://' + req.get('host')) : 'https://selfylx.com');
-    finalOgImage = base + '/og-image.png';
+  finalOgImage = base + '/og-image.png';
 }
+
+// Safer og:url (absolute, avoids req.path crash)
+const finalOgUrl =
+  (typeof ogUrl !== 'undefined' && ogUrl)
+    ? ogUrl
+    : (typeof req !== 'undefined' ? (base + req.originalUrl) : (base + '/'));
 %>
 <meta property="og:image" content="<%= finalOgImage %>">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="<%= typeof ogUrl !== 'undefined' ? ogUrl : (typeof baseUrl !== 'undefined' ? baseUrl + req.path : '') %>">
+<meta property="og:url" content="<%= finalOgUrl %>">
 <meta property="og:site_name" content="Selflyx">
 
 <!-- Twitter Card Tags -->
