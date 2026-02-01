@@ -27,12 +27,12 @@ const prodLimits = {
   // Critical auth flows - strict limits (OWASP recommended: 5-10 per 15 min)
   login: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 3, // 5 login attempts per 15 min per email/IP (stricter for security)
+    max: 5, // 5 login attempts per 15 min per email/IP (stricter for security)
   } as LimitConfig,
 
   googleOAuth: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 3, // 8 Google OAuth GET hits per 15 min per IP (prevents abuse)
+    max: 5, // 8 Google OAuth GET hits per 15 min per IP (prevents abuse)
   } as LimitConfig,
 
   otpRequest: {
