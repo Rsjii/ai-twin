@@ -77,7 +77,7 @@ export async function getProfile(req: any, res: Response) {
     };
     
     res.render('profile', {
-      title: 'Profile - Selflyx',
+      title: 'Profile - TwinOS',
       user: userWithDefaults,
       twin: twin,
       twinId: twin?.id || null,

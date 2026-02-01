@@ -24,7 +24,7 @@ export function getTwinCreate(req: any, res: Response) {
     return res.redirect('/auth');
   }
   res.render('twin_create', {
-    title: 'Create Twin - Selflyx',
+    title: 'Create Twin - TwinOS',
     user: res.locals.user || user, // ✅ ensures profileImage
     csrfToken: res.locals['csrfToken'],
   });
@@ -68,7 +68,7 @@ export async function getTwinAiEdit(req: any, res: Response) {
     };
 
     res.render('ai-edit', { 
-      title: 'AI Edit - Selflyx',
+      title: 'AI Edit - TwinOS',
       user,
       hasTwins: true,
       twinToken: twinToken,  // ✅ SECURITY: Use tokenized ID
@@ -132,7 +132,7 @@ export async function getTwinLearningDashboard(req: any, res: Response) {
     };
 
     res.render('twin-settings', { 
-      title: 'Twin Settings - Selflyx',
+      title: 'Twin Settings - TwinOS',
       user,
       hasTwins: true,
       twinToken: twinToken,  // ✅ SECURITY: Use tokenized ID

@@ -103,7 +103,7 @@ async function startServer() {
 
     // Start server
     const server = app.listen(config.port, () => {
-      logger.info(`🚀 Selflyx server running on port ${config.port}`);
+      logger.info(`🚀 TwinOS server running on port ${config.port}`);
       logger.info(`📊 Environment: ${config.nodeEnv}`);
       logger.info(`🔗 OpenAI API configured: ${config.openaiApiKey ? 'Yes' : 'No'}`);
       logger.info(`📧 Email configured: ${config.mail.smtp.user ? 'Yes' : 'No'}`);

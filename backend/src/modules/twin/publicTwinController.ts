@@ -820,7 +820,7 @@ const twin = twinResult.rows[0];
 
     // Render with twin data and optional initial chatId
     res.render('public-chat', { 
-      title: 'Public Chat - Selflyx',
+      title: 'Public Chat - TwinOS',
       user: user,
       twin: {
         ...twin,

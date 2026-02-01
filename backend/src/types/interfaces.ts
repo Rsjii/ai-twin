@@ -1,4 +1,4 @@
-// TypeScript Interfaces for Selflyx Project
+// TypeScript Interfaces for TwinOS Project
 
 // Express helpers
 import type { Request } from 'express';

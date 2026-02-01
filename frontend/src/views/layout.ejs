@@ -7,7 +7,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Selflyx">
+    <meta name="apple-mobile-web-app-title" content="TwinOS">
     <meta name="description" content="Create your twin that communicates in your unique style, tone, and personality">
     <meta name="theme-color" content="#6366f1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,7 +36,7 @@ const base = (typeof baseUrl !== 'undefined' && baseUrl)
   ? baseUrl
   : (typeof req !== 'undefined'
       ? (req.protocol + '://' + req.get('host'))
-      : 'https://selflyx.com'); // ✅ fixed fallback domain
+      : 'https://TwinOS.com'); // ✅ fixed fallback domain
 
 if (typeof ogImage !== 'undefined' && ogImage) {
   finalOgImage = (ogImage.startsWith('http://') || ogImage.startsWith('https://'))
@@ -56,7 +56,7 @@ const finalOgUrl =
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="<%= finalOgUrl %>">
-<meta property="og:site_name" content="Selflyx">
+<meta property="og:site_name" content="TwinOS">
 
 <!-- Twitter Card Tags -->
 <meta name="twitter:card" content="summary_large_image">
@@ -871,7 +871,7 @@ const finalOgUrl =
                     <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                         <span class="text-white font-bold text-sm">AI</span>
                     </div>
-                    <span class="text-xl font-bold text-gray-900 dark:text-white">Selflyx</span>
+                    <span class="text-xl font-bold text-gray-900 dark:text-white">TwinOS</span>
                 </a>
             </div>
             

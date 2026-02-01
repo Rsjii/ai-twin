@@ -27,22 +27,22 @@ const prodLimits = {
   // Critical auth flows - strict limits (OWASP recommended: 5-10 per 15 min)
   login: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 login attempts per 15 min per email/IP (stricter for security)
+    max: 3, // 5 login attempts per 15 min per email/IP (stricter for security)
   } as LimitConfig,
 
   googleOAuth: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 8, // 8 Google OAuth GET hits per 15 min per IP (prevents abuse)
+    max: 3, // 8 Google OAuth GET hits per 15 min per IP (prevents abuse)
   } as LimitConfig,
 
   otpRequest: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 OTP requests per 15 min per IP/email (OWASP standard: 3-5 per 15 min)
+    max: 3, // 5 OTP requests per 15 min per IP/email (OWASP standard: 3-5 per 15 min)
   } as LimitConfig,
 
   otpVerify: {
     windowMs: 10 * 60 * 1000, // 10 minutes
-    max: 5, // 5 OTP verification attempts per 10 min per email/IP (OWASP standard: 5-10 per 10 min)
+    max: 3, // 5 OTP verification attempts per 10 min per email/IP (OWASP standard: 5-10 per 10 min)
   } as LimitConfig,
 
   changePassword: {
@@ -73,17 +73,17 @@ const prodLimits = {
 
   publicChatAuth: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 150, // 150 messages per 15 minutes (~10 msg/min) for authenticated users (allows normal conversation)
+    max: 25, // 150 messages per 15 minutes (~10 msg/min) for authenticated users (allows normal conversation)
   } as LimitConfig,
 
   global: {
     windowMs: 15 * 60 * 1000,
-    max: 500, // 500 requests per 15 minutes (prevents abuse)
+    max: 300, // 500 requests per 15 minutes (prevents abuse)
   } as LimitConfig,
 
   api: {
     windowMs: 15 * 60 * 1000,
-    max: 500,// 500 requests per 15 minutes (prevents abuse)
+    max: 300,// 500 requests per 15 minutes (prevents abuse)
   } as LimitConfig,
 
   publicChatDailyAnon: {
@@ -121,24 +121,24 @@ const prodLimits = {
   // ✅ ADD: Contact form limits
   contactForm: {
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 2, // 2 submission per hour per IP/email (prevents spam)
+    max: 1, // 2 submission per hour per IP/email (prevents spam)
   } as LimitConfig,
 
   contactFormDaily: {
     windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    max: 5, // 5 submissions per day per IP (prevents abuse)
+    max: 2, // 5 submissions per day per IP (prevents abuse)
   } as LimitConfig,
 
   // ✅ ADD: Private chat message limit (logged-in)
   privateChatMessageAuth: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 150, // 150 messages per 15 minutes (aligns with publicChatAuth)
+    max: 30, // 150 messages per 15 minutes (aligns with publicChatAuth)
   } as LimitConfig,
 
   // ✅ ADD: Enhanced reply limit (logged-in) - heavier endpoint
   enhancedChatReplyAuth: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 150, // 150 enhanced replies per 15 minutes (heavier operation)
+    max: 30, // 150 enhanced replies per 15 minutes (heavier operation)
   } as LimitConfig,
 };
 

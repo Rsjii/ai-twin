@@ -163,7 +163,7 @@ export const TOKEN_QUOTAS = {
   ANON_DAILY_TOKENS: 10000,
 
   // Logged-in: daily cap (adjust as you want)
-  USER_DAILY_TOKENS: 80000,
+  USER_DAILY_TOKENS: 15000,
 } as const;
 
 // ✅ MEMORY LIMITS - Prevent memory overload in LLM prompts

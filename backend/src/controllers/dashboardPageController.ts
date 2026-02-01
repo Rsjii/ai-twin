@@ -202,7 +202,7 @@ export async function getDashboard(req: any, res: Response) {
     };
     
     res.render('dashboard', {
-      title: 'Dashboard - Selflyx',
+      title: 'Dashboard - TwinOS',
       user: user,
       pathname: '/dashboard',
       hasTwins: hasTwins,

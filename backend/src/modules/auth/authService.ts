@@ -52,14 +52,14 @@ export class EmailService {
                     <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                       <tr>
                         <td style="padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0;">
-                          <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">Selflyx</h1>
+                          <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">TwinOS</h1>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding: 40px 30px;">
                           <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 24px; font-weight: 600;">Verification Code</h2>
                           <p style="margin: 0 0 30px 0; color: #666666; font-size: 16px; line-height: 1.5;">
-                            ${type === 'signup' ? 'Welcome to Selflyx! Use this code to complete your signup:' : type === 'forgot' ? 'Use this code to reset your password:' : type === 'delete' ? 'Use this code to confirm account deletion:' : type === 'set_password' ? 'Use this code to set your password:' : 'Use this code to verify your login:'}
+                            ${type === 'signup' ? 'Welcome to TwinOS! Use this code to complete your signup:' : type === 'forgot' ? 'Use this code to reset your password:' : type === 'delete' ? 'Use this code to confirm account deletion:' : type === 'set_password' ? 'Use this code to set your password:' : 'Use this code to verify your login:'}
                           </p>
                           <div style="background-color: #f8f9fa; border: 2px dashed #667eea; border-radius: 8px; padding: 30px; text-align: center; margin: 30px 0;">
                             <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #667eea; font-family: 'Courier New', monospace;">
@@ -77,7 +77,7 @@ export class EmailService {
                       <tr>
                         <td style="padding: 30px; text-align: center; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
                           <p style="margin: 0; color: #999999; font-size: 12px;">
-                            © ${new Date().getFullYear()} Selflyx. All rights reserved.
+                            © ${new Date().getFullYear()} TwinOS. All rights reserved.
                           </p>
                         </td>
                       </tr>
@@ -93,7 +93,7 @@ export class EmailService {
           const result = await this.resend.emails.send({
             from: config.mail.from || 'onboarding@resend.dev',
             to: email,
-            subject: 'Your Selflyx Verification Code',
+            subject: 'Your TwinOS Verification Code',
             html: htmlContent,
           });
 
@@ -177,7 +177,7 @@ export class EmailService {
                     <tr>
                       <td style="padding: 30px; text-align: center; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
                         <p style="margin: 0; color: #999999; font-size: 12px;">
-                          © ${new Date().getFullYear()} Selflyx. All rights reserved.
+                          © ${new Date().getFullYear()} TwinOS. All rights reserved.
                         </p>
                       </td>
                     </tr>

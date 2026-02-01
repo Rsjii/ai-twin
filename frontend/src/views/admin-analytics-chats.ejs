@@ -208,7 +208,7 @@
                                     ${(chat.userHandle || chat.userEmail || 'C').charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                    <h4 class="text-lg font-semibold text-gray-900">Chat #${chat.id}</h4>
+                                    <h4 class="text-lg font-semibold text-gray-900">Chat #${(chat.publicId || '').slice(0, 16) || 'N/A'}</h4>
                                     <p class="text-sm text-gray-600">User: ${chat.userHandle || chat.userEmail}</p>
                                     <p class="text-sm text-gray-600">Twin: ${chat.twinName || chat.twinHandle || 'No Twin'}</p>
                                     <p class="text-xs text-gray-500 timestamp-display" data-timestamp="${chat.createdAt}" data-format="date" data-prefix="Started: "></p>
@@ -221,11 +221,11 @@
                                     <p class="text-xs text-gray-500">Messages</p>
                                 </div>
                                 <div class="text-center">
-                                    <p class="text-lg font-bold text-blue-600">${chat.id}</p>
+                                    <p class="text-lg font-bold text-blue-600">${(chat.publicId || '').slice(0, 16) || 'N/A'}</p>
                                     <p class="text-xs text-gray-500">Chat ID</p>
                                 </div>
                                 <div class="text-center">
-                                    <p class="text-lg font-bold text-green-600">${chat.twinId || 'N/A'}</p>
+                                    <p class="text-lg font-bold text-green-600">${(chat.publicTwinId || '').slice(0, 16) || 'N/A'}</p>
                                     <p class="text-xs text-gray-500">Twin ID</p>
                                 </div>
                                 <div class="flex space-x-2">
@@ -322,7 +322,7 @@
                 const response = await fetch(`/api/admin/analytics/chat/${chatId}/messages`);
                 if (!response.ok) {
                     // Fallback: try regular endpoint (may fail if not owner)
-                    const fallbackResponse = await fetch(`/api/chats/${chatId}/messages`);
+                    const fallbackResponse = await fetch(`/api/chat/${chatId}/messages`);
                     if (!fallbackResponse.ok) {
                         throw new Error('Chat not found or access denied');
                     }

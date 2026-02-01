@@ -37,7 +37,7 @@ export async function getAnalytics(req: any, res: Response) {
     const userTwinId = rawTwinId ? tokenizeId(rawTwinId, 'twin') : null;
     
     res.render('analytics', {
-      title: 'Analytics Dashboard - Selflyx',
+      title: 'Analytics Dashboard - TwinOS',
       user: user,
       pathname: '/analytics',
       userTwinId: userTwinId,
@@ -69,7 +69,7 @@ export async function getAdminAnalytics(req: any, res: Response) {
     }
 
     res.render('admin-analytics', {
-      title: 'Admin Analytics Dashboard - Selflyx',
+      title: 'Admin Analytics Dashboard - TwinOS',
       user: {
         id: fullUser.id,
         email: fullUser.email,
@@ -112,7 +112,7 @@ export async function getAdminAnalyticsPage(req: any, res: Response) {
     }
 
     res.render(`admin-analytics-${type}`, {
-      title: `Admin Analytics - ${type.charAt(0).toUpperCase() + type.slice(1)} - Selflyx`,
+      title: `Admin Analytics - ${type.charAt(0).toUpperCase() + type.slice(1)} - TwinOS`,
       user: {
         id: fullUser.id,
         email: fullUser.email,
@@ -149,7 +149,7 @@ export async function getEventExplorerPage(req: any, res: Response) {
     }
 
     res.render('admin-analytics-events', {
-      title: 'Admin Analytics - Events Explorer - Selflyx',
+      title: 'Admin Analytics - Events Explorer - TwinOS',
       user: {
         id: fullUser.id,
         email: fullUser.email,
@@ -185,7 +185,7 @@ export async function getActivityFeedPage(req: any, res: Response) {
     }
 
     res.render('admin-analytics-activity', {
-      title: 'Admin Analytics - Activity Feed - Selflyx',
+      title: 'Admin Analytics - Activity Feed - TwinOS',
       user: {
         id: fullUser.id,
         email: fullUser.email,

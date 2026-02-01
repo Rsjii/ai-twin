@@ -234,7 +234,7 @@
                                     <div class="message-content">
                                         <p class="text-sm text-gray-700 mb-2">${message.content ? message.content.substring(0, 200) + (message.content.length > 200 ? '...' : '') : 'No content'}</p>
                                         <div class="flex items-center space-x-4 text-xs text-gray-500">
-                                            <span>Chat ID: ${message.chatId}</span>
+                                            <span>Chat ID: ${(message.publicChatId || '').slice(0, 16) || 'N/A'}</span>
                                             <span>Twin: ${message.twinName || 'N/A'}</span>
                                             <span class="timestamp-display" data-timestamp="${message.createdAt}" data-format="context"></span>                                      
                                         </div>

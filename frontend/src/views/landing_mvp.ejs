@@ -20,7 +20,7 @@ var twinsJson = JSON.stringify(displayTwins);
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                     </svg>
                 </div>
-                <h1 class="text-5xl sm:text-6xl md:text-7xl font-bold">Selflyx</h1>
+                <h1 class="text-5xl sm:text-6xl md:text-7xl font-bold">TwinOS</h1>
             </div>
             
             <!-- Hero Tagline -->
@@ -112,6 +112,7 @@ var twinsJson = JSON.stringify(displayTwins);
             -ms-overflow-style: none;
             padding: 20px 0;
             position: relative;
+            -webkit-overflow-scrolling: touch; /* iOS smooth horizontal scroll */
         }
         
         .twins-carousel-container::-webkit-scrollbar {
@@ -547,22 +548,27 @@ var twinsJson = JSON.stringify(displayTwins);
         }, { passive: true });
 
         // ✅ Mobile: pause while finger is down (and suppress click after swipe)
+        // ✅ Also: stopPropagation so global swipe menu (layout.ejs) doesn't hijack carousel swipe
         var touchMoved = false;
         var touchStartX = 0;
         var touchStartY = 0;
 
         carousel.addEventListener('touchstart', function (e) {
+            if (e && e.stopPropagation) e.stopPropagation();
             if (!e.touches || !e.touches[0]) return;
+
             touchMoved = false;
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
 
             isUserInteracting = true;
-            pauseAutoScrollFor(2000);
+            pauseAutoScrollFor(800);
         }, { passive: true });
 
         carousel.addEventListener('touchmove', function (e) {
+            if (e && e.stopPropagation) e.stopPropagation();
             if (!e.touches || !e.touches[0]) return;
+
             var dx = e.touches[0].clientX - touchStartX;
             var dy = e.touches[0].clientY - touchStartY;
 
@@ -570,9 +576,22 @@ var twinsJson = JSON.stringify(displayTwins);
             if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) touchMoved = true;
         }, { passive: true });
 
-        function endTouch() {
+        function endTouch(e) {
+            if (e && e.stopPropagation) e.stopPropagation();
+
             isUserInteracting = false;
-            if (touchMoved) lastDragAt = Date.now(); // reuse your existing click-suppress logic
+
+            // If user swiped, block accidental click + snap nicely
+            if (touchMoved) {
+                lastDragAt = Date.now();
+
+                if (snapTimer) clearTimeout(snapTimer);
+                snapTimer = setTimeout(function () {
+                    normalizeInfinite();
+                    snapToNearestOnEnd();
+                }, 80);
+            }
+
             touchMoved = false;
         }
 

@@ -128,7 +128,6 @@
                         <option value="chatCount">Sort by Chats</option>
                         <option value="followCount">Sort by Follows</option>
                         <option value="messageCount">Sort by Messages</option>
-                        <option value="eventCount">Sort by Events</option>
                         <option value="name">Sort by Name</option>
                     </select>
                     <select id="sortOrder" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
@@ -227,7 +226,7 @@
                                     <h4 class="text-lg font-semibold text-gray-900">${twin.name || twin.publicHandle || 'Unnamed Twin'}</h4>
                                     <p class="text-sm text-gray-600">Owner: ${twin.userHandle || twin.userEmail}</p>
                                     <p class="text-xs text-gray-500 timestamp-display" data-timestamp="${twin.createdAt}" data-format="date" data-prefix="Created: "></p>                                    
-                                    <p class="text-xs text-gray-500">ID: ${twin.id}</p>
+                                    <p class="text-xs text-gray-500">ID: ${(twin.publicId || '').slice(0, 16) || 'N/A'}</p>
                                 </div>
                             </div>
                             <div class="flex items-center space-x-6">
@@ -242,10 +241,6 @@
                                 <div class="text-center">
                                     <p class="text-lg font-bold text-purple-600">${twin.messageCount || 0}</p>
                                     <p class="text-xs text-gray-500">Messages</p>
-                                </div>
-                                <div class="text-center">
-                                    <p class="text-lg font-bold text-orange-600">${twin.eventCount || 0}</p>
-                                    <p class="text-xs text-gray-500">Events</p>
                                 </div>
                                 <div class="flex space-x-2">
 <button 
